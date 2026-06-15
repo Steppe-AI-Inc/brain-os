@@ -5,8 +5,9 @@
 > An AI Operating System so simple your grandma could run a company with it,
 > and so powerful that a serious operator can scale a multi-agent business on top of it.
 
-[![Status](https://img.shields.io/badge/status-phase%202%20complete-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-270%20passing-brightgreen)]()
+[![Status](https://img.shields.io/badge/status-MVP%20launch--ready-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-437%20passing-brightgreen)]()
+[![Stack](https://img.shields.io/badge/stack-PG18%20·%20TS6%20·%20React19%20·%20Node24-2496ED)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Local-first](https://img.shields.io/badge/local--first-yes-brightgreen)]()
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED)]()
@@ -70,30 +71,36 @@
 
 ## ⚡ What's built today
 
-> **End of Phase 2 (local-first development).** Phase 3 (cloud) and Phase 4 (UI) are next.
+> **MVP launch-ready.** Phases 0–9 shipped — local-first core → real workforce →
+> memory layers → React operator console → Supabase auth → Stripe billing →
+> one-command cloud deploy. The full UI in the tour above is live in
+> `apps/website`. Only **E2B** secure sandboxes remain (deferred to the VPS
+> deploy — needs `/dev/kvm`).
 
 | | |
 |---|---|
-| Source files | ~6 100 |
-| Tests | **270 passing** (193 paperclip + 31 CLI + 24 hermes + 17 langgraph + 5 graphiti) |
-| API endpoints | 29 route files in `apps/paperclip/src/routes/` |
+| Tests | **437 passing** (282 paperclip + 51 openclaw + 31 CLI + 24 hermes + 17 langgraph + 16 gbrain + 11 email-ingest + 5 graphiti) |
+| API endpoints | 39 route files in `apps/paperclip/src/routes/` |
 | CLI commands | 49 dispatch cases in `bc help` |
-| Docs | 38 markdown files in `docs/` |
-| Database tables | ~30 across `core` / `ops` / `brain` schemas |
+| Docs | 42 markdown files in `docs/` |
+| Database tables | 36 across `core` / `ops` / `brain` / `billing` schemas |
+| Stack | Postgres 18 · TypeScript 6 · React 19 · Vite 8 · Node 24 · Python 3.13 |
 
-**What's in the box** — running services + the latest local-first features:
+**What's in the box** — every running service + shipped capability:
 
-- 🧠 **Memory** — `gbrain` semantic recall + Qdrant + `Graphiti` temporal graph
+- 🖥 **Operator console** — Vite + React goal-command-centre (the product tour above), on the BlankCollar design system
+- 🧠 **Memory** — `gbrain` semantic recall + Qdrant + `Graphiti` temporal graph + per-goal context + run wrap-ups
 - 👥 **Workforce** — Hermes (reasoning) + OpenClaw (tools/web) + LangGraph (dispatcher)
 - 🎯 **Goal-first orchestrator** — Paperclip with goal kinds, KRs, captures, briefings, inbox
+- 🔐 **Auth & tenancy** — Supabase JWT (JWKS / ES256), invites, RLS strict-by-default
+- 💳 **Billing** — Stripe Checkout + webhook materialization + per-tier gates
+- 📱 **Channels** — Telegram bot (capture → agent → reply in chat); Slack / WhatsApp next
+- ☁️ **Cloud deploy** — one-command VPS install, Caddy auto-TLS, headless "personal" mode
 - 🛠 **Skills + Tools** — YAML manifests + MCP client (stdio) + boot-time tool probe
 - 🔍 **Policy engine** — gates every skill call: `allow | approve | deny`
 - 🎬 **Simulation** — `bc dispatch --simulate` previews any run before firing side effects
-- 📥 **Document ingestion** — `bc doc add` files / URLs into the brain (chunked, deduped)
-- 🔄 **Upstream auto-pull** — register URLs; the scheduler keeps them fresh
-- 💸 **Payment safety** — settings, per-agent caps, kill switch (Stripe connector deferred)
+- 📥 **Ingestion** — files / URLs into the brain (chunked, deduped) + registered upstream auto-pull
 - 📊 **Observability** — every LLM call routed through Portkey, every tool/run/audit logged
-- 🔒 **Tenant isolation** — RLS strict-by-default; unscoped queries return 0 rows
 - 📝 **Feedback loop** — rate any run 1-5 + tags + notes, fed into the audit/level-up pass
 
 **Full inventory** with every file, table, command, and deferred item: [`docs/STATUS.md`](docs/STATUS.md).
@@ -473,12 +480,12 @@ development.
 | 3     | First real workforce                   | ✅ Hermes + OpenClaw + LangGraph, web skills, Nango, Graphiti           |
 | 3.5   | Backend tightening                     | ✅ Goal kinds, captures, briefings, inbox, scheduler, RLS, Four Cs, Skills Engine, Routines Engine, Onboarding, Self-Improvement, Knowledge wiki, payments primitives |
 | **2.0–2.6** | **Local-first development pass** | ✅ **Portkey AI gateway + MCP client + simulation/feedback + document ingestion + upstream auto-pull + RLS strict flip** |
-| 3     | Cloud migration                        | not started — Hetzner / Supabase / Neo4j Aura / Coolify / RunPod       |
-| 4     | Goal Command Centre                    | not started — Vite + React console replaces htmx dashboard             |
-| 5     | Intelligence layer                     | partial — skills/tools/policy/approvals shipped; MCP-server-mode left  |
-| 6     | Auth & multi-tenancy                   | not started — Supabase JWT enforcement + invite flows                  |
-| 7     | Payments & onboarding                  | not started — Stripe billing UI + onboarding wizard                    |
-| 8     | Public launch                          | not started — www.blankcollar.ai + skill marketplace                   |
+| 3c    | Cloud migration                        | ✅ Coolify / Caddy auto-TLS / Hostinger + one-command `personal-deploy.sh`  |
+| 4     | Goal Command Centre                    | ✅ Vite + React console on the BlankCollar design system — replaces htmx    |
+| 5     | Intelligence layer                     | ✅ skills / tools / policy / approvals shipped; MCP-server-mode left        |
+| 6     | Auth & multi-tenancy                   | ✅ Supabase JWT (JWKS / ES256) + invites + RLS enforcement                  |
+| 7     | Payments & onboarding                  | ✅ Stripe Checkout + webhook materialization + onboarding wizard           |
+| 8     | Public launch                          | 🚧 marketing live at blankcollar.ai; app deploy + skill marketplace next   |
 | 9     | Agent payments (outbound)              | partial — safety primitives shipped; Stripe connector + Finance Agent left |
 
 > 📚 Full roadmap: [`docs/ROADMAP.md`](docs/ROADMAP.md) · Today's inventory: [`docs/STATUS.md`](docs/STATUS.md)

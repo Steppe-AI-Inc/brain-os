@@ -31,7 +31,7 @@ make up              # http://localhost:3000  ← website
 
 ```
 apps/website/
-├── index.html               # Vite entry (Geist + Instrument Serif preconnects)
+├── index.html               # Vite entry (Manrope + JetBrains Mono; PP Neue Machina self-hosted)
 ├── vite.config.ts
 ├── tsconfig.json
 ├── Dockerfile               # node:22 build → nginx:alpine runtime
