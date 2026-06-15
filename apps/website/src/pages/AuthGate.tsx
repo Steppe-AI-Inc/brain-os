@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { BrandLockup } from "../icons";
 import { useAuth } from "../lib/auth";
 
 /**
@@ -78,10 +79,7 @@ export function AuthGate() {
         }}
       >
         <div className="brand" style={{ height: "auto", padding: 0, border: 0, marginBottom: 24 }}>
-          <div className="brand-mark" />
-          <div className="brand-name" style={{ fontSize: 18 }}>
-            blankcollar<span>.ai</span>
-          </div>
+          <BrandLockup monoSize={26} fontSize={18} />
         </div>
 
         <div className="serif" style={{ fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", marginBottom: 6 }}>

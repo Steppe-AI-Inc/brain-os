@@ -1,6 +1,6 @@
 import type { Whoami } from "@blankcollar/shared";
 
-import { I, ChannelMark, type IconName } from "../icons";
+import { I, ChannelMark, BrandLockup, type IconName } from "../icons";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useFetch } from "../lib/useFetch";
@@ -62,14 +62,13 @@ export function Sidebar({ page, setPage, role }: Props) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark" />
-        <div className="brand-name">
-          blankcollar<span>.ai</span>
-        </div>
+        <BrandLockup monoSize={22} fontSize={15} />
       </div>
 
       <div className="org-switcher" title="Switch organization">
-        <div className="org-mark">{orgInitials}</div>
+        <div className="org-mark" aria-label={orgInitials}>
+          <i /><i /><i /><i />
+        </div>
         <div className="org-info">
           <div className="name">{orgName}</div>
           <div className="meta">{subline}</div>

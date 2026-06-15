@@ -165,3 +165,41 @@ export const Sigil = ({ seed = "A", size = 32 }: { seed?: string; size?: number 
   }
   return <svg viewBox="0 0 32 32" width={size} height={size}>{inner}</svg>;
 };
+
+/* Official blankcollar.ai sub-brand lockup — the `//` double-slash mark.
+   Per the BlankCollar master design system, the AI division's mark is the
+   pink + lime double slash on an ink tile (the 2×2 monogram is the VC
+   division; the equals-bar is University). Wordmark is lowercase
+   "blankcollar" in the display face with a fog-grey " / AI" suffix. */
+export const AIMark = ({ size = 22 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    style={{ flexShrink: 0, display: "block" }}
+    aria-hidden="true"
+  >
+    <rect width="100" height="100" fill="#000000" />
+    <path d="M54 20 L34 80" stroke="#FF1F8F" strokeWidth="13" />
+    <path d="M74 20 L54 80" stroke="#D6F41F" strokeWidth="13" />
+  </svg>
+);
+
+export const BrandLockup = ({
+  monoSize = 22,
+  fontSize = 15,
+  gap = 10,
+  suffix = "AI",
+}: {
+  monoSize?: number;
+  fontSize?: number;
+  gap?: number;
+  suffix?: string;
+}) => (
+  <span className="bc-lockup" style={{ gap }}>
+    <AIMark size={monoSize} />
+    <span className="bc-wordmark" style={{ fontSize }}>
+      blankcollar<span className="sl"> / </span><span className="sx">{suffix}</span>
+    </span>
+  </span>
+);
