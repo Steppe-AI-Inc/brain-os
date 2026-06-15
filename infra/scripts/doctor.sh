@@ -30,7 +30,6 @@ fi
 PG_PORT=${POSTGRES_PORT:-5432}
 QD_PORT=${QDRANT_HTTP_PORT:-6333}
 PC_PORT=${PAPERCLIP_PORT:-3001}
-PR_PORT=${PAPERCLIP_REAL_PORT:-3100}
 WS_PORT=${WEBSITE_PORT:-3000}
 HM_PORT=${HERMES_PORT:-8001}
 OC_PORT=${OPENCLAW_PORT:-8002}
@@ -80,7 +79,7 @@ check_container_health() {
           bad "$name still starting after 180s — check: docker logs $name"
           return
         fi
-        if [ "$waited" -eq 0 ]; then printf "   (waiting for $name healthcheck to finalize) "; fi
+        if [ "$waited" -eq 0 ]; then printf '   (waiting for %s healthcheck to finalize) ' "$name"; fi
         printf "."
         sleep 5
         waited=$((waited + 5))

@@ -46,10 +46,10 @@ ask() {
   local suffix=""
   [[ -n "$default" ]] && suffix=" [$default]"
   if [[ "$hidden" == "hidden" ]]; then
-    read -r -s -p "  $prompt$suffix: " "$var" < /dev/tty || true
+    read -r -s -p "  $prompt$suffix: " "${var?}" < /dev/tty || true
     echo
   else
-    read -r -p "  $prompt$suffix: " "$var" < /dev/tty || true
+    read -r -p "  $prompt$suffix: " "${var?}" < /dev/tty || true
   fi
   if [[ -z "${!var}" && -n "$default" ]]; then
     printf -v "$var" '%s' "$default"
@@ -57,7 +57,6 @@ ask() {
 }
 
 REPO_DIR=/root/code/blankcollar-agentic-os
-RAW=https://raw.githubusercontent.com/The-Blank-Collar/blankcollar-agentic-os/main
 
 # -----------------------------------------------------------------------------
 step "1/8  Parking the template's Traefik (it holds ports 80/443)"

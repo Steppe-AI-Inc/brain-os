@@ -174,6 +174,7 @@ if [ -z "$missing" ]; then
     ok "every \${VAR} in compose has a matching env entry"
 else
     fail "compose vars missing from env:"
+    # shellcheck disable=SC2086  # intentional: split the list so each var prints on its own line
     printf '    %s\n' $missing >&2
 fi
 
