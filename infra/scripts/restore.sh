@@ -96,12 +96,12 @@ fi
 # ----- Qdrant volume --------------------------------------------------------
 if [ -f "$WORK/qdrant_data.tar.gz" ]; then
     echo "→ restore bc_qdrant_data (brief stop)"
-    docker inspect bc_qdrant >/dev/null 2>&1 && docker stop bc_qdrant >/dev/null || true
+    if docker inspect bc_qdrant >/dev/null 2>&1; then docker stop bc_qdrant >/dev/null || true; fi
     docker run --rm \
         -v bc_qdrant_data:/dest \
         -v "$WORK":/src \
         alpine sh -c "rm -rf /dest/* /dest/.[!.]* 2>/dev/null; tar -xzf /src/qdrant_data.tar.gz -C /dest" >/dev/null
-    docker inspect bc_qdrant >/dev/null 2>&1 && docker start bc_qdrant >/dev/null || true
+    if docker inspect bc_qdrant >/dev/null 2>&1; then docker start bc_qdrant >/dev/null || true; fi
     echo "  ok"
 else
     echo "! no qdrant_data.tar.gz in tarball — skipped"
@@ -110,12 +110,12 @@ fi
 # ----- Neo4j volume ---------------------------------------------------------
 if [ -f "$WORK/neo4j_data.tar.gz" ]; then
     echo "→ restore bc_neo4j_data (brief stop)"
-    docker inspect bc_neo4j >/dev/null 2>&1 && docker stop bc_neo4j >/dev/null || true
+    if docker inspect bc_neo4j >/dev/null 2>&1; then docker stop bc_neo4j >/dev/null || true; fi
     docker run --rm \
         -v bc_neo4j_data:/dest \
         -v "$WORK":/src \
         alpine sh -c "rm -rf /dest/* /dest/.[!.]* 2>/dev/null; tar -xzf /src/neo4j_data.tar.gz -C /dest" >/dev/null
-    docker inspect bc_neo4j >/dev/null 2>&1 && docker start bc_neo4j >/dev/null || true
+    if docker inspect bc_neo4j >/dev/null 2>&1; then docker start bc_neo4j >/dev/null || true; fi
     echo "  ok"
 else
     echo "! no neo4j_data.tar.gz in tarball — skipped"

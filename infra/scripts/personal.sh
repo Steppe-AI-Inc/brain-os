@@ -154,7 +154,7 @@ if grep -qE "^PAPERCLIP_DEFAULT_ORG_SLUG=" "$ENV_FILE" 2>/dev/null; then
 else
   printf '\nPAPERCLIP_DEFAULT_ORG_SLUG=%s\n' "$PERSONAL_ORG_SLUG" >> "$ENV_FILE"
 fi
-(cd "$ROOT_DIR" && docker compose stop paperclip >/dev/null 2>&1 || true)
+(cd "$ROOT_DIR" && docker compose stop paperclip >/dev/null 2>&1) || true
 (cd "$ROOT_DIR" && docker compose up -d paperclip)
 
 cat <<EOF
