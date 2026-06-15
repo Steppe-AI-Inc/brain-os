@@ -9,7 +9,7 @@ import type {
   InboxSummary,
 } from "@blankcollar/shared";
 
-import { I, Sigil } from "../icons";
+import { I, Sigil, BrandLockup } from "../icons";
 import { api } from "../lib/api";
 import { progressPercent, relativeTime } from "../lib/format";
 import { useFetch } from "../lib/useFetch";
@@ -64,6 +64,21 @@ function PhoneFrame({ children }: { children: React.ReactNode }) {
         flexDirection: "column",
       }}
     >
+      <div
+        style={{
+          flexShrink: 0,
+          height: 48,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 18px",
+          borderBottom: "1px solid var(--line)",
+          background: "var(--bg)",
+        }}
+      >
+        <BrandLockup monoSize={20} fontSize={13} />
+        <span className="live-tag"><span className="dot live" />live</span>
+      </div>
       {children}
     </div>
   );

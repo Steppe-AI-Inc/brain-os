@@ -17,7 +17,38 @@
 
 ---
 
+## 📸 Product tour
+
+> The operator console — Swiss-editorial, dark-first, built on the **BlankCollar
+> design system** (PP Neue Machina · Manrope · JetBrains Mono). The brand duality
+> runs through the whole product: **pink = the human**, **lime = the machine**.
+> Screens below are the demo studio.
+
+![Dashboard — editorial briefing, attention queue, active goals, live agents](docs/screenshots/dashboard.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/company-brain.png" alt="Company Brain — temporal knowledge graph" /><br /><sub><b>Company Brain</b> — interactive memory constellation</sub></td>
+    <td width="50%"><img src="docs/screenshots/goal-detail.png" alt="Goal detail — key results and narrated heartbeat" /><br /><sub><b>Goal detail</b> — key results + narrated heartbeat</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/board.png" alt="Board — kanban with blockers" /><br /><sub><b>Board</b> — backlog → in progress → blocked → done</sub></td>
+    <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings — governance, budgets, policies" /><br /><sub><b>Settings</b> — governance, budgets, agent policies</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="Mobile companion — glance, decide, voice your team" width="300" />
+  <br /><sub><b>Mobile companion</b> — glance at status, decide what's blocked, voice your team</sub>
+</p>
+
+<sub>More views: <a href="docs/screenshots/team.png">Team</a> · <a href="docs/screenshots/skills.png">Skills</a> · <a href="docs/screenshots/activity.png">Activity</a> · <a href="docs/screenshots/dashboard-light.png">Light mode</a></sub>
+
+---
+
 ## 📖 Table of Contents
+
+0. [Product tour](#-product-tour)
 
 1. [What's built today](#-whats-built-today)
 2. [What is Blank Collar?](#-what-is-blank-collar)

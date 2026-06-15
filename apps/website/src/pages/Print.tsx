@@ -1,5 +1,6 @@
 import { useEffect, type ReactElement } from "react";
 
+import { AIMark, BrandLockup } from "../icons";
 import { Sidebar } from "../shell/Sidebar";
 import { Topbar } from "../shell/Topbar";
 import { Dashboard } from "./Dashboard";
@@ -54,9 +55,9 @@ export function Print({ autoPrint = true }: { autoPrint?: boolean }) {
       {/* Cover */}
       <section className="print-page print-cover">
         <div className="print-cover-grid">
-          <div className="brand-mark big" />
+          <AIMark size={56} />
           <div className="editorial-eyebrow" style={{ marginTop: 24 }}>
-            Blank Collar · Agentic OS
+            blankcollar.ai · Agentic OS
           </div>
           <h1 className="print-cover-title">
             The agentic<br />company OS.
@@ -80,9 +81,9 @@ export function Print({ autoPrint = true }: { autoPrint?: boolean }) {
         <section key={i} className="print-page">
           <div className="print-frame">
             <div className="print-chrome">
-              <div className="brand-mark" />
-              <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
-                The Blank Collar / OS
+              <BrandLockup monoSize={18} fontSize={12} />
+              <span className="mono" style={{ fontSize: 11, color: "var(--muted)", marginLeft: 4 }}>
+                Agentic OS
               </span>
               <span
                 className="mono"

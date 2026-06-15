@@ -75,9 +75,9 @@ export const company = {
 
 export const you: Human = {
   id: "you",
-  name: "Lior Avraham",
+  name: "John Avraham",
   role: "Founder",
-  initials: "LA",
+  initials: "JA",
   human: true,
 };
 
@@ -218,7 +218,7 @@ export const heartbeats: Heartbeat[] = [
 ];
 
 export const brainNodes: BrainNode[] = [
-  { id: "you", label: "Lior Avraham", kind: "person", x: 50, y: 48, size: 14 },
+  { id: "you", label: "John Avraham", kind: "person", x: 50, y: 48, size: 14 },
   { id: "h1", label: "Mira Sokolov", kind: "person", x: 36, y: 36, size: 9 },
   { id: "h2", label: "Daniel Park", kind: "person", x: 64, y: 60, size: 9 },
   { id: "a1", label: "Aster", kind: "agent", x: 26, y: 22, size: 9 },
