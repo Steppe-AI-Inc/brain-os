@@ -12,8 +12,8 @@
 [![Local-first](https://img.shields.io/badge/local--first-yes-brightgreen)]()
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED)]()
 
-- 🌐 Future home: [www.blankcollar.ai](https://www.blankcollar.ai)
-- 📧 Future agent inbox: `agent@blankcollar.ai`
+- 🌐 Live: [www.blankcollar.ai](https://www.blankcollar.ai)
+- 📧 Agent inbox: `agent@blankcollar.ai`
 - 👤 Owner: Kristian Kabashi — [www.theblankcollar.com](https://www.theblankcollar.com)
 
 ---
@@ -169,7 +169,7 @@ The same data model serves both; the difference is which scopes are populated. S
 ```
                       ┌──────────────────────────────────┐
                       │        Goal Command Centre       │   ← human-facing UX
-                      │  (Paperclip dashboard, future)   │      "manage goals"
+                      │  (Paperclip + React console)     │      "manage goals"
                       └─────────────────┬────────────────┘
                                         │
                       ┌─────────────────▼────────────────┐
@@ -212,8 +212,8 @@ The same data model serves both; the difference is which scopes are populated. S
 | Connectors       | **Nango**             | OAuth gateway (400+ services) — Google Workspace wired today                                 | ✅ |
 | Vector store     | **Qdrant**            | Embeddings + similarity search                                                               | ✅ on `:6333` |
 | Relational store | **PostgreSQL 18**     | Structured state, RLS strict-by-default, ~30 tenant-scoped tables                            | ✅ on `:5432` |
-| Auth (future)    | **Supabase**          | Hosted auth + role management (Phase 6)                                                       | server-side ready |
-| Payments (future)| **Stripe**            | Inbound billing (Phase 7) + outbound spend (Phase 9 — safety primitives shipped)             | webhook + safety table ready |
+| Auth             | **Supabase**          | JWT (JWKS / ES256), invites, RLS strict-by-default                                            | ✅ |
+| Payments         | **Stripe**            | Checkout + webhook materialization + per-tier gates; outbound spend safety primitives ready  | ✅ inbound; outbound primitives ready |
 | Local platform   | **Docker Compose**    | One command to run the entire stack                                                           | ✅ |
 
 > Each component lives in its own folder under `apps/` or `packages/` and is **swappable**.
@@ -541,7 +541,7 @@ The full documentation set lives in [`docs/`](docs/). Use this map to find what 
 - [`docs/QA_CHECKLIST.md`](docs/QA_CHECKLIST.md) — Before-merge gate.
 - [`docs/TESTING.md`](docs/TESTING.md) — Phased testing strategy.
 - [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) — Logs, metrics, traces, audit log, cost.
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Self-host + future hosted shape.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Self-host + hosted deployment paths.
 - [`docs/PAPERCLIP_REAL.md`](docs/PAPERCLIP_REAL.md) — The upstream paperclipai command centre at :3100, alongside our custom orchestrator at :3000.
 - [`docs/HETZNER_DEPLOY.md`](docs/HETZNER_DEPLOY.md) — Beginner-shaped Hetzner Cloud + Coolify playbook for production deploy.
 - [`docs/HOSTINGER_DEPLOY.md`](docs/HOSTINGER_DEPLOY.md) — Older reference for a Hostinger KVM 8 deploy (kept for archival; Hetzner is the recommended path).
@@ -555,7 +555,7 @@ The full documentation set lives in [`docs/`](docs/). Use this map to find what 
 ## 🤝 Contributing
 
 This is currently a solo build by Kristian, but contributions will open as the project
-matures. See `CONTRIBUTING.md` (coming soon).
+matures. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 **Working agreement for AI collaborators (Claude / Cursor / etc.):**
 1. Read `docs/ARCHITECTURE.md` and `docs/GOAL_FIRST.md` before changing anything structural.
