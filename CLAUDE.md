@@ -1,6 +1,13 @@
 # SEM Brain
 
+> **Read `MASTER_CONTEXT.md` first** — this repo now has 3 parallel tracks (this branch's
+> old app + the Next.js rewrite under `/web`, the `blankcollar` branch, and a pending
+> third track). This file covers the old vanilla-JS app specifically; `/web`'s own
+> conventions belong in a `web/CLAUDE.md` if one is added later.
+
 AI-native operating system for a founder managing multiple companies (SEM Technologies parent + subsidiaries: OpenSpot/Steppe AI, SEM Global Robotics, SEM Mongolia, Fuelmetrix, EVM, Tradebook, IQParking). Chat-first: the founder gives outcomes ("fix this", "close this customer"), AI decomposes into tasks, assigns agents/humans, executes safe repetitive work, and escalates only exceptions/decisions/blockers. Menus are for inspection/audit/approval, not primary interaction.
+
+**Status as of 2026-08-24**: the founder has since commissioned a full Next.js rewrite (`/web`, live at the URL in `MASTER_CONTEXT.md`) specifically to add real authentication, which this old app never had. The rewrite is now the primary path for new feature work; this old app stays deployed but in maintenance mode. The "recommended architecture / do-not-touch" guidance below was written *before* that decision and applies to this old app's own codebase only — it does not mean don't touch `/web`.
 
 ## Product philosophy (do not violate)
 
@@ -30,11 +37,11 @@ Until the core production loop (chat → work order → task → approval → co
 - Change `styles.css` / the liquid-glass visual design without being asked.
 - Change the patch-only protocol process itself (only add tooling around it).
 - Modify the RLS helper functions (`is_founder_or_admin`, `has_company_access`, `is_company_manager`, etc. in the Supabase migrations) — they're correctly implemented (`SECURITY DEFINER`, explicit `search_path`, no recursion risk). Only the *policies calling them* should change, not the functions.
-- Do a framework migration (React/Next.js) as a default move — see Recommended architecture below.
+- ~~Do a framework migration (React/Next.js) as a default move~~ — **superseded**: the founder explicitly requested and approved exactly this (see `MASTER_CONTEXT.md` and the `/web` directory). Left here so the history of the decision isn't lost, not as current guidance.
 
 ## Recommended architecture direction
 
-Keep modular vanilla JS as the UI layer. Do not rewrite to React/Next.js by default — the current problems are security/wiring gaps, not a framework limitation, and a rewrite violates the patch-only principle. If a build step is introduced, keep it minimal (e.g. Vite config-only) purely to enable `@supabase/supabase-js`, a real test runner, and env-based config — not to change the module pattern.
+Superseded by the Next.js rewrite (`/web`) for new work — see `MASTER_CONTEXT.md`. This old app's own vanilla-JS module pattern below is accurate for *this* codebase and worth knowing if you're doing maintenance here, but isn't the direction for new features anymore.
 
 ## Patch-only protocol
 
