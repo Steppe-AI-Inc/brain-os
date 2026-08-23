@@ -8,6 +8,7 @@ SEM.Store = (() => {
     settings: {
       aiMode: 'fallback',
       aiEndpoint: '/api/ai-command',
+      aiCommandClientKey: '',
       modelSmall: 'gpt-4.1-mini',
       modelMedium: 'gpt-4.1-mini',
       modelStrong: 'gpt-5.5-thinking',

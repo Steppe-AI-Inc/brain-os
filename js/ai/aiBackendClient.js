@@ -6,7 +6,7 @@ SEM.AIBackend = (() => {
     const endpoint = settings.aiEndpoint || '/api/ai-command';
     const res = await fetch(endpoint, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json', 'x-sem-ai-key': settings.aiCommandClientKey || ''},
       body:JSON.stringify({ command, contextPack, tokenPlan, appVersion: SEM.Store.get().version })
     });
     const text = await res.text();

@@ -1,5 +1,20 @@
 // Vercel Serverless Function: /api/ai-command
 // Keep OPENAI_API_KEY in Vercel environment variables. Never expose it in browser code.
+import { timingSafeEqual } from 'node:crypto';
+
+// This endpoint has no user session (unlike supabase/functions/sem-ai-command, which
+// checks a real per-user Supabase JWT) — without some check, anyone who finds this URL
+// can burn the project's OpenAI budget with arbitrary prompts. AI_COMMAND_SHARED_SECRET
+// is a stop-gap, not real per-user auth: fails closed if unset, and rejects requests
+// whose x-sem-ai-key header doesn't match, using a constant-time comparison.
+function verifySharedSecret(providedKey) {
+  const expected = process.env.AI_COMMAND_SHARED_SECRET;
+  if (!expected) return false;
+  const a = Buffer.from(String(providedKey || ''));
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 const SYSTEM_PROMPT = `You are SEM Brain Real AI Backend v0.6.
 You convert one founder command into small atomic tasks for a multi-company operating brain.
@@ -46,6 +61,7 @@ function extractText(responseJson) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (!verifySharedSecret(req.headers['x-sem-ai-key'])) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const { command, contextPack, tokenPlan } = req.body || {};
     if (!command) return res.status(400).json({ error: 'Missing command' });
