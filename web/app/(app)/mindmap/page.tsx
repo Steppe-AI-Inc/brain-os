@@ -1,6 +1,8 @@
+import { Network } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/data/profile";
 import { MindmapView } from "@/components/mindmap-view";
+import { PageHeader } from "@/components/page-header";
 import type { Graph, GraphNode, GraphEdge } from "@/lib/mindmap/graph";
 
 async function buildGraph(): Promise<Graph> {
@@ -72,13 +74,11 @@ export default async function MindmapPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold">Operating Mindmap</h1>
-        <p className="text-sm text-muted-foreground">
-          Companies → projects → people → AI agents → tasks → approvals, built from real,
-          RLS-scoped data.
-        </p>
-      </div>
+      <PageHeader
+        icon={Network}
+        title="Operating Mindmap"
+        description="Companies → projects → people → AI agents → tasks → approvals, built from real, RLS-scoped data."
+      />
       <MindmapView graph={graph} />
     </div>
   );

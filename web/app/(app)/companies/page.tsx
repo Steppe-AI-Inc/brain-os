@@ -1,6 +1,9 @@
+import { Building2 } from "lucide-react";
 import { getCompanies } from "@/lib/data/companies";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 import { CompanyCreateForm } from "./company-create-form";
 
 export default async function CompaniesPage() {
@@ -8,8 +11,9 @@ export default async function CompaniesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Companies</h1>
+      <PageHeader icon={Building2} title="Companies" description="Holding + operating entities." />
       <CompanyCreateForm />
+      <Card className="overflow-hidden bg-card/80 backdrop-blur">
       <Table>
         <TableHeader>
           <TableRow>
@@ -44,6 +48,7 @@ export default async function CompaniesPage() {
           )}
         </TableBody>
       </Table>
+      </Card>
     </div>
   );
 }

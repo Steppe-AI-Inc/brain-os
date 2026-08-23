@@ -1,6 +1,8 @@
+import { ShieldCheck } from "lucide-react";
 import { getApprovals } from "@/lib/data/approvals";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 import { ApprovalActions } from "./approval-actions";
 
 export default async function ApprovalsPage() {
@@ -10,7 +12,7 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Approvals</h1>
+      <PageHeader icon={ShieldCheck} title="Approvals" description="Domain-gated: only the right authority can decide each one." />
 
       <div className="flex flex-col gap-3">
         {pending.map((a) => (

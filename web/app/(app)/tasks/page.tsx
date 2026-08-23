@@ -1,6 +1,8 @@
+import { ListChecks } from "lucide-react";
 import { getTasks, TASK_COLUMNS } from "@/lib/data/tasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 
 const COLUMN_LABELS: Record<(typeof TASK_COLUMNS)[number], string> = {
   queued: "Queued",
@@ -14,7 +16,7 @@ export default async function TasksPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Tasks</h1>
+      <PageHeader icon={ListChecks} title="Tasks" description="Grouped by status, scoped to what RLS allows you to see." />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {TASK_COLUMNS.map((status) => {
           const columnTasks = tasks.filter((t) => t.status === status);
