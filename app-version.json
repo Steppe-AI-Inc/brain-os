@@ -1,0 +1,8 @@
+{
+  "app": "SEM Brain",
+  "version": "0.7.1",
+  "release": "auto-deploy-pack",
+  "database_migration": "202606190001_sem_brain_v071_production_core.sql",
+  "supabase_project_url": "https://gyqlkgnyyzpwaswhshlw.supabase.co",
+  "notes": "GitHub + Vercel + Supabase migration deployment foundation."
+}

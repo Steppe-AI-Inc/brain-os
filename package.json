@@ -1,0 +1,16 @@
+{
+  "name": "sem-brain-auto-deploy",
+  "version": "0.7.1",
+  "private": true,
+  "description": "SEM Brain AI-native operating system - auto deployment pack",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "verify": "node scripts/verify-release.mjs",
+    "deploy:vercel": "vercel --prod",
+    "supabase:deploy:function": "supabase functions deploy sem-ai-command",
+    "supabase:db:push": "supabase db push"
+  },
+  "devDependencies": {
+    "@vercel/node": "latest"
+  }
+}

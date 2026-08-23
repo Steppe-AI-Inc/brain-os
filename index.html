@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SEM Brain v0.7.1 Auto Deploy</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logoMark">Σ</div>
+        <div>
+          <h1>SEM Brain</h1>
+          <p>v0.7.1 Auto Deploy</p>
+        </div>
+      </div>
+      <div id="userPill" class="userPill"></div>
+      <nav id="nav"></nav>
+      <div class="sidebarFooter">
+        <div class="miniLabel">Development rule</div>
+        <strong>Patch-only. Module-only. Token-limited.</strong>
+        <p>Change one module, not the whole system.</p>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Founder Operating Brain</p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="topbarActions">
+          <button class="ghost" id="importBtn">Import</button>
+          <button class="ghost" id="backupBtn">Export</button>
+          <button class="primary" data-route="command">New Command</button>
+        </div>
+      </header>
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+  <input type="file" id="importFile" accept="application/json" class="hidden" />
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/store.js"></script>
+  <script src="js/core/permissions.js"></script>
+  <script src="js/core/tokenBudget.js"></script>
+  <script src="js/ai/contextPack.js"></script>
+  <script src="js/ai/aiBackendClient.js"></script>
+  <script src="js/ai/pipeline.js"></script>
+
+  <script src="js/modules/dashboard.js"></script>
+  <script src="js/modules/command.js"></script>
+  <script src="js/modules/aiBackend.js"></script>
+  <script src="js/modules/tokenControl.js"></script>
+  <script src="js/modules/moduleRegistry.js"></script>
+  <script src="js/modules/access.js"></script>
+  <script src="js/modules/myWork.js"></script>
+  <script src="js/modules/companies.js"></script>
+  <script src="js/modules/people.js"></script>
+  <script src="js/modules/kpiSalary.js"></script>
+  <script src="js/modules/sales.js"></script>
+  <script src="js/modules/productFactory.js"></script>
+  <script src="js/modules/softwareFactory.js"></script>
+  <script src="js/modules/projects.js"></script>
+  <script src="js/modules/tasks.js"></script>
+  <script src="js/modules/memory.js"></script>
+  <script src="js/modules/approvals.js"></script>
+  <script src="js/modules/agents.js"></script>
+  <script src="js/modules/settings.js"></script>
+  <script src="js/modules/productionCore.js"></script>
+  <script src="js/modules/chatOps.js"></script>
+  <script src="js/modules/workflowFactory.js"></script>
+  <script src="js/modules/autoTester.js"></script>
+  <script src="js/modules/mindmap.js"></script>
+  <script src="js/modules/dealDesk.js"></script>
+  <script src="js/modules/proposalFactory.js"></script>
+  <script src="js/modules/productInventory.js"></script>
+  <script src="js/modules/documents.js"></script>
+  <script src="js/modules/integrations.js"></script>
+  <script src="js/modules/automationExplorer.js"></script>
+  <script src="js/modules/architectureAudit.js"></script>
+  <script src="js/modules/qaLab.js"></script>
+  <script src="js/modules/deploymentCenter.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
