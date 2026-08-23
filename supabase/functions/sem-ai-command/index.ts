@@ -79,6 +79,26 @@ function extractText(j:any){
   return JSON.stringify(j);
 }
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+
+// Server-side backstop: the system prompt ASKS the model to flag these categories as
+// approvalRequired, but prompt instructions are not a security boundary. Any task whose
+// title/description mentions one of these risk categories is force-flagged for approval
+// here, regardless of what the model returned.
+const FORCED_APPROVAL_KEYWORDS = [
+  'salary','wage','wages','compensation','payroll','bonus','raise',
+  'payment','invoice','refund','payout','wire transfer','bank transfer',
+  'contract','agreement','nda','legal',
+  'publish','publication','press release','public post','go live','production deploy','deploy to production',
+  'delete','deletion','remove permanently','purge',
+  'discount','price reduction','markdown',
+  'barter','trade-in','in-kind',
+  'financing','loan','credit line','investment',
+  'external email','send email to client','message the client','dm the customer','slack the client'
+];
+function detectForcedApprovalKeywords(title:string, description:string){
+  const text = `${title || ''} ${description || ''}`.toLowerCase();
+  return FORCED_APPROVAL_KEYWORDS.filter(k => text.includes(k));
+}
 function fallbackPlan(command:string, contextPack:any){
   const lower = command.toLowerCase();
   const companyId = contextPack?.companies?.[0]?.id || null;
@@ -158,20 +178,41 @@ serve(async (req) => {
 
     const { data: workOrder } = await supabase.from('work_orders').insert({ command, status:'queued', context_pack:contextPack, output:result, token_estimate:tokenEstimate, created_by_profile_id:profile.id }).select().single();
 
+    const resultTasks = (result.tasks || []) as AiTask[];
     const createdTasks:any[] = [];
-    for(const t of (result.tasks || [])){
+    const forcedApprovalTaskIndexes:number[] = [];
+    for(let i=0;i<resultTasks.length;i++){
+      const t = resultTasks[i];
+      const matchedKeywords = detectForcedApprovalKeywords(t.title || '', t.description || '');
+      const forced = !t.approvalRequired && matchedKeywords.length > 0;
+      const approvalRequired = !!t.approvalRequired || forced;
+      if(forced) forcedApprovalTaskIndexes.push(i);
       const { data, error } = await supabase.from('tasks').insert({
         company_id:t.companyId || null, project_id:t.projectId || null, title:t.title, description:t.description || '', parent_goal:result.strategicGoal || '',
         owner_type:t.ownerType || 'agent', owner_agent_id:t.ownerAgentId || null, owner_person_id:t.ownerPersonId || null,
         acceptance_criteria:t.acceptanceCriteria || [], test_method:t.testMethod || [],
-        status:t.approvalRequired ? 'needs_approval' : 'queued', priority:t.priority || 'medium', risk_level:t.riskLevel || 'low', approval_required:!!t.approvalRequired,
+        status:approvalRequired ? 'needs_approval' : 'queued', priority:t.priority || 'medium', risk_level:t.riskLevel || 'low', approval_required:approvalRequired,
         source:'ai_command_v0.7', created_by_profile_id:profile.id
       }).select().single();
-      if(!error && data) createdTasks.push(data);
+      // Keep index alignment with resultTasks/forcedApprovalTaskIndexes even on insert failure,
+      // so approvals below (matched by taskIndex) still line up with the right task slot.
+      createdTasks.push(!error && data ? data : null);
     }
 
+    const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
+    const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
+    const forcedApprovals = forcedApprovalTaskIndexes
+      .filter(i => !modelApprovalTaskIndexes.has(i))
+      .map(i => ({
+        title: `Approval required: ${resultTasks[i].title}`,
+        reason: `Server-side risk policy forced approval (matched: ${detectForcedApprovalKeywords(resultTasks[i].title || '', resultTasks[i].description || '').join(', ')}).`,
+        riskLevel: resultTasks[i].riskLevel || 'high',
+        taskIndex: i
+      }));
+    const allApprovals = [...modelApprovals, ...forcedApprovals];
+
     const createdApprovals:any[] = [];
-    for(const a of (result.approvals || [])){
+    for(const a of allApprovals){
       const task = typeof a.taskIndex === 'number' ? createdTasks[a.taskIndex] : null;
       const { data, error } = await supabase.from('approvals').insert({
         company_id: task?.company_id || null, task_id: task?.id || null, title:a.title || 'Approval required', reason:a.reason || 'Risk policy requires approval', risk_level:a.riskLevel || 'medium', requested_by_profile_id:profile.id, approval_payload:a
@@ -180,7 +221,7 @@ serve(async (req) => {
     }
 
     await supabase.from('model_usage').insert({ profile_id:profile.id, work_order_id:workOrder?.id || null, model_name:model, input_tokens:usage?.input_tokens || tokenEstimate, output_tokens:usage?.output_tokens || 0, estimated_cost_usd:0 });
-    await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_executed', entity_type:'work_order', entity_id:workOrder?.id || null, message:'AI command executed through v0.7 production core', metadata:{ command, model, tokenEstimate, contextErrors, elapsedMs:Date.now()-started, tasks:createdTasks.length, approvals:createdApprovals.length } });
+    await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_executed', entity_type:'work_order', entity_id:workOrder?.id || null, message:'AI command executed through v0.7 production core', metadata:{ command, model, tokenEstimate, contextErrors, elapsedMs:Date.now()-started, tasks:createdTasks.filter(Boolean).length, approvals:createdApprovals.length, forcedApprovals:forcedApprovalTaskIndexes.length } });
 
     return json({ result, workOrder, createdTasks, createdApprovals, model, usage, tokenEstimate, contextErrors });
   } catch(e){
