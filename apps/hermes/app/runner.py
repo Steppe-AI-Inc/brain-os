@@ -11,7 +11,6 @@ from app.brain import brain
 from app.config import settings
 from app.llm import LLM
 from app.models import RunRequest
-from app.state import RunState, runs
 
 log = logging.getLogger("hermes.runner")
 
@@ -36,78 +35,60 @@ SYSTEM_PROMPT = (
 )
 
 
-async def run(req: RunRequest, llm: LLM) -> None:
-    """Background coroutine for one /run. Updates `runs[run_id]` to terminal state."""
-    rid = str(req.run_id)
-    state = runs[rid]
+async def run(req: RunRequest, llm: LLM) -> dict[str, Any]:
+    """Execute one /run synchronously. Returns the output dict, or raises on failure.
 
-    try:
-        subtask = req.input.get("subtask") or {}
-        title = subtask.get("title") or "(untitled subtask)"
-        description = subtask.get("description") or ""
-        sub_input: dict[str, Any] = subtask.get("input") or {}
+    Serverless-safe by construction: the whole call is one bounded request/response
+    (recall + one LLM completion + remember), so there is no process-local state to
+    poll for and nothing to lose across cold starts or concurrent instances.
+    """
+    subtask = req.input.get("subtask") or {}
+    title = subtask.get("title") or "(untitled subtask)"
+    description = subtask.get("description") or ""
+    sub_input: dict[str, Any] = subtask.get("input") or {}
 
-        # 1. Pull recent context from the brain (scoped to org/dept/goal).
-        if state.cancel_event.is_set():
-            state.mark_cancelled()
-            return
-        memories = await brain.recall(
-            query=f"context for: {title}. {description}",
-            scope=req.scope,
-            kinds=["fact", "episode", "document"],
-        )
-        memory_block = _format_memories(memories)
+    # 1. Pull recent context from the brain (scoped to org/dept/goal).
+    memories = await brain.recall(
+        query=f"context for: {title}. {description}",
+        scope=req.scope,
+        kinds=["fact", "episode", "document"],
+    )
+    memory_block = _format_memories(memories)
 
-        if state.cancel_event.is_set():
-            state.mark_cancelled()
-            return
+    # 2. Compose the user message and call the LLM.
+    user_message = _format_task(
+        title=title,
+        description=description,
+        sub_input=sub_input,
+        memory_block=memory_block,
+    )
+    completion = await asyncio.wait_for(
+        llm.complete(system=SYSTEM_PROMPT, user=user_message),
+        timeout=120.0,
+    )
 
-        # 2. Compose the user message and call the LLM.
-        user_message = _format_task(
-            title=title,
-            description=description,
-            sub_input=sub_input,
-            memory_block=memory_block,
-        )
-        completion = await asyncio.wait_for(
-            llm.complete(system=SYSTEM_PROMPT, user=user_message),
-            timeout=120.0,
-        )
+    # 3. Persist an episode memory of what happened.
+    memory_id = await brain.remember(
+        kind="episode",
+        title=f"Hermes: {title}",
+        content=completion,
+        scope=req.scope,
+        metadata={
+            "run_id": str(req.run_id),
+            "goal_id": str(req.goal_id),
+            "subtask_index": subtask.get("index"),
+            "source": "hermes",
+            "model": llm.name,
+        },
+    )
 
-        if state.cancel_event.is_set():
-            state.mark_cancelled()
-            return
-
-        # 3. Persist an episode memory of what happened.
-        memory_id = await brain.remember(
-            kind="episode",
-            title=f"Hermes: {title}",
-            content=completion,
-            scope=req.scope,
-            metadata={
-                "run_id": rid,
-                "goal_id": str(req.goal_id),
-                "subtask_index": subtask.get("index"),
-                "source": "hermes",
-                "model": llm.name,
-            },
-        )
-
-        state.mark_succeeded(
-            {
-                "agent_kind": "hermes",
-                "summary": completion,
-                "memory_id": memory_id,
-                "model": llm.name,
-                "memories_used": len(memories),
-            }
-        )
-    except asyncio.CancelledError:
-        state.mark_cancelled()
-        raise
-    except Exception as e:
-        log.exception("hermes run failed")
-        state.mark_failed(str(e))
+    return {
+        "agent_kind": "hermes",
+        "summary": completion,
+        "memory_id": memory_id,
+        "model": llm.name,
+        "memories_used": len(memories),
+    }
 
 
 def _format_memories(memories: list[dict[str, Any]]) -> str:
@@ -162,10 +143,3 @@ def _format_task(
             v = v[:1500] + "…(truncated)"
         lines.append(f"  - {k}: {v}")
     return "\n".join(lines)
-
-
-def schedule_run(req: RunRequest, llm: LLM) -> RunState:
-    state = RunState()
-    runs[str(req.run_id)] = state
-    state.task = asyncio.create_task(run(req, llm))
-    return state

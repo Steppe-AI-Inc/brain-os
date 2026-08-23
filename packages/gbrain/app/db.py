@@ -1,4 +1,12 @@
-"""Thin Postgres pool around asyncpg + queries gbrain owns."""
+"""Thin Postgres pool around asyncpg + queries gbrain owns.
+
+Embeddings live directly on `brain.memory.embedding` (pgvector) — there is no
+separate vector store to keep in sync. Connection pool is sized small
+(min 0 / max 1) because gbrain runs as a serverless function: each invocation
+gets its own short-lived pool against Supabase's pooled (Supavisor) endpoint,
+not one long-lived pool shared across requests the way a persistent process
+would use it.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +17,13 @@ from uuid import UUID
 import asyncpg
 
 from app.config import settings
+from app.models import Scope
+from app.scope import build_memory_filter
+
+
+def _vector_literal(vec: list[float]) -> str:
+    """pgvector accepts text input like '[0.1,0.2,...]'::vector — no extra client dep needed."""
+    return "[" + ",".join(repr(float(x)) for x in vec) + "]"
 
 
 class DB:
@@ -18,8 +33,8 @@ class DB:
     async def connect(self) -> None:
         self._pool = await asyncpg.create_pool(
             dsn=settings.database_url,
-            min_size=1,
-            max_size=8,
+            min_size=0,
+            max_size=1,
             command_timeout=10,
         )
 
@@ -36,13 +51,6 @@ class DB:
 
     # -- queries ------------------------------------------------------------
 
-    async def get_org_slug(self, org_id: UUID) -> str | None:
-        row = await self.pool.fetchrow(
-            "SELECT slug FROM core.organization WHERE id = $1",
-            org_id,
-        )
-        return row["slug"] if row else None
-
     async def insert_memory(
         self,
         *,
@@ -53,7 +61,7 @@ class DB:
         kind: str,
         title: str | None,
         content: str,
-        vector_ref: dict[str, Any] | None,
+        embedding: list[float],
         visible_to: list[str],
         metadata: dict[str, Any],
     ) -> None:
@@ -61,10 +69,10 @@ class DB:
             """
             INSERT INTO brain.memory (
               id, org_id, department_id, goal_id, kind,
-              title, content, vector_ref, visible_to, metadata
+              title, content, embedding, visible_to, metadata
             )
             VALUES ($1, $2, $3, $4, $5::brain.memory_kind,
-                    $6, $7, $8::jsonb, $9::core.role_kind[], $10::jsonb)
+                    $6, $7, $8::vector, $9::core.role_kind[], $10::jsonb)
             """,
             memory_id,
             org_id,
@@ -73,27 +81,78 @@ class DB:
             kind,
             title,
             content,
-            json.dumps(vector_ref) if vector_ref is not None else None,
+            _vector_literal(embedding),
             visible_to,
             json.dumps(metadata),
         )
 
+    async def search_memories(
+        self,
+        *,
+        embedding: list[float],
+        kinds: list[str],
+        scope: Scope,
+        limit: int,
+        min_score: float | None,
+    ) -> list[dict[str, Any]]:
+        where_sql, params = build_memory_filter(scope, start_param=1)
+
+        params.append(kinds)
+        kind_param = len(params)
+
+        params.append(_vector_literal(embedding))
+        vec_param = len(params)
+
+        score_sql = f"1 - (embedding <=> ${vec_param}::vector)"
+
+        min_score_clause = ""
+        if min_score is not None:
+            params.append(min_score)
+            min_score_clause = f" AND {score_sql} >= ${len(params)}"
+
+        params.append(limit)
+        limit_param = len(params)
+
+        rows = await self.pool.fetch(
+            f"""
+            SELECT id, kind, title, content, metadata, {score_sql} AS score
+            FROM brain.memory
+            WHERE {where_sql}
+              AND kind::text = ANY(${kind_param})
+              AND embedding IS NOT NULL
+              {min_score_clause}
+            ORDER BY embedding <=> ${vec_param}::vector
+            LIMIT ${limit_param}
+            """,
+            *params,
+        )
+
+        out: list[dict[str, Any]] = []
+        for r in rows:
+            md = r["metadata"]
+            if isinstance(md, str):
+                md = json.loads(md)
+            out.append(
+                {
+                    "id": r["id"],
+                    "kind": r["kind"],
+                    "title": r["title"],
+                    "content": r["content"],
+                    "metadata": md or {},
+                    "score": float(r["score"]),
+                }
+            )
+        return out
+
     async def get_memory_for_forget(self, memory_id: UUID, org_id: UUID) -> dict[str, Any] | None:
         row = await self.pool.fetchrow(
-            """
-            SELECT id, org_id, kind, vector_ref
-            FROM brain.memory
-            WHERE id = $1 AND org_id = $2
-            """,
+            "SELECT id, org_id, kind FROM brain.memory WHERE id = $1 AND org_id = $2",
             memory_id,
             org_id,
         )
         if row is None:
             return None
-        ref = row["vector_ref"]
-        if isinstance(ref, str):
-            ref = json.loads(ref)
-        return {"id": row["id"], "org_id": row["org_id"], "kind": row["kind"], "vector_ref": ref}
+        return {"id": row["id"], "org_id": row["org_id"], "kind": row["kind"]}
 
     async def delete_memory(self, memory_id: UUID, org_id: UUID) -> None:
         await self.pool.execute(
@@ -101,33 +160,6 @@ class DB:
             memory_id,
             org_id,
         )
-
-    async def get_memories_by_ids(
-        self, ids: list[UUID], org_id: UUID
-    ) -> dict[UUID, dict[str, Any]]:
-        if not ids:
-            return {}
-        rows = await self.pool.fetch(
-            """
-            SELECT id, kind, title, content, metadata
-            FROM brain.memory
-            WHERE org_id = $1 AND id = ANY($2::uuid[])
-            """,
-            org_id,
-            ids,
-        )
-        out: dict[UUID, dict[str, Any]] = {}
-        for r in rows:
-            md = r["metadata"]
-            if isinstance(md, str):
-                md = json.loads(md)
-            out[r["id"]] = {
-                "kind": r["kind"],
-                "title": r["title"],
-                "content": r["content"],
-                "metadata": md or {},
-            }
-        return out
 
     async def write_audit(
         self,

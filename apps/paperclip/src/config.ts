@@ -22,6 +22,21 @@ export const config = {
   workerEnabled: env.PAPERCLIP_WORKER_ENABLED !== "false",
 
   /**
+   * Serverless deploy (Vercel): skip the heavy one-time boot sequence
+   * (additive SQL migrations, default-agent bootstrap, skill/tool registry
+   * sync, tool probing) on every cold start. Run `npm run migrate` once
+   * against the target database before the first deploy instead — see
+   * `scripts/migrate.ts`. Unset (default) on local/Docker, where boot-time
+   * setup is cheap and convenient.
+   */
+  skipBootTasks: env.PAPERCLIP_SKIP_BOOT_TASKS === "true",
+
+  /** Secret Vercel Cron sends as `Authorization: Bearer <value>` — required
+   * to call POST /api/cron/worker-tick, which replaces the in-process
+   * worker poll loop in serverless deploys. */
+  cronSecret: env.CRON_SECRET ?? "",
+
+  /**
    * Supabase auth — Phase 6 prep.
    * When `supabaseJwtSecret` is set, incoming Authorization: Bearer <jwt>
    * tokens are verified and the request scope is derived from the verified

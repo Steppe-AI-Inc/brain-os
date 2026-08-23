@@ -18,10 +18,6 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
 
-    # --- Qdrant -------------------------------------------------------------
-    qdrant_url: str = Field(default="http://qdrant:6333", alias="QDRANT_URL")
-    qdrant_api_key: str | None = Field(default=None, alias="QDRANT_API_KEY")
-
     # --- Embeddings ---------------------------------------------------------
     embed_model: str = Field(default="text-embedding-3-small", alias="GBRAIN_EMBED_MODEL")
     embed_dim: int = Field(default=1536, alias="GBRAIN_EMBED_DIM")

@@ -878,6 +878,12 @@ Hard timeout: 10 minutes. Terminal statuses (`succeeded` / `failed` / `cancelled
 
 Every agent — Hermes, OpenClaw, future — exposes the same minimum HTTP API to Paperclip. The adapter folder (`apps/<agent>/`) translates between this contract and the underlying agent's native interface.
 
+**Hermes (serverless-ready, current):** synchronous. `POST /run` executes the
+subtask inline and returns its terminal state directly — no polling, no
+in-memory run registry on either side. Every Hermes call is bounded (one
+recall + one LLM completion + one remember), so this fits inside one HTTP
+round trip:
+
 ```http
 POST /run
 {
@@ -886,6 +892,21 @@ POST /run
   "input": { ...arbitrary task payload },
   "scope": { ...Scope }
 }
+→ 200 { "status": "succeeded" | "failed",
+         "output?": {...}, "error?": "...",
+         "started_at", "finished_at" }
+```
+
+**OpenClaw / future agents (not yet migrated):** still the original
+async contract — `POST /run` returns `202` immediately and the caller polls
+`GET /run/{run_id}` for terminal state, with `POST /run/{run_id}/cancel` for
+best-effort cancellation. `apps/paperclip/src/queue/adapter-client.ts`
+currently only implements the synchronous `run()` call Hermes uses; adding a
+second agent back onto this contract needs its own adapter client method.
+
+```http
+POST /run
+{ "goal_id": "<uuid>", "run_id": "<uuid>", "input": {...}, "scope": {...} }
 → 202 { "status": "running" }
 ```
 

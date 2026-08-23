@@ -1,6 +1,12 @@
 /**
- * HTTP client speaking the Agent Adapter Contract from docs/API.md.
+ * HTTP client speaking the (now-synchronous) Agent Adapter Contract.
  * One client per agent kind; URLs come from the registry.
+ *
+ * `POST /run` runs the subtask inline on the adapter side and returns its
+ * terminal state directly in the response — no more 202 + poll. Every
+ * adapter call in this system is bounded (seconds, not minutes), so this
+ * fits inside one HTTP round trip and needs no process-local run registry
+ * on either side.
  */
 
 import type { Scope } from "../schemas.js";
@@ -13,7 +19,7 @@ export type AdapterRunRequest = {
 };
 
 export type AdapterRunState = {
-  status: "running" | "succeeded" | "failed" | "cancelled";
+  status: "succeeded" | "failed";
   output?: Record<string, unknown> | null;
   error?: string | null;
   started_at?: string | null;
@@ -23,35 +29,18 @@ export type AdapterRunState = {
 export class AdapterClient {
   constructor(public readonly baseUrl: string) {}
 
-  async startRun(req: AdapterRunRequest): Promise<void> {
+  /** Timeout budget matches Hermes's own internal LLM-call timeout (120s) plus headroom. */
+  async run(req: AdapterRunRequest): Promise<AdapterRunState> {
     const r = await fetch(`${this.baseUrl}/run`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(req),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!r.ok && r.status !== 202) {
-      const body = await r.text().catch(() => "");
-      throw new Error(`adapter start failed: HTTP ${r.status} ${body.slice(0, 200)}`);
-    }
-  }
-
-  async getRun(runId: string): Promise<AdapterRunState> {
-    const r = await fetch(`${this.baseUrl}/run/${encodeURIComponent(runId)}`, {
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(150_000),
     });
     if (!r.ok) {
-      throw new Error(`adapter poll failed: HTTP ${r.status}`);
+      const body = await r.text().catch(() => "");
+      throw new Error(`adapter run failed: HTTP ${r.status} ${body.slice(0, 200)}`);
     }
     return (await r.json()) as AdapterRunState;
-  }
-
-  async cancel(runId: string): Promise<void> {
-    await fetch(`${this.baseUrl}/run/${encodeURIComponent(runId)}/cancel`, {
-      method: "POST",
-      signal: AbortSignal.timeout(5_000),
-    }).catch(() => {
-      /* best-effort */
-    });
   }
 }

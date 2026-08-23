@@ -21,7 +21,6 @@ from app.models import (
     RememberRequest,
     RememberResponse,
 )
-from app.vectors import vectors
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -40,7 +39,6 @@ async def lifespan(app: FastAPI):
         settings.embed_dim,
     )
     await db.connect()
-    await vectors.connect()
     embedder: Embedder = make_embedder()
     app.state.embedder = embedder
     try:
@@ -49,7 +47,6 @@ async def lifespan(app: FastAPI):
         log.info("gbrain shutting down")
         if hasattr(embedder, "aclose"):
             await embedder.aclose()  # type: ignore[func-returns-value]
-        await vectors.close()
         await db.close()
 
 

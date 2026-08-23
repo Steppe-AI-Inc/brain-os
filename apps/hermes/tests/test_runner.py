@@ -2,7 +2,7 @@
 
 These bypass FastAPI and exercise the runner against a fake LLM and a fake
 gbrain client (monkey-patched). They prove the loop's contract: recall →
-complete → remember → terminal state.
+complete → remember → return the output synchronously.
 """
 
 from __future__ import annotations
@@ -14,8 +14,7 @@ import pytest
 
 from app.llm import FakeLLM
 from app.models import RoleKind, RunRequest, Scope
-from app.runner import schedule_run
-from app.state import RunStatus, runs
+from app.runner import run as run_agent
 
 
 class FakeBrain:
@@ -62,28 +61,16 @@ def _req() -> RunRequest:
     )
 
 
-async def _wait_until(predicate, timeout: float = 2.0) -> None:
-    deadline = asyncio.get_event_loop().time() + timeout
-    while asyncio.get_event_loop().time() < deadline:
-        if predicate():
-            return
-        await asyncio.sleep(0.02)
-    raise AssertionError("timed out")
-
-
 async def test_run_succeeds_and_writes_episode(patch_brain: FakeBrain) -> None:
     req = _req()
     llm = FakeLLM()
-    state = schedule_run(req, llm)
+    output = await run_agent(req, llm)
 
-    await _wait_until(lambda: state.status == RunStatus.succeeded)
-
-    assert state.output is not None
-    assert state.output["agent_kind"] == "hermes"
-    assert state.output["model"] == "fake"
-    assert state.output["memory_id"] == "00000000-0000-0000-0000-000000000999"
-    assert state.output["memories_used"] == 1
-    assert "FAKE-LLM" in state.output["summary"]
+    assert output["agent_kind"] == "hermes"
+    assert output["model"] == "fake"
+    assert output["memory_id"] == "00000000-0000-0000-0000-000000000999"
+    assert output["memories_used"] == 1
+    assert "FAKE-LLM" in output["summary"]
 
     # Brain side-effects
     assert len(patch_brain.recalled_with) == 1
@@ -93,30 +80,14 @@ async def test_run_succeeds_and_writes_episode(patch_brain: FakeBrain) -> None:
     assert "Hermes:" in patch_brain.remembered[0]["title"]
 
 
-async def test_cancel_before_completion(patch_brain: FakeBrain) -> None:
-    """A cancellation arriving early should leave the run in `cancelled`."""
+async def test_llm_timeout_propagates(patch_brain: FakeBrain) -> None:
+    """A stuck LLM call should raise (the FastAPI layer turns this into a failed response)."""
 
-    class SlowFake(FakeLLM):
+    class StuckFake(FakeLLM):
         async def complete(self, *, system: str, user: str) -> str:  # type: ignore[override]
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(999)
             return "should not arrive"
 
     req = _req()
-    state = schedule_run(req, SlowFake())
-    # Immediately cancel before recall returns.
-    state.cancel_event.set()
-
-    await _wait_until(lambda: state.status in (RunStatus.cancelled, RunStatus.succeeded))
-    assert state.status == RunStatus.cancelled
-
-
-async def test_idempotent_state_map() -> None:
-    """Two requests with the same run_id must reuse the same state."""
-    req = _req()
-    rid = str(req.run_id)
-    s1 = schedule_run(req, FakeLLM())
-    # The /run endpoint guards against re-dispatch; the runner itself just stamps state[rid].
-    assert runs[rid] is s1
-    # Wait so the task settles before the next test runs.
-    if s1.task:
-        await s1.task
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(run_agent(req, StuckFake()), timeout=0.2)

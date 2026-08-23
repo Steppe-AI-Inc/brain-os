@@ -1,17 +1,22 @@
 # gbrain
 
-The Blank Collar memory layer. FastAPI service that wraps Qdrant + Postgres
-into one role-scoped, multi-modal memory API: facts, episodes, documents,
-conversations.
+The Blank Collar memory layer. FastAPI service backed entirely by Postgres
+(Supabase) — `brain.memory` holds content/metadata AND its embedding
+(`pgvector`) on the same row. One role-scoped, multi-modal memory API: facts,
+episodes, documents, conversations.
 
-## Status: Phase 1 — real (v0.1.0)
+## Status: serverless-ready (v0.2.0)
 
 Implements the contract from [`docs/API.md`](../../docs/API.md#gbrain-l1):
 
 - `GET /healthz` → service status, version, embedding model
-- `POST /remember` → write a memory (auto-embeds, vector → Qdrant, metadata → Postgres)
-- `POST /recall` → semantic search filtered by `(org, department, goal, role)`
+- `POST /remember` → write a memory (auto-embeds, embedding + metadata both land on the same Postgres row)
+- `POST /recall` → semantic search (pgvector cosine distance) filtered by `(org, department, goal, role)`
 - `POST /forget` → delete + audit-log entry
+
+No separate vector store to run or keep in sync — `db.py`'s connection pool
+is sized for serverless (min 0 / max 1 per invocation) against Supabase's
+pooled (Supavisor) endpoint.
 
 ## Layout
 
@@ -23,13 +28,12 @@ packages/gbrain/
 │   ├── main.py        # FastAPI app + routes
 │   ├── config.py      # env-driven settings
 │   ├── models.py      # pydantic request/response (matches API.md)
-│   ├── scope.py       # role-scope helpers + Qdrant filter builder ⚠ security-critical
-│   ├── db.py          # asyncpg pool + queries
-│   ├── vectors.py     # AsyncQdrantClient wrapper, lazy collection bootstrap
+│   ├── scope.py       # role-scope helpers + SQL filter builder ⚠ security-critical
+│   ├── db.py          # asyncpg pool + queries, incl. pgvector search
 │   ├── embeddings.py  # Embedder protocol — OpenAI default, deterministic fake fallback
 │   └── memory.py      # remember / recall / forget orchestration + audit
 └── tests/
-    └── test_scope.py  # 16 tests covering the scope filter
+    └── test_scope.py  # tests covering the scope filter
 ```
 
 ## Embeddings
@@ -59,11 +63,10 @@ cd packages/gbrain
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Postgres + Qdrant must be running. Easiest:
-docker compose up -d postgres qdrant
+# Postgres (with the `vector` extension enabled) must be running. Easiest:
+docker compose up -d postgres
 
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/blankcollar
-export QDRANT_URL=http://localhost:6333
 
 uvicorn app.main:app --reload --port 8003
 ```
@@ -75,9 +78,8 @@ pytest -q
 ```
 
 Currently covers the **scope filter** — the function whose mistakes would
-let a `team_member` agent read an owner-only memory. Phase 1 ships 16 tests;
-integration tests against real Postgres + Qdrant land alongside the first
-agent that uses gbrain in Phase 3.
+let a `team_member` agent read an owner-only memory. Integration tests
+against real Postgres land alongside deeper agent coverage.
 
 ## Demo (manual, until Paperclip lands)
 

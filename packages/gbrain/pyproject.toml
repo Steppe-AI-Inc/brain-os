@@ -9,7 +9,6 @@ dependencies = [
   "pydantic>=2.13,<3",
   "pydantic-settings>=2.14,<3",
   "asyncpg>=0.31,<1",
-  "qdrant-client>=1.18,<2",
   "httpx>=0.28,<1",
   "structlog>=26,<27",
 ]

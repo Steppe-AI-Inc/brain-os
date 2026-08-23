@@ -6,7 +6,7 @@ an owner-only memory. Every change to this file must keep its tests green.
 
 from __future__ import annotations
 
-from qdrant_client.http import models as qm
+from typing import Any
 
 from app.models import RoleKind, Scope
 
@@ -33,58 +33,41 @@ def can_role_see(role: RoleKind, visible_to: list[RoleKind]) -> bool:
     return role in visible_to
 
 
-def build_qdrant_filter(scope: Scope) -> qm.Filter:
-    """Build the Qdrant payload filter for a recall.
+def build_memory_filter(scope: Scope, start_param: int = 1) -> tuple[str, list[Any]]:
+    """Build the SQL WHERE fragment (and its positional params) for a recall.
 
-    Rules:
+    Same rules the old Qdrant payload filter enforced:
       - Always require the same `org_id`. Cross-org reads are impossible.
-      - If `department_id` is on the scope, restrict to that department OR org-wide memories
-        (department_id IS NULL).
+      - If `department_id` is on the scope, restrict to that department OR org-wide
+        memories (department_id IS NULL).
       - If `goal_id` is on the scope, allow that goal OR memories not bound to any goal.
       - For non-owner / non-auditor roles, require the role to be in `visible_to`.
+
+    Params are `$N` placeholders starting at `start_param`, so callers can splice
+    this fragment into a larger query (kind filter, embedding, limit) that appends
+    its own params after this fragment's.
     """
-    must: list[qm.FieldCondition] = [
-        qm.FieldCondition(key="org_id", match=qm.MatchValue(value=str(scope.org_id))),
-    ]
+    clauses: list[str] = []
+    params: list[Any] = []
+    idx = start_param
 
-    should_dept: list[qm.Condition] = []
+    clauses.append(f"org_id = ${idx}")
+    params.append(scope.org_id)
+    idx += 1
+
     if scope.department_id is not None:
-        # Memory's department matches OR memory is org-wide (no department).
-        should_dept = [
-            qm.FieldCondition(
-                key="department_id",
-                match=qm.MatchValue(value=str(scope.department_id)),
-            ),
-            qm.IsNullCondition(is_null=qm.PayloadField(key="department_id")),
-        ]
+        clauses.append(f"(department_id = ${idx} OR department_id IS NULL)")
+        params.append(scope.department_id)
+        idx += 1
 
-    should_goal: list[qm.Condition] = []
     if scope.goal_id is not None:
-        should_goal = [
-            qm.FieldCondition(
-                key="goal_id",
-                match=qm.MatchValue(value=str(scope.goal_id)),
-            ),
-            qm.IsNullCondition(is_null=qm.PayloadField(key="goal_id")),
-        ]
+        clauses.append(f"(goal_id = ${idx} OR goal_id IS NULL)")
+        params.append(scope.goal_id)
+        idx += 1
 
-    role_filter: qm.Filter | None = None
     if scope.role not in (RoleKind.owner, RoleKind.auditor):
-        role_filter = qm.Filter(
-            must=[
-                qm.FieldCondition(
-                    key="visible_to",
-                    match=qm.MatchAny(any=[scope.role.value]),
-                ),
-            ]
-        )
+        clauses.append(f"${idx}::core.role_kind = ANY(visible_to)")
+        params.append(scope.role.value)
+        idx += 1
 
-    must_blocks: list[qm.Condition] = list(must)
-    if should_dept:
-        must_blocks.append(qm.Filter(should=should_dept))
-    if should_goal:
-        must_blocks.append(qm.Filter(should=should_goal))
-    if role_filter is not None:
-        must_blocks.append(role_filter)
-
-    return qm.Filter(must=must_blocks)
+    return " AND ".join(clauses), params

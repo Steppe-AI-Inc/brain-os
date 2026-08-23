@@ -4,11 +4,12 @@ General-purpose reasoning agent for The Blank Collar Agentic OS.
 Implements the **Agent Adapter Contract** from [`docs/AGENTS.md`](../../docs/AGENTS.md)
 and [`docs/API.md`](../../docs/API.md#agent-adapter-contract-l3).
 
-## Status: Phase 3 — real (v0.1.0)
+## Status: serverless-ready (v0.2.0)
 
-- `POST /run` — accepts a subtask, returns 202, runs in the background
-- `GET /run/{id}` — current state (`running` / `succeeded` / `failed` / `cancelled`)
-- `POST /run/{id}/cancel` — best-effort cooperative cancel
+- `POST /run` — accepts a subtask, executes it inline, returns the terminal
+  state (`succeeded` / `failed`) synchronously in the response. No polling,
+  no in-memory run registry — every call is one bounded recall + LLM
+  completion + remember, well inside a serverless function's timeout.
 - `GET /healthz` — version, model, provider
 
 The loop:
@@ -39,8 +40,7 @@ apps/hermes/
 │   ├── models.py   # pydantic shapes (matches docs/API.md)
 │   ├── llm.py      # AnthropicLLM + FakeLLM
 │   ├── brain.py    # async gbrain client (recall/remember)
-│   ├── runner.py   # the actual reasoning loop
-│   └── state.py    # in-memory run state map (Phase 4 will persist)
+│   └── runner.py   # the actual reasoning loop
 └── tests/
     └── test_runner.py
 ```

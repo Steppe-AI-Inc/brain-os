@@ -13,7 +13,7 @@ import { resolveCallerScope } from "./scope.js";
  * don't need a reset to pick up new tables/columns. Production-grade
  * migrations land in Phase 6 alongside the auth UI.
  */
-const ADDITIVE_MIGRATIONS = [
+export const ADDITIVE_MIGRATIONS = [
   // ops.goal kind enum + first-class columns (was: jsonb metadata sprawl)
   `DO $$ BEGIN
      CREATE TYPE ops.goal_kind AS ENUM ('ephemeral', 'standing', 'routine', 'decision');
@@ -1570,6 +1570,18 @@ const ADDITIVE_MIGRATIONS = [
      AS PERMISSIVE FOR ALL
      USING      (current_setting('app.system_scope', true) = 'true')
      WITH CHECK (current_setting('app.system_scope', true) = 'true');`,
+
+  // -- Serverless migration: brain.memory embeddings move from Qdrant to
+  // pgvector (Supabase already ships the extension). `vector_ref` was a
+  // pointer into a Qdrant collection + point id; gbrain now stores the
+  // embedding directly on the row and queries it with `<=>` (cosine
+  // distance), so there's nothing left to point at. Safe to drop —
+  // this table has no rows written outside local/Docker dev.
+  `CREATE EXTENSION IF NOT EXISTS "vector";`,
+  `ALTER TABLE brain.memory ADD COLUMN IF NOT EXISTS embedding vector(1536);`,
+  `ALTER TABLE brain.memory DROP COLUMN IF EXISTS vector_ref;`,
+  `CREATE INDEX IF NOT EXISTS memory_embedding_idx
+     ON brain.memory USING hnsw (embedding vector_cosine_ops);`,
 ];
 
 /**
@@ -1631,7 +1643,7 @@ const STRICT_RLS_TABLES_REQUIRED_ORG = [
   "ops.goal_context",
 ];
 
-function buildStrictMigrations(): string[] {
+export function buildStrictMigrations(): string[] {
   const out: string[] = [];
   for (const tbl of STRICT_RLS_TABLES_NULLABLE_ORG) {
     out.push(
