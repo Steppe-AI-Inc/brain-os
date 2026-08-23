@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24 (added the Hostinger personal-mode deployment plan for Track 2).
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24 (Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project. Slice 1 code is written, tested locally, committed, and pushed; it is **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
 
 ## Who / where
 
@@ -11,7 +11,7 @@
 | Branch | What it is | Status |
 |---|---|---|
 | `master` | Original vanilla-JS SEM Brain app (repo root) **+** the Next.js rewrite (`/web`) | Both live in production |
-| `blankcollar` | Full history import of `The-Blank-Collar/blankcollar-agentic-os` (MIT) | Imported, not yet run/connected |
+| `blankcollar` | Full history import of `The-Blank-Collar/blankcollar-agentic-os` (MIT) | Slice 1 (serverless Telegram→Hermes→gbrain) code done + pushed; not yet deployed |
 | *(pending)* | A third track being built in parallel via OpenAI Codex/ChatGPT | Not yet connected to GitHub — founder will connect it |
 
 **Important — local dev location**: don't clone/work inside a Google Drive– or OneDrive–synced folder. This session started in `E:\My Drive\...` and hit real, reproducible corruption: `npm install` failed repeatedly with `EPERM`/`ENOTEMPTY` errors because Drive's sync client holds file locks during `node_modules` churn, and the same class of risk applies to a live `.git` directory. All work was relocated to a local, non-synced path (`C:\Users\Dell\dev\brain-os` on this machine). **On a new machine, clone fresh to a plain local path** (e.g. `~/dev/brain-os` or `C:\dev\brain-os`), not into a cloud-sync folder.
@@ -51,37 +51,42 @@ Full-history import of https://github.com/The-Blank-Collar/blankcollar-agentic-o
 - Supabase project to point it at: **ref `pvphxgrtdfrudejjhzjk`, URL `https://pvphxgrtdfrudejjhzjk.supabase.co`**, org "Steppe AI, Inc." (Supabase org slug `nnebdgdbrcveeissvgqe`). Same project as everything in Track 1.
 
 ### Open / blocked items for this track
-1. **Postgres direct connection string** (`DATABASE_URL` in blankcollar's `.env`) needs the project's DB password. It was never captured by any script this session (the project was created via the dashboard), and resetting it via the Management API was correctly blocked by the safety classifier as a real credential change. **Get it from**: Supabase dashboard → Project Settings → Database → either read the existing password (if you saved it at project creation) or reset it there yourself (safe — nothing in Track 1 uses a direct Postgres connection, only the REST API + anon key, so a reset won't break the Next.js app or the old app).
-2. **LLM/tool provider API keys** — founder said these will be supplied later. Don't block other setup on them; blankcollar's own `.env.example` documents exactly which keys gate which features (e.g. `GRAPHITI_LLM_MODEL` config — without a key, memory `/add` calls return `{skipped: true, reason: "no_llm_configured"}` rather than failing hard).
-3. **E2B sandboxes**: the README's badge/prose mentions this as a deferred roadmap item ("Only E2B secure sandboxes remain... needs `/dev/kvm`"), but **there is zero E2B code in the repo** — confirmed via full-text search, no hits. This is not "almost done," it's not started. Founder asked for "a generic sandbox API for testing" as a full-cloud alternative to needing local `/dev/kvm` — **e2b.dev** is the natural fit (cloud-hosted secure sandboxes, has a free tier, API-first) and is literally the tool blankcollar's own docs already name — but this needs a founder e2b.dev signup + API key, same pattern as every other external service this session (GitHub, Vercel, Supabase). Not started; needs that account first.
-4. **Mobile app — RESOLVED, no native app needed**: founder asked for "with mobile app." Checked thoroughly — there is no native mobile app anywhere in this codebase (no `apps/mobile`, no React Native/Expo/Capacitor dependency). Resolution: blankcollar has a documented **"Personal headless mode"** (`docs/HOSTINGER_DEPLOY.md`, bottom section) — single-user, no dashboard, **Telegram is the entire frontend** ("your phone is the frontend now"). This is what "mobile app" now means for this track — a real Telegram bot, not a native/PWA build. Decided, not just proposed — see deployment plan below.
-5. **"Full cloud, no desktop" — RESOLVED, plan below**: founder confirmed Hostinger VPS (their own docs' documented, best-tested target — `docs/HOSTINGER_DEPLOY.md`), personal headless mode specifically (not the full multi-tenant dashboard — that would need Supabase JWT wiring + Stripe + more DNS records + no one-command script). Personal mode explicitly skips Supabase/Stripe entirely since there's no dashboard to gate, so **item 1 above (DB password) is not actually a blocker for this deployment** — it only matters if/when the dashboard gets turned on later.
+1. **LLM/tool provider API keys** — founder said these will be supplied later. Don't block other setup on them; blankcollar's own `.env.example` documents exactly which keys gate which features (e.g. `GRAPHITI_LLM_MODEL` config — without a key, memory `/add` calls return `{skipped: true, reason: "no_llm_configured"}` rather than failing hard). Hermes needs `PORTKEY_API_KEY` + `PORTKEY_VIRTUAL_KEY_ANTHROPIC` to give real replies instead of the deterministic FakeLLM stub.
+2. **E2B sandboxes, OpenClaw, Slack/Messenger**: explicitly out of scope for now. Founder said "exclude openclaw part... no need for openclaw" and to focus on Telegram (Slack/Facebook Messenger are allowed later, but neither exists in the codebase yet — only Telegram's webhook is implemented; a Slack/Messenger channel would follow the same pattern as `apps/paperclip/src/routes/webhooks.ts`'s Telegram handler). E2B was never started (zero code in the repo) and isn't needed for the Slice 1 path either.
+3. **Mobile app — RESOLVED, no native app needed**: Telegram is the frontend (send a message, get a reply) — no native/PWA build.
+4. **"Full cloud, no VPS" — RESOLVED, this is now the plan**: founder reversed the just-agreed Hostinger VPS plan (*"integrate to our already working infrastructure, and rewrite the code for cloud, not vps. i dont want to manage vps"*) in favor of the same serverless stack already proven for Track 1: Vercel Functions + Vercel Cron + the shared Supabase project. See the deployment plan below.
 
-### Deployment plan — Hostinger VPS, personal headless mode (in progress)
+### Deployment plan — serverless (Vercel + Supabase, current)
 
-Decided this session, steps split by who does them:
+Three parallel research agents audited blankcollar's actual source (not just its docs) before any redesign — full findings are in the `blankcollar` branch's commit `a45757d`'s message, but the short version: the real blocker in Hermes/OpenClaw/LangGraph wasn't "serverless is hard," it was one specific anti-pattern — a `POST /run` (202) + in-memory run registry + `GET /run/{id}` poll loop, which breaks across stateless/ephemeral function instances. Every real Hermes call is bounded (one recall + one LLM completion + one remember), so the fix was converting the contract to synchronous request/response, not building infrastructure to fake statefulness. Paperclip's queue worker/scheduler used `setTimeout` tick loops for a different but related reason (those don't survive between invocations at all) — replaced with a Cron-triggered drain endpoint. gbrain's Qdrant dependency (the one real stateful-service blocker) was swapped for Supabase pgvector, since gbrain's actual usage (single dense vector, plain filters) maps to it directly.
 
-**Founder must do (account/purchase/DNS access — can't be done by an AI session):**
-1. Sign up at Hostinger, buy a VPS with ≥4GB RAM (KVM 2 tier or higher). During setup pick the **"Ubuntu 24.04 with Docker"** OS template. Get the public IP.
-2. DNS: add three A records wherever `open-spot.ai` is managed, all → the VPS IP: `os.open-spot.ai`, `nango.open-spot.ai`, `nango-ui.open-spot.ai`.
-3. Create a Telegram bot via **@BotFather** (`/newbot`), save the token.
-4. Open Hostinger's **web Terminal** (VPS panel button — no SSH setup needed) and paste:
-   ```
-   bash <(curl -fsSL https://raw.githubusercontent.com/The-Blank-Collar/blankcollar-agentic-os/main/infra/scripts/personal-deploy.sh)
-   ```
-   It prompts for: domain (`os.open-spot.ai`), Telegram bot token, LLM API key (Enter to skip → FakeLLM stub mode, matching "API key will be supplied later"), name/email for the single-user org. Idempotent — safe to re-run if a step fails; logs to `/root/bc-deploy.log` on the VPS.
+**Rollout order (founder-approved, smallest working slice first)**: Slice 1 = Telegram → Hermes → gbrain, no OpenClaw/LangGraph/Graphiti. **Slice 1's code is done, locally tested, committed, and pushed to `blankcollar` (commit `a45757d`) — but nothing has been deployed yet.** What's left, split by who does it:
 
-**Deliberate choice — using the upstream script/repo for this first deploy, not our fork**: the script hardcodes `git clone` of `The-Blank-Collar/blankcollar-agentic-os` (not parameterized). Since nothing's been customized yet, first deploy intentionally uses their exact tested path rather than risk an unverified fork on a fresh script. Once it's running, repoint the VPS's clone at our fork for any future changes:
-```bash
-cd ~/code/blankcollar-agentic-os
-git remote set-url origin https://github.com/Steppe-AI-Inc/brain-os.git
-git fetch origin
-git checkout blankcollar
-# then their own documented redeploy path:
-./infra/scripts/deploy.sh local
-```
+**Claude Code can do once the founder provides the inputs below** — this is genuinely the remaining work, not busywork:
+1. Apply the schema migration to the shared Supabase project (`pvphxgrtdfrudejjhzjk`) — adds `brain.memory.embedding` (pgvector) + an HNSW index, drops the now-unused `vector_ref` column, everything else is additive/idempotent. Two ways, either works:
+   - `cd apps/paperclip && DATABASE_URL=<pooled connection string> npm run migrate`, or
+   - paste `apps/paperclip/src/bootstrap.ts`'s `ADDITIVE_MIGRATIONS` array (now exported) into the Supabase SQL editor.
+   *(This session tried to run it directly via the Management API and was correctly blocked by the safety classifier as a live credential-bearing/schema-changing action — it needs to happen from a session where you're present, or you can just run the SQL yourself.)*
+2. Create 3 new Vercel projects in the same `steppe-ai` team, same GitHub repo, different Root Directories — same pattern already proven for Track 1's `/web` project:
+   - `apps/hermes` (Python/FastAPI, `vercel.json` already configures the catch-all rewrite + `maxDuration: 60`)
+   - `packages/gbrain` (Python/FastAPI, same pattern, `maxDuration: 30`)
+   - `apps/paperclip` (Node/Fastify, `buildCommand: npm run build`, `maxDuration: 60`, declares the `worker-tick` Cron job)
+3. Set env vars per project (values the founder supplies — see list below), then deploy each (`vercel --prod` from that directory, or connect the GitHub integration with the Root Directory set).
+4. Register the Telegram webhook against paperclip's deployed URL and send a real message to confirm the full loop (Telegram → capture/goal/run rows → Cron drains the queue → Hermes replies → message lands back in Telegram).
 
-**Next AI-session step once the VPS/DNS/bot token exist**: verify DNS propagation (`dig +short os.open-spot.ai`), watch Caddy cert issuance, run `./infra/scripts/doctor.sh` for the health check, confirm `https://os.open-spot.ai/api/health` responds, and message the Telegram bot to confirm the capture → goal → Hermes → reply loop works end to end.
+**Founder must do (accounts/secrets — can't be done by an AI session):**
+1. Create a Telegram bot via **@BotFather** (`/newbot`), save the token. Pick a random `TELEGRAM_WEBHOOK_SECRET` (`openssl rand -hex 32`).
+2. Get a Portkey API key + an Anthropic virtual key (`PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY_ANTHROPIC`) — without these Hermes replies with a deterministic FakeLLM stub, not real Claude.
+3. Get an OpenAI API key for `text-embedding-3-small` (`OPENAI_API_KEY` in gbrain's env) — without it, gbrain falls back to a deterministic fake embedder and recall quality is meaningless (still runs, just not usefully).
+4. Get the shared Supabase project's **pooled** (Supavisor, transaction-mode) connection string — Project Settings → Database → Connection pooling — for `DATABASE_URL` on both `paperclip` and `gbrain`. (Not the direct connection string — serverless functions need the pooler.)
+5. Generate a `CRON_SECRET` (`openssl rand -hex 32`) and set it on the `paperclip` Vercel project — Vercel automatically sends it as the Cron job's bearer token once the env var exists, no extra wiring.
+6. Env vars to set per project (see `.env.example` for the full annotated list):
+   - **hermes**: `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY_ANTHROPIC`, `GBRAIN_URL` (the gbrain Vercel project's URL)
+   - **gbrain**: `DATABASE_URL` (pooled), `OPENAI_API_KEY`
+   - **paperclip**: `DATABASE_URL` (pooled), `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY_ANTHROPIC`, `HERMES_URL` (hermes's Vercel URL), `GBRAIN_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `CRON_SECRET`, `PAPERCLIP_SKIP_BOOT_TASKS=true`, `PAPERCLIP_WORKER_ENABLED=false`, `PAPERCLIP_SCHEDULER_ENABLED=false`
+7. **Cron frequency caveat**: `apps/paperclip/vercel.json` declares the worker-tick Cron at once-per-minute. Vercel's **Hobby plan only allows daily-granularity Cron** — if the project is on Hobby, either upgrade to Pro, or point a free external pinger (e.g. cron-job.org) at `GET https://<paperclip-url>/api/cron/worker-tick` with header `Authorization: Bearer <CRON_SECRET>` every minute instead.
+
+**Deferred to a later slice (not needed for "Telegram bot replies"):** OpenClaw (needs Browserbase for its `web.browse` skill — founder's choice, not yet signed up), LangGraph (only matters once OpenClaw is back in the picture), Graphiti (needs Neo4j Aura), Paperclip's other 39 REST routes / Stripe billing / dashboard (not exercised by the Telegram path at all).
 
 ## Track 3 — Codex/ChatGPT (pending)
 
@@ -105,6 +110,6 @@ Founder is building a third parallel version using OpenAI Codex/ChatGPT, not yet
 
 1. `git clone` to a plain local path (not cloud-synced — see above).
 2. For Track 1: `cd web && npm install && npm run dev` for local dev, or just use the live Vercel URLs. `.env.local` isn't committed (gitignored, correctly) — recreate it from `web/.env.example` with the Supabase URL/anon key above.
-3. For Track 2: `git checkout blankcollar`, read its own `CLAUDE.md` and `docs/STATUS.md` for its internal conventions, then pick up the "Open / blocked items" list above starting with the DB password.
+3. For Track 2: `git checkout blankcollar`, read its own `CLAUDE.md` and `docs/STATUS.md` for its internal conventions, then pick up the serverless deployment plan above — Slice 1's code is done (commit `a45757d`), what's left is applying the DB migration and standing up the 3 Vercel projects with real secrets.
 4. Re-authenticate `gh`/`vercel`/`supabase` CLIs as needed (all device-code flows, all worked fine non-interactively this session).
 5. This file won't perfectly track every future change — treat it as the anchor for *why* things are the way they are, and `git log` on each branch as the anchor for *what* changed and *when*. Update this file when a major decision or track status changes, not for every commit.
