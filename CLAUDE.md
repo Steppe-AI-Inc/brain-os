@@ -1,5 +1,11 @@
 # CLAUDE.md — working agreement for AI collaborators
 
+> **This is the `blankcollar` branch of `Steppe-AI-Inc/brain-os`** — an imported fork of
+> the upstream Blank Collar project (see below), being evaluated/adopted as a possible
+> backbone for Steppe AI's own agentic OS. For cross-branch/cross-machine context (what
+> the other branches are, shared Supabase project setup, open decisions), read
+> `MASTER_CONTEXT.md` on the `master` branch first: `git show master:MASTER_CONTEXT.md`.
+
 This file is read by Claude Code (and other AI agents) when they start a session in this repo. It encodes the conventions a new collaborator needs to know in the first 30 seconds.
 
 ## What this project is
