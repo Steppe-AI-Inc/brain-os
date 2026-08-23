@@ -19,21 +19,25 @@
       <div id="userPill" class="userPill"></div>
       <nav id="nav"></nav>
       <div class="sidebarFooter">
-        <div class="miniLabel">Development rule</div>
-        <strong>Patch-only. Module-only. Token-limited.</strong>
-        <p>Change one module, not the whole system.</p>
+        <div class="miniLabel" id="devRuleLabel">Development rule</div>
+        <strong id="devRuleTitle">Patch-only. Module-only. Token-limited.</strong>
+        <p id="devRuleBody">Change one module, not the whole system.</p>
       </div>
     </aside>
     <main class="main">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Founder Operating Brain</p>
+          <p class="eyebrow" id="eyebrowText">Founder Operating Brain</p>
           <h2 id="pageTitle">Dashboard</h2>
         </div>
         <div class="topbarActions">
+          <div class="langSwitch" id="langSwitch" role="group" aria-label="Language">
+            <button data-lang="en" id="langEn">EN</button>
+            <button data-lang="mn" id="langMn">MN</button>
+          </div>
           <button class="ghost" id="importBtn">Import</button>
           <button class="ghost" id="backupBtn">Export</button>
-          <button class="primary" data-route="command">New Command</button>
+          <button class="primary" id="newCommandBtn" data-route="command">New Command</button>
         </div>
       </header>
       <section id="view" class="view"></section>
@@ -44,6 +48,7 @@
 
   <script src="js/core/utils.js"></script>
   <script src="js/core/store.js"></script>
+  <script src="js/core/i18n.js"></script>
   <script src="js/core/permissions.js"></script>
   <script src="js/core/tokenBudget.js"></script>
   <script src="js/ai/contextPack.js"></script>

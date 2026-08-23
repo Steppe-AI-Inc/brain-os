@@ -54,13 +54,13 @@ SEM.App = (() => {
   function renderNav() {
     const nav = U.$('#nav');
     nav.innerHTML = `
-      <div class="navSearchWrap"><input id="navSearch" class="navSearch" placeholder="Find module…" aria-label="Find module" /></div>
+      <div class="navSearchWrap"><input id="navSearch" class="navSearch" placeholder="${U.esc(SEM.I18n.t('shell.findModule','Find module…'))}" aria-label="Find module" /></div>
       ${routeGroups.map(group => `
         <div class="navGroup" data-nav-group="${U.esc(group.title)}">
-          <div class="navGroupTitle">${U.esc(group.title)}</div>
+          <div class="navGroupTitle">${U.esc(SEM.I18n.t('navGroup.'+group.title, group.title))}</div>
           ${group.routes.map(([id, label, icon]) => `
             <button class="navItem ${id === currentRoute ? 'active' : ''}" data-route="${id}" data-nav-label="${U.esc((label + ' ' + group.title).toLowerCase())}">
-              <span class="navIcon">${U.esc(icon)}</span><span class="navText">${U.esc(label)}</span>
+              <span class="navIcon">${U.esc(icon)}</span><span class="navText">${U.esc(SEM.I18n.t('nav.'+id, label))}</span>
             </button>
           `).join('')}
         </div>
@@ -93,10 +93,25 @@ SEM.App = (() => {
     render();
   }
 
+  function applyShellI18n() {
+    document.documentElement.lang = SEM.I18n.locale();
+    U.$('#eyebrowText').textContent = SEM.I18n.t('shell.eyebrow', 'Founder Operating Brain');
+    U.$('#importBtn').textContent = SEM.I18n.t('shell.import', 'Import');
+    U.$('#backupBtn').textContent = SEM.I18n.t('shell.export', 'Export');
+    U.$('#newCommandBtn').textContent = SEM.I18n.t('shell.newCommand', 'New Command');
+    U.$('#devRuleLabel').textContent = SEM.I18n.t('shell.devRuleLabel', 'Development rule');
+    U.$('#devRuleTitle').textContent = SEM.I18n.t('shell.devRuleTitle', 'Patch-only. Module-only. Token-limited.');
+    U.$('#devRuleBody').textContent = SEM.I18n.t('shell.devRuleBody', 'Change one module, not the whole system.');
+    const loc = SEM.I18n.locale();
+    U.$('#langEn').classList.toggle('active', loc === 'en');
+    U.$('#langMn').classList.toggle('active', loc === 'mn');
+  }
+
   function render() {
+    applyShellI18n();
     renderNav();
     renderUser();
-    U.$('#pageTitle').textContent = pageTitle[currentRoute] || 'Dashboard';
+    U.$('#pageTitle').textContent = SEM.I18n.t('nav.'+currentRoute, pageTitle[currentRoute] || 'Dashboard');
     const view = U.$('#view');
     const mod = SEM.Modules?.[currentRoute];
     view.innerHTML = mod?.render ? mod.render() : `<div class="card"><h3>Module not found</h3><p class="muted">The route <b>${U.esc(currentRoute)}</b> is registered, but the module script was not loaded.</p></div>`;
@@ -105,6 +120,8 @@ SEM.App = (() => {
 
   function bindGlobal() {
     document.body.addEventListener('click', e => {
+      const langBtn = e.target.closest('[data-lang]');
+      if (langBtn) { SEM.I18n.setLocale(langBtn.dataset.lang); render(); return; }
       const btn = e.target.closest('[data-route]');
       if (btn) navigate(btn.dataset.route);
     });
