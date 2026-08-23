@@ -21,10 +21,17 @@ SEM.Store = (() => {
       requireApprovalForSalary: true,
       requireApprovalForProduction: true,
       companyOwnershipHiddenFromEmployees: true,
-      productionMode: 'local_fallback',
-      supabaseUrl: '',
-      supabaseAnonKey: '',
-      supabaseProjectRef: '',
+      productionMode: 'cloud_supabase',
+      // Project URL + anon key are safe to ship as defaults: they're designed to be
+      // public/embedded in frontend code, with Supabase RLS (not secrecy) as the real
+      // access boundary. Pre-filling these just saves a manual copy/paste step in
+      // Production Core; sign-in is still required before any RLS-scoped data or the
+      // Supabase AI Native Chat backend works. chatOpsBackend stays 'local' by default
+      // (see js/ai/chatOpsOrchestrator.js) so the app works immediately for anyone
+      // opening the deployed URL without first signing in.
+      supabaseUrl: 'https://pvphxgrtdfrudejjhzjk.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2cGh4Z3J0ZGZydWRlampoemprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTA0OTgsImV4cCI6MjEwMzA2NjQ5OH0.os7kOa77fCrYUklh1jNJD-kbP44c2GMsIBjN1c0uwV0',
+      supabaseProjectRef: 'pvphxgrtdfrudejjhzjk',
       chatOpsBackend: 'local',
       locale: 'en',
       rlsRequired: true,
