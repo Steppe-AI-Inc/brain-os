@@ -1,4 +1,5 @@
 window.SEM = window.SEM || {};
+SEM.helloWorld = () => console.log('Hello, world!');
 SEM.App = (() => {
   const U = SEM.Utils;
   const routeGroups = [
