@@ -83,21 +83,37 @@ function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length /
 // Server-side backstop: the system prompt ASKS the model to flag these categories as
 // approvalRequired, but prompt instructions are not a security boundary. Any task whose
 // title/description mentions one of these risk categories is force-flagged for approval
-// here, regardless of what the model returned.
-const FORCED_APPROVAL_KEYWORDS = [
-  'salary','wage','wages','compensation','payroll','bonus','raise',
-  'payment','invoice','refund','payout','wire transfer','bank transfer',
-  'contract','agreement','nda','legal',
-  'publish','publication','press release','public post','go live','production deploy','deploy to production',
-  'delete','deletion','remove permanently','purge',
-  'discount','price reduction','markdown',
-  'barter','trade-in','in-kind',
-  'financing','loan','credit line','investment',
-  'external email','send email to client','message the client','dm the customer','slack the client'
+// here, regardless of what the model returned. Each keyword also maps to an approval
+// "domain" (public.approval_domain, added by the 202608230001 migration) so the RLS
+// approvals_update_approver policy can route salary/finance/legal approvals to the right
+// authority instead of letting any company manager approve everything.
+type ApprovalDomain = "general"|"salary_hr"|"finance"|"legal"|"production"|"external_comms";
+const FORCED_APPROVAL_KEYWORDS: Array<{ keyword:string; domain:ApprovalDomain }> = [
+  { keyword:'salary', domain:'salary_hr' }, { keyword:'wage', domain:'salary_hr' }, { keyword:'wages', domain:'salary_hr' },
+  { keyword:'compensation', domain:'salary_hr' }, { keyword:'payroll', domain:'salary_hr' }, { keyword:'bonus', domain:'salary_hr' }, { keyword:'raise', domain:'salary_hr' },
+  { keyword:'payment', domain:'finance' }, { keyword:'invoice', domain:'finance' }, { keyword:'refund', domain:'finance' }, { keyword:'payout', domain:'finance' },
+  { keyword:'wire transfer', domain:'finance' }, { keyword:'bank transfer', domain:'finance' },
+  { keyword:'discount', domain:'finance' }, { keyword:'price reduction', domain:'finance' }, { keyword:'markdown', domain:'finance' },
+  { keyword:'barter', domain:'finance' }, { keyword:'trade-in', domain:'finance' }, { keyword:'in-kind', domain:'finance' },
+  { keyword:'financing', domain:'finance' }, { keyword:'loan', domain:'finance' }, { keyword:'credit line', domain:'finance' }, { keyword:'investment', domain:'finance' },
+  { keyword:'contract', domain:'legal' }, { keyword:'agreement', domain:'legal' }, { keyword:'nda', domain:'legal' }, { keyword:'legal', domain:'legal' },
+  { keyword:'publish', domain:'production' }, { keyword:'publication', domain:'production' }, { keyword:'press release', domain:'production' }, { keyword:'public post', domain:'production' },
+  { keyword:'go live', domain:'production' }, { keyword:'production deploy', domain:'production' }, { keyword:'deploy to production', domain:'production' },
+  { keyword:'delete', domain:'production' }, { keyword:'deletion', domain:'production' }, { keyword:'remove permanently', domain:'production' }, { keyword:'purge', domain:'production' },
+  { keyword:'external email', domain:'external_comms' }, { keyword:'send email to client', domain:'external_comms' },
+  { keyword:'message the client', domain:'external_comms' }, { keyword:'dm the customer', domain:'external_comms' }, { keyword:'slack the client', domain:'external_comms' }
 ];
-function detectForcedApprovalKeywords(title:string, description:string){
+function detectForcedApprovalMatches(title:string, description:string){
   const text = `${title || ''} ${description || ''}`.toLowerCase();
-  return FORCED_APPROVAL_KEYWORDS.filter(k => text.includes(k));
+  return FORCED_APPROVAL_KEYWORDS.filter(k => text.includes(k.keyword));
+}
+function detectForcedApprovalKeywords(title:string, description:string){
+  return detectForcedApprovalMatches(title, description).map(m => m.keyword);
+}
+// First matched domain wins; 'general' if no keyword matched (e.g. model set approvalRequired itself).
+function detectApprovalDomain(title:string, description:string): ApprovalDomain {
+  const matches = detectForcedApprovalMatches(title, description);
+  return matches.length ? matches[0].domain : 'general';
 }
 function fallbackPlan(command:string, contextPack:any){
   const lower = command.toLowerCase();
@@ -214,8 +230,15 @@ serve(async (req) => {
     const createdApprovals:any[] = [];
     for(const a of allApprovals){
       const task = typeof a.taskIndex === 'number' ? createdTasks[a.taskIndex] : null;
+      // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
+      // legal -> founder/admin only, general/production/external_comms -> company manager).
+      // Prefer the linked task's own text (more specific) over the approval's own title/reason.
+      const sourceTask = typeof a.taskIndex === 'number' ? resultTasks[a.taskIndex] : null;
+      const domain = sourceTask
+        ? detectApprovalDomain(sourceTask.title || '', sourceTask.description || '')
+        : detectApprovalDomain(a.title || '', a.reason || '');
       const { data, error } = await supabase.from('approvals').insert({
-        company_id: task?.company_id || null, task_id: task?.id || null, title:a.title || 'Approval required', reason:a.reason || 'Risk policy requires approval', risk_level:a.riskLevel || 'medium', requested_by_profile_id:profile.id, approval_payload:a
+        company_id: task?.company_id || null, task_id: task?.id || null, title:a.title || 'Approval required', reason:a.reason || 'Risk policy requires approval', risk_level:a.riskLevel || 'medium', domain, requested_by_profile_id:profile.id, approval_payload:a
       }).select().single();
       if(!error && data) createdApprovals.push(data);
     }

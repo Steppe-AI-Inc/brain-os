@@ -2,6 +2,12 @@
 -- Fix: helper functions are created after tables so Supabase SQL Editor can run cleanly.
 -- Run in Supabase SQL Editor after creating a new project.
 -- Design goal: real multi-user access, employee data isolation, founder-only sensitive ownership/cash/salary, auditability.
+--
+-- This file already includes the fixes from supabase/migrations/202608230001_security_hardening_rls.sql
+-- (safe view security_invoker, approval domains, tasks/confidential/product-write RLS narrowing) so a
+-- fresh project bootstrapped from this single file does not start from the pre-hardening state. If this
+-- project was already deployed from an earlier version of this file, run that migration instead of
+-- re-running this whole script.
 
 create extension if not exists pgcrypto;
 create extension if not exists vector;
@@ -24,6 +30,9 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 do $$ begin
   create type approval_status as enum ('pending','approved','rejected','changes_requested','cancelled');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type approval_domain as enum ('general','salary_hr','finance','legal','production','external_comms');
 exception when duplicate_object then null; end $$;
 
 -- ---------- CORE TABLES ----------
@@ -268,6 +277,7 @@ create table if not exists public.approvals (
   title text not null,
   reason text,
   risk_level risk_level default 'medium',
+  domain approval_domain not null default 'general',
   status approval_status default 'pending',
   approval_payload jsonb default '{}'::jsonb,
   requested_by_profile_id uuid references public.profiles(id),
@@ -485,11 +495,13 @@ create policy "agents_select_authenticated" on public.agents for select using (a
 drop policy if exists "agents_write_admin" on public.agents;
 create policy "agents_write_admin" on public.agents for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
 
--- Tasks: owner/person, company scope, managers/admin.
+-- Tasks: own/created tasks plus managers/admin (full company task visibility is
+-- manager+ only — an ordinary employee only sees tasks they created or own).
 drop policy if exists "tasks_select_scope" on public.tasks;
 create policy "tasks_select_scope" on public.tasks for select using (
   public.is_founder_or_admin()
-  or public.has_company_access(company_id)
+  or public.is_company_manager(company_id)
+  or created_by_profile_id = public.current_profile_id()
   or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id())
 );
 drop policy if exists "tasks_insert_scope" on public.tasks;
@@ -497,11 +509,13 @@ create policy "tasks_insert_scope" on public.tasks for insert with check (public
 drop policy if exists "tasks_update_scope" on public.tasks;
 create policy "tasks_update_scope" on public.tasks for update using (public.is_founder_or_admin() or public.is_company_manager(company_id) or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id()));
 
--- Memories: restricted/founder_only visible only to admins; otherwise company scope.
+-- Memories: restricted/founder_only visible only to admins; confidential requires
+-- manager/HR-finance; public/internal are general company scope.
 drop policy if exists "memories_select_scope" on public.memories;
 create policy "memories_select_scope" on public.memories for select using (
   public.is_founder_or_admin()
-  or (sensitivity in ('public','internal','confidential') and (company_id is null or public.has_company_access(company_id)))
+  or (sensitivity in ('public','internal') and (company_id is null or public.has_company_access(company_id)))
+  or (sensitivity = 'confidential' and (company_id is null or public.is_company_manager(company_id) or public.is_hr_finance()))
 );
 drop policy if exists "memories_write_scope" on public.memories;
 create policy "memories_write_scope" on public.memories for all using (public.is_founder_or_admin() or company_id is null or public.is_company_manager(company_id)) with check (public.is_founder_or_admin() or company_id is null or public.is_company_manager(company_id));
@@ -510,30 +524,73 @@ create policy "memories_write_scope" on public.memories for all using (public.is
 drop policy if exists "documents_select_scope" on public.documents;
 create policy "documents_select_scope" on public.documents for select using (
   public.is_founder_or_admin()
-  or (sensitivity in ('public','internal','confidential') and (company_id is null or public.has_company_access(company_id)))
+  or (sensitivity in ('public','internal') and (company_id is null or public.has_company_access(company_id)))
+  or (sensitivity = 'confidential' and (company_id is null or public.is_company_manager(company_id) or public.is_hr_finance()))
 );
 drop policy if exists "documents_write_scope" on public.documents;
 create policy "documents_write_scope" on public.documents for all using (public.is_founder_or_admin() or public.is_company_manager(company_id)) with check (public.is_founder_or_admin() or public.is_company_manager(company_id));
 
--- Product/inventory/sales/proposals by company scope; proposal internal margin is column-level sensitive, so hide via views in production UI.
+-- Product/inventory/proposals: read is company scope, write is manager-gated (catalog,
+-- stock, and pricing/margin data — not general-employee-writable). Proposal internal
+-- margin is also column-level sensitive, so hide via views in production UI.
 drop policy if exists "product_lines_company_scope" on public.product_lines;
-create policy "product_lines_company_scope" on public.product_lines for all using (public.has_company_access(company_id)) with check (public.has_company_access(company_id));
+create policy "product_lines_select_scope" on public.product_lines for select using (public.has_company_access(company_id));
+drop policy if exists "product_lines_write_manager" on public.product_lines;
+create policy "product_lines_write_manager" on public.product_lines for all using (public.is_company_manager(company_id)) with check (public.is_company_manager(company_id));
+
 drop policy if exists "inventory_company_scope" on public.inventory_items;
-create policy "inventory_company_scope" on public.inventory_items for all using (public.has_company_access(company_id)) with check (public.has_company_access(company_id));
+create policy "inventory_select_scope" on public.inventory_items for select using (public.has_company_access(company_id));
+drop policy if exists "inventory_write_manager" on public.inventory_items;
+create policy "inventory_write_manager" on public.inventory_items for all using (public.is_company_manager(company_id)) with check (public.is_company_manager(company_id));
+
+-- Sales leads: any company member can create/work leads they own (normal CRM usage);
+-- managers can manage all; delete is manager-only.
 drop policy if exists "sales_leads_company_scope" on public.sales_leads;
-create policy "sales_leads_company_scope" on public.sales_leads for all using (public.has_company_access(company_id)) with check (public.has_company_access(company_id));
+create policy "sales_leads_select_scope" on public.sales_leads for select using (public.has_company_access(company_id));
+drop policy if exists "sales_leads_insert_member" on public.sales_leads;
+create policy "sales_leads_insert_member" on public.sales_leads for insert with check (public.has_company_access(company_id));
+drop policy if exists "sales_leads_update_own_or_manager" on public.sales_leads;
+create policy "sales_leads_update_own_or_manager" on public.sales_leads for update using (
+  public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = sales_leads.owner_person_id and pe.profile_id = public.current_profile_id())
+) with check (
+  public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = sales_leads.owner_person_id and pe.profile_id = public.current_profile_id())
+);
+drop policy if exists "sales_leads_delete_manager" on public.sales_leads;
+create policy "sales_leads_delete_manager" on public.sales_leads for delete using (public.is_company_manager(company_id));
+
 drop policy if exists "proposals_company_scope" on public.proposals;
-create policy "proposals_company_scope" on public.proposals for all using (public.has_company_access(company_id)) with check (public.has_company_access(company_id));
+create policy "proposals_select_scope" on public.proposals for select using (public.has_company_access(company_id));
+drop policy if exists "proposals_write_manager" on public.proposals;
+create policy "proposals_write_manager" on public.proposals for all using (public.is_company_manager(company_id)) with check (public.is_company_manager(company_id));
+
 drop policy if exists "proposal_items_scope" on public.proposal_items;
-create policy "proposal_items_scope" on public.proposal_items for all using (exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.has_company_access(p.company_id))) with check (exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.has_company_access(p.company_id)));
+create policy "proposal_items_select_scope" on public.proposal_items for select using (
+  exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.has_company_access(p.company_id))
+);
+drop policy if exists "proposal_items_write_manager" on public.proposal_items;
+create policy "proposal_items_write_manager" on public.proposal_items for all using (
+  exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.is_company_manager(p.company_id))
+) with check (
+  exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.is_company_manager(p.company_id))
+);
 
 -- Approvals: company managers/admins and requested/approver profile.
 drop policy if exists "approvals_select_scope" on public.approvals;
 create policy "approvals_select_scope" on public.approvals for select using (public.is_founder_or_admin() or public.has_company_access(company_id) or requested_by_profile_id = public.current_profile_id() or approver_profile_id = public.current_profile_id());
 drop policy if exists "approvals_insert_scope" on public.approvals;
 create policy "approvals_insert_scope" on public.approvals for insert with check (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id));
+-- Domain-gated: salary/finance approvals require HR-finance; general/production/
+-- external_comms allow the company manager; legal has no dedicated approver role yet,
+-- so it falls through to founder/admin or the explicitly assigned approver only.
 drop policy if exists "approvals_update_approver" on public.approvals;
-create policy "approvals_update_approver" on public.approvals for update using (public.is_founder_or_admin() or approver_profile_id = public.current_profile_id() or public.is_company_manager(company_id));
+create policy "approvals_update_approver" on public.approvals for update using (
+  public.is_founder_or_admin()
+  or approver_profile_id = public.current_profile_id()
+  or (domain in ('salary_hr','finance') and public.is_hr_finance())
+  or (domain in ('general','production','external_comms') and public.is_company_manager(company_id))
+);
 
 -- Work orders/model usage/audit logs.
 drop policy if exists "work_orders_select_scope" on public.work_orders;
@@ -571,13 +628,23 @@ drop policy if exists "audit_logs_insert_auth" on public.audit_logs;
 create policy "audit_logs_insert_auth" on public.audit_logs for insert with check (auth.uid() is not null);
 
 -- ---------- SAFE VIEWS ----------
+-- security_invoker=true is required so these views evaluate RLS as the calling user,
+-- not as the view owner (who bypasses RLS as table owner) — without it these views
+-- would return all rows from all companies to any caller regardless of company access.
 create or replace view public.safe_companies as
 select id, name, country, legal_entity_name, status, description, strategic_priority, risk_score, created_at, updated_at
 from public.companies;
+alter view public.safe_companies set (security_invoker = true);
 
 create or replace view public.safe_proposals as
 select id, company_id, lead_id, title, language, currency, subtotal, discount_pct, total, payment_terms, status, version, created_by_profile_id, created_at, updated_at
 from public.proposals;
+alter view public.safe_proposals set (security_invoker = true);
+
+revoke all on public.safe_companies from public, anon;
+revoke all on public.safe_proposals from public, anon;
+grant select on public.safe_companies to authenticated;
+grant select on public.safe_proposals to authenticated;
 
 -- ---------- SEED AI AGENTS ----------
 insert into public.agents (name, role, description, skills, forbidden_actions, cost_limit_usd)
