@@ -25,6 +25,7 @@ SEM.Store = (() => {
       supabaseUrl: '',
       supabaseAnonKey: '',
       supabaseProjectRef: '',
+      chatOpsBackend: 'local',
       rlsRequired: true,
       backendProvider: 'vercel',
       auditLoggingRequired: true

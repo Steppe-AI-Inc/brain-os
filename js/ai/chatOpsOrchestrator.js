@@ -226,6 +226,37 @@ SEM.ChatOps = (() => {
     return [`QA run completed: ${result.verdict}. Passed ${result.passed}, failed ${result.failed}, warnings ${result.warnings}`];
   }
 
+  // Real backend path: calls the RLS-scoped, auth-checked Supabase Edge Function
+  // (supabase/functions/sem-ai-command) instead of the local template engine below.
+  // Gated by settings.chatOpsBackend so the local simulation stays the default until
+  // this path is proven against a real deployed project.
+  async function executeViaSupabase(command) {
+    if (!SEM.DataService?.isConfigured()) throw new Error('Supabase is not configured. Set the project URL/anon key in Production Core, or switch AI Native Chat backend back to Local simulation in Real AI Backend Connection settings.');
+    const session = SEM.DataService.getSession();
+    if (!session?.access_token) throw new Error('Not signed in to Supabase. Sign in from Production Core first.');
+    const { url, anonKey } = SEM.DataService.config();
+    const res = await fetch(`${url}/functions/v1/sem-ai-command`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ command })
+    });
+    const text = await res.text();
+    let json;
+    try { json = text ? JSON.parse(text) : {}; } catch { throw new Error(`Edge Function returned non-JSON: ${text.slice(0, 200)}`); }
+    if (!res.ok) throw new Error(json.error || `Edge Function error ${res.status}`);
+    const createdTasks = json.createdTasks || [];
+    const createdApprovals = json.createdApprovals || [];
+    const outputs = [
+      json.result?.summary || 'Supabase Edge Function executed the command.',
+      `Created ${createdTasks.length} task(s) and ${createdApprovals.length} approval(s) in Supabase.` + (createdApprovals.length ? ' Review pending approvals before risky actions proceed.' : '')
+    ];
+    return {
+      outputs,
+      workOrderId: json.workOrder?.id || null,
+      tokenPlan: { totalTokens: json.tokenEstimate || 0, route: json.model || 'supabase', estimatedCostUsd: 0 }
+    };
+  }
+
   function buildPlan(command) {
     const category = classify(command);
     const agentId = agentForCategory(category);
@@ -248,9 +279,21 @@ SEM.ChatOps = (() => {
     const planInfo = buildPlan(command);
     const tokenPlan = SEM.TokenBudget?.estimateCommand ? SEM.TokenBudget.estimateCommand(command, { category: planInfo.category, riskLevel: SEM.Pipeline?.riskOf ? SEM.Pipeline.riskOf(command) : 'medium', contextPack }) : { totalTokens: 0, route: 'no-llm', estimatedCostUsd: 0 };
     const s = ensureSchema();
-    const run = { id: U.uid('run'), command, category: planInfo.category, agentId: planInfo.agentId, dryRun, status: dryRun ? 'preview' : 'completed', contextCounts: contextPack.counts || {}, tokenPlan, steps: planInfo.steps.map(x => ({ ...x })), outputs: [], createdAt: U.now() };
+    const useSupabase = !dryRun && SEM.Store.get().settings.chatOpsBackend === 'supabase';
+    const run = { id: U.uid('run'), command, category: planInfo.category, agentId: planInfo.agentId, dryRun, backend: useSupabase ? 'supabase' : 'local', status: dryRun ? 'preview' : 'completed', contextCounts: contextPack.counts || {}, tokenPlan, steps: planInfo.steps.map(x => ({ ...x })), outputs: [], createdAt: U.now() };
 
-    if (!dryRun) {
+    if (useSupabase) {
+      // Let failures (not configured, not signed in, network, Edge Function error) propagate
+      // to the caller (js/modules/chatOps.js's submit()) rather than silently falling back to
+      // the local simulation below — a silent fallback would look "done" without anything
+      // actually persisted to Supabase, which is worse than a visible error.
+      const supa = await executeViaSupabase(command);
+      run.outputs = supa.outputs;
+      run.supabaseWorkOrderId = supa.workOrderId;
+      if (supa.tokenPlan) run.tokenPlan = supa.tokenPlan;
+      run.steps = run.steps.map(st => ({ ...st, status: 'done' }));
+      s.agentMessages.unshift({ id: U.uid('msg'), runId: run.id, agentId: planInfo.agentId, role: 'executor', message: supa.outputs.join('\n'), createdAt: U.now() });
+    } else if (!dryRun) {
       createWorkOrder({ title: `ChatOps work order: ${planInfo.category}`, category: planInfo.category, agentId: planInfo.agentId, command, scope: contextPack.counts || {}, status: 'completed' });
       let outputs = [];
       if (planInfo.category === 'deal_close') outputs = createMeetingProposal(command, run);
