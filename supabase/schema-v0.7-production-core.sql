@@ -3,11 +3,13 @@
 -- Run in Supabase SQL Editor after creating a new project.
 -- Design goal: real multi-user access, employee data isolation, founder-only sensitive ownership/cash/salary, auditability.
 --
--- This file already includes the fixes from supabase/migrations/202608230001_security_hardening_rls.sql
--- (safe view security_invoker, approval domains, tasks/confidential/product-write RLS narrowing) so a
--- fresh project bootstrapped from this single file does not start from the pre-hardening state. If this
--- project was already deployed from an earlier version of this file, run that migration instead of
--- re-running this whole script.
+-- This file already includes the fixes from:
+--   supabase/migrations/202608230001_security_hardening_rls.sql (safe view security_invoker,
+--     approval domains, tasks/confidential/product-write RLS narrowing)
+--   supabase/migrations/202608230002_transactional_ai_command_rpc.sql (sem_execute_ai_command RPC)
+-- so a fresh project bootstrapped from this single file does not start from the pre-hardening state.
+-- If this project was already deployed from an earlier version of this file, run those migrations
+-- instead of re-running this whole script.
 
 create extension if not exists pgcrypto;
 create extension if not exists vector;
@@ -414,6 +416,127 @@ language sql stable security definer set search_path = public as $$
         and m.role_in_company in ('owner','manager','team_lead')
     );
 $$;
+
+-- ---------- TRANSACTIONAL AI COMMAND PERSISTENCE (ticket 12) ----------
+-- Wraps work_order + tasks + approvals + model_usage + audit_logs in one transaction so
+-- a failure partway through (RLS denial on a hallucinated company_id, a constraint
+-- violation) rolls back atomically instead of leaving partial state. NOT security
+-- definer — runs as the invoking role, so every RLS policy above still applies to each
+-- insert exactly as it did with the Edge Function's old sequential-insert code. This
+-- function is a pure persistence layer; approvalRequired/domain per task are still
+-- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
+create or replace function public.sem_execute_ai_command(
+  p_command text,
+  p_context_pack jsonb,
+  p_output jsonb,
+  p_token_estimate int,
+  p_tasks jsonb,
+  p_approvals jsonb,
+  p_model_name text,
+  p_input_tokens int,
+  p_output_tokens int,
+  p_estimated_cost_usd numeric
+) returns jsonb
+language plpgsql
+security invoker
+as $$
+declare
+  v_profile_id uuid := public.current_profile_id();
+  v_work_order_id uuid;
+  v_task jsonb;
+  v_approval jsonb;
+  v_task_ids uuid[] := '{}';
+  v_task_company_ids uuid[] := '{}';
+  v_created_tasks jsonb := '[]'::jsonb;
+  v_created_approvals jsonb := '[]'::jsonb;
+  v_new_task_id uuid;
+  v_new_task_company_id uuid;
+  v_new_approval_id uuid;
+  v_task_index int;
+begin
+  if v_profile_id is null then
+    raise exception 'No profile found for the authenticated user';
+  end if;
+
+  insert into public.work_orders (command, status, context_pack, output, token_estimate, created_by_profile_id)
+  values (p_command, 'queued', p_context_pack, p_output, p_token_estimate, v_profile_id)
+  returning id into v_work_order_id;
+
+  for v_task in select * from jsonb_array_elements(coalesce(p_tasks, '[]'::jsonb))
+  loop
+    insert into public.tasks (
+      company_id, project_id, title, description, parent_goal,
+      owner_type, owner_agent_id, owner_person_id,
+      acceptance_criteria, test_method,
+      status, priority, risk_level, approval_required,
+      source, created_by_profile_id
+    ) values (
+      nullif(v_task->>'companyId','')::uuid,
+      nullif(v_task->>'projectId','')::uuid,
+      v_task->>'title',
+      coalesce(v_task->>'description',''),
+      coalesce(v_task->>'parentGoal',''),
+      coalesce(v_task->>'ownerType','agent'),
+      nullif(v_task->>'ownerAgentId','')::uuid,
+      nullif(v_task->>'ownerPersonId','')::uuid,
+      coalesce(v_task->'acceptanceCriteria','[]'::jsonb),
+      coalesce(v_task->'testMethod','[]'::jsonb),
+      case when coalesce((v_task->>'approvalRequired')::boolean,false) then 'needs_approval'::work_status else 'queued'::work_status end,
+      coalesce((v_task->>'priority')::priority_level,'medium'::priority_level),
+      coalesce((v_task->>'riskLevel')::risk_level,'low'::risk_level),
+      coalesce((v_task->>'approvalRequired')::boolean,false),
+      'ai_command_v0.7',
+      v_profile_id
+    )
+    returning id, company_id into v_new_task_id, v_new_task_company_id;
+
+    v_task_ids := array_append(v_task_ids, v_new_task_id);
+    v_task_company_ids := array_append(v_task_company_ids, v_new_task_company_id);
+    v_created_tasks := v_created_tasks || jsonb_build_object('id', v_new_task_id, 'company_id', v_new_task_company_id);
+  end loop;
+
+  for v_approval in select * from jsonb_array_elements(coalesce(p_approvals, '[]'::jsonb))
+  loop
+    v_task_index := nullif(v_approval->>'taskIndex','')::int;
+    insert into public.approvals (
+      company_id, task_id, title, reason, risk_level, domain,
+      requested_by_profile_id, approval_payload
+    ) values (
+      case when v_task_index is not null and v_task_index >= 0 and v_task_index < array_length(v_task_company_ids,1)
+        then v_task_company_ids[v_task_index+1] else nullif(v_approval->>'companyId','')::uuid end,
+      case when v_task_index is not null and v_task_index >= 0 and v_task_index < array_length(v_task_ids,1)
+        then v_task_ids[v_task_index+1] else null end,
+      coalesce(v_approval->>'title','Approval required'),
+      coalesce(v_approval->>'reason','Risk policy requires approval'),
+      coalesce((v_approval->>'riskLevel')::risk_level,'medium'::risk_level),
+      coalesce((v_approval->>'domain')::approval_domain,'general'::approval_domain),
+      v_profile_id,
+      v_approval
+    )
+    returning id into v_new_approval_id;
+
+    v_created_approvals := v_created_approvals || jsonb_build_object('id', v_new_approval_id);
+  end loop;
+
+  insert into public.model_usage (profile_id, work_order_id, model_name, input_tokens, output_tokens, estimated_cost_usd)
+  values (v_profile_id, v_work_order_id, p_model_name, p_input_tokens, p_output_tokens, p_estimated_cost_usd);
+
+  insert into public.audit_logs (actor_profile_id, actor_role, event_type, entity_type, entity_id, message, metadata)
+  values (
+    v_profile_id, public.current_role(), 'ai_command_executed', 'work_order', v_work_order_id,
+    'AI command executed through v0.7 production core (transactional)',
+    jsonb_build_object(
+      'command', p_command, 'model', p_model_name, 'tokenEstimate', p_token_estimate,
+      'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals)
+    )
+  );
+
+  return jsonb_build_object('workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals);
+end;
+$$;
+
+revoke all on function public.sem_execute_ai_command from public, anon;
+grant execute on function public.sem_execute_ai_command to authenticated;
 
 
 -- ---------- ENABLE RLS ----------

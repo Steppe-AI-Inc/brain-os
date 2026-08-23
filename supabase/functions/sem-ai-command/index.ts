@@ -192,28 +192,24 @@ serve(async (req) => {
       try { result = JSON.parse(text); } catch { return json({ error:'Model returned invalid JSON', raw:text }, 502); }
     }
 
-    const { data: workOrder } = await supabase.from('work_orders').insert({ command, status:'queued', context_pack:contextPack, output:result, token_estimate:tokenEstimate, created_by_profile_id:profile.id }).select().single();
-
+    // Business logic (risk-keyword forcing, domain routing) stays here in TypeScript;
+    // persistence is delegated to the sem_execute_ai_command RPC (migration
+    // 202608230002) so work_order + tasks + approvals + model_usage + audit_logs all
+    // commit or roll back together instead of the previous sequential-insert approach,
+    // which silently swallowed per-row errors and could leave partial state.
     const resultTasks = (result.tasks || []) as AiTask[];
-    const createdTasks:any[] = [];
     const forcedApprovalTaskIndexes:number[] = [];
-    for(let i=0;i<resultTasks.length;i++){
-      const t = resultTasks[i];
+    const taskPayloads = resultTasks.map((t, i) => {
       const matchedKeywords = detectForcedApprovalKeywords(t.title || '', t.description || '');
       const forced = !t.approvalRequired && matchedKeywords.length > 0;
-      const approvalRequired = !!t.approvalRequired || forced;
       if(forced) forcedApprovalTaskIndexes.push(i);
-      const { data, error } = await supabase.from('tasks').insert({
-        company_id:t.companyId || null, project_id:t.projectId || null, title:t.title, description:t.description || '', parent_goal:result.strategicGoal || '',
-        owner_type:t.ownerType || 'agent', owner_agent_id:t.ownerAgentId || null, owner_person_id:t.ownerPersonId || null,
-        acceptance_criteria:t.acceptanceCriteria || [], test_method:t.testMethod || [],
-        status:approvalRequired ? 'needs_approval' : 'queued', priority:t.priority || 'medium', risk_level:t.riskLevel || 'low', approval_required:approvalRequired,
-        source:'ai_command_v0.7', created_by_profile_id:profile.id
-      }).select().single();
-      // Keep index alignment with resultTasks/forcedApprovalTaskIndexes even on insert failure,
-      // so approvals below (matched by taskIndex) still line up with the right task slot.
-      createdTasks.push(!error && data ? data : null);
-    }
+      return {
+        companyId: t.companyId || null, projectId: t.projectId || null, title: t.title, description: t.description || '', parentGoal: result.strategicGoal || '',
+        ownerType: t.ownerType || 'agent', ownerAgentId: t.ownerAgentId || null, ownerPersonId: t.ownerPersonId || null,
+        acceptanceCriteria: t.acceptanceCriteria || [], testMethod: t.testMethod || [],
+        priority: t.priority || 'medium', riskLevel: t.riskLevel || 'low', approvalRequired: !!t.approvalRequired || forced
+      };
+    });
 
     const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
     const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
@@ -225,26 +221,36 @@ serve(async (req) => {
         riskLevel: resultTasks[i].riskLevel || 'high',
         taskIndex: i
       }));
-    const allApprovals = [...modelApprovals, ...forcedApprovals];
-
-    const createdApprovals:any[] = [];
-    for(const a of allApprovals){
-      const task = typeof a.taskIndex === 'number' ? createdTasks[a.taskIndex] : null;
-      // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
-      // legal -> founder/admin only, general/production/external_comms -> company manager).
-      // Prefer the linked task's own text (more specific) over the approval's own title/reason.
+    // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
+    // legal -> founder/admin only, general/production/external_comms -> company manager).
+    // Prefer the linked task's own text (more specific) over the approval's own title/reason.
+    const approvalPayloads = [...modelApprovals, ...forcedApprovals].map(a => {
       const sourceTask = typeof a.taskIndex === 'number' ? resultTasks[a.taskIndex] : null;
       const domain = sourceTask
         ? detectApprovalDomain(sourceTask.title || '', sourceTask.description || '')
         : detectApprovalDomain(a.title || '', a.reason || '');
-      const { data, error } = await supabase.from('approvals').insert({
-        company_id: task?.company_id || null, task_id: task?.id || null, title:a.title || 'Approval required', reason:a.reason || 'Risk policy requires approval', risk_level:a.riskLevel || 'medium', domain, requested_by_profile_id:profile.id, approval_payload:a
-      }).select().single();
-      if(!error && data) createdApprovals.push(data);
-    }
+      return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null };
+    });
 
-    await supabase.from('model_usage').insert({ profile_id:profile.id, work_order_id:workOrder?.id || null, model_name:model, input_tokens:usage?.input_tokens || tokenEstimate, output_tokens:usage?.output_tokens || 0, estimated_cost_usd:0 });
-    await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_executed', entity_type:'work_order', entity_id:workOrder?.id || null, message:'AI command executed through v0.7 production core', metadata:{ command, model, tokenEstimate, contextErrors, elapsedMs:Date.now()-started, tasks:createdTasks.filter(Boolean).length, approvals:createdApprovals.length, forcedApprovals:forcedApprovalTaskIndexes.length } });
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('sem_execute_ai_command', {
+      p_command: command,
+      p_context_pack: contextPack,
+      p_output: result,
+      p_token_estimate: tokenEstimate,
+      p_tasks: taskPayloads,
+      p_approvals: approvalPayloads,
+      p_model_name: model,
+      p_input_tokens: usage?.input_tokens || tokenEstimate,
+      p_output_tokens: usage?.output_tokens || 0,
+      p_estimated_cost_usd: 0
+    });
+    if(rpcError) return json({ error: rpcError.message || 'Failed to persist AI command result' }, 500);
+
+    const workOrder = { id: rpcResult.workOrderId };
+    const createdTasks = rpcResult.createdTasks || [];
+    const createdApprovals = rpcResult.createdApprovals || [];
+
+    await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length } });
 
     return json({ result, workOrder, createdTasks, createdApprovals, model, usage, tokenEstimate, contextErrors });
   } catch(e){
