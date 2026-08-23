@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24.
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24 (added the Hostinger personal-mode deployment plan for Track 2).
 
 ## Who / where
 
@@ -54,11 +54,34 @@ Full-history import of https://github.com/The-Blank-Collar/blankcollar-agentic-o
 1. **Postgres direct connection string** (`DATABASE_URL` in blankcollar's `.env`) needs the project's DB password. It was never captured by any script this session (the project was created via the dashboard), and resetting it via the Management API was correctly blocked by the safety classifier as a real credential change. **Get it from**: Supabase dashboard → Project Settings → Database → either read the existing password (if you saved it at project creation) or reset it there yourself (safe — nothing in Track 1 uses a direct Postgres connection, only the REST API + anon key, so a reset won't break the Next.js app or the old app).
 2. **LLM/tool provider API keys** — founder said these will be supplied later. Don't block other setup on them; blankcollar's own `.env.example` documents exactly which keys gate which features (e.g. `GRAPHITI_LLM_MODEL` config — without a key, memory `/add` calls return `{skipped: true, reason: "no_llm_configured"}` rather than failing hard).
 3. **E2B sandboxes**: the README's badge/prose mentions this as a deferred roadmap item ("Only E2B secure sandboxes remain... needs `/dev/kvm`"), but **there is zero E2B code in the repo** — confirmed via full-text search, no hits. This is not "almost done," it's not started. Founder asked for "a generic sandbox API for testing" as a full-cloud alternative to needing local `/dev/kvm` — **e2b.dev** is the natural fit (cloud-hosted secure sandboxes, has a free tier, API-first) and is literally the tool blankcollar's own docs already name — but this needs a founder e2b.dev signup + API key, same pattern as every other external service this session (GitHub, Vercel, Supabase). Not started; needs that account first.
-4. **Mobile app**: founder asked for "with mobile app." Checked thoroughly — **there is no native mobile app in this codebase** (no `apps/mobile`, no React Native/Expo/Capacitor dependency anywhere). The README's "Mobile companion" screenshot is the existing responsive `apps/website` (Vite/React) viewed on a phone, not a native app. This is an open decision, not yet made: build a real native/PWA mobile app, or treat the existing responsive website as sufficient "mobile" for now. Needs a founder call before any work starts here — it's a meaningfully different scope depending on the answer.
-5. **"Full cloud, no desktop"**: founder does not want the local Docker Desktop dev loop from blankcollar's own Quick Start. This means going straight for its cloud/VPS deploy path (`docker-compose.prod.yml`, Caddy auto-TLS, per `docs/DEPLOYMENT.md`) instead of local `docker compose up`. Not yet executed — needs a target host (VPS or cloud provider) decided first, plus the DB password/API keys above before it's meaningfully runnable anyway.
+4. **Mobile app — RESOLVED, no native app needed**: founder asked for "with mobile app." Checked thoroughly — there is no native mobile app anywhere in this codebase (no `apps/mobile`, no React Native/Expo/Capacitor dependency). Resolution: blankcollar has a documented **"Personal headless mode"** (`docs/HOSTINGER_DEPLOY.md`, bottom section) — single-user, no dashboard, **Telegram is the entire frontend** ("your phone is the frontend now"). This is what "mobile app" now means for this track — a real Telegram bot, not a native/PWA build. Decided, not just proposed — see deployment plan below.
+5. **"Full cloud, no desktop" — RESOLVED, plan below**: founder confirmed Hostinger VPS (their own docs' documented, best-tested target — `docs/HOSTINGER_DEPLOY.md`), personal headless mode specifically (not the full multi-tenant dashboard — that would need Supabase JWT wiring + Stripe + more DNS records + no one-command script). Personal mode explicitly skips Supabase/Stripe entirely since there's no dashboard to gate, so **item 1 above (DB password) is not actually a blocker for this deployment** — it only matters if/when the dashboard gets turned on later.
 
-### Not yet done on this track
-No code changes yet — only the import + this research/config-planning pass. Next concrete step once the DB password is available: point `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`DATABASE_URL` at the shared project, boot `apps/paperclip` against it, confirm its `core`/`ops`/`brain`/`billing` schemas create cleanly alongside SEM Brain's `public` schema tables with zero collisions, then re-evaluate scope (adopt wholesale vs. cherry-pick specific subsystems like the memory/RAG layer or policy engine into the Next.js rewrite instead).
+### Deployment plan — Hostinger VPS, personal headless mode (in progress)
+
+Decided this session, steps split by who does them:
+
+**Founder must do (account/purchase/DNS access — can't be done by an AI session):**
+1. Sign up at Hostinger, buy a VPS with ≥4GB RAM (KVM 2 tier or higher). During setup pick the **"Ubuntu 24.04 with Docker"** OS template. Get the public IP.
+2. DNS: add three A records wherever `open-spot.ai` is managed, all → the VPS IP: `os.open-spot.ai`, `nango.open-spot.ai`, `nango-ui.open-spot.ai`.
+3. Create a Telegram bot via **@BotFather** (`/newbot`), save the token.
+4. Open Hostinger's **web Terminal** (VPS panel button — no SSH setup needed) and paste:
+   ```
+   bash <(curl -fsSL https://raw.githubusercontent.com/The-Blank-Collar/blankcollar-agentic-os/main/infra/scripts/personal-deploy.sh)
+   ```
+   It prompts for: domain (`os.open-spot.ai`), Telegram bot token, LLM API key (Enter to skip → FakeLLM stub mode, matching "API key will be supplied later"), name/email for the single-user org. Idempotent — safe to re-run if a step fails; logs to `/root/bc-deploy.log` on the VPS.
+
+**Deliberate choice — using the upstream script/repo for this first deploy, not our fork**: the script hardcodes `git clone` of `The-Blank-Collar/blankcollar-agentic-os` (not parameterized). Since nothing's been customized yet, first deploy intentionally uses their exact tested path rather than risk an unverified fork on a fresh script. Once it's running, repoint the VPS's clone at our fork for any future changes:
+```bash
+cd ~/code/blankcollar-agentic-os
+git remote set-url origin https://github.com/Steppe-AI-Inc/brain-os.git
+git fetch origin
+git checkout blankcollar
+# then their own documented redeploy path:
+./infra/scripts/deploy.sh local
+```
+
+**Next AI-session step once the VPS/DNS/bot token exist**: verify DNS propagation (`dig +short os.open-spot.ai`), watch Caddy cert issuance, run `./infra/scripts/doctor.sh` for the health check, confirm `https://os.open-spot.ai/api/health` responds, and message the Telegram bot to confirm the capture → goal → Hermes → reply loop works end to end.
 
 ## Track 3 — Codex/ChatGPT (pending)
 
