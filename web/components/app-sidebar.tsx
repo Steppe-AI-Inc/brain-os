@@ -19,6 +19,10 @@ import {
   Gauge,
   BrainCircuit,
   FileText,
+  Workflow,
+  Code2,
+  Plug,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -33,6 +37,7 @@ const NAV_GROUPS: Array<{
     title: "AI FIRST",
     items: [
       { href: "/chat", navKey: "nav.chatOps", label: "AI Native Chat", icon: Sparkles },
+      { href: "/workflows", navKey: "nav.workflows", label: "Workflow Factory", icon: Workflow },
       { href: "/mindmap", navKey: "nav.mindmap", label: "Operating Mindmap", icon: Network },
     ],
   },
@@ -51,15 +56,20 @@ const NAV_GROUPS: Array<{
       { href: "/proposals", navKey: "nav.proposals", label: "Proposal Factory", icon: FileSignature },
       { href: "/inventory", navKey: "nav.inventory", label: "Product + Inventory", icon: Boxes },
       { href: "/documents", navKey: "nav.documents", label: "Documents + Knowledge", icon: FileText },
+      { href: "/integrations", navKey: "nav.integrations", label: "Slack + Drive", icon: Plug },
     ],
   },
   {
     title: "FACTORIES",
-    items: [{ href: "/products", navKey: "nav.products", label: "Product Factory", icon: Package }],
+    items: [
+      { href: "/products", navKey: "nav.products", label: "Product Factory", icon: Package },
+      { href: "/software", navKey: "nav.software", label: "Software Factory", icon: Code2 },
+    ],
   },
   {
     title: "ADMIN DATA",
     items: [
+      { href: "/access", navKey: "nav.access", label: "User Access", icon: KeyRound },
       { href: "/companies", navKey: "nav.companies", label: "Companies", icon: Building2 },
       { href: "/people", navKey: "nav.people", label: "People", icon: Users },
       { href: "/projects", navKey: "nav.projects", label: "Projects", icon: FolderKanban },

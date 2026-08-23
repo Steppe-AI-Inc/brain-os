@@ -370,6 +370,18 @@ create table if not exists public.audit_logs (
   created_at timestamptz default now()
 );
 
+-- Added in the rewrite's Phase 3 (Software Factory) — see 202608240001_product_specs.sql.
+create table if not exists public.product_specs (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references public.companies(id) on delete set null,
+  title text not null,
+  status text not null default 'draft',
+  body_md text,
+  owner_profile_id uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 
 -- ---------- HELPERS ----------
 create or replace function public.current_profile_id() returns uuid
@@ -563,6 +575,7 @@ alter table public.salary_rules enable row level security;
 alter table public.integration_queue enable row level security;
 alter table public.model_usage enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.product_specs enable row level security;
 
 -- ---------- POLICIES ----------
 -- Profiles
@@ -749,6 +762,18 @@ drop policy if exists "audit_logs_select_scope" on public.audit_logs;
 create policy "audit_logs_select_scope" on public.audit_logs for select using (public.is_founder_or_admin() or actor_profile_id = public.current_profile_id() or public.has_company_access(company_id));
 drop policy if exists "audit_logs_insert_auth" on public.audit_logs;
 create policy "audit_logs_insert_auth" on public.audit_logs for insert with check (auth.uid() is not null);
+
+-- product_specs: same shape as projects (company-scope read, manager-gated write).
+drop policy if exists "product_specs_select_scope" on public.product_specs;
+create policy "product_specs_select_scope" on public.product_specs for select using (
+  company_id is null or public.has_company_access(company_id)
+);
+drop policy if exists "product_specs_write_manager" on public.product_specs;
+create policy "product_specs_write_manager" on public.product_specs for all using (
+  company_id is null or public.is_company_manager(company_id)
+) with check (
+  company_id is null or public.is_company_manager(company_id)
+);
 
 -- ---------- SAFE VIEWS ----------
 -- security_invoker=true is required so these views evaluate RLS as the calling user,

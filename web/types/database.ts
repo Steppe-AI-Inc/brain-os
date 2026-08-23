@@ -918,6 +918,61 @@ export type Database = {
           },
         ]
       }
+      product_specs: {
+        Row: {
+          body_md: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          owner_profile_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_md?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          owner_profile_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_md?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          owner_profile_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_specs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_specs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_specs_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
