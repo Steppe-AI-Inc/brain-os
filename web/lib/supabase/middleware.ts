@@ -1,10 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Phase 0 scope: session refresh only, no route protection yet. Phase 1 adds the
-// redirect-to-/login-when-unauthenticated behavior on top of this same helper — this is
-// the literal fix for the old app's missing auth gate (it currently shows the full app
-// to anyone with the URL, with zero session check).
+// This is the literal fix for the old app's missing auth gate: the vanilla-JS prototype
+// showed the full app to anyone with the URL, with zero session check (SEM.Store just
+// hardcoded a local currentUserId). Every request now refreshes the session and, unless
+// signed in or already headed to /login, is redirected there before any page renders.
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -27,10 +27,23 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Required by @supabase/ssr: this call refreshes an expiring session and must not be
-  // removed even though the return value isn't used directly yet (Phase 1 will branch on
-  // `user` here to redirect unauthenticated requests to /login).
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+
+  if (!user && !isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isLoginRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
