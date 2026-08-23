@@ -19,6 +19,13 @@ export const DICT: Record<Exclude<Locale, "en">, Record<string, string>> = {
     "nav.approvals": "Зөвшөөрлүүд",
     "nav.mindmap": "Үйл ажиллагааны зураглал",
     "nav.settings": "Тохиргоо",
+    "nav.sales": "Борлуулалтын систем",
+    "nav.proposals": "Санал болголтын үйлдвэр",
+    "nav.inventory": "Бүтээгдэхүүн + Агуулах",
+    "nav.documents": "Баримт бичиг + Мэдлэг",
+    "nav.products": "Бүтээгдэхүүний үйлдвэр",
+    "nav.kpi": "KPI + Цалин",
+    "nav.memory": "Санах ой",
 
     "shell.eyebrow": "Үүсгэн байгуулагчийн удирдлагын тархи",
     "shell.dashboardFallback": "Хяналтын самбар",
