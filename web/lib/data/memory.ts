@@ -34,6 +34,18 @@ export async function createMemory(_prevState: string | null, formData: FormData
   if (!fact) return "Fact is required.";
 
   const supabase = await createClient();
+
+  // Best-effort: a manually created memory without an embedding still saves fine, it's
+  // just unsearchable by the chat's semantic retrieval until a later backfill — the
+  // embed-text call must never block a human from saving a fact they typed themselves.
+  let embedding: number[] | undefined;
+  try {
+    const { data } = await supabase.functions.invoke("embed-text", { body: { text: fact } });
+    if (Array.isArray(data?.embedding)) embedding = data.embedding;
+  } catch {
+    // ignore — embedding stays unset
+  }
+
   const { error } = await supabase.from("memories").insert({
     fact,
     entity_type: companyId ? "company" : "general",
@@ -42,6 +54,9 @@ export async function createMemory(_prevState: string | null, formData: FormData
     sensitivity: sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
     confidence: 0.8,
     source_type: "manual_entry",
+    // pgvector columns round-trip as text over PostgREST — "[0.1,0.2,...]", not a raw
+    // JS array.
+    ...(embedding ? { embedding: `[${embedding.join(",")}]` } : {}),
   });
   if (error) return error.message;
 

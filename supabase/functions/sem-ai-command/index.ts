@@ -1,7 +1,8 @@
 // Brain OS v0.7 Supabase Edge Function: sem-ai-command (function slug kept as-is —
 // infrastructure name, not the product's user-facing name)
 // Required secrets:
-//   OPENAI_API_KEY
+//   OPENAI_API_KEY — also used for text-embedding-3-small (chat channels + memory RAG),
+//     regardless of which provider is active for chat completions.
 //   OPENAI_MODEL=gpt-4.1-mini
 //   SUPABASE_URL
 //   SUPABASE_ANON_KEY
@@ -18,6 +19,15 @@
 // resolution, and DB persistence are NOT streamed — only the LLM generation itself is;
 // the task/approval-creation RPC needs the complete parsed JSON and can only run once
 // the stream ends.
+//
+// Request body also accepts an optional `channelId` (a chat_channels.id) — when
+// present, buildContext() includes conversationHistory (recent turns in that channel,
+// for short-term continuity) and every memoryCandidate the model proposes defaults to
+// entityType 'chat_channel' / entityId channelId. context.memories (long-term company
+// knowledge, not scoped to any one channel) is always computed via real embedding
+// similarity search (migration 202608260008), degrading to the old ILIKE keyword match
+// if OPENAI_API_KEY is missing or the embeddings call fails — chat must never hard-fail
+// because of it.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -97,6 +107,18 @@ Rules:
   ownershipPct stays null unless the user states an actual number. For person assignments,
   personId/personIndex works like companyId/companyIndex (personIndex points at
   createPeople in this same response); leave any field null rather than guessing.
+- If context.conversationHistory is present, this command continues an existing topic —
+  treat it as a real ongoing conversation: do not repeat an action you already took
+  earlier in this history, and refer back to it naturally when relevant.
+- context.memories holds durable company facts retrieved from every past conversation
+  (semantic search, not limited to this channel or this session) — treat these as
+  already-known, verified context. Do not propose a memoryCandidate that restates one
+  of them.
+- Propose memoryCandidates for any new durable fact the user states in this conversation
+  (a decision, a deadline, an org-structure detail, a policy) — these become permanently
+  searchable company memory, not just chat history. Leave entityType/entityId unset to
+  let it default to this conversation's channel; set companyId/companyIndex the same way
+  as other entities when the fact is clearly about a specific company.
 
 Output schema:
 {
@@ -142,7 +164,7 @@ Output schema:
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
   ],
   "memoryCandidates": [
-    {"entityType": string, "entityId": string|null, "fact": string, "confidence": number, "sensitivity": "internal"|"confidential"|"restricted"|"founder_only"}
+    {"entityType": string|null, "entityId": string|null, "fact": string, "confidence": number, "sensitivity": "public"|"internal"|"confidential"|"restricted"|"founder_only", "companyId": string|null, "companyIndex": number|null}
   ]
 }`;
 
@@ -318,6 +340,35 @@ function estimateCost(model: string, inputTokens: number, outputTokens: number):
   return (inputTokens / 1_000_000) * inRate + (outputTokens / 1_000_000) * outRate;
 }
 
+// Real semantic retrieval (migration 202608260008). Always uses OpenAI regardless of
+// which provider is active for chat completions — text-embedding-3-small produces 1536
+// dims, matching the memories.embedding column exactly. Never throws: any failure
+// (missing key, network, bad response) degrades to a null embedding per input rather
+// than failing the whole chat command.
+async function embedTexts(texts: string[], key: string | undefined): Promise<(number[] | null)[]> {
+  if (!key || texts.length === 0) return texts.map(() => null);
+  try {
+    const r = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: texts }),
+    });
+    if (!r.ok) return texts.map(() => null);
+    const body = await r.json();
+    const byIndex = new Map<number, number[]>();
+    for (const item of body.data || []) {
+      if (typeof item.index === 'number' && Array.isArray(item.embedding)) byIndex.set(item.index, item.embedding);
+    }
+    return texts.map((_, i) => byIndex.get(i) ?? null);
+  } catch {
+    return texts.map(() => null);
+  }
+}
+async function embedText(text: string, key: string | undefined): Promise<number[] | null> {
+  const [result] = await embedTexts([text], key);
+  return result;
+}
+
 type ProviderRow = { provider: 'openai' | 'anthropic'; model: string };
 async function getActiveProvider(supabase: any): Promise<ProviderRow | null> {
   const { data } = await supabase
@@ -381,14 +432,28 @@ function fallbackPlan(command:string, contextPack:any){
   return { strategicGoal:'Execute founder command through Brain OS v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
 }
 
-async function buildContext(supabase:any, command:string){
+async function buildContext(supabase:any, command:string, channelId: string | null, openaiKey: string | undefined){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments] = await Promise.all([
+  const queryEmbedding = await embedText(command, openaiKey);
+  // Real semantic retrieval when embeddings are available (match_memories, migration
+  // 202608260008); degrades to the original ILIKE substring match otherwise — company
+  // knowledge lookup must never be the reason a chat command fails.
+  // pgvector RPC params round-trip as text over PostgREST — "[0.1,0.2,...]", not a raw
+  // JS array.
+  const memoriesQuery = queryEmbedding
+    ? supabase.rpc('match_memories', { query_embedding: `[${queryEmbedding.join(',')}]`, match_count: 8 })
+    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(20);
+  // Short-term continuity: the last few turns in this same channel, chronological.
+  // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
+  const conversationHistoryQuery = channelId
+    ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
+    : Promise.resolve({ data: [], error: null });
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, conversationRows] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
-    supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(20),
+    memoriesQuery,
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     supabase.from('product_lines').select('id,company_id,name,currency,unit_price,unit_cost,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
@@ -398,21 +463,27 @@ async function buildContext(supabase:any, command:string){
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
-    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30)
+    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
+    conversationHistoryQuery
   ]);
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error].filter(Boolean).map((e:any)=>e.message) };
+  const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], conversationHistory };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
   if(req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if(req.method !== 'POST') return json({ error:'POST only' }, 405);
   const started = Date.now();
+  // Independent of provider selection (used for embeddings regardless of which provider
+  // handles chat completions), so read it early enough for buildContext() to use it.
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
   // ---- Pre-flight: auth, parsing, context, provider resolution. Plain JSON errors,
   // same as before — nothing here is streamed, it all has to happen before the LLM
   // call regardless. ----
   let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
+  let channelId: string | null = null;
   let providerName: 'openai' | 'anthropic' = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
   try {
@@ -421,6 +492,7 @@ serve(async (req) => {
     const body = await req.json();
     command = String(body.command || '').trim();
     if(!command) return json({ error:'Missing command' }, 400);
+    const requestedChannelId = typeof body.channelId === 'string' ? body.channelId.trim() : '';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnon = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -431,7 +503,16 @@ serve(async (req) => {
     profile = profileRes.data;
     if(!profile) return json({ error:'Profile not found for authenticated user' }, 403);
 
-    const ctx = await buildContext(supabase, command);
+    // Never trust the id string until it's confirmed to actually resolve under this
+    // caller's own RLS — same "never trust an id unless verified" rule as every other
+    // model/client-supplied id in this file. An invalid/inaccessible channel silently
+    // falls back to "General" rather than erroring the whole command.
+    if (requestedChannelId) {
+      const channelCheck = await supabase.from('chat_channels').select('id').eq('id', requestedChannelId).maybeSingle();
+      if (channelCheck.data) channelId = requestedChannelId;
+    }
+
+    const ctx = await buildContext(supabase, command, channelId, openaiKey);
     contextPack = ctx.pack;
     contextErrors = ctx.errors;
     tokenEstimate = estimateTokens({ command, contextPack });
@@ -450,7 +531,6 @@ serve(async (req) => {
     return json({ error: e?.message || String(e) }, 500);
   }
 
-  const openaiKey = Deno.env.get('OPENAI_API_KEY');
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
   const key = providerName === 'anthropic' ? anthropicKey : openaiKey;
 
@@ -471,6 +551,7 @@ serve(async (req) => {
         const { data: pendingId, error: pendingError } = await supabase.rpc('create_pending_work_order', {
           p_command: command,
           p_context_pack: contextPack,
+          p_channel_id: channelId,
         });
         if (!pendingError && pendingId) {
           workOrderId = pendingId;
@@ -662,6 +743,37 @@ serve(async (req) => {
             state: typeof a.state === 'string' && VALID_ASSIGNMENT_STATES.has(a.state) ? a.state : 'current',
           }));
 
+        // Memory candidates: cap at 8 (one embeddings call, bounded cost/latency),
+        // require a real fact string, default entityType/entityId to this
+        // conversation's channel when the model omits them, validate sensitivity
+        // against the real enum. Embeddings are computed here (batched) rather than in
+        // SQL — a failed/missing OpenAI call still saves the fact, just unembedded.
+        const VALID_MEMORY_SENSITIVITY = new Set(['public', 'internal', 'confidential', 'restricted', 'founder_only']);
+        const requestedMemories = Array.isArray(result.memoryCandidates) ? result.memoryCandidates as unknown[] : [];
+        const memoryFacts = requestedMemories
+          .filter((m): m is Record<string, unknown> => !!m && typeof m === 'object' && typeof (m as any).fact === 'string' && (m as any).fact.trim())
+          .slice(0, 8)
+          .map((m: any) => {
+            const entityType = typeof m.entityType === 'string' && m.entityType.trim() ? m.entityType.trim() : 'chat_channel';
+            const entityId = typeof m.entityId === 'string' && m.entityId.trim()
+              ? m.entityId.trim()
+              : (entityType === 'chat_channel' ? channelId : null);
+            return {
+              entityType,
+              entityId,
+              fact: String(m.fact).trim(),
+              confidence: typeof m.confidence === 'number' ? m.confidence : 0.8,
+              sensitivity: typeof m.sensitivity === 'string' && VALID_MEMORY_SENSITIVITY.has(m.sensitivity) ? m.sensitivity : 'internal',
+              companyId: typeof m.companyId === 'string' && contextCompanyIds.has(m.companyId) ? m.companyId : null,
+              companyIndex: typeof m.companyIndex === 'number' ? m.companyIndex : null,
+            };
+          });
+        const memoryEmbeddings = await embedTexts(memoryFacts.map(m => m.fact), openaiKey);
+        const createMemoryCandidates = memoryFacts.map((m, i) => {
+          const embedding = memoryEmbeddings[i];
+          return embedding ? { ...m, embedding } : m;
+        });
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
         const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
@@ -711,7 +823,8 @@ serve(async (req) => {
           p_goals: createGoals,
           p_company_relationships: createCompanyRelationships,
           p_person_assignments: createPersonAssignments,
-          p_work_order_id: workOrderId
+          p_work_order_id: workOrderId,
+          p_memory_candidates: createMemoryCandidates
         });
         if(rpcError) {
           if (workOrderId) {
@@ -731,10 +844,11 @@ serve(async (req) => {
         const createdGoals = rpcResult.createdGoals || [];
         const createdCompanyRelationships = rpcResult.createdCompanyRelationships || [];
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
+        const createdMemories = rpcResult.createdMemories || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {
