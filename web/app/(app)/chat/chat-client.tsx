@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUp,
@@ -30,7 +30,6 @@ import { PageHeader } from "@/components/page-header";
 import {
   consumeChatStream,
   toChatResult,
-  type ChatImageAttachment,
   type ChatResult,
 } from "@/lib/chat-stream";
 import { estimateCost, MODEL_CATALOG } from "@/lib/usage/pricing";
@@ -44,7 +43,16 @@ import {
   type ChatChannel,
 } from "@/lib/data/chat-channels";
 import { normalizeSessionTitle } from "@/lib/chat/session-title";
-import { saveChatTextAttachment } from "@/lib/data/documents";
+import { analyzeArtifact, registerUploadedDocument } from "@/lib/data/documents";
+import { createClient } from "@/lib/supabase/client";
+import {
+  ARTIFACT_BUCKET,
+  artifactValidationError,
+  canonicalArtifactMime,
+  sanitizeArtifactFileName,
+  suggestArtifactCompany,
+  type ArtifactCompanyOption,
+} from "@/lib/artifacts";
 import { ChannelSidebar } from "./channel-sidebar";
 
 type Usage = { input_tokens: number; output_tokens: number };
@@ -56,8 +64,9 @@ type ChatAttachment = {
   mimeType: string;
   size: number;
   kind: "text" | "image";
+  file: File;
   text?: string;
-  dataUrl?: string;
+  previewUrl?: string;
 };
 
 type SpeechResult = ArrayLike<{ 0?: { transcript?: string } }>;
@@ -240,12 +249,14 @@ export function ChatClient({
   history,
   channels,
   activeChannelId,
+  companies,
 }: {
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
   history: ChatHistoryMessage[];
   channels: ChatChannel[];
   activeChannelId: string | null;
+  companies: ArtifactCompanyOption[];
 }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
@@ -253,6 +264,8 @@ export function ChatClient({
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [manualCompanyId, setManualCompanyId] = useState<string | null>(null);
+  const [allowExternalAi, setAllowExternalAi] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -276,6 +289,19 @@ export function ChatClient({
   const [dbSummary, setDbSummary] = useState(usageSummary);
 
   const activeModel = providers.find((p) => p.is_active)?.model || "unknown";
+  const attachmentSuggestion = useMemo(
+    () =>
+      suggestArtifactCompany(
+        {
+          title: command,
+          fileName: attachments.map((attachment) => attachment.name).join(" "),
+        },
+        companies
+      ),
+    [command, attachments, companies]
+  );
+  const attachmentCompanyId = manualCompanyId ?? attachmentSuggestion?.companyId ?? "";
+  const attachmentCompany = companies.find((company) => company.id === attachmentCompanyId);
 
   function patchMessage(index: number, patch: Partial<Message> | ((prev: Message) => Partial<Message>)) {
     setMessages((prev) =>
@@ -313,42 +339,38 @@ export function ChatClient({
     setSessionError(null);
     const next: ChatAttachment[] = [];
 
-    for (const file of Array.from(files).slice(0, 4)) {
-      const isImage = file.type.startsWith("image/");
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      const isText =
-        file.type.startsWith("text/") ||
-        ["txt", "md", "csv", "json", "log"].includes(extension || "");
-
-      if (imageOnly && !isImage) continue;
-      if (!isImage && !isText) {
-        setSessionError(`${file.name} is not supported yet. Use TXT, MD, CSV, JSON, LOG, PNG, JPEG, WEBP, or GIF.`);
-        continue;
-      }
-      if (isImage && file.size > 2 * 1024 * 1024) {
-        setSessionError(`${file.name} is larger than the 2 MB image limit.`);
-        continue;
-      }
-      if (isText && file.size > 1024 * 1024) {
-        setSessionError(`${file.name} is larger than the 1 MB text-file limit.`);
+    for (const file of Array.from(files).slice(0, 6)) {
+      const mimeType = canonicalArtifactMime(file.name, file.type);
+      const validationError = artifactValidationError(file);
+      if (imageOnly && !mimeType?.startsWith("image/")) continue;
+      if (validationError || !mimeType) {
+        setSessionError(`${file.name}: ${validationError || "Unsupported file type."}`);
         continue;
       }
 
-      if (isImage) {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ""));
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        });
-        next.push({ id: crypto.randomUUID(), name: file.name, mimeType: file.type, size: file.size, kind: "image", dataUrl });
-      } else {
-        const text = (await file.text()).slice(0, 40_000);
-        next.push({ id: crypto.randomUUID(), name: file.name, mimeType: file.type || "text/plain", size: file.size, kind: "text", text });
-      }
+      const isImage = mimeType.startsWith("image/");
+      const isText = mimeType.startsWith("text/") || mimeType === "application/json";
+      next.push({
+        id: crypto.randomUUID(),
+        name: file.name,
+        mimeType,
+        size: file.size,
+        kind: isImage ? "image" : "text",
+        file,
+        text: isText ? (await file.text()).slice(0, 250_000) : undefined,
+        previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+      });
     }
 
     setAttachments((current) => [...current, ...next].slice(0, 6));
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((current) => {
+      const removed = current.find((attachment) => attachment.id === id);
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((attachment) => attachment.id !== id);
+    });
   }
 
   function toggleMicrophone() {
@@ -399,6 +421,71 @@ export function ChatClient({
         : "Analyze the attached document and summarize important business context and actions.");
 
     setSessionError(null);
+
+    if (attachments.length > 0 && !attachmentCompanyId) {
+      setSessionError("Choose the company these artifacts belong to before sending.");
+      return;
+    }
+
+    const storedArtifacts: Array<{ id: string; name: string }> = [];
+    const artifactWarnings: string[] = [];
+    if (attachments.length > 0) {
+      const supabase = createClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setSessionError("Your session expired. Please sign in again.");
+        return;
+      }
+
+      for (const attachment of attachments) {
+        const storagePath = `${attachmentCompanyId}/${user.id}/${crypto.randomUUID()}-${sanitizeArtifactFileName(attachment.name)}`;
+        const { error: uploadError } = await supabase.storage
+          .from(ARTIFACT_BUCKET)
+          .upload(storagePath, attachment.file, {
+            contentType: attachment.mimeType,
+            cacheControl: "3600",
+            upsert: false,
+          });
+        if (uploadError) {
+          setSessionError(`${attachment.name} could not be stored: ${uploadError.message}`);
+          return;
+        }
+
+        const registration = await registerUploadedDocument({
+          title: attachment.name.replace(/\.[^.]+$/, ""),
+          companyId: attachmentCompanyId,
+          category: "chat_attachment",
+          sensitivity: "internal",
+          notes: trimmed,
+          storagePath,
+          fileName: attachment.name,
+          mimeType: attachment.mimeType,
+          fileSize: attachment.size,
+          extractedText: attachment.text || null,
+          companyMatchConfidence:
+            attachmentSuggestion?.companyId === attachmentCompanyId
+              ? attachmentSuggestion.confidence
+              : 1,
+          companyMatchReason:
+            attachmentSuggestion?.companyId === attachmentCompanyId
+              ? attachmentSuggestion.reason
+              : "Company confirmed manually in AI chat.",
+        });
+        if (typeof registration === "string") {
+          setSessionError(`${attachment.name} could not be registered: ${registration}`);
+          return;
+        }
+
+        storedArtifacts.push({ id: registration.id, name: attachment.name });
+        const analysis = await analyzeArtifact(registration.id, allowExternalAi);
+        if (analysis.error) artifactWarnings.push(`${attachment.name}: ${analysis.error}`);
+        else if (analysis.warning) artifactWarnings.push(`${attachment.name}: ${analysis.warning}`);
+      }
+    }
+
     let targetChannelId = activeChannelId;
     let createdSession = false;
 
@@ -412,30 +499,27 @@ export function ChatClient({
       createdSession = true;
     }
 
-    const textAttachments = attachments.filter(
-      (attachment): attachment is ChatAttachment & { text: string } =>
-        attachment.kind === "text" && typeof attachment.text === "string"
-    );
-    const saveErrors = (
-      await Promise.all(
-        textAttachments.map((attachment) =>
-          saveChatTextAttachment({ title: attachment.name, text: attachment.text, mimeType: attachment.mimeType })
-        )
-      )
-    ).filter((error): error is string => typeof error === "string");
-    if (saveErrors.length) setSessionError(`Artifact save warning: ${saveErrors.join(" ")}`);
-
-    const textContext = textAttachments
-      .map((attachment) => `--- ${attachment.name} ---\n${attachment.text}`)
-      .join("\n\n");
-    const modelCommand = textContext ? `${trimmed}\n\nATTACHED ARTIFACT CONTENT:\n${textContext}` : trimmed;
-    const imageAttachments: ChatImageAttachment[] = attachments
-      .filter((attachment): attachment is ChatAttachment & { dataUrl: string } =>
-        attachment.kind === "image" && typeof attachment.dataUrl === "string")
-      .map((attachment) => ({ name: attachment.name, mimeType: attachment.mimeType, dataUrl: attachment.dataUrl }));
+    const artifactInstruction = storedArtifacts.length
+      ? `\n\nUPLOADED ARTIFACTS: ${storedArtifacts
+          .map((artifact) => `${artifact.name} [${artifact.id}]`)
+          .join(", ")}. ${
+          allowExternalAi
+            ? "Use the authorized artifact analysis and cite the source artifact IDs in the answer."
+            : "The files are stored privately, but their content was not authorized for external AI processing. Confirm storage only and do not claim to have analyzed their contents."
+        }`
+      : "";
+    const modelCommand = `${trimmed}${artifactInstruction}`;
 
     setCommand("");
+    attachments.forEach((attachment) => {
+      if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    });
     setAttachments([]);
+    setManualCompanyId(null);
+    setAllowExternalAi(false);
+    if (artifactWarnings.length) {
+      setSessionError(`Artifacts were stored with review warnings: ${artifactWarnings.join(" ")}`);
+    }
     setIsStreaming(true);
     setRequestUsage(ZERO);
 
@@ -471,8 +555,7 @@ export function ChatClient({
           patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
         }
       },
-      targetChannelId,
-      imageAttachments
+      targetChannelId
     );
 
     if (createdSession) {
@@ -636,9 +719,9 @@ export function ChatClient({
             <div className="flex flex-wrap gap-2">
               {attachments.map((attachment) => (
                 <div key={attachment.id} className="group flex max-w-56 items-center gap-2 rounded-xl border border-border/80 bg-secondary/55 p-2">
-                  {attachment.kind === "image" && attachment.dataUrl ? (
+                  {attachment.kind === "image" && attachment.previewUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={attachment.dataUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                    <img src={attachment.previewUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
                   ) : (
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background">
                       <FileText className="h-4 w-4" />
@@ -651,11 +734,46 @@ export function ChatClient({
                     </p>
                   </div>
                   <Button variant="ghost" size="icon-xs" aria-label={`Remove ${attachment.name}`}
-                    onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}>
+                    onClick={() => removeAttachment(attachment.id)}>
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {attachments.length > 0 && (
+            <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/25 p-3 md:grid-cols-2">
+              <label className="grid gap-1 text-xs font-medium">
+                Artifact company
+                <select
+                  value={attachmentCompanyId}
+                  onChange={(event) => setManualCompanyId(event.target.value || null)}
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Choose company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </select>
+                <span className="font-normal text-muted-foreground">
+                  {attachmentSuggestion && manualCompanyId === null
+                    ? `Auto-selected ${attachmentCompany?.name || "company"} · ${Math.round(attachmentSuggestion.confidence * 100)}%`
+                    : "Confirm or change the company before sending."}
+                </span>
+              </label>
+              <label className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/70 p-3 text-xs">
+                <input
+                  type="checkbox"
+                  checked={allowExternalAi}
+                  onChange={(event) => setAllowExternalAi(event.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <strong>Allow AI content analysis</strong><br />
+                  The private files may be temporarily sent to the configured OpenAI API. Leave off to store and track them without exposing content to an external model.
+                </span>
+              </label>
             </div>
           )}
 
@@ -673,7 +791,7 @@ export function ChatClient({
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2">
             <div className="flex items-center gap-1">
               <input ref={fileInputRef} type="file" multiple
-                accept=".txt,.md,.csv,.json,.log,text/plain,text/markdown,text/csv,application/json"
+                accept=".pdf,.docx,.xlsx,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.jfif,.webp"
                 className="hidden"
                 onChange={(event) => {
                   handleFiles(event.target.files);
@@ -703,7 +821,7 @@ export function ChatClient({
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
               <span className="hidden text-[11px] text-muted-foreground lg:inline">
-                Text files are saved · images require a vision-capable active model
+                All supported files are privately stored · AI reading is opt-in
               </span>
             </div>
             <div className="flex items-center gap-2">
