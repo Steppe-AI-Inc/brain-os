@@ -103,8 +103,8 @@ jobs:
 
       - name: Validate review-only v1 migration in disposable database
         run: |
-          cp supabase/drafts/202608260001_sem_brain_v1_execution.sql \
-            supabase/migrations/202608260001_sem_brain_v1_execution.sql
+          cp supabase/drafts/202608270001_sem_brain_v1_execution.sql \
+            supabase/migrations/202608270001_sem_brain_v1_execution.sql
           supabase db reset --local
 
       - name: Stop isolated Supabase

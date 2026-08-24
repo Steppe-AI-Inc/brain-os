@@ -50,7 +50,7 @@ guessing that an object is a match.
 | 3     | `202608230002_transactional_ai_command_rpc.sql`           | Transactional `sem_execute_ai_command` RPC                      | DEPRECATED/UNCERTAIN               |
 | 4     | `202608240001_product_specs.sql`                          | Product specification table and RLS                             | DEPRECATED/UNCERTAIN               |
 | 5     | `202608250001_goals_departments.sql`                      | Departments, goals, key results, goal context                   | MATCH (recorded live verification) |
-| Draft | `supabase/drafts/202608260001_sem_brain_v1_execution.sql` | Review-only v1 execution core                                   | REPOSITORY ONLY                    |
+| Draft | `supabase/drafts/202608270001_sem_brain_v1_execution.sql` | Review-only v1 execution core                                   | REPOSITORY ONLY                    |
 
 The Goals/Departments migration is **MATCH** for the subset recorded in commit `f082917`: the migration was applied, its tables/enums/RLS/policies were queried directly, and the canonical type file was regenerated from live. A fresh full-catalog capture is still required for independent Phase 0 acceptance.
 
