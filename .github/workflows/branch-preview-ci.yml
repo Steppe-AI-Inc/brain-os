@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: branch-preview-ci-${{ github.ref }}
@@ -37,4 +38,29 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Build production application
-        run: npm run build
+        id: production-build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee ../preview-build.log
+          build_status=${PIPESTATUS[0]}
+          echo "status=${build_status}" >> "${GITHUB_OUTPUT}"
+          exit 0
+      - name: Report actionable build failure
+        if: steps.production-build.outputs.status != '0'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          {
+            echo "Automated branch build failed at commit \`${BUILD_SHA}\`."
+            echo
+            echo "\`\`\`text"
+            tail -n 220 preview-build.log
+            echo "\`\`\`"
+          } > preview-build-issue.md
+          gh issue create             --repo "${GITHUB_REPOSITORY}"             --title "[CI] Preview build failed ${BUILD_SHA:0:7}"             --body-file preview-build-issue.md
+      - name: Fail job after reporting
+        if: steps.production-build.outputs.status != '0'
+        run: exit 1
