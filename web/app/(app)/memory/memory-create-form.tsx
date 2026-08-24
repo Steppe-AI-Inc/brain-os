@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ export function MemoryCreateForm({
   companies: Array<{ id: string; name: string }>;
 }) {
   const [error, formAction, pending] = useActionState(createMemory, null);
+  const [companyId, setCompanyId] = useState("");
 
   return (
     <Card className="bg-card/80 backdrop-blur">
@@ -26,9 +27,9 @@ export function MemoryCreateForm({
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="company_id">Company (optional)</Label>
-              <Select name="company_id">
+              <Select name="company_id" value={companyId} onValueChange={(v: unknown) => typeof v === "string" && setCompanyId(v)}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="General" />
+                  <SelectValue placeholder="General">{() => companies.find((c) => c.id === companyId)?.name ?? "General"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (

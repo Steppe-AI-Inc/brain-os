@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,8 @@ export function ProposalCreateForm({
   products: Array<{ id: string; name: string; company_id: string | null }>;
 }) {
   const [error, formAction, pending] = useActionState(createProposal, null);
+  const [companyId, setCompanyId] = useState("");
+  const [productLineId, setProductLineId] = useState("");
 
   return (
     <Card className="bg-card/80 backdrop-blur">
@@ -31,9 +33,9 @@ export function ProposalCreateForm({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="company_id">Company</Label>
-              <Select name="company_id" required>
+              <Select name="company_id" required value={companyId} onValueChange={(v: unknown) => typeof v === "string" && setCompanyId(v)}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select company" />
+                  <SelectValue placeholder="Select company">{() => companies.find((c) => c.id === companyId)?.name ?? "Select company"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (
@@ -46,9 +48,9 @@ export function ProposalCreateForm({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="product_line_id">Product</Label>
-              <Select name="product_line_id" required>
+              <Select name="product_line_id" required value={productLineId} onValueChange={(v: unknown) => typeof v === "string" && setProductLineId(v)}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select product" />
+                  <SelectValue placeholder="Select product">{() => products.find((p) => p.id === productLineId)?.name ?? "Select product"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {products.map((p) => (

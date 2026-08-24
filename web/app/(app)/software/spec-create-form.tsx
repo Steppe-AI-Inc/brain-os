@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ export function SpecCreateForm({
   companies: Array<{ id: string; name: string }>;
 }) {
   const [error, formAction, pending] = useActionState(createSoftwareSpec, null);
+  const [companyId, setCompanyId] = useState("");
 
   return (
     <Card className="bg-card/80 backdrop-blur">
@@ -30,9 +31,9 @@ export function SpecCreateForm({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="company_id">Company</Label>
-              <Select name="company_id">
+              <Select name="company_id" value={companyId} onValueChange={(v: unknown) => typeof v === "string" && setCompanyId(v)}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Parent / any" />
+                  <SelectValue placeholder="Parent / any">{() => companies.find((c) => c.id === companyId)?.name ?? "Parent / any"}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (

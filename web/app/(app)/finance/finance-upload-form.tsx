@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { uploadFinancialDocument } from "@/lib/data/finance";
 
 export function FinanceUploadForm({ companies }: { companies: Array<{ id: string; name: string }> }) {
   const [error, formAction, pending] = useActionState(uploadFinancialDocument, null);
+  const [companyId, setCompanyId] = useState("");
 
   return (
     <Card className="bg-card/80 backdrop-blur">
@@ -17,9 +18,16 @@ export function FinanceUploadForm({ companies }: { companies: Array<{ id: string
         <form action={formAction} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="company_id">Company</Label>
-            <Select name="company_id" required>
+            <Select
+              name="company_id"
+              required
+              value={companyId}
+              onValueChange={(v: unknown) => typeof v === "string" && setCompanyId(v)}
+            >
               <SelectTrigger id="company_id" className="w-56">
-                <SelectValue placeholder="Select company" />
+                <SelectValue placeholder="Select company">
+                  {() => companies.find((c) => c.id === companyId)?.name ?? "Select company"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {companies.map((c) => (

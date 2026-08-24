@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ export function DepartmentCreateForm({
   companies: Array<{ id: string; name: string }>;
 }) {
   const [error, formAction, pending] = useActionState(createDepartment, null);
+  const [companyId, setCompanyId] = useState("");
 
   return (
     <Card className="border-border/80 shadow-none">
@@ -25,9 +26,9 @@ export function DepartmentCreateForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="company_id">Company</Label>
-            <Select name="company_id" required>
+            <Select name="company_id" required value={companyId} onValueChange={(v: unknown) => typeof v === "string" && setCompanyId(v)}>
               <SelectTrigger className="w-56">
-                <SelectValue placeholder="Select company" />
+                <SelectValue placeholder="Select company">{() => companies.find((c) => c.id === companyId)?.name ?? "Select company"}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {companies.map((c) => (
