@@ -60,6 +60,11 @@ Rules:
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
+- You may delete existing tasks the user asks to remove/clear/delete: put their exact "id"
+  from context.tasks into deleteTaskIds. Never invent or guess an id — only ids that
+  literally appear in context.tasks are honored; anything else is silently ignored. If the
+  user references a task that isn't in context.tasks, say so in summary instead of
+  guessing an id.
 
 Output schema:
 {
@@ -82,6 +87,7 @@ Output schema:
       "testMethod": [string]
     }
   ],
+  "deleteTaskIds": [string],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
   ],
@@ -418,9 +424,17 @@ serve(async (req) => {
           };
         });
 
+        // Deletion is high-risk regardless of which task is targeted (no title/description
+        // to keyword-scan the way task creation is) — cross-check against the real ids
+        // this request's own context pack fetched, so the model can't smuggle in an
+        // arbitrary uuid it merely guessed at.
+        const contextTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
+        const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
+        const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
-        const forcedApprovals = forcedApprovalTaskIndexes
+        const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
           .filter(i => !modelApprovalTaskIndexes.has(i))
           .map(i => ({
             title: `Approval required: ${resultTasks[i].title}`,
@@ -428,6 +442,14 @@ serve(async (req) => {
             riskLevel: resultTasks[i].riskLevel || 'high',
             taskIndex: i
           }));
+        if (deleteTaskIds.length > 0) {
+          forcedApprovals.push({
+            title: `Approval required: delete ${deleteTaskIds.length} task(s)`,
+            reason: 'Server-side risk policy forces approval for any task deletion.',
+            riskLevel: 'high',
+            taskIndex: null,
+          });
+        }
         // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
         // legal -> founder/admin only, general/production/external_comms -> company manager).
         // Prefer the linked task's own text (more specific) over the approval's own title/reason.
@@ -451,7 +473,8 @@ serve(async (req) => {
           p_model_name: model,
           p_input_tokens: finalInputTokens,
           p_output_tokens: finalOutputTokens,
-          p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens)
+          p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens),
+          p_deleted_task_ids: deleteTaskIds
         });
         if(rpcError) {
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
@@ -461,10 +484,11 @@ serve(async (req) => {
         const workOrder = { id: rpcResult.workOrderId };
         const createdTasks = rpcResult.createdTasks || [];
         const createdApprovals = rpcResult.createdApprovals || [];
+        const deletedTaskIds = rpcResult.deletedTaskIds || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
         send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
       } finally {

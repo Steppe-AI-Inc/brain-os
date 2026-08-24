@@ -154,7 +154,7 @@ create table if not exists public.agents (
 
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
-  parent_task_id uuid references public.tasks(id),
+  parent_task_id uuid references public.tasks(id) on delete set null,
   company_id uuid references public.companies(id) on delete set null,
   project_id uuid references public.projects(id) on delete set null,
   title text not null,
@@ -360,7 +360,7 @@ create table if not exists public.model_usage (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.profiles(id),
   work_order_id uuid references public.work_orders(id),
-  task_id uuid references public.tasks(id),
+  task_id uuid references public.tasks(id) on delete set null,
   model_name text,
   input_tokens int default 0,
   output_tokens int default 0,
@@ -597,6 +597,8 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric);
+
 create or replace function public.sem_execute_ai_command(
   p_command text,
   p_context_pack jsonb,
@@ -607,7 +609,8 @@ create or replace function public.sem_execute_ai_command(
   p_model_name text,
   p_input_tokens int,
   p_output_tokens int,
-  p_estimated_cost_usd numeric
+  p_estimated_cost_usd numeric,
+  p_deleted_task_ids uuid[] default '{}'::uuid[]
 ) returns jsonb
 language plpgsql
 security invoker
@@ -625,6 +628,7 @@ declare
   v_new_task_company_id uuid;
   v_new_approval_id uuid;
   v_task_index int;
+  v_deleted_task_ids uuid[] := '{}';
 begin
   if v_profile_id is null then
     raise exception 'No profile found for the authenticated user';
@@ -690,6 +694,16 @@ begin
     v_created_approvals := v_created_approvals || jsonb_build_object('id', v_new_approval_id);
   end loop;
 
+  -- Deletion runs under `security invoker`, same as every insert above, so
+  -- tasks_delete_scope RLS is the actual authorization check here — a task outside the
+  -- caller's access simply won't be deleted (0 rows), not an error.
+  if p_deleted_task_ids is not null and array_length(p_deleted_task_ids, 1) > 0 then
+    with removed as (
+      delete from public.tasks where id = any(p_deleted_task_ids) returning id
+    )
+    select coalesce(array_agg(id), '{}') into v_deleted_task_ids from removed;
+  end if;
+
   insert into public.model_usage (profile_id, work_order_id, model_name, input_tokens, output_tokens, estimated_cost_usd)
   values (v_profile_id, v_work_order_id, p_model_name, p_input_tokens, p_output_tokens, p_estimated_cost_usd);
 
@@ -699,16 +713,20 @@ begin
     'AI command executed through v0.7 production core (transactional)',
     jsonb_build_object(
       'command', p_command, 'model', p_model_name, 'tokenEstimate', p_token_estimate,
-      'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals)
+      'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals),
+      'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0)
     )
   );
 
-  return jsonb_build_object('workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals);
+  return jsonb_build_object(
+    'workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals,
+    'deletedTaskIds', to_jsonb(v_deleted_task_ids)
+  );
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command from public, anon;
-grant execute on function public.sem_execute_ai_command to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]) to authenticated;
 
 
 -- ---------- ENABLE RLS ----------
@@ -804,6 +822,10 @@ drop policy if exists "tasks_insert_scope" on public.tasks;
 create policy "tasks_insert_scope" on public.tasks for insert with check (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id));
 drop policy if exists "tasks_update_scope" on public.tasks;
 create policy "tasks_update_scope" on public.tasks for update using (public.is_founder_or_admin() or public.is_company_manager(company_id) or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id()));
+-- Delete is manager+/admin only, deliberately narrower than update (no owner
+-- self-service) — deleting is harder to undo than editing. Migration 202608260003.
+drop policy if exists "tasks_delete_scope" on public.tasks;
+create policy "tasks_delete_scope" on public.tasks for delete using (public.is_founder_or_admin() or public.is_company_manager(company_id));
 
 -- Memories: restricted/founder_only visible only to admins; confidential requires
 -- manager/HR-finance; public/internal are general company scope.
