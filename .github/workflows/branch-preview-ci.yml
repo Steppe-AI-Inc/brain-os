@@ -1,0 +1,40 @@
+name: Branch Preview CI
+
+on:
+  push:
+    branches:
+      - codex/sem-brain-v1
+    paths:
+      - "web/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/branch-preview-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: branch-preview-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-build:
+    name: Next.js production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://pvphxgrtdfrudejjhzjk.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: preview-build-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build production application
+        run: npm run build
