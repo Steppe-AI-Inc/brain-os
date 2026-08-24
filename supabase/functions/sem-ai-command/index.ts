@@ -166,6 +166,7 @@ async function consumeSSE(response: Response, onEvent: (data: any) => void): Pro
 }
 
 type Usage = { input_tokens?: number; output_tokens?: number };
+type StreamResult = { text: string; stopReason: string | null };
 
 async function callAnthropicStreaming(
   model: string,
@@ -173,7 +174,7 @@ async function callAnthropicStreaming(
   contextForModel: unknown,
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
-): Promise<string> {
+): Promise<StreamResult> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -183,7 +184,7 @@ async function callAnthropicStreaming(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
       temperature: 0.2,
@@ -195,6 +196,7 @@ async function callAnthropicStreaming(
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
+  let stopReason: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && typeof evt.delta.text === 'string') {
       accumulated += evt.delta.text;
@@ -203,9 +205,10 @@ async function callAnthropicStreaming(
       onUsage({ input_tokens: evt.message.usage.input_tokens, output_tokens: evt.message.usage.output_tokens });
     } else if (evt.type === 'message_delta' && evt.usage) {
       onUsage({ output_tokens: evt.usage.output_tokens });
+      if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
     }
   });
-  return accumulated;
+  return { text: accumulated, stopReason };
 }
 
 async function callOpenAIStreaming(
@@ -214,7 +217,7 @@ async function callOpenAIStreaming(
   contextForModel: unknown,
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
-): Promise<string> {
+): Promise<StreamResult> {
   const r = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -224,6 +227,7 @@ async function callOpenAIStreaming(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: JSON.stringify(contextForModel, null, 2) },
       ],
+      max_output_tokens: 8192,
       temperature: 0.2,
       stream: true,
     }),
@@ -233,15 +237,18 @@ async function callOpenAIStreaming(
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
+  let stopReason: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
       accumulated += evt.delta;
       onDelta(evt.delta);
     } else if (evt.type === 'response.completed' && evt.response?.usage) {
       onUsage({ input_tokens: evt.response.usage.input_tokens, output_tokens: evt.response.usage.output_tokens });
+    } else if (evt.type === 'response.incomplete' && evt.response?.incomplete_details?.reason) {
+      stopReason = evt.response.incomplete_details.reason;
     }
   });
-  return accumulated;
+  return { text: accumulated, stopReason };
 }
 
 // Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
@@ -399,6 +406,7 @@ serve(async (req) => {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
       try {
         let resultText: string;
+        let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
 
         if(!key){
@@ -407,19 +415,21 @@ serve(async (req) => {
           model = 'fallback-no-api-key';
           if (fb.summary) send({ type: 'delta', text: fb.summary });
         } else if (providerName === 'anthropic') {
-          resultText = await callAnthropicStreaming(
+          const r = await callAnthropicStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );
+          resultText = r.text; stopReason = r.stopReason;
         } else {
-          resultText = await callOpenAIStreaming(
+          const r = await callOpenAIStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );
+          resultText = r.text; stopReason = r.stopReason;
         }
 
         let result: any;
@@ -429,12 +439,16 @@ serve(async (req) => {
           // No audit_logs row exists for this failure otherwise (it happens before the
           // transactional RPC even runs) — log it so a bad reply is diagnosable later
           // instead of only reproducible live.
+          const truncated = stopReason === 'max_tokens' || stopReason === 'max_output_tokens';
+          const errorMessage = truncated
+            ? 'Response was cut off before it finished (too long for one reply) — try breaking the request into smaller steps.'
+            : 'Model returned invalid JSON';
           await supabase.from('audit_logs').insert({
             actor_profile_id: profile.id, actor_role: profile.role,
             event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: null,
-            message: 'Model returned invalid JSON', metadata: { command, model, raw: resultText.slice(0, 4000) }
+            message: errorMessage, metadata: { command, model, stopReason, raw: resultText.slice(0, 4000) }
           });
-          send({ type: 'error', error: 'Model returned invalid JSON', raw: resultText.slice(0, 2000) });
+          send({ type: 'error', error: errorMessage, raw: resultText.slice(0, 2000) });
           return;
         }
 
