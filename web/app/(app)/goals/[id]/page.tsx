@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GOAL_STATUS_DOT, GOAL_STATUS_LABEL } from "@/lib/goals/classify";
 import {
   GoalKindActions,
+  GoalHeaderActions,
   KeyResultsSection,
   GoalContextEditor,
   StandingRollup,
@@ -55,7 +56,10 @@ export default async function GoalDetailPage({
             {goal.departments?.name && <Badge variant="secondary">{goal.departments.name}</Badge>}
           </div>
         </div>
-        <GoalKindActions goal={goal} />
+        <div className="flex items-start gap-1">
+          <GoalKindActions goal={goal} />
+          <GoalHeaderActions goal={goal} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

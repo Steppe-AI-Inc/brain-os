@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
+import { RowActionsMenu } from "@/components/row-actions-menu";
+import { EditSheet } from "@/components/edit-sheet";
 import {
   updateGoal,
+  updateGoalDetails,
+  deleteGoal,
   createKeyResult,
   deleteKeyResult,
   saveGoalContext,
+  type GoalDetailsInput,
 } from "@/lib/data/goals";
 
 type KeyResult = {
@@ -101,6 +107,61 @@ export function GoalKindActions({ goal }: { goal: Goal; keyResults?: KeyResult[]
       </div>
       {error && <p className="max-w-64 text-right text-xs text-destructive">{error}</p>}
     </div>
+  );
+}
+
+export function GoalHeaderActions({
+  goal,
+}: {
+  goal: { id: string; title: string; description: string | null };
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [values, setValues] = useState<GoalDetailsInput>({
+    title: goal.title,
+    description: goal.description ?? "",
+  });
+
+  return (
+    <>
+      <RowActionsMenu
+        itemLabel="goal"
+        onEdit={() => {
+          setValues({ title: goal.title, description: goal.description ?? "" });
+          setEditing(true);
+        }}
+        onDelete={async () => {
+          const result = await deleteGoal(goal.id);
+          if (!result) router.push("/goals");
+          return result;
+        }}
+      />
+      <EditSheet
+        open={editing}
+        onOpenChange={setEditing}
+        title="Edit goal"
+        saveDisabled={!values.title.trim()}
+        onSave={async () => {
+          const result = await updateGoalDetails(goal.id, values);
+          if (!result) router.refresh();
+          return result;
+        }}
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-goal-title">Title</Label>
+          <Input id="edit-goal-title" value={values.title} onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-goal-description">Description</Label>
+          <Textarea
+            id="edit-goal-description"
+            value={values.description}
+            onChange={(e) => setValues((v) => ({ ...v, description: e.target.value }))}
+            rows={4}
+          />
+        </div>
+      </EditSheet>
+    </>
   );
 }
 

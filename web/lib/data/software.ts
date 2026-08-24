@@ -82,3 +82,29 @@ export async function createSoftwareSpec(_prevState: string | null, formData: Fo
   revalidatePath("/approvals");
   return null;
 }
+
+export type ProductSpecInput = { title: string; status: string; bodyMd: string };
+
+export async function updateProductSpec(id: string, input: ProductSpecInput) {
+  if (!input.title.trim()) return "Title is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("product_specs")
+    .update({
+      title: input.title.trim(),
+      status: input.status.trim() || "draft",
+      body_md: input.bodyMd.trim() || null,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/software");
+  return null;
+}
+
+export async function deleteProductSpec(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("product_specs").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/software");
+  return null;
+}

@@ -32,3 +32,35 @@ export async function createPerson(_prevState: string | null, formData: FormData
   revalidatePath("/people");
   return null;
 }
+
+export type PersonInput = {
+  fullName: string;
+  email: string;
+  roleTitle: string;
+  companyId: string | null;
+};
+
+export async function updatePerson(id: string, input: PersonInput) {
+  if (!input.fullName.trim()) return "Full name is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("people")
+    .update({
+      full_name: input.fullName.trim(),
+      email: input.email.trim() || null,
+      role_title: input.roleTitle.trim() || null,
+      company_id: input.companyId,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/people");
+  return null;
+}
+
+export async function deletePerson(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("people").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/people");
+  return null;
+}

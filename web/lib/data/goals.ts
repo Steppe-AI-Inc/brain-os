@@ -83,6 +83,34 @@ export async function updateGoal(
   return null;
 }
 
+export type GoalDetailsInput = { title: string; description: string };
+
+export async function updateGoalDetails(id: string, input: GoalDetailsInput) {
+  if (!input.title.trim()) return "Title is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("goals")
+    .update({ title: input.title.trim(), description: input.description.trim() || null })
+    .eq("id", id);
+  if (error) return error.message;
+
+  revalidatePath("/goals");
+  revalidatePath("/board");
+  revalidatePath(`/goals/${id}`);
+  return null;
+}
+
+export async function deleteGoal(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("goals").delete().eq("id", id);
+  if (error) return error.message;
+
+  revalidatePath("/goals");
+  revalidatePath("/board");
+  revalidatePath("/dashboard");
+  return null;
+}
+
 export async function createKeyResult(_prevState: string | null, formData: FormData) {
   const goalId = String(formData.get("goal_id") || "").trim();
   const label = String(formData.get("label") || "").trim();

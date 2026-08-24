@@ -7,7 +7,7 @@ export async function getDocuments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, title, category, sensitivity, summary, created_at, companies(name)")
+    .select("id, title, category, sensitivity, summary, created_at, company_id, companies(name)")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -36,6 +36,33 @@ export async function createDocument(_prevState: string | null, formData: FormDa
   });
   if (error) return error.message;
 
+  revalidatePath("/documents");
+  return null;
+}
+
+export type DocumentInput = { title: string; companyId: string; sensitivity: string; summary: string };
+
+export async function updateDocument(id: string, input: DocumentInput) {
+  if (!input.title.trim()) return "Title is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("documents")
+    .update({
+      title: input.title.trim(),
+      company_id: input.companyId || null,
+      sensitivity: input.sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
+      summary: input.summary.trim() || null,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/documents");
+  return null;
+}
+
+export async function deleteDocument(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("documents").delete().eq("id", id);
+  if (error) return error.message;
   revalidatePath("/documents");
   return null;
 }
