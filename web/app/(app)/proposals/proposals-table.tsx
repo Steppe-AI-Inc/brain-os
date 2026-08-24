@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
-import { updateProposal, deleteProposal, type ProposalInput } from "@/lib/data/proposals";
+import { updateProposal, deleteProposal, generateQuotationPdf, type ProposalInput } from "@/lib/data/proposals";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   draft: "outline",
@@ -34,6 +36,8 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<ProposalRow | null>(null);
   const [values, setValues] = useState<ProposalInput>({ title: "", status: "draft", paymentTerms: "" });
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
 
   function openEdit(p: ProposalRow) {
     setValues({
@@ -42,6 +46,18 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
       paymentTerms: p.payment_terms ?? "",
     });
     setEditing(p);
+  }
+
+  async function downloadQuotation(id: string) {
+    setGenError(null);
+    setGeneratingId(id);
+    const result = await generateQuotationPdf(id);
+    setGeneratingId(null);
+    if (typeof result === "string") {
+      setGenError(result);
+      return;
+    }
+    window.open(result.url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -55,6 +71,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
               <TableHead>Total</TableHead>
               <TableHead>Margin</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead />
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -71,6 +88,18 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                   <Badge variant={STATUS_VARIANT[p.status ?? "draft"] ?? "outline"}>{(p.status ?? "draft").replace("_", " ")}</Badge>
                 </TableCell>
                 <TableCell>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    disabled={generatingId === p.id}
+                    onClick={() => downloadQuotation(p.id)}
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    {generatingId === p.id ? "Generating…" : "Quotation PDF"}
+                  </Button>
+                </TableCell>
+                <TableCell>
                   <RowActionsMenu
                     itemLabel="proposal"
                     className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
@@ -80,9 +109,16 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                 </TableCell>
               </TableRow>
             ))}
+            {genError && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-sm font-medium text-destructive">
+                  {genError}
+                </TableCell>
+              </TableRow>
+            )}
             {proposals.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No proposals visible yet.
                 </TableCell>
               </TableRow>

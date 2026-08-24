@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { approvalRisk, domainForRisk } from "@/lib/proposals/risk-score";
+import { renderPdf, type PdfLine } from "@/lib/pdf/simple-pdf";
 
 export async function getProposals() {
   const supabase = await createClient();
@@ -142,4 +143,98 @@ export async function deleteProposal(id: string) {
   if (error) return error.message;
   revalidatePath("/proposals");
   return null;
+}
+
+// Generates the actual forwardable artifact a proposal was missing — up to now
+// "Generate proposal" only produced a database row with no document. Deliberately reads
+// from proposal_items (unit_price, line_total) rather than proposals.internal_margin —
+// this is a customer-facing document, and internal_margin/unit_cost must never appear in
+// it (mirrors why safe_proposals view excludes internal_margin from non-founder reads).
+export async function generateQuotationPdf(proposalId: string): Promise<string | { url: string }> {
+  const supabase = await createClient();
+
+  const { data: proposal, error: proposalError } = await supabase
+    .from("proposals")
+    .select("id, title, currency, subtotal, discount_pct, total, payment_terms, created_at, company_id, companies(name)")
+    .eq("id", proposalId)
+    .single();
+  if (proposalError || !proposal) return proposalError?.message || "Proposal not found.";
+
+  const { data: items, error: itemsError } = await supabase
+    .from("proposal_items")
+    .select("description, quantity, unit_price, line_total")
+    .eq("proposal_id", proposalId);
+  if (itemsError) return itemsError.message;
+
+  const companyName = (proposal.companies as unknown as { name: string } | null)?.name || "—";
+  const currency = proposal.currency || "USD";
+  const fmt = (n: number | null) => `${currency} ${(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const dateStr = new Date(proposal.created_at ?? Date.now()).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+
+  const lines: PdfLine[] = [
+    { text: companyName, size: 20, bold: true, gapAfter: 4 },
+    { text: "QUOTATION", size: 14, bold: true, gapAfter: 4 },
+    { text: proposal.title, size: 12, gapAfter: 2 },
+    { text: `Date: ${dateStr}`, size: 10, gapAfter: 18 },
+  ];
+
+  lines.push({ text: "Description", size: 11, bold: true });
+  for (const item of items ?? []) {
+    lines.push({
+      text: `${item.description}  —  qty ${item.quantity}  x  ${fmt(item.unit_price)}  =  ${fmt(item.line_total)}`,
+      size: 11,
+      gapAfter: 4,
+    });
+  }
+  lines.push({ text: "", size: 6, gapAfter: 10 });
+  lines.push({ text: `Subtotal: ${fmt(proposal.subtotal)}`, size: 11 });
+  if (proposal.discount_pct) lines.push({ text: `Discount: ${proposal.discount_pct}%`, size: 11 });
+  lines.push({ text: `Total: ${fmt(proposal.total)}`, size: 13, bold: true, gapAfter: 18 });
+
+  if (proposal.payment_terms) {
+    lines.push({ text: "Payment terms", size: 11, bold: true });
+    lines.push({ text: proposal.payment_terms, size: 11, gapAfter: 12 });
+  }
+  lines.push({ text: "This quotation is valid for 30 days from the date above.", size: 9 });
+
+  const pdfBuffer = renderPdf(lines);
+  const storagePath = `${proposal.company_id}/${proposalId}-quotation.pdf`;
+
+  const { error: uploadError } = await supabase.storage.from("documents").upload(storagePath, pdfBuffer, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (uploadError) return uploadError.message;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("id").eq("auth_user_id", user.id).single()
+    : { data: null };
+
+  // No unique constraint on storage_path to upsert against — regenerating an existing
+  // quotation (same proposalId) should update its row, not create a duplicate.
+  const { data: existingDoc } = await supabase.from("documents").select("id").eq("storage_path", storagePath).maybeSingle();
+  const documentFields = {
+    company_id: proposal.company_id,
+    title: `Quotation — ${proposal.title}`,
+    category: "quotation",
+    storage_path: storagePath,
+    mime_type: "application/pdf",
+    sensitivity: "internal" as const,
+    uploaded_by_profile_id: profile?.id ?? null,
+  };
+  if (existingDoc) {
+    await supabase.from("documents").update(documentFields).eq("id", existingDoc.id);
+  } else {
+    await supabase.from("documents").insert(documentFields);
+  }
+
+  const { data: signed, error: signError } = await supabase.storage
+    .from("documents")
+    .createSignedUrl(storagePath, 3600);
+  if (signError || !signed) return signError?.message || "Generated the PDF but failed to create a download link.";
+
+  revalidatePath("/proposals");
+  revalidatePath("/documents");
+  return { url: signed.signedUrl };
 }
