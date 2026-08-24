@@ -65,7 +65,7 @@ export function PeopleTable({
               <TableHead>Role</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -75,10 +75,10 @@ export function PeopleTable({
                 <TableCell>{p.role_title ?? "—"}</TableCell>
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <RowActionsMenu
                     itemLabel="person"
-                    className="opacity-0 group-hover/row:opacity-100"
+                    className="opacity-70 transition-opacity hover:opacity-100 focus-within:opacity-100"
                     onEdit={() => openEdit(p)}
                     onDelete={() => deletePerson(p.id)}
                   />

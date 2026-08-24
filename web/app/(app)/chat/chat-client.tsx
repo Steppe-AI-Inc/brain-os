@@ -14,7 +14,13 @@ import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
-import type { ChatChannel } from "@/lib/data/chat-channels";
+import {
+  createChatSession,
+  finalizeChatSession,
+  touchChatSession,
+  type ChatChannel,
+} from "@/lib/data/chat-channels";
+import { normalizeSessionTitle } from "@/lib/chat/session-title";
 import { ChannelSidebar } from "./channel-sidebar";
 
 type Usage = { input_tokens: number; output_tokens: number };
@@ -55,6 +61,7 @@ function historyToMessage(h: ChatHistoryMessage): Message {
     status: "done",
     usage,
     result: {
+      conversationTitle: null,
       summary: h.output?.summary || "Command executed.",
       taskCount: h.counts?.tasks ?? 0,
       approvalCount: h.counts?.approvals ?? 0,
@@ -138,18 +145,18 @@ export function ChatClient({
   history,
   channels,
   activeChannelId,
-  channelMemories,
 }: {
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
   history: ChatHistoryMessage[];
   channels: ChatChannel[];
   activeChannelId: string | null;
-  channelMemories: Array<{ id: string; fact: string; confidence: number | null }>;
 }) {
+  const router = useRouter();
   const [command, setCommand] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Switching channels re-runs the page.tsx Server Component with a new `history` prop
   // (same client component instance, App Router doesn't remount on a search-param-only
@@ -204,35 +211,76 @@ export function ChatClient({
   async function send() {
     const trimmed = command.trim();
     if (!trimmed || isStreaming) return;
+
+    setSessionError(null);
+    let targetChannelId = activeChannelId;
+    let createdSession = false;
+
+    if (!targetChannelId) {
+      const session = await createChatSession();
+      if (typeof session === "string") {
+        setSessionError(session);
+        return;
+      }
+      targetChannelId = session.id;
+      createdSession = true;
+    }
+
     setCommand("");
     setIsStreaming(true);
     setRequestUsage(ZERO);
 
     let index = -1;
+    let finalResult: ChatResult | null = null;
     setMessages((prev) => {
       index = prev.length;
       return [...prev, { command: trimmed, status: "streaming", usage: null }];
     });
 
-    await consumeChatStream(trimmed, (evt) => {
-      if (evt.type === "usage") {
-        const input = evt.input_tokens ?? 0;
-        const output = evt.output_tokens ?? 0;
-        setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
-        patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
-      } else if (evt.type === "done") {
-        const result = toChatResult(evt);
-        patchMessage(index, { status: "done", result });
-        const usage = result.usage;
-        const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
-        const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
-        setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
-        setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
-        getUsageSummary().then(setDbSummary);
-      } else if (evt.type === "error") {
-        patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
-      }
-    }, activeChannelId);
+    await consumeChatStream(
+      trimmed,
+      (evt) => {
+        if (evt.type === "usage") {
+          const input = evt.input_tokens ?? 0;
+          const output = evt.output_tokens ?? 0;
+          setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
+          patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
+        } else if (evt.type === "done") {
+          const result = toChatResult(evt);
+          finalResult = result;
+          patchMessage(index, { status: "done", result });
+          const usage = result.usage;
+          const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
+          const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
+          setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
+          setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
+          getUsageSummary().then(setDbSummary);
+        } else if (evt.type === "error") {
+          setSessionError(evt.error || "Unknown error");
+          patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
+        }
+      },
+      targetChannelId
+    );
+
+    if (createdSession) {
+      const title = normalizeSessionTitle(
+        finalResult?.conversationTitle,
+        finalResult?.summary,
+        trimmed
+      );
+      const titleError = await finalizeChatSession(
+        targetChannelId,
+        title,
+        finalResult?.summary,
+        trimmed
+      );
+      if (titleError) setSessionError(titleError);
+      router.replace(`/chat?channel=${targetChannelId}`);
+    } else {
+      await touchChatSession(targetChannelId);
+      router.refresh();
+    }
 
     setIsStreaming(false);
   }
@@ -263,7 +311,18 @@ export function ChatClient({
       </div>
 
       <div className="flex flex-1 gap-4 overflow-hidden">
-        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} channelMemories={channelMemories} />
+        <ChannelSidebar
+          channels={channels}
+          activeChannelId={activeChannelId}
+          onNewChat={() => {
+            setCommand("");
+            setMessages([]);
+            setRequestUsage(ZERO);
+            setSessionError(null);
+            router.push("/chat");
+            router.refresh();
+          }}
+        />
         <div className="flex flex-1 flex-col gap-4 overflow-hidden">
       <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
         {messages.map((m, i) => (
@@ -337,6 +396,7 @@ export function ChatClient({
 
       <Card className="bg-card/90">
         <CardContent className="flex flex-col gap-3 pt-4">
+          {sessionError && <p className="text-sm font-medium text-destructive">{sessionError}</p>}
           <div className="flex gap-3">
             <Textarea
               value={command}

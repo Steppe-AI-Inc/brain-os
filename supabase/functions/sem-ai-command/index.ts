@@ -119,9 +119,13 @@ Rules:
   searchable company memory, not just chat history. Leave entityType/entityId unset to
   let it default to this conversation's channel; set companyId/companyIndex the same way
   as other entities when the fact is clearly about a specific company.
+- conversationTitle is a specific 3-7 word title describing this conversation. Infer the
+  company, project, asset, or decision when present. Never return generic titles such as
+  "New chat", "General", "Founder command", or "Brain OS".
 
 Output schema:
 {
+  "conversationTitle": string,
   "strategicGoal": string,
   "summary": string,
   "riskLevel": "low"|"medium"|"high"|"critical",
@@ -415,6 +419,24 @@ function detectApprovalDomain(title:string, description:string): ApprovalDomain 
   const matches = detectForcedApprovalMatches(title, description);
   return matches.length ? matches[0].domain : 'general';
 }
+function conversationTitle(command: string, proposed?: unknown): string {
+  const clean = (value: unknown) => String(value || '')
+    .replace(/[`*_#>~]/g, ' ')
+    .replace(/^["']+|["']+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const generic = new Set(['new chat', 'new conversation', 'general', 'conversation', 'chat', 'brain os']);
+  const aiTitle = clean(proposed);
+  const fallback = clean(command)
+    .replace(/^(hey|hi|hello|please|can you|could you|i need|we need)\s+/i, '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 7)
+    .join(' ');
+  const selected = aiTitle && !generic.has(aiTitle.toLowerCase()) ? aiTitle : fallback;
+  return (selected || 'Untitled conversation').split(' ').slice(0, 8).join(' ').slice(0, 72);
+}
+
 function fallbackPlan(command:string, contextPack:any){
   const lower = command.toLowerCase();
   const companyId = contextPack?.companies?.[0]?.id || null;
@@ -429,7 +451,7 @@ function fallbackPlan(command:string, contextPack:any){
   } else {
     tasks.push({title:'Create CEO operating brief and follow-up tasks',description:command,companyId,ownerType:'agent',ownerAgentId:agent('chief'),priority:'high',riskLevel:'low',approvalRequired:false,acceptanceCriteria:['Blockers identified','Tasks created','Founder decisions listed'],testMethod:['QA checks brief completeness']});
   }
-  return { strategicGoal:'Execute founder command through Brain OS v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
+  return { conversationTitle:conversationTitle(command), strategicGoal:'Execute founder command through Brain OS v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
 }
 
 async function buildContext(supabase:any, command:string, channelId: string | null, openaiKey: string | undefined){
@@ -845,6 +867,13 @@ serve(async (req) => {
         const createdCompanyRelationships = rpcResult.createdCompanyRelationships || [];
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
+
+        if (channelId) {
+          const now = new Date().toISOString();
+          const title = conversationTitle(command, result.conversationTitle);
+          await supabase.from('chat_channels').update({ name: title, updated_at: now }).eq('id', channelId).like('name', '__pending__:%');
+          await supabase.from('chat_channels').update({ updated_at: now }).eq('id', channelId);
+        }
 
         await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
 

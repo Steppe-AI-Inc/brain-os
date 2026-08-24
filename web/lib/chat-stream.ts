@@ -1,6 +1,7 @@
 "use client";
 
 export type ChatResult = {
+  conversationTitle: string | null;
   summary: string;
   taskCount: number;
   approvalCount: number;
@@ -22,7 +23,7 @@ export type StreamEvent =
   | { type: "usage"; input_tokens?: number; output_tokens?: number }
   | {
       type: "done";
-      result?: { summary?: string };
+      result?: { summary?: string; conversationTitle?: string };
       createdTasks?: unknown[];
       createdApprovals?: unknown[];
       deletedTaskIds?: unknown[];
@@ -94,6 +95,7 @@ export async function consumeChatStream(
 
 export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatResult {
   return {
+    conversationTitle: evt.result?.conversationTitle || null,
     summary: evt.result?.summary || "Command executed.",
     taskCount: evt.createdTasks?.length ?? 0,
     approvalCount: evt.createdApprovals?.length ?? 0,

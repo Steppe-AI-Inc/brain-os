@@ -62,7 +62,7 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Risk</TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -75,10 +75,10 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
                 </TableCell>
                 <TableCell>{c.strategic_priority}</TableCell>
                 <TableCell>{c.risk_score}</TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <RowActionsMenu
                     itemLabel="company"
-                    className="opacity-0 group-hover/row:opacity-100"
+                    className="opacity-70 transition-opacity hover:opacity-100 focus-within:opacity-100"
                     onEdit={() => openEdit(c)}
                     onDelete={() => deleteCompany(c.id)}
                   />
