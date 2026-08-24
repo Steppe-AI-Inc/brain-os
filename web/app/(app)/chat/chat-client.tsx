@@ -16,7 +16,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import {
   consumeChatStream,
@@ -24,8 +33,8 @@ import {
   type ChatImageAttachment,
   type ChatResult,
 } from "@/lib/chat-stream";
-import { estimateCost } from "@/lib/usage/pricing";
-import { setActiveProvider } from "@/lib/data/ai-providers";
+import { estimateCost, MODEL_CATALOG } from "@/lib/usage/pricing";
+import { activateCatalogModel } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
 import {
@@ -139,39 +148,86 @@ function StatPair({ label, tokens, costUsd }: { label: string; tokens: number; c
 function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const active = providers.find((p) => p.is_active);
+  const [error, setError] = useState<string | null>(null);
+  const active = providers.find((provider) => provider.is_active);
+  const activeCatalogModel = MODEL_CATALOG.find(
+    (model) => model.provider === active?.provider && model.model === active?.model
+  );
+  const legacyActive = active && !activeCatalogModel ? active : null;
+  const providerGroups = [
+    { provider: "openai", label: "OpenAI" },
+    { provider: "anthropic", label: "Anthropic" },
+  ] as const;
 
-  function onChange(v: unknown) {
-    if (typeof v !== "string") return;
+  function onChange(value: unknown) {
+    if (typeof value !== "string") return;
+    const selected = MODEL_CATALOG.find((model) => model.model === value);
+    if (!selected) return;
+
+    setError(null);
     startTransition(async () => {
-      await setActiveProvider(v);
+      const actionError = await activateCatalogModel(
+        selected.provider,
+        selected.model
+      );
+      if (actionError) {
+        setError(actionError);
+        return;
+      }
       router.refresh();
     });
   }
 
-  if (providers.length === 0) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        No providers configured — using fallback planner.
-      </span>
-    );
-  }
-
   return (
-    <Select value={active?.id} onValueChange={onChange} disabled={pending}>
-      <SelectTrigger className="h-8 w-56 text-xs">
-        <SelectValue placeholder="Select provider">
-          {() => (active ? `${active.label} · ${active.model}` : "Select provider")}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {providers.map((p) => (
-          <SelectItem key={p.id} value={p.id}>
-            {p.label} · {p.model}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex min-w-0 flex-col gap-1">
+      <Select value={active?.model} onValueChange={onChange} disabled={pending}>
+        <SelectTrigger className="h-9 w-72 max-w-full text-xs">
+          <SelectValue placeholder="Select AI model">
+            {() =>
+              active
+                ? `${active.label} · ${active.model}`
+                : "Select AI model"
+            }
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {legacyActive && (
+            <>
+              <SelectGroup>
+                <SelectLabel>Current legacy model</SelectLabel>
+                <SelectItem value={legacyActive.model}>
+                  {legacyActive.label} · {legacyActive.model}
+                </SelectItem>
+              </SelectGroup>
+              <SelectSeparator />
+            </>
+          )}
+          {providerGroups.map((group, groupIndex) => (
+            <div key={group.provider}>
+              {groupIndex > 0 && <SelectSeparator />}
+              <SelectGroup>
+                <SelectLabel>{group.label}</SelectLabel>
+                {MODEL_CATALOG.filter(
+                  (model) => model.provider === group.provider
+                ).map((model) => (
+                  <SelectItem key={model.model} value={model.model}>
+                    {model.label} · {model.model}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </div>
+          ))}
+        </SelectContent>
+      </Select>
+      <span className="text-[11px] text-muted-foreground">
+        {pending
+          ? "Switching model…"
+          : active
+            ? "Selection is stored in Supabase. The matching provider API key must be configured in Edge Function secrets."
+            : "No active model — Brain OS will use its deterministic fallback planner."}
+      </span>
+      {error && <span className="text-[11px] font-medium text-destructive">{error}</span>}
+    </div>
   );
 }
 
@@ -499,6 +555,13 @@ export function ChatClient({
                 ) : (
                   <>
                     <p>{m.result?.summary}</p>
+                    {m.result?.model === "fallback-no-api-key" && (
+                      <div className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                        This answer came from the deterministic fallback planner, not a live AI model.
+                        Configure OPENAI_API_KEY or ANTHROPIC_API_KEY in Supabase Edge Function
+                        secrets to enable real model responses.
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
                       <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>
