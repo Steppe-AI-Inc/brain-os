@@ -1,6 +1,7 @@
 import { Workflow } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { WorkflowGrid } from "./workflow-grid";
+import { SoftwareFactoryComposer } from "./software-factory-composer";
 
 const WORKFLOWS = [
   { title: "CEO Daily Brief", command: "Run today's CEO operating brief. Check all companies, blocked projects, overdue tasks, and approvals." },
@@ -19,6 +20,7 @@ export default function WorkflowsPage() {
         title="Workflow Factory"
         description="One-click workflows. Each runs the real sem-ai-command Edge Function — no local simulation, unlike the old app's version of this page."
       />
+      <SoftwareFactoryComposer />
       <WorkflowGrid workflows={WORKFLOWS} />
     </div>
   );
