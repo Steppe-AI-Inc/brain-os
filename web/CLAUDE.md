@@ -67,6 +67,37 @@ worth knowing so they don't recur:
   class-gated (`@custom-variant dark (&:is(.dark *))`), not media-query-gated, so a
   hardcoded class forces dark mode unconditionally regardless of the calm-light intent.
 
+## AI providers, MCP connectors, token usage — `/settings`
+
+`app/(app)/settings/` (Providers / MCP Connectors / Usage tabs) — the AI-native-OS
+control surface. Key architectural decisions, worth knowing before touching this area:
+
+- **`ai_providers` has no key column, deliberately** — the founder chose to keep the
+  real LLM provider key out of the database entirely. The row only carries
+  `provider`/`model`/`is_active`; the actual key stays a Supabase Edge Function secret
+  (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`). `supabase/functions/sem-ai-command/index.ts`
+  reads the active row to decide provider+model, and falls back to legacy hardcoded
+  OpenAI behavior if no row is active — never breaks existing chat.
+- **MCP connector tokens use Supabase Vault**, not a table column — per-connector
+  credentials don't fit a single env var the way one LLM key does, so this is the one
+  place a real secret is database-adjacent, via `vault.create_secret()` /
+  `vault.decrypted_secrets`, wrapped in three `SECURITY DEFINER` functions
+  (`create_mcp_connector_secret`, `get_mcp_connector_token`,
+  `delete_mcp_connector_secret` — see migration `202608260002`) since PostgREST doesn't
+  expose the `vault` schema directly. Each wrapper does its own `is_founder_or_admin()`
+  check rather than relying on RLS (there's no RLS on `vault.secrets` to rely on).
+- **MCP connectors are remote-only (`http`/`sse`)** — a serverless app can't spawn
+  local `stdio` MCP server processes the way blankcollar's Fastify backend does.
+  `lib/data/mcp-connectors.ts`'s `testMcpConnector()` does a real one-shot MCP handshake
+  (`initialize` + `tools/list`) over HTTP, not a persistent connection.
+- **Wiring the chat page to actually *call* MCP tools mid-conversation is still
+  unbuilt** — this pass only covers connector management + a reachability/tool-listing
+  test. That integration would live in `sem-ai-command/index.ts`'s LLM loop.
+- **`model_usage` cost was always `0`** until this pass — `lib/usage/pricing.ts`'s
+  `estimateCost()` is a small hardcoded $/1M-token map (mirrored in the Edge Function,
+  which doesn't share a package with `/web`) — deterministic, no LLM call needed to
+  price an LLM call. Update both copies together if pricing changes.
+
 ## i18n
 
 `lib/i18n/{dictionary,i18n-context}.tsx`, `useT()` hook, same `t(key, fallback)` pattern

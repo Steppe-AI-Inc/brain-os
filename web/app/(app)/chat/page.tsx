@@ -47,10 +47,16 @@ export default function ChatPage() {
                 ) : (
                   <>
                     <p>{m.result.summary}</p>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="outline">{m.result.taskCount} task(s)</Badge>
                       <Badge variant="outline">{m.result.approvalCount} approval(s)</Badge>
                       <Badge variant="secondary">{m.result.model}</Badge>
+                      {m.result.usage && (
+                        <Badge variant="outline" className="tabular-nums">
+                          {(m.result.usage.input_tokens + m.result.usage.output_tokens).toLocaleString()}{" "}
+                          tokens
+                        </Badge>
+                      )}
                     </div>
                   </>
                 )}

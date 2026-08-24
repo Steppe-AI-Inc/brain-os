@@ -13,6 +13,9 @@
 
 create extension if not exists pgcrypto;
 create extension if not exists vector;
+do $$ begin
+  create extension if not exists supabase_vault cascade;
+exception when others then null; end $$;
 
 -- ---------- ENUMS ----------
 do $$ begin
@@ -41,6 +44,9 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 do $$ begin
   create type goal_kind as enum ('ephemeral','standing','routine','decision');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type mcp_transport as enum ('http','sse');
 exception when duplicate_object then null; end $$;
 
 -- ---------- CORE TABLES ----------
@@ -444,6 +450,35 @@ create table if not exists public.goal_context (
   updated_at timestamptz not null default now()
 );
 
+-- Added for AI Providers + MCP Connectors — see 202608260001_ai_providers_mcp_connectors.sql.
+-- No key column on ai_providers, ever — the real key stays a Supabase Edge Function
+-- secret (OPENAI_API_KEY / ANTHROPIC_API_KEY), never a database row.
+create table if not exists public.ai_providers (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('openai','anthropic')),
+  label text not null,
+  model text not null,
+  is_active boolean not null default false,
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+create unique index if not exists ai_providers_single_active_idx
+  on public.ai_providers ((is_active)) where is_active = true;
+
+create table if not exists public.mcp_connectors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  endpoint_url text not null,
+  transport mcp_transport not null default 'http',
+  vault_secret_id uuid,
+  last_checked_at timestamptz,
+  last_status text,
+  last_tool_count int,
+  enabled boolean not null default true,
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+
 
 -- ---------- HELPERS ----------
 create or replace function public.current_profile_id() returns uuid
@@ -490,6 +525,69 @@ language sql stable security definer set search_path = public as $$
         and m.role_in_company in ('owner','manager','team_lead')
     );
 $$;
+
+-- ---------- SUPABASE VAULT WRAPPERS (MCP connector tokens) ----------
+-- See 202608260002_mcp_vault_functions.sql. PostgREST only exposes `public`, so these
+-- SECURITY DEFINER wrappers are the only path /web ever uses to touch a connector's
+-- real token; each does its own founder/admin check rather than relying on RLS.
+create or replace function public.create_mcp_connector_secret(p_name text, p_secret text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, vault
+as $$
+declare
+  v_id uuid;
+begin
+  if not public.is_founder_or_admin() then
+    raise exception 'not authorized';
+  end if;
+  v_id := vault.create_secret(p_secret, p_name);
+  return v_id;
+end;
+$$;
+revoke all on function public.create_mcp_connector_secret(text, text) from public;
+grant execute on function public.create_mcp_connector_secret(text, text) to authenticated;
+
+create or replace function public.get_mcp_connector_token(p_connector_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public, vault
+as $$
+declare
+  v_secret_id uuid;
+  v_token text;
+begin
+  if not public.is_founder_or_admin() then
+    raise exception 'not authorized';
+  end if;
+  select vault_secret_id into v_secret_id from public.mcp_connectors where id = p_connector_id;
+  if v_secret_id is null then
+    return null;
+  end if;
+  select decrypted_secret into v_token from vault.decrypted_secrets where id = v_secret_id;
+  return v_token;
+end;
+$$;
+revoke all on function public.get_mcp_connector_token(uuid) from public;
+grant execute on function public.get_mcp_connector_token(uuid) to authenticated;
+
+create or replace function public.delete_mcp_connector_secret(p_secret_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, vault
+as $$
+begin
+  if not public.is_founder_or_admin() then
+    raise exception 'not authorized';
+  end if;
+  delete from vault.secrets where id = p_secret_id;
+end;
+$$;
+revoke all on function public.delete_mcp_connector_secret(uuid) from public;
+grant execute on function public.delete_mcp_connector_secret(uuid) to authenticated;
 
 -- ---------- TRANSACTIONAL AI COMMAND PERSISTENCE (ticket 12) ----------
 -- Wraps work_order + tasks + approvals + model_usage + audit_logs in one transaction so
@@ -890,6 +988,22 @@ create policy "goal_context_write_scope" on public.goal_context for all using (
   exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
 ) with check (
   exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
+);
+
+alter table public.ai_providers enable row level security;
+drop policy if exists "ai_providers_founder_only" on public.ai_providers;
+create policy "ai_providers_founder_only" on public.ai_providers for all using (
+  public.is_founder_or_admin()
+) with check (
+  public.is_founder_or_admin()
+);
+
+alter table public.mcp_connectors enable row level security;
+drop policy if exists "mcp_connectors_founder_only" on public.mcp_connectors;
+create policy "mcp_connectors_founder_only" on public.mcp_connectors for all using (
+  public.is_founder_or_admin()
+) with check (
+  public.is_founder_or_admin()
 );
 
 -- ---------- SAFE VIEWS ----------

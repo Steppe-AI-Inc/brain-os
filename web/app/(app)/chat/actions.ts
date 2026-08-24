@@ -7,6 +7,7 @@ export type ChatResult = {
   taskCount: number;
   approvalCount: number;
   model: string;
+  usage: { input_tokens: number; output_tokens: number } | null;
   error?: string;
 };
 
@@ -20,7 +21,7 @@ export async function runChatCommand(command: string): Promise<ChatResult> {
   } = await supabase.auth.getSession();
 
   if (!session) {
-    return { summary: "", taskCount: 0, approvalCount: 0, model: "", error: "Not signed in." };
+    return { summary: "", taskCount: 0, approvalCount: 0, model: "", usage: null, error: "Not signed in." };
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -43,6 +44,7 @@ export async function runChatCommand(command: string): Promise<ChatResult> {
     createdTasks?: unknown[];
     createdApprovals?: unknown[];
     model?: string;
+    usage?: { input_tokens?: number; output_tokens?: number } | null;
   };
   try {
     json = text ? JSON.parse(text) : {};
@@ -52,12 +54,20 @@ export async function runChatCommand(command: string): Promise<ChatResult> {
       taskCount: 0,
       approvalCount: 0,
       model: "",
+      usage: null,
       error: `Edge Function returned non-JSON: ${text.slice(0, 200)}`,
     };
   }
 
   if (!res.ok) {
-    return { summary: "", taskCount: 0, approvalCount: 0, model: "", error: json.error || `Edge Function error ${res.status}` };
+    return {
+      summary: "",
+      taskCount: 0,
+      approvalCount: 0,
+      model: "",
+      usage: null,
+      error: json.error || `Edge Function error ${res.status}`,
+    };
   }
 
   return {
@@ -65,5 +75,8 @@ export async function runChatCommand(command: string): Promise<ChatResult> {
     taskCount: json.createdTasks?.length ?? 0,
     approvalCount: json.createdApprovals?.length ?? 0,
     model: json.model || "unknown",
+    usage: json.usage
+      ? { input_tokens: json.usage.input_tokens ?? 0, output_tokens: json.usage.output_tokens ?? 0 }
+      : null,
   };
 }

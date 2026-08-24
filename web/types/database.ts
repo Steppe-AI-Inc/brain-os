@@ -56,6 +56,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_providers: {
+        Row: {
+          created_at: string
+          created_by_profile_id: string | null
+          id: string
+          is_active: boolean
+          label: string
+          model: string
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          model: string
+          provider: string
+        }
+        Update: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          model?: string
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_providers_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           approval_payload: Json | null
@@ -867,6 +905,56 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_connectors: {
+        Row: {
+          created_at: string
+          created_by_profile_id: string | null
+          enabled: boolean
+          endpoint_url: string
+          id: string
+          last_checked_at: string | null
+          last_status: string | null
+          last_tool_count: number | null
+          name: string
+          transport: Database["public"]["Enums"]["mcp_transport"]
+          vault_secret_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          enabled?: boolean
+          endpoint_url: string
+          id?: string
+          last_checked_at?: string | null
+          last_status?: string | null
+          last_tool_count?: number | null
+          name: string
+          transport?: Database["public"]["Enums"]["mcp_transport"]
+          vault_secret_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          enabled?: boolean
+          endpoint_url?: string
+          id?: string
+          last_checked_at?: string | null
+          last_status?: string | null
+          last_tool_count?: number | null
+          name?: string
+          transport?: Database["public"]["Enums"]["mcp_transport"]
+          vault_secret_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_connectors_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1922,10 +2010,22 @@ export type Database = {
       }
     }
     Functions: {
+      create_mcp_connector_secret: {
+        Args: { p_name: string; p_secret: string }
+        Returns: string
+      }
       current_profile_id: { Args: never; Returns: string }
       current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      delete_mcp_connector_secret: {
+        Args: { p_secret_id: string }
+        Returns: undefined
+      }
+      get_mcp_connector_token: {
+        Args: { p_connector_id: string }
+        Returns: string
       }
       has_company_access: { Args: { cid: string }; Returns: boolean }
       is_company_manager: { Args: { cid: string }; Returns: boolean }
@@ -1973,6 +2073,7 @@ export type Database = {
         | "cancelled"
       goal_kind: "ephemeral" | "standing" | "routine" | "decision"
       goal_status: "draft" | "active" | "paused" | "achieved" | "archived"
+      mcp_transport: "http" | "sse"
       priority_level: "low" | "medium" | "high" | "critical"
       risk_level: "low" | "medium" | "high" | "critical"
       visibility_level:
@@ -2146,6 +2247,7 @@ export const Constants = {
       ],
       goal_kind: ["ephemeral", "standing", "routine", "decision"],
       goal_status: ["draft", "active", "paused", "achieved", "archived"],
+      mcp_transport: ["http", "sse"],
       priority_level: ["low", "medium", "high", "critical"],
       risk_level: ["low", "medium", "high", "critical"],
       visibility_level: [

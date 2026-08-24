@@ -6,6 +6,9 @@
 //   SUPABASE_ANON_KEY
 // Optional:
 //   SEM_AI_MAX_TOKENS=12000
+//   ANTHROPIC_API_KEY — only needed if an `ai_providers` row is marked active with
+//     provider='anthropic' (see migration 202608260001). No active row falls back to
+//     the OpenAI env-var behavior above, unchanged.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -79,6 +82,57 @@ function extractText(j:any){
   return JSON.stringify(j);
 }
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+
+// Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
+// [inputPer1M, outputPer1M] in USD. Update as pricing/models change.
+const PRICING_PER_1M: Record<string, [number, number]> = {
+  'gpt-4.1-mini': [0.4, 1.6],
+  'gpt-4.1': [2.0, 8.0],
+  'gpt-4o-mini': [0.15, 0.6],
+  'gpt-4o': [2.5, 10.0],
+  'claude-sonnet-4-6': [3.0, 15.0],
+  'claude-haiku-4-6': [0.8, 4.0],
+};
+function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
+  const rates = PRICING_PER_1M[model];
+  if (!rates) return 0;
+  const [inRate, outRate] = rates;
+  return (inputTokens / 1_000_000) * inRate + (outputTokens / 1_000_000) * outRate;
+}
+
+type ProviderRow = { provider: 'openai' | 'anthropic'; model: string };
+async function getActiveProvider(supabase: any): Promise<ProviderRow | null> {
+  const { data } = await supabase
+    .from('ai_providers')
+    .select('provider,model')
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+  return data || null;
+}
+
+async function callAnthropic(model: string, key: string, contextForModel: unknown) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
+      temperature: 0.2,
+    }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw { status: r.status, body: j };
+  const text = (j.content || []).map((c: any) => (c.type === 'text' ? c.text : '')).join('').trim();
+  const usage = j.usage ? { input_tokens: j.usage.input_tokens, output_tokens: j.usage.output_tokens } : null;
+  return { text, usage };
+}
 
 // Server-side backstop: the system prompt ASKS the model to flag these categories as
 // approvalRequired, but prompt instructions are not a security boundary. Any task whose
@@ -174,12 +228,33 @@ serve(async (req) => {
     if(tokenEstimate > hardMax) return json({ error:'Token preflight hard stop', tokenEstimate, hardMax }, 413);
 
     let result:any;
+    let providerName: 'openai' | 'anthropic' = 'openai';
     let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
+    // No active ai_providers row = today's exact behavior (hardcoded OpenAI + env model).
+    // A row only ever changes providerName/model; it never supplies the key itself —
+    // keys stay Edge Function secrets, never database rows (see migration 202608260001).
+    const activeProvider = await getActiveProvider(supabase);
+    if (activeProvider) {
+      providerName = activeProvider.provider;
+      model = activeProvider.model;
+    }
+
     let usage:any = null;
-    const key = Deno.env.get('OPENAI_API_KEY');
+    const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const key = providerName === 'anthropic' ? anthropicKey : openaiKey;
+
     if(!key){
       result = fallbackPlan(command, contextPack);
       model = 'fallback-no-api-key';
+    } else if (providerName === 'anthropic') {
+      try {
+        const { text, usage: u } = await callAnthropic(model, key, { profile:{id:profile.id,role:profile.role}, command, contextPack });
+        usage = u;
+        try { result = JSON.parse(text); } catch { return json({ error:'Model returned invalid JSON', raw:text }, 502); }
+      } catch (e: any) {
+        return json({ error: e?.body?.error?.message || 'Anthropic error', details: e?.body }, e?.status || 500);
+      }
     } else {
       const r = await fetch('https://api.openai.com/v1/responses', {
         method:'POST', headers:{ Authorization:`Bearer ${key}`, 'Content-Type':'application/json' },
@@ -232,6 +307,8 @@ serve(async (req) => {
       return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null };
     });
 
+    const finalInputTokens = usage?.input_tokens || tokenEstimate;
+    const finalOutputTokens = usage?.output_tokens || 0;
     const { data: rpcResult, error: rpcError } = await supabase.rpc('sem_execute_ai_command', {
       p_command: command,
       p_context_pack: contextPack,
@@ -240,9 +317,9 @@ serve(async (req) => {
       p_tasks: taskPayloads,
       p_approvals: approvalPayloads,
       p_model_name: model,
-      p_input_tokens: usage?.input_tokens || tokenEstimate,
-      p_output_tokens: usage?.output_tokens || 0,
-      p_estimated_cost_usd: 0
+      p_input_tokens: finalInputTokens,
+      p_output_tokens: finalOutputTokens,
+      p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens)
     });
     if(rpcError) return json({ error: rpcError.message || 'Failed to persist AI command result' }, 500);
 
