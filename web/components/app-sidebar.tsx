@@ -29,6 +29,7 @@ import {
   Wallet,
   BarChart3,
   Settings2,
+  HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -161,6 +162,17 @@ export function AppSidebar({
       </nav>
 
       <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
+        <Link
+          href="/help"
+          className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+            pathname.startsWith("/help")
+              ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          }`}
+        >
+          <HelpCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>{t("nav.help", "Help & FAQ")}</span>
+        </Link>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
           <Button
