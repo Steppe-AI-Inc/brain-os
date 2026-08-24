@@ -263,28 +263,35 @@ async function callAnthropicStreaming(
   const content = image
     ? [{ type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.base64 } }, textBlock]
     : textBlock.text;
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content }],
-      temperature: 0.2,
-      stream: true,
-    }),
-  });
+  let r: Response;
+  try {
+    r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content }],
+        temperature: 0.2,
+        stream: true,
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+  } catch (e: any) {
+    throw { status: 504, body: { error: { message: e?.name === 'TimeoutError' ? 'Anthropic request timed out after 90s' : (e?.message || String(e)) } } };
+  }
   if (!r.ok) {
     const errBody = await r.json().catch(() => ({}));
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
   let stopReason: string | null = null;
+  let apiError: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && typeof evt.delta.text === 'string') {
       accumulated += evt.delta.text;
@@ -294,8 +301,11 @@ async function callAnthropicStreaming(
     } else if (evt.type === 'message_delta' && evt.usage) {
       onUsage({ output_tokens: evt.usage.output_tokens });
       if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
+    } else if (evt.type === 'error' && !apiError) {
+      apiError = evt.error?.message || 'Anthropic request failed mid-stream';
     }
   });
+  if (apiError) throw { status: 502, body: { error: { message: apiError } } };
   return { text: accumulated, stopReason };
 }
 
@@ -311,26 +321,33 @@ async function callOpenAIStreaming(
   const userContent = image
     ? [{ type: 'input_image', image_url: `data:${image.mimeType};base64,${image.base64}`, detail: 'auto' }, textBlock]
     : textBlock.text;
-  const r = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      input: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent },
-      ],
-      max_output_tokens: 8192,
-      temperature: 0.2,
-      stream: true,
-    }),
-  });
+  let r: Response;
+  try {
+    r = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        input: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userContent },
+        ],
+        max_output_tokens: 8192,
+        temperature: 0.2,
+        stream: true,
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+  } catch (e: any) {
+    throw { status: 504, body: { error: { message: e?.name === 'TimeoutError' ? 'OpenAI request timed out after 90s' : (e?.message || String(e)) } } };
+  }
   if (!r.ok) {
     const errBody = await r.json().catch(() => ({}));
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
   let stopReason: string | null = null;
+  let apiError: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
       accumulated += evt.delta;
@@ -339,8 +356,11 @@ async function callOpenAIStreaming(
       onUsage({ input_tokens: evt.response.usage.input_tokens, output_tokens: evt.response.usage.output_tokens });
     } else if (evt.type === 'response.incomplete' && evt.response?.incomplete_details?.reason) {
       stopReason = evt.response.incomplete_details.reason;
+    } else if ((evt.type === 'response.failed' || evt.type === 'error') && !apiError) {
+      apiError = evt.response?.error?.message || evt.error?.message || evt.message || 'OpenAI request failed mid-stream';
     }
   });
+  if (apiError) throw { status: 502, body: { error: { message: apiError } } };
   return { text: accumulated, stopReason };
 }
 
