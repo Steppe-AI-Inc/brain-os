@@ -7,7 +7,7 @@ export async function getDocuments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, title, category, sensitivity, summary, created_at, company_id, companies(name)")
+    .select("id, title, category, sensitivity, summary, created_at, company_id, companies!documents_company_id_fkey(name)")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
