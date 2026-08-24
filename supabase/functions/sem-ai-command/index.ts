@@ -324,8 +324,18 @@ async function callOpenAIStreaming(
 }
 
 // Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
-// [inputPer1M, outputPer1M] in USD. Update as pricing/models change.
+// [inputPer1M, outputPer1M] in USD. Mirrors web/lib/usage/pricing.ts's MODEL_CATALOG —
+// update both if pricing changes.
 const PRICING_PER_1M: Record<string, [number, number]> = {
+  // Current selectable catalog — snapshot 2026-08-24.
+  'gpt-5.6-sol': [5.0, 30.0],
+  'gpt-5.6-terra': [2.0, 12.0],
+  'gpt-5.6-luna': [0.2, 1.2],
+  'claude-fable-5': [10.0, 50.0],
+  'claude-opus-5': [5.0, 25.0],
+  'claude-sonnet-5': [2.0, 10.0],
+  'claude-haiku-4-5': [1.0, 5.0],
+  // Legacy rows kept billable — a real ai_providers row can still reference these.
   'gpt-4.1-mini': [0.4, 1.6],
   'gpt-4.1': [2.0, 8.0],
   'gpt-4o-mini': [0.15, 0.6],
@@ -334,11 +344,7 @@ const PRICING_PER_1M: Record<string, [number, number]> = {
   'gpt-5-mini': [0.25, 2.0],
   'gpt-5': [1.25, 10.0],
   'gpt-5-pro': [15.0, 120.0],
-  'claude-haiku-4-5': [1.0, 5.0],
   'claude-sonnet-4-6': [3.0, 15.0],
-  'claude-sonnet-5': [2.0, 10.0],
-  'claude-opus-5': [5.0, 25.0],
-  'claude-fable-5': [10.0, 50.0],
 };
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
   const rates = PRICING_PER_1M[model];

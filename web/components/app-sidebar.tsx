@@ -26,6 +26,8 @@ import {
   Target,
   Kanban,
   Landmark,
+  Wallet,
+  BarChart3,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
@@ -41,6 +43,7 @@ const NAV_GROUPS: Array<{
     title: "AI FIRST",
     items: [
       { href: "/chat", navKey: "nav.chatOps", label: "Speak with Brain OS", icon: Sparkles },
+      { href: "/models", navKey: "nav.models", label: "Model Intelligence", icon: BarChart3 },
       { href: "/workflows", navKey: "nav.workflows", label: "Workflow Factory", icon: Workflow },
       { href: "/mindmap", navKey: "nav.mindmap", label: "Operating Mindmap", icon: Network },
     ],
@@ -58,6 +61,7 @@ const NAV_GROUPS: Array<{
       { href: "/dashboard", navKey: "nav.dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/tasks", navKey: "nav.tasks", label: "Tasks", icon: ListChecks },
       { href: "/approvals", navKey: "nav.approvals", label: "Approvals", icon: ShieldCheck },
+      { href: "/finance", navKey: "nav.finance", label: "Finance", icon: Wallet },
     ],
   },
   {

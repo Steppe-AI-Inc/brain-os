@@ -7,7 +7,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProvidersPanel } from "./providers-panel";
 import { McpConnectorsPanel } from "./mcp-connectors-panel";
 import { UsagePanel } from "./usage-panel";
-import { ModelComparisonPanel } from "./model-comparison-panel";
 
 export default async function SettingsPage() {
   const [providers, connectors, usageSummary, recentUsage, dailyUsage] = await Promise.all([
@@ -23,7 +22,7 @@ export default async function SettingsPage() {
       <PageHeader
         icon={Settings2}
         title="Settings"
-        description="AI providers, MCP connectors, and real token/usage tracking."
+        description="AI providers, MCP connectors, and real token/usage tracking. For model capability and cost comparison, see Model Intelligence."
       />
 
       <Tabs defaultValue="providers">
@@ -31,7 +30,6 @@ export default async function SettingsPage() {
           <TabsTrigger value="providers">Providers</TabsTrigger>
           <TabsTrigger value="mcp">MCP Connectors</TabsTrigger>
           <TabsTrigger value="usage">Usage</TabsTrigger>
-          <TabsTrigger value="models">Model Comparison</TabsTrigger>
         </TabsList>
         <TabsContent value="providers" className="mt-4">
           <ProvidersPanel providers={providers} />
@@ -41,9 +39,6 @@ export default async function SettingsPage() {
         </TabsContent>
         <TabsContent value="usage" className="mt-4">
           <UsagePanel summary={usageSummary} recent={recentUsage} daily={dailyUsage} />
-        </TabsContent>
-        <TabsContent value="models" className="mt-4">
-          <ModelComparisonPanel />
         </TabsContent>
       </Tabs>
     </div>

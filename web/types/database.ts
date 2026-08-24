@@ -829,6 +829,83 @@ export type Database = {
           },
         ]
       }
+      financial_reports: {
+        Row: {
+          cash_position: number | null
+          company_id: string
+          created_at: string | null
+          created_by_profile_id: string | null
+          document_id: string | null
+          expenses: number | null
+          health_status: Database["public"]["Enums"]["financial_health_status"]
+          id: string
+          net_income: number | null
+          notable_flags: Json | null
+          period: string | null
+          revenue: number | null
+          summary: string | null
+        }
+        Insert: {
+          cash_position?: number | null
+          company_id: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          document_id?: string | null
+          expenses?: number | null
+          health_status?: Database["public"]["Enums"]["financial_health_status"]
+          id?: string
+          net_income?: number | null
+          notable_flags?: Json | null
+          period?: string | null
+          revenue?: number | null
+          summary?: string | null
+        }
+        Update: {
+          cash_position?: number | null
+          company_id?: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          document_id?: string | null
+          expenses?: number | null
+          health_status?: Database["public"]["Enums"]["financial_health_status"]
+          id?: string
+          net_income?: number | null
+          notable_flags?: Json | null
+          period?: string | null
+          revenue?: number | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_reports_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_reports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_context: {
         Row: {
           content_md: string
@@ -2539,6 +2616,7 @@ export type Database = {
         }
         Returns: Json
       }
+      try_uuid: { Args: { t: string }; Returns: string }
     }
     Enums: {
       app_role:
@@ -2567,6 +2645,7 @@ export type Database = {
       assignment_state: "current" | "planned" | "historical"
       company_relationship_type: "parent_of" | "owned_by_percentage"
       employment_type: "full_time" | "part_time" | "contractor" | "advisor"
+      financial_health_status: "healthy" | "watch" | "at_risk" | "unknown"
       goal_kind: "ephemeral" | "standing" | "routine" | "decision"
       goal_status: "draft" | "active" | "paused" | "achieved" | "archived"
       mcp_transport: "http" | "sse"
@@ -2749,6 +2828,7 @@ export const Constants = {
       assignment_state: ["current", "planned", "historical"],
       company_relationship_type: ["parent_of", "owned_by_percentage"],
       employment_type: ["full_time", "part_time", "contractor", "advisor"],
+      financial_health_status: ["healthy", "watch", "at_risk", "unknown"],
       goal_kind: ["ephemeral", "standing", "routine", "decision"],
       goal_status: ["draft", "active", "paused", "achieved", "archived"],
       mcp_transport: ["http", "sse"],
