@@ -143,3 +143,34 @@ Important truth / remaining work:
 - Company relationship and person assignment tables/RLS are real, but the Strategic Control Map does not yet render/edit those records end-to-end.
 - The requested CLIX GPS financial one-pass workflow is not complete. Current Documents handles extracted text/CSV only and does not yet provide durable file storage, PDF/XLSX ingestion, financial statement normalization, CFO/bookkeeper workflow execution, report generation, or financial-health dashboards.
 - Next production slice: Supabase Storage-backed artifacts + finance schema + ingestion workflow + CFO/bookkeeper agents + generated report/dashboard + approval/audit tests.
+
+## 2026-08-24 — Country leadership and private artifact checkpoint
+
+Development lane: `codex/sem-brain-v1` only. Master remains untouched.
+
+Implemented in the branch:
+
+- A private Supabase Storage bucket named `company-artifacts` with a 25 MB limit, controlled MIME types, owner/company-manager/HR/founder access rules, and short-lived signed downloads.
+- Documents now accept real PDF, DOCX, XLSX, TXT, Markdown, CSV, JSON, PNG, JPEG and WEBP uploads. Metadata remains in `documents`; file bytes remain in the private bucket.
+- A founder-facing `/people/cases` Country Leadership workspace for performance cases, evidence, reports, notes, linked tasks, linked approvals and replacement candidates.
+- Transactional database functions for starting a performance improvement plan, opening a replacement search, requesting termination review and nominating a replacement.
+- Final termination or replacement appointment is never model-controlled: it requires founder/admin or HR-finance authority, an approved HR-domain approval record, an effective date and explicit confirmation that local employment-law review was completed.
+- Every case transition writes a case event and an `audit_logs` record.
+- Google Drive backup requests are queued in `integration_queue`; the actual Drive transfer still requires an authorized Google/Nango connector and worker. The UI must not describe a queued backup as completed.
+- A branch-scoped GitHub build check now runs the Next.js production build and reports actionable failures. Vercel build was green at commit `12fd5ac23e1c60074260297dea72d26ec4b23d20`.
+
+Required before this feature works against the live shared database:
+
+1. Apply `supabase/migrations/202608270001_country_operations_artifacts.sql` to Supabase project `pvphxgrtdfrudejjhzjk`.
+2. Sign in as the founder and verify `/documents` upload/download/delete and `/people/cases` lifecycle actions.
+3. Test as an ordinary employee and confirm performance cases, private artifacts, salary/HR approvals and audit data are not exposed.
+4. Configure a Google Drive connector before expecting queued backups to leave Supabase.
+5. Confirm Aigerim's contractual employer and governing employment jurisdiction (Kazakhstan vs Uzbekistan) before recording any termination. Do not infer this from where she works.
+6. Create/confirm the Uzbekistan legal entity record and Aigerim person record through the real Companies/People interfaces; do not seed guessed legal names, ownership or employment facts.
+
+First safe operational flow after migration:
+
+`Create/confirm company + person → open performance case → upload reports/evidence → add dated review notes → start measurable PIP or replacement search → request termination/hiring approval → obtain local HR/legal review → founder/HR finalizes → immutable audit history`.
+
+Telegram report ingestion, automated AI financial analysis and the Google Drive transfer worker remain separate follow-up slices. The manual artifact-to-performance-case workflow is the safe launch baseline.
+
