@@ -1526,9 +1526,21 @@ create policy "chat_channels_write_scope" on public.chat_channels for all using 
 
 alter table public.ai_providers enable row level security;
 drop policy if exists "ai_providers_founder_only" on public.ai_providers;
-create policy "ai_providers_founder_only" on public.ai_providers for all using (
+-- Which provider is active is app-wide config every user needs to read for chat to
+-- work at all (both Settings and sem-ai-command read it with the caller's own RLS-scoped
+-- client) — only changing it is founder/admin-only. See 202608260013.
+drop policy if exists "ai_providers_select_all" on public.ai_providers;
+create policy "ai_providers_select_all" on public.ai_providers for select using (true);
+drop policy if exists "ai_providers_manage_founder_only" on public.ai_providers;
+create policy "ai_providers_manage_founder_only" on public.ai_providers for insert with check (
   public.is_founder_or_admin()
-) with check (
+);
+drop policy if exists "ai_providers_update_founder_only" on public.ai_providers;
+create policy "ai_providers_update_founder_only" on public.ai_providers for update using (
+  public.is_founder_or_admin()
+);
+drop policy if exists "ai_providers_delete_founder_only" on public.ai_providers;
+create policy "ai_providers_delete_founder_only" on public.ai_providers for delete using (
   public.is_founder_or_admin()
 );
 
