@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { TASK_COLUMNS } from "@/lib/data/task-columns";
 import { updateTaskStatus } from "@/lib/data/tasks";
 import { TaskCard, type TaskRow } from "./task-card";
-import { TaskSheet, type EditingTask } from "./task-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
+import { TaskSheet, type EditingTask } from "./task-sheet";
+import { ListControls, useListView } from "@/components/list-controls";
 import type { Database } from "@/types/database";
 
 type PriorityLevel = Database["public"]["Enums"]["priority_level"];

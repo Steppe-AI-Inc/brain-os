@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
+import { EditSheet } from "@/components/edit-sheet";
+import { ListControls, useListView } from "@/components/list-controls";
 import { updateCompany, deleteCompany, type CompanyInput } from "@/lib/data/companies";
 
 type CompanyRow = {

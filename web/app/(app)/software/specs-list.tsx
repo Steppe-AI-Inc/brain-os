@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
+import { EditSheet } from "@/components/edit-sheet";
+import { ListControls, useListView } from "@/components/list-controls";
 import { updateProductSpec, deleteProductSpec, type ProductSpecInput } from "@/lib/data/software";
 
 type SpecRow = {

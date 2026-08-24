@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
+import { EditSheet } from "@/components/edit-sheet";
+import { ListControls, useListView } from "@/components/list-controls";
 import { updateProposal, deleteProposal, type ProposalInput } from "@/lib/data/proposals";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
