@@ -6,6 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { MemoryCreateForm } from "./memory-create-form";
 
+// addMemory (a Server Action invoked from this route) calls the embed-text Edge
+// Function — same class of maxDuration gap already fixed elsewhere tonight
+// (/chat/stream, /finance, /engineering, /proposals). embed-text is normally fast, but
+// there's no reason to leave this one still relying on the platform default.
+export const maxDuration = 30;
+
 const SENSITIVITY_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   public: "outline",
   internal: "secondary",
