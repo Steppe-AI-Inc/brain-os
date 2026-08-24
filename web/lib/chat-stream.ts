@@ -73,6 +73,7 @@ export async function consumeChatStream(
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let sawTerminalEvent = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -86,11 +87,24 @@ export async function consumeChatStream(
         const raw = line.slice(5).trim();
         if (!raw || raw === "[DONE]") continue;
         try {
-          onEvent(JSON.parse(raw) as StreamEvent);
+          const evt = JSON.parse(raw) as StreamEvent;
+          if (evt.type === "done" || evt.type === "error") sawTerminalEvent = true;
+          onEvent(evt);
         } catch {
           // malformed frame, skip
         }
       }
+    }
+
+    // The connection can end (a platform execution limit, a network drop) without ever
+    // sending done/error — verified live on a long multi-ticket generation. Without this,
+    // every caller silently reverts to idle with zero feedback while the server-side
+    // work may have actually completed. Surface something actionable instead.
+    if (!sawTerminalEvent) {
+      onEvent({
+        type: "error",
+        error: "Connection ended before this finished — it may still be running. Check Tasks/Approvals for the result.",
+      });
     }
   } catch (e) {
     onEvent({ type: "error", error: e instanceof Error ? e.message : String(e) });
