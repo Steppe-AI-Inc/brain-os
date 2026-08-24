@@ -16,6 +16,7 @@ export type ChatResult = {
 };
 
 export type StreamEvent =
+  | { type: "thread"; threadId: string; title: string }
   | { type: "delta"; text: string }
   | { type: "usage"; input_tokens?: number; output_tokens?: number }
   | {
@@ -29,24 +30,25 @@ export type StreamEvent =
     }
   | { type: "error"; error?: string };
 
-// Consumes the /chat/stream SSE response, invoking onEvent for each frame. Resolves once
-// the stream ends (after a `done`/`error` event, or a transport-level failure — the
-// latter is surfaced as a synthetic `error` event so callers only need one code path).
-export async function consumeChatStream(command: string, onEvent: (evt: StreamEvent) => void): Promise<void> {
+export async function consumeChatStream(
+  command: string,
+  threadId: string | null,
+  onEvent: (evt: StreamEvent) => void
+): Promise<void> {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, threadId }),
     });
 
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => "");
-      let message = `Request failed (${res.status})`;
+      let message = "Request failed (" + res.status + ")";
       try {
         message = JSON.parse(text).error || message;
       } catch {
-        // non-JSON error body, keep the generic message
+        // Keep the transport message for non-JSON responses.
       }
       onEvent({ type: "error", error: message });
       return;
@@ -70,12 +72,12 @@ export async function consumeChatStream(command: string, onEvent: (evt: StreamEv
         try {
           onEvent(JSON.parse(raw) as StreamEvent);
         } catch {
-          // malformed frame, skip
+          // Malformed upstream frames are skipped; later valid frames still render.
         }
       }
     }
-  } catch (e) {
-    onEvent({ type: "error", error: e instanceof Error ? e.message : String(e) });
+  } catch (error) {
+    onEvent({ type: "error", error: error instanceof Error ? error.message : String(error) });
   }
 }
 
