@@ -1,6 +1,8 @@
 import { getChatWorkspace } from "@/lib/data/chat";
 import { ChatClient } from "./chat-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChatPage({
   searchParams,
 }: {
