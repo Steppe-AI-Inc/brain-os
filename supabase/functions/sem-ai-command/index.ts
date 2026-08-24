@@ -75,6 +75,11 @@ Rules:
   or person is not itself high-risk (write access is already restricted by the database) —
   only flag an approval if the request also involves something from the high-risk list
   above, e.g. a change of legal ownership or control.
+- You may create real projects and goals the same way — check context.projects /
+  context.goals first, never duplicate. Every project and goal requires a company: use a
+  real companyId from context.companies, or companyIndex into this response's own
+  createCompanies array. If neither is available, create a clarification task instead of
+  guessing which company it belongs to.
 
 Output schema:
 {
@@ -103,6 +108,12 @@ Output schema:
   ],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "createProjects": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "goal": string|null, "deadline": string|null, "blockers": string|null}
+  ],
+  "createGoals": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|"archived"|null, "dueAt": string|null}
   ],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
@@ -350,7 +361,7 @@ function fallbackPlan(command:string, contextPack:any){
 async function buildContext(supabase:any, command:string){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -359,10 +370,11 @@ async function buildContext(supabase:any, command:string){
     supabase.from('product_lines').select('id,company_id,name,currency,unit_price,unit_cost,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
     supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
-    supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30)
+    supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30),
+    supabase.from('goals').select('id,company_id,title,status,kind').limit(20)
   ]);
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[] };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -523,6 +535,35 @@ serve(async (req) => {
             companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
           }));
 
+        // Projects/goals both require a company (NOT NULL in the schema) — drop any
+        // entry with no resolvable reference rather than let it hit the database and
+        // fail the whole transaction on a not-null violation.
+        const hasCompanyRef = (c: any) => (typeof c.companyId === 'string' && contextCompanyIds.has(c.companyId)) || typeof c.companyIndex === 'number';
+        const requestedProjects = Array.isArray(result.createProjects) ? result.createProjects as unknown[] : [];
+        const createProjects = requestedProjects
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).title === 'string' && (p as any).title.trim() && hasCompanyRef(p))
+          .map((p: any) => ({
+            title: String(p.title).trim(),
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+            goal: typeof p.goal === 'string' ? p.goal : null,
+            deadline: typeof p.deadline === 'string' ? p.deadline : null,
+            blockers: typeof p.blockers === 'string' ? p.blockers : null,
+          }));
+
+        const requestedGoals = Array.isArray(result.createGoals) ? result.createGoals as unknown[] : [];
+        const createGoals = requestedGoals
+          .filter((g): g is Record<string, unknown> => !!g && typeof g === 'object' && typeof (g as any).title === 'string' && (g as any).title.trim() && hasCompanyRef(g))
+          .map((g: any) => ({
+            title: String(g.title).trim(),
+            companyId: typeof g.companyId === 'string' && contextCompanyIds.has(g.companyId) ? g.companyId : null,
+            companyIndex: typeof g.companyIndex === 'number' ? g.companyIndex : null,
+            description: typeof g.description === 'string' ? g.description : null,
+            kind: typeof g.kind === 'string' ? g.kind : null,
+            status: typeof g.status === 'string' ? g.status : null,
+            dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
+          }));
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
         const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
@@ -567,7 +608,9 @@ serve(async (req) => {
           p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens),
           p_deleted_task_ids: deleteTaskIds,
           p_companies: createCompanies,
-          p_people: createPeople
+          p_people: createPeople,
+          p_projects: createProjects,
+          p_goals: createGoals
         });
         if(rpcError) {
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
@@ -580,10 +623,12 @@ serve(async (req) => {
         const deletedTaskIds = rpcResult.deletedTaskIds || [];
         const createdCompanies = rpcResult.createdCompanies || [];
         const createdPeople = rpcResult.createdPeople || [];
+        const createdProjects = rpcResult.createdProjects || [];
+        const createdGoals = rpcResult.createdGoals || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
         send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
       } finally {

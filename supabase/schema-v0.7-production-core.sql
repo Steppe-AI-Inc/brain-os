@@ -597,7 +597,7 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
-drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]);
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb);
 
 create or replace function public.sem_execute_ai_command(
   p_command text,
@@ -612,7 +612,9 @@ create or replace function public.sem_execute_ai_command(
   p_estimated_cost_usd numeric,
   p_deleted_task_ids uuid[] default '{}'::uuid[],
   p_companies jsonb default '[]'::jsonb,
-  p_people jsonb default '[]'::jsonb
+  p_people jsonb default '[]'::jsonb,
+  p_projects jsonb default '[]'::jsonb,
+  p_goals jsonb default '[]'::jsonb
 ) returns jsonb
 language plpgsql
 security invoker
@@ -624,6 +626,8 @@ declare
   v_approval jsonb;
   v_company jsonb;
   v_person jsonb;
+  v_project jsonb;
+  v_goal jsonb;
   v_task_ids uuid[] := '{}';
   v_task_company_ids uuid[] := '{}';
   v_company_ids uuid[] := '{}';
@@ -631,14 +635,18 @@ declare
   v_created_approvals jsonb := '[]'::jsonb;
   v_created_companies jsonb := '[]'::jsonb;
   v_created_people jsonb := '[]'::jsonb;
+  v_created_projects jsonb := '[]'::jsonb;
+  v_created_goals jsonb := '[]'::jsonb;
   v_new_task_id uuid;
   v_new_task_company_id uuid;
   v_new_approval_id uuid;
   v_new_company_id uuid;
   v_new_person_id uuid;
+  v_new_project_id uuid;
+  v_new_goal_id uuid;
   v_task_index int;
   v_company_index int;
-  v_person_company_id uuid;
+  v_entry_company_id uuid;
   v_deleted_task_ids uuid[] := '{}';
 begin
   if v_profile_id is null then
@@ -730,7 +738,7 @@ begin
   for v_person in select * from jsonb_array_elements(coalesce(p_people, '[]'::jsonb))
   loop
     v_company_index := nullif(v_person->>'companyIndex','')::int;
-    v_person_company_id := case
+    v_entry_company_id := case
       when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
         then v_company_ids[v_company_index+1]
       else nullif(v_person->>'companyId','')::uuid
@@ -741,11 +749,62 @@ begin
       v_person->>'fullName',
       nullif(v_person->>'email',''),
       nullif(v_person->>'roleTitle',''),
-      v_person_company_id
+      v_entry_company_id
     )
     returning id into v_new_person_id;
 
     v_created_people := v_created_people || jsonb_build_object('id', v_new_person_id, 'full_name', v_person->>'fullName');
+  end loop;
+
+  -- projects_write_manager (company-manager+) is the real authorization check.
+  -- projects.company_id is NOT NULL — an entry with no resolvable company raises a
+  -- normal not-null-violation error, same as any other malformed RPC call.
+  for v_project in select * from jsonb_array_elements(coalesce(p_projects, '[]'::jsonb))
+  loop
+    v_company_index := nullif(v_project->>'companyIndex','')::int;
+    v_entry_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_project->>'companyId','')::uuid
+    end;
+
+    insert into public.projects (company_id, title, goal, deadline, blockers)
+    values (
+      v_entry_company_id,
+      v_project->>'title',
+      nullif(v_project->>'goal',''),
+      nullif(v_project->>'deadline','')::date,
+      nullif(v_project->>'blockers','')
+    )
+    returning id into v_new_project_id;
+
+    v_created_projects := v_created_projects || jsonb_build_object('id', v_new_project_id, 'title', v_project->>'title');
+  end loop;
+
+  -- goals_insert_scope (has_company_access — broader than projects, any company member)
+  -- is the real authorization check. goals.company_id is NOT NULL, same resolution as
+  -- projects above.
+  for v_goal in select * from jsonb_array_elements(coalesce(p_goals, '[]'::jsonb))
+  loop
+    v_company_index := nullif(v_goal->>'companyIndex','')::int;
+    v_entry_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_goal->>'companyId','')::uuid
+    end;
+
+    insert into public.goals (company_id, title, description, kind, status, due_at)
+    values (
+      v_entry_company_id,
+      v_goal->>'title',
+      nullif(v_goal->>'description',''),
+      coalesce((v_goal->>'kind')::goal_kind,'ephemeral'::goal_kind),
+      coalesce((v_goal->>'status')::goal_status,'draft'::goal_status),
+      nullif(v_goal->>'dueAt','')::timestamptz
+    )
+    returning id into v_new_goal_id;
+
+    v_created_goals := v_created_goals || jsonb_build_object('id', v_new_goal_id, 'title', v_goal->>'title');
   end loop;
 
   -- Deletion runs under `security invoker`, same as every insert above, so
@@ -769,20 +828,22 @@ begin
       'command', p_command, 'model', p_model_name, 'tokenEstimate', p_token_estimate,
       'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals),
       'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0),
-      'companies', jsonb_array_length(v_created_companies), 'people', jsonb_array_length(v_created_people)
+      'companies', jsonb_array_length(v_created_companies), 'people', jsonb_array_length(v_created_people),
+      'projects', jsonb_array_length(v_created_projects), 'goals', jsonb_array_length(v_created_goals)
     )
   );
 
   return jsonb_build_object(
     'workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals,
     'deletedTaskIds', to_jsonb(v_deleted_task_ids),
-    'createdCompanies', v_created_companies, 'createdPeople', v_created_people
+    'createdCompanies', v_created_companies, 'createdPeople', v_created_people,
+    'createdProjects', v_created_projects, 'createdGoals', v_created_goals
   );
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb) from public, anon;
-grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb) to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb) to authenticated;
 
 
 -- ---------- ENABLE RLS ----------

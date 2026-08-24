@@ -7,6 +7,8 @@ export type ChatResult = {
   deletedCount: number;
   companyCount: number;
   personCount: number;
+  projectCount: number;
+  goalCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
 };
@@ -22,6 +24,8 @@ export type StreamEvent =
       deletedTaskIds?: unknown[];
       createdCompanies?: unknown[];
       createdPeople?: unknown[];
+      createdProjects?: unknown[];
+      createdGoals?: unknown[];
       model?: string;
       usage?: { input_tokens?: number; output_tokens?: number } | null;
     }
@@ -85,6 +89,8 @@ export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatR
     deletedCount: evt.deletedTaskIds?.length ?? 0,
     companyCount: evt.createdCompanies?.length ?? 0,
     personCount: evt.createdPeople?.length ?? 0,
+    projectCount: evt.createdProjects?.length ?? 0,
+    goalCount: evt.createdGoals?.length ?? 0,
     model: evt.model || "unknown",
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }
