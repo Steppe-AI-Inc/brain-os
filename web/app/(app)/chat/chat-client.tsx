@@ -246,12 +246,20 @@ export function ChatClient({
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Lazy initializer (not useEffect+setState) so this stays a render-time read, same
-  // SSR-guarded pattern as channel-sidebar.tsx's collapsed-state — window is undefined
-  // during the server pass, so this only resolves true once hydrated on a real browser.
-  const [speechSupported] = useState(() => !!getSpeechRecognitionCtor());
+  // Must start false and flip post-mount via effect, not a lazy useState initializer —
+  // this renders a real DOM node (the mic button) only when supported, so a render-time
+  // window check here caused a genuine server/client hydration mismatch in production
+  // (server has no window -> false; client in Chrome -> true -> extra button node).
+  // Deferring to useEffect is React's own documented pattern for "sync with a
+  // browser-only capability check" for exactly this reason.
+  const [speechSupported, setSpeechSupported] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above the state declaration
+    setSpeechSupported(!!getSpeechRecognitionCtor());
+  }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
