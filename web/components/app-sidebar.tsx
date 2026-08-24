@@ -70,7 +70,7 @@ const NAV_GROUPS: Array<{
       { href: "/sales", navKey: "nav.sales", label: "Sales OS", icon: TrendingUp },
       { href: "/proposals", navKey: "nav.proposals", label: "Proposal Factory", icon: FileSignature },
       { href: "/inventory", navKey: "nav.inventory", label: "Product + Inventory", icon: Boxes },
-      { href: "/documents", navKey: "nav.documents", label: "Documents + Knowledge", icon: FileText },
+      { href: "/documents", navKey: "nav.documents", label: "Artifact Intelligence", icon: FileText },
       { href: "/integrations", navKey: "nav.integrations", label: "Slack + Drive", icon: Plug },
     ],
   },

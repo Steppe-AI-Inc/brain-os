@@ -52,7 +52,7 @@ export async function getPerformanceCaseDetail(caseId: string | null) {
       .order("created_at", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, title, category, mime_type, storage_path, summary, sensitivity, created_at")
+      .select("id, title, category, mime_type, storage_path, summary, analysis_status, analysis_summary, analysis_error, company_match_status, company_match_confidence, sensitivity, created_at")
       .eq("performance_case_id", caseId)
       .order("created_at", { ascending: false }),
     supabase
@@ -171,7 +171,7 @@ export type PerformanceArtifactInput = {
 
 export async function registerPerformanceArtifact(
   input: PerformanceArtifactInput
-): Promise<string | null> {
+): Promise<{ id: string } | string> {
   const caseId = input.caseId.trim();
   const title = input.title.trim();
   const storagePath = input.storagePath.trim();
@@ -220,12 +220,19 @@ export async function registerPerformanceArtifact(
       category: input.category.trim() || "performance_report",
       storage_path: storagePath,
       mime_type: mimeType,
+      original_filename: fileName,
+      file_size_bytes: input.fileSize,
       extracted_text: extractedText,
       summary: extractedText
         ? extractedText.replace(/\s+/g, " ").slice(0, 240)
         : `Stored file: ${fileName}`,
       sensitivity: "confidential",
       uploaded_by_profile_id: profileId,
+      analysis_status: "pending",
+      suggested_company_id: performanceCase.company_id,
+      company_match_status: "confirmed",
+      company_match_confidence: 1,
+      company_match_reason: "Company inherited from the performance case.",
     })
     .select("id")
     .single();
@@ -251,7 +258,7 @@ export async function registerPerformanceArtifact(
 
   revalidatePath("/people/cases");
   revalidatePath("/documents");
-  return null;
+  return { id: document.id };
 }
 
 export async function transitionPerformanceCase(formData: FormData) {

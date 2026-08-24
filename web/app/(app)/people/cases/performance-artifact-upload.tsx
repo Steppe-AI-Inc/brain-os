@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registerPerformanceArtifact } from "@/lib/data/performance-cases";
+import { analyzeArtifact } from "@/lib/data/documents";
 import { createClient } from "@/lib/supabase/client";
 import {
   ARTIFACT_BUCKET,
@@ -41,6 +42,7 @@ export function PerformanceArtifactUpload({
     const file = formData.get("file");
     const title = String(formData.get("title") || "").trim();
     const category = String(formData.get("category") || "performance_report");
+    const allowExternalAi = formData.get("allow_external_ai") === "yes";
 
     report("", false);
     startTransition(async () => {
@@ -72,7 +74,7 @@ export function PerformanceArtifactUpload({
 
         const textLike = mimeType.startsWith("text/") || mimeType === "application/json";
         const extractedText = textLike ? (await file.text()).slice(0, 250_000) : null;
-        const registerError = await registerPerformanceArtifact({
+        const registration = await registerPerformanceArtifact({
           caseId,
           title,
           category,
@@ -83,14 +85,18 @@ export function PerformanceArtifactUpload({
           extractedText,
         });
 
-        if (registerError) {
+        if (typeof registration === "string") {
           await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
-          return report(registerError);
+          return report(registration);
         }
 
+        const analysis = await analyzeArtifact(registration.id, allowExternalAi);
         form.reset();
-        report(`${file.name} added to the evidence vault.`, false);
         router.refresh();
+        if (analysis.error) {
+          return report(file.name + " is stored, but automatic analysis could not start: " + analysis.error);
+        }
+        report(file.name + " added, analyzed and tracked in the evidence vault.", false);
       } catch (error) {
         report(error instanceof Error ? error.message : "Upload failed. Please try again.");
       }
@@ -129,8 +135,12 @@ export function PerformanceArtifactUpload({
           Direct private upload to Supabase · 25 MB maximum · confidential case access.
         </p>
       </div>
+      <label className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
+        <input type="checkbox" name="allow_external_ai" value="yes" className="mt-0.5" />
+        Allow this private artifact to be sent temporarily to the configured OpenAI API for deeper content analysis.
+      </label>
       <Button type="submit" className="justify-self-start" disabled={pending}>
-        {pending ? "Uploading…" : "Store artifact"}
+        {pending ? "Uploading and analyzing…" : "Store and analyze"}
       </Button>
       {message && (
         <p className={`text-sm font-medium ${isError ? "text-destructive" : "text-emerald-600"}`}>

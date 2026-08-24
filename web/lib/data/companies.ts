@@ -7,7 +7,7 @@ export async function getCompanies() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select("id, name, country, legal_entity_name, status, strategic_priority, risk_score")
+    .select("id, name, country, legal_entity_name, description, aliases, status, strategic_priority, risk_score")
     .order("strategic_priority", { ascending: false });
   if (error) throw error;
   return data;
@@ -36,6 +36,7 @@ export type CompanyInput = {
   country: string;
   legalEntityName: string;
   status: string;
+  aliases: string;
 };
 
 export async function updateCompany(id: string, input: CompanyInput) {
@@ -48,6 +49,7 @@ export async function updateCompany(id: string, input: CompanyInput) {
       country: input.country.trim() || null,
       legal_entity_name: input.legalEntityName.trim() || null,
       status: input.status || "active",
+      aliases: input.aliases.split(",").map((alias) => alias.trim()).filter(Boolean),
     })
     .eq("id", id);
   if (error) return error.message;

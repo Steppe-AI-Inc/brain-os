@@ -51,3 +51,75 @@ export function artifactValidationError(file: File) {
   }
   return null;
 }
+
+
+export type ArtifactCompanyOption = {
+  id: string;
+  name: string;
+  legal_entity_name?: string | null;
+  country?: string | null;
+  aliases?: string[] | null;
+};
+
+function normalizedMatchText(value: string) {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0400-\u04ff]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function suggestArtifactCompany(
+  input: { title?: string; fileName?: string; notes?: string },
+  companies: ArtifactCompanyOption[]
+): { companyId: string; confidence: number; reason: string } | null {
+  const haystack = normalizedMatchText(
+    [input.title, input.fileName, input.notes].filter(Boolean).join(" ")
+  );
+  if (!haystack || companies.length === 0) return null;
+
+  const scored = companies
+    .map((company) => {
+      const candidates = [
+        { value: company.name, weight: 7, label: company.name },
+        { value: company.legal_entity_name, weight: 7, label: company.legal_entity_name },
+        ...(company.aliases || []).map((alias) => ({ value: alias, weight: 10, label: alias })),
+        { value: company.country, weight: 2, label: company.country },
+      ].filter((candidate): candidate is { value: string; weight: number; label: string } =>
+        typeof candidate.value === "string" && candidate.value.trim().length > 1
+      );
+
+      let score = 0;
+      const matches: string[] = [];
+      for (const candidate of candidates) {
+        const normalized = normalizedMatchText(candidate.value);
+        if (!normalized) continue;
+        if (haystack.includes(normalized)) {
+          score += candidate.weight;
+          matches.push(candidate.label);
+          continue;
+        }
+        const meaningfulTokens = normalized.split(" ").filter((token) => token.length >= 4);
+        const tokenMatches = meaningfulTokens.filter((token) => haystack.includes(token));
+        if (tokenMatches.length) {
+          score += Math.min(candidate.weight - 1, tokenMatches.length * 2);
+          matches.push(...tokenMatches);
+        }
+      }
+      return { company, score, matches: [...new Set(matches)] };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const top = scored[0];
+  const second = scored[1];
+  if (!top || top.score < 3 || top.score === second?.score) return null;
+
+  const margin = top.score - (second?.score || 0);
+  const confidence = Math.min(0.99, Math.max(0.55, 0.52 + top.score * 0.035 + margin * 0.02));
+  return {
+    companyId: top.company.id,
+    confidence,
+    reason: `Matched ${top.matches.slice(0, 3).join(", ") || top.company.name} in the title, filename or notes.`,
+  };
+}

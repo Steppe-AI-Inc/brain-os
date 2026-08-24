@@ -12,7 +12,7 @@ export async function getDocuments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, title, category, sensitivity, summary, created_at, company_id, storage_path, mime_type, performance_case_id, person_id, companies(name)")
+    .select("id, title, category, sensitivity, summary, analysis_status, analysis_summary, analysis_json, analysis_error, analyzed_at, company_match_status, company_match_confidence, company_match_reason, suggested_company_id, original_filename, file_size_bytes, created_at, company_id, storage_path, mime_type, performance_case_id, person_id, companies(name)")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw error;
@@ -43,6 +43,11 @@ export async function createDocument(_prevState: string | null, formData: FormDa
     summary: text.replace(/\s+/g, " ").slice(0, 240),
     sensitivity: sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
     uploaded_by_profile_id: profileId,
+    analysis_status: "ready",
+    analysis_summary: text.replace(/\\s+/g, " ").slice(0, 1200),
+    company_match_status: companyId ? "confirmed" : "unconfirmed",
+    company_match_confidence: companyId ? 1 : null,
+    company_match_reason: companyId ? "Company selected during entry." : null,
   });
   if (error) return error.message;
 
@@ -61,11 +66,13 @@ export type UploadedDocumentInput = {
   mimeType: string;
   fileSize: number;
   extractedText?: string | null;
+  companyMatchConfidence?: number | null;
+  companyMatchReason?: string | null;
 };
 
 export async function registerUploadedDocument(
   input: UploadedDocumentInput
-): Promise<string | null> {
+): Promise<{ id: string } | string> {
   const title = input.title.trim();
   const companyId = input.companyId.trim();
   const storagePath = input.storagePath.trim();
@@ -108,25 +115,69 @@ export async function registerUploadedDocument(
   const extractedText = (input.extractedText || "").slice(0, 250_000) || null;
   const notes = input.notes.trim();
   const summarySource = extractedText || notes || `Stored file: ${fileName}`;
-  const { error } = await supabase.from("documents").insert({
+  const { data: created, error } = await supabase.from("documents").insert({
     title,
     company_id: companyId,
     category: input.category.trim() || "general",
     storage_path: storagePath,
     mime_type: mimeType,
+    original_filename: fileName,
+    file_size_bytes: input.fileSize,
     extracted_text: extractedText,
     summary: summarySource.replace(/\s+/g, " ").slice(0, 240),
     sensitivity: (input.sensitivity || "internal") as "public" | "internal" | "confidential" | "restricted" | "founder_only",
     uploaded_by_profile_id: profileId,
-  });
+    analysis_status: "pending",
+    suggested_company_id: companyId,
+    company_match_status: "automatic",
+    company_match_confidence: input.companyMatchConfidence ?? null,
+    company_match_reason: input.companyMatchReason || "Company selected during upload.",
+  }).select("id").single();
 
-  if (error) {
+  if (error || !created) {
     await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
-    return error.message;
+    return error?.message || "Document metadata could not be created.";
   }
 
   revalidatePath("/documents");
-  return null;
+  return { id: created.id };
+}
+
+export type ArtifactAnalysisResult = {
+  status?: string;
+  summary?: string;
+  warning?: string | null;
+  error?: string;
+};
+
+export async function analyzeArtifact(
+  documentId: string,
+  confirmExternalProcessing = false
+): Promise<ArtifactAnalysisResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.functions.invoke("sem-artifact-analyze", {
+    body: {
+      documentId,
+      confirmExternalProcessing,
+    },
+  });
+  revalidatePath("/documents");
+  revalidatePath("/people/cases");
+  if (error) return { error: error.message };
+  if (data?.error) return { error: String(data.error) };
+  return {
+    status: typeof data?.status === "string" ? data.status : undefined,
+    summary: typeof data?.summary === "string" ? data.summary : undefined,
+    warning: typeof data?.warning === "string" ? data.warning : null,
+  };
+}
+
+export async function reanalyzeArtifact(formData: FormData): Promise<void> {
+  const documentId = String(formData.get("document_id") || "").trim();
+  const confirmExternal = formData.get("confirm_external_ai") === "yes";
+  if (!documentId) throw new Error("Document is required.");
+  const result = await analyzeArtifact(documentId, confirmExternal);
+  if (result.error) throw new Error(result.error);
 }
 
 export type DocumentInput = { title: string; companyId: string; sensitivity: string; summary: string };
@@ -141,6 +192,10 @@ export async function updateDocument(id: string, input: DocumentInput) {
       company_id: input.companyId || null,
       sensitivity: input.sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
       summary: input.summary.trim() || null,
+      suggested_company_id: input.companyId || null,
+      company_match_status: input.companyId ? "confirmed" : "unconfirmed",
+      company_match_confidence: input.companyId ? 1 : null,
+      company_match_reason: input.companyId ? "Company confirmed manually." : null,
     })
     .eq("id", id);
   if (error) return error.message;
@@ -231,6 +286,9 @@ export async function saveChatTextAttachment(input: ChatTextAttachmentInput): Pr
     summary: text.replace(/\s+/g, " ").slice(0, 240),
     sensitivity: "internal",
     uploaded_by_profile_id: profileId || null,
+    analysis_status: "ready",
+    analysis_summary: text.replace(/\\s+/g, " ").slice(0, 1200),
+    company_match_status: "unconfirmed",
   });
   if (error) return error.message;
 

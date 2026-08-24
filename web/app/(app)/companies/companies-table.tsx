@@ -21,6 +21,7 @@ type CompanyRow = {
   status: string | null;
   strategic_priority: number | null;
   risk_score: number | null;
+  aliases: string[] | null;
 };
 
 const STATUS_OPTIONS = ["active", "planning", "paused", "closed"];
@@ -28,11 +29,11 @@ const STATUS_OPTIONS = ["active", "planning", "paused", "closed"];
 export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<CompanyRow | null>(null);
-  const [values, setValues] = useState<CompanyInput>({ name: "", country: "", legalEntityName: "", status: "active" });
+  const [values, setValues] = useState<CompanyInput>({ name: "", country: "", legalEntityName: "", status: "active", aliases: "" });
 
   const view = useListView({
     items: companies,
-    searchText: (company) => [company.name, company.country, company.legal_entity_name, company.status].filter(Boolean).join(" "),
+    searchText: (company) => [company.name, company.country, company.legal_entity_name, ...(company.aliases || []), company.status].filter(Boolean).join(" "),
     filterValue: (company) => company.status ?? "unknown",
   });
 
@@ -42,6 +43,7 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
       country: c.country ?? "",
       legalEntityName: c.legal_entity_name ?? "",
       status: c.status ?? "active",
+      aliases: (c.aliases || []).join(", "),
     });
     setEditing(c);
   }
@@ -124,6 +126,16 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
             value={values.legalEntityName}
             onChange={(e) => setValues((v) => ({ ...v, legalEntityName: e.target.value }))}
           />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-company-aliases">Artifact matching aliases</Label>
+          <Input
+            id="edit-company-aliases"
+            value={values.aliases}
+            placeholder="OpenSpot, Brain OS, IQParking"
+            onChange={(e) => setValues((v) => ({ ...v, aliases: e.target.value }))}
+          />
+          <p className="text-xs text-muted-foreground">Comma-separated brands, products, abbreviations and client-facing names.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-company-status">Status</Label>

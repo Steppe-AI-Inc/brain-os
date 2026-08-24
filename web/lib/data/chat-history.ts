@@ -30,7 +30,7 @@ export type ChatHistoryMessage = {
   workOrderId: string;
   command: string;
   status: string; // 'queued' | 'done' | 'rejected' | ...
-  output: { summary?: string; error?: string } | null;
+  output: { summary?: string; error?: string; artifactCitations?: Array<{ documentId: string; title: string }> } | null;
   modelName: string | null;
   inputTokens: number;
   outputTokens: number;
@@ -69,7 +69,7 @@ export async function getChatHistory(limit = 30, channelId?: string | null): Pro
   return (workOrders ?? []).map((w) => {
     const usageRow = Array.isArray(w.model_usage) ? w.model_usage[0] : w.model_usage;
     const metadata = auditByWorkOrder.get(w.id);
-    const output = w.output as { summary?: string; error?: string } | null;
+    const output = w.output as { summary?: string; error?: string; artifactCitations?: Array<{ documentId: string; title: string }> } | null;
     return {
       workOrderId: w.id,
       command: w.command,

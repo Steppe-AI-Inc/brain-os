@@ -487,6 +487,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          aliases: string[]
           country: string | null
           created_at: string
           description: string | null
@@ -500,6 +501,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliases?: string[]
           country?: string | null
           created_at?: string
           description?: string | null
@@ -513,6 +515,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliases?: string[]
           country?: string | null
           created_at?: string
           description?: string | null
@@ -777,6 +780,18 @@ export type Database = {
       }
       documents: {
         Row: {
+          analysis_error: string | null
+          analysis_json: Json
+          analysis_status: string
+          analysis_summary: string | null
+          analyzed_at: string | null
+          company_match_confidence: number | null
+          company_match_reason: string | null
+          company_match_status: string
+          file_size_bytes: number | null
+          original_filename: string | null
+          search_vector: unknown
+          suggested_company_id: string | null
           category: string | null
           company_id: string | null
           created_at: string | null
@@ -792,6 +807,17 @@ export type Database = {
           uploaded_by_profile_id: string | null
         }
         Insert: {
+          analysis_error?: string | null
+          analysis_json?: Json
+          analysis_status?: string
+          analysis_summary?: string | null
+          analyzed_at?: string | null
+          company_match_confidence?: number | null
+          company_match_reason?: string | null
+          company_match_status?: string
+          file_size_bytes?: number | null
+          original_filename?: string | null
+          suggested_company_id?: string | null
           category?: string | null
           company_id?: string | null
           created_at?: string | null
@@ -807,6 +833,17 @@ export type Database = {
           uploaded_by_profile_id?: string | null
         }
         Update: {
+          analysis_error?: string | null
+          analysis_json?: Json
+          analysis_status?: string
+          analysis_summary?: string | null
+          analyzed_at?: string | null
+          company_match_confidence?: number | null
+          company_match_reason?: string | null
+          company_match_status?: string
+          file_size_bytes?: number | null
+          original_filename?: string | null
+          suggested_company_id?: string | null
           category?: string | null
           company_id?: string | null
           created_at?: string | null
@@ -822,6 +859,13 @@ export type Database = {
           uploaded_by_profile_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_suggested_company_id_fkey"
+            columns: ["suggested_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_performance_case_id_fkey"
             columns: ["performance_case_id"]

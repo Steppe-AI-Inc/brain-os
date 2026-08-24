@@ -21,6 +21,7 @@ export type ChatResult = {
   memoryCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
+  artifactCitations: Array<{ documentId: string; title: string }>;
 };
 
 export type StreamEvent =
@@ -29,7 +30,7 @@ export type StreamEvent =
   | { type: "usage"; input_tokens?: number; output_tokens?: number }
   | {
       type: "done";
-      result?: { summary?: string; conversationTitle?: string };
+      result?: { summary?: string; conversationTitle?: string; artifactCitations?: Array<{ documentId?: string; title?: string }> };
       createdTasks?: unknown[];
       createdApprovals?: unknown[];
       deletedTaskIds?: unknown[];
@@ -118,5 +119,8 @@ export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatR
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }
       : null,
+    artifactCitations: (evt.result?.artifactCitations || [])
+      .filter((citation) => typeof citation.documentId === "string" && typeof citation.title === "string")
+      .map((citation) => ({ documentId: citation.documentId as string, title: citation.title as string })),
   };
 }

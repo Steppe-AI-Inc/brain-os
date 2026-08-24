@@ -122,6 +122,7 @@ function historyToMessage(h: ChatHistoryMessage): Message {
       memoryCount: h.counts?.memories ?? 0,
       model: h.modelName || "unknown",
       usage,
+      artifactCitations: h.output?.artifactCitations || [],
     },
   };
 }
@@ -555,6 +556,24 @@ export function ChatClient({
                 ) : (
                   <>
                     <p>{m.result?.summary}</p>
+                    {!!m.result?.artifactCitations.length && (
+                      <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Sources from Artifact Intelligence
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {m.result.artifactCitations.map((citation) => (
+                            <a
+                              key={citation.documentId}
+                              href={"/documents/" + citation.documentId + "/download"}
+                              className="rounded-full border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary/50 hover:text-primary"
+                            >
+                              {citation.title}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {m.result?.model === "fallback-no-api-key" && (
                       <div className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
                         This answer came from the deterministic fallback planner, not a live AI model.

@@ -114,6 +114,12 @@ Rules:
   (semantic search, not limited to this channel or this session) — treat these as
   already-known, verified context. Do not propose a memoryCandidate that restates one
   of them.
+- context.artifacts contains RLS-authorized company/client artifacts that the user
+  explicitly allowed for AI retrieval. Prefer these records over guesses. When an
+  artifact supports the answer, include its exact documentId and title in
+  artifactCitations. Never cite an id that is not present in context.artifacts. If the
+  requested evidence is not present, say so and create a clarification/research task
+  instead of inventing client data.
 - Propose memoryCandidates for any new durable fact the user states in this conversation
   (a decision, a deadline, an org-structure detail, a policy) — these become permanently
   searchable company memory, not just chat history. Leave entityType/entityId unset to
@@ -166,6 +172,9 @@ Output schema:
   ],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
+  ],
+  "artifactCitations": [
+    {"documentId": string, "title": string}
   ],
   "memoryCandidates": [
     {"entityType": string|null, "entityId": string|null, "fact": string, "confidence": number, "sensitivity": "public"|"internal"|"confidential"|"restricted"|"founder_only", "companyId": string|null, "companyIndex": number|null}
@@ -498,7 +507,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const conversationHistoryQuery = channelId
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, conversationRows] = await Promise.all([
+  const artifactsQuery = supabase.rpc('search_artifacts', {
+    p_query: command,
+    p_company_id: null,
+    p_limit: 6,
+  });
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, conversationRows, artifactRows] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -513,11 +527,28 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
     supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
-    conversationHistoryQuery
+    conversationHistoryQuery,
+    artifactsQuery
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], conversationHistory };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
+  const artifacts = (artifactRows.data || [])
+    .filter((artifact:any) => artifact.analysis_json?.externalAiAuthorized === true)
+    .slice(0, 6)
+    .map((artifact:any) => ({
+      documentId: artifact.id,
+      companyId: artifact.company_id,
+      title: artifact.title,
+      category: artifact.category,
+      mimeType: artifact.mime_type,
+      summary: artifact.analysis_summary || artifact.summary || null,
+      analysis: artifact.analysis_json || {},
+      contentExcerpt: typeof artifact.extracted_text === 'string'
+        ? artifact.extracted_text.slice(0, 3000)
+        : null,
+      createdAt: artifact.created_at,
+    }));
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], artifacts, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], conversationHistory };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,artifactRows.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -675,6 +706,23 @@ serve(async (req) => {
         // 202608230002) so work_order + tasks + approvals + model_usage + audit_logs all
         // commit or roll back together instead of a sequential-insert approach, which
         // silently swallowed per-row errors and could leave partial state.
+        const contextArtifacts = new Map(
+          (contextPack?.artifacts || []).map((artifact:any) => [artifact.documentId, artifact.title])
+        );
+        const requestedCitations = Array.isArray(result.artifactCitations)
+          ? result.artifactCitations as unknown[]
+          : [];
+        result.artifactCitations = requestedCitations
+          .filter((citation): citation is Record<string, unknown> =>
+            !!citation && typeof citation === 'object' &&
+            typeof (citation as any).documentId === 'string' &&
+            contextArtifacts.has((citation as any).documentId))
+          .slice(0, 12)
+          .map((citation:any) => ({
+            documentId: citation.documentId,
+            title: contextArtifacts.get(citation.documentId),
+          }));
+
         const resultTasks = (result.tasks || []) as AiTask[];
         const forcedApprovalTaskIndexes:number[] = [];
         const taskPayloads = resultTasks.map((t, i) => {
