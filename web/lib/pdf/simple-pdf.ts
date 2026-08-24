@@ -15,7 +15,15 @@ const MARGIN_TOP = 56;
 const LINE_HEIGHT_FACTOR = 1.35;
 
 function escapePdfText(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  // Helvetica/WinAnsi in this writer only covers Latin-1 (0x00-0xFF). Anything outside
+  // that (em dashes, curly quotes, non-Latin scripts) doesn't crash — Buffer's latin1
+  // encoding just silently keeps the low byte of each UTF-16 unit, corrupting the
+  // glyph — so replace it with a safe fallback instead of shipping garbled text.
+  const safe = s.replace(/[‐-―]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  const ascii = Array.from(safe)
+    .map((ch) => (ch.codePointAt(0)! > 0xff ? "?" : ch))
+    .join("");
+  return ascii.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
 export function renderPdf(lines: PdfLine[]): Buffer {

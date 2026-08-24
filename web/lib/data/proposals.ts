@@ -151,6 +151,19 @@ export async function deleteProposal(id: string) {
 // this is a customer-facing document, and internal_margin/unit_cost must never appear in
 // it (mirrors why safe_proposals view excludes internal_margin from non-founder reads).
 export async function generateQuotationPdf(proposalId: string): Promise<string | { url: string }> {
+  try {
+    return await generateQuotationPdfInner(proposalId);
+  } catch (e) {
+    // Nothing downstream had a try/catch — any unhandled exception here (a bad Buffer,
+    // an SDK incompatibility, anything) previously crashed the whole Server Action with
+    // a bare 503 and zero information reaching the client. Verified live: this masked
+    // the real error on every attempt. Whatever this catches now becomes a normal
+    // string result the client already knows how to display.
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+async function generateQuotationPdfInner(proposalId: string): Promise<string | { url: string }> {
   const supabase = await createClient();
 
   const { data: proposal, error: proposalError } = await supabase
@@ -181,7 +194,7 @@ export async function generateQuotationPdf(proposalId: string): Promise<string |
   lines.push({ text: "Description", size: 11, bold: true });
   for (const item of items ?? []) {
     lines.push({
-      text: `${item.description}  —  qty ${item.quantity}  x  ${fmt(item.unit_price)}  =  ${fmt(item.line_total)}`,
+      text: `${item.description}  -  qty ${item.quantity}  x  ${fmt(item.unit_price)}  =  ${fmt(item.line_total)}`,
       size: 11,
       gapAfter: 4,
     });
