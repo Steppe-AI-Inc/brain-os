@@ -66,19 +66,27 @@ Commit `f082917` already regenerated canonical `web/types/database.ts` from the 
 2. Independent regeneration of canonical `web/types/database.ts` from live project `pvphxgrtdfrudejjhzjk`.
 3. Full-catalog comparison confirming the generated type file still exactly reflects live.
 
-These checks remain delegated to branch CI because Docker is not installed on this machine:
+## Branch CI result
 
-1. Full local Supabase reset.
-2. pgTAP founder-versus-employee RLS test.
-3. Integration test against the local Supabase API.
-4. Review-draft SQL application against a disposable local database.
+[GitHub Actions run 32686967796](https://github.com/Steppe-AI-Inc/brain-os/actions/runs/32686967796) passed on commit `1d91b0d`.
+
+| Isolated gate                        | Result              |
+| ------------------------------------ | ------------------- |
+| Current migration-chain reset        | PASS                |
+| Founder/employee pgTAP RLS           | PASS - 6 assertions |
+| Local Supabase API integration       | PASS                |
+| Chromium critical-route smoke        | PASS - 7 tests      |
+| Review-draft SQL disposable reset    | PASS                |
+| Static/lint/type/unit/Edge contracts | PASS                |
+
+The first CI attempts correctly exposed missing fixture grants, an overly narrow anonymous-read assertion, and non-immutable generated hash expressions. Each was corrected without changing production data, deployed APIs, or the production migration chain.
 
 ## Security impact
 
 - Positive: adds regression coverage for authentication routing, RLS role separation, forced approval controls, transactional persistence expectations, and absence of service-role usage in the Edge Function.
 - Positive: keeps the proposed SQL outside the executable migration chain.
 - No production security boundary changed in Phase 0.
-- Remaining risk: the draft SQL is untrusted until the disposable database validation and human security review pass.
+- Remaining risk: the draft SQL now passes disposable database validation but remains review-only until the full live drift audit and human security review pass.
 
 ## Token and context impact
 

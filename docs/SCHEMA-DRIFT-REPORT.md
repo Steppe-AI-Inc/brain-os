@@ -208,6 +208,9 @@ After capture, replace every provisional classification in this report with
 | Drift report exists             | PASS, provisional                                                  |
 | Generated types match live      | PASS by recorded `f082917` generation; independent refresh BLOCKED |
 | No production mutation          | PASS                                                               |
+| Isolated current-chain reset    | PASS - CI run `32686967796`                                        |
+| Founder/employee RLS assertions | PASS - 6 assertions                                                |
+| Review-draft disposable reset   | PASS - CI run `32686967796`                                        |
 | No secret committed             | PASS by current review; secret scan still runs before handoff      |
 | Repository migration inventory  | PASS                                                               |
 | Goal/schema conflict identified | PASS                                                               |

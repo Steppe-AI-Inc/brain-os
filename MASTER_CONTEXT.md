@@ -97,7 +97,7 @@ This is the safe development lane for SEM Brain v1. It must not modify or merge 
 **Phase 0 status (2026-08-24):**
 - Added a provisional repository-versus-live drift report at `docs/SCHEMA-DRIFT-REPORT.md`. The repository inventory is complete. Live Supabase comparison remains explicitly blocked because this machine has no fresh Supabase login/access token; no old exposed token was reused.
 - Added the Phase 0 target architecture and review-only SQL draft at `docs/PHASE-0-ARCHITECTURE.md` and `supabase/drafts/202608260001_sem_brain_v1_execution.sql`. The draft is deliberately outside `supabase/migrations`; it has not been applied to local, staging, or production databases.
-- Added isolated unit, integration, RLS, Edge contract, browser, and branch-CI foundations. Local results are recorded in `docs/PHASE-0-TEST-RESULTS.md`.
+- Added isolated unit, integration, RLS, Edge contract, browser, and branch-CI foundations. GitHub Actions run `32686967796` is green: lint/type/unit/Edge contracts, six founder/employee RLS assertions, local API integration, seven browser tests, and a disposable reset including the review SQL draft. Results are recorded in `docs/PHASE-0-TEST-RESULTS.md`.
 - Confirmed that remote commit `f082917` had already regenerated canonical `web/types/database.ts` directly from live Supabase for the applied Goals/Departments schema. Phase 0 adds a clearly marked read-only regeneration command; this session still needs a fresh login to independently recapture the full catalog.
 - Production Supabase and Vercel were not changed or deployed during Phase 0.
 
@@ -106,7 +106,7 @@ This is the safe development lane for SEM Brain v1. It must not modify or merge 
 2. Run `git switch codex/sem-brain-v1`.
 3. Read `CLAUDE.md`, this file, `docs/SCHEMA-DRIFT-REPORT.md`, `docs/PHASE-0-ARCHITECTURE.md`, and `docs/PHASE-0-TEST-RESULTS.md`.
 4. Authenticate the Supabase CLI with a fresh personal token, rerun the documented read-only drift/type commands, then update the report and commit the canonical generated type only if the live output changes.
-5. Do not promote the review SQL draft into migrations until drift, local reset, RLS tests, and human security review all pass.
+5. The isolated reset and RLS tests are green. Do not promote the review SQL draft into migrations until the full live drift audit and human security review also pass.
 
 
 
