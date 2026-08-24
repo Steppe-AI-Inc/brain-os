@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, auth, extensions;
 
-select plan(6);
+select plan(13);
 
 insert into auth.users (
   instance_id,
@@ -110,6 +110,53 @@ insert into public.tasks (
     '30000000-0000-0000-0000-000000000001'
   );
 
+insert into public.boards (
+  id, company_id, name, created_by_profile_id
+) values (
+  '60000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000001',
+  'Phase 0 Work Board',
+  '30000000-0000-0000-0000-000000000001'
+);
+
+insert into public.board_columns (
+  id, board_id, name, canonical_status, position
+) values
+  (
+    '61000000-0000-0000-0000-000000000001',
+    '60000000-0000-0000-0000-000000000001',
+    'Backlog',
+    'queued',
+    0
+  ),
+  (
+    '61000000-0000-0000-0000-000000000002',
+    '60000000-0000-0000-0000-000000000001',
+    'In progress',
+    'in_progress',
+    1000
+  );
+
+insert into public.board_items (
+  id, board_id, column_id, task_id, position, added_by_profile_id
+) values
+  (
+    '62000000-0000-0000-0000-000000000001',
+    '60000000-0000-0000-0000-000000000001',
+    '61000000-0000-0000-0000-000000000001',
+    '50000000-0000-0000-0000-000000000001',
+    1000,
+    '30000000-0000-0000-0000-000000000001'
+  ),
+  (
+    '62000000-0000-0000-0000-000000000002',
+    '60000000-0000-0000-0000-000000000001',
+    '61000000-0000-0000-0000-000000000001',
+    '50000000-0000-0000-0000-000000000002',
+    2000,
+    '30000000-0000-0000-0000-000000000001'
+  );
+
 -- Isolate RLS behavior from Supabase platform bootstrap grants. The repository migration
 -- chain does not currently declare base-table API grants; the drift report tracks that
 -- separately. These test-only grants are transactional and disappear at rollback.
@@ -125,6 +172,8 @@ select set_config(
 select is(public.current_role()::text, 'founder', 'founder JWT resolves to founder profile');
 select is((select count(*)::int from public.tasks), 2, 'founder sees all company tasks');
 select is((select count(*)::int from public.company_sensitive), 1, 'founder sees sensitive company data');
+select is((select count(*)::int from public.boards), 1, 'founder sees the company work board');
+select is((select count(*)::int from public.board_items), 2, 'founder sees all cards on the board');
 
 select set_config(
   'request.jwt.claims',
@@ -135,6 +184,30 @@ select set_config(
 select is(public.current_role()::text, 'employee', 'employee JWT resolves to employee profile');
 select is((select count(*)::int from public.tasks), 1, 'employee sees only their own task');
 select is((select count(*)::int from public.company_sensitive), 0, 'employee cannot see sensitive company data');
+select is((select count(*)::int from public.boards), 1, 'employee can discover their company work board');
+select is((select count(*)::int from public.board_items), 1, 'employee sees only the card for their task');
+select lives_ok(
+  $move$ select public.move_board_item(
+    '62000000-0000-0000-0000-000000000001',
+    '61000000-0000-0000-0000-000000000002'
+  ) $move$,
+  'employee can move their own card'
+);
+select is(
+  (select status::text from public.tasks where id = '50000000-0000-0000-0000-000000000001'),
+  'in_progress',
+  'moving a card updates the canonical task status'
+);
+select is(
+  (
+    select count(*)::int
+    from public.audit_logs
+    where event_type = 'board_item_moved'
+      and actor_profile_id = '30000000-0000-0000-0000-000000000002'
+  ),
+  1,
+  'moving a card creates an audit event for the authenticated employee'
+);
 
 select * from finish();
 rollback;

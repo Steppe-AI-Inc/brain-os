@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -26,11 +27,19 @@ import {
   Target,
   Kanban,
   Landmark,
+  Menu,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { signOut } from "@/app/(app)/actions";
 
 const NAV_GROUPS: Array<{
@@ -46,18 +55,18 @@ const NAV_GROUPS: Array<{
     ],
   },
   {
-    title: "GOALS",
+    title: "GOALS & WORK",
     items: [
       { href: "/goals", navKey: "nav.goals", label: "Goals", icon: Target },
-      { href: "/board", navKey: "nav.board", label: "Board", icon: Kanban },
+      { href: "/board", navKey: "nav.board", label: "Work Boards", icon: Kanban },
+      { href: "/tasks", navKey: "nav.tasks", label: "Tasks", icon: ListChecks },
+      { href: "/approvals", navKey: "nav.approvals", label: "Approvals", icon: ShieldCheck },
     ],
   },
   {
     title: "CEO CONTROL",
     items: [
       { href: "/dashboard", navKey: "nav.dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/tasks", navKey: "nav.tasks", label: "Tasks", icon: ListChecks },
-      { href: "/approvals", navKey: "nav.approvals", label: "Approvals", icon: ShieldCheck },
     ],
   },
   {
@@ -78,111 +87,147 @@ const NAV_GROUPS: Array<{
     ],
   },
   {
-    title: "ADMIN DATA",
+    title: "ORGANIZATION",
     items: [
-      { href: "/access", navKey: "nav.access", label: "User Access", icon: KeyRound },
-      { href: "/settings", navKey: "nav.settings", label: "Settings", icon: Settings2 },
       { href: "/companies", navKey: "nav.companies", label: "Companies", icon: Building2 },
       { href: "/departments", navKey: "nav.departments", label: "Departments", icon: Landmark },
       { href: "/people", navKey: "nav.people", label: "People", icon: Users },
       { href: "/projects", navKey: "nav.projects", label: "Projects", icon: FolderKanban },
       { href: "/kpi", navKey: "nav.kpi", label: "KPI + Salary", icon: Gauge },
       { href: "/memory", navKey: "nav.memory", label: "Memory", icon: BrainCircuit },
+      { href: "/access", navKey: "nav.access", label: "User Access", icon: KeyRound },
+      { href: "/settings", navKey: "nav.settings", label: "Settings", icon: Settings2 },
     ],
   },
 ];
 
-export function AppSidebar({
-  profile,
-}: {
-  profile: { full_name: string; role: string } | null;
-}) {
+type SidebarProfile = { full_name: string; role: string } | null;
+
+export function AppSidebar({ profile }: { profile: SidebarProfile }) {
   const pathname = usePathname();
   const { locale, setLocale, t } = useT();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  function sidebarBody(onNavigate?: () => void) {
+    return (
+      <>
+        <div className="mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
+            Σ
+          </div>
+          <div>
+            <div className="text-[15px] font-semibold leading-tight">SEM Brain</div>
+            <div className="text-xs text-muted-foreground">Steppe AI, Inc.</div>
+          </div>
+        </div>
+
+        {profile && (
+          <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {profile.full_name.slice(0, 1)}
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{profile.full_name}</div>
+              <div className="truncate text-xs capitalize text-muted-foreground">
+                {profile.role.replace("_", " ")}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex flex-1 flex-col gap-4 overflow-auto">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title}>
+              <div className="mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted-foreground/80">
+                {t(`navGroup.${group.title}`, group.title)}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {group.items.map((item) => {
+                  const active = pathname.startsWith(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        active
+                          ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+                          : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                      <span>{t(item.navKey, item.label)}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
+            <Button
+              size="sm"
+              variant={locale === "en" ? "default" : "outline"}
+              className="h-6 px-2 text-xs"
+              onClick={() => setLocale("en")}
+            >
+              EN
+            </Button>
+            <Button
+              size="sm"
+              variant={locale === "mn" ? "default" : "outline"}
+              className="h-6 px-2 text-xs"
+              onClick={() => setLocale("mn")}
+            >
+              MN
+            </Button>
+          </div>
+          <form action={signOut}>
+            <Button type="submit" variant="outline" size="sm" className="w-full gap-1.5">
+              <LogOut className="h-3.5 w-3.5" />
+              {t("shell.signOut", "Sign out")}
+            </Button>
+          </form>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground">
-      <div className="mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
-          Σ
-        </div>
-        <div>
-          <div className="text-[15px] font-semibold leading-tight">SEM Brain</div>
-          <div className="text-xs text-muted-foreground">Steppe AI, Inc.</div>
-        </div>
-      </div>
+    <>
+      <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:sticky md:top-0 md:flex">
+        {sidebarBody()}
+      </aside>
 
-      {profile && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {profile.full_name.slice(0, 1)}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{profile.full_name}</div>
-            <div className="truncate text-xs capitalize text-muted-foreground">
-              {profile.role.replace("_", " ")}
-            </div>
-          </div>
-        </div>
-      )}
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:hidden">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground">
+            Σ
+          </span>
+          <span>
+            <span className="block text-sm font-semibold leading-tight">SEM Brain</span>
+            <span className="block text-[11px] text-muted-foreground">Steppe AI, Inc.</span>
+          </span>
+        </Link>
 
-      <nav className="flex flex-1 flex-col gap-4 overflow-auto">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.title}>
-            <div className="mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted-foreground/80">
-              {t(`navGroup.${group.title}`, group.title)}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {group.items.map((item) => {
-                const active = pathname.startsWith(item.href);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                      active
-                        ? "bg-sidebar-accent font-medium text-sidebar-foreground"
-                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                    <span>{t(item.navKey, item.label)}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
-          <Button
-            size="sm"
-            variant={locale === "en" ? "default" : "outline"}
-            className="h-6 px-2 text-xs"
-            onClick={() => setLocale("en")}
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger
+            render={<Button variant="outline" size="icon" aria-label="Open navigation" />}
           >
-            EN
-          </Button>
-          <Button
-            size="sm"
-            variant={locale === "mn" ? "default" : "outline"}
-            className="h-6 px-2 text-xs"
-            onClick={() => setLocale("mn")}
-          >
-            MN
-          </Button>
-        </div>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm" className="w-full gap-1.5">
-            <LogOut className="h-3.5 w-3.5" />
-            {t("shell.signOut", "Sign out")}
-          </Button>
-        </form>
-      </div>
-    </aside>
+            <Menu className="size-4" />
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[min(88vw,20rem)] gap-0 bg-sidebar p-4 text-sidebar-foreground sm:max-w-xs">
+            <SheetHeader className="sr-only">
+              <SheetTitle>SEM Brain navigation</SheetTitle>
+            </SheetHeader>
+            {sidebarBody(() => setMobileOpen(false))}
+          </SheetContent>
+        </Sheet>
+      </header>
+    </>
   );
 }

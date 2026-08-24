@@ -1,11 +1,18 @@
 "use client";
 
+export type ChatAction = {
+  kind: "board" | "column" | "task";
+  label: string;
+  href: string;
+};
+
 export type ChatResult = {
   summary: string;
   taskCount: number;
   approvalCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
+  actions: ChatAction[];
 };
 
 export type StreamEvent =
@@ -16,6 +23,7 @@ export type StreamEvent =
       result?: { summary?: string };
       createdTasks?: unknown[];
       createdApprovals?: unknown[];
+      createdActions?: ChatAction[];
       model?: string;
       usage?: { input_tokens?: number; output_tokens?: number } | null;
     }
@@ -74,11 +82,15 @@ export async function consumeChatStream(command: string, onEvent: (evt: StreamEv
 export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatResult {
   return {
     summary: evt.result?.summary || "Command executed.",
-    taskCount: evt.createdTasks?.length ?? 0,
+    taskCount:
+      evt.createdTasks?.length ??
+      evt.createdActions?.filter((action) => action.kind === "task").length ??
+      0,
     approvalCount: evt.createdApprovals?.length ?? 0,
     model: evt.model || "unknown",
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }
       : null,
+    actions: evt.createdActions ?? [],
   };
 }

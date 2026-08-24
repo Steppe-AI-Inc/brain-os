@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export default function ChatPage() {
       <PageHeader
         icon={Sparkles}
         title="AI Native Chat"
-        description="Every command goes through the real sem-ai-command Edge Function — RLS-scoped context, server-side risk-approval enforcement, transactional persistence. Nothing is simulated locally."
+        description="Validated board actions run deterministically through RLS with zero model tokens; open-ended founder commands continue to the real sem-ai-command orchestrator with approvals and audit."
       />
 
       <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
@@ -109,6 +110,20 @@ export default function ChatPage() {
                         </Badge>
                       )}
                     </div>
+                    {m.result?.actions.length ? (
+                      <div className="mt-3 grid gap-2">
+                        {m.result.actions.map((action) => (
+                          <Link
+                            key={`${action.kind}:${action.href}:${action.label}`}
+                            href={action.href}
+                            className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                          >
+                            <span>{action.label}</span>
+                            <ArrowUpRight className="size-4 text-muted-foreground" />
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
                   </>
                 )}
               </CardContent>
@@ -117,7 +132,7 @@ export default function ChatPage() {
         ))}
         {messages.length === 0 && (
           <p className="m-auto text-sm text-muted-foreground">
-            Try: &ldquo;Device 43 keeps going offline, investigate and follow up.&rdquo;
+            Try: &ldquo;Create a board named Uzbekistan launch for Steppe AI, Inc.&rdquo;
           </p>
         )}
       </div>

@@ -9,7 +9,7 @@ test("login page renders", async ({ page }) => {
   await expect(page.getByLabel("Password")).toBeVisible();
 });
 
-for (const route of ["/", "/dashboard", "/goals", "/tasks", "/approvals", "/chat"]) {
+for (const route of ["/", "/dashboard", "/goals", "/board", "/tasks", "/approvals", "/chat"]) {
   test(`unauthenticated access to ${route} is redirected`, async ({ page }) => {
     await page.goto(route);
 

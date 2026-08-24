@@ -2,16 +2,14 @@ import { getCurrentProfile } from "@/lib/data/profile";
 import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  // proxy.ts already guarantees a session exists for every route under this layout
-  // (unauthenticated requests are redirected to /login before this ever renders).
-  // Fetching the profile here (not there) keeps the redirect check cheap and lets the
-  // profile row itself go through the same RLS as any other query.
+  // proxy.ts guarantees a valid session before this layout renders. Data authorization
+  // remains in Supabase RLS; the shell only adapts navigation to desktop and mobile.
   const profile = await getCurrentProfile();
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen md:flex">
       <AppSidebar profile={profile} />
-      <main className="flex-1 overflow-auto p-8">{children}</main>
+      <main className="min-w-0 flex-1 px-4 pb-8 pt-20 sm:px-6 md:p-8">{children}</main>
     </div>
   );
 }

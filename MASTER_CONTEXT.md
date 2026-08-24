@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-25 (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices and is readable from GitHub. Last updated: 2026-08-24 (the `codex/sem-brain-v1` lane now contains an additive, RLS-scoped Work Boards vertical slice: configurable boards/columns/cards, canonical task assignment and drag/drop, audit triggers, deterministic chat commands, responsive mobile navigation, and automated tests. It is not live until the new migration passes branch CI and is explicitly applied to the shared Supabase project). Foundation status already recorded below: (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
 
 ## Who / where
 
@@ -104,12 +104,42 @@ This is the safe development lane for SEM Brain v1. It must not modify or merge 
 - Confirmed that remote commit `f082917` had already regenerated canonical `web/types/database.ts` directly from live Supabase for the applied Goals/Departments schema. Phase 0 adds a clearly marked read-only regeneration command; this session still needs a fresh login to independently recapture the full catalog.
 - Production Supabase and Vercel were not changed or deployed during Phase 0.
 
+**Current v1 implementation slice (2026-08-24, branch-only):**
+- Added `supabase/migrations/202608280001_work_boards.sql`: company-scoped `boards`, `board_columns`, and `board_items`. Cards reference `public.tasks`; they do not duplicate task title/status/assignee data.
+- Board and column configuration is founder/company-manager scoped. Employees can discover company boards but only see cards whose canonical tasks pass task RLS. Employees can create/assign cards only to themselves and move only their own tasks; managers can assign company-wide.
+- Database RPCs create a board with default columns, create a canonical task+card atomically, and move a card+task status atomically. Database triggers audit board, column, and card mutations regardless of whether the action came from UI or chat.
+- Replaced the old fixed `/board` landing screen with configurable Work Boards; preserved the original goal-status board at `/board/goals`. Added responsive drag/drop columns, quick task capture, task detail editing, assignees/deadlines/priorities, board/column rename, add/delete column, archive, and a mobile horizontal workflow.
+- AI Native Chat now executes a narrow validated grammar for create/rename board, add/rename column, add task, and move task without spending LLM tokens. Entity lookup and writes are RLS-scoped on the server. Other founder commands still flow to `sem-ai-command`.
+- The authenticated shell now has a mobile navigation drawer and reorganized Goals & Work / Organization navigation.
+- Local clean-checkout results: lint PASS, typecheck PASS, 20 unit tests PASS, production build PASS (30 routes), Playwright PASS (8 login/protected-route checks including `/board`). Local database reset is unavailable because Docker is not installed; the branch CI supplies disposable Supabase/Postgres for migration and pgTAP RLS tests.
+- **Not live yet:** do not apply the migration or promote a deployment until branch CI is green and the founder explicitly approves the shared Supabase change.
+
+**Founder-provided operating model (source: founder, 2026-08-24):**
+- `SEM TECHNOLOGIES LLC`: Wyoming, USA LLC, sole-member/founder-controlled; intended ultimate holding company and risk-separation owner for subsidiary assets.
+- `STEPPE AI, INC.`: Delaware C-Corporation; operates OpenSpot and owns/develops Brain OS as the scale platform for a global startup.
+- `System Engineering Mongolia LLC`: Mongolia operating company and the founder's first company.
+- `SEM Global Robotics Technologies LLC`: operating subsidiary under System Engineering Mongolia LLC; substantially the same shareholders/operations, created for tax structuring.
+- Team facts to migrate through normal founder-reviewed records, not hard-coded UI:
+  - CLIX GPS / clix.mn field technicians: Ariunjargal, Gantulga, Batbayar.
+  - Software: Enkh-Erdene (CTO), Batgerel (Software Chief Engineer), Galerdene (Senior Software Developer).
+  - Mechanical engineering: Aldajan Zagila, responsible for IQParking and OpenSpot design/operations.
+- Ownership, parent-company, tax-structure, and founder-control details are sensitive. They belong in founder-only `company_sensitive`/equivalent RLS-protected records, not public company rows or client bundles.
+- Exact legal names, jurisdictions, ownership percentages, and employee contact/compensation data must be confirmed before a production import. Do not invent missing values.
+
+**Current founder blockers / approvals:**
+1. Authenticate Supabase CLI with a newly rotated personal token (`supabase login`); do not paste tokens into source files or context documents.
+2. After branch CI passes, explicitly approve applying `202608280001_work_boards.sql` to shared project `pvphxgrtdfrudejjhzjk`, then regenerate `web/types/database.ts` from live schema.
+3. LLM keys are not a blocker for board operations: the validated board chat commands are deterministic and use zero model tokens. A funded provider key remains required for open-ended AI planning.
+4. Supabase Storage bucket/policies and confirmed brochure files are required for downloadable quotation/brochure packages. Google Drive/email delivery need later OAuth/provider credentials.
+
 **Resume this lane on another machine:**
 1. Clone the repo to a non-synced local folder.
 2. Run `git switch codex/sem-brain-v1`.
 3. Read `CLAUDE.md`, this file, `docs/SCHEMA-DRIFT-REPORT.md`, `docs/PHASE-0-ARCHITECTURE.md`, and `docs/PHASE-0-TEST-RESULTS.md`.
 4. Authenticate the Supabase CLI with a fresh personal token, rerun the documented read-only drift/type commands, then update the report and commit the canonical generated type only if the live output changes.
-5. The isolated reset and RLS tests are green. Do not promote the review SQL draft into migrations until the full live drift audit and human security review also pass.
+5. Run `npm ci && npm run lint && npm run typecheck && npm run test:unit && npm run build` from `web/`.
+6. Inspect the latest branch CI for the disposable Supabase reset/RLS results. The Work Boards migration is executable but must not be applied to production until that CI is green and the founder explicitly approves it.
+7. The broader Phase 0 execution-core draft remains review-only under `supabase/drafts/`; do not silently promote it together with the narrower Work Boards migration.
 
 
 
