@@ -98,6 +98,30 @@ control surface. Key architectural decisions, worth knowing before touching this
   which doesn't share a package with `/web`) — deterministic, no LLM call needed to
   price an LLM call. Update both copies together if pricing changes.
 
+## AI Native Chat streaming — `/chat`
+
+`sem-ai-command/index.ts` streams SSE (`delta`/`usage`/`done`/`error` events) instead of
+returning one blocking JSON blob. Context building, provider resolution, and the
+forced-approval-scan + transactional `sem_execute_ai_command` RPC persistence are NOT
+streamed — only the raw LLM generation is; persistence needs the full parsed JSON and can
+only run once the stream ends. `web/app/(app)/chat/stream/route.ts` is a thin
+auth-forwarding Route Handler proxy (deliberately not a Server Action, so a long
+generation can't read as the whole app freezing — no `useTransition` involved anywhere in
+this path). `web/lib/chat-stream.ts` has the shared client-side SSE frame parser
+(`consumeChatStream`), used by both `chat/page.tsx` (live "watch it type" bubble) and
+`workflows/workflow-grid.tsx` (drains to a final result, no live display). There is no
+`chat/actions.ts` anymore — it was removed when this replaced the old blocking
+Server Action.
+
+One real TS gotcha hit while writing the Edge Function's streaming handler: `let usage:
+Usage | null = null` reassigned via `usage = { ...usage, ...u }` inside a callback closure
+made TypeScript infer `never` at every later read site (a self-referential-spread +
+closure-capture narrowing bug, reproduced in isolation, not fixed by `??`-guarding the
+spread). Fixed by switching to a `{ current: Usage | null }` ref-object instead of a bare
+`let` — property reads aren't subject to the same narrowing. If a similar "does not exist
+on type never" error shows up elsewhere on a `let` mutated inside a closure, reach for the
+same ref-object pattern first.
+
 ## i18n
 
 `lib/i18n/{dictionary,i18n-context}.tsx`, `useT()` hook, same `t(key, fallback)` pattern

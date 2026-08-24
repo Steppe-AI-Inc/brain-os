@@ -9,6 +9,14 @@
 //   ANTHROPIC_API_KEY — only needed if an `ai_providers` row is marked active with
 //     provider='anthropic' (see migration 202608260001). No active row falls back to
 //     the OpenAI env-var behavior above, unchanged.
+//
+// Streams the response as Server-Sent Events: `delta` (incremental text), `usage`
+// (running token count as the provider reports it), `done` (the final parsed result +
+// persisted work_order/tasks/approvals, once the full JSON is available and the
+// sem_execute_ai_command RPC has committed), or `error`. Context building, provider
+// resolution, and DB persistence are NOT streamed — only the LLM generation itself is;
+// the task/approval-creation RPC needs the complete parsed JSON and can only run once
+// the stream ends.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -16,6 +24,13 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+const SSE_HEADERS = {
+  ...cors,
+  "Content-Type": "text/event-stream",
+  "Cache-Control": "no-cache",
+  "Connection": "keep-alive",
 };
 
 type AiTask = {
@@ -76,12 +91,127 @@ Output schema:
 }`;
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
-function extractText(j:any){
-  if(typeof j.output_text === 'string') return j.output_text;
-  for(const item of j.output || []) for(const c of item.content || []) if(c.type === 'output_text' && c.text) return c.text;
-  return JSON.stringify(j);
-}
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+
+// Claude/GPT sometimes wrap "strict JSON only" replies in a markdown code fence anyway.
+// Strip one if present before parsing, rather than failing the whole command.
+function stripCodeFence(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
+  return match ? match[1].trim() : trimmed;
+}
+
+function sseEvent(data: unknown): string {
+  return `data: ${JSON.stringify(data)}\n\n`;
+}
+
+/**
+ * Reads a provider's SSE response body, calling onEvent(parsedJson) per `data:` line.
+ * Tolerant of chunk boundaries not aligning with SSE frames, and of individual
+ * malformed frames (skipped, not fatal — one bad frame shouldn't kill the stream).
+ */
+async function consumeSSE(response: Response, onEvent: (data: any) => void): Promise<void> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        onEvent(JSON.parse(payload));
+      } catch {
+        // skip malformed frame
+      }
+    }
+  }
+}
+
+type Usage = { input_tokens?: number; output_tokens?: number };
+
+async function callAnthropicStreaming(
+  model: string,
+  key: string,
+  contextForModel: unknown,
+  onDelta: (text: string) => void,
+  onUsage: (usage: Usage) => void
+): Promise<string> {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
+      temperature: 0.2,
+      stream: true,
+    }),
+  });
+  if (!r.ok) {
+    const errBody = await r.json().catch(() => ({}));
+    throw { status: r.status, body: errBody };
+  }
+  let accumulated = "";
+  await consumeSSE(r, (evt) => {
+    if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && typeof evt.delta.text === 'string') {
+      accumulated += evt.delta.text;
+      onDelta(evt.delta.text);
+    } else if (evt.type === 'message_start' && evt.message?.usage) {
+      onUsage({ input_tokens: evt.message.usage.input_tokens, output_tokens: evt.message.usage.output_tokens });
+    } else if (evt.type === 'message_delta' && evt.usage) {
+      onUsage({ output_tokens: evt.usage.output_tokens });
+    }
+  });
+  return accumulated;
+}
+
+async function callOpenAIStreaming(
+  model: string,
+  key: string,
+  contextForModel: unknown,
+  onDelta: (text: string) => void,
+  onUsage: (usage: Usage) => void
+): Promise<string> {
+  const r = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      input: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(contextForModel, null, 2) },
+      ],
+      temperature: 0.2,
+      stream: true,
+    }),
+  });
+  if (!r.ok) {
+    const errBody = await r.json().catch(() => ({}));
+    throw { status: r.status, body: errBody };
+  }
+  let accumulated = "";
+  await consumeSSE(r, (evt) => {
+    if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
+      accumulated += evt.delta;
+      onDelta(evt.delta);
+    } else if (evt.type === 'response.completed' && evt.response?.usage) {
+      onUsage({ input_tokens: evt.response.usage.input_tokens, output_tokens: evt.response.usage.output_tokens });
+    }
+  });
+  return accumulated;
+}
 
 // Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
 // [inputPer1M, outputPer1M] in USD. Update as pricing/models change.
@@ -109,29 +239,6 @@ async function getActiveProvider(supabase: any): Promise<ProviderRow | null> {
     .limit(1)
     .maybeSingle();
   return data || null;
-}
-
-async function callAnthropic(model: string, key: string, contextForModel: unknown) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
-      temperature: 0.2,
-    }),
-  });
-  const j = await r.json();
-  if (!r.ok) throw { status: r.status, body: j };
-  const text = (j.content || []).map((c: any) => (c.type === 'text' ? c.text : '')).join('').trim();
-  const usage = j.usage ? { input_tokens: j.usage.input_tokens, output_tokens: j.usage.output_tokens } : null;
-  return { text, usage };
 }
 
 // Server-side backstop: the system prompt ASKS the model to flag these categories as
@@ -207,29 +314,36 @@ serve(async (req) => {
   if(req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if(req.method !== 'POST') return json({ error:'POST only' }, 405);
   const started = Date.now();
+
+  // ---- Pre-flight: auth, parsing, context, provider resolution. Plain JSON errors,
+  // same as before — nothing here is streamed, it all has to happen before the LLM
+  // call regardless. ----
+  let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
+  let providerName: 'openai' | 'anthropic' = 'openai';
+  let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
   try {
-    const auth = req.headers.get('Authorization') || '';
+    auth = req.headers.get('Authorization') || '';
     if(!auth.startsWith('Bearer ')) return json({ error:'Missing Authorization bearer token' }, 401);
     const body = await req.json();
-    const command = String(body.command || '').trim();
+    command = String(body.command || '').trim();
     if(!command) return json({ error:'Missing command' }, 400);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnon = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: auth } } });
+    supabase = createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization: auth } } });
     const { data: { user }, error: userErr } = await supabase.auth.getUser();
     if(userErr || !user) return json({ error:'Invalid user session' }, 401);
-    const { data: profile } = await supabase.from('profiles').select('id,role,full_name,email').eq('auth_user_id', user.id).single();
+    const profileRes = await supabase.from('profiles').select('id,role,full_name,email').eq('auth_user_id', user.id).single();
+    profile = profileRes.data;
     if(!profile) return json({ error:'Profile not found for authenticated user' }, 403);
 
-    const { pack: contextPack, errors: contextErrors } = await buildContext(supabase, command);
-    const tokenEstimate = estimateTokens({ command, contextPack });
+    const ctx = await buildContext(supabase, command);
+    contextPack = ctx.pack;
+    contextErrors = ctx.errors;
+    tokenEstimate = estimateTokens({ command, contextPack });
     const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
     if(tokenEstimate > hardMax) return json({ error:'Token preflight hard stop', tokenEstimate, hardMax }, 413);
 
-    let result:any;
-    let providerName: 'openai' | 'anthropic' = 'openai';
-    let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
     // No active ai_providers row = today's exact behavior (hardcoded OpenAI + env model).
     // A row only ever changes providerName/model; it never supplies the key itself —
     // keys stay Edge Function secrets, never database rows (see migration 202608260001).
@@ -238,99 +352,126 @@ serve(async (req) => {
       providerName = activeProvider.provider;
       model = activeProvider.model;
     }
-
-    let usage:any = null;
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-    const key = providerName === 'anthropic' ? anthropicKey : openaiKey;
-
-    if(!key){
-      result = fallbackPlan(command, contextPack);
-      model = 'fallback-no-api-key';
-    } else if (providerName === 'anthropic') {
-      try {
-        const { text, usage: u } = await callAnthropic(model, key, { profile:{id:profile.id,role:profile.role}, command, contextPack });
-        usage = u;
-        try { result = JSON.parse(text); } catch { return json({ error:'Model returned invalid JSON', raw:text }, 502); }
-      } catch (e: any) {
-        return json({ error: e?.body?.error?.message || 'Anthropic error', details: e?.body }, e?.status || 500);
-      }
-    } else {
-      const r = await fetch('https://api.openai.com/v1/responses', {
-        method:'POST', headers:{ Authorization:`Bearer ${key}`, 'Content-Type':'application/json' },
-        body: JSON.stringify({ model, input:[{role:'system',content:SYSTEM_PROMPT},{role:'user',content:JSON.stringify({profile:{id:profile.id,role:profile.role}, command, contextPack}, null, 2)}], temperature:0.2 })
-      });
-      const j = await r.json();
-      if(!r.ok) return json({ error:j.error?.message || 'OpenAI error', details:j }, r.status);
-      usage = j.usage || null;
-      const text = extractText(j).trim();
-      try { result = JSON.parse(text); } catch { return json({ error:'Model returned invalid JSON', raw:text }, 502); }
-    }
-
-    // Business logic (risk-keyword forcing, domain routing) stays here in TypeScript;
-    // persistence is delegated to the sem_execute_ai_command RPC (migration
-    // 202608230002) so work_order + tasks + approvals + model_usage + audit_logs all
-    // commit or roll back together instead of the previous sequential-insert approach,
-    // which silently swallowed per-row errors and could leave partial state.
-    const resultTasks = (result.tasks || []) as AiTask[];
-    const forcedApprovalTaskIndexes:number[] = [];
-    const taskPayloads = resultTasks.map((t, i) => {
-      const matchedKeywords = detectForcedApprovalKeywords(t.title || '', t.description || '');
-      const forced = !t.approvalRequired && matchedKeywords.length > 0;
-      if(forced) forcedApprovalTaskIndexes.push(i);
-      return {
-        companyId: t.companyId || null, projectId: t.projectId || null, title: t.title, description: t.description || '', parentGoal: result.strategicGoal || '',
-        ownerType: t.ownerType || 'agent', ownerAgentId: t.ownerAgentId || null, ownerPersonId: t.ownerPersonId || null,
-        acceptanceCriteria: t.acceptanceCriteria || [], testMethod: t.testMethod || [],
-        priority: t.priority || 'medium', riskLevel: t.riskLevel || 'low', approvalRequired: !!t.approvalRequired || forced
-      };
-    });
-
-    const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
-    const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
-    const forcedApprovals = forcedApprovalTaskIndexes
-      .filter(i => !modelApprovalTaskIndexes.has(i))
-      .map(i => ({
-        title: `Approval required: ${resultTasks[i].title}`,
-        reason: `Server-side risk policy forced approval (matched: ${detectForcedApprovalKeywords(resultTasks[i].title || '', resultTasks[i].description || '').join(', ')}).`,
-        riskLevel: resultTasks[i].riskLevel || 'high',
-        taskIndex: i
-      }));
-    // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
-    // legal -> founder/admin only, general/production/external_comms -> company manager).
-    // Prefer the linked task's own text (more specific) over the approval's own title/reason.
-    const approvalPayloads = [...modelApprovals, ...forcedApprovals].map(a => {
-      const sourceTask = typeof a.taskIndex === 'number' ? resultTasks[a.taskIndex] : null;
-      const domain = sourceTask
-        ? detectApprovalDomain(sourceTask.title || '', sourceTask.description || '')
-        : detectApprovalDomain(a.title || '', a.reason || '');
-      return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null };
-    });
-
-    const finalInputTokens = usage?.input_tokens || tokenEstimate;
-    const finalOutputTokens = usage?.output_tokens || 0;
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('sem_execute_ai_command', {
-      p_command: command,
-      p_context_pack: contextPack,
-      p_output: result,
-      p_token_estimate: tokenEstimate,
-      p_tasks: taskPayloads,
-      p_approvals: approvalPayloads,
-      p_model_name: model,
-      p_input_tokens: finalInputTokens,
-      p_output_tokens: finalOutputTokens,
-      p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens)
-    });
-    if(rpcError) return json({ error: rpcError.message || 'Failed to persist AI command result' }, 500);
-
-    const workOrder = { id: rpcResult.workOrderId };
-    const createdTasks = rpcResult.createdTasks || [];
-    const createdApprovals = rpcResult.createdApprovals || [];
-
-    await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length } });
-
-    return json({ result, workOrder, createdTasks, createdApprovals, model, usage, tokenEstimate, contextErrors });
-  } catch(e){
-    return json({ error:e?.message || String(e) }, 500);
+  } catch (e: any) {
+    return json({ error: e?.message || String(e) }, 500);
   }
+
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+  const key = providerName === 'anthropic' ? anthropicKey : openaiKey;
+
+  // ---- Streaming response from here on: the LLM call + everything that depends on
+  // its fully-parsed output (forced-approval scan, transactional persist, audit log). ----
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
+      try {
+        let resultText: string;
+        const usageRef: { current: Usage | null } = { current: null };
+
+        if(!key){
+          const fb = fallbackPlan(command, contextPack);
+          resultText = JSON.stringify(fb);
+          model = 'fallback-no-api-key';
+          if (fb.summary) send({ type: 'delta', text: fb.summary });
+        } else if (providerName === 'anthropic') {
+          resultText = await callAnthropicStreaming(
+            model, key,
+            { profile:{id:profile.id,role:profile.role}, command, contextPack },
+            (delta) => send({ type: 'delta', text: delta }),
+            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
+          );
+        } else {
+          resultText = await callOpenAIStreaming(
+            model, key,
+            { profile:{id:profile.id,role:profile.role}, command, contextPack },
+            (delta) => send({ type: 'delta', text: delta }),
+            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
+          );
+        }
+
+        let result: any;
+        try {
+          result = JSON.parse(stripCodeFence(resultText));
+        } catch {
+          send({ type: 'error', error: 'Model returned invalid JSON', raw: resultText.slice(0, 2000) });
+          return;
+        }
+
+        // Business logic (risk-keyword forcing, domain routing) stays here in TypeScript;
+        // persistence is delegated to the sem_execute_ai_command RPC (migration
+        // 202608230002) so work_order + tasks + approvals + model_usage + audit_logs all
+        // commit or roll back together instead of a sequential-insert approach, which
+        // silently swallowed per-row errors and could leave partial state.
+        const resultTasks = (result.tasks || []) as AiTask[];
+        const forcedApprovalTaskIndexes:number[] = [];
+        const taskPayloads = resultTasks.map((t, i) => {
+          const matchedKeywords = detectForcedApprovalKeywords(t.title || '', t.description || '');
+          const forced = !t.approvalRequired && matchedKeywords.length > 0;
+          if(forced) forcedApprovalTaskIndexes.push(i);
+          return {
+            companyId: t.companyId || null, projectId: t.projectId || null, title: t.title, description: t.description || '', parentGoal: result.strategicGoal || '',
+            ownerType: t.ownerType || 'agent', ownerAgentId: t.ownerAgentId || null, ownerPersonId: t.ownerPersonId || null,
+            acceptanceCriteria: t.acceptanceCriteria || [], testMethod: t.testMethod || [],
+            priority: t.priority || 'medium', riskLevel: t.riskLevel || 'low', approvalRequired: !!t.approvalRequired || forced
+          };
+        });
+
+        const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
+        const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
+        const forcedApprovals = forcedApprovalTaskIndexes
+          .filter(i => !modelApprovalTaskIndexes.has(i))
+          .map(i => ({
+            title: `Approval required: ${resultTasks[i].title}`,
+            reason: `Server-side risk policy forced approval (matched: ${detectForcedApprovalKeywords(resultTasks[i].title || '', resultTasks[i].description || '').join(', ')}).`,
+            riskLevel: resultTasks[i].riskLevel || 'high',
+            taskIndex: i
+          }));
+        // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
+        // legal -> founder/admin only, general/production/external_comms -> company manager).
+        // Prefer the linked task's own text (more specific) over the approval's own title/reason.
+        const approvalPayloads = [...modelApprovals, ...forcedApprovals].map(a => {
+          const sourceTask = typeof a.taskIndex === 'number' ? resultTasks[a.taskIndex] : null;
+          const domain = sourceTask
+            ? detectApprovalDomain(sourceTask.title || '', sourceTask.description || '')
+            : detectApprovalDomain(a.title || '', a.reason || '');
+          return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null };
+        });
+
+        const finalInputTokens = usageRef.current?.input_tokens || tokenEstimate;
+        const finalOutputTokens = usageRef.current?.output_tokens || 0;
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('sem_execute_ai_command', {
+          p_command: command,
+          p_context_pack: contextPack,
+          p_output: result,
+          p_token_estimate: tokenEstimate,
+          p_tasks: taskPayloads,
+          p_approvals: approvalPayloads,
+          p_model_name: model,
+          p_input_tokens: finalInputTokens,
+          p_output_tokens: finalOutputTokens,
+          p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens)
+        });
+        if(rpcError) {
+          send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
+          return;
+        }
+
+        const workOrder = { id: rpcResult.workOrderId };
+        const createdTasks = rpcResult.createdTasks || [];
+        const createdApprovals = rpcResult.createdApprovals || [];
+
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length } });
+
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, model, usage: usageRef.current, tokenEstimate, contextErrors });
+      } catch (e: any) {
+        send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
 });

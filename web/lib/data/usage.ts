@@ -43,6 +43,42 @@ export async function getUsageSummary() {
   return { today, last7d, last30d };
 }
 
+export type DailyUsage = { date: string; totalTokens: number; costUsd: number; calls: number };
+
+export async function getDailyUsage(days = 14): Promise<DailyUsage[]> {
+  const supabase = await createClient();
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (days - 1));
+
+  const { data, error } = await supabase
+    .from("model_usage")
+    .select("input_tokens, output_tokens, estimated_cost_usd, created_at")
+    .gte("created_at", since.toISOString());
+  if (error) throw error;
+
+  const byDate = new Map<string, { totalTokens: number; costUsd: number; calls: number }>();
+  for (const row of data ?? []) {
+    if (!row.created_at) continue;
+    const date = row.created_at.slice(0, 10);
+    const bucket = byDate.get(date) ?? { totalTokens: 0, costUsd: 0, calls: 0 };
+    bucket.totalTokens += (row.input_tokens ?? 0) + (row.output_tokens ?? 0);
+    bucket.costUsd += Number(row.estimated_cost_usd ?? 0);
+    bucket.calls += 1;
+    byDate.set(date, bucket);
+  }
+
+  const result: DailyUsage[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since);
+    d.setDate(since.getDate() + i);
+    const date = d.toISOString().slice(0, 10);
+    const bucket = byDate.get(date);
+    result.push({ date, totalTokens: bucket?.totalTokens ?? 0, costUsd: bucket?.costUsd ?? 0, calls: bucket?.calls ?? 0 });
+  }
+  return result;
+}
+
 export async function getRecentUsage(limit = 20) {
   const supabase = await createClient();
   const { data, error } = await supabase
