@@ -73,7 +73,9 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   return (
     <Select value={active?.id} onValueChange={onChange} disabled={pending}>
       <SelectTrigger className="h-8 w-56 text-xs">
-        <SelectValue placeholder="Select provider" />
+        <SelectValue placeholder="Select provider">
+          {() => (active ? `${active.label} · ${active.model}` : "Select provider")}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {providers.map((p) => (
