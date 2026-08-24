@@ -597,7 +597,7 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
-drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric);
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]);
 
 create or replace function public.sem_execute_ai_command(
   p_command text,
@@ -610,7 +610,9 @@ create or replace function public.sem_execute_ai_command(
   p_input_tokens int,
   p_output_tokens int,
   p_estimated_cost_usd numeric,
-  p_deleted_task_ids uuid[] default '{}'::uuid[]
+  p_deleted_task_ids uuid[] default '{}'::uuid[],
+  p_companies jsonb default '[]'::jsonb,
+  p_people jsonb default '[]'::jsonb
 ) returns jsonb
 language plpgsql
 security invoker
@@ -620,14 +622,23 @@ declare
   v_work_order_id uuid;
   v_task jsonb;
   v_approval jsonb;
+  v_company jsonb;
+  v_person jsonb;
   v_task_ids uuid[] := '{}';
   v_task_company_ids uuid[] := '{}';
+  v_company_ids uuid[] := '{}';
   v_created_tasks jsonb := '[]'::jsonb;
   v_created_approvals jsonb := '[]'::jsonb;
+  v_created_companies jsonb := '[]'::jsonb;
+  v_created_people jsonb := '[]'::jsonb;
   v_new_task_id uuid;
   v_new_task_company_id uuid;
   v_new_approval_id uuid;
+  v_new_company_id uuid;
+  v_new_person_id uuid;
   v_task_index int;
+  v_company_index int;
+  v_person_company_id uuid;
   v_deleted_task_ids uuid[] := '{}';
 begin
   if v_profile_id is null then
@@ -694,6 +705,49 @@ begin
     v_created_approvals := v_created_approvals || jsonb_build_object('id', v_new_approval_id);
   end loop;
 
+  -- Runs under `security invoker` — companies_write_admin (founder/admin only) is the
+  -- real authorization check, same RLS manual company creation already uses. No
+  -- dedicated jurisdiction/state column exists yet, so detail like "Delaware C-Corp" or
+  -- "Wyoming single-member LLC" goes into description rather than adding columns here.
+  for v_company in select * from jsonb_array_elements(coalesce(p_companies, '[]'::jsonb))
+  loop
+    insert into public.companies (name, country, legal_entity_name, description)
+    values (
+      v_company->>'name',
+      nullif(v_company->>'country',''),
+      nullif(v_company->>'legalEntityName',''),
+      nullif(v_company->>'description','')
+    )
+    returning id into v_new_company_id;
+
+    v_company_ids := array_append(v_company_ids, v_new_company_id);
+    v_created_companies := v_created_companies || jsonb_build_object('id', v_new_company_id, 'name', v_company->>'name');
+  end loop;
+
+  -- people_write_manager (company-manager+) is the real authorization check here.
+  -- company_id resolves from a real existing id, or companyIndex into the companies just
+  -- created above in this same request — mirrors how approvals resolve taskIndex.
+  for v_person in select * from jsonb_array_elements(coalesce(p_people, '[]'::jsonb))
+  loop
+    v_company_index := nullif(v_person->>'companyIndex','')::int;
+    v_person_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_person->>'companyId','')::uuid
+    end;
+
+    insert into public.people (full_name, email, role_title, company_id)
+    values (
+      v_person->>'fullName',
+      nullif(v_person->>'email',''),
+      nullif(v_person->>'roleTitle',''),
+      v_person_company_id
+    )
+    returning id into v_new_person_id;
+
+    v_created_people := v_created_people || jsonb_build_object('id', v_new_person_id, 'full_name', v_person->>'fullName');
+  end loop;
+
   -- Deletion runs under `security invoker`, same as every insert above, so
   -- tasks_delete_scope RLS is the actual authorization check here — a task outside the
   -- caller's access simply won't be deleted (0 rows), not an error.
@@ -714,19 +768,21 @@ begin
     jsonb_build_object(
       'command', p_command, 'model', p_model_name, 'tokenEstimate', p_token_estimate,
       'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals),
-      'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0)
+      'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0),
+      'companies', jsonb_array_length(v_created_companies), 'people', jsonb_array_length(v_created_people)
     )
   );
 
   return jsonb_build_object(
     'workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals,
-    'deletedTaskIds', to_jsonb(v_deleted_task_ids)
+    'deletedTaskIds', to_jsonb(v_deleted_task_ids),
+    'createdCompanies', v_created_companies, 'createdPeople', v_created_people
   );
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]) from public, anon;
-grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[]) to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb) to authenticated;
 
 
 -- ---------- ENABLE RLS ----------

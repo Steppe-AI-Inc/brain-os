@@ -65,6 +65,16 @@ Rules:
   literally appear in context.tasks are honored; anything else is silently ignored. If the
   user references a task that isn't in context.tasks, say so in summary instead of
   guessing an id.
+- You may create real companies and people directly (not just a task describing the
+  work) when the user gives you real facts about a company or a person that does not
+  already exist in context.companies / context.people. Check context first — never create
+  a duplicate of something already there; if it already exists, describe follow-up work
+  as a normal task instead. For a person's companyId, use a real id from context.companies,
+  or companyIndex (0-based) pointing at an entry in this same response's createCompanies
+  array if the person belongs to a company you are creating right now. Creating a company
+  or person is not itself high-risk (write access is already restricted by the database) —
+  only flag an approval if the request also involves something from the high-risk list
+  above, e.g. a change of legal ownership or control.
 
 Output schema:
 {
@@ -88,6 +98,12 @@ Output schema:
     }
   ],
   "deleteTaskIds": [string],
+  "createCompanies": [
+    {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
+  ],
+  "createPeople": [
+    {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
+  ],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
   ],
@@ -334,7 +350,7 @@ function fallbackPlan(command:string, contextPack:any){
 async function buildContext(supabase:any, command:string){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -342,10 +358,11 @@ async function buildContext(supabase:any, command:string){
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     supabase.from('product_lines').select('id,company_id,name,currency,unit_price,unit_cost,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
-    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20)
+    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
+    supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30)
   ]);
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[] };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -479,6 +496,33 @@ serve(async (req) => {
         const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
         const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
+        // Companies/people creation: defensively coerce shape (never trust the model's
+        // JSON structure blindly) — name/fullName are required, everything else is
+        // optional. A person's companyId is only trusted if it's a real id from
+        // context.companies; companyIndex is bounds-checked by the RPC itself against
+        // however many companies actually get created this request.
+        const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+        const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
+        const createCompanies = requestedCompanies
+          .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as any).name === 'string' && (c as any).name.trim())
+          .map((c: any) => ({
+            name: String(c.name).trim(),
+            country: typeof c.country === 'string' ? c.country : null,
+            legalEntityName: typeof c.legalEntityName === 'string' ? c.legalEntityName : null,
+            description: typeof c.description === 'string' ? c.description : null,
+          }));
+
+        const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
+        const createPeople = requestedPeople
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).fullName === 'string' && (p as any).fullName.trim())
+          .map((p: any) => ({
+            fullName: String(p.fullName).trim(),
+            email: typeof p.email === 'string' ? p.email : null,
+            roleTitle: typeof p.roleTitle === 'string' ? p.roleTitle : null,
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+          }));
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
         const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
@@ -521,7 +565,9 @@ serve(async (req) => {
           p_input_tokens: finalInputTokens,
           p_output_tokens: finalOutputTokens,
           p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens),
-          p_deleted_task_ids: deleteTaskIds
+          p_deleted_task_ids: deleteTaskIds,
+          p_companies: createCompanies,
+          p_people: createPeople
         });
         if(rpcError) {
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
@@ -532,10 +578,12 @@ serve(async (req) => {
         const createdTasks = rpcResult.createdTasks || [];
         const createdApprovals = rpcResult.createdApprovals || [];
         const deletedTaskIds = rpcResult.deletedTaskIds || [];
+        const createdCompanies = rpcResult.createdCompanies || [];
+        const createdPeople = rpcResult.createdPeople || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
         send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
       } finally {

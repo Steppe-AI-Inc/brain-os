@@ -208,6 +208,12 @@ export function ChatClient({
                       {!!m.result?.deletedCount && (
                         <Badge variant="outline">{m.result.deletedCount} task(s) deleted</Badge>
                       )}
+                      {!!m.result?.companyCount && (
+                        <Badge variant="outline">{m.result.companyCount} compan{m.result.companyCount === 1 ? "y" : "ies"}</Badge>
+                      )}
+                      {!!m.result?.personCount && (
+                        <Badge variant="outline">{m.result.personCount} people</Badge>
+                      )}
                       <Badge variant="secondary">{m.result?.model}</Badge>
                       {m.result?.usage && (
                         <Badge variant="outline" className="tabular-nums">
