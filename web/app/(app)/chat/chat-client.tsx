@@ -12,8 +12,10 @@ import { PageHeader } from "@/components/page-header";
 import { consumeChatStream, toChatResult, type ChatResult } from "@/lib/chat-stream";
 import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
+import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 
 type Usage = { input_tokens: number; output_tokens: number };
+type TokenCost = { tokens: number; costUsd: number };
 
 type ProviderRow = {
   id: string;
@@ -36,11 +38,12 @@ function fmtCost(n: number): string {
   return `$${n.toFixed(n < 1 ? 4 : 2)}`;
 }
 
-function UsageBar({ tokens, costUsd }: { tokens: number; costUsd: number }) {
+function StatPair({ label, tokens, costUsd }: { label: string; tokens: number; costUsd: number }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
       <Badge variant="outline" className="tabular-nums">
-        {tokens.toLocaleString()} tokens
+        {tokens.toLocaleString()}
       </Badge>
       <Badge variant="outline" className="tabular-nums">
         {fmtCost(costUsd)}
@@ -88,16 +91,27 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   );
 }
 
-export function ChatClient({ providers }: { providers: ProviderRow[] }) {
+const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
+
+export function ChatClient({
+  providers,
+  usageSummary,
+}: {
+  providers: ProviderRow[];
+  usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
+}) {
   const [command, setCommand] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [committedUsage, setCommittedUsage] = useState({ tokens: 0, costUsd: 0 });
-  const [liveUsage, setLiveUsage] = useState<{ tokens: number; costUsd: number } | null>(null);
+  // Session = cumulative since this tab loaded. Request = only the current/most recent
+  // send. Today/30d = real DB aggregates (getUsageSummary()), refreshed after each reply
+  // — separate scopes on purpose, per the founder's ask: "top should be session/daily/
+  // monthly totals, near the chatbox should be just that one request."
+  const [sessionTotal, setSessionTotal] = useState<TokenCost>(ZERO);
+  const [requestUsage, setRequestUsage] = useState<TokenCost>(ZERO);
+  const [dbSummary, setDbSummary] = useState(usageSummary);
 
   const activeModel = providers.find((p) => p.is_active)?.model || "unknown";
-  const displayTokens = committedUsage.tokens + (liveUsage?.tokens ?? 0);
-  const displayCost = committedUsage.costUsd + (liveUsage?.costUsd ?? 0);
 
   function patchMessage(index: number, patch: Partial<Message> | ((prev: Message) => Partial<Message>)) {
     setMessages((prev) =>
@@ -110,7 +124,7 @@ export function ChatClient({ providers }: { providers: ProviderRow[] }) {
     if (!trimmed || isStreaming) return;
     setCommand("");
     setIsStreaming(true);
-    setLiveUsage({ tokens: 0, costUsd: 0 });
+    setRequestUsage(ZERO);
 
     let index = -1;
     setMessages((prev) => {
@@ -122,20 +136,19 @@ export function ChatClient({ providers }: { providers: ProviderRow[] }) {
       if (evt.type === "usage") {
         const input = evt.input_tokens ?? 0;
         const output = evt.output_tokens ?? 0;
-        setLiveUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
+        setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
         patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
       } else if (evt.type === "done") {
         const result = toChatResult(evt);
         patchMessage(index, { status: "done", result });
         const usage = result.usage;
-        setCommittedUsage((prev) => ({
-          tokens: prev.tokens + (usage ? usage.input_tokens + usage.output_tokens : 0),
-          costUsd: prev.costUsd + (usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0),
-        }));
-        setLiveUsage(null);
+        const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
+        const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
+        setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
+        setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
+        getUsageSummary().then(setDbSummary);
       } else if (evt.type === "error") {
         patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
-        setLiveUsage(null);
       }
     });
 
@@ -152,7 +165,19 @@ export function ChatClient({ providers }: { providers: ProviderRow[] }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card/60 px-4 py-2.5">
         <ProviderSelector providers={providers} />
-        <UsageBar tokens={displayTokens} costUsd={displayCost} />
+        <div className="flex flex-wrap items-center gap-3">
+          <StatPair label="Session" tokens={sessionTotal.tokens} costUsd={sessionTotal.costUsd} />
+          <StatPair
+            label="Today"
+            tokens={dbSummary.today.totalInputTokens + dbSummary.today.totalOutputTokens}
+            costUsd={dbSummary.today.totalCostUsd}
+          />
+          <StatPair
+            label="Last 30d"
+            tokens={dbSummary.last30d.totalInputTokens + dbSummary.last30d.totalOutputTokens}
+            costUsd={dbSummary.last30d.totalCostUsd}
+          />
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
@@ -223,7 +248,7 @@ export function ChatClient({ providers }: { providers: ProviderRow[] }) {
               {isStreaming ? "Working…" : "Send"}
             </Button>
           </div>
-          <UsageBar tokens={displayTokens} costUsd={displayCost} />
+          <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
         </CardContent>
       </Card>
     </div>

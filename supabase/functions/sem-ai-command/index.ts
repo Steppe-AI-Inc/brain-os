@@ -107,6 +107,31 @@ function stripCodeFence(text: string): string {
   return match ? match[1].trim() : trimmed;
 }
 
+// On a long/complex command the model sometimes adds a sentence of preamble or
+// trailing commentary around the JSON despite "strict JSON only, no markdown" — grab the
+// outermost {...} object rather than giving up the whole command over stray prose.
+function extractJsonObject(text: string): string {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return text;
+  return text.slice(start, end + 1);
+}
+
+// Tries stripCodeFence as-is first (the common case), then falls back to extracting the
+// outermost JSON object before giving up. Throws the original parse error if both fail.
+function parseModelJson(rawText: string): unknown {
+  const fenceStripped = stripCodeFence(rawText);
+  try {
+    return JSON.parse(fenceStripped);
+  } catch (firstError) {
+    try {
+      return JSON.parse(extractJsonObject(fenceStripped));
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
 function sseEvent(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
@@ -399,8 +424,16 @@ serve(async (req) => {
 
         let result: any;
         try {
-          result = JSON.parse(stripCodeFence(resultText));
+          result = parseModelJson(resultText);
         } catch {
+          // No audit_logs row exists for this failure otherwise (it happens before the
+          // transactional RPC even runs) — log it so a bad reply is diagnosable later
+          // instead of only reproducible live.
+          await supabase.from('audit_logs').insert({
+            actor_profile_id: profile.id, actor_role: profile.role,
+            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: null,
+            message: 'Model returned invalid JSON', metadata: { command, model, raw: resultText.slice(0, 4000) }
+          });
           send({ type: 'error', error: 'Model returned invalid JSON', raw: resultText.slice(0, 2000) });
           return;
         }
