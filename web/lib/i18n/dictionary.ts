@@ -10,7 +10,7 @@ export const DICT: Record<Exclude<Locale, "en">, Record<string, string>> = {
     "navGroup.FACTORIES": "ҮЙЛДВЭРҮҮД",
     "navGroup.ADMIN DATA": "УДИРДЛАГЫН МЭДЭЭЛЭЛ",
 
-    "nav.chatOps": "AI Чат",
+    "nav.chatOps": "Brain OS-той ярих",
     "nav.dashboard": "Гүйцэтгэх хяналтын самбар",
     "nav.companies": "Компаниуд",
     "nav.people": "Хүмүүс",

@@ -40,6 +40,7 @@ export async function setActiveProvider(id: string) {
   if (error) return error.message;
 
   revalidatePath("/settings");
+  revalidatePath("/chat");
   return null;
 }
 

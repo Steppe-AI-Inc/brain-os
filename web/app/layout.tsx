@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SEM Brain",
-  description: "AI-native operating brain for Steppe AI, Inc.",
+  title: "Brain OS",
+  description: "Brain OS — the company brain for Steppe AI, Inc.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

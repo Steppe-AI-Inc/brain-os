@@ -30,3 +30,35 @@ export async function createCompany(_prevState: string | null, formData: FormDat
   revalidatePath("/companies");
   return null;
 }
+
+export type CompanyInput = {
+  name: string;
+  country: string;
+  legalEntityName: string;
+  status: string;
+};
+
+export async function updateCompany(id: string, input: CompanyInput) {
+  if (!input.name.trim()) return "Company name is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("companies")
+    .update({
+      name: input.name.trim(),
+      country: input.country.trim() || null,
+      legal_entity_name: input.legalEntityName.trim() || null,
+      status: input.status || "active",
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/companies");
+  return null;
+}
+
+export async function deleteCompany(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("companies").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/companies");
+  return null;
+}

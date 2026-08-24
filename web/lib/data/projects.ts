@@ -31,3 +31,32 @@ export async function createProject(_prevState: string | null, formData: FormDat
   revalidatePath("/projects");
   return null;
 }
+
+export type ProjectInput = { title: string; companyId: string; goal: string; status: string; deadline: string };
+
+export async function updateProject(id: string, input: ProjectInput) {
+  if (!input.title.trim()) return "Title is required.";
+  if (!input.companyId) return "Company is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      title: input.title.trim(),
+      company_id: input.companyId,
+      goal: input.goal.trim() || null,
+      status: input.status.trim() || "active",
+      deadline: input.deadline || null,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/projects");
+  return null;
+}
+
+export async function deleteProject(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/projects");
+  return null;
+}

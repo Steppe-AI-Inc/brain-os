@@ -117,3 +117,29 @@ export async function createProposal(_prevState: string | null, formData: FormDa
   revalidatePath("/tasks");
   return null;
 }
+
+export type ProposalInput = { title: string; status: string; paymentTerms: string };
+
+export async function updateProposal(id: string, input: ProposalInput) {
+  if (!input.title.trim()) return "Title is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("proposals")
+    .update({
+      title: input.title.trim(),
+      status: input.status.trim() || "draft",
+      payment_terms: input.paymentTerms.trim() || null,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/proposals");
+  return null;
+}
+
+export async function deleteProposal(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("proposals").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/proposals");
+  return null;
+}

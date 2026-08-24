@@ -36,3 +36,40 @@ export async function createLead(_prevState: string | null, formData: FormData) 
   revalidatePath("/sales");
   return null;
 }
+
+export type LeadInput = {
+  clientName: string;
+  companyId: string;
+  contactName: string;
+  contactEmail: string;
+  stage: string;
+  valueEstimate: number;
+};
+
+export async function updateLead(id: string, input: LeadInput) {
+  if (!input.clientName.trim()) return "Client name is required.";
+  if (!input.companyId) return "Company is required.";
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sales_leads")
+    .update({
+      client_name: input.clientName.trim(),
+      company_id: input.companyId,
+      contact_name: input.contactName.trim() || null,
+      contact_email: input.contactEmail.trim() || null,
+      stage: input.stage.trim() || "lead",
+      value_estimate: input.valueEstimate,
+    })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/sales");
+  return null;
+}
+
+export async function deleteLead(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("sales_leads").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/sales");
+  return null;
+}

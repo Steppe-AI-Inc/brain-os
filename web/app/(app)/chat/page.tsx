@@ -1,21 +1,13 @@
-import { getChatWorkspace } from "@/lib/data/chat";
+import { getAiProviders } from "@/lib/data/ai-providers";
+import { getUsageSummary } from "@/lib/data/usage";
+import { getChatHistory } from "@/lib/data/chat-history";
 import { ChatClient } from "./chat-client";
 
-export const dynamic = "force-dynamic";
-
-export default async function ChatPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ thread?: string }>;
-}) {
-  const params = await searchParams;
-  const workspace = await getChatWorkspace(params.thread);
-  return (
-    <ChatClient
-      key={workspace.activeThreadId ?? "new-chat"}
-      initialThreads={workspace.threads}
-      initialThreadId={workspace.activeThreadId}
-      initialMessages={workspace.messages}
-    />
-  );
+export default async function ChatPage() {
+  const [providers, usageSummary, history] = await Promise.all([
+    getAiProviders(),
+    getUsageSummary(),
+    getChatHistory(30),
+  ]);
+  return <ChatClient providers={providers} usageSummary={usageSummary} history={history} />;
 }

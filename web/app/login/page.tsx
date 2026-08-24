@@ -17,7 +17,7 @@ export default function LoginPage() {
           <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-black text-white">
             Σ
           </div>
-          <CardTitle className="text-xl">Sign in to SEM Brain</CardTitle>
+          <CardTitle className="text-xl">Sign in to Brain OS</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={formAction} className="flex flex-col gap-4">

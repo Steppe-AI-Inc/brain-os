@@ -47,3 +47,32 @@ export async function createDepartment(_prevState: string | null, formData: Form
   revalidatePath("/departments");
   return null;
 }
+
+export type DepartmentInput = { name: string; companyId: string };
+
+export async function updateDepartment(id: string, input: DepartmentInput) {
+  if (!input.name.trim()) return "Name is required.";
+  if (!input.companyId) return "Company is required.";
+  const slug = input.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("departments")
+    .update({ name: input.name.trim(), company_id: input.companyId, slug })
+    .eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/departments");
+  return null;
+}
+
+export async function deleteDepartment(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("departments").delete().eq("id", id);
+  if (error) return error.message;
+  revalidatePath("/departments");
+  return null;
+}

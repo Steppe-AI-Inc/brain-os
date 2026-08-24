@@ -1,4 +1,5 @@
-// SEM Brain v0.7 Supabase Edge Function: sem-ai-command
+// Brain OS v0.7 Supabase Edge Function: sem-ai-command (function slug kept as-is —
+// infrastructure name, not the product's user-facing name)
 // Required secrets:
 //   OPENAI_API_KEY
 //   OPENAI_MODEL=gpt-4.1-mini
@@ -48,8 +49,9 @@ type AiTask = {
   testMethod?: string[];
 };
 
-const SYSTEM_PROMPT = `You are SEM Brain v0.7 Production Core.
+const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
+Refer to yourself as "Brain OS" if you need to name yourself in a reply, never "SEM Brain".
 You receive one user command and a compact context pack from the database.
 Return strict JSON only. No markdown.
 
@@ -60,6 +62,41 @@ Rules:
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
+- You may delete existing tasks the user asks to remove/clear/delete: put their exact "id"
+  from context.tasks into deleteTaskIds. Never invent or guess an id — only ids that
+  literally appear in context.tasks are honored; anything else is silently ignored. If the
+  user references a task that isn't in context.tasks, say so in summary instead of
+  guessing an id.
+- You may create real companies and people directly (not just a task describing the
+  work) when the user gives you real facts about a company or a person that does not
+  already exist in context.companies / context.people. Check context first — never create
+  a duplicate of something already there; if it already exists, describe follow-up work
+  as a normal task instead. For a person's companyId, use a real id from context.companies,
+  or companyIndex (0-based) pointing at an entry in this same response's createCompanies
+  array if the person belongs to a company you are creating right now. Creating a company
+  or person is not itself high-risk (write access is already restricted by the database) —
+  only flag an approval if the request also involves something from the high-risk list
+  above, e.g. a change of legal ownership or control.
+- You may create real projects and goals the same way — check context.projects /
+  context.goals first, never duplicate. Every project and goal requires a company: use a
+  real companyId from context.companies, or companyIndex into this response's own
+  createCompanies array. If neither is available, create a clarification task instead of
+  guessing which company it belongs to.
+- You may record company ownership/parent relationships (createCompanyRelationships) and
+  person work assignments (createPersonAssignments) — check context.companyRelationships /
+  context.personAssignments first, never duplicate. CRITICAL: every relationship has a
+  "state" of "current", "planned", "historical", or "under_restructuring", and it MUST
+  default to "planned" — you may only use "current" when the user describes the
+  relationship as already, today, legally true (e.g. "X is a subsidiary of Y", present
+  tense, existing fact). Any future/intent language — "will become", "I will replace",
+  "planning to", "going to" — is "planned", never "current". Never treat an intention as
+  an already-completed legal transfer. When the owner is an individual rather than a
+  company (e.g. the founder personally), use ownerProfileId set to exactly the calling
+  profile.id provided in the input — never any other id — and leave relatedCompanyId/
+  relatedCompanyIndex null; exactly one of the two must be set, never both, never neither.
+  ownershipPct stays null unless the user states an actual number. For person assignments,
+  personId/personIndex works like companyId/companyIndex (personIndex points at
+  createPeople in this same response); leave any field null rather than guessing.
 
 Output schema:
 {
@@ -82,6 +119,25 @@ Output schema:
       "testMethod": [string]
     }
   ],
+  "deleteTaskIds": [string],
+  "createCompanies": [
+    {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
+  ],
+  "createPeople": [
+    {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "createProjects": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "goal": string|null, "deadline": string|null, "blockers": string|null}
+  ],
+  "createGoals": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|"archived"|null, "dueAt": string|null}
+  ],
+  "createCompanyRelationships": [
+    {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
+  ],
+  "createPersonAssignments": [
+    {"personId": string|null, "personIndex": number|null, "legalEmployerCompanyId": string|null, "legalEmployerCompanyIndex": number|null, "operatingCompanyId": string|null, "operatingCompanyIndex": number|null, "departmentId": string|null, "jobTitle": string|null, "managerPersonId": string|null, "managerPersonIndex": number|null, "employmentType": "full_time"|"part_time"|"contractor"|"advisor"|null, "allocationPct": number|null, "startDate": string|null, "endDate": string|null, "isPrimary": boolean|null, "responsibilities": string|null, "state": "current"|"planned"|"historical"|null}
+  ],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
   ],
@@ -99,6 +155,31 @@ function stripCodeFence(text: string): string {
   const trimmed = text.trim();
   const match = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
   return match ? match[1].trim() : trimmed;
+}
+
+// On a long/complex command the model sometimes adds a sentence of preamble or
+// trailing commentary around the JSON despite "strict JSON only, no markdown" — grab the
+// outermost {...} object rather than giving up the whole command over stray prose.
+function extractJsonObject(text: string): string {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return text;
+  return text.slice(start, end + 1);
+}
+
+// Tries stripCodeFence as-is first (the common case), then falls back to extracting the
+// outermost JSON object before giving up. Throws the original parse error if both fail.
+function parseModelJson(rawText: string): unknown {
+  const fenceStripped = stripCodeFence(rawText);
+  try {
+    return JSON.parse(fenceStripped);
+  } catch (firstError) {
+    try {
+      return JSON.parse(extractJsonObject(fenceStripped));
+    } catch {
+      throw firstError;
+    }
+  }
 }
 
 function sseEvent(data: unknown): string {
@@ -135,6 +216,7 @@ async function consumeSSE(response: Response, onEvent: (data: any) => void): Pro
 }
 
 type Usage = { input_tokens?: number; output_tokens?: number };
+type StreamResult = { text: string; stopReason: string | null };
 
 async function callAnthropicStreaming(
   model: string,
@@ -142,7 +224,7 @@ async function callAnthropicStreaming(
   contextForModel: unknown,
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
-): Promise<string> {
+): Promise<StreamResult> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -152,7 +234,7 @@ async function callAnthropicStreaming(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
       temperature: 0.2,
@@ -164,6 +246,7 @@ async function callAnthropicStreaming(
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
+  let stopReason: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && typeof evt.delta.text === 'string') {
       accumulated += evt.delta.text;
@@ -172,9 +255,10 @@ async function callAnthropicStreaming(
       onUsage({ input_tokens: evt.message.usage.input_tokens, output_tokens: evt.message.usage.output_tokens });
     } else if (evt.type === 'message_delta' && evt.usage) {
       onUsage({ output_tokens: evt.usage.output_tokens });
+      if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
     }
   });
-  return accumulated;
+  return { text: accumulated, stopReason };
 }
 
 async function callOpenAIStreaming(
@@ -183,7 +267,7 @@ async function callOpenAIStreaming(
   contextForModel: unknown,
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
-): Promise<string> {
+): Promise<StreamResult> {
   const r = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -193,6 +277,7 @@ async function callOpenAIStreaming(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: JSON.stringify(contextForModel, null, 2) },
       ],
+      max_output_tokens: 8192,
       temperature: 0.2,
       stream: true,
     }),
@@ -202,15 +287,18 @@ async function callOpenAIStreaming(
     throw { status: r.status, body: errBody };
   }
   let accumulated = "";
+  let stopReason: string | null = null;
   await consumeSSE(r, (evt) => {
     if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
       accumulated += evt.delta;
       onDelta(evt.delta);
     } else if (evt.type === 'response.completed' && evt.response?.usage) {
       onUsage({ input_tokens: evt.response.usage.input_tokens, output_tokens: evt.response.usage.output_tokens });
+    } else if (evt.type === 'response.incomplete' && evt.response?.incomplete_details?.reason) {
+      stopReason = evt.response.incomplete_details.reason;
     }
   });
-  return accumulated;
+  return { text: accumulated, stopReason };
 }
 
 // Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
@@ -290,13 +378,13 @@ function fallbackPlan(command:string, contextPack:any){
   } else {
     tasks.push({title:'Create CEO operating brief and follow-up tasks',description:command,companyId,ownerType:'agent',ownerAgentId:agent('chief'),priority:'high',riskLevel:'low',approvalRequired:false,acceptanceCriteria:['Blockers identified','Tasks created','Founder decisions listed'],testMethod:['QA checks brief completeness']});
   }
-  return { strategicGoal:'Execute founder command through SEM Brain v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
+  return { strategicGoal:'Execute founder command through Brain OS v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
 }
 
 async function buildContext(supabase:any, command:string){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -304,10 +392,16 @@ async function buildContext(supabase:any, command:string){
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     supabase.from('product_lines').select('id,company_id,name,currency,unit_price,unit_cost,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
-    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20)
+    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
+    supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30),
+    supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
+    // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
+    // casing needed here.
+    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
+    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30)
   ]);
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[] };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -366,8 +460,25 @@ serve(async (req) => {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
+      let workOrderId: string | null = null;
       try {
+        // A real row now exists in the database before the LLM call even starts, not
+        // just after it finishes — verified live that generation itself survives a
+        // client disconnect (a command was sent, the browser hard-disconnected before it
+        // could have finished, and the task/work_order/model_usage rows all landed
+        // successfully anyway), so this pending row is what the chat page reconnects to
+        // if the user navigates away and back mid-generation.
+        const { data: pendingId, error: pendingError } = await supabase.rpc('create_pending_work_order', {
+          p_command: command,
+          p_context_pack: contextPack,
+        });
+        if (!pendingError && pendingId) {
+          workOrderId = pendingId;
+          send({ type: 'work_order', id: workOrderId });
+        }
+
         let resultText: string;
+        let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
 
         if(!key){
@@ -376,26 +487,43 @@ serve(async (req) => {
           model = 'fallback-no-api-key';
           if (fb.summary) send({ type: 'delta', text: fb.summary });
         } else if (providerName === 'anthropic') {
-          resultText = await callAnthropicStreaming(
+          const r = await callAnthropicStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );
+          resultText = r.text; stopReason = r.stopReason;
         } else {
-          resultText = await callOpenAIStreaming(
+          const r = await callOpenAIStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );
+          resultText = r.text; stopReason = r.stopReason;
         }
 
         let result: any;
         try {
-          result = JSON.parse(stripCodeFence(resultText));
+          result = parseModelJson(resultText);
         } catch {
-          send({ type: 'error', error: 'Model returned invalid JSON', raw: resultText.slice(0, 2000) });
+          // Now attached to a real work_order row (entity_id) instead of null, and that
+          // row itself gets marked 'rejected' rather than sitting stuck at 'queued'
+          // forever — both diagnosable and visible in chat history afterward.
+          const truncated = stopReason === 'max_tokens' || stopReason === 'max_output_tokens';
+          const errorMessage = truncated
+            ? 'Response was cut off before it finished (too long for one reply) — try breaking the request into smaller steps.'
+            : 'Model returned invalid JSON';
+          await supabase.from('audit_logs').insert({
+            actor_profile_id: profile.id, actor_role: profile.role,
+            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: workOrderId,
+            message: errorMessage, metadata: { command, model, stopReason, raw: resultText.slice(0, 4000) }
+          });
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage });
+          }
+          send({ type: 'error', error: errorMessage, raw: resultText.slice(0, 2000) });
           return;
         }
 
@@ -418,9 +546,125 @@ serve(async (req) => {
           };
         });
 
+        // Deletion is high-risk regardless of which task is targeted (no title/description
+        // to keyword-scan the way task creation is) — cross-check against the real ids
+        // this request's own context pack fetched, so the model can't smuggle in an
+        // arbitrary uuid it merely guessed at.
+        const contextTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
+        const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
+        const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
+
+        // Companies/people creation: defensively coerce shape (never trust the model's
+        // JSON structure blindly) — name/fullName are required, everything else is
+        // optional. A person's companyId is only trusted if it's a real id from
+        // context.companies; companyIndex is bounds-checked by the RPC itself against
+        // however many companies actually get created this request.
+        const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+        const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
+        const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
+        const createCompanies = requestedCompanies
+          .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as any).name === 'string' && (c as any).name.trim())
+          .map((c: any) => ({
+            name: String(c.name).trim(),
+            country: typeof c.country === 'string' ? c.country : null,
+            legalEntityName: typeof c.legalEntityName === 'string' ? c.legalEntityName : null,
+            description: typeof c.description === 'string' ? c.description : null,
+          }));
+
+        const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
+        const createPeople = requestedPeople
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).fullName === 'string' && (p as any).fullName.trim())
+          .map((p: any) => ({
+            fullName: String(p.fullName).trim(),
+            email: typeof p.email === 'string' ? p.email : null,
+            roleTitle: typeof p.roleTitle === 'string' ? p.roleTitle : null,
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+          }));
+
+        // Projects/goals both require a company (NOT NULL in the schema) — drop any
+        // entry with no resolvable reference rather than let it hit the database and
+        // fail the whole transaction on a not-null violation.
+        const hasCompanyRef = (c: any) => (typeof c.companyId === 'string' && contextCompanyIds.has(c.companyId)) || typeof c.companyIndex === 'number';
+        const requestedProjects = Array.isArray(result.createProjects) ? result.createProjects as unknown[] : [];
+        const createProjects = requestedProjects
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).title === 'string' && (p as any).title.trim() && hasCompanyRef(p))
+          .map((p: any) => ({
+            title: String(p.title).trim(),
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+            goal: typeof p.goal === 'string' ? p.goal : null,
+            deadline: typeof p.deadline === 'string' ? p.deadline : null,
+            blockers: typeof p.blockers === 'string' ? p.blockers : null,
+          }));
+
+        const requestedGoals = Array.isArray(result.createGoals) ? result.createGoals as unknown[] : [];
+        const createGoals = requestedGoals
+          .filter((g): g is Record<string, unknown> => !!g && typeof g === 'object' && typeof (g as any).title === 'string' && (g as any).title.trim() && hasCompanyRef(g))
+          .map((g: any) => ({
+            title: String(g.title).trim(),
+            companyId: typeof g.companyId === 'string' && contextCompanyIds.has(g.companyId) ? g.companyId : null,
+            companyIndex: typeof g.companyIndex === 'number' ? g.companyIndex : null,
+            description: typeof g.description === 'string' ? g.description : null,
+            kind: typeof g.kind === 'string' ? g.kind : null,
+            status: typeof g.status === 'string' ? g.status : null,
+            dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
+          }));
+
+        // Company relationships / person assignments: real, sensitive data (founder-only
+        // and manager-scoped RLS is the real authorization) — state defaults to the
+        // safest option ("planned") per the "never treat an intention as an
+        // already-completed legal transfer" rule; only an explicit, valid "current" is
+        // ever honored, and ownerProfileId is only trusted if it exactly matches the
+        // calling profile — never any other value the model might supply.
+        const VALID_RELATIONSHIP_STATES = new Set(['current', 'planned', 'historical', 'under_restructuring']);
+        const VALID_RELATIONSHIP_TYPES = new Set(['parent_of', 'owned_by_percentage']);
+        const requestedRelationships = Array.isArray(result.createCompanyRelationships) ? result.createCompanyRelationships as unknown[] : [];
+        const createCompanyRelationships = requestedRelationships
+          .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object' && hasCompanyRef(r))
+          .map((r: any) => ({
+            companyId: typeof r.companyId === 'string' && contextCompanyIds.has(r.companyId) ? r.companyId : null,
+            companyIndex: typeof r.companyIndex === 'number' ? r.companyIndex : null,
+            relatedCompanyId: typeof r.relatedCompanyId === 'string' && contextCompanyIds.has(r.relatedCompanyId) ? r.relatedCompanyId : null,
+            relatedCompanyIndex: typeof r.relatedCompanyIndex === 'number' ? r.relatedCompanyIndex : null,
+            ownerProfileId: typeof r.ownerProfileId === 'string' && r.ownerProfileId === profile.id ? r.ownerProfileId : null,
+            relationshipType: typeof r.relationshipType === 'string' && VALID_RELATIONSHIP_TYPES.has(r.relationshipType) ? r.relationshipType : 'parent_of',
+            ownershipPct: typeof r.ownershipPct === 'number' ? r.ownershipPct : null,
+            state: typeof r.state === 'string' && VALID_RELATIONSHIP_STATES.has(r.state) ? r.state : 'planned',
+            effectiveDate: typeof r.effectiveDate === 'string' ? r.effectiveDate : null,
+            notes: typeof r.notes === 'string' ? r.notes : null,
+          }));
+
+        const VALID_ASSIGNMENT_STATES = new Set(['current', 'planned', 'historical']);
+        const VALID_EMPLOYMENT_TYPES = new Set(['full_time', 'part_time', 'contractor', 'advisor']);
+        const requestedAssignments = Array.isArray(result.createPersonAssignments) ? result.createPersonAssignments as unknown[] : [];
+        const createPersonAssignments = requestedAssignments
+          .filter((a): a is Record<string, unknown> =>
+            !!a && typeof a === 'object' &&
+            ((typeof (a as any).personId === 'string' && contextPersonIds.has((a as any).personId)) || typeof (a as any).personIndex === 'number'))
+          .map((a: any) => ({
+            personId: typeof a.personId === 'string' && contextPersonIds.has(a.personId) ? a.personId : null,
+            personIndex: typeof a.personIndex === 'number' ? a.personIndex : null,
+            legalEmployerCompanyId: typeof a.legalEmployerCompanyId === 'string' && contextCompanyIds.has(a.legalEmployerCompanyId) ? a.legalEmployerCompanyId : null,
+            legalEmployerCompanyIndex: typeof a.legalEmployerCompanyIndex === 'number' ? a.legalEmployerCompanyIndex : null,
+            operatingCompanyId: typeof a.operatingCompanyId === 'string' && contextCompanyIds.has(a.operatingCompanyId) ? a.operatingCompanyId : null,
+            operatingCompanyIndex: typeof a.operatingCompanyIndex === 'number' ? a.operatingCompanyIndex : null,
+            departmentId: typeof a.departmentId === 'string' ? a.departmentId : null,
+            jobTitle: typeof a.jobTitle === 'string' ? a.jobTitle : null,
+            managerPersonId: typeof a.managerPersonId === 'string' && contextPersonIds.has(a.managerPersonId) ? a.managerPersonId : null,
+            managerPersonIndex: typeof a.managerPersonIndex === 'number' ? a.managerPersonIndex : null,
+            employmentType: typeof a.employmentType === 'string' && VALID_EMPLOYMENT_TYPES.has(a.employmentType) ? a.employmentType : 'full_time',
+            allocationPct: typeof a.allocationPct === 'number' ? a.allocationPct : null,
+            startDate: typeof a.startDate === 'string' ? a.startDate : null,
+            endDate: typeof a.endDate === 'string' ? a.endDate : null,
+            isPrimary: typeof a.isPrimary === 'boolean' ? a.isPrimary : true,
+            responsibilities: typeof a.responsibilities === 'string' ? a.responsibilities : null,
+            state: typeof a.state === 'string' && VALID_ASSIGNMENT_STATES.has(a.state) ? a.state : 'current',
+          }));
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
-        const forcedApprovals = forcedApprovalTaskIndexes
+        const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
           .filter(i => !modelApprovalTaskIndexes.has(i))
           .map(i => ({
             title: `Approval required: ${resultTasks[i].title}`,
@@ -428,6 +672,14 @@ serve(async (req) => {
             riskLevel: resultTasks[i].riskLevel || 'high',
             taskIndex: i
           }));
+        if (deleteTaskIds.length > 0) {
+          forcedApprovals.push({
+            title: `Approval required: delete ${deleteTaskIds.length} task(s)`,
+            reason: 'Server-side risk policy forces approval for any task deletion.',
+            riskLevel: 'high',
+            taskIndex: null,
+          });
+        }
         // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
         // legal -> founder/admin only, general/production/external_comms -> company manager).
         // Prefer the linked task's own text (more specific) over the approval's own title/reason.
@@ -451,9 +703,20 @@ serve(async (req) => {
           p_model_name: model,
           p_input_tokens: finalInputTokens,
           p_output_tokens: finalOutputTokens,
-          p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens)
+          p_estimated_cost_usd: estimateCost(model, finalInputTokens, finalOutputTokens),
+          p_deleted_task_ids: deleteTaskIds,
+          p_companies: createCompanies,
+          p_people: createPeople,
+          p_projects: createProjects,
+          p_goals: createGoals,
+          p_company_relationships: createCompanyRelationships,
+          p_person_assignments: createPersonAssignments,
+          p_work_order_id: workOrderId
         });
         if(rpcError) {
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: rpcError.message || 'Failed to persist AI command result' });
+          }
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
           return;
         }
@@ -461,12 +724,23 @@ serve(async (req) => {
         const workOrder = { id: rpcResult.workOrderId };
         const createdTasks = rpcResult.createdTasks || [];
         const createdApprovals = rpcResult.createdApprovals || [];
+        const deletedTaskIds = rpcResult.deletedTaskIds || [];
+        const createdCompanies = rpcResult.createdCompanies || [];
+        const createdPeople = rpcResult.createdPeople || [];
+        const createdProjects = rpcResult.createdProjects || [];
+        const createdGoals = rpcResult.createdGoals || [];
+        const createdCompanyRelationships = rpcResult.createdCompanyRelationships || [];
+        const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
-        send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
+        const errorMessage = e?.body?.error?.message || e?.message || String(e);
+        if (workOrderId) {
+          await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage }).catch(() => {});
+        }
+        send({ type: 'error', error: errorMessage });
       } finally {
         controller.close();
       }

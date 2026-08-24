@@ -1,407 +1,337 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowUpRight,
-  History,
-  MessageSquarePlus,
-  Pencil,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
-import {
-  consumeChatStream,
-  toChatResult,
-  type ChatResult,
-  type StreamEvent,
-} from "@/lib/chat-stream";
-import {
-  deleteChatThread,
-  renameChatThread,
-  type StoredChatMessage,
-  type StoredChatThread,
-} from "@/lib/data/chat";
+import { consumeChatStream, toChatResult, type ChatResult } from "@/lib/chat-stream";
+import { estimateCost } from "@/lib/usage/pricing";
+import { setActiveProvider } from "@/lib/data/ai-providers";
+import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
+import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
 
-type DisplayMessage = Omit<StoredChatMessage, "result"> & {
-  result: ChatResult | null;
+type Usage = { input_tokens: number; output_tokens: number };
+type TokenCost = { tokens: number; costUsd: number };
+
+type ProviderRow = {
+  id: string;
+  provider: string;
+  label: string;
+  model: string;
+  is_active: boolean;
 };
 
-function storedResult(message: StoredChatMessage): ChatResult | null {
-  if (!message.result) return null;
-  const event = message.result as unknown as Extract<StreamEvent, { type: "done" }>;
-  const result = toChatResult(event);
-  return { ...result, summary: result.summary || message.content };
+type Message = {
+  command: string;
+  status: "streaming" | "done" | "error";
+  usage: Usage | null;
+  result?: ChatResult;
+  error?: string;
+};
+
+// work_orders.status is 'queued' until sem_execute_ai_command marks it 'done', or
+// mark_work_order_failed marks it 'rejected' — 'queued' on reload means the message was
+// still generating when the user navigated away (generation itself survives a client
+// disconnect, verified live; only the UI needed a way to reconnect to it).
+function historyToMessage(h: ChatHistoryMessage): Message {
+  const usage =
+    h.inputTokens || h.outputTokens ? { input_tokens: h.inputTokens, output_tokens: h.outputTokens } : null;
+
+  if (h.status === "rejected") {
+    return { command: h.command, status: "error", usage, error: h.output?.error || "Command failed." };
+  }
+  if (h.status !== "done") {
+    return { command: h.command, status: "streaming", usage };
+  }
+  return {
+    command: h.command,
+    status: "done",
+    usage,
+    result: {
+      summary: h.output?.summary || "Command executed.",
+      taskCount: h.counts?.tasks ?? 0,
+      approvalCount: h.counts?.approvals ?? 0,
+      deletedCount: h.counts?.deletedTasks ?? 0,
+      companyCount: h.counts?.companies ?? 0,
+      personCount: h.counts?.people ?? 0,
+      projectCount: h.counts?.projects ?? 0,
+      goalCount: h.counts?.goals ?? 0,
+      relationshipCount: h.counts?.companyRelationships ?? 0,
+      assignmentCount: h.counts?.personAssignments ?? 0,
+      model: h.modelName || "unknown",
+      usage,
+    },
+  };
 }
 
-function displayMessages(messages: StoredChatMessage[]): DisplayMessage[] {
-  return messages.map((message) => ({ ...message, result: storedResult(message) }));
+function fmtCost(n: number): string {
+  if (n === 0) return "$0.00";
+  return `$${n.toFixed(n < 1 ? 4 : 2)}`;
 }
 
-function ChatHistory({
-  threads,
-  activeThreadId,
-  busy,
-  onRename,
-  onDelete,
-}: {
-  threads: StoredChatThread[];
-  activeThreadId: string | null;
-  busy: boolean;
-  onRename: (thread: StoredChatThread) => void;
-  onDelete: (thread: StoredChatThread) => void;
-}) {
+function StatPair({ label, tokens, costUsd }: { label: string; tokens: number; costUsd: number }) {
   return (
-    <div className="flex min-h-0 flex-col gap-3">
-      <Link href="/chat" className={buttonVariants({ className: "w-full justify-start" })}>
-        <MessageSquarePlus className="size-4" />
-        New conversation
-      </Link>
-      <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        <History className="size-3.5" />
-        History
-      </div>
-      <div className="flex min-h-0 flex-col gap-1 overflow-y-auto">
-        {threads.map((thread) => (
-          <div
-            key={thread.id}
-            className={
-              "group flex items-center rounded-xl border transition-colors " +
-              (thread.id === activeThreadId
-                ? "border-primary/40 bg-primary/10"
-                : "border-transparent hover:bg-muted/70")
-            }
-          >
-            <Link
-              href={"/chat?thread=" + thread.id}
-              className="min-w-0 flex-1 px-3 py-2.5 text-sm font-medium"
-            >
-              <span className="block truncate">{thread.title}</span>
-              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-                {new Date(thread.lastMessageAt).toLocaleDateString()}
-              </span>
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="opacity-60 hover:opacity-100"
-              disabled={busy}
-              aria-label={"Rename " + thread.title}
-              onClick={() => onRename(thread)}
-            >
-              <Pencil className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="mr-1 opacity-60 hover:text-destructive hover:opacity-100"
-              disabled={busy}
-              aria-label={"Delete " + thread.title}
-              onClick={() => onDelete(thread)}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
-          </div>
-        ))}
-        {threads.length === 0 ? (
-          <p className="px-2 py-6 text-center text-xs text-muted-foreground">
-            Your conversations will remain here across navigation and devices.
-          </p>
-        ) : null}
-      </div>
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <Badge variant="outline" className="tabular-nums">
+        {tokens.toLocaleString()}
+      </Badge>
+      <Badge variant="outline" className="tabular-nums">
+        {fmtCost(costUsd)}
+      </Badge>
     </div>
   );
 }
 
-export function ChatClient({
-  initialThreads,
-  initialThreadId,
-  initialMessages,
-}: {
-  initialThreads: StoredChatThread[];
-  initialThreadId: string | null;
-  initialMessages: StoredChatMessage[];
-}) {
+function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   const router = useRouter();
-  const endRef = useRef<HTMLDivElement>(null);
-  const [command, setCommand] = useState("");
-  const [threads, setThreads] = useState(initialThreads);
-  const [activeThreadId, setActiveThreadId] = useState(initialThreadId);
-  const [messages, setMessages] = useState<DisplayMessage[]>(displayMessages(initialMessages));
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [isManaging, startManaging] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const active = providers.find((p) => p.is_active);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+  function onChange(v: unknown) {
+    if (typeof v !== "string") return;
+    startTransition(async () => {
+      await setActiveProvider(v);
+      router.refresh();
+    });
+  }
 
-  function patchMessage(id: string, patch: Partial<DisplayMessage>) {
-    setMessages((previous) =>
-      previous.map((message) => (message.id === id ? { ...message, ...patch } : message))
+  if (providers.length === 0) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        No providers configured — using fallback planner.
+      </span>
     );
   }
 
-  function registerThread(threadId: string, title: string) {
-    setActiveThreadId(threadId);
-    setThreads((previous) => {
-      const existing = previous.find((thread) => thread.id === threadId);
-      if (existing) return previous;
-      const now = new Date().toISOString();
-      return [{ id: threadId, title, lastMessageAt: now, createdAt: now }, ...previous];
-    });
-    window.history.replaceState(null, "", "/chat?thread=" + threadId);
+  return (
+    <Select value={active?.id} onValueChange={onChange} disabled={pending}>
+      <SelectTrigger className="h-8 w-56 text-xs">
+        <SelectValue placeholder="Select provider">
+          {() => (active ? `${active.label} · ${active.model}` : "Select provider")}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {providers.map((p) => (
+          <SelectItem key={p.id} value={p.id}>
+            {p.label} · {p.model}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
+
+export function ChatClient({
+  providers,
+  usageSummary,
+  history,
+}: {
+  providers: ProviderRow[];
+  usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
+  history: ChatHistoryMessage[];
+}) {
+  const [command, setCommand] = useState("");
+  const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
+  const [isStreaming, setIsStreaming] = useState(false);
+  // Session = cumulative since this tab loaded. Request = only the current/most recent
+  // send. Today/30d = real DB aggregates (getUsageSummary()), refreshed after each reply
+  // — separate scopes on purpose, per the founder's ask: "top should be session/daily/
+  // monthly totals, near the chatbox should be just that one request."
+  const [sessionTotal, setSessionTotal] = useState<TokenCost>(ZERO);
+  const [requestUsage, setRequestUsage] = useState<TokenCost>(ZERO);
+  const [dbSummary, setDbSummary] = useState(usageSummary);
+
+  const activeModel = providers.find((p) => p.is_active)?.model || "unknown";
+
+  function patchMessage(index: number, patch: Partial<Message> | ((prev: Message) => Partial<Message>)) {
+    setMessages((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, ...(typeof patch === "function" ? patch(m) : patch) } : m))
+    );
   }
+
+  // If the newest message was still generating when this tab loaded (reconnecting after
+  // navigating away mid-stream, not a message we're actively streaming ourselves right
+  // now), poll history until it resolves. Depends only on the initial `history` prop —
+  // runs once per real page load, not on every local state change.
+  useEffect(() => {
+    const last = history[history.length - 1];
+    if (!last || last.status !== "queued") return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const fresh = await getChatHistory();
+      if (cancelled) return;
+      setMessages(fresh.map(historyToMessage));
+      const latest = fresh[fresh.length - 1];
+      if (latest && latest.status !== "queued") {
+        clearInterval(interval);
+      }
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [history]);
 
   async function send() {
     const trimmed = command.trim();
     if (!trimmed || isStreaming) return;
-
-    const stamp = Date.now().toString();
-    const userId = "local-user-" + stamp;
-    const assistantId = "local-assistant-" + stamp;
     setCommand("");
-    setActionError(null);
     setIsStreaming(true);
-    setMessages((previous) => [
-      ...previous,
-      {
-        id: userId,
-        role: "user",
-        content: trimmed,
-        status: "done",
-        result: null,
-        usage: null,
-        error: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        status: "streaming",
-        result: null,
-        usage: null,
-        error: null,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    setRequestUsage(ZERO);
 
-    await consumeChatStream(trimmed, activeThreadId, (event) => {
-      if (event.type === "thread") {
-        registerThread(event.threadId, event.title);
-      } else if (event.type === "delta") {
-        setMessages((previous) =>
-          previous.map((message) =>
-            message.id === assistantId
-              ? { ...message, content: message.content + (event.text || "") }
-              : message
-          )
-        );
-      } else if (event.type === "usage") {
-        patchMessage(assistantId, {
-          usage: {
-            input_tokens: event.input_tokens ?? 0,
-            output_tokens: event.output_tokens ?? 0,
-          },
-        });
-      } else if (event.type === "done") {
-        const result = toChatResult(event);
-        patchMessage(assistantId, {
-          status: "done",
-          content: result.summary,
-          result,
-          usage: result.usage,
-        });
-      } else if (event.type === "error") {
-        patchMessage(assistantId, {
-          status: "error",
-          error: event.error || "Unknown error",
-          content: event.error || "The command failed.",
-        });
+    let index = -1;
+    setMessages((prev) => {
+      index = prev.length;
+      return [...prev, { command: trimmed, status: "streaming", usage: null }];
+    });
+
+    await consumeChatStream(trimmed, (evt) => {
+      if (evt.type === "usage") {
+        const input = evt.input_tokens ?? 0;
+        const output = evt.output_tokens ?? 0;
+        setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
+        patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
+      } else if (evt.type === "done") {
+        const result = toChatResult(evt);
+        patchMessage(index, { status: "done", result });
+        const usage = result.usage;
+        const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
+        const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
+        setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
+        setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
+        getUsageSummary().then(setDbSummary);
+      } else if (evt.type === "error") {
+        patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
       }
     });
 
     setIsStreaming(false);
   }
 
-  function renameThread(thread: StoredChatThread) {
-    const title = window.prompt("Conversation title", thread.title)?.trim();
-    if (!title || title === thread.title) return;
-    setActionError(null);
-    startManaging(async () => {
-      const result = await renameChatThread(thread.id, title);
-      if (result.error) {
-        setActionError(result.error);
-        return;
-      }
-      setThreads((previous) =>
-        previous.map((candidate) => (candidate.id === thread.id ? { ...candidate, title } : candidate))
-      );
-      router.refresh();
-    });
-  }
-
-  function deleteThread(thread: StoredChatThread) {
-    if (!window.confirm('Delete "' + thread.title + '" and its private message history?')) return;
-    setActionError(null);
-    startManaging(async () => {
-      const result = await deleteChatThread(thread.id);
-      if (result.error) {
-        setActionError(result.error);
-        return;
-      }
-      router.push("/chat");
-      router.refresh();
-    });
-  }
-
-  const history = (
-    <ChatHistory
-      threads={threads}
-      activeThreadId={activeThreadId}
-      busy={isManaging || isStreaming}
-      onRename={renameThread}
-      onDelete={deleteThread}
-    />
-  );
-
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full flex-col gap-4">
       <PageHeader
         icon={Sparkles}
-        title="AI Native Chat"
-        description="Private conversations persist in Supabase. Validated board actions use zero model tokens; open-ended commands continue through the approval-aware orchestrator."
+        title="Speak with Brain OS"
+        description="Every command goes through the real sem-ai-command Edge Function — RLS-scoped context, server-side risk-approval enforcement, transactional persistence. Nothing is simulated locally."
       />
 
-      <details className="rounded-xl border bg-card/80 p-3 lg:hidden">
-        <summary className="cursor-pointer text-sm font-semibold">Conversation history</summary>
-        <div className="mt-3 max-h-72">{history}</div>
-      </details>
-
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-        <Card className="hidden min-h-0 bg-card/80 p-3 backdrop-blur lg:block">{history}</Card>
-
-        <div className="flex min-h-0 flex-col gap-3">
-          <div className="flex min-h-[24rem] flex-1 flex-col gap-3 overflow-y-auto rounded-2xl border bg-muted/25 p-4">
-            {messages.map((message) =>
-              message.role === "user" ? (
-                <div
-                  key={message.id}
-                  className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground"
-                >
-                  {message.content}
-                </div>
-              ) : (
-                <Card key={message.id} className="max-w-2xl bg-card/95">
-                  <CardContent className="pt-4 text-sm">
-                    {message.status === "error" ? (
-                      <span className="font-medium text-destructive">
-                        {message.error || message.content}
-                      </span>
-                    ) : (
-                      <p className="whitespace-pre-wrap">
-                        {message.content || "Thinking…"}
-                        {message.status === "streaming" ? (
-                          <span className="animate-pulse"> ▍</span>
-                        ) : null}
-                      </p>
-                    )}
-
-                    {message.result ? (
-                      <>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="outline">{message.result.taskCount} task(s)</Badge>
-                          <Badge variant="outline">{message.result.approvalCount} approval(s)</Badge>
-                          <Badge variant="secondary">{message.result.model}</Badge>
-                          {message.result.usage ? (
-                            <Badge variant="outline" className="tabular-nums">
-                              {(
-                                message.result.usage.input_tokens +
-                                message.result.usage.output_tokens
-                              ).toLocaleString()}{" "}
-                              tokens
-                            </Badge>
-                          ) : null}
-                        </div>
-                        {message.result.actions.length ? (
-                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                            {message.result.actions.map((action) => (
-                              <Link
-                                key={action.kind + ":" + action.href + ":" + action.label}
-                                href={action.href}
-                                className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-                              >
-                                <span>{action.label}</span>
-                                <ArrowUpRight className="size-4 text-muted-foreground" />
-                              </Link>
-                            ))}
-                          </div>
-                        ) : null}
-                      </>
-                    ) : message.usage ? (
-                      <Badge variant="outline" className="mt-3 tabular-nums">
-                        {(
-                          (message.usage.input_tokens ?? 0) +
-                          (message.usage.output_tokens ?? 0)
-                        ).toLocaleString()}{" "}
-                        tokens
-                      </Badge>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              )
-            )}
-
-            {messages.length === 0 ? (
-              <div className="m-auto max-w-md text-center">
-                <Sparkles className="mx-auto mb-3 size-8 text-primary" />
-                <p className="font-semibold">What should SEM Brain operate?</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Try: “Create a board named Uzbekistan launch for Steppe AI, Inc.”
-                </p>
-              </div>
-            ) : null}
-            <div ref={endRef} />
-          </div>
-
-          {actionError ? (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
-              {actionError}
-            </p>
-          ) : null}
-
-          <Card className="bg-card/95">
-            <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row">
-              <Textarea
-                value={command}
-                onChange={(event) => setCommand(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void send();
-                  }
-                }}
-                placeholder="Message SEM Brain…"
-                className="min-h-20 flex-1 resize-none"
-              />
-              <Button
-                onClick={() => void send()}
-                disabled={isStreaming || !command.trim()}
-                className="sm:self-end"
-              >
-                {isStreaming ? "Working…" : "Send"}
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card/60 px-4 py-2.5">
+        <ProviderSelector providers={providers} />
+        <div className="flex flex-wrap items-center gap-3">
+          <StatPair label="Session" tokens={sessionTotal.tokens} costUsd={sessionTotal.costUsd} />
+          <StatPair
+            label="Today"
+            tokens={dbSummary.today.totalInputTokens + dbSummary.today.totalOutputTokens}
+            costUsd={dbSummary.today.totalCostUsd}
+          />
+          <StatPair
+            label="Last 30d"
+            tokens={dbSummary.last30d.totalInputTokens + dbSummary.last30d.totalOutputTokens}
+            costUsd={dbSummary.last30d.totalCostUsd}
+          />
         </div>
       </div>
+
+      <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
+        {messages.map((m, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <div className="ml-auto max-w-lg rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">
+              {m.command}
+            </div>
+            <Card className="max-w-lg bg-card/90">
+              <CardContent className="pt-4 text-sm">
+                {m.status === "error" ? (
+                  <span className="font-medium text-destructive">{m.error}</span>
+                ) : m.status === "streaming" ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="flex gap-1">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+                    </span>
+                    <span>Brain OS is thinking…</span>
+                  </div>
+                ) : (
+                  <>
+                    <p>{m.result?.summary}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
+                      <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>
+                      {!!m.result?.deletedCount && (
+                        <Badge variant="outline">{m.result.deletedCount} task(s) deleted</Badge>
+                      )}
+                      {!!m.result?.companyCount && (
+                        <Badge variant="outline">{m.result.companyCount} compan{m.result.companyCount === 1 ? "y" : "ies"}</Badge>
+                      )}
+                      {!!m.result?.personCount && (
+                        <Badge variant="outline">{m.result.personCount} people</Badge>
+                      )}
+                      {!!m.result?.projectCount && (
+                        <Badge variant="outline">{m.result.projectCount} project(s)</Badge>
+                      )}
+                      {!!m.result?.goalCount && (
+                        <Badge variant="outline">{m.result.goalCount} goal(s)</Badge>
+                      )}
+                      {!!m.result?.relationshipCount && (
+                        <Badge variant="outline">{m.result.relationshipCount} relationship(s)</Badge>
+                      )}
+                      {!!m.result?.assignmentCount && (
+                        <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
+                      )}
+                      <Badge variant="secondary">{m.result?.model}</Badge>
+                      {m.result?.usage && (
+                        <Badge variant="outline" className="tabular-nums">
+                          {(m.result.usage.input_tokens + m.result.usage.output_tokens).toLocaleString()}{" "}
+                          tokens
+                        </Badge>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+        {messages.length === 0 && (
+          <p className="m-auto text-sm text-muted-foreground">
+            Try: &ldquo;Device 43 keeps going offline, investigate and follow up.&rdquo;
+          </p>
+        )}
+      </div>
+
+      <Card className="bg-card/90">
+        <CardContent className="flex flex-col gap-3 pt-4">
+          <div className="flex gap-3">
+            <Textarea
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="Message Brain OS…"
+              className="min-h-16"
+            />
+            <Button onClick={send} disabled={isStreaming || !command.trim()}>
+              {isStreaming ? "Working…" : "Send"}
+            </Button>
+          </div>
+          <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,54 +1,59 @@
 "use client";
 
-export type ChatAction = {
-  kind: "board" | "column" | "task";
-  label: string;
-  href: string;
-};
-
 export type ChatResult = {
   summary: string;
   taskCount: number;
   approvalCount: number;
+  deletedCount: number;
+  companyCount: number;
+  personCount: number;
+  projectCount: number;
+  goalCount: number;
+  relationshipCount: number;
+  assignmentCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
-  actions: ChatAction[];
 };
 
 export type StreamEvent =
-  | { type: "thread"; threadId: string; title: string }
   | { type: "delta"; text: string }
+  | { type: "work_order"; id: string }
   | { type: "usage"; input_tokens?: number; output_tokens?: number }
   | {
       type: "done";
       result?: { summary?: string };
       createdTasks?: unknown[];
       createdApprovals?: unknown[];
-      createdActions?: ChatAction[];
+      deletedTaskIds?: unknown[];
+      createdCompanies?: unknown[];
+      createdPeople?: unknown[];
+      createdProjects?: unknown[];
+      createdGoals?: unknown[];
+      createdCompanyRelationships?: unknown[];
+      createdPersonAssignments?: unknown[];
       model?: string;
       usage?: { input_tokens?: number; output_tokens?: number } | null;
     }
   | { type: "error"; error?: string };
 
-export async function consumeChatStream(
-  command: string,
-  threadId: string | null,
-  onEvent: (evt: StreamEvent) => void
-): Promise<void> {
+// Consumes the /chat/stream SSE response, invoking onEvent for each frame. Resolves once
+// the stream ends (after a `done`/`error` event, or a transport-level failure — the
+// latter is surfaced as a synthetic `error` event so callers only need one code path).
+export async function consumeChatStream(command: string, onEvent: (evt: StreamEvent) => void): Promise<void> {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command, threadId }),
+      body: JSON.stringify({ command }),
     });
 
     if (!res.ok || !res.body) {
       const text = await res.text().catch(() => "");
-      let message = "Request failed (" + res.status + ")";
+      let message = `Request failed (${res.status})`;
       try {
         message = JSON.parse(text).error || message;
       } catch {
-        // Keep the transport message for non-JSON responses.
+        // non-JSON error body, keep the generic message
       }
       onEvent({ type: "error", error: message });
       return;
@@ -72,27 +77,30 @@ export async function consumeChatStream(
         try {
           onEvent(JSON.parse(raw) as StreamEvent);
         } catch {
-          // Malformed upstream frames are skipped; later valid frames still render.
+          // malformed frame, skip
         }
       }
     }
-  } catch (error) {
-    onEvent({ type: "error", error: error instanceof Error ? error.message : String(error) });
+  } catch (e) {
+    onEvent({ type: "error", error: e instanceof Error ? e.message : String(e) });
   }
 }
 
 export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatResult {
   return {
     summary: evt.result?.summary || "Command executed.",
-    taskCount:
-      evt.createdTasks?.length ??
-      evt.createdActions?.filter((action) => action.kind === "task").length ??
-      0,
+    taskCount: evt.createdTasks?.length ?? 0,
     approvalCount: evt.createdApprovals?.length ?? 0,
+    deletedCount: evt.deletedTaskIds?.length ?? 0,
+    companyCount: evt.createdCompanies?.length ?? 0,
+    personCount: evt.createdPeople?.length ?? 0,
+    projectCount: evt.createdProjects?.length ?? 0,
+    goalCount: evt.createdGoals?.length ?? 0,
+    relationshipCount: evt.createdCompanyRelationships?.length ?? 0,
+    assignmentCount: evt.createdPersonAssignments?.length ?? 0,
     model: evt.model || "unknown",
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }
       : null,
-    actions: evt.createdActions ?? [],
   };
 }

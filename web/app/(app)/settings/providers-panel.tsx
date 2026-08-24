@@ -54,7 +54,7 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
       <Card className="border-border/80 shadow-none">
         <CardContent className="pt-6">
           <p className="mb-4 text-sm text-muted-foreground">
-            AI Native Chat calls whichever provider is marked{" "}
+            Speak with Brain OS calls whichever provider is marked{" "}
             <span className="font-medium text-foreground">Active</span>. The real API key
             never lives here — it&apos;s a Supabase Edge Function secret (
             <code className="rounded bg-secondary px-1 py-0.5 text-xs">OPENAI_API_KEY</code>{" "}
