@@ -23,6 +23,9 @@ import {
   Code2,
   Plug,
   KeyRound,
+  Target,
+  Kanban,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -39,6 +42,13 @@ const NAV_GROUPS: Array<{
       { href: "/chat", navKey: "nav.chatOps", label: "AI Native Chat", icon: Sparkles },
       { href: "/workflows", navKey: "nav.workflows", label: "Workflow Factory", icon: Workflow },
       { href: "/mindmap", navKey: "nav.mindmap", label: "Operating Mindmap", icon: Network },
+    ],
+  },
+  {
+    title: "GOALS",
+    items: [
+      { href: "/goals", navKey: "nav.goals", label: "Goals", icon: Target },
+      { href: "/board", navKey: "nav.board", label: "Board", icon: Kanban },
     ],
   },
   {
@@ -71,6 +81,7 @@ const NAV_GROUPS: Array<{
     items: [
       { href: "/access", navKey: "nav.access", label: "User Access", icon: KeyRound },
       { href: "/companies", navKey: "nav.companies", label: "Companies", icon: Building2 },
+      { href: "/departments", navKey: "nav.departments", label: "Departments", icon: Landmark },
       { href: "/people", navKey: "nav.people", label: "People", icon: Users },
       { href: "/projects", navKey: "nav.projects", label: "Projects", icon: FolderKanban },
       { href: "/kpi", navKey: "nav.kpi", label: "KPI + Salary", icon: Gauge },
@@ -90,36 +101,36 @@ export function AppSidebar({
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground">
       <div className="mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-black text-white shadow-[0_8px_20px_-4px_var(--primary)]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
           Σ
         </div>
         <div>
-          <div className="text-lg font-bold leading-tight">SEM Brain</div>
-          <div className="text-xs text-sidebar-foreground/60">Steppe AI, Inc.</div>
+          <div className="text-[15px] font-semibold leading-tight">SEM Brain</div>
+          <div className="text-xs text-muted-foreground">Steppe AI, Inc.</div>
         </div>
       </div>
 
       {profile && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl bg-sidebar-accent p-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-black text-white">
+        <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
             {profile.full_name.slice(0, 1)}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">{profile.full_name}</div>
-            <div className="truncate text-xs capitalize text-sidebar-foreground/60">
+            <div className="truncate text-sm font-medium">{profile.full_name}</div>
+            <div className="truncate text-xs capitalize text-muted-foreground">
               {profile.role.replace("_", " ")}
             </div>
           </div>
         </div>
       )}
 
-      <nav className="flex flex-1 flex-col gap-3 overflow-auto">
+      <nav className="flex flex-1 flex-col gap-4 overflow-auto">
         {NAV_GROUPS.map((group) => (
           <div key={group.title}>
-            <div className="mb-1 px-3 text-[10px] font-black tracking-widest text-sidebar-foreground/40">
+            <div className="mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted-foreground/80">
               {t(`navGroup.${group.title}`, group.title)}
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 const Icon = item.icon;
@@ -127,16 +138,13 @@ export function AppSidebar({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
                       active
-                        ? "bg-gradient-to-r from-white/15 to-white/5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.1)]"
-                        : "text-sidebar-foreground/75 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-white"
+                        ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     }`}
                   >
-                    {active && (
-                      <span className="absolute -left-4 h-5 w-1 rounded-full bg-primary" />
-                    )}
-                    <Icon className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                     <span>{t(item.navKey, item.label)}</span>
                   </Link>
                 );
@@ -148,7 +156,7 @@ export function AppSidebar({
 
       <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-sidebar-foreground/60">{t("shell.language", "Language")}:</span>
+          <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
           <Button
             size="sm"
             variant={locale === "en" ? "default" : "outline"}

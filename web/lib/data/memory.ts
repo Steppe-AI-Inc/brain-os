@@ -14,6 +14,19 @@ export async function getMemories() {
   return data;
 }
 
+export async function getMemoriesForEntity(entityType: string, entityId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("memories")
+    .select("id, fact, sensitivity, confidence, created_at")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return data;
+}
+
 export async function createMemory(_prevState: string | null, formData: FormData) {
   const fact = String(formData.get("fact") || "").trim();
   const companyId = String(formData.get("company_id") || "").trim();

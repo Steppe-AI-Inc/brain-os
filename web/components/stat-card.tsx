@@ -2,11 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const ACCENTS: Record<string, string> = {
-  amber: "from-primary/20 to-primary/5 text-primary ring-primary/25",
-  cyan: "from-chart-2/20 to-chart-2/5 text-chart-2 ring-chart-2/25",
-  violet: "from-chart-3/20 to-chart-3/5 text-chart-3 ring-chart-3/25",
-  green: "from-chart-4/20 to-chart-4/5 text-chart-4 ring-chart-4/25",
-  rose: "from-chart-5/20 to-chart-5/5 text-chart-5 ring-chart-5/25",
+  amber: "bg-primary/10 text-primary",
+  cyan: "bg-chart-2/10 text-chart-2",
+  violet: "bg-chart-4/10 text-chart-4",
+  green: "bg-chart-2/10 text-chart-2",
+  rose: "bg-destructive/10 text-destructive",
 };
 
 export function StatCard({
@@ -23,16 +23,16 @@ export function StatCard({
   accent?: keyof typeof ACCENTS;
 }) {
   return (
-    <Card className="overflow-hidden border-border/60 bg-card/80 backdrop-blur transition-transform hover:-translate-y-0.5">
+    <Card className="border-border/80 shadow-none">
       <CardContent className="flex items-center gap-4 pt-6">
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 ${ACCENTS[accent]}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${ACCENTS[accent]}`}
         >
-          <Icon className="h-5 w-5" strokeWidth={2.25} />
+          <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>
         <div className="min-w-0">
-          <div className="text-2xl font-black leading-none tracking-tight">{value}</div>
-          <div className="mt-1 text-xs font-medium text-muted-foreground">{label}</div>
+          <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
+          <div className="mt-1.5 text-xs text-muted-foreground">{label}</div>
           {hint && <div className="mt-0.5 text-[11px] text-muted-foreground/70">{hint}</div>}
         </div>
       </CardContent>

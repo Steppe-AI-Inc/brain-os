@@ -1,126 +1,200 @@
+import Link from "next/link";
 import {
   LayoutDashboard,
+  Target,
+  ShieldAlert,
+  Activity,
   Building2,
-  ListChecks,
-  ShieldCheck,
-  Users,
-  AlertTriangle,
+  Bot,
+  BrainCircuit,
+  Network,
+  ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getAttentionItems } from "@/lib/data/attention";
+import { getActiveAgents } from "@/lib/data/agents";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { GOAL_STATUS_DOT } from "@/lib/goals/classify";
 
 async function getDashboardData() {
   const supabase = await createClient();
-  const [companies, tasks, approvals, people, riskCompanies, recentTasks] = await Promise.all([
-    supabase.from("companies").select("id", { count: "exact", head: true }),
-    supabase.from("tasks").select("id", { count: "exact", head: true }),
-    supabase
-      .from("approvals")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
-    supabase.from("people").select("id", { count: "exact", head: true }),
-    supabase
-      .from("companies")
-      .select("id, name, risk_score, status")
-      .order("risk_score", { ascending: false })
-      .limit(5),
-    supabase
-      .from("tasks")
-      .select("id, title, status, priority, created_at, companies(name)")
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
+  const since14d = new Date(Date.now() - 14 * 86_400_000).toISOString();
+
+  const [activeGoals, pendingApprovals, recentRuns, companies, liveGoals, attention, agents] =
+    await Promise.all([
+      supabase.from("goals").select("id", { count: "exact", head: true }).eq("status", "active"),
+      supabase
+        .from("approvals")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabase
+        .from("work_orders")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since14d),
+      supabase.from("companies").select("id", { count: "exact", head: true }),
+      supabase
+        .from("goals")
+        .select("id, title, status, kind, progress, companies(name)")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(6),
+      getAttentionItems(),
+      getActiveAgents(),
+    ]);
 
   return {
+    activeGoals: activeGoals.count ?? 0,
+    pendingApprovals: pendingApprovals.count ?? 0,
+    recentRuns: recentRuns.count ?? 0,
     companies: companies.count ?? 0,
-    tasks: tasks.count ?? 0,
-    pendingApprovals: approvals.count ?? 0,
-    people: people.count ?? 0,
-    riskCompanies: riskCompanies.data ?? [],
-    recentTasks: recentTasks.data ?? [],
+    liveGoals: liveGoals.data ?? [],
+    attention,
+    agents,
   };
 }
 
+const ATTENTION_LABEL: Record<string, string> = {
+  approval: "Approval",
+  decision: "Decision",
+  blocked: "Blocked",
+};
+
 export default async function DashboardPage() {
   const stats = await getDashboardData();
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         icon={LayoutDashboard}
-        title="Executive Dashboard"
-        description="Real, RLS-scoped counts from Supabase — not local demo data."
+        title={`Good ${timeOfDay}.`}
+        description="What's moving, what needs you, and who's working on it — right now."
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Building2} label="Companies" value={stats.companies} accent="amber" />
-        <StatCard icon={ListChecks} label="Tasks" value={stats.tasks} accent="cyan" />
+        <StatCard icon={Target} label="Active goals" value={stats.activeGoals} accent="amber" />
         <StatCard
-          icon={ShieldCheck}
-          label="Pending Approvals"
+          icon={ShieldAlert}
+          label="Decisions waiting"
           value={stats.pendingApprovals}
           accent="rose"
         />
-        <StatCard icon={Users} label="People" value={stats.people} accent="green" />
+        <StatCard icon={Activity} label="Runs (14d)" value={stats.recentRuns} accent="cyan" />
+        <StatCard icon={Building2} label="Companies" value={stats.companies} accent="violet" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="bg-card/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4 text-primary" />
-              Top risk companies
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {stats.riskCompanies.map((c) => (
-              <div key={c.id} className="flex items-center justify-between text-sm">
-                <span className="font-medium">{c.name}</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant={c.status === "active" ? "secondary" : "outline"}>
-                    {c.status}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card className="border-border/80 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Wants your attention</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1">
+              {stats.attention.map((item) => (
+                <Link
+                  key={`${item.kind}-${item.id}`}
+                  href={item.href}
+                  className="flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary"
+                >
+                  <span className="min-w-0 truncate">{item.title}</span>
+                  <Badge variant="outline" className="shrink-0 capitalize">
+                    {ATTENTION_LABEL[item.kind]}
                   </Badge>
-                  <span className="w-8 text-right font-mono text-xs text-muted-foreground">
-                    {c.risk_score}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {stats.riskCompanies.length === 0 && (
-              <p className="text-sm text-muted-foreground">No companies yet.</p>
-            )}
-          </CardContent>
-        </Card>
+                </Link>
+              ))}
+              {stats.attention.length === 0 && (
+                <p className="px-2 py-4 text-sm text-muted-foreground">
+                  Nothing waiting on you right now.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="bg-card/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ListChecks className="h-4 w-4 text-primary" />
-              Recent tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {stats.recentTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between text-sm">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{t.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.companies?.name ?? "—"}
+          <Card className="border-border/80 shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base font-semibold">Active goals</CardTitle>
+              <Link
+                href="/goals"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                View all <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1">
+              {stats.liveGoals.map((g) => (
+                <Link
+                  key={g.id}
+                  href={`/goals/${g.id}`}
+                  className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary"
+                >
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${GOAL_STATUS_DOT[g.status]}`} />
+                  <span className="min-w-0 flex-1 truncate">{g.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {g.companies?.name ?? "—"}
+                  </span>
+                </Link>
+              ))}
+              {stats.liveGoals.length === 0 && (
+                <p className="px-2 py-4 text-sm text-muted-foreground">
+                  No active goals yet — start one from the Goals page.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Card className="border-border/80 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Live now</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {stats.agents.map((a) => (
+                <div key={a.id} className="flex items-center gap-2.5 text-sm">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary">
+                    <Bot className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{a.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{a.role}</div>
                   </div>
+                  <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-chart-2" />
                 </div>
-                <Badge variant="outline" className="shrink-0 capitalize">
-                  {(t.status ?? "unknown").replace("_", " ")}
-                </Badge>
-              </div>
-            ))}
-            {stats.recentTasks.length === 0 && (
-              <p className="text-sm text-muted-foreground">No tasks yet.</p>
-            )}
-          </CardContent>
-        </Card>
+              ))}
+              {stats.agents.length === 0 && (
+                <p className="text-sm text-muted-foreground">No active agents yet.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/80 shadow-none">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Company brain</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1">
+              <Link
+                href="/memory"
+                className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary"
+              >
+                <BrainCircuit className="h-4 w-4 text-muted-foreground" />
+                Memory
+                <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+              <Link
+                href="/mindmap"
+                className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-secondary"
+              >
+                <Network className="h-4 w-4 text-muted-foreground" />
+                Operating mindmap
+                <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -36,6 +36,12 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create type approval_domain as enum ('general','salary_hr','finance','legal','production','external_comms');
 exception when duplicate_object then null; end $$;
+do $$ begin
+  create type goal_status as enum ('draft','active','paused','achieved','archived');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type goal_kind as enum ('ephemeral','standing','routine','decision');
+exception when duplicate_object then null; end $$;
 
 -- ---------- CORE TABLES ----------
 create table if not exists public.profiles (
@@ -379,6 +385,62 @@ create table if not exists public.product_specs (
   body_md text,
   owner_profile_id uuid references public.profiles(id),
   created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Added for the Goals module — see 202608250001_goals_departments.sql.
+create table if not exists public.departments (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  slug text not null,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (company_id, slug)
+);
+
+create table if not exists public.goals (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  department_id uuid references public.departments(id) on delete set null,
+  title text not null,
+  description text,
+  status goal_status not null default 'draft',
+  kind goal_kind not null default 'ephemeral',
+  cron_expr text,
+  due_at timestamptz,
+  progress numeric(5,2),
+  target_value text,
+  actual_value text,
+  delta_label text,
+  metadata jsonb not null default '{}'::jsonb,
+  owner_type text not null default 'human',
+  owner_person_id uuid references public.people(id),
+  owner_agent_id uuid references public.agents(id),
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists goals_company_status_idx on public.goals (company_id, status);
+create index if not exists goals_department_idx on public.goals (department_id);
+
+create table if not exists public.key_results (
+  id uuid primary key default gen_random_uuid(),
+  goal_id uuid not null references public.goals(id) on delete cascade,
+  label text not null,
+  target_value text,
+  current_value text,
+  unit text,
+  weight numeric(6,3) not null default 1.0,
+  due_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists key_results_goal_idx on public.key_results (goal_id);
+
+create table if not exists public.goal_context (
+  id uuid primary key default gen_random_uuid(),
+  goal_id uuid not null unique references public.goals(id) on delete cascade,
+  content_md text not null default '',
   updated_at timestamptz not null default now()
 );
 
@@ -773,6 +835,61 @@ create policy "product_specs_write_manager" on public.product_specs for all usin
   company_id is null or public.is_company_manager(company_id)
 ) with check (
   company_id is null or public.is_company_manager(company_id)
+);
+
+-- departments / goals / key_results / goal_context — see 202608250001_goals_departments.sql.
+drop policy if exists "departments_select_scope" on public.departments;
+create policy "departments_select_scope" on public.departments for select using (
+  public.has_company_access(company_id)
+);
+drop policy if exists "departments_write_manager" on public.departments;
+create policy "departments_write_manager" on public.departments for all using (
+  public.is_company_manager(company_id)
+) with check (
+  public.is_company_manager(company_id)
+);
+
+drop policy if exists "goals_select_scope" on public.goals;
+create policy "goals_select_scope" on public.goals for select using (
+  public.is_founder_or_admin()
+  or public.has_company_access(company_id)
+  or exists (select 1 from public.people pe where pe.id = goals.owner_person_id and pe.profile_id = public.current_profile_id())
+);
+drop policy if exists "goals_insert_scope" on public.goals;
+create policy "goals_insert_scope" on public.goals for insert with check (
+  public.is_founder_or_admin() or public.has_company_access(company_id)
+);
+drop policy if exists "goals_update_scope" on public.goals;
+create policy "goals_update_scope" on public.goals for update using (
+  public.is_founder_or_admin()
+  or public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = goals.owner_person_id and pe.profile_id = public.current_profile_id())
+);
+drop policy if exists "goals_delete_manager" on public.goals;
+create policy "goals_delete_manager" on public.goals for delete using (
+  public.is_founder_or_admin() or public.is_company_manager(company_id)
+);
+
+drop policy if exists "key_results_select_scope" on public.key_results;
+create policy "key_results_select_scope" on public.key_results for select using (
+  exists (select 1 from public.goals g where g.id = key_results.goal_id and (public.is_founder_or_admin() or public.has_company_access(g.company_id)))
+);
+drop policy if exists "key_results_write_scope" on public.key_results;
+create policy "key_results_write_scope" on public.key_results for all using (
+  exists (select 1 from public.goals g where g.id = key_results.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
+) with check (
+  exists (select 1 from public.goals g where g.id = key_results.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
+);
+
+drop policy if exists "goal_context_select_scope" on public.goal_context;
+create policy "goal_context_select_scope" on public.goal_context for select using (
+  exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.has_company_access(g.company_id)))
+);
+drop policy if exists "goal_context_write_scope" on public.goal_context;
+create policy "goal_context_write_scope" on public.goal_context for all using (
+  exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
+) with check (
+  exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
 );
 
 -- ---------- SAFE VIEWS ----------

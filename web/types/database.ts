@@ -384,6 +384,45 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: string | null
@@ -442,6 +481,147 @@ export type Database = {
           {
             foreignKeyName: "documents_uploaded_by_profile_id_fkey"
             columns: ["uploaded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_context: {
+        Row: {
+          content_md: string
+          goal_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          content_md?: string
+          goal_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          content_md?: string
+          goal_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_context_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: true
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          actual_value: string | null
+          company_id: string
+          created_at: string
+          created_by_profile_id: string | null
+          cron_expr: string | null
+          delta_label: string | null
+          department_id: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["goal_kind"]
+          metadata: Json
+          owner_agent_id: string | null
+          owner_person_id: string | null
+          owner_type: string
+          progress: number | null
+          status: Database["public"]["Enums"]["goal_status"]
+          target_value: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_value?: string | null
+          company_id: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          cron_expr?: string | null
+          delta_label?: string | null
+          department_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["goal_kind"]
+          metadata?: Json
+          owner_agent_id?: string | null
+          owner_person_id?: string | null
+          owner_type?: string
+          progress?: number | null
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_value?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_value?: string | null
+          company_id?: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          cron_expr?: string | null
+          delta_label?: string | null
+          department_id?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["goal_kind"]
+          metadata?: Json
+          owner_agent_id?: string | null
+          owner_person_id?: string | null
+          owner_type?: string
+          progress?: number | null
+          status?: Database["public"]["Enums"]["goal_status"]
+          target_value?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_owner_agent_id_fkey"
+            columns: ["owner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -570,6 +750,53 @@ export type Database = {
             columns: ["product_line_id"]
             isOneToOne: false
             referencedRelation: "product_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      key_results: {
+        Row: {
+          created_at: string
+          current_value: string | null
+          due_at: string | null
+          goal_id: string
+          id: string
+          label: string
+          target_value: string | null
+          unit: string | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          current_value?: string | null
+          due_at?: string | null
+          goal_id: string
+          id?: string
+          label: string
+          target_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          current_value?: string | null
+          due_at?: string | null
+          goal_id?: string
+          id?: string
+          label?: string
+          target_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_results_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
             referencedColumns: ["id"]
           },
         ]
@@ -1744,6 +1971,8 @@ export type Database = {
         | "rejected"
         | "changes_requested"
         | "cancelled"
+      goal_kind: "ephemeral" | "standing" | "routine" | "decision"
+      goal_status: "draft" | "active" | "paused" | "achieved" | "archived"
       priority_level: "low" | "medium" | "high" | "critical"
       risk_level: "low" | "medium" | "high" | "critical"
       visibility_level:
