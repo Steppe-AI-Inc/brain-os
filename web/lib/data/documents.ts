@@ -12,7 +12,7 @@ export async function getDocuments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("id, title, category, sensitivity, summary, analysis_status, analysis_summary, analysis_json, analysis_error, analyzed_at, company_match_status, company_match_confidence, company_match_reason, suggested_company_id, original_filename, file_size_bytes, created_at, company_id, storage_path, mime_type, performance_case_id, person_id, companies(name)")
+    .select("id, title, category, sensitivity, summary, analysis_status, analysis_summary, analysis_json, analysis_error, analyzed_at, company_match_status, company_match_confidence, company_match_reason, suggested_company_id, original_filename, file_size_bytes, created_at, company_id, storage_path, mime_type, performance_case_id, person_id, companies!documents_company_id_fkey(name)")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw error;
@@ -44,7 +44,7 @@ export async function createDocument(_prevState: string | null, formData: FormDa
     sensitivity: sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
     uploaded_by_profile_id: profileId,
     analysis_status: "ready",
-    analysis_summary: text.replace(/\\s+/g, " ").slice(0, 1200),
+    analysis_summary: text.replace(/\s+/g, " ").slice(0, 1200),
     company_match_status: companyId ? "confirmed" : "unconfirmed",
     company_match_confidence: companyId ? 1 : null,
     company_match_reason: companyId ? "Company selected during entry." : null,
@@ -287,7 +287,7 @@ export async function saveChatTextAttachment(input: ChatTextAttachmentInput): Pr
     sensitivity: "internal",
     uploaded_by_profile_id: profileId || null,
     analysis_status: "ready",
-    analysis_summary: text.replace(/\\s+/g, " ").slice(0, 1200),
+    analysis_summary: text.replace(/\s+/g, " ").slice(0, 1200),
     company_match_status: "unconfirmed",
   });
   if (error) return error.message;
