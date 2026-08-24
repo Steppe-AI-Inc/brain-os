@@ -114,7 +114,7 @@ export function ProductsTable({
           <Label htmlFor="edit-product-company">Company</Label>
           <Select value={values.companyId} onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v }))}>
             <SelectTrigger id="edit-product-company" className="w-full">
-              <SelectValue />
+              <SelectValue>{() => companies.find((c) => c.id === values.companyId)?.name}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {companies.map((c) => (

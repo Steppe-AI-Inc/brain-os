@@ -108,7 +108,9 @@ export function DocumentsTable({
           <Label htmlFor="edit-doc-company">Company</Label>
           <Select value={values.companyId} onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v }))}>
             <SelectTrigger id="edit-doc-company" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {() => companies.find((c) => c.id === values.companyId)?.name ?? "No company"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">No company</SelectItem>

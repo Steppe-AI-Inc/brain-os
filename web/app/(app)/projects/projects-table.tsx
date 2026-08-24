@@ -109,7 +109,7 @@ export function ProjectsTable({
           <Label htmlFor="edit-project-company">Company</Label>
           <Select value={values.companyId} onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v }))}>
             <SelectTrigger id="edit-project-company" className="w-full">
-              <SelectValue />
+              <SelectValue>{() => companies.find((c) => c.id === values.companyId)?.name}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {companies.map((c) => (

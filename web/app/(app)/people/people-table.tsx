@@ -115,7 +115,9 @@ export function PeopleTable({
             onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v === "none" ? null : v }))}
           >
             <SelectTrigger id="edit-person-company" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {() => companies.find((c) => c.id === values.companyId)?.name ?? "No company"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">No company</SelectItem>
