@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24 (Track 1: Goals module + Organization Board + Apple-style redesign shipped to `/web`, DB migration applied and verified live, deployed to Vercel, `brain.open-spot.ai` now bound at the project level to `web` (not the old app), and two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — are fixed and redeployed. Git auto-deploy is disconnected for the `web` project until Root Directory is fixed; deploy manually. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-24 (**`/web` is now the confirmed base foundation** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, deployed to Vercel, `brain.open-spot.ai` bound at the project level to `web`, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Git auto-deploy is disconnected for the `web` project until Root Directory is fixed; deploy manually. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
 
 ## Who / where
 
@@ -10,9 +10,9 @@
 
 | Branch | What it is | Status |
 |---|---|---|
-| `master` | Original vanilla-JS SEM Brain app (repo root) **+** the Next.js rewrite (`/web`) | Both live in production |
+| `master` | Original vanilla-JS SEM Brain app (repo root, now legacy) **+** the Next.js rewrite (`/web`) | `/web` is **the base foundation** as of 2026-08-24 (founder's explicit call); old app stays deployed for continuity only |
 | `blankcollar` | Full history import of `The-Blank-Collar/blankcollar-agentic-os` (MIT) | Slice 1 (serverless Telegram→Hermes→gbrain) code done + pushed; not yet deployed |
-| *(pending)* | A third track being built in parallel via OpenAI Codex/ChatGPT | Not yet connected to GitHub — founder will connect it |
+| `codex/sem-brain-v1` | Third track (OpenAI Codex/ChatGPT), now connected to GitHub | Fast-forwarded to match `master` 2026-08-24 (had zero unique commits of its own — was a stale snapshot from before the Goals/redesign work) |
 
 **Important — local dev location**: don't clone/work inside a Google Drive– or OneDrive–synced folder. This session started in `E:\My Drive\...` and hit real, reproducible corruption: `npm install` failed repeatedly with `EPERM`/`ENOTEMPTY` errors because Drive's sync client holds file locks during `node_modules` churn, and the same class of risk applies to a live `.git` directory. All work was relocated to a local, non-synced path (`C:\Users\Dell\dev\brain-os` on this machine). **On a new machine, clone fresh to a plain local path** (e.g. `~/dev/brain-os` or `C:\dev\brain-os`), not into a cloud-sync folder.
 

@@ -1,13 +1,14 @@
 # SEM Brain
 
 > **Read `MASTER_CONTEXT.md` first** — this repo now has 3 parallel tracks (this branch's
-> old app + the Next.js rewrite under `/web`, the `blankcollar` branch, and a pending
-> third track). This file covers the old vanilla-JS app specifically; `/web`'s own
-> conventions belong in a `web/CLAUDE.md` if one is added later.
+> old app + the Next.js rewrite under `/web`, the `blankcollar` branch, and the
+> `codex/sem-brain-v1` track). This file covers the old vanilla-JS app specifically —
+> **it is no longer the base foundation.** `/web` is; see `web/CLAUDE.md` for its
+> conventions.
 
 AI-native operating system for a founder managing multiple companies (SEM Technologies parent + subsidiaries: OpenSpot/Steppe AI, SEM Global Robotics, SEM Mongolia, Fuelmetrix, EVM, Tradebook, IQParking). Chat-first: the founder gives outcomes ("fix this", "close this customer"), AI decomposes into tasks, assigns agents/humans, executes safe repetitive work, and escalates only exceptions/decisions/blockers. Menus are for inspection/audit/approval, not primary interaction.
 
-**Status as of 2026-08-24**: the founder has since commissioned a full Next.js rewrite (`/web`, live at the URL in `MASTER_CONTEXT.md`) specifically to add real authentication, which this old app never had. The rewrite is now the primary path for new feature work; this old app stays deployed but in maintenance mode. The "recommended architecture / do-not-touch" guidance below was written *before* that decision and applies to this old app's own codebase only — it does not mean don't touch `/web`.
+**Status as of 2026-08-24**: `/web` (the Next.js rewrite) is now the confirmed base foundation for this product — the founder directly compared it against this old app in production and explicitly designated it as such ("much better version than a original master... i want this become the base foundation now"). This old app stays deployed at its own URL for continuity but is no longer where new feature work happens; treat it as legacy. The "recommended architecture / do-not-touch" guidance below was written before the rewrite existed and applies only to this old codebase.
 
 ## Product philosophy (do not violate)
 

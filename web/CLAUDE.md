@@ -1,1 +1,103 @@
 @AGENTS.md
+
+# SEM Brain — `/web` (the base foundation)
+
+This is the **confirmed base foundation** for SEM Brain as of 2026-08-24 — the founder
+compared it directly against the old vanilla-JS app (repo root) in production and chose
+this to build on going forward. The old app stays deployed for continuity but is legacy;
+see the repo-root `CLAUDE.md` and `MASTER_CONTEXT.md` for the full multi-track picture.
+
+## Stack
+
+Next.js 16 App Router, TypeScript, Tailwind v4, shadcn/ui (Base UI primitives, not
+Radix), `@supabase/ssr` for auth, Geist Sans/Mono. Deployed to Vercel, live at
+`brain.open-spot.ai` (project `steppe-ai/web` — see "Deploying" below for the current
+git-disconnected state).
+
+## Security model — RLS is the only boundary
+
+There is **no client-side permission redaction anywhere** in this app, on purpose.
+Postgres RLS on the shared Supabase project (`pvphxgrtdfrudejjhzjk`) is the sole
+enforcement layer — every `lib/data/*.ts` query runs as the signed-in user's real
+session and simply returns whatever RLS allows. Never add a client-side "hide this from
+non-managers" check as a substitute for a real RLS policy; UI-only conditionals (e.g.
+hiding a button) are a UX affordance on top of RLS, never instead of it.
+
+RLS policies follow one consistent shape across every company-scoped table (see
+`supabase/schema-v0.7-production-core.sql`): `public.has_company_access(company_id)`
+gates reads, `public.is_company_manager(company_id)` gates writes, `public.is_founder_or_admin()`
+overrides both. Reuse these helper functions for any new table — don't invent a new
+pattern, and don't modify the helper functions themselves (they're intentionally
+`SECURITY DEFINER` with an explicit `search_path`; only add new policies that call them).
+
+## Data layer pattern
+
+One file per domain in `lib/data/<domain>.ts`, always `"use server"`:
+- Plain `async function get<Thing>()` for reads — `throw error` on failure (Server
+  Components render an error boundary; don't swallow read errors).
+- `async function create<Thing>(_prevState, formData)` for `useActionState`-driven
+  creates — return a string error message on failure, `null`/`redirect()` on success,
+  `revalidatePath(...)` before returning.
+- A plain exported async function (not React-Action-shaped) for one-off imperative
+  mutations driven by a button + `useTransition`, e.g. `updateGoal(id, patch)`,
+  `decideApproval(id, decision)`.
+
+See `lib/data/goals.ts` for the fullest example (all three shapes in one file) and
+`lib/data/companies.ts` for the minimal case.
+
+## Shared UI
+
+`components/page-header.tsx` and `components/stat-card.tsx` are the only two shared
+chrome components — every page composes from these plus shadcn primitives
+(`components/ui/*`) rather than one-off styling. Design tokens live entirely in
+`app/globals.css`; change the look by changing tokens, not by scattering ad-hoc classes.
+
+## Design system — calm, Apple-inspired (not the old app's look)
+
+As of 2026-08-24 the palette is deliberately calm and light-by-default: Apple's own
+system blue/green/orange/purple/gray, near-white ground, `0.625rem` base radius, flat
+surfaces (no gradient fills, no `backdrop-blur`). This replaced an earlier amber/coral
+gradient-blur "liquid glass" identity — don't reintroduce that without being asked. Two
+real bugs already found and fixed once by an actual human checking the site in Chrome,
+worth knowing so they don't recur:
+- `--font-sans` must point at `--font-geist-sans` (the variable `layout.tsx` actually
+  loads) — a self-reference here silently falls back to the browser's default serif font.
+- Don't hardcode a `dark` class on `<html>` in `layout.tsx` — the `dark:` variant here is
+  class-gated (`@custom-variant dark (&:is(.dark *))`), not media-query-gated, so a
+  hardcoded class forces dark mode unconditionally regardless of the calm-light intent.
+
+## i18n
+
+`lib/i18n/{dictionary,i18n-context}.tsx`, `useT()` hook, same `t(key, fallback)` pattern
+as the old app. EN/MN only, shell + nav scope — not yet extended to the Goals/Board/
+Departments pages added 2026-08-24.
+
+## Deploying
+
+```
+cd web
+vercel link --project web --yes   # only needed once per machine
+vercel --prod --yes
+```
+
+**Git auto-deploy is currently disconnected** for this project (`vercel git disconnect`,
+2026-08-24) — pushing to GitHub does NOT trigger a deploy. This was deliberate: the
+project's Root Directory setting is still misconfigured (Vercel dashboard → Project
+`steppe-ai/web` → Settings → General → Root Directory → set to `web` — no CLI/API path
+found for this), so auto-deploys were building from the repo root, failing, and that
+failure was blocking the custom domain from being (re)assigned to this project. Fix
+Root Directory first, then `vercel git connect` to re-enable auto-deploy, if wanted.
+
+`brain.open-spot.ai` is bound to this project at the **project level**
+(`vercel domains add brain.open-spot.ai web --force`) — it automatically follows
+whatever this project's latest successful production deployment is. A plain
+`vercel --prod --yes` is sufficient to update what the domain serves; no separate alias
+step needed. Check current state any time with `vercel alias ls | grep brain.open-spot`.
+
+## Verifying changes in this environment
+
+No live browser in a Claude Code session here. `npm run build` (typechecks + builds)
+and `npx eslint <files>` are the available verification — treat anything requiring
+actual visual inspection as unverified and say so, rather than assuming it looks right.
+`WebFetch` against the deployed URL can confirm a page renders content (not an error),
+but converts to markdown/text and cannot confirm fonts, colors, or layout.
