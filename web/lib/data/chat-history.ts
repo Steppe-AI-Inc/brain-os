@@ -4,11 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 
 // Chat history is reconstructed from tables that already have everything — no dedicated
 // history table needed. work_orders is one row per chat turn (command + the model's raw
-// output); model_usage has a real FK to it; audit_logs' 'ai_command_request_completed'
-// event (entity_id = work_order id) already logs the exact per-action counts (tasks,
-// approvals, companies, people, projects, goals, companyRelationships, personAssignments)
-// from when the RPC actually ran. All three are already RLS-scoped to the caller's own
-// rows (work_orders_select_scope: created_by_profile_id = self, or founder/admin).
+// output); model_usage has a real FK to it; audit_logs' 'ai_command_executed' event
+// (entity_id = work_order id, logged from inside sem_execute_ai_command itself) has the
+// exact per-action counts (tasks, approvals, deletedTasks, companies, people, projects,
+// goals, companyRelationships, personAssignments) from when the RPC actually ran. Not
+// 'ai_command_request_completed' — that's a separate, later Edge-Function-level audit
+// event that never included tasks/approvals in its metadata (a pre-existing gap, caught
+// live: history showed "0 task(s)" for a message that had in fact created a real task).
+// All three source tables are already RLS-scoped to the caller's own rows
+// (work_orders_select_scope: created_by_profile_id = self, or founder/admin).
 export type ChatHistoryCounts = {
   tasks: number;
   approvals: number;
@@ -48,7 +52,7 @@ export async function getChatHistory(limit = 30): Promise<ChatHistoryMessage[]> 
     ? await supabase
         .from("audit_logs")
         .select("entity_id, metadata")
-        .eq("event_type", "ai_command_request_completed")
+        .eq("event_type", "ai_command_executed")
         .in("entity_id", ids)
     : { data: [] };
 
