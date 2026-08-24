@@ -75,7 +75,11 @@ export async function uploadFinancialDocument(_prevState: string | null, formDat
   const { data: analysis, error: analysisError } = await supabase.functions.invoke("analyze-financial-document", {
     body: { base64, mimeType: isPdf ? "application/pdf" : "text/plain", companyName: company.name, period },
   });
-  if (analysisError) return analysisError.message || "Analysis failed.";
+  if (analysisError) {
+    const context = (analysisError as { context?: Response }).context;
+    const detail = context ? await context.clone().json().catch(() => null) : null;
+    return detail?.error || analysisError.message || "Analysis failed.";
+  }
   const result = analysis?.result;
   if (!result) return analysis?.error || "Analysis returned no result.";
 

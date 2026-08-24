@@ -34,7 +34,14 @@ export async function generateEngineeringDrawing(_prevState: string | null, form
   const { data: gen, error: genError } = await supabase.functions.invoke("generate-technical-drawing", {
     body: { description },
   });
-  if (genError) return genError.message || "Drawing generation failed.";
+  if (genError) {
+    // The SDK's top-level error.message is a generic "non-2xx status code" — the real
+    // reason is in the response body it captured, same fix needed as the finance pipeline
+    // would otherwise hit too.
+    const context = (genError as { context?: Response }).context;
+    const detail = context ? await context.clone().json().catch(() => null) : null;
+    return detail?.error || genError.message || "Drawing generation failed.";
+  }
   const result = gen?.result;
   if (!result?.svg) return gen?.error || "Drawing generation returned no result.";
 

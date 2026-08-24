@@ -23,28 +23,23 @@ function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
-function stripCodeFence(text: string): string {
-  const trimmed = text.trim();
-  const match = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
-  return match ? match[1].trim() : trimmed;
-}
-function extractJsonObject(text: string): string {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return text;
-  return text.slice(start, end + 1);
-}
-function parseModelJson(rawText: string): unknown {
-  const fenceStripped = stripCodeFence(rawText);
-  try {
-    return JSON.parse(fenceStripped);
-  } catch (firstError) {
-    try {
-      return JSON.parse(extractJsonObject(fenceStripped));
-    } catch {
-      throw firstError;
-    }
-  }
+// SVG markup is full of double quotes (attribute values), which makes asking a model to
+// nest it inside a JSON string fragile — a single unescaped quote in the model's output
+// breaks JSON.parse with no good recovery. A delimiter-based format sidesteps the whole
+// class of problem: each field is plain text between markers, no escaping required.
+function parseDelimitedResponse(rawText: string): { title: string; dimensionsSummary: string; notes: string; svg: string } {
+  const titleMatch = rawText.match(/TITLE:\s*(.*)/);
+  const dimensionsMatch = rawText.match(/DIMENSIONS:\s*(.*)/);
+  const notesMatch = rawText.match(/NOTES:\s*(.*)/);
+  const svgStart = rawText.indexOf('<svg');
+  const svgEnd = rawText.lastIndexOf('</svg>');
+  const svg = svgStart !== -1 && svgEnd !== -1 ? rawText.slice(svgStart, svgEnd + '</svg>'.length) : '';
+  return {
+    title: (titleMatch?.[1] || '').trim(),
+    dimensionsSummary: (dimensionsMatch?.[1] || '').trim(),
+    notes: (notesMatch?.[1] || '').trim(),
+    svg,
+  };
 }
 
 // Defense in depth: even though the prompt forbids it, never trust model-generated
@@ -68,15 +63,15 @@ Rules for the SVG:
 - EV charging stalls must be visually distinct (different fill color) and labeled "EV".
 - Use only <svg>, <rect>, <circle>, <line>, <path>, <text>, <g>, <polygon>, <polyline> elements. No <script>, no <foreignObject>, no event handler attributes, no external references (no <image>, no url() to an external host).
 - Keep it a real, usable layout sketch — correct stall counts, plausible spacing (standard stall ~2.5m x 5m, drive aisle >= 6m), not just decoration.
+- Prefer single-quoted attribute values inside the SVG (e.g. width='100') over double-quoted.
 
-Return strict JSON only, no markdown, in exactly this shape:
-{
-  "title": string,
-  "svg": string,
-  "dimensionsSummary": string,
-  "notes": string
-}
-"svg" is the complete <svg>...</svg> markup as a single string. "dimensionsSummary" is one short line (e.g. "24m x 15m lot, 18 standard stalls, 4 EV stalls, 6m aisle"). "notes" flags any assumptions you had to make because the description didn't specify them.`;
+Respond in EXACTLY this plain-text format, no markdown code fences, nothing before or after:
+
+TITLE: <short title>
+DIMENSIONS: <one short line, e.g. "24m x 15m lot, 18 standard stalls, 4 EV stalls, 6m aisle">
+NOTES: <one short line of assumptions you had to make, or "None">
+SVG:
+<the complete <svg>...</svg> markup, starting with <svg and ending with </svg>>`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -113,7 +108,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: description }],
         temperature: 0.2,
@@ -125,14 +120,9 @@ serve(async (req) => {
     }
     const body = await r.json();
     const text = (body.content || []).map((b: any) => b.text || '').join('');
-    let result: any;
-    try {
-      result = parseModelJson(text);
-    } catch {
-      return json({ error: 'Model returned invalid JSON', raw: text.slice(0, 2000) }, 502);
-    }
-    if (typeof result.svg !== 'string' || !result.svg.includes('<svg')) {
-      return json({ error: 'Model did not return valid SVG markup' }, 502);
+    const result = parseDelimitedResponse(text);
+    if (!result.svg || !result.svg.includes('</svg>')) {
+      return json({ error: 'Model did not return valid SVG markup', raw: text.slice(0, 2000) }, 502);
     }
     result.svg = sanitizeSvg(result.svg);
     return json({ result });
