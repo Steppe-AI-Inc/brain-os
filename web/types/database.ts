@@ -599,6 +599,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "goals_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "goals_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
@@ -617,13 +624,6 @@ export type Database = {
             columns: ["owner_person_id"]
             isOneToOne: false
             referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "goals_created_by_profile_id_fkey"
-            columns: ["created_by_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2144,6 +2144,8 @@ export const Constants = {
         "changes_requested",
         "cancelled",
       ],
+      goal_kind: ["ephemeral", "standing", "routine", "decision"],
+      goal_status: ["draft", "active", "paused", "achieved", "archived"],
       priority_level: ["low", "medium", "high", "critical"],
       risk_level: ["low", "medium", "high", "critical"],
       visibility_level: [
