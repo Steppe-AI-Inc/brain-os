@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+// Same class of bug as /chat/stream: no maxDuration meant this inherited Vercel's
+// platform default, short enough to kill the connection mid-generation for a real
+// document analysis before analyze-financial-document finishes.
+export const maxDuration = 120;
+
 export async function getFinancialReports(companyId?: string) {
   const supabase = await createClient();
   let query = supabase

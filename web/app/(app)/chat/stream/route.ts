@@ -1,6 +1,15 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+// No maxDuration here meant this inherited Vercel's platform default, which is short
+// enough that a longer generation (a full PRD + tickets breakdown, a reasoning-tier
+// model, a big context pack) gets its connection killed mid-stream — the browser sees
+// the fetch end with no done/error event while sem-ai-command is still actually running
+// server-side, leaving the work_order stuck at 'queued' forever. Verified live. 300s
+// covers sem-ai-command's own internal ceiling (90s connect + up to 60s idle stream
+// budget per provider call) with headroom.
+export const maxDuration = 300;
+
 // Thin auth-forwarding proxy to the sem-ai-command Edge Function's SSE stream.
 // Deliberately a Route Handler, not a Server Action — decouples chat entirely from
 // Next.js's Server Action/transition machinery so a long-running generation can't read
