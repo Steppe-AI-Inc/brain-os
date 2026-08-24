@@ -1569,3 +1569,30 @@ values
 ('AI HR/KPI Manager','people_ops','Reviews KPI and recommends salary-impact tasks','["kpi_review","salary_recommendation"]','["salary_change_without_approval","fire_hire_execute"]',0.8),
 ('AI QA Manager','qa','Checks outputs against acceptance criteria','["qa","risk_check","hallucination_check"]','[]',0.8)
 on conflict do nothing;
+
+-- ---------- AUTO PROFILE ON SIGNUP ----------
+-- see supabase/migrations/202608260011_auto_profile_on_signup.sql
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (auth_user_id, full_name, email, role, active)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    new.email,
+    'employee',
+    true
+  )
+  on conflict (email) do update set auth_user_id = excluded.auth_user_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_auth_user();
