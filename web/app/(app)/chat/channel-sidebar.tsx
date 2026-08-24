@@ -63,7 +63,7 @@ export function ChannelSidebar({
 
   if (collapsed) {
     return (
-      <aside className="flex h-full w-14 shrink-0 flex-col items-center gap-2 rounded-2xl border border-border/70 bg-card/75 p-2 shadow-sm backdrop-blur-xl">
+      <aside className="flex h-full max-h-full min-h-0 w-14 shrink-0 flex-col overflow-hidden items-center gap-2 rounded-2xl border border-border/70 bg-card/75 p-2 shadow-sm backdrop-blur-xl">
         <Button
           variant="ghost"
           size="icon"
@@ -100,7 +100,7 @@ export function ChannelSidebar({
   }
 
   return (
-    <aside className="flex h-full min-h-0 w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/75 shadow-sm backdrop-blur-xl">
+    <aside className="flex h-full max-h-full min-h-0 w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/75 shadow-sm backdrop-blur-xl">
       <div className="flex items-center justify-between gap-2 border-b border-border/60 p-3">
         <div>
           <p className="text-sm font-semibold">Conversations</p>

@@ -1,5 +1,11 @@
 "use client";
 
+export type ChatImageAttachment = {
+  name: string;
+  mimeType: string;
+  dataUrl: string;
+};
+
 export type ChatResult = {
   conversationTitle: string | null;
   summary: string;
@@ -45,13 +51,14 @@ export type StreamEvent =
 export async function consumeChatStream(
   command: string,
   onEvent: (evt: StreamEvent) => void,
-  channelId?: string | null
+  channelId?: string | null,
+  attachments: ChatImageAttachment[] = []
 ): Promise<void> {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command, channelId: channelId ?? null }),
+      body: JSON.stringify({ command, channelId: channelId ?? null, attachments }),
     });
 
     if (!res.ok || !res.body) {

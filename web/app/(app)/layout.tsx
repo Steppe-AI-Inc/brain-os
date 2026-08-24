@@ -9,9 +9,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const profile = await getCurrentProfile();
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <AppSidebar profile={profile} />
-      <main className="flex-1 overflow-auto p-8">{children}</main>
+      <main className="min-w-0 flex-1 overflow-auto p-8">{children}</main>
     </div>
   );
 }

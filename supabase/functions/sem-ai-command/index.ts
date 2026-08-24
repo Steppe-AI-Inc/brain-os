@@ -243,11 +243,13 @@ async function consumeSSE(response: Response, onEvent: (data: any) => void): Pro
 
 type Usage = { input_tokens?: number; output_tokens?: number };
 type StreamResult = { text: string; stopReason: string | null };
+type ImageAttachment = { name: string; mimeType: string; dataUrl: string };
 
 async function callAnthropicStreaming(
   model: string,
   key: string,
   contextForModel: unknown,
+  imageAttachments: ImageAttachment[],
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
 ): Promise<StreamResult> {
@@ -262,7 +264,16 @@ async function callAnthropicStreaming(
       model,
       max_tokens: 8192,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: JSON.stringify(contextForModel, null, 2) },
+          ...imageAttachments.map((attachment) => ({
+            type: 'image',
+            source: { type: 'base64', media_type: attachment.mimeType, data: attachment.dataUrl.slice(attachment.dataUrl.indexOf(',') + 1) },
+          })),
+        ],
+      }],
       temperature: 0.2,
       stream: true,
     }),
@@ -291,6 +302,7 @@ async function callOpenAIStreaming(
   model: string,
   key: string,
   contextForModel: unknown,
+  imageAttachments: ImageAttachment[],
   onDelta: (text: string) => void,
   onUsage: (usage: Usage) => void
 ): Promise<StreamResult> {
@@ -301,7 +313,13 @@ async function callOpenAIStreaming(
       model,
       input: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: JSON.stringify(contextForModel, null, 2) },
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: JSON.stringify(contextForModel, null, 2) },
+            ...imageAttachments.map((attachment) => ({ type: 'input_image', image_url: attachment.dataUrl })),
+          ],
+        },
       ],
       max_output_tokens: 8192,
       temperature: 0.2,
@@ -515,6 +533,7 @@ serve(async (req) => {
   // call regardless. ----
   let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
   let channelId: string | null = null;
+  let imageAttachments: ImageAttachment[] = [];
   let providerName: 'openai' | 'anthropic' = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
   try {
@@ -524,6 +543,16 @@ serve(async (req) => {
     command = String(body.command || '').trim();
     if(!command) return json({ error:'Missing command' }, 400);
     const requestedChannelId = typeof body.channelId === 'string' ? body.channelId.trim() : '';
+    const requestedAttachments = Array.isArray(body.attachments) ? body.attachments : [];
+    imageAttachments = requestedAttachments
+      .filter((attachment: any) => attachment && typeof attachment.name === 'string' &&
+        typeof attachment.mimeType === 'string' &&
+        ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(attachment.mimeType) &&
+        typeof attachment.dataUrl === 'string' &&
+        attachment.dataUrl.startsWith(`data:${attachment.mimeType};base64,`) &&
+        attachment.dataUrl.length <= 2_800_000)
+      .slice(0, 4)
+      .map((attachment: any) => ({ name: attachment.name.slice(0, 180), mimeType: attachment.mimeType, dataUrl: attachment.dataUrl }));
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnon = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -544,7 +573,7 @@ serve(async (req) => {
     }
 
     const ctx = await buildContext(supabase, command, channelId, openaiKey);
-    contextPack = ctx.pack;
+    contextPack = { ...ctx.pack, imageAttachments: imageAttachments.map(({ name, mimeType }) => ({ name, mimeType })) };
     contextErrors = ctx.errors;
     tokenEstimate = estimateTokens({ command, contextPack });
     const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
@@ -602,6 +631,7 @@ serve(async (req) => {
           const r = await callAnthropicStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
+            imageAttachments,
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );
@@ -610,6 +640,7 @@ serve(async (req) => {
           const r = await callOpenAIStreaming(
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
+            imageAttachments,
             (delta) => send({ type: 'delta', text: delta }),
             (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
           );

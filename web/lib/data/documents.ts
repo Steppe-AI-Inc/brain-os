@@ -66,3 +66,31 @@ export async function deleteDocument(id: string) {
   revalidatePath("/documents");
   return null;
 }
+
+
+export type ChatTextAttachmentInput = {
+  title: string;
+  text: string;
+  mimeType: string;
+};
+
+export async function saveChatTextAttachment(input: ChatTextAttachmentInput): Promise<string | null> {
+  const title = input.title.trim().slice(0, 180);
+  const text = input.text.trim();
+  if (!title) return "Attachment title is required.";
+  if (!text) return "Attachment contains no readable text.";
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("documents").insert({
+    title,
+    category: "chat_attachment",
+    mime_type: input.mimeType || "text/plain",
+    extracted_text: text,
+    summary: text.replace(/\s+/g, " ").slice(0, 240),
+    sensitivity: "internal",
+  });
+  if (error) return error.message;
+
+  revalidatePath("/documents");
+  return null;
+}

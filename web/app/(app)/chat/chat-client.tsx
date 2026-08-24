@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import {
+  ArrowUp,
+  FileText,
+  ImagePlus,
+  Mic,
+  MicOff,
+  Paperclip,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
-import { consumeChatStream, toChatResult, type ChatResult } from "@/lib/chat-stream";
+import {
+  consumeChatStream,
+  toChatResult,
+  type ChatImageAttachment,
+  type ChatResult,
+} from "@/lib/chat-stream";
 import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
@@ -21,10 +35,34 @@ import {
   type ChatChannel,
 } from "@/lib/data/chat-channels";
 import { normalizeSessionTitle } from "@/lib/chat/session-title";
+import { saveChatTextAttachment } from "@/lib/data/documents";
 import { ChannelSidebar } from "./channel-sidebar";
 
 type Usage = { input_tokens: number; output_tokens: number };
 type TokenCost = { tokens: number; costUsd: number };
+
+type ChatAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  kind: "text" | "image";
+  text?: string;
+  dataUrl?: string;
+};
+
+type SpeechResult = ArrayLike<{ 0?: { transcript?: string } }>;
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { results: SpeechResult }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+};
+type BrowserSpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
 
 type ProviderRow = {
   id: string;
@@ -157,6 +195,11 @@ export function ChatClient({
   const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   // Switching channels re-runs the page.tsx Server Component with a new `history` prop
   // (same client component instance, App Router doesn't remount on a search-param-only
@@ -208,9 +251,95 @@ export function ChatClient({
     };
   }, [history, activeChannelId]);
 
+  async function handleFiles(files: FileList | null, imageOnly = false) {
+    if (!files?.length) return;
+    setSessionError(null);
+    const next: ChatAttachment[] = [];
+
+    for (const file of Array.from(files).slice(0, 4)) {
+      const isImage = file.type.startsWith("image/");
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      const isText =
+        file.type.startsWith("text/") ||
+        ["txt", "md", "csv", "json", "log"].includes(extension || "");
+
+      if (imageOnly && !isImage) continue;
+      if (!isImage && !isText) {
+        setSessionError(`${file.name} is not supported yet. Use TXT, MD, CSV, JSON, LOG, PNG, JPEG, WEBP, or GIF.`);
+        continue;
+      }
+      if (isImage && file.size > 2 * 1024 * 1024) {
+        setSessionError(`${file.name} is larger than the 2 MB image limit.`);
+        continue;
+      }
+      if (isText && file.size > 1024 * 1024) {
+        setSessionError(`${file.name} is larger than the 1 MB text-file limit.`);
+        continue;
+      }
+
+      if (isImage) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
+        next.push({ id: crypto.randomUUID(), name: file.name, mimeType: file.type, size: file.size, kind: "image", dataUrl });
+      } else {
+        const text = (await file.text()).slice(0, 40_000);
+        next.push({ id: crypto.randomUUID(), name: file.name, mimeType: file.type || "text/plain", size: file.size, kind: "text", text });
+      }
+    }
+
+    setAttachments((current) => [...current, ...next].slice(0, 6));
+  }
+
+  function toggleMicrophone() {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const browserWindow = window as typeof window & {
+      SpeechRecognition?: BrowserSpeechRecognitionConstructor;
+      webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
+    };
+    const Recognition = browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      setSessionError("Live microphone transcription is not supported in this browser. Use Chrome or Edge.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    const startingText = command.trim();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = document.documentElement.lang === "mn" ? "mn-MN" : "en-US";
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      setCommand([startingText, transcript].filter(Boolean).join(" "));
+    };
+    recognition.onerror = (event) => {
+      setSessionError(`Microphone error: ${event.error || "permission or device unavailable"}.`);
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    setSessionError(null);
+    setIsListening(true);
+    recognition.start();
+  }
+
   async function send() {
-    const trimmed = command.trim();
-    if (!trimmed || isStreaming) return;
+    const typedCommand = command.trim();
+    if ((!typedCommand && attachments.length === 0) || isStreaming) return;
+    const trimmed = typedCommand ||
+      (attachments.some((attachment) => attachment.kind === "image")
+        ? "Analyze the attached image and identify useful business context and actions."
+        : "Analyze the attached document and summarize important business context and actions.");
 
     setSessionError(null);
     let targetChannelId = activeChannelId;
@@ -226,7 +355,30 @@ export function ChatClient({
       createdSession = true;
     }
 
+    const textAttachments = attachments.filter(
+      (attachment): attachment is ChatAttachment & { text: string } =>
+        attachment.kind === "text" && typeof attachment.text === "string"
+    );
+    const saveErrors = (
+      await Promise.all(
+        textAttachments.map((attachment) =>
+          saveChatTextAttachment({ title: attachment.name, text: attachment.text, mimeType: attachment.mimeType })
+        )
+      )
+    ).filter((error): error is string => typeof error === "string");
+    if (saveErrors.length) setSessionError(`Artifact save warning: ${saveErrors.join(" ")}`);
+
+    const textContext = textAttachments
+      .map((attachment) => `--- ${attachment.name} ---\n${attachment.text}`)
+      .join("\n\n");
+    const modelCommand = textContext ? `${trimmed}\n\nATTACHED ARTIFACT CONTENT:\n${textContext}` : trimmed;
+    const imageAttachments: ChatImageAttachment[] = attachments
+      .filter((attachment): attachment is ChatAttachment & { dataUrl: string } =>
+        attachment.kind === "image" && typeof attachment.dataUrl === "string")
+      .map((attachment) => ({ name: attachment.name, mimeType: attachment.mimeType, dataUrl: attachment.dataUrl }));
+
     setCommand("");
+    setAttachments([]);
     setIsStreaming(true);
     setRequestUsage(ZERO);
 
@@ -239,7 +391,7 @@ export function ChatClient({
     });
 
     await consumeChatStream(
-      trimmed,
+      modelCommand,
       (evt) => {
         if (evt.type === "usage") {
           const input = evt.input_tokens ?? 0;
@@ -262,7 +414,8 @@ export function ChatClient({
           patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
         }
       },
-      targetChannelId
+      targetChannelId,
+      imageAttachments
     );
 
     if (createdSession) {
@@ -284,7 +437,7 @@ export function ChatClient({
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col gap-3 overflow-hidden">
       <PageHeader
         icon={Sparkles}
         title="Speak with Brain OS"
@@ -308,7 +461,7 @@ export function ChatClient({
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
+      <div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
         <ChannelSidebar
           channels={channels}
           activeChannelId={activeChannelId}
@@ -316,6 +469,8 @@ export function ChatClient({
             setCommand("");
             setMessages([]);
             setRequestUsage(ZERO);
+            setAttachments([]);
+            recognitionRef.current?.stop();
             setSessionError(null);
             router.push("/chat");
             router.refresh();
@@ -392,27 +547,91 @@ export function ChatClient({
         )}
       </div>
 
-      <Card className="bg-card/90">
-        <CardContent className="flex flex-col gap-3 pt-4">
+      <Card className="shrink-0 border-border/80 bg-card/95 shadow-sm">
+        <CardContent className="flex flex-col gap-2 pt-4">
           {sessionError && <p className="text-sm font-medium text-destructive">{sessionError}</p>}
-          <div className="flex gap-3">
-            <Textarea
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              placeholder="Message Brain OS…"
-              className="min-h-16"
-            />
-            <Button onClick={send} disabled={isStreaming || !command.trim()}>
-              {isStreaming ? "Working…" : "Send"}
-            </Button>
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((attachment) => (
+                <div key={attachment.id} className="group flex max-w-56 items-center gap-2 rounded-xl border border-border/80 bg-secondary/55 p-2">
+                  {attachment.kind === "image" && attachment.dataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={attachment.dataUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{attachment.name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {attachment.kind === "image" ? "Image for this prompt" : "Saved to Documents"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon-xs" aria-label={`Remove ${attachment.name}`}
+                    onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Textarea value={command} onChange={(event) => setCommand(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Message Brain OS…"
+            className="min-h-20 resize-none border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+          />
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2">
+            <div className="flex items-center gap-1">
+              <input ref={fileInputRef} type="file" multiple
+                accept=".txt,.md,.csv,.json,.log,text/plain,text/markdown,text/csv,application/json"
+                className="hidden"
+                onChange={(event) => {
+                  handleFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+              <input ref={imageInputRef} type="file" multiple
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(event) => {
+                  handleFiles(event.target.files, true);
+                  event.target.value = "";
+                }}
+              />
+              <Button variant="ghost" size="icon" title="Attach document" aria-label="Attach document"
+                onClick={() => fileInputRef.current?.click()} disabled={isStreaming}>
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" title="Attach image" aria-label="Attach image"
+                onClick={() => imageInputRef.current?.click()} disabled={isStreaming}>
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Button variant={isListening ? "destructive" : "ghost"} size="icon"
+                title={isListening ? "Stop microphone" : "Speak into message"}
+                aria-label={isListening ? "Stop microphone" : "Speak into message"}
+                aria-pressed={isListening} onClick={toggleMicrophone} disabled={isStreaming}>
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <span className="hidden text-[11px] text-muted-foreground lg:inline">
+                Text files are saved · images require a vision-capable active model
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
+              <Button size="icon" aria-label="Send message" onClick={send}
+                disabled={isStreaming || (!command.trim() && attachments.length === 0)}>
+                {isStreaming ? <Sparkles className="h-4 w-4 animate-pulse" /> : <ArrowUp className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
-          <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
         </CardContent>
       </Card>
         </div>
