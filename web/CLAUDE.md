@@ -4,15 +4,16 @@
 
 This is the **confirmed base foundation** for SEM Brain as of 2026-08-24 — the founder
 compared it directly against the old vanilla-JS app (repo root) in production and chose
-this to build on going forward. The old app stays deployed for continuity but is legacy;
-see the repo-root `CLAUDE.md` and `MASTER_CONTEXT.md` for the full multi-track picture.
+this to build on going forward. The old app's Vercel deployment has since been deleted
+(source kept in the repo for history only); see the repo-root `CLAUDE.md` and
+`MASTER_CONTEXT.md` for the full multi-track picture.
 
 ## Stack
 
 Next.js 16 App Router, TypeScript, Tailwind v4, shadcn/ui (Base UI primitives, not
 Radix), `@supabase/ssr` for auth, Geist Sans/Mono. Deployed to Vercel, live at
-`brain.open-spot.ai` (project `steppe-ai/web` — see "Deploying" below for the current
-git-disconnected state).
+`brain.open-spot.ai` (project `steppe-ai/brain-os` — the only Vercel project under
+`steppe-ai`; see "Deploying" below).
 
 ## Security model — RLS is the only boundary
 
@@ -74,25 +75,36 @@ Departments pages added 2026-08-24.
 
 ## Deploying
 
+**Git auto-deploy genuinely works** — `git push` to `master` is enough. This project
+(`brain-os`) was created fresh via Vercel's dashboard Git-import flow with Root Directory
+set to `web` from the start, unlike the original `web` project (deleted 2026-08-24) whose
+Root Directory was misconfigured with no CLI/API fix available.
+
+Manual deploy, if ever needed:
+
 ```
-cd web
-vercel link --project web --yes   # only needed once per machine
+cd C:\Users\Dell\dev\brain-os        # repo ROOT, not /web — see why below
+vercel link --project brain-os --yes   # only needed once per machine
 vercel --prod --yes
 ```
 
-**Git auto-deploy is currently disconnected** for this project (`vercel git disconnect`,
-2026-08-24) — pushing to GitHub does NOT trigger a deploy. This was deliberate: the
-project's Root Directory setting is still misconfigured (Vercel dashboard → Project
-`steppe-ai/web` → Settings → General → Root Directory → set to `web` — no CLI/API path
-found for this), so auto-deploys were building from the repo root, failing, and that
-failure was blocking the custom domain from being (re)assigned to this project. Fix
-Root Directory first, then `vercel git connect` to re-enable auto-deploy, if wanted.
+**Must run from the repo root, not from inside `/web`.** `brain-os`'s Root Directory is
+set to `web`, so a CLI deploy needs to upload the whole repo and let Vercel descend into
+`web/` itself. Running the CLI already inside `/web` uploads that directory as the root
+and then Vercel tries to descend into `web/` again looking for a `web/web/` that doesn't
+exist — fails with `"Root Directory web does not exist"`.
 
 `brain.open-spot.ai` is bound to this project at the **project level**
-(`vercel domains add brain.open-spot.ai web --force`) — it automatically follows
-whatever this project's latest successful production deployment is. A plain
-`vercel --prod --yes` is sufficient to update what the domain serves; no separate alias
-step needed. Check current state any time with `vercel alias ls | grep brain.open-spot`.
+(`vercel domains add brain.open-spot.ai brain-os --force`) — it automatically follows
+whatever this project's latest successful production deployment is. Check current state
+any time with `vercel alias ls | grep brain.open-spot`.
+
+**NEXT_PUBLIC_\* env vars must be added as non-sensitive** (`vercel env add NAME
+production --no-sensitive --value "..." --yes`). Sensitive-type vars aren't available to
+Next.js at *build* time, only at runtime — since `NEXT_PUBLIC_*` vars get inlined into
+the client bundle during the build step, a Sensitive-typed one silently becomes
+`undefined` in the shipped bundle. This exact mistake 500'd every page on this project
+once already (fixed 2026-08-24) — don't repeat it when adding new public env vars.
 
 ## Verifying changes in this environment
 
