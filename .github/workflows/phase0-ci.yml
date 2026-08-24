@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: phase0-${{ github.workflow }}-${{ github.ref }}
@@ -44,13 +45,43 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npm run typecheck
+        id: typecheck
+        continue-on-error: true
+        run: npm run typecheck 2>&1 | tee typecheck.log
+
+      - name: Publish type-check failure
+        if: steps.typecheck.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          message="$(grep -m1 -E 'error TS|Type error|Error:' typecheck.log | tr '\n' ' ' | cut -c1-130)"
+          test -n "$message" || message="Type check failed; open the linked cloud run."
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=failure             -f context="SEM Brain typecheck"             -f description="$message"             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Stop after type-check failure
+        if: steps.typecheck.outcome == 'failure'
+        run: exit 1
 
       - name: Unit tests
         run: npm run test:unit
 
       - name: Production build
-        run: npm run build
+        id: production_build
+        continue-on-error: true
+        run: npm run build 2>&1 | tee build.log
+
+      - name: Publish build failure
+        if: steps.production_build.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          message="$(grep -m1 -E 'Type error|Error:|Failed to compile' build.log | tr '\n' ' ' | cut -c1-130)"
+          test -n "$message" || message="Production build failed; open the linked cloud run."
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=failure             -f context="SEM Brain build"             -f description="$message"             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Stop after build failure
+        if: steps.production_build.outcome == 'failure'
+        run: exit 1
 
       - uses: denoland/setup-deno@v2
         with:
