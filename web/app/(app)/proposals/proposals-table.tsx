@@ -54,8 +54,10 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
     // Open the tab synchronously, in the click handler itself — opening it after the
     // await below breaks the "user gesture" chain Chrome requires and gets silently
     // popup-blocked (verified live: the PDF generated fine server-side, no tab opened).
+    // Deliberately not calling document.write() on it — verified live that a
+    // document.write()'d window can end up unable to navigate via .location.href
+    // afterward; leaving it genuinely blank until the real URL is ready is more robust.
     const tab = window.open("", "_blank", "noopener,noreferrer");
-    if (tab) tab.document.write("Generating your quotation…");
     const result = await generateQuotationPdf(id);
     setGeneratingId(null);
     if (typeof result === "string") {
