@@ -477,6 +477,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          aliases: string[]
           country: string | null
           created_at: string
           description: string | null
@@ -490,6 +491,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliases?: string[]
           country?: string | null
           created_at?: string
           description?: string | null
@@ -503,6 +505,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliases?: string[]
           country?: string | null
           created_at?: string
           description?: string | null
@@ -767,40 +770,76 @@ export type Database = {
       }
       documents: {
         Row: {
+          analysis_error: string | null
+          analysis_json: Json
+          analysis_status: string
+          analysis_summary: string | null
+          analyzed_at: string | null
           category: string | null
           company_id: string | null
+          company_match_confidence: number | null
+          company_match_reason: string | null
+          company_match_status: string
           created_at: string | null
           extracted_text: string | null
+          file_size_bytes: number | null
           id: string
           mime_type: string | null
+          original_filename: string | null
+          search_vector: unknown
           sensitivity: Database["public"]["Enums"]["visibility_level"] | null
           storage_path: string | null
+          suggested_company_id: string | null
           summary: string | null
           title: string
           uploaded_by_profile_id: string | null
         }
         Insert: {
+          analysis_error?: string | null
+          analysis_json?: Json
+          analysis_status?: string
+          analysis_summary?: string | null
+          analyzed_at?: string | null
           category?: string | null
           company_id?: string | null
+          company_match_confidence?: number | null
+          company_match_reason?: string | null
+          company_match_status?: string
           created_at?: string | null
           extracted_text?: string | null
+          file_size_bytes?: number | null
           id?: string
           mime_type?: string | null
+          original_filename?: string | null
+          search_vector?: unknown
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
+          suggested_company_id?: string | null
           summary?: string | null
           title: string
           uploaded_by_profile_id?: string | null
         }
         Update: {
+          analysis_error?: string | null
+          analysis_json?: Json
+          analysis_status?: string
+          analysis_summary?: string | null
+          analyzed_at?: string | null
           category?: string | null
           company_id?: string | null
+          company_match_confidence?: number | null
+          company_match_reason?: string | null
+          company_match_status?: string
           created_at?: string | null
           extracted_text?: string | null
+          file_size_bytes?: number | null
           id?: string
           mime_type?: string | null
+          original_filename?: string | null
+          search_vector?: unknown
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
+          suggested_company_id?: string | null
           summary?: string | null
           title?: string
           uploaded_by_profile_id?: string | null
@@ -821,8 +860,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documents_suggested_company_id_fkey"
+            columns: ["suggested_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_suggested_company_id_fkey"
+            columns: ["suggested_company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documents_uploaded_by_profile_id_fkey"
             columns: ["uploaded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engineering_drawings: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by_profile_id: string | null
+          description: string
+          dimensions_summary: string | null
+          id: string
+          notes: string | null
+          svg_content: string
+          title: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          description: string
+          dimensions_summary?: string | null
+          id?: string
+          notes?: string | null
+          svg_content: string
+          title: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          description?: string
+          dimensions_summary?: string | null
+          id?: string
+          notes?: string | null
+          svg_content?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engineering_drawings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engineering_drawings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engineering_drawings_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2591,6 +2702,27 @@ export type Database = {
           p_target_column_id: string
         }
         Returns: undefined
+      }
+      search_artifacts: {
+        Args: { p_company_id?: string; p_limit?: number; p_query: string }
+        Returns: {
+          analysis_json: Json
+          analysis_status: string
+          analysis_summary: string
+          category: string
+          company_id: string
+          company_match_confidence: number
+          company_match_status: string
+          created_at: string
+          extracted_text: string
+          id: string
+          mime_type: string
+          rank: number
+          sensitivity: Database["public"]["Enums"]["visibility_level"]
+          suggested_company_id: string
+          summary: string
+          title: string
+        }[]
       }
       sem_execute_ai_command: {
         Args: {

@@ -83,7 +83,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: "Can it generate parking spot or EV charging station drawings?",
-        a: "Not yet. That needs parametric CAD or technical diagram generation, which is a different capability from anything in Brain OS today — flagged as a future addition, not something to expect from the current build.",
+        a: "Yes, on the Engineering Factory page — describe a layout in plain language and it drafts a labeled, scaled, top-down diagram (stall counts, EV stalls, aisles, dimensions). This is a real technical drawing, not construction-grade CAD — there's no DXF/DWG export, so treat it as a fast design sketch to communicate a layout, not a build-ready plan.",
       },
     ],
   },
