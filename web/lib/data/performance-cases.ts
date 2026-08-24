@@ -2,20 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-const ARTIFACT_BUCKET = "company-artifacts";
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-  "application/json",
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
+import {
+  ARTIFACT_BUCKET,
+  MAX_ARTIFACT_BYTES,
+  canonicalArtifactMime,
+} from "@/lib/artifacts";
 
 async function currentIdentity() {
   const supabase = await createClient();
@@ -167,18 +158,31 @@ export async function addPerformanceCaseNote(formData: FormData) {
   revalidatePath("/people/cases");
 }
 
-export async function uploadPerformanceArtifact(formData: FormData) {
-  const caseId = String(formData.get("case_id") || "").trim();
-  const title = String(formData.get("title") || "").trim();
-  const category = String(formData.get("category") || "performance_report").trim();
-  const file = formData.get("file");
+export type PerformanceArtifactInput = {
+  caseId: string;
+  title: string;
+  category: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  extractedText?: string | null;
+};
 
-  if (!caseId || !title) throw new Error("Case and artifact title are required.");
-  if (!(file instanceof File) || file.size === 0) throw new Error("Choose a file to upload.");
-  if (file.size > 25 * 1024 * 1024) throw new Error("Artifact exceeds the 25 MB limit.");
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
-    throw new Error("Unsupported file type. Upload PDF, DOCX, XLSX, TXT, MD, CSV, JSON, PNG, JPEG or WEBP.");
-  }
+export async function registerPerformanceArtifact(
+  input: PerformanceArtifactInput
+): Promise<string | null> {
+  const caseId = input.caseId.trim();
+  const title = input.title.trim();
+  const storagePath = input.storagePath.trim();
+  const fileName = input.fileName.trim();
+  const mimeType = canonicalArtifactMime(fileName, input.mimeType);
+
+  if (!caseId || !title) return "Case and artifact title are required.";
+  if (!storagePath || !fileName) return "Uploaded file metadata is incomplete.";
+  if (!Number.isFinite(input.fileSize) || input.fileSize <= 0) return "Uploaded file is empty.";
+  if (input.fileSize > MAX_ARTIFACT_BYTES) return "Artifact exceeds the 25 MB limit.";
+  if (!mimeType) return "Unsupported file type.";
 
   const { supabase, user, profileId } = await currentIdentity();
   const { data: performanceCase, error: caseError } = await supabase
@@ -186,23 +190,26 @@ export async function uploadPerformanceArtifact(formData: FormData) {
     .select("id, company_id, person_id")
     .eq("id", caseId)
     .maybeSingle();
-  if (caseError) throw caseError;
-  if (!performanceCase) throw new Error("Performance case not found or access denied.");
+  if (caseError) return caseError.message;
+  if (!performanceCase) return "Performance case not found or access denied.";
 
-  const safeName = file.name
-    .normalize("NFKD")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(-160) || "artifact";
-  const storagePath = `${performanceCase.company_id}/${user.id}/${crypto.randomUUID()}-${safeName}`;
+  const expectedPrefix = `${performanceCase.company_id}/${user.id}/`;
+  if (!storagePath.startsWith(expectedPrefix) || storagePath.includes("..")) {
+    return "Uploaded file path is not authorized for this case.";
+  }
 
-  const { error: uploadError } = await supabase.storage
+  const slash = storagePath.lastIndexOf("/");
+  const folder = storagePath.slice(0, slash);
+  const objectName = storagePath.slice(slash + 1);
+  const { data: objects, error: storageError } = await supabase.storage
     .from(ARTIFACT_BUCKET)
-    .upload(storagePath, file, { contentType: file.type, upsert: false });
-  if (uploadError) throw uploadError;
+    .list(folder, { limit: 10, search: objectName });
+  if (storageError) return storageError.message;
+  if (!objects?.some((object) => object.name === objectName)) {
+    return "Uploaded file could not be verified in private storage.";
+  }
 
-  const textLike = file.type.startsWith("text/") || file.type === "application/json";
-  const extractedText = textLike ? (await file.text()).slice(0, 250_000) : null;
+  const extractedText = (input.extractedText || "").slice(0, 250_000) || null;
   const { data: document, error: documentError } = await supabase
     .from("documents")
     .insert({
@@ -210,13 +217,13 @@ export async function uploadPerformanceArtifact(formData: FormData) {
       person_id: performanceCase.person_id,
       performance_case_id: performanceCase.id,
       title,
-      category,
+      category: input.category.trim() || "performance_report",
       storage_path: storagePath,
-      mime_type: file.type,
+      mime_type: mimeType,
       extracted_text: extractedText,
       summary: extractedText
         ? extractedText.replace(/\s+/g, " ").slice(0, 240)
-        : `Stored file: ${file.name}`,
+        : `Stored file: ${fileName}`,
       sensitivity: "confidential",
       uploaded_by_profile_id: profileId,
     })
@@ -225,21 +232,26 @@ export async function uploadPerformanceArtifact(formData: FormData) {
 
   if (documentError) {
     await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
-    throw documentError;
+    return documentError.message;
   }
 
   const { error: eventError } = await supabase.from("performance_case_events").insert({
     case_id: performanceCase.id,
-    event_type: category === "performance_report" ? "report" : "evidence",
+    event_type: input.category === "performance_report" ? "report" : "evidence",
     title: `Artifact received: ${title}`,
-    details: `${file.name} · ${Math.ceil(file.size / 1024).toLocaleString()} KB`,
+    details: `${fileName} · ${Math.ceil(input.fileSize / 1024).toLocaleString()} KB`,
     document_id: document.id,
     created_by_profile_id: profileId,
   });
-  if (eventError) throw eventError;
+  if (eventError) {
+    await supabase.from("documents").delete().eq("id", document.id);
+    await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
+    return eventError.message;
+  }
 
   revalidatePath("/people/cases");
   revalidatePath("/documents");
+  return null;
 }
 
 export async function transitionPerformanceCase(formData: FormData) {

@@ -28,8 +28,8 @@ import {
   getPerformanceCases,
   queueArtifactDriveBackup,
   transitionPerformanceCase,
-  uploadPerformanceArtifact,
 } from "@/lib/data/performance-cases";
+import { PerformanceArtifactUpload } from "./performance-artifact-upload";
 
 const fieldClass =
   "h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none focus:border-ring focus:ring-2 focus:ring-ring/25";
@@ -217,40 +217,10 @@ export default async function PerformanceCasesPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <form action={uploadPerformanceArtifact} className="grid gap-3">
-                    <input type="hidden" name="case_id" value={detail.case.id} />
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="artifact-title">Artifact title</Label>
-                        <Input id="artifact-title" name="title" placeholder="Aigerim monthly report — August" required />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="artifact-category">Category</Label>
-                        <select id="artifact-category" name="category" className={fieldClass} defaultValue="performance_report">
-                          <option value="performance_report">Performance report</option>
-                          <option value="sales_evidence">Sales evidence</option>
-                          <option value="financial_report">Financial report</option>
-                          <option value="communication">Communication</option>
-                          <option value="employment_document">Employment document</option>
-                          <option value="legal_document">Legal document</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="artifact-file">File</Label>
-                      <Input
-                        id="artifact-file"
-                        name="file"
-                        type="file"
-                        required
-                        accept=".pdf,.docx,.xlsx,.txt,.md,.csv,.json,.png,.jpg,.jpeg,.webp"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Private Supabase Storage · 25 MB maximum · confidential case access
-                      </p>
-                    </div>
-                    <Button type="submit" className="justify-self-start">Store artifact</Button>
-                  </form>
+                  <PerformanceArtifactUpload
+                    caseId={detail.case.id}
+                    companyId={detail.case.company_id}
+                  />
 
                   <div className="space-y-2 border-t pt-3">
                     {detail.documents.map((document) => (

@@ -2,20 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-const ARTIFACT_BUCKET = "company-artifacts";
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/plain",
-  "text/markdown",
-  "text/csv",
-  "application/json",
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
+import {
+  ARTIFACT_BUCKET,
+  MAX_ARTIFACT_BYTES,
+  canonicalArtifactMime,
+} from "@/lib/artifacts";
 
 export async function getDocuments() {
   const supabase = await createClient();
@@ -34,12 +25,59 @@ export async function createDocument(_prevState: string | null, formData: FormDa
   const category = String(formData.get("category") || "general").trim();
   const sensitivity = String(formData.get("sensitivity") || "internal").trim();
   const text = String(formData.get("text") || "").trim();
-  const file = formData.get("file");
 
   if (!title) return "Title is required.";
-  const hasFile = file instanceof File && file.size > 0;
-  if (!hasFile && !text) return "Upload a file or paste document content.";
-  if (hasFile && !companyId) return "Choose a company for private file storage.";
+  if (!text) return "Upload a file or paste document content.";
+
+  const supabase = await createClient();
+  const { data: profileId, error: profileError } = await supabase.rpc("current_profile_id");
+  if (profileError || !profileId) return "No Brain OS profile is linked to this account.";
+
+  const { error } = await supabase.from("documents").insert({
+    title,
+    company_id: companyId || null,
+    category,
+    storage_path: null,
+    mime_type: "text/plain",
+    extracted_text: text,
+    summary: text.replace(/\s+/g, " ").slice(0, 240),
+    sensitivity: sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
+    uploaded_by_profile_id: profileId,
+  });
+  if (error) return error.message;
+
+  revalidatePath("/documents");
+  return null;
+}
+
+export type UploadedDocumentInput = {
+  title: string;
+  companyId: string;
+  category: string;
+  sensitivity: string;
+  notes: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  extractedText?: string | null;
+};
+
+export async function registerUploadedDocument(
+  input: UploadedDocumentInput
+): Promise<string | null> {
+  const title = input.title.trim();
+  const companyId = input.companyId.trim();
+  const storagePath = input.storagePath.trim();
+  const fileName = input.fileName.trim();
+  const mimeType = canonicalArtifactMime(fileName, input.mimeType);
+
+  if (!title) return "Title is required.";
+  if (!companyId) return "Choose a company for private file storage.";
+  if (!storagePath || !fileName) return "Uploaded file metadata is incomplete.";
+  if (!Number.isFinite(input.fileSize) || input.fileSize <= 0) return "Uploaded file is empty.";
+  if (input.fileSize > MAX_ARTIFACT_BYTES) return "Artifact exceeds the 25 MB limit.";
+  if (!mimeType) return "Unsupported file type.";
 
   const supabase = await createClient();
   const {
@@ -48,53 +86,42 @@ export async function createDocument(_prevState: string | null, formData: FormDa
   } = await supabase.auth.getUser();
   if (userError || !user) return "Your session expired. Please sign in again.";
 
+  const expectedPrefix = `${companyId}/${user.id}/`;
+  if (!storagePath.startsWith(expectedPrefix) || storagePath.includes("..")) {
+    return "Uploaded file path is not authorized.";
+  }
+
   const { data: profileId, error: profileError } = await supabase.rpc("current_profile_id");
   if (profileError || !profileId) return "No Brain OS profile is linked to this account.";
 
-  let storagePath: string | null = null;
-  let mimeType = "text/plain";
-  let extractedText = text || null;
-
-  if (hasFile) {
-    if (file.size > 25 * 1024 * 1024) return "Artifact exceeds the 25 MB limit.";
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
-      return "Unsupported file type. Upload PDF, DOCX, XLSX, TXT, MD, CSV, JSON, PNG, JPEG or WEBP.";
-    }
-
-    const safeName = file.name
-      .normalize("NFKD")
-      .replace(/[^a-zA-Z0-9._-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(-160) || "artifact";
-    storagePath = `${companyId}/${user.id}/${crypto.randomUUID()}-${safeName}`;
-    mimeType = file.type;
-
-    const { error: uploadError } = await supabase.storage
-      .from(ARTIFACT_BUCKET)
-      .upload(storagePath, file, { contentType: file.type, upsert: false });
-    if (uploadError) return uploadError.message;
-
-    const textLike = file.type.startsWith("text/") || file.type === "application/json";
-    if (textLike) {
-      extractedText = [text, (await file.text()).slice(0, 250_000)].filter(Boolean).join("\n\n");
-    }
+  const slash = storagePath.lastIndexOf("/");
+  const folder = storagePath.slice(0, slash);
+  const objectName = storagePath.slice(slash + 1);
+  const { data: objects, error: storageError } = await supabase.storage
+    .from(ARTIFACT_BUCKET)
+    .list(folder, { limit: 10, search: objectName });
+  if (storageError) return storageError.message;
+  if (!objects?.some((object) => object.name === objectName)) {
+    return "Uploaded file could not be verified in private storage.";
   }
 
-  const summarySource = extractedText || (hasFile ? `Stored file: ${file.name}` : title);
+  const extractedText = (input.extractedText || "").slice(0, 250_000) || null;
+  const notes = input.notes.trim();
+  const summarySource = extractedText || notes || `Stored file: ${fileName}`;
   const { error } = await supabase.from("documents").insert({
     title,
-    company_id: companyId || null,
-    category,
+    company_id: companyId,
+    category: input.category.trim() || "general",
     storage_path: storagePath,
     mime_type: mimeType,
     extracted_text: extractedText,
     summary: summarySource.replace(/\s+/g, " ").slice(0, 240),
-    sensitivity: sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
+    sensitivity: (input.sensitivity || "internal") as "public" | "internal" | "confidential" | "restricted" | "founder_only",
     uploaded_by_profile_id: profileId,
   });
 
   if (error) {
-    if (storagePath) await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
+    await supabase.storage.from(ARTIFACT_BUCKET).remove([storagePath]);
     return error.message;
   }
 
