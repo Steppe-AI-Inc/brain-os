@@ -1,0 +1,112 @@
+name: SEM Brain Phase 0 CI
+
+on:
+  push:
+    branches:
+      - codex/sem-brain-v1
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "web/**"
+      - "supabase/**"
+      - ".github/workflows/phase0-ci.yml"
+      - "docs/SCHEMA-DRIFT-REPORT.md"
+      - "docs/PHASE-0-ARCHITECTURE.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase0-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-and-unit:
+    name: Static, unit, and Edge contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Edge Function contract tests
+        working-directory: .
+        run: deno test --allow-read=supabase/functions/sem-ai-command supabase/functions/sem-ai-command/contract.test.ts
+
+  isolated-supabase-and-browser:
+    name: Isolated RLS, integration, draft migration, and browser smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start isolated Supabase
+        run: |
+          supabase start
+          eval "$(supabase status -o env)"
+          echo "TEST_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "TEST_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Founder versus Employee RLS tests
+        run: supabase test db
+
+      - name: Supabase integration smoke
+        working-directory: web
+        run: npm run test:integration
+
+      - name: Install Chromium
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Unauthenticated critical-page smoke
+        working-directory: web
+        run: npm run test:e2e
+
+      - name: Validate review-only v1 migration in disposable database
+        run: |
+          cp supabase/drafts/202608260001_sem_brain_v1_execution.sql \
+            supabase/migrations/202608260001_sem_brain_v1_execution.sql
+          supabase db reset --local
+
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --no-backup

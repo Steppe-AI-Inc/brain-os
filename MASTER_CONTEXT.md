@@ -12,7 +12,7 @@
 |---|---|---|
 | `master` | Original vanilla-JS SEM Brain app (repo root, source kept for history) **+** the Next.js rewrite (`/web`) | `/web` is **the base foundation** as of 2026-08-24 (founder's explicit call); old app's Vercel deployment was deleted 2026-08-24 — its source is still in the repo, just not deployed anywhere |
 | `blankcollar` | Full history import of `The-Blank-Collar/blankcollar-agentic-os` (MIT) | Slice 1 (serverless Telegram→Hermes→gbrain) code done + pushed; not yet deployed |
-| `codex/sem-brain-v1` | Third track (OpenAI Codex/ChatGPT), now connected to GitHub | Fast-forwarded to match `master` 2026-08-24 (had zero unique commits of its own — was a stale snapshot from before the Goals/redesign work) |
+| `codex/sem-brain-v1` | Controlled SEM Brain v1 productionization lane based on the designated `/web` foundation | Aligned to `master`, then Phase 0 implemented; live drift verification still requires a fresh Supabase CLI login |
 
 **Important — local dev location**: don't clone/work inside a Google Drive– or OneDrive–synced folder. This session started in `E:\My Drive\...` and hit real, reproducible corruption: `npm install` failed repeatedly with `EPERM`/`ENOTEMPTY` errors because Drive's sync client holds file locks during `node_modules` churn, and the same class of risk applies to a live `.git` directory. All work was relocated to a local, non-synced path (`C:\Users\Dell\dev\brain-os` on this machine). **On a new machine, clone fresh to a plain local path** (e.g. `~/dev/brain-os` or `C:\dev\brain-os`), not into a cloud-sync folder.
 
@@ -90,9 +90,25 @@ Three parallel research agents audited blankcollar's actual source (not just its
 
 **Deferred to a later slice (not needed for "Telegram bot replies"):** OpenClaw (needs Browserbase for its `web.browse` skill — founder's choice, not yet signed up), LangGraph (only matters once OpenClaw is back in the picture), Graphiti (needs Neo4j Aura), Paperclip's other 39 REST routes / Stripe billing / dashboard (not exercised by the Telegram path at all).
 
-## Track 3 — Codex/ChatGPT (pending)
+## Track 3 — Codex/ChatGPT (`codex/sem-brain-v1`)
 
-Founder is building a third parallel version using OpenAI Codex/ChatGPT, not yet connected to GitHub. Nothing to do here until it's connected — when it is, the natural move is either a fourth branch in this same repo (matching the `blankcollar` pattern) or a standalone comparison, founder's call once it exists.
+This is the safe development lane for SEM Brain v1. It must not modify or merge into `master` without founder review and approval.
+
+**Phase 0 status (2026-08-24):**
+- Added a provisional repository-versus-live drift report at `docs/SCHEMA-DRIFT-REPORT.md`. The repository inventory is complete. Live Supabase comparison remains explicitly blocked because this machine has no fresh Supabase login/access token; no old exposed token was reused.
+- Added the Phase 0 target architecture and review-only SQL draft at `docs/PHASE-0-ARCHITECTURE.md` and `supabase/drafts/202608260001_sem_brain_v1_execution.sql`. The draft is deliberately outside `supabase/migrations`; it has not been applied to local, staging, or production databases.
+- Added isolated unit, integration, RLS, Edge contract, browser, and branch-CI foundations. Local results are recorded in `docs/PHASE-0-TEST-RESULTS.md`.
+- Confirmed that remote commit `f082917` had already regenerated canonical `web/types/database.ts` directly from live Supabase for the applied Goals/Departments schema. Phase 0 adds a clearly marked read-only regeneration command; this session still needs a fresh login to independently recapture the full catalog.
+- Production Supabase and Vercel were not changed or deployed during Phase 0.
+
+**Resume this lane on another machine:**
+1. Clone the repo to a non-synced local folder.
+2. Run `git switch codex/sem-brain-v1`.
+3. Read `CLAUDE.md`, this file, `docs/SCHEMA-DRIFT-REPORT.md`, `docs/PHASE-0-ARCHITECTURE.md`, and `docs/PHASE-0-TEST-RESULTS.md`.
+4. Authenticate the Supabase CLI with a fresh personal token, rerun the documented read-only drift/type commands, then update the report and commit the canonical generated type only if the live output changes.
+5. Do not promote the review SQL draft into migrations until drift, local reset, RLS tests, and human security review all pass.
+
+
 
 ## Supabase project reference (all tracks)
 

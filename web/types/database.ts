@@ -1,3 +1,4 @@
+// GENERATED FILE - DO NOT EDIT. Regenerate from live Supabase with: npm run db:types
 export type Json =
   | string
   | number
