@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateDocument, deleteDocument, type DocumentInput } from "@/lib/data/documents";
 
 const SENSITIVITY_OPTIONS = ["public", "internal", "confidential", "restricted", "founder_only"];
@@ -35,6 +35,12 @@ export function DocumentsTable({
   const [editing, setEditing] = useState<DocumentRow | null>(null);
   const [values, setValues] = useState<DocumentInput>({ title: "", companyId: "", sensitivity: "internal", summary: "" });
 
+  const view = useListView({
+    items: documents,
+    searchText: (document) => [document.title, document.summary, document.sensitivity, document.companies?.name].filter(Boolean).join(" "),
+    filterValue: (document) => document.sensitivity ?? "internal",
+  });
+
   function openEdit(d: DocumentRow) {
     setValues({
       title: d.title,
@@ -47,6 +53,11 @@ export function DocumentsTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search documents and summaries…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="sensitivity"
+        filterOptions={SENSITIVITY_OPTIONS.map((sensitivity) => ({ value: sensitivity, label: sensitivity.replace("_", " ") }))}
+        resultCount={view.items.length} totalCount={documents.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -59,7 +70,7 @@ export function DocumentsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {documents.map((d) => (
+            {view.items.map((d) => (
               <TableRow key={d.id} className="group/row">
                 <TableCell className="font-medium">{d.title}</TableCell>
                 <TableCell>{d.companies?.name ?? "—"}</TableCell>
@@ -77,7 +88,7 @@ export function DocumentsTable({
                 </TableCell>
               </TableRow>
             ))}
-            {documents.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No documents visible yet.

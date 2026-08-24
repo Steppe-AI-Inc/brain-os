@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { TASK_COLUMNS } from "@/lib/data/task-columns";
 import { updateTaskStatus } from "@/lib/data/tasks";
 import { TaskCard, type TaskRow } from "./task-card";
-import { TaskSheet, type EditingTask } from "./task-sheet";
+import { TaskSheet, type EditingTask } from "./task-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import type { Database } from "@/types/database";
 
 type PriorityLevel = Database["public"]["Enums"]["priority_level"];
@@ -64,6 +64,12 @@ export function TasksBoard({
     setTasks(initialTasks);
   }
 
+  const view = useListView({
+    items: tasks,
+    searchText: (task) => [task.title, task.description, task.priority, task.risk_level, task.companies?.name].filter(Boolean).join(" "),
+    filterValue: (task) => task.company_id ?? "unassigned",
+  });
+
   function refresh() {
     router.refresh();
   }
@@ -109,10 +115,15 @@ export function TasksBoard({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search tasks…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="companies"
+        filterOptions={[...companies.map((company) => ({ value: company.id, label: company.name })), { value: "unassigned", label: "Unassigned" }]}
+        resultCount={view.items.length} totalCount={tasks.length} onClear={view.clear} />
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {TASK_COLUMNS.map((status) => {
-            const columnTasks = tasks.filter((t) => t.status === status);
+            const columnTasks = view.items.filter((t) => t.status === status);
             return (
               <Column key={status} status={status}>
                 <div className="flex items-center justify-between px-1">

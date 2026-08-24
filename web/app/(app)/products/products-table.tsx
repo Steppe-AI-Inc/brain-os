@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateProductLine, deleteProductLine, type ProductLineInput } from "@/lib/data/products";
 
 type ProductRow = {
@@ -34,6 +34,12 @@ export function ProductsTable({
   const [editing, setEditing] = useState<ProductRow | null>(null);
   const [values, setValues] = useState<ProductLineInput>({ name: "", companyId: "", unitPrice: 0, unitCost: 0, active: true });
 
+  const view = useListView({
+    items: products,
+    searchText: (product) => [product.name, product.currency, product.companies?.name].filter(Boolean).join(" "),
+    filterValue: (product) => product.active ? "active" : "inactive",
+  });
+
   function openEdit(p: ProductRow) {
     setValues({
       name: p.name,
@@ -47,6 +53,11 @@ export function ProductsTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search products…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="statuses"
+        filterOptions={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]}
+        resultCount={view.items.length} totalCount={products.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -60,7 +71,7 @@ export function ProductsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((p) => (
+            {view.items.map((p) => (
               <TableRow key={p.id} className="group/row">
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
@@ -83,7 +94,7 @@ export function ProductsTable({
                 </TableCell>
               </TableRow>
             ))}
-            {products.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No product lines visible yet.

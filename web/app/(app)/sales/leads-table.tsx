@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateLead, deleteLead, type LeadInput } from "@/lib/data/sales";
 
 type LeadRow = {
@@ -41,6 +41,12 @@ export function LeadsTable({
     valueEstimate: 0,
   });
 
+  const view = useListView({
+    items: leads,
+    searchText: (lead) => [lead.client_name, lead.contact_name, lead.contact_email, lead.stage, lead.companies?.name].filter(Boolean).join(" "),
+    filterValue: (lead) => lead.stage ?? "lead",
+  });
+
   function openEdit(l: LeadRow) {
     setValues({
       clientName: l.client_name,
@@ -55,6 +61,11 @@ export function LeadsTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search leads and contacts…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="stages"
+        filterOptions={Array.from(new Set(leads.map((lead) => lead.stage ?? "lead"))).map((stage) => ({ value: stage, label: stage.replace("_", " ") }))}
+        resultCount={view.items.length} totalCount={leads.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -68,7 +79,7 @@ export function LeadsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leads.map((l) => (
+            {view.items.map((l) => (
               <TableRow key={l.id} className="group/row">
                 <TableCell className="font-medium">{l.client_name}</TableCell>
                 <TableCell>{l.companies?.name ?? "—"}</TableCell>
@@ -87,7 +98,7 @@ export function LeadsTable({
                 </TableCell>
               </TableRow>
             ))}
-            {leads.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No leads visible yet.

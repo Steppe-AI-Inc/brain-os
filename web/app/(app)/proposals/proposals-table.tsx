@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateProposal, deleteProposal, type ProposalInput } from "@/lib/data/proposals";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -35,6 +35,12 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
   const [editing, setEditing] = useState<ProposalRow | null>(null);
   const [values, setValues] = useState<ProposalInput>({ title: "", status: "draft", paymentTerms: "" });
 
+  const view = useListView({
+    items: proposals,
+    searchText: (proposal) => [proposal.title, proposal.status, proposal.currency, proposal.companies?.name].filter(Boolean).join(" "),
+    filterValue: (proposal) => proposal.status ?? "draft",
+  });
+
   function openEdit(p: ProposalRow) {
     setValues({
       title: p.title,
@@ -46,6 +52,11 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search proposals…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="statuses"
+        filterOptions={Object.keys(STATUS_VARIANT).map((status) => ({ value: status, label: status.replace("_", " ") }))}
+        resultCount={view.items.length} totalCount={proposals.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -59,7 +70,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {proposals.map((p) => (
+            {view.items.map((p) => (
               <TableRow key={p.id} className="group/row">
                 <TableCell className="font-medium">{p.title}</TableCell>
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
@@ -80,7 +91,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {proposals.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No proposals visible yet.

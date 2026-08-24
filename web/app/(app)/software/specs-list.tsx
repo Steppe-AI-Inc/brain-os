@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateProductSpec, deleteProductSpec, type ProductSpecInput } from "@/lib/data/software";
 
 type SpecRow = {
@@ -23,6 +23,12 @@ export function SpecsList({ specs }: { specs: SpecRow[] }) {
   const [editing, setEditing] = useState<SpecRow | null>(null);
   const [values, setValues] = useState<ProductSpecInput>({ title: "", status: "draft", bodyMd: "" });
 
+  const view = useListView({
+    items: specs,
+    searchText: (spec) => [spec.title, spec.status, spec.body_md, spec.companies?.name].filter(Boolean).join(" "),
+    filterValue: (spec) => spec.status ?? "draft",
+  });
+
   function openEdit(s: SpecRow) {
     setValues({ title: s.title, status: s.status ?? "draft", bodyMd: s.body_md ?? "" });
     setEditing(s);
@@ -30,8 +36,13 @@ export function SpecsList({ specs }: { specs: SpecRow[] }) {
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search PRDs…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="statuses"
+        filterOptions={Array.from(new Set(specs.map((spec) => spec.status ?? "draft"))).map((status) => ({ value: status, label: status.replace("_", " ") }))}
+        resultCount={view.items.length} totalCount={specs.length} onClear={view.clear} />
+
       <div className="flex flex-col gap-2">
-        {specs.map((s) => (
+        {view.items.map((s) => (
           <div key={s.id} className="group/row rounded-lg border border-border/60 p-3 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{s.title}</span>
@@ -48,7 +59,7 @@ export function SpecsList({ specs }: { specs: SpecRow[] }) {
             <p className="mt-1 text-xs text-muted-foreground">{s.companies?.name ?? "Parent"}</p>
           </div>
         ))}
-        {specs.length === 0 && <p className="text-sm text-muted-foreground">No PRDs yet.</p>}
+        {view.items.length === 0 && <p className="text-sm text-muted-foreground">No PRDs yet.</p>}
       </div>
 
       <EditSheet

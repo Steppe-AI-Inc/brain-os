@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateCompany, deleteCompany, type CompanyInput } from "@/lib/data/companies";
 
 type CompanyRow = {
@@ -29,6 +29,12 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
   const [editing, setEditing] = useState<CompanyRow | null>(null);
   const [values, setValues] = useState<CompanyInput>({ name: "", country: "", legalEntityName: "", status: "active" });
 
+  const view = useListView({
+    items: companies,
+    searchText: (company) => [company.name, company.country, company.legal_entity_name, company.status].filter(Boolean).join(" "),
+    filterValue: (company) => company.status ?? "unknown",
+  });
+
   function openEdit(c: CompanyRow) {
     setValues({
       name: c.name,
@@ -41,6 +47,11 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search companies…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="statuses"
+        filterOptions={STATUS_OPTIONS.map((status) => ({ value: status, label: status }))}
+        resultCount={view.items.length} totalCount={companies.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -54,7 +65,7 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((c) => (
+            {view.items.map((c) => (
               <TableRow key={c.id} className="group/row">
                 <TableCell className="font-medium">{c.name}</TableCell>
                 <TableCell>{c.country ?? "—"}</TableCell>
@@ -73,7 +84,7 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
                 </TableCell>
               </TableRow>
             ))}
-            {companies.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No companies visible — either none exist yet, or RLS is scoping you out

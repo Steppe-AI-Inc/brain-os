@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updatePerson, deletePerson, type PersonInput } from "@/lib/data/people";
 
 type PersonRow = {
@@ -33,6 +33,12 @@ export function PeopleTable({
   const [editing, setEditing] = useState<PersonRow | null>(null);
   const [values, setValues] = useState<PersonInput>(EMPTY);
 
+  const view = useListView({
+    items: people,
+    searchText: (person) => [person.full_name, person.role_title, person.email, person.companies?.name].filter(Boolean).join(" "),
+    filterValue: (person) => person.company_id ?? "unassigned",
+  });
+
   function openEdit(p: PersonRow) {
     setValues({
       fullName: p.full_name,
@@ -45,6 +51,11 @@ export function PeopleTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search people, roles, or email…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="companies"
+        filterOptions={[...companies.map((company) => ({ value: company.id, label: company.name })), { value: "unassigned", label: "Unassigned" }]}
+        resultCount={view.items.length} totalCount={people.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -57,7 +68,7 @@ export function PeopleTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {people.map((p) => (
+            {view.items.map((p) => (
               <TableRow key={p.id} className="group/row">
                 <TableCell className="font-medium">{p.full_name}</TableCell>
                 <TableCell>{p.role_title ?? "—"}</TableCell>
@@ -73,7 +84,7 @@ export function PeopleTable({
                 </TableCell>
               </TableRow>
             ))}
-            {people.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No people visible yet.

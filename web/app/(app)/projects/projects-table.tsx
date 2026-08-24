@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateProject, deleteProject, type ProjectInput } from "@/lib/data/projects";
 
 type ProjectRow = {
@@ -33,6 +33,12 @@ export function ProjectsTable({
   const [editing, setEditing] = useState<ProjectRow | null>(null);
   const [values, setValues] = useState<ProjectInput>({ title: "", companyId: "", goal: "", status: "active", deadline: "" });
 
+  const view = useListView({
+    items: projects,
+    searchText: (project) => [project.title, project.status, project.deadline, project.companies?.name].filter(Boolean).join(" "),
+    filterValue: (project) => project.company_id ?? "unassigned",
+  });
+
   function openEdit(p: ProjectRow) {
     setValues({
       title: p.title,
@@ -46,6 +52,11 @@ export function ProjectsTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search projects…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="companies"
+        filterOptions={companies.map((company) => ({ value: company.id, label: company.name }))}
+        resultCount={view.items.length} totalCount={projects.length} onClear={view.clear} />
+
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
         <Table>
           <TableHeader>
@@ -59,7 +70,7 @@ export function ProjectsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.map((p) => (
+            {view.items.map((p) => (
               <TableRow key={p.id} className="group/row">
                 <TableCell className="font-medium">{p.title}</TableCell>
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
@@ -78,7 +89,7 @@ export function ProjectsTable({
                 </TableCell>
               </TableRow>
             ))}
-            {projects.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No projects visible yet.

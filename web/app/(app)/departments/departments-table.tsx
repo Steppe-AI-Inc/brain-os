@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
-import { EditSheet } from "@/components/edit-sheet";
+import { EditSheet } from "@/components/edit-sheet";\nimport { ListControls, useListView } from "@/components/list-controls";
 import { updateDepartment, deleteDepartment, type DepartmentInput } from "@/lib/data/departments";
 
 type DepartmentRow = {
@@ -31,6 +31,12 @@ export function DepartmentsTable({
   const [editing, setEditing] = useState<DepartmentRow | null>(null);
   const [values, setValues] = useState<DepartmentInput>({ name: "", companyId: "" });
 
+  const view = useListView({
+    items: departments,
+    searchText: (department) => [department.name, department.companies?.name].filter(Boolean).join(" "),
+    filterValue: (department) => department.company_id ?? "unassigned",
+  });
+
   function openEdit(d: DepartmentRow) {
     setValues({ name: d.name, companyId: d.company_id ?? "" });
     setEditing(d);
@@ -38,6 +44,11 @@ export function DepartmentsTable({
 
   return (
     <>
+      <ListControls query={view.query} onQueryChange={view.setQuery} searchPlaceholder="Search departments…"
+        filter={view.filter} onFilterChange={view.setFilter} filterLabel="companies"
+        filterOptions={companies.map((company) => ({ value: company.id, label: company.name }))}
+        resultCount={view.items.length} totalCount={departments.length} onClear={view.clear} />
+
       <Card className="overflow-hidden border-border/80 shadow-none">
         <Table>
           <TableHeader>
@@ -49,7 +60,7 @@ export function DepartmentsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {departments.map((d) => (
+            {view.items.map((d) => (
               <TableRow key={d.id} className="group/row">
                 <TableCell className="font-medium">{d.name}</TableCell>
                 <TableCell className="text-muted-foreground">{d.companies?.name ?? "—"}</TableCell>
@@ -66,7 +77,7 @@ export function DepartmentsTable({
                 </TableCell>
               </TableRow>
             ))}
-            {departments.length === 0 && (
+            {view.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No departments yet.
