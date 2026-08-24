@@ -174,3 +174,29 @@ First safe operational flow after migration:
 
 Telegram report ingestion, automated AI financial analysis and the Google Drive transfer worker remain separate follow-up slices. The manual artifact-to-performance-case workflow is the safe launch baseline.
 
+
+
+## 2026-08-24 — Artifact Intelligence checkpoint
+
+Development lane: `codex/sem-brain-v1` only. Master remains untouched.
+
+Implemented and Vercel-build verified:
+
+- `/documents` is now the Artifact Intelligence ledger, with tracked analysis state, storage metadata, automatic/confirmed company match, confidence, reasons, summaries, review errors, signed download, Drive queue, edit, delete and re-analysis controls.
+- Companies support comma-separated aliases (for example `OpenSpot, CLIX GPS, IQParking`) so filenames, titles, notes and chat prompts can resolve to the correct legal company automatically.
+- The centralized uploader, Country Leadership evidence uploader and AI Chat attachment flow all use the same private `company-artifacts` bucket and document registry. Supported artifacts share the 25 MB limit and MIME validation.
+- Chat attachment upload now asks the user to confirm the suggested company before sending. Uploaded files remain tracked in Artifact Intelligence after the chat changes or closes.
+- `sem-artifact-analyze` performs deterministic local company matching and text summarization first. Sending a private file to OpenAI is disabled unless the user explicitly checks the per-upload authorization control. Every external authorization and analysis result is audited.
+- `sem-ai-command` searches only RLS-visible artifacts that were explicitly authorized for external AI use, injects a compact context pack, validates returned artifact citations and displays source links in chat.
+- Feature commit: `379b4d170ecfe4b4d8b6bc26b288e0e769364e55`. The Vercel production build for that commit passed.
+
+Required one-time activation in shared Supabase project `pvphxgrtdfrudejjhzjk`:
+
+1. Apply `supabase/migrations/202608270002_artifact_intelligence.sql` after the existing `202608270001_country_operations_artifacts.sql` migration.
+2. Manually dispatch the GitHub workflow **Deploy Supabase Edge Functions** from branch `codex/sem-brain-v1`. It deploys `sem-ai-command` and `sem-artifact-analyze`; the workflow is intentionally manual because these are shared production functions.
+3. Ensure `OPENAI_API_KEY` is stored in Supabase Edge Function secrets if external AI analysis is desired. Optional: set `OPENAI_ARTIFACT_MODEL`; otherwise it uses `OPENAI_MODEL` and then `gpt-4.1-mini`.
+4. Run founder and employee role checks: automatic match, manual override, private upload, local-only analysis, explicit AI authorization, source citation, signed download, delete cleanup and cross-company denial.
+
+Privacy rule: file contents are never silently exported to an external model. Without explicit authorization, the file is stored and tracked, deterministic metadata analysis runs, and Brain OS must not claim that it read the binary contents.
+
+Google Drive continues to be a durable queue only until the Google/Nango connector worker is configured.
