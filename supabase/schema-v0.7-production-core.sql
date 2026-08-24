@@ -656,7 +656,29 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
-drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb);
+create or replace function public.create_pending_work_order(p_command text, p_context_pack jsonb)
+returns uuid
+language plpgsql
+security invoker
+as $$
+declare
+  v_id uuid;
+begin
+  insert into public.work_orders (command, status, context_pack, created_by_profile_id)
+  values (p_command, 'queued', p_context_pack, public.current_profile_id())
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.create_pending_work_order(text, jsonb) from public, anon;
+grant execute on function public.create_pending_work_order(text, jsonb) to authenticated;
+
+-- sem_execute_ai_command now UPDATEs the work order that already exists (created via
+-- create_pending_work_order before the LLM call) instead of inserting a new one at the
+-- end. New trailing param p_work_order_id — same drop-and-recreate recipe as every prior
+-- migration this session (a new parameter is a new overload, not a replacement).
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb);
 
 create or replace function public.sem_execute_ai_command(
   p_command text,
@@ -675,7 +697,8 @@ create or replace function public.sem_execute_ai_command(
   p_projects jsonb default '[]'::jsonb,
   p_goals jsonb default '[]'::jsonb,
   p_company_relationships jsonb default '[]'::jsonb,
-  p_person_assignments jsonb default '[]'::jsonb
+  p_person_assignments jsonb default '[]'::jsonb,
+  p_work_order_id uuid default null
 ) returns jsonb
 language plpgsql
 security invoker
@@ -725,9 +748,18 @@ begin
     raise exception 'No profile found for the authenticated user';
   end if;
 
-  insert into public.work_orders (command, status, context_pack, output, token_estimate, created_by_profile_id)
-  values (p_command, 'queued', p_context_pack, p_output, p_token_estimate, v_profile_id)
-  returning id into v_work_order_id;
+  if p_work_order_id is not null then
+    update public.work_orders
+    set status = 'done', output = p_output, token_estimate = p_token_estimate, updated_at = now()
+    where id = p_work_order_id
+    returning id into v_work_order_id;
+  end if;
+
+  if v_work_order_id is null then
+    insert into public.work_orders (command, status, context_pack, output, token_estimate, created_by_profile_id)
+    values (p_command, 'done', p_context_pack, p_output, p_token_estimate, v_profile_id)
+    returning id into v_work_order_id;
+  end if;
 
   for v_task in select * from jsonb_array_elements(coalesce(p_tasks, '[]'::jsonb))
   loop
@@ -867,11 +899,6 @@ begin
     v_created_goals := v_created_goals || jsonb_build_object('id', v_new_goal_id, 'title', v_goal->>'title');
   end loop;
 
-  -- company_relationships_write_founder is the real authorization check — founder/admin
-  -- only, matching company_sensitive's classification exactly. ownerProfileId is only
-  -- honored if it equals the caller's own profile id (never trusted as an arbitrary
-  -- model-supplied value). State defaults to 'planned' at the table level; the model is
-  -- instructed to justify 'current', never default to it.
   for v_relationship in select * from jsonb_array_elements(coalesce(p_company_relationships, '[]'::jsonb))
   loop
     v_company_index := nullif(v_relationship->>'companyIndex','')::int;
@@ -916,9 +943,6 @@ begin
     end if;
   end loop;
 
-  -- person_assignments_write_manager is the real authorization check (company-manager+
-  -- of the operating company). personIndex resolves the assignment subject or manager
-  -- against people created earlier in this same request, mirroring companyIndex.
   for v_assignment in select * from jsonb_array_elements(coalesce(p_person_assignments, '[]'::jsonb))
   loop
     v_person_index := nullif(v_assignment->>'personIndex','')::int;
@@ -1010,8 +1034,26 @@ begin
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb) from public, anon;
-grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb) to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid) to authenticated;
+
+-- Failure path (JSON parse failure, provider error, RPC error) needs its own way to mark
+-- the pending row as failed rather than leaving it stuck at 'queued' forever with no
+-- record of what went wrong.
+create or replace function public.mark_work_order_failed(p_work_order_id uuid, p_error text)
+returns void
+language plpgsql
+security invoker
+as $$
+begin
+  update public.work_orders
+  set status = 'rejected', output = jsonb_build_object('error', p_error), updated_at = now()
+  where id = p_work_order_id;
+end;
+$$;
+
+revoke all on function public.mark_work_order_failed(uuid, text) from public, anon;
+grant execute on function public.mark_work_order_failed(uuid, text) to authenticated;
 
 
 -- ---------- ENABLE RLS ----------

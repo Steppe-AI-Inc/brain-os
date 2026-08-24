@@ -17,6 +17,7 @@ export type ChatResult = {
 
 export type StreamEvent =
   | { type: "delta"; text: string }
+  | { type: "work_order"; id: string }
   | { type: "usage"; input_tokens?: number; output_tokens?: number }
   | {
       type: "done";

@@ -458,7 +458,23 @@ serve(async (req) => {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
+      let workOrderId: string | null = null;
       try {
+        // A real row now exists in the database before the LLM call even starts, not
+        // just after it finishes — verified live that generation itself survives a
+        // client disconnect (a command was sent, the browser hard-disconnected before it
+        // could have finished, and the task/work_order/model_usage rows all landed
+        // successfully anyway), so this pending row is what the chat page reconnects to
+        // if the user navigates away and back mid-generation.
+        const { data: pendingId, error: pendingError } = await supabase.rpc('create_pending_work_order', {
+          p_command: command,
+          p_context_pack: contextPack,
+        });
+        if (!pendingError && pendingId) {
+          workOrderId = pendingId;
+          send({ type: 'work_order', id: workOrderId });
+        }
+
         let resultText: string;
         let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
@@ -490,18 +506,21 @@ serve(async (req) => {
         try {
           result = parseModelJson(resultText);
         } catch {
-          // No audit_logs row exists for this failure otherwise (it happens before the
-          // transactional RPC even runs) — log it so a bad reply is diagnosable later
-          // instead of only reproducible live.
+          // Now attached to a real work_order row (entity_id) instead of null, and that
+          // row itself gets marked 'rejected' rather than sitting stuck at 'queued'
+          // forever — both diagnosable and visible in chat history afterward.
           const truncated = stopReason === 'max_tokens' || stopReason === 'max_output_tokens';
           const errorMessage = truncated
             ? 'Response was cut off before it finished (too long for one reply) — try breaking the request into smaller steps.'
             : 'Model returned invalid JSON';
           await supabase.from('audit_logs').insert({
             actor_profile_id: profile.id, actor_role: profile.role,
-            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: null,
+            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: workOrderId,
             message: errorMessage, metadata: { command, model, stopReason, raw: resultText.slice(0, 4000) }
           });
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage });
+          }
           send({ type: 'error', error: errorMessage, raw: resultText.slice(0, 2000) });
           return;
         }
@@ -689,9 +708,13 @@ serve(async (req) => {
           p_projects: createProjects,
           p_goals: createGoals,
           p_company_relationships: createCompanyRelationships,
-          p_person_assignments: createPersonAssignments
+          p_person_assignments: createPersonAssignments,
+          p_work_order_id: workOrderId
         });
         if(rpcError) {
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: rpcError.message || 'Failed to persist AI command result' });
+          }
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
           return;
         }
@@ -711,7 +734,11 @@ serve(async (req) => {
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
-        send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
+        const errorMessage = e?.body?.error?.message || e?.message || String(e);
+        if (workOrderId) {
+          await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage }).catch(() => {});
+        }
+        send({ type: 'error', error: errorMessage });
       } finally {
         controller.close();
       }

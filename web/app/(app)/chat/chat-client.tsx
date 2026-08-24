@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { consumeChatStream, toChatResult, type ChatResult } from "@/lib/chat-str
 import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
+import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
 
 type Usage = { input_tokens: number; output_tokens: number };
 type TokenCost = { tokens: number; costUsd: number };
@@ -32,6 +33,41 @@ type Message = {
   result?: ChatResult;
   error?: string;
 };
+
+// work_orders.status is 'queued' until sem_execute_ai_command marks it 'done', or
+// mark_work_order_failed marks it 'rejected' — 'queued' on reload means the message was
+// still generating when the user navigated away (generation itself survives a client
+// disconnect, verified live; only the UI needed a way to reconnect to it).
+function historyToMessage(h: ChatHistoryMessage): Message {
+  const usage =
+    h.inputTokens || h.outputTokens ? { input_tokens: h.inputTokens, output_tokens: h.outputTokens } : null;
+
+  if (h.status === "rejected") {
+    return { command: h.command, status: "error", usage, error: h.output?.error || "Command failed." };
+  }
+  if (h.status !== "done") {
+    return { command: h.command, status: "streaming", usage };
+  }
+  return {
+    command: h.command,
+    status: "done",
+    usage,
+    result: {
+      summary: h.output?.summary || "Command executed.",
+      taskCount: h.counts?.tasks ?? 0,
+      approvalCount: h.counts?.approvals ?? 0,
+      deletedCount: h.counts?.deletedTasks ?? 0,
+      companyCount: h.counts?.companies ?? 0,
+      personCount: h.counts?.people ?? 0,
+      projectCount: h.counts?.projects ?? 0,
+      goalCount: h.counts?.goals ?? 0,
+      relationshipCount: h.counts?.companyRelationships ?? 0,
+      assignmentCount: h.counts?.personAssignments ?? 0,
+      model: h.modelName || "unknown",
+      usage,
+    },
+  };
+}
 
 function fmtCost(n: number): string {
   if (n === 0) return "$0.00";
@@ -96,12 +132,14 @@ const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
 export function ChatClient({
   providers,
   usageSummary,
+  history,
 }: {
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
+  history: ChatHistoryMessage[];
 }) {
   const [command, setCommand] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
   // Session = cumulative since this tab loaded. Request = only the current/most recent
   // send. Today/30d = real DB aggregates (getUsageSummary()), refreshed after each reply
@@ -118,6 +156,31 @@ export function ChatClient({
       prev.map((m, i) => (i === index ? { ...m, ...(typeof patch === "function" ? patch(m) : patch) } : m))
     );
   }
+
+  // If the newest message was still generating when this tab loaded (reconnecting after
+  // navigating away mid-stream, not a message we're actively streaming ourselves right
+  // now), poll history until it resolves. Depends only on the initial `history` prop —
+  // runs once per real page load, not on every local state change.
+  useEffect(() => {
+    const last = history[history.length - 1];
+    if (!last || last.status !== "queued") return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      const fresh = await getChatHistory();
+      if (cancelled) return;
+      setMessages(fresh.map(historyToMessage));
+      const latest = fresh[fresh.length - 1];
+      if (latest && latest.status !== "queued") {
+        clearInterval(interval);
+      }
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [history]);
 
   async function send() {
     const trimmed = command.trim();
