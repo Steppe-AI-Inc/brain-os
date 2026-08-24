@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
-import type { ChatChannel } from "@/lib/data/chat-channels";
+import { createChannel, renameChannel, type SidebarChannel } from "@/lib/data/chat-channels";
 import { ChannelSidebar } from "./channel-sidebar";
 
 type Usage = { input_tokens: number; output_tokens: number };
@@ -35,6 +35,21 @@ type Message = {
   result?: ChatResult;
   error?: string;
 };
+
+// "general" is a UI-only sentinel for the pre-channels flat history (channel_id is null
+// in the DB) — never a real chat_channels.id. Translate before any DB call.
+function toDbChannelId(id: string | null): string | null {
+  return id === "general" ? null : id;
+}
+
+function deriveChannelTitle(text: string): string {
+  const cleaned = text
+    .replace(/^["“]+|["”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "New chat";
+  return cleaned.length > 48 ? `${cleaned.slice(0, 48).trimEnd()}…` : cleaned;
+}
 
 // work_orders.status is 'queued' until sem_execute_ai_command marks it 'done', or
 // mark_work_order_failed marks it 'rejected' — 'queued' on reload means the message was
@@ -130,6 +145,37 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   );
 }
 
+function ChannelMemoryStrip({ memories }: { memories: Array<{ id: string; fact: string; confidence: number | null }> }) {
+  const [open, setOpen] = useState(false);
+  if (memories.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border/80 bg-card/60 text-xs">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2 font-medium text-muted-foreground"
+      >
+        <span>
+          Channel memory <span className="tabular-nums">({memories.length})</span>
+        </span>
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2">
+          {memories.map((m) => (
+            <div key={m.id} className="flex items-start gap-1.5 text-muted-foreground">
+              <Badge variant="outline" className="mt-0.5 shrink-0 px-1 text-[10px]">
+                {Math.round((m.confidence ?? 0.8) * 100)}%
+              </Badge>
+              <span>{m.fact}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
 
 export function ChatClient({
@@ -143,18 +189,19 @@ export function ChatClient({
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
   history: ChatHistoryMessage[];
-  channels: ChatChannel[];
+  channels: SidebarChannel[];
   activeChannelId: string | null;
   channelMemories: Array<{ id: string; fact: string; confidence: number | null }>;
 }) {
+  const router = useRouter();
   const [command, setCommand] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // Switching channels re-runs the page.tsx Server Component with a new `history` prop
-  // (same client component instance, App Router doesn't remount on a search-param-only
-  // navigation) — derive-during-render, not useEffect+setState, per this project's
-  // react-hooks/set-state-in-effect lint rule.
+  // Switching channels (or landing on a fresh blank chat) re-runs the page.tsx Server
+  // Component with a new `history` prop (same client component instance, App Router
+  // doesn't remount on a search-param-only navigation) — derive-during-render, not
+  // useEffect+setState, per this project's react-hooks/set-state-in-effect lint rule.
   const [syncedChannelId, setSyncedChannelId] = useState(activeChannelId);
   if (activeChannelId !== syncedChannelId) {
     setSyncedChannelId(activeChannelId);
@@ -186,7 +233,7 @@ export function ChatClient({
 
     let cancelled = false;
     const interval = setInterval(async () => {
-      const fresh = await getChatHistory(30, activeChannelId);
+      const fresh = await getChatHistory(30, toDbChannelId(activeChannelId));
       if (cancelled) return;
       setMessages(fresh.map(historyToMessage));
       const latest = fresh[fresh.length - 1];
@@ -208,12 +255,28 @@ export function ChatClient({
     setIsStreaming(true);
     setRequestUsage(ZERO);
 
+    // A blank landing chat (no channel selected yet) auto-creates a real channel the
+    // moment the first message is sent — ChatGPT-style. The URL only changes once the
+    // reply finishes (see below), so the render-time channel-switch sync above never
+    // fires mid-stream and can't clobber this optimistic message.
+    const isNewChat = activeChannelId === null;
+    let targetChannelId = toDbChannelId(activeChannelId);
+    let newChannelId: string | null = null;
+    if (isNewChat) {
+      const created = await createChannel(deriveChannelTitle(trimmed));
+      if (typeof created !== "string") {
+        newChannelId = created.id;
+        targetChannelId = created.id;
+      }
+    }
+
     let index = -1;
     setMessages((prev) => {
       index = prev.length;
       return [...prev, { command: trimmed, status: "streaming", usage: null }];
     });
 
+    let finalSummary: string | null = null;
     await consumeChatStream(trimmed, (evt) => {
       if (evt.type === "usage") {
         const input = evt.input_tokens ?? 0;
@@ -222,6 +285,7 @@ export function ChatClient({
         patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
       } else if (evt.type === "done") {
         const result = toChatResult(evt);
+        finalSummary = result.summary;
         patchMessage(index, { status: "done", result });
         const usage = result.usage;
         const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
@@ -232,10 +296,19 @@ export function ChatClient({
       } else if (evt.type === "error") {
         patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
       }
-    }, activeChannelId);
+    }, targetChannelId);
+
+    if (newChannelId) {
+      // Re-title from what the AI actually understood the command to be about, once it's
+      // known — a better name than the raw first message, still zero extra API calls.
+      if (finalSummary) await renameChannel(newChannelId, deriveChannelTitle(finalSummary));
+      router.push(`/chat?channel=${newChannelId}`, { scroll: false });
+    }
 
     setIsStreaming(false);
   }
+
+  const isBlank = activeChannelId === null;
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -263,100 +336,103 @@ export function ChatClient({
       </div>
 
       <div className="flex flex-1 gap-4 overflow-hidden">
-        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} channelMemories={channelMemories} />
-        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
-      <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
-        {messages.map((m, i) => (
-          <div key={i} className="flex flex-col gap-2">
-            <div className="ml-auto max-w-lg rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">
-              {m.command}
-            </div>
-            <Card className="max-w-lg bg-card/90">
-              <CardContent className="pt-4 text-sm">
-                {m.status === "error" ? (
-                  <span className="font-medium text-destructive">{m.error}</span>
-                ) : m.status === "streaming" ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="flex gap-1">
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
-                    </span>
-                    <span>Brain OS is thinking…</span>
-                  </div>
-                ) : (
-                  <>
-                    <p>{m.result?.summary}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
-                      <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>
-                      {!!m.result?.deletedCount && (
-                        <Badge variant="outline">{m.result.deletedCount} task(s) deleted</Badge>
-                      )}
-                      {!!m.result?.companyCount && (
-                        <Badge variant="outline">{m.result.companyCount} compan{m.result.companyCount === 1 ? "y" : "ies"}</Badge>
-                      )}
-                      {!!m.result?.personCount && (
-                        <Badge variant="outline">{m.result.personCount} people</Badge>
-                      )}
-                      {!!m.result?.projectCount && (
-                        <Badge variant="outline">{m.result.projectCount} project(s)</Badge>
-                      )}
-                      {!!m.result?.goalCount && (
-                        <Badge variant="outline">{m.result.goalCount} goal(s)</Badge>
-                      )}
-                      {!!m.result?.relationshipCount && (
-                        <Badge variant="outline">{m.result.relationshipCount} relationship(s)</Badge>
-                      )}
-                      {!!m.result?.assignmentCount && (
-                        <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
-                      )}
-                      {!!m.result?.memoryCount && (
-                        <Badge variant="outline">{m.result.memoryCount} memory fact(s) saved</Badge>
-                      )}
-                      <Badge variant="secondary">{m.result?.model}</Badge>
-                      {m.result?.usage && (
-                        <Badge variant="outline" className="tabular-nums">
-                          {(m.result.usage.input_tokens + m.result.usage.output_tokens).toLocaleString()}{" "}
-                          tokens
-                        </Badge>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} />
+        <div className="flex flex-1 flex-col gap-3 overflow-hidden">
+          <ChannelMemoryStrip memories={channelMemories} />
+          <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
+            {messages.map((m, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <div className="ml-auto max-w-lg rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">
+                  {m.command}
+                </div>
+                <Card className="max-w-lg bg-card/90">
+                  <CardContent className="pt-4 text-sm">
+                    {m.status === "error" ? (
+                      <span className="font-medium text-destructive">{m.error}</span>
+                    ) : m.status === "streaming" ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="flex gap-1">
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
+                        </span>
+                        <span>Brain OS is thinking…</span>
+                      </div>
+                    ) : (
+                      <>
+                        <p>{m.result?.summary}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
+                          <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>
+                          {!!m.result?.deletedCount && (
+                            <Badge variant="outline">{m.result.deletedCount} task(s) deleted</Badge>
+                          )}
+                          {!!m.result?.companyCount && (
+                            <Badge variant="outline">{m.result.companyCount} compan{m.result.companyCount === 1 ? "y" : "ies"}</Badge>
+                          )}
+                          {!!m.result?.personCount && (
+                            <Badge variant="outline">{m.result.personCount} people</Badge>
+                          )}
+                          {!!m.result?.projectCount && (
+                            <Badge variant="outline">{m.result.projectCount} project(s)</Badge>
+                          )}
+                          {!!m.result?.goalCount && (
+                            <Badge variant="outline">{m.result.goalCount} goal(s)</Badge>
+                          )}
+                          {!!m.result?.relationshipCount && (
+                            <Badge variant="outline">{m.result.relationshipCount} relationship(s)</Badge>
+                          )}
+                          {!!m.result?.assignmentCount && (
+                            <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
+                          )}
+                          {!!m.result?.memoryCount && (
+                            <Badge variant="outline">{m.result.memoryCount} memory fact(s) saved</Badge>
+                          )}
+                          <Badge variant="secondary">{m.result?.model}</Badge>
+                          {m.result?.usage && (
+                            <Badge variant="outline" className="tabular-nums">
+                              {(m.result.usage.input_tokens + m.result.usage.output_tokens).toLocaleString()}{" "}
+                              tokens
+                            </Badge>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+            {messages.length === 0 && (
+              <p className="m-auto text-sm text-muted-foreground">
+                {isBlank
+                  ? "Start a new conversation — try “Device 43 keeps going offline, investigate and follow up.”"
+                  : "No messages in this channel yet."}
+              </p>
+            )}
           </div>
-        ))}
-        {messages.length === 0 && (
-          <p className="m-auto text-sm text-muted-foreground">
-            Try: &ldquo;Device 43 keeps going offline, investigate and follow up.&rdquo;
-          </p>
-        )}
-      </div>
 
-      <Card className="bg-card/90">
-        <CardContent className="flex flex-col gap-3 pt-4">
-          <div className="flex gap-3">
-            <Textarea
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              placeholder="Message Brain OS…"
-              className="min-h-16"
-            />
-            <Button onClick={send} disabled={isStreaming || !command.trim()}>
-              {isStreaming ? "Working…" : "Send"}
-            </Button>
-          </div>
-          <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
-        </CardContent>
-      </Card>
+          <Card className="bg-card/90">
+            <CardContent className="flex flex-col gap-3 pt-4">
+              <div className="flex gap-3">
+                <Textarea
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  placeholder="Message Brain OS…"
+                  className="min-h-16"
+                />
+                <Button onClick={send} disabled={isStreaming || !command.trim()}>
+                  {isStreaming ? "Working…" : "Send"}
+                </Button>
+              </div>
+              <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

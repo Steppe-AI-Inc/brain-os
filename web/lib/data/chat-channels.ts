@@ -22,6 +22,37 @@ export async function getChannels(): Promise<ChatChannel[]> {
   return data;
 }
 
+export type SidebarChannel = { id: string; name: string; isGeneral: boolean; lastActivityAt: string | null };
+
+// Merges real channels with a synthetic "General" entry (the pre-channels flat history —
+// work_orders.channel_id is null) into one list ordered by last activity, newest first.
+// "General" only appears if it actually has messages — no point showing an empty legacy
+// bucket to a founder who's never used anything but channels.
+export async function getChannelsForSidebar(): Promise<SidebarChannel[]> {
+  const supabase = await createClient();
+  const [{ data: channels, error: channelsError }, { data: generalRows, error: generalError }] = await Promise.all([
+    supabase.from("chat_channels").select("id, name, updated_at").eq("archived", false),
+    supabase.from("work_orders").select("created_at").is("channel_id", null).order("created_at", { ascending: false }).limit(1),
+  ]);
+  if (channelsError) throw channelsError;
+  if (generalError) throw generalError;
+
+  const list: SidebarChannel[] = (channels ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    isGeneral: false,
+    lastActivityAt: c.updated_at,
+  }));
+
+  const generalLast = generalRows?.[0]?.created_at ?? null;
+  if (generalLast) {
+    list.push({ id: "general", name: "General", isGeneral: true, lastActivityAt: generalLast });
+  }
+
+  list.sort((a, b) => new Date(b.lastActivityAt ?? 0).getTime() - new Date(a.lastActivityAt ?? 0).getTime());
+  return list;
+}
+
 export async function createChannel(name: string, companyId?: string | null): Promise<{ id: string } | string> {
   const trimmed = name.trim();
   if (!trimmed) return "Channel name is required.";

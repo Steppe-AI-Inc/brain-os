@@ -73,7 +73,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                 <TableCell>
                   <RowActionsMenu
                     itemLabel="proposal"
-                    className="opacity-0 group-hover/row:opacity-100"
+                    className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                     onEdit={() => openEdit(p)}
                     onDelete={() => deleteProposal(p.id)}
                   />

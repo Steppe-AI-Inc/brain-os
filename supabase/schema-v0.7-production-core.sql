@@ -680,6 +680,11 @@ begin
   insert into public.work_orders (command, status, context_pack, created_by_profile_id, channel_id)
   values (p_command, 'queued', p_context_pack, public.current_profile_id(), p_channel_id)
   returning id into v_id;
+
+  if p_channel_id is not null then
+    update public.chat_channels set updated_at = now() where id = p_channel_id;
+  end if;
+
   return v_id;
 end;
 $$;

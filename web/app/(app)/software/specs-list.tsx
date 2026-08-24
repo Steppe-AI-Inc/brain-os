@@ -39,7 +39,7 @@ export function SpecsList({ specs }: { specs: SpecRow[] }) {
                 <Badge variant="secondary">{s.status}</Badge>
                 <RowActionsMenu
                   itemLabel="PRD"
-                  className="opacity-0 group-hover/row:opacity-100"
+                  className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                   onEdit={() => openEdit(s)}
                   onDelete={() => deleteProductSpec(s.id)}
                 />

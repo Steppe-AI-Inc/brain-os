@@ -330,8 +330,15 @@ const PRICING_PER_1M: Record<string, [number, number]> = {
   'gpt-4.1': [2.0, 8.0],
   'gpt-4o-mini': [0.15, 0.6],
   'gpt-4o': [2.5, 10.0],
+  'gpt-5-nano': [0.05, 0.4],
+  'gpt-5-mini': [0.25, 2.0],
+  'gpt-5': [1.25, 10.0],
+  'gpt-5-pro': [15.0, 120.0],
+  'claude-haiku-4-5': [1.0, 5.0],
   'claude-sonnet-4-6': [3.0, 15.0],
-  'claude-haiku-4-6': [0.8, 4.0],
+  'claude-sonnet-5': [2.0, 10.0],
+  'claude-opus-5': [5.0, 25.0],
+  'claude-fable-5': [10.0, 50.0],
 };
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
   const rates = PRICING_PER_1M[model];

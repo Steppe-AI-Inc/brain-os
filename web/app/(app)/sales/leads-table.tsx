@@ -80,7 +80,7 @@ export function LeadsTable({
                 <TableCell>
                   <RowActionsMenu
                     itemLabel="lead"
-                    className="opacity-0 group-hover/row:opacity-100"
+                    className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                     onEdit={() => openEdit(l)}
                     onDelete={() => deleteLead(l.id)}
                   />
