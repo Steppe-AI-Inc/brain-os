@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
@@ -59,12 +59,10 @@ function ChatHistory({
 }) {
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      <Button asChild className="w-full justify-start">
-        <Link href="/chat">
-          <MessageSquarePlus className="size-4" />
-          New conversation
-        </Link>
-      </Button>
+      <Link href="/chat" className={buttonVariants({ className: "w-full justify-start" })}>
+        <MessageSquarePlus className="size-4" />
+        New conversation
+      </Link>
       <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         <History className="size-3.5" />
         History
