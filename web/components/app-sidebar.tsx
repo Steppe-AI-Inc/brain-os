@@ -26,6 +26,7 @@ import {
   Target,
   Kanban,
   Landmark,
+  Settings2,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -80,6 +81,7 @@ const NAV_GROUPS: Array<{
     title: "ADMIN DATA",
     items: [
       { href: "/access", navKey: "nav.access", label: "User Access", icon: KeyRound },
+      { href: "/settings", navKey: "nav.settings", label: "Settings", icon: Settings2 },
       { href: "/companies", navKey: "nav.companies", label: "Companies", icon: Building2 },
       { href: "/departments", navKey: "nav.departments", label: "Departments", icon: Landmark },
       { href: "/people", navKey: "nav.people", label: "People", icon: Users },

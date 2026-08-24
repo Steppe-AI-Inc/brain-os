@@ -1,28 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { PlayCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { runChatCommand, type ChatResult } from "@/app/(app)/chat/actions";
+import { consumeChatStream, toChatResult, type ChatResult } from "@/lib/chat-stream";
+
+type WorkflowResult = ChatResult | { error: string };
 
 export function WorkflowGrid({
   workflows,
 }: {
   workflows: Array<{ title: string; command: string }>;
 }) {
-  const [results, setResults] = useState<Record<string, ChatResult>>({});
+  const [results, setResults] = useState<Record<string, WorkflowResult>>({});
   const [runningTitle, setRunningTitle] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
 
-  function run(workflow: { title: string; command: string }) {
+  async function run(workflow: { title: string; command: string }) {
     setRunningTitle(workflow.title);
-    startTransition(async () => {
-      const result = await runChatCommand(workflow.command);
-      setResults((prev) => ({ ...prev, [workflow.title]: result }));
-      setRunningTitle(null);
+    await consumeChatStream(workflow.command, (evt) => {
+      if (evt.type === "done") {
+        setResults((prev) => ({ ...prev, [workflow.title]: toChatResult(evt) }));
+      } else if (evt.type === "error") {
+        setResults((prev) => ({ ...prev, [workflow.title]: { error: evt.error || "Unknown error" } }));
+      }
     });
+    setRunningTitle(null);
   }
 
   return (
@@ -43,7 +47,7 @@ export function WorkflowGrid({
               </Button>
               {result && (
                 <div className="rounded-lg bg-muted/50 p-2 text-xs">
-                  {result.error ? (
+                  {"error" in result ? (
                     <span className="font-medium text-destructive">{result.error}</span>
                   ) : (
                     <div className="flex flex-col gap-1">
