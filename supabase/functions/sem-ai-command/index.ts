@@ -223,27 +223,90 @@ function sseEvent(data: unknown): string {
  * Tolerant of chunk boundaries not aligning with SSE frames, and of individual
  * malformed frames (skipped, not fatal — one bad frame shouldn't kill the stream).
  */
-async function consumeSSE(response: Response, onEvent: (data: any) => void): Promise<void> {
+// AbortSignal.timeout on the initial fetch only guards connection setup — once headers
+// are back and we're reading the body, an already-open stream that stalls (no more
+// chunks, no terminal event) does NOT get cut off by that signal in the Supabase Deno
+// edge runtime. Verified live: a gpt-5.6-sol request sat with a 200 response but a
+// stalled body for 2+ minutes, well past the 90s fetch timeout, and never resolved.
+// This per-read idle timeout is the actual backstop — it races each individual
+// reader.read() against a timer that resets on every chunk received, so a slow-but-live
+// generation is unaffected but a genuinely stalled stream is killed within idleTimeoutMs.
+async function readWithTimeout<T>(
+  reader: ReadableStreamDefaultReader<T>,
+  timeoutMs: number
+): Promise<ReadableStreamReadResult<T>> {
+  let timer: number;
+  try {
+    return await Promise.race([
+      reader.read(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Stream stalled — no data received for ${Math.round(timeoutMs / 1000)}s`)),
+          timeoutMs
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
+async function consumeSSE(
+  response: Response,
+  onEvent: (data: any) => void,
+  idleTimeoutMs = 30000,
+  overallTimeoutMs = 60000
+): Promise<void> {
   const reader = response.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      const payload = trimmed.slice(5).trim();
-      if (!payload || payload === "[DONE]") continue;
-      try {
-        onEvent(JSON.parse(payload));
-      } catch {
-        // skip malformed frame
+  const deadline = Date.now() + overallTimeoutMs;
+  try {
+    while (true) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw new Error(`Stream exceeded overall ${Math.round(overallTimeoutMs / 1000)}s budget without completing`);
+      }
+      const { done, value } = await readWithTimeout(reader, Math.min(idleTimeoutMs, remaining));
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          onEvent(JSON.parse(payload));
+        } catch {
+          // skip malformed frame
+        }
       }
     }
+  } catch (e) {
+    await reader.cancel().catch(() => {});
+    throw e;
+  }
+}
+
+// AbortSignal.timeout alone proved unreliable for a large-body request to
+// api.openai.com in this Supabase Deno edge runtime — verified live: a real
+// (multi-KB context) request sat with zero response for 8+ minutes despite a
+// signal: AbortSignal.timeout(90000) on the same fetch() call. This manual
+// race is the real backstop; the AbortSignal is kept alongside it (harmless,
+// occasionally fires first) rather than removed.
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number, label: string): Promise<Response> {
+  let timer: number;
+  try {
+    return await Promise.race([
+      fetch(url, init),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} request timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer!);
   }
 }
 
@@ -265,7 +328,7 @@ async function callAnthropicStreaming(
     : textBlock.text;
   let r: Response;
   try {
-    r = await fetch('https://api.anthropic.com/v1/messages', {
+    r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': key,
@@ -281,9 +344,9 @@ async function callAnthropicStreaming(
         stream: true,
       }),
       signal: AbortSignal.timeout(90000),
-    });
+    }, 90000, 'Anthropic');
   } catch (e: any) {
-    throw { status: 504, body: { error: { message: e?.name === 'TimeoutError' ? 'Anthropic request timed out after 90s' : (e?.message || String(e)) } } };
+    throw { status: 504, body: { error: { message: e?.message || String(e) } } };
   }
   if (!r.ok) {
     const errBody = await r.json().catch(() => ({}));
@@ -321,9 +384,13 @@ async function callOpenAIStreaming(
   const userContent = image
     ? [{ type: 'input_image', image_url: `data:${image.mimeType};base64,${image.base64}`, detail: 'auto' }, textBlock]
     : textBlock.text;
+  // Reasoning-tier models (the gpt-5 family, verified live against api.openai.com: gpt-5,
+  // gpt-5-mini, gpt-5-nano, gpt-5-pro, gpt-5.6-sol/terra/luna) reject `temperature`
+  // outright with a 400 "Unsupported parameter" — only the gpt-4.x family accepts it.
+  const supportsTemperature = !/^gpt-5/.test(model);
   let r: Response;
   try {
-    r = await fetch('https://api.openai.com/v1/responses', {
+    r = await fetchWithTimeout('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -333,13 +400,13 @@ async function callOpenAIStreaming(
           { role: 'user', content: userContent },
         ],
         max_output_tokens: 8192,
-        temperature: 0.2,
+        ...(supportsTemperature ? { temperature: 0.2 } : {}),
         stream: true,
       }),
       signal: AbortSignal.timeout(90000),
-    });
+    }, 90000, 'OpenAI');
   } catch (e: any) {
-    throw { status: 504, body: { error: { message: e?.name === 'TimeoutError' ? 'OpenAI request timed out after 90s' : (e?.message || String(e)) } } };
+    throw { status: 504, body: { error: { message: e?.message || String(e) } } };
   }
   if (!r.ok) {
     const errBody = await r.json().catch(() => ({}));
