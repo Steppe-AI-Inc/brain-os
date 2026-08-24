@@ -11,7 +11,7 @@ export default async function DocumentsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader icon={FileText} title="Documents & Knowledge" description="Uploaded/pasted content, indexed for reference." />
-      <DocumentCreateForm />
+      <DocumentCreateForm companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
       <DocumentsTable documents={documents} companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
     </div>
   );

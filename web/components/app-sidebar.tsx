@@ -28,6 +28,7 @@ import {
   Landmark,
   Settings2,
   BarChart3,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -60,6 +61,7 @@ const NAV_GROUPS: Array<{
       { href: "/dashboard", navKey: "nav.dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/tasks", navKey: "nav.tasks", label: "Tasks", icon: ListChecks },
       { href: "/approvals", navKey: "nav.approvals", label: "Approvals", icon: ShieldCheck },
+      { href: "/people/cases", navKey: "nav.performanceCases", label: "Country Leadership", icon: ClipboardList },
     ],
   },
   {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CloudUpload, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
 import { ListControls, useListView } from "@/components/list-controls";
-import { updateDocument, deleteDocument, type DocumentInput } from "@/lib/data/documents";
+import { updateDocument, deleteDocument, queueDocumentDriveBackup, type DocumentInput } from "@/lib/data/documents";
 
 const SENSITIVITY_OPTIONS = ["public", "internal", "confidential", "restricted", "founder_only"];
 
@@ -22,6 +23,10 @@ type DocumentRow = {
   sensitivity: string | null;
   summary: string | null;
   company_id: string | null;
+  category: string | null;
+  mime_type: string | null;
+  storage_path: string | null;
+  created_at: string | null;
   companies: { name: string } | null;
 };
 
@@ -73,19 +78,49 @@ export function DocumentsTable({
           <TableBody>
             {view.items.map((d) => (
               <TableRow key={d.id} className="group/row">
-                <TableCell className="font-medium">{d.title}</TableCell>
+                <TableCell>
+                  <div className="font-medium">{d.title}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {d.category?.replaceAll("_", " ") || "general"} · {d.storage_path ? "stored file" : "indexed text"}
+                  </div>
+                </TableCell>
                 <TableCell>{d.companies?.name ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{d.sensitivity}</Badge>
                 </TableCell>
                 <TableCell className="max-w-md truncate text-muted-foreground">{d.summary}</TableCell>
                 <TableCell>
-                  <RowActionsMenu
-                    itemLabel="document"
-                    className="opacity-0 group-hover/row:opacity-100"
-                    onEdit={() => openEdit(d)}
-                    onDelete={() => deleteDocument(d.id)}
-                  />
+                  <div className="flex items-center justify-end gap-1">
+                    {d.storage_path && (
+                      <a
+                        href={`/documents/${d.id}/download`}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        title="Download secure file"
+                        aria-label={`Download ${d.title}`}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                    {d.storage_path && (
+                      <form action={queueDocumentDriveBackup}>
+                        <input type="hidden" name="document_id" value={d.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Queue Google Drive backup"
+                          aria-label={`Queue Google Drive backup for ${d.title}`}
+                        >
+                          <CloudUpload className="h-3.5 w-3.5" />
+                        </button>
+                      </form>
+                    )}
+                    <RowActionsMenu
+                      itemLabel="document"
+                      className="opacity-70 group-hover/row:opacity-100"
+                      onEdit={() => openEdit(d)}
+                      onDelete={() => deleteDocument(d.id)}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

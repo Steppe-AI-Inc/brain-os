@@ -104,6 +104,7 @@ export type Database = {
           decision_notes: string | null
           domain: Database["public"]["Enums"]["approval_domain"]
           id: string
+          performance_case_id: string | null
           proposal_id: string | null
           reason: string | null
           requested_by_profile_id: string | null
@@ -121,6 +122,7 @@ export type Database = {
           decision_notes?: string | null
           domain?: Database["public"]["Enums"]["approval_domain"]
           id?: string
+          performance_case_id?: string | null
           proposal_id?: string | null
           reason?: string | null
           requested_by_profile_id?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           decision_notes?: string | null
           domain?: Database["public"]["Enums"]["approval_domain"]
           id?: string
+          performance_case_id?: string | null
           proposal_id?: string | null
           reason?: string | null
           requested_by_profile_id?: string | null
@@ -147,6 +150,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "approvals_performance_case_id_fkey"
+            columns: ["performance_case_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "approvals_approver_profile_id_fkey"
             columns: ["approver_profile_id"]
@@ -772,6 +782,8 @@ export type Database = {
           created_at: string | null
           extracted_text: string | null
           id: string
+          performance_case_id: string | null
+          person_id: string | null
           mime_type: string | null
           sensitivity: Database["public"]["Enums"]["visibility_level"] | null
           storage_path: string | null
@@ -785,6 +797,8 @@ export type Database = {
           created_at?: string | null
           extracted_text?: string | null
           id?: string
+          performance_case_id?: string | null
+          person_id?: string | null
           mime_type?: string | null
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
@@ -798,6 +812,8 @@ export type Database = {
           created_at?: string | null
           extracted_text?: string | null
           id?: string
+          performance_case_id?: string | null
+          person_id?: string | null
           mime_type?: string | null
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
@@ -806,6 +822,20 @@ export type Database = {
           uploaded_by_profile_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_performance_case_id_fkey"
+            columns: ["performance_case_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_company_id_fkey"
             columns: ["company_id"]
@@ -1393,6 +1423,173 @@ export type Database = {
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_case_events: {
+        Row: {
+          approval_id: string | null
+          case_id: string
+          created_at: string
+          created_by_profile_id: string | null
+          details: string | null
+          document_id: string | null
+          event_type: string
+          id: string
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          approval_id?: string | null
+          case_id: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          details?: string | null
+          document_id?: string | null
+          event_type: string
+          id?: string
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          approval_id?: string | null
+          case_id?: string
+          created_at?: string
+          created_by_profile_id?: string | null
+          details?: string | null
+          document_id?: string | null
+          event_type?: string
+          id?: string
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_case_events_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "approvals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_case_events_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_case_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_case_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_cases: {
+        Row: {
+          closed_at: string | null
+          company_id: string
+          country: string | null
+          created_at: string
+          created_by_profile_id: string | null
+          decision: string | null
+          expectations: Json
+          id: string
+          person_id: string
+          rating: string
+          replacement_person_id: string | null
+          review_date: string | null
+          role_title: string | null
+          start_date: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          company_id: string
+          country?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          decision?: string | null
+          expectations?: Json
+          id?: string
+          person_id: string
+          rating?: string
+          replacement_person_id?: string | null
+          review_date?: string | null
+          role_title?: string | null
+          start_date?: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          company_id?: string
+          country?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          decision?: string | null
+          expectations?: Json
+          id?: string
+          person_id?: string
+          rating?: string
+          replacement_person_id?: string | null
+          review_date?: string | null
+          role_title?: string | null
+          start_date?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cases_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cases_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cases_replacement_person_id_fkey"
+            columns: ["replacement_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -2118,6 +2315,7 @@ export type Database = {
           description: string | null
           expected_output: Json | null
           id: string
+          performance_case_id: string | null
           input: Json | null
           owner_agent_id: string | null
           owner_person_id: string | null
@@ -2143,6 +2341,7 @@ export type Database = {
           description?: string | null
           expected_output?: Json | null
           id?: string
+          performance_case_id?: string | null
           input?: Json | null
           owner_agent_id?: string | null
           owner_person_id?: string | null
@@ -2168,6 +2367,7 @@ export type Database = {
           description?: string | null
           expected_output?: Json | null
           id?: string
+          performance_case_id?: string | null
           input?: Json | null
           owner_agent_id?: string | null
           owner_person_id?: string | null
@@ -2184,6 +2384,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_performance_case_id_fkey"
+            columns: ["performance_case_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_company_id_fkey"
             columns: ["company_id"]
@@ -2493,6 +2700,27 @@ export type Database = {
       mark_work_order_failed: {
         Args: { p_error: string; p_work_order_id: string }
         Returns: undefined
+      }
+      finalize_performance_case_action: {
+        Args: {
+          p_action: string
+          p_candidate_person_id?: string
+          p_case_id: string
+          p_effective_date: string
+          p_legal_review_confirmed: boolean
+          p_notes: string
+        }
+        Returns: undefined
+      }
+      manage_performance_case: {
+        Args: {
+          p_action: string
+          p_candidate_person_id?: string
+          p_case_id: string
+          p_deadline?: string
+          p_notes?: string
+        }
+        Returns: string
       }
       match_memories: {
         Args: { match_count?: number; query_embedding: string }
