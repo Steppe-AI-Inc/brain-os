@@ -29,7 +29,7 @@ import {
   type StoredChatThread,
 } from "@/lib/data/chat";
 
-type DisplayMessage = StoredChatMessage & {
+type DisplayMessage = Omit<StoredChatMessage, "result"> & {
   result: ChatResult | null;
 };
 
