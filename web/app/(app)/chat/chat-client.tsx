@@ -220,6 +220,12 @@ export function ChatClient({
                       {!!m.result?.goalCount && (
                         <Badge variant="outline">{m.result.goalCount} goal(s)</Badge>
                       )}
+                      {!!m.result?.relationshipCount && (
+                        <Badge variant="outline">{m.result.relationshipCount} relationship(s)</Badge>
+                      )}
+                      {!!m.result?.assignmentCount && (
+                        <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
+                      )}
                       <Badge variant="secondary">{m.result?.model}</Badge>
                       {m.result?.usage && (
                         <Badge variant="outline" className="tabular-nums">

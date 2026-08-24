@@ -80,6 +80,21 @@ Rules:
   real companyId from context.companies, or companyIndex into this response's own
   createCompanies array. If neither is available, create a clarification task instead of
   guessing which company it belongs to.
+- You may record company ownership/parent relationships (createCompanyRelationships) and
+  person work assignments (createPersonAssignments) — check context.companyRelationships /
+  context.personAssignments first, never duplicate. CRITICAL: every relationship has a
+  "state" of "current", "planned", "historical", or "under_restructuring", and it MUST
+  default to "planned" — you may only use "current" when the user describes the
+  relationship as already, today, legally true (e.g. "X is a subsidiary of Y", present
+  tense, existing fact). Any future/intent language — "will become", "I will replace",
+  "planning to", "going to" — is "planned", never "current". Never treat an intention as
+  an already-completed legal transfer. When the owner is an individual rather than a
+  company (e.g. the founder personally), use ownerProfileId set to exactly the calling
+  profile.id provided in the input — never any other id — and leave relatedCompanyId/
+  relatedCompanyIndex null; exactly one of the two must be set, never both, never neither.
+  ownershipPct stays null unless the user states an actual number. For person assignments,
+  personId/personIndex works like companyId/companyIndex (personIndex points at
+  createPeople in this same response); leave any field null rather than guessing.
 
 Output schema:
 {
@@ -114,6 +129,12 @@ Output schema:
   ],
   "createGoals": [
     {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|"archived"|null, "dueAt": string|null}
+  ],
+  "createCompanyRelationships": [
+    {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
+  ],
+  "createPersonAssignments": [
+    {"personId": string|null, "personIndex": number|null, "legalEmployerCompanyId": string|null, "legalEmployerCompanyIndex": number|null, "operatingCompanyId": string|null, "operatingCompanyIndex": number|null, "departmentId": string|null, "jobTitle": string|null, "managerPersonId": string|null, "managerPersonIndex": number|null, "employmentType": "full_time"|"part_time"|"contractor"|"advisor"|null, "allocationPct": number|null, "startDate": string|null, "endDate": string|null, "isPrimary": boolean|null, "responsibilities": string|null, "state": "current"|"planned"|"historical"|null}
   ],
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
@@ -361,7 +382,7 @@ function fallbackPlan(command:string, contextPack:any){
 async function buildContext(supabase:any, command:string){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -371,10 +392,14 @@ async function buildContext(supabase:any, command:string){
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
     supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
     supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30),
-    supabase.from('goals').select('id,company_id,title,status,kind').limit(20)
+    supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
+    // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
+    // casing needed here.
+    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
+    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30)
   ]);
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[] };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -514,6 +539,7 @@ serve(async (req) => {
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
         const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+        const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
         const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
         const createCompanies = requestedCompanies
           .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as any).name === 'string' && (c as any).name.trim())
@@ -564,6 +590,57 @@ serve(async (req) => {
             dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
           }));
 
+        // Company relationships / person assignments: real, sensitive data (founder-only
+        // and manager-scoped RLS is the real authorization) — state defaults to the
+        // safest option ("planned") per the "never treat an intention as an
+        // already-completed legal transfer" rule; only an explicit, valid "current" is
+        // ever honored, and ownerProfileId is only trusted if it exactly matches the
+        // calling profile — never any other value the model might supply.
+        const VALID_RELATIONSHIP_STATES = new Set(['current', 'planned', 'historical', 'under_restructuring']);
+        const VALID_RELATIONSHIP_TYPES = new Set(['parent_of', 'owned_by_percentage']);
+        const requestedRelationships = Array.isArray(result.createCompanyRelationships) ? result.createCompanyRelationships as unknown[] : [];
+        const createCompanyRelationships = requestedRelationships
+          .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object' && hasCompanyRef(r))
+          .map((r: any) => ({
+            companyId: typeof r.companyId === 'string' && contextCompanyIds.has(r.companyId) ? r.companyId : null,
+            companyIndex: typeof r.companyIndex === 'number' ? r.companyIndex : null,
+            relatedCompanyId: typeof r.relatedCompanyId === 'string' && contextCompanyIds.has(r.relatedCompanyId) ? r.relatedCompanyId : null,
+            relatedCompanyIndex: typeof r.relatedCompanyIndex === 'number' ? r.relatedCompanyIndex : null,
+            ownerProfileId: typeof r.ownerProfileId === 'string' && r.ownerProfileId === profile.id ? r.ownerProfileId : null,
+            relationshipType: typeof r.relationshipType === 'string' && VALID_RELATIONSHIP_TYPES.has(r.relationshipType) ? r.relationshipType : 'parent_of',
+            ownershipPct: typeof r.ownershipPct === 'number' ? r.ownershipPct : null,
+            state: typeof r.state === 'string' && VALID_RELATIONSHIP_STATES.has(r.state) ? r.state : 'planned',
+            effectiveDate: typeof r.effectiveDate === 'string' ? r.effectiveDate : null,
+            notes: typeof r.notes === 'string' ? r.notes : null,
+          }));
+
+        const VALID_ASSIGNMENT_STATES = new Set(['current', 'planned', 'historical']);
+        const VALID_EMPLOYMENT_TYPES = new Set(['full_time', 'part_time', 'contractor', 'advisor']);
+        const requestedAssignments = Array.isArray(result.createPersonAssignments) ? result.createPersonAssignments as unknown[] : [];
+        const createPersonAssignments = requestedAssignments
+          .filter((a): a is Record<string, unknown> =>
+            !!a && typeof a === 'object' &&
+            ((typeof (a as any).personId === 'string' && contextPersonIds.has((a as any).personId)) || typeof (a as any).personIndex === 'number'))
+          .map((a: any) => ({
+            personId: typeof a.personId === 'string' && contextPersonIds.has(a.personId) ? a.personId : null,
+            personIndex: typeof a.personIndex === 'number' ? a.personIndex : null,
+            legalEmployerCompanyId: typeof a.legalEmployerCompanyId === 'string' && contextCompanyIds.has(a.legalEmployerCompanyId) ? a.legalEmployerCompanyId : null,
+            legalEmployerCompanyIndex: typeof a.legalEmployerCompanyIndex === 'number' ? a.legalEmployerCompanyIndex : null,
+            operatingCompanyId: typeof a.operatingCompanyId === 'string' && contextCompanyIds.has(a.operatingCompanyId) ? a.operatingCompanyId : null,
+            operatingCompanyIndex: typeof a.operatingCompanyIndex === 'number' ? a.operatingCompanyIndex : null,
+            departmentId: typeof a.departmentId === 'string' ? a.departmentId : null,
+            jobTitle: typeof a.jobTitle === 'string' ? a.jobTitle : null,
+            managerPersonId: typeof a.managerPersonId === 'string' && contextPersonIds.has(a.managerPersonId) ? a.managerPersonId : null,
+            managerPersonIndex: typeof a.managerPersonIndex === 'number' ? a.managerPersonIndex : null,
+            employmentType: typeof a.employmentType === 'string' && VALID_EMPLOYMENT_TYPES.has(a.employmentType) ? a.employmentType : 'full_time',
+            allocationPct: typeof a.allocationPct === 'number' ? a.allocationPct : null,
+            startDate: typeof a.startDate === 'string' ? a.startDate : null,
+            endDate: typeof a.endDate === 'string' ? a.endDate : null,
+            isPrimary: typeof a.isPrimary === 'boolean' ? a.isPrimary : true,
+            responsibilities: typeof a.responsibilities === 'string' ? a.responsibilities : null,
+            state: typeof a.state === 'string' && VALID_ASSIGNMENT_STATES.has(a.state) ? a.state : 'current',
+          }));
+
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
         const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
@@ -610,7 +687,9 @@ serve(async (req) => {
           p_companies: createCompanies,
           p_people: createPeople,
           p_projects: createProjects,
-          p_goals: createGoals
+          p_goals: createGoals,
+          p_company_relationships: createCompanyRelationships,
+          p_person_assignments: createPersonAssignments
         });
         if(rpcError) {
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
@@ -625,10 +704,12 @@ serve(async (req) => {
         const createdPeople = rpcResult.createdPeople || [];
         const createdProjects = rpcResult.createdProjects || [];
         const createdGoals = rpcResult.createdGoals || [];
+        const createdCompanyRelationships = rpcResult.createdCompanyRelationships || [];
+        const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {
         send({ type: 'error', error: e?.body?.error?.message || e?.message || String(e) });
       } finally {

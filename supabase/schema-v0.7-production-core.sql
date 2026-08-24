@@ -48,6 +48,18 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create type mcp_transport as enum ('http','sse');
 exception when duplicate_object then null; end $$;
+do $$ begin
+  create type relationship_state as enum ('current','planned','historical','under_restructuring');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type company_relationship_type as enum ('parent_of','owned_by_percentage');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type employment_type as enum ('full_time','part_time','contractor','advisor');
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create type assignment_state as enum ('current','planned','historical');
+exception when duplicate_object then null; end $$;
 
 -- ---------- CORE TABLES ----------
 create table if not exists public.profiles (
@@ -450,6 +462,53 @@ create table if not exists public.goal_context (
   updated_at timestamptz not null default now()
 );
 
+-- Action registry step 3 — see 202608260006_relationships_assignments.sql. Reuses the
+-- owner_profile_id pattern already established on company_sensitive above (an individual
+-- owner, e.g. the founder personally, vs. a related company). Every relationship carries
+-- an explicit state defaulting to 'planned', not 'current' — "SEM Brain must never treat
+-- an intention as an already-completed legal transfer" (the founder's own words).
+create table if not exists public.company_relationships (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  related_company_id uuid references public.companies(id) on delete cascade,
+  owner_profile_id uuid references public.profiles(id),
+  relationship_type company_relationship_type not null default 'parent_of',
+  ownership_pct numeric,
+  state relationship_state not null default 'planned',
+  effective_date date,
+  notes text,
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  constraint company_relationships_owner_check check (
+    (case when related_company_id is not null then 1 else 0 end
+     + case when owner_profile_id is not null then 1 else 0 end) = 1
+  )
+);
+
+-- One person can have multiple assignments: legal employer vs operating company vs
+-- product team, matching the founder's explicit field list from the org-structure
+-- conversation (person_assignments project memory).
+create table if not exists public.person_assignments (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid not null references public.people(id) on delete cascade,
+  legal_employer_company_id uuid references public.companies(id) on delete set null,
+  operating_company_id uuid references public.companies(id) on delete set null,
+  department_id uuid references public.departments(id) on delete set null,
+  job_title text,
+  manager_person_id uuid references public.people(id) on delete set null,
+  employment_type employment_type default 'full_time',
+  allocation_pct numeric default 100,
+  start_date date,
+  end_date date,
+  is_primary boolean default true,
+  responsibilities text,
+  state assignment_state not null default 'current',
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Added for AI Providers + MCP Connectors — see 202608260001_ai_providers_mcp_connectors.sql.
 -- No key column on ai_providers, ever — the real key stays a Supabase Edge Function
 -- secret (OPENAI_API_KEY / ANTHROPIC_API_KEY), never a database row.
@@ -597,7 +656,7 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
-drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb);
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb);
 
 create or replace function public.sem_execute_ai_command(
   p_command text,
@@ -614,7 +673,9 @@ create or replace function public.sem_execute_ai_command(
   p_companies jsonb default '[]'::jsonb,
   p_people jsonb default '[]'::jsonb,
   p_projects jsonb default '[]'::jsonb,
-  p_goals jsonb default '[]'::jsonb
+  p_goals jsonb default '[]'::jsonb,
+  p_company_relationships jsonb default '[]'::jsonb,
+  p_person_assignments jsonb default '[]'::jsonb
 ) returns jsonb
 language plpgsql
 security invoker
@@ -628,15 +689,20 @@ declare
   v_person jsonb;
   v_project jsonb;
   v_goal jsonb;
+  v_relationship jsonb;
+  v_assignment jsonb;
   v_task_ids uuid[] := '{}';
   v_task_company_ids uuid[] := '{}';
   v_company_ids uuid[] := '{}';
+  v_person_ids uuid[] := '{}';
   v_created_tasks jsonb := '[]'::jsonb;
   v_created_approvals jsonb := '[]'::jsonb;
   v_created_companies jsonb := '[]'::jsonb;
   v_created_people jsonb := '[]'::jsonb;
   v_created_projects jsonb := '[]'::jsonb;
   v_created_goals jsonb := '[]'::jsonb;
+  v_created_relationships jsonb := '[]'::jsonb;
+  v_created_assignments jsonb := '[]'::jsonb;
   v_new_task_id uuid;
   v_new_task_company_id uuid;
   v_new_approval_id uuid;
@@ -644,9 +710,15 @@ declare
   v_new_person_id uuid;
   v_new_project_id uuid;
   v_new_goal_id uuid;
+  v_new_relationship_id uuid;
+  v_new_assignment_id uuid;
   v_task_index int;
   v_company_index int;
+  v_person_index int;
   v_entry_company_id uuid;
+  v_entry_related_company_id uuid;
+  v_entry_owner_profile_id uuid;
+  v_entry_manager_id uuid;
   v_deleted_task_ids uuid[] := '{}';
 begin
   if v_profile_id is null then
@@ -713,10 +785,6 @@ begin
     v_created_approvals := v_created_approvals || jsonb_build_object('id', v_new_approval_id);
   end loop;
 
-  -- Runs under `security invoker` — companies_write_admin (founder/admin only) is the
-  -- real authorization check, same RLS manual company creation already uses. No
-  -- dedicated jurisdiction/state column exists yet, so detail like "Delaware C-Corp" or
-  -- "Wyoming single-member LLC" goes into description rather than adding columns here.
   for v_company in select * from jsonb_array_elements(coalesce(p_companies, '[]'::jsonb))
   loop
     insert into public.companies (name, country, legal_entity_name, description)
@@ -732,9 +800,6 @@ begin
     v_created_companies := v_created_companies || jsonb_build_object('id', v_new_company_id, 'name', v_company->>'name');
   end loop;
 
-  -- people_write_manager (company-manager+) is the real authorization check here.
-  -- company_id resolves from a real existing id, or companyIndex into the companies just
-  -- created above in this same request — mirrors how approvals resolve taskIndex.
   for v_person in select * from jsonb_array_elements(coalesce(p_people, '[]'::jsonb))
   loop
     v_company_index := nullif(v_person->>'companyIndex','')::int;
@@ -753,12 +818,10 @@ begin
     )
     returning id into v_new_person_id;
 
+    v_person_ids := array_append(v_person_ids, v_new_person_id);
     v_created_people := v_created_people || jsonb_build_object('id', v_new_person_id, 'full_name', v_person->>'fullName');
   end loop;
 
-  -- projects_write_manager (company-manager+) is the real authorization check.
-  -- projects.company_id is NOT NULL — an entry with no resolvable company raises a
-  -- normal not-null-violation error, same as any other malformed RPC call.
   for v_project in select * from jsonb_array_elements(coalesce(p_projects, '[]'::jsonb))
   loop
     v_company_index := nullif(v_project->>'companyIndex','')::int;
@@ -781,9 +844,6 @@ begin
     v_created_projects := v_created_projects || jsonb_build_object('id', v_new_project_id, 'title', v_project->>'title');
   end loop;
 
-  -- goals_insert_scope (has_company_access — broader than projects, any company member)
-  -- is the real authorization check. goals.company_id is NOT NULL, same resolution as
-  -- projects above.
   for v_goal in select * from jsonb_array_elements(coalesce(p_goals, '[]'::jsonb))
   loop
     v_company_index := nullif(v_goal->>'companyIndex','')::int;
@@ -807,9 +867,115 @@ begin
     v_created_goals := v_created_goals || jsonb_build_object('id', v_new_goal_id, 'title', v_goal->>'title');
   end loop;
 
-  -- Deletion runs under `security invoker`, same as every insert above, so
-  -- tasks_delete_scope RLS is the actual authorization check here — a task outside the
-  -- caller's access simply won't be deleted (0 rows), not an error.
+  -- company_relationships_write_founder is the real authorization check — founder/admin
+  -- only, matching company_sensitive's classification exactly. ownerProfileId is only
+  -- honored if it equals the caller's own profile id (never trusted as an arbitrary
+  -- model-supplied value). State defaults to 'planned' at the table level; the model is
+  -- instructed to justify 'current', never default to it.
+  for v_relationship in select * from jsonb_array_elements(coalesce(p_company_relationships, '[]'::jsonb))
+  loop
+    v_company_index := nullif(v_relationship->>'companyIndex','')::int;
+    v_entry_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_relationship->>'companyId','')::uuid
+    end;
+
+    v_company_index := nullif(v_relationship->>'relatedCompanyIndex','')::int;
+    v_entry_related_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_relationship->>'relatedCompanyId','')::uuid
+    end;
+
+    v_entry_owner_profile_id := case
+      when nullif(v_relationship->>'ownerProfileId','')::uuid = v_profile_id then v_profile_id
+      else null
+    end;
+
+    if v_entry_company_id is not null
+       and ((v_entry_related_company_id is not null)::int + (v_entry_owner_profile_id is not null)::int = 1)
+    then
+      insert into public.company_relationships (
+        company_id, related_company_id, owner_profile_id, relationship_type,
+        ownership_pct, state, effective_date, notes, created_by_profile_id
+      ) values (
+        v_entry_company_id,
+        v_entry_related_company_id,
+        v_entry_owner_profile_id,
+        coalesce((v_relationship->>'relationshipType')::company_relationship_type,'parent_of'::company_relationship_type),
+        nullif(v_relationship->>'ownershipPct','')::numeric,
+        coalesce((v_relationship->>'state')::relationship_state,'planned'::relationship_state),
+        nullif(v_relationship->>'effectiveDate','')::date,
+        nullif(v_relationship->>'notes',''),
+        v_profile_id
+      )
+      returning id into v_new_relationship_id;
+
+      v_created_relationships := v_created_relationships || jsonb_build_object('id', v_new_relationship_id);
+    end if;
+  end loop;
+
+  -- person_assignments_write_manager is the real authorization check (company-manager+
+  -- of the operating company). personIndex resolves the assignment subject or manager
+  -- against people created earlier in this same request, mirroring companyIndex.
+  for v_assignment in select * from jsonb_array_elements(coalesce(p_person_assignments, '[]'::jsonb))
+  loop
+    v_person_index := nullif(v_assignment->>'personIndex','')::int;
+    v_new_person_id := case
+      when v_person_index is not null and v_person_index >= 0 and v_person_index < array_length(v_person_ids,1)
+        then v_person_ids[v_person_index+1]
+      else nullif(v_assignment->>'personId','')::uuid
+    end;
+
+    v_person_index := nullif(v_assignment->>'managerPersonIndex','')::int;
+    v_entry_manager_id := case
+      when v_person_index is not null and v_person_index >= 0 and v_person_index < array_length(v_person_ids,1)
+        then v_person_ids[v_person_index+1]
+      else nullif(v_assignment->>'managerPersonId','')::uuid
+    end;
+
+    v_company_index := nullif(v_assignment->>'legalEmployerCompanyIndex','')::int;
+    v_entry_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_assignment->>'legalEmployerCompanyId','')::uuid
+    end;
+
+    v_company_index := nullif(v_assignment->>'operatingCompanyIndex','')::int;
+    v_entry_related_company_id := case
+      when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+        then v_company_ids[v_company_index+1]
+      else nullif(v_assignment->>'operatingCompanyId','')::uuid
+    end;
+
+    if v_new_person_id is not null then
+      insert into public.person_assignments (
+        person_id, legal_employer_company_id, operating_company_id, department_id,
+        job_title, manager_person_id, employment_type, allocation_pct,
+        start_date, end_date, is_primary, responsibilities, state, created_by_profile_id
+      ) values (
+        v_new_person_id,
+        v_entry_company_id,
+        v_entry_related_company_id,
+        nullif(v_assignment->>'departmentId','')::uuid,
+        nullif(v_assignment->>'jobTitle',''),
+        v_entry_manager_id,
+        coalesce((v_assignment->>'employmentType')::employment_type,'full_time'::employment_type),
+        coalesce(nullif(v_assignment->>'allocationPct','')::numeric, 100),
+        nullif(v_assignment->>'startDate','')::date,
+        nullif(v_assignment->>'endDate','')::date,
+        coalesce((v_assignment->>'isPrimary')::boolean, true),
+        nullif(v_assignment->>'responsibilities',''),
+        coalesce((v_assignment->>'state')::assignment_state,'current'::assignment_state),
+        v_profile_id
+      )
+      returning id into v_new_assignment_id;
+
+      v_created_assignments := v_created_assignments || jsonb_build_object('id', v_new_assignment_id);
+    end if;
+  end loop;
+
   if p_deleted_task_ids is not null and array_length(p_deleted_task_ids, 1) > 0 then
     with removed as (
       delete from public.tasks where id = any(p_deleted_task_ids) returning id
@@ -829,7 +995,8 @@ begin
       'tasks', jsonb_array_length(v_created_tasks), 'approvals', jsonb_array_length(v_created_approvals),
       'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0),
       'companies', jsonb_array_length(v_created_companies), 'people', jsonb_array_length(v_created_people),
-      'projects', jsonb_array_length(v_created_projects), 'goals', jsonb_array_length(v_created_goals)
+      'projects', jsonb_array_length(v_created_projects), 'goals', jsonb_array_length(v_created_goals),
+      'companyRelationships', jsonb_array_length(v_created_relationships), 'personAssignments', jsonb_array_length(v_created_assignments)
     )
   );
 
@@ -837,13 +1004,14 @@ begin
     'workOrderId', v_work_order_id, 'createdTasks', v_created_tasks, 'createdApprovals', v_created_approvals,
     'deletedTaskIds', to_jsonb(v_deleted_task_ids),
     'createdCompanies', v_created_companies, 'createdPeople', v_created_people,
-    'createdProjects', v_created_projects, 'createdGoals', v_created_goals
+    'createdProjects', v_created_projects, 'createdGoals', v_created_goals,
+    'createdCompanyRelationships', v_created_relationships, 'createdPersonAssignments', v_created_assignments
   );
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb) from public, anon;
-grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb) to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb) to authenticated;
 
 
 -- ---------- ENABLE RLS ----------
@@ -1127,6 +1295,26 @@ create policy "goal_context_write_scope" on public.goal_context for all using (
   exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
 ) with check (
   exists (select 1 from public.goals g where g.id = goal_context.goal_id and (public.is_founder_or_admin() or public.is_company_manager(g.company_id)))
+);
+
+alter table public.company_relationships enable row level security;
+drop policy if exists "company_relationships_select_founder" on public.company_relationships;
+create policy "company_relationships_select_founder" on public.company_relationships for select using (public.is_founder_or_admin());
+drop policy if exists "company_relationships_write_founder" on public.company_relationships;
+create policy "company_relationships_write_founder" on public.company_relationships for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
+
+alter table public.person_assignments enable row level security;
+drop policy if exists "person_assignments_select_scope" on public.person_assignments;
+create policy "person_assignments_select_scope" on public.person_assignments for select using (
+  public.is_founder_or_admin()
+  or public.has_company_access(operating_company_id)
+  or exists (select 1 from public.people pe where pe.id = person_assignments.person_id and pe.profile_id = public.current_profile_id())
+);
+drop policy if exists "person_assignments_write_manager" on public.person_assignments;
+create policy "person_assignments_write_manager" on public.person_assignments for all using (
+  public.is_founder_or_admin() or public.is_company_manager(operating_company_id)
+) with check (
+  public.is_founder_or_admin() or public.is_company_manager(operating_company_id)
 );
 
 alter table public.ai_providers enable row level security;
