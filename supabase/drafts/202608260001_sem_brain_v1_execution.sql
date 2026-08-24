@@ -179,7 +179,7 @@ create table if not exists public.action_requests (
   integration text,
   payload jsonb not null,
   payload_hash bytea generated always as (
-    digest(convert_to(public.sem_canonical_jsonb(payload), 'UTF8'), 'sha256')
+    digest(public.sem_canonical_jsonb(payload), 'sha256')
   ) stored,
   required_entity_count integer not null default 0 check (required_entity_count >= 0),
   matched_policy_id uuid not null references public.approval_policies(id) on delete restrict,
@@ -720,7 +720,7 @@ create table if not exists public.idempotency_keys (
   source_kind text not null check (source_kind in ('founder_command', 'api', 'webhook', 'callback')),
   request_payload jsonb not null,
   request_hash bytea generated always as (
-    digest(convert_to(public.sem_canonical_jsonb(request_payload), 'UTF8'), 'sha256')
+    digest(public.sem_canonical_jsonb(request_payload), 'sha256')
   ) stored,
   status text not null default 'processing' check (status in ('processing', 'completed', 'failed')),
   resource_type text,
@@ -752,7 +752,7 @@ begin
   end if;
 
   v_incoming_hash := digest(
-    convert_to(public.sem_canonical_jsonb(p_request_payload), 'UTF8'),
+    public.sem_canonical_jsonb(p_request_payload),
     'sha256'
   );
 
