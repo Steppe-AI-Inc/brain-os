@@ -14,6 +14,8 @@ import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
+import type { ChatChannel } from "@/lib/data/chat-channels";
+import { ChannelSidebar } from "./channel-sidebar";
 
 type Usage = { input_tokens: number; output_tokens: number };
 type TokenCost = { tokens: number; costUsd: number };
@@ -63,6 +65,7 @@ function historyToMessage(h: ChatHistoryMessage): Message {
       goalCount: h.counts?.goals ?? 0,
       relationshipCount: h.counts?.companyRelationships ?? 0,
       assignmentCount: h.counts?.personAssignments ?? 0,
+      memoryCount: h.counts?.memories ?? 0,
       model: h.modelName || "unknown",
       usage,
     },
@@ -133,14 +136,30 @@ export function ChatClient({
   providers,
   usageSummary,
   history,
+  channels,
+  activeChannelId,
+  channelMemories,
 }: {
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
   history: ChatHistoryMessage[];
+  channels: ChatChannel[];
+  activeChannelId: string | null;
+  channelMemories: Array<{ id: string; fact: string; confidence: number | null }>;
 }) {
   const [command, setCommand] = useState("");
   const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Switching channels re-runs the page.tsx Server Component with a new `history` prop
+  // (same client component instance, App Router doesn't remount on a search-param-only
+  // navigation) — derive-during-render, not useEffect+setState, per this project's
+  // react-hooks/set-state-in-effect lint rule.
+  const [syncedChannelId, setSyncedChannelId] = useState(activeChannelId);
+  if (activeChannelId !== syncedChannelId) {
+    setSyncedChannelId(activeChannelId);
+    setMessages(history.map(historyToMessage));
+  }
   // Session = cumulative since this tab loaded. Request = only the current/most recent
   // send. Today/30d = real DB aggregates (getUsageSummary()), refreshed after each reply
   // — separate scopes on purpose, per the founder's ask: "top should be session/daily/
@@ -167,7 +186,7 @@ export function ChatClient({
 
     let cancelled = false;
     const interval = setInterval(async () => {
-      const fresh = await getChatHistory();
+      const fresh = await getChatHistory(30, activeChannelId);
       if (cancelled) return;
       setMessages(fresh.map(historyToMessage));
       const latest = fresh[fresh.length - 1];
@@ -180,7 +199,7 @@ export function ChatClient({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [history]);
+  }, [history, activeChannelId]);
 
   async function send() {
     const trimmed = command.trim();
@@ -213,7 +232,7 @@ export function ChatClient({
       } else if (evt.type === "error") {
         patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
       }
-    });
+    }, activeChannelId);
 
     setIsStreaming(false);
   }
@@ -243,6 +262,9 @@ export function ChatClient({
         </div>
       </div>
 
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} channelMemories={channelMemories} />
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
       <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
         {messages.map((m, i) => (
           <div key={i} className="flex flex-col gap-2">
@@ -289,6 +311,9 @@ export function ChatClient({
                       {!!m.result?.assignmentCount && (
                         <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
                       )}
+                      {!!m.result?.memoryCount && (
+                        <Badge variant="outline">{m.result.memoryCount} memory fact(s) saved</Badge>
+                      )}
                       <Badge variant="secondary">{m.result?.model}</Badge>
                       {m.result?.usage && (
                         <Badge variant="outline" className="tabular-nums">
@@ -332,6 +357,8 @@ export function ChatClient({
           <StatPair label="This request" tokens={requestUsage.tokens} costUsd={requestUsage.costUsd} />
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

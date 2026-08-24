@@ -206,6 +206,7 @@ create table if not exists public.memories (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create index if not exists memories_embedding_hnsw_idx on public.memories using hnsw (embedding vector_cosine_ops);
 
 create table if not exists public.documents (
   id uuid primary key default gen_random_uuid(),
@@ -313,11 +314,22 @@ create table if not exists public.approvals (
   decided_at timestamptz
 );
 
+create table if not exists public.chat_channels (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  company_id uuid references public.companies(id) on delete set null,
+  created_by_profile_id uuid references public.profiles(id),
+  archived boolean not null default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table if not exists public.work_orders (
   id uuid primary key default gen_random_uuid(),
   command text not null,
   company_id uuid references public.companies(id) on delete set null,
   assigned_agent_id uuid references public.agents(id),
+  channel_id uuid references public.chat_channels(id) on delete set null,
   status work_status default 'queued',
   context_pack jsonb default '{}'::jsonb,
   output jsonb default '{}'::jsonb,
@@ -327,6 +339,7 @@ create table if not exists public.work_orders (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create index if not exists work_orders_channel_idx on public.work_orders (channel_id, created_at);
 
 create table if not exists public.kpi_records (
   id uuid primary key default gen_random_uuid(),
@@ -656,7 +669,7 @@ grant execute on function public.delete_mcp_connector_secret(uuid) to authentica
 -- insert exactly as it did with the Edge Function's old sequential-insert code. This
 -- function is a pure persistence layer; approvalRequired/domain per task are still
 -- computed in supabase/functions/sem-ai-command/index.ts (tickets 2 and 4), not here.
-create or replace function public.create_pending_work_order(p_command text, p_context_pack jsonb)
+create or replace function public.create_pending_work_order(p_command text, p_context_pack jsonb, p_channel_id uuid default null)
 returns uuid
 language plpgsql
 security invoker
@@ -664,21 +677,45 @@ as $$
 declare
   v_id uuid;
 begin
-  insert into public.work_orders (command, status, context_pack, created_by_profile_id)
-  values (p_command, 'queued', p_context_pack, public.current_profile_id())
+  insert into public.work_orders (command, status, context_pack, created_by_profile_id, channel_id)
+  values (p_command, 'queued', p_context_pack, public.current_profile_id(), p_channel_id)
   returning id into v_id;
   return v_id;
 end;
 $$;
 
-revoke all on function public.create_pending_work_order(text, jsonb) from public, anon;
-grant execute on function public.create_pending_work_order(text, jsonb) to authenticated;
+revoke all on function public.create_pending_work_order(text, jsonb, uuid) from public, anon;
+grant execute on function public.create_pending_work_order(text, jsonb, uuid) to authenticated;
 
--- sem_execute_ai_command now UPDATEs the work order that already exists (created via
--- create_pending_work_order before the LLM call) instead of inserting a new one at the
--- end. New trailing param p_work_order_id — same drop-and-recreate recipe as every prior
--- migration this session (a new parameter is a new overload, not a replacement).
-drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb);
+-- Real semantic retrieval, finishing the pgvector scaffold that already existed on
+-- memories.embedding. security invoker + language sql so memories RLS applies normally
+-- to whatever this returns — not a bypass.
+create or replace function public.match_memories(query_embedding vector(1536), match_count int default 8)
+returns table (
+  id uuid, fact text, entity_type text, entity_id uuid, company_id uuid,
+  confidence numeric, sensitivity visibility_level, similarity float8
+)
+language sql
+stable
+security invoker
+as $$
+  select m.id, m.fact, m.entity_type, m.entity_id, m.company_id, m.confidence, m.sensitivity,
+         1 - (m.embedding <=> query_embedding) as similarity
+  from public.memories m
+  where m.embedding is not null
+  order by m.embedding <=> query_embedding
+  limit match_count;
+$$;
+
+revoke all on function public.match_memories(vector, int) from public, anon;
+grant execute on function public.match_memories(vector, int) to authenticated;
+
+-- sem_execute_ai_command gains p_memory_candidates — same drop-and-recreate recipe as
+-- every prior parameter addition (a new parameter is a new overload, not a replacement).
+-- Embeddings are computed in TypeScript (supabase/functions/sem-ai-command/index.ts
+-- calls OpenAI before this RPC runs) and arrive as a plain jsonb float array per
+-- candidate, cast to vector here.
+drop function if exists public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid);
 
 create or replace function public.sem_execute_ai_command(
   p_command text,
@@ -698,7 +735,8 @@ create or replace function public.sem_execute_ai_command(
   p_goals jsonb default '[]'::jsonb,
   p_company_relationships jsonb default '[]'::jsonb,
   p_person_assignments jsonb default '[]'::jsonb,
-  p_work_order_id uuid default null
+  p_work_order_id uuid default null,
+  p_memory_candidates jsonb default '[]'::jsonb
 ) returns jsonb
 language plpgsql
 security invoker
@@ -714,6 +752,7 @@ declare
   v_goal jsonb;
   v_relationship jsonb;
   v_assignment jsonb;
+  v_memory jsonb;
   v_task_ids uuid[] := '{}';
   v_task_company_ids uuid[] := '{}';
   v_company_ids uuid[] := '{}';
@@ -726,6 +765,7 @@ declare
   v_created_goals jsonb := '[]'::jsonb;
   v_created_relationships jsonb := '[]'::jsonb;
   v_created_assignments jsonb := '[]'::jsonb;
+  v_created_memories jsonb := '[]'::jsonb;
   v_new_task_id uuid;
   v_new_task_company_id uuid;
   v_new_approval_id uuid;
@@ -735,6 +775,7 @@ declare
   v_new_goal_id uuid;
   v_new_relationship_id uuid;
   v_new_assignment_id uuid;
+  v_new_memory_id uuid;
   v_task_index int;
   v_company_index int;
   v_person_index int;
@@ -1000,6 +1041,41 @@ begin
     end if;
   end loop;
 
+  -- Memory candidates arrive pre-validated + pre-embedded from TypeScript (entityType/
+  -- entityId already defaulted to 'chat_channel'/the active channel when the model
+  -- omitted them). A candidate with no embedding (the OpenAI call failed or was
+  -- skipped) still gets the fact saved, just unsearchable until a later backfill.
+  for v_memory in select * from jsonb_array_elements(coalesce(p_memory_candidates, '[]'::jsonb))
+  loop
+    if coalesce(v_memory->>'fact','') <> '' then
+      v_company_index := nullif(v_memory->>'companyIndex','')::int;
+      v_entry_company_id := case
+        when v_company_index is not null and v_company_index >= 0 and v_company_index < array_length(v_company_ids,1)
+          then v_company_ids[v_company_index+1]
+        else nullif(v_memory->>'companyId','')::uuid
+      end;
+
+      insert into public.memories (
+        company_id, entity_type, entity_id, fact, source_type, source_id,
+        confidence, sensitivity, embedding, created_by_profile_id
+      ) values (
+        v_entry_company_id,
+        coalesce(nullif(v_memory->>'entityType',''), 'chat_channel'),
+        nullif(v_memory->>'entityId','')::uuid,
+        v_memory->>'fact',
+        'ai_chat',
+        v_work_order_id,
+        coalesce((v_memory->>'confidence')::numeric, 0.8),
+        coalesce((v_memory->>'sensitivity')::visibility_level, 'internal'::visibility_level),
+        case when v_memory->'embedding' is not null then (v_memory->'embedding')::text::vector else null end,
+        v_profile_id
+      )
+      returning id into v_new_memory_id;
+
+      v_created_memories := v_created_memories || jsonb_build_object('id', v_new_memory_id);
+    end if;
+  end loop;
+
   if p_deleted_task_ids is not null and array_length(p_deleted_task_ids, 1) > 0 then
     with removed as (
       delete from public.tasks where id = any(p_deleted_task_ids) returning id
@@ -1020,7 +1096,8 @@ begin
       'deletedTasks', coalesce(array_length(v_deleted_task_ids,1), 0),
       'companies', jsonb_array_length(v_created_companies), 'people', jsonb_array_length(v_created_people),
       'projects', jsonb_array_length(v_created_projects), 'goals', jsonb_array_length(v_created_goals),
-      'companyRelationships', jsonb_array_length(v_created_relationships), 'personAssignments', jsonb_array_length(v_created_assignments)
+      'companyRelationships', jsonb_array_length(v_created_relationships), 'personAssignments', jsonb_array_length(v_created_assignments),
+      'memories', jsonb_array_length(v_created_memories)
     )
   );
 
@@ -1029,13 +1106,14 @@ begin
     'deletedTaskIds', to_jsonb(v_deleted_task_ids),
     'createdCompanies', v_created_companies, 'createdPeople', v_created_people,
     'createdProjects', v_created_projects, 'createdGoals', v_created_goals,
-    'createdCompanyRelationships', v_created_relationships, 'createdPersonAssignments', v_created_assignments
+    'createdCompanyRelationships', v_created_relationships, 'createdPersonAssignments', v_created_assignments,
+    'createdMemories', v_created_memories
   );
 end;
 $$;
 
-revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid) from public, anon;
-grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid) to authenticated;
+revoke all on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid, jsonb) from public, anon;
+grant execute on function public.sem_execute_ai_command(text, jsonb, jsonb, int, jsonb, jsonb, text, int, int, numeric, uuid[], jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, uuid, jsonb) to authenticated;
 
 -- Failure path (JSON parse failure, provider error, RPC error) needs its own way to mark
 -- the pending row as failed rather than leaving it stuck at 'queued' forever with no
@@ -1357,6 +1435,24 @@ create policy "person_assignments_write_manager" on public.person_assignments fo
   public.is_founder_or_admin() or public.is_company_manager(operating_company_id)
 ) with check (
   public.is_founder_or_admin() or public.is_company_manager(operating_company_id)
+);
+
+alter table public.chat_channels enable row level security;
+drop policy if exists "chat_channels_select_scope" on public.chat_channels;
+create policy "chat_channels_select_scope" on public.chat_channels for select using (
+  public.is_founder_or_admin()
+  or created_by_profile_id = public.current_profile_id()
+  or (company_id is not null and public.has_company_access(company_id))
+);
+drop policy if exists "chat_channels_write_scope" on public.chat_channels;
+create policy "chat_channels_write_scope" on public.chat_channels for all using (
+  public.is_founder_or_admin()
+  or created_by_profile_id = public.current_profile_id()
+  or (company_id is not null and public.is_company_manager(company_id))
+) with check (
+  public.is_founder_or_admin()
+  or created_by_profile_id = public.current_profile_id()
+  or (company_id is not null and public.is_company_manager(company_id))
 );
 
 alter table public.ai_providers enable row level security;

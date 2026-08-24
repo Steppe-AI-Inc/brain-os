@@ -259,6 +259,222 @@ export type Database = {
           },
         ]
       }
+      board_columns: {
+        Row: {
+          board_id: string
+          canonical_status: Database["public"]["Enums"]["work_status"]
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+          wip_limit: number | null
+        }
+        Insert: {
+          board_id: string
+          canonical_status?: Database["public"]["Enums"]["work_status"]
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+          wip_limit?: number | null
+        }
+        Update: {
+          board_id?: string
+          canonical_status?: Database["public"]["Enums"]["work_status"]
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
+          wip_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_columns_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_items: {
+        Row: {
+          added_by_profile_id: string
+          board_id: string
+          column_id: string
+          created_at: string
+          id: string
+          position: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          added_by_profile_id?: string
+          board_id: string
+          column_id: string
+          created_at?: string
+          id?: string
+          position?: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          added_by_profile_id?: string
+          board_id?: string
+          column_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_items_added_by_profile_id_fkey"
+            columns: ["added_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_items_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_items_column_id_board_id_fkey"
+            columns: ["column_id", "board_id"]
+            isOneToOne: false
+            referencedRelation: "board_columns"
+            referencedColumns: ["id", "board_id"]
+          },
+          {
+            foreignKeyName: "board_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boards: {
+        Row: {
+          archived_at: string | null
+          color: string
+          company_id: string
+          created_at: string
+          created_by_profile_id: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string
+          company_id: string
+          created_at?: string
+          created_by_profile_id?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string
+          company_id?: string
+          created_at?: string
+          created_by_profile_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boards_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boards_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boards_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_channels: {
+        Row: {
+          archived: boolean
+          company_id: string | null
+          created_at: string | null
+          created_by_profile_id: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          archived?: boolean
+          company_id?: string | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          archived?: boolean
+          company_id?: string | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_channels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_channels_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           country: string | null
@@ -346,6 +562,94 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_relationships: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by_profile_id: string | null
+          effective_date: string | null
+          id: string
+          notes: string | null
+          owner_profile_id: string | null
+          ownership_pct: number | null
+          related_company_id: string | null
+          relationship_type: Database["public"]["Enums"]["company_relationship_type"]
+          state: Database["public"]["Enums"]["relationship_state"]
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          effective_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_profile_id?: string | null
+          ownership_pct?: number | null
+          related_company_id?: string | null
+          relationship_type?: Database["public"]["Enums"]["company_relationship_type"]
+          state?: Database["public"]["Enums"]["relationship_state"]
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          effective_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_profile_id?: string | null
+          ownership_pct?: number | null
+          related_company_id?: string | null
+          relationship_type?: Database["public"]["Enums"]["company_relationship_type"]
+          state?: Database["public"]["Enums"]["relationship_state"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_relationships_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_relationships_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_relationships_related_company_id_fkey"
+            columns: ["related_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_relationships_related_company_id_fkey"
+            columns: ["related_company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1170,6 +1474,127 @@ export type Database = {
           },
         ]
       }
+      person_assignments: {
+        Row: {
+          allocation_pct: number | null
+          created_at: string | null
+          created_by_profile_id: string | null
+          department_id: string | null
+          employment_type: Database["public"]["Enums"]["employment_type"] | null
+          end_date: string | null
+          id: string
+          is_primary: boolean | null
+          job_title: string | null
+          legal_employer_company_id: string | null
+          manager_person_id: string | null
+          operating_company_id: string | null
+          person_id: string
+          responsibilities: string | null
+          start_date: string | null
+          state: Database["public"]["Enums"]["assignment_state"]
+          updated_at: string | null
+        }
+        Insert: {
+          allocation_pct?: number | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          department_id?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          end_date?: string | null
+          id?: string
+          is_primary?: boolean | null
+          job_title?: string | null
+          legal_employer_company_id?: string | null
+          manager_person_id?: string | null
+          operating_company_id?: string | null
+          person_id: string
+          responsibilities?: string | null
+          start_date?: string | null
+          state?: Database["public"]["Enums"]["assignment_state"]
+          updated_at?: string | null
+        }
+        Update: {
+          allocation_pct?: number | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          department_id?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          end_date?: string | null
+          id?: string
+          is_primary?: boolean | null
+          job_title?: string | null
+          legal_employer_company_id?: string | null
+          manager_person_id?: string | null
+          operating_company_id?: string | null
+          person_id?: string
+          responsibilities?: string | null
+          start_date?: string | null
+          state?: Database["public"]["Enums"]["assignment_state"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_assignments_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_legal_employer_company_id_fkey"
+            columns: ["legal_employer_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_legal_employer_company_id_fkey"
+            columns: ["legal_employer_company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_manager_person_id_fkey"
+            columns: ["manager_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_operating_company_id_fkey"
+            columns: ["operating_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_operating_company_id_fkey"
+            columns: ["operating_company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_assignments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_lines: {
         Row: {
           active: boolean | null
@@ -1813,6 +2238,7 @@ export type Database = {
       work_orders: {
         Row: {
           assigned_agent_id: string | null
+          channel_id: string | null
           command: string
           company_id: string | null
           context_pack: Json | null
@@ -1827,6 +2253,7 @@ export type Database = {
         }
         Insert: {
           assigned_agent_id?: string | null
+          channel_id?: string | null
           command: string
           company_id?: string | null
           context_pack?: Json | null
@@ -1841,6 +2268,7 @@ export type Database = {
         }
         Update: {
           assigned_agent_id?: string | null
+          channel_id?: string | null
           command?: string
           company_id?: string | null
           context_pack?: Json | null
@@ -1859,6 +2287,13 @@ export type Database = {
             columns: ["assigned_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
             referencedColumns: ["id"]
           },
           {
@@ -2010,8 +2445,32 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_board_item: {
+        Args: { p_board_id: string; p_task_id: string }
+        Returns: boolean
+      }
+      create_board_task: {
+        Args: {
+          p_board_id: string
+          p_column_id: string
+          p_deadline?: string
+          p_description?: string
+          p_owner_person_id?: string
+          p_priority?: Database["public"]["Enums"]["priority_level"]
+          p_title: string
+        }
+        Returns: string
+      }
+      create_board_with_defaults: {
+        Args: { p_company_id: string; p_description?: string; p_name: string }
+        Returns: string
+      }
       create_mcp_connector_secret: {
         Args: { p_name: string; p_secret: string }
+        Returns: string
+      }
+      create_pending_work_order: {
+        Args: { p_channel_id?: string; p_command: string; p_context_pack: Json }
         Returns: string
       }
       current_profile_id: { Args: never; Returns: string }
@@ -2031,18 +2490,52 @@ export type Database = {
       is_company_manager: { Args: { cid: string }; Returns: boolean }
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_hr_finance: { Args: never; Returns: boolean }
+      mark_work_order_failed: {
+        Args: { p_error: string; p_work_order_id: string }
+        Returns: undefined
+      }
+      match_memories: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          company_id: string
+          confidence: number
+          entity_id: string
+          entity_type: string
+          fact: string
+          id: string
+          sensitivity: Database["public"]["Enums"]["visibility_level"]
+          similarity: number
+        }[]
+      }
+      move_board_item: {
+        Args: {
+          p_item_id: string
+          p_position?: number
+          p_target_column_id: string
+        }
+        Returns: undefined
+      }
       sem_execute_ai_command: {
         Args: {
           p_approvals: Json
           p_command: string
+          p_companies?: Json
+          p_company_relationships?: Json
           p_context_pack: Json
+          p_deleted_task_ids?: string[]
           p_estimated_cost_usd: number
+          p_goals?: Json
           p_input_tokens: number
+          p_memory_candidates?: Json
           p_model_name: string
           p_output: Json
           p_output_tokens: number
+          p_people?: Json
+          p_person_assignments?: Json
+          p_projects?: Json
           p_tasks: Json
           p_token_estimate: number
+          p_work_order_id?: string
         }
         Returns: Json
       }
@@ -2071,10 +2564,18 @@ export type Database = {
         | "rejected"
         | "changes_requested"
         | "cancelled"
+      assignment_state: "current" | "planned" | "historical"
+      company_relationship_type: "parent_of" | "owned_by_percentage"
+      employment_type: "full_time" | "part_time" | "contractor" | "advisor"
       goal_kind: "ephemeral" | "standing" | "routine" | "decision"
       goal_status: "draft" | "active" | "paused" | "achieved" | "archived"
       mcp_transport: "http" | "sse"
       priority_level: "low" | "medium" | "high" | "critical"
+      relationship_state:
+        | "current"
+        | "planned"
+        | "historical"
+        | "under_restructuring"
       risk_level: "low" | "medium" | "high" | "critical"
       visibility_level:
         | "public"
@@ -2245,10 +2746,19 @@ export const Constants = {
         "changes_requested",
         "cancelled",
       ],
+      assignment_state: ["current", "planned", "historical"],
+      company_relationship_type: ["parent_of", "owned_by_percentage"],
+      employment_type: ["full_time", "part_time", "contractor", "advisor"],
       goal_kind: ["ephemeral", "standing", "routine", "decision"],
       goal_status: ["draft", "active", "paused", "achieved", "archived"],
       mcp_transport: ["http", "sse"],
       priority_level: ["low", "medium", "high", "critical"],
+      relationship_state: [
+        "current",
+        "planned",
+        "historical",
+        "under_restructuring",
+      ],
       risk_level: ["low", "medium", "high", "critical"],
       visibility_level: [
         "public",

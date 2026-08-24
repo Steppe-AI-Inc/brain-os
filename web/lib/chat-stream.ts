@@ -11,6 +11,7 @@ export type ChatResult = {
   goalCount: number;
   relationshipCount: number;
   assignmentCount: number;
+  memoryCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
 };
@@ -31,6 +32,7 @@ export type StreamEvent =
       createdGoals?: unknown[];
       createdCompanyRelationships?: unknown[];
       createdPersonAssignments?: unknown[];
+      createdMemories?: unknown[];
       model?: string;
       usage?: { input_tokens?: number; output_tokens?: number } | null;
     }
@@ -39,12 +41,16 @@ export type StreamEvent =
 // Consumes the /chat/stream SSE response, invoking onEvent for each frame. Resolves once
 // the stream ends (after a `done`/`error` event, or a transport-level failure — the
 // latter is surfaced as a synthetic `error` event so callers only need one code path).
-export async function consumeChatStream(command: string, onEvent: (evt: StreamEvent) => void): Promise<void> {
+export async function consumeChatStream(
+  command: string,
+  onEvent: (evt: StreamEvent) => void,
+  channelId?: string | null
+): Promise<void> {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, channelId: channelId ?? null }),
     });
 
     if (!res.ok || !res.body) {
@@ -98,6 +104,7 @@ export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatR
     goalCount: evt.createdGoals?.length ?? 0,
     relationshipCount: evt.createdCompanyRelationships?.length ?? 0,
     assignmentCount: evt.createdPersonAssignments?.length ?? 0,
+    memoryCount: evt.createdMemories?.length ?? 0,
     model: evt.model || "unknown",
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }

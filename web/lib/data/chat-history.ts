@@ -23,6 +23,7 @@ export type ChatHistoryCounts = {
   goals: number;
   companyRelationships: number;
   personAssignments: number;
+  memories: number;
 };
 
 export type ChatHistoryMessage = {
@@ -37,14 +38,21 @@ export type ChatHistoryMessage = {
   counts: ChatHistoryCounts | null;
 };
 
-export async function getChatHistory(limit = 30): Promise<ChatHistoryMessage[]> {
+// channelId: undefined fetches everything (not used by the chat page itself, kept for
+// completeness); null scopes to "General" (channel_id is null); a real id scopes to
+// that channel only. The chat page always passes one of the latter two explicitly.
+export async function getChatHistory(limit = 30, channelId?: string | null): Promise<ChatHistoryMessage[]> {
   const supabase = await createClient();
 
-  const { data: workOrders, error } = await supabase
+  let query = supabase
     .from("work_orders")
     .select("id, command, status, output, created_at, model_usage(model_name, input_tokens, output_tokens, estimated_cost_usd)")
     .order("created_at", { ascending: true })
     .limit(limit);
+  if (channelId === null) query = query.is("channel_id", null);
+  else if (channelId) query = query.eq("channel_id", channelId);
+
+  const { data: workOrders, error } = await query;
   if (error) throw error;
 
   const ids = (workOrders ?? []).map((w) => w.id);
@@ -82,6 +90,7 @@ export async function getChatHistory(limit = 30): Promise<ChatHistoryMessage[]> 
             goals: metadata.goals ?? 0,
             companyRelationships: metadata.companyRelationships ?? 0,
             personAssignments: metadata.personAssignments ?? 0,
+            memories: metadata.memories ?? 0,
           }
         : null,
     };
