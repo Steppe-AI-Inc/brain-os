@@ -40,7 +40,7 @@ const NAV_GROUPS: Array<{
   {
     title: "AI FIRST",
     items: [
-      { href: "/chat", navKey: "nav.chatOps", label: "AI Native Chat", icon: Sparkles },
+      { href: "/chat", navKey: "nav.chatOps", label: "Speak with Brain OS", icon: Sparkles },
       { href: "/workflows", navKey: "nav.workflows", label: "Workflow Factory", icon: Workflow },
       { href: "/mindmap", navKey: "nav.mindmap", label: "Operating Mindmap", icon: Network },
     ],
@@ -107,8 +107,8 @@ export function AppSidebar({
           Σ
         </div>
         <div>
-          <div className="text-[15px] font-semibold leading-tight">SEM Brain</div>
-          <div className="text-xs text-muted-foreground">Steppe AI, Inc.</div>
+          <div className="text-[15px] font-semibold leading-tight">Brain OS</div>
+          <div className="text-xs text-muted-foreground">Company Brain</div>
         </div>
       </div>
 

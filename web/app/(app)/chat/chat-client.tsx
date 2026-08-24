@@ -222,7 +222,7 @@ export function ChatClient({
     <div className="flex h-full flex-col gap-4">
       <PageHeader
         icon={Sparkles}
-        title="AI Native Chat"
+        title="Speak with Brain OS"
         description="Every command goes through the real sem-ai-command Edge Function — RLS-scoped context, server-side risk-approval enforcement, transactional persistence. Nothing is simulated locally."
       />
 
@@ -260,7 +260,7 @@ export function ChatClient({
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.15s]" />
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
                     </span>
-                    <span>SEM Brain is thinking…</span>
+                    <span>Brain OS is thinking…</span>
                   </div>
                 ) : (
                   <>
@@ -322,7 +322,7 @@ export function ChatClient({
                   send();
                 }
               }}
-              placeholder="Message SEM Brain…"
+              placeholder="Message Brain OS…"
               className="min-h-16"
             />
             <Button onClick={send} disabled={isStreaming || !command.trim()}>

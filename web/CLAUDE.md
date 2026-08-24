@@ -1,8 +1,16 @@
 @AGENTS.md
 
-# SEM Brain — `/web` (the base foundation)
+# Brain OS — `/web` (the base foundation)
 
-This is the **confirmed base foundation** for SEM Brain as of 2026-08-24 — the founder
+Product name as of 2026-08-24: **Brain OS** ("the company brain"), formerly "SEM Brain" —
+renamed at the founder's request. Same product, same codebase; only the user-facing name
+changed (UI copy, page titles, the AI's own system-prompt persona). Internal identifiers
+(`sem-ai-command` Edge Function slug, `sem_execute_ai_command` RPC, `ai_command_v0.7`
+source tags, the `SEM Technologies LLC` company itself) intentionally were not renamed —
+those are either infrastructure names irrelevant to the rename, or the founder's actual
+legal entity name, not the product's.
+
+This is the **confirmed base foundation** for Brain OS as of 2026-08-24 — the founder
 compared it directly against the old vanilla-JS app (repo root) in production and chose
 this to build on going forward. The old app's Vercel deployment has since been deleted
 (source kept in the repo for history only); see the repo-root `CLAUDE.md` and
@@ -126,7 +134,7 @@ same ref-object pattern first.
 picker, task deletion.** Founder feedback after using the stream live: the raw-JSON
 "watch it type" display read as too programmatic, and the token badge (only inside the
 scrolling message bubble) disappeared once you scrolled past it. `chat-client.tsx` now
-shows a plain "SEM Brain is thinking…" indicator instead of the raw delta text (the delta
+shows a plain "Brain OS is thinking…" indicator instead of the raw delta text (the delta
 stream is still consumed for the live token/cost numbers, just not rendered verbatim), and
 a live usage bar (`UsageBar`, tokens + `estimateCost()`-derived USD) renders both above the
 message list and next to the input — same numbers, always visible regardless of scroll

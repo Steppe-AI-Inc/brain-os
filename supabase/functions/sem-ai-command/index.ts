@@ -1,4 +1,5 @@
-// SEM Brain v0.7 Supabase Edge Function: sem-ai-command
+// Brain OS v0.7 Supabase Edge Function: sem-ai-command (function slug kept as-is —
+// infrastructure name, not the product's user-facing name)
 // Required secrets:
 //   OPENAI_API_KEY
 //   OPENAI_MODEL=gpt-4.1-mini
@@ -48,8 +49,9 @@ type AiTask = {
   testMethod?: string[];
 };
 
-const SYSTEM_PROMPT = `You are SEM Brain v0.7 Production Core.
+const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
+Refer to yourself as "Brain OS" if you need to name yourself in a reply, never "SEM Brain".
 You receive one user command and a compact context pack from the database.
 Return strict JSON only. No markdown.
 
@@ -376,7 +378,7 @@ function fallbackPlan(command:string, contextPack:any){
   } else {
     tasks.push({title:'Create CEO operating brief and follow-up tasks',description:command,companyId,ownerType:'agent',ownerAgentId:agent('chief'),priority:'high',riskLevel:'low',approvalRequired:false,acceptanceCriteria:['Blockers identified','Tasks created','Founder decisions listed'],testMethod:['QA checks brief completeness']});
   }
-  return { strategicGoal:'Execute founder command through SEM Brain v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
+  return { strategicGoal:'Execute founder command through Brain OS v0.7 fallback planner', summary:'Fallback planner created tasks because AI provider is not configured or failed.', riskLevel: tasks.some(t=>t.riskLevel==='high')?'high':'medium', tasks, approvals: tasks.filter(t=>t.approvalRequired).map((t,i)=>({title:`Approval required: ${t.title}`, reason:'Risk policy requires human approval.', riskLevel:t.riskLevel||'medium', taskIndex:i})), memoryCandidates: [] };
 }
 
 async function buildContext(supabase:any, command:string){

@@ -19,7 +19,7 @@ export function MindmapView({ graph }: { graph: Graph }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
       <div className="overflow-auto rounded-xl border border-border/60 bg-card/60">
-        <svg viewBox="0 0 1040 620" role="img" aria-label="SEM Brain operating mindmap" className="w-full">
+        <svg viewBox="0 0 1040 620" role="img" aria-label="Brain OS operating mindmap" className="w-full">
           {graph.edges.map((e, i) => {
             const a = nodeById[e.from];
             const b = nodeById[e.to];

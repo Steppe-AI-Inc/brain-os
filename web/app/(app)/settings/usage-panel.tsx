@@ -105,7 +105,7 @@ export function UsagePanel({
             {recent.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No AI command calls yet — send one from AI Native Chat.
+                  No AI command calls yet — send one from Speak with Brain OS.
                 </TableCell>
               </TableRow>
             )}

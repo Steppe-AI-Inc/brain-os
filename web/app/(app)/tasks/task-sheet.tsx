@@ -97,7 +97,7 @@ export function TaskSheet({
           <SheetTitle>{target?.mode === "create" ? "New task" : "Edit task"}</SheetTitle>
           <SheetDescription>
             {target?.mode === "create"
-              ? "Adds directly to the board — same tasks table AI Native Chat writes to."
+              ? "Adds directly to the board — same tasks table Brain OS writes to."
               : "Changes save to the real tasks row."}
           </SheetDescription>
         </SheetHeader>
