@@ -10,7 +10,7 @@ type RiskLevel = Database["public"]["Enums"]["risk_level"];
 type WorkStatus = Database["public"]["Enums"]["work_status"];
 
 const TASK_SELECT =
-  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), created_at";
+  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), owner_person_id, people(full_name), created_at";
 
 export async function getTasks() {
   const supabase = await createClient();
@@ -21,6 +21,22 @@ export async function getTasks() {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
+}
+
+// Resolves the logged-in profile to their linked people.id (a profile isn't necessarily
+// staffed as a person — founders/admins often aren't — so this can legitimately be null).
+// Lets the UI offer a real "assigned to me" filter instead of only ever showing every
+// company task to every signed-in user regardless of role.
+export async function getCurrentPersonId(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase.from("profiles").select("id").eq("auth_user_id", user.id).single();
+  if (!profile) return null;
+  const { data: person } = await supabase.from("people").select("id").eq("profile_id", profile.id).maybeSingle();
+  return person?.id ?? null;
 }
 
 export type TaskInput = {

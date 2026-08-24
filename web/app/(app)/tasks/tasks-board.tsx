@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, User } from "lucide-react";
 import {
   DndContext,
   useDroppable,
@@ -46,15 +46,20 @@ function Column({ status, children }: { status: string; children: React.ReactNod
 export function TasksBoard({
   tasks: initialTasks,
   companies,
+  currentPersonId,
 }: {
   tasks: TaskRow[];
   companies: Array<{ id: string; name: string }>;
+  currentPersonId: string | null;
 }) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
   const [prevInitialTasks, setPrevInitialTasks] = useState(initialTasks);
   const [target, setTarget] = useState<EditingTask | null>(null);
+  const [myTasksOnly, setMyTasksOnly] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const visibleTasks = myTasksOnly && currentPersonId ? tasks.filter((t) => t.owner_person_id === currentPersonId) : tasks;
 
   // Reconcile local (optimistic) state with fresh server data after router.refresh() —
   // done during render, not an effect, per React's "adjusting state on a prop change"
@@ -109,10 +114,21 @@ export function TasksBoard({
 
   return (
     <>
+      {currentPersonId && (
+        <Button
+          variant={myTasksOnly ? "default" : "outline"}
+          size="sm"
+          className="w-fit gap-1.5"
+          onClick={() => setMyTasksOnly((v) => !v)}
+        >
+          <User className="h-3.5 w-3.5" />
+          {myTasksOnly ? "Showing my tasks" : "Show only my tasks"}
+        </Button>
+      )}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {TASK_COLUMNS.map((status) => {
-            const columnTasks = tasks.filter((t) => t.status === status);
+            const columnTasks = visibleTasks.filter((t) => t.status === status);
             return (
               <Column key={status} status={status}>
                 <div className="flex items-center justify-between px-1">

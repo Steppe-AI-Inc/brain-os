@@ -34,6 +34,8 @@ export type TaskRow = {
   approval_required: boolean | null;
   company_id: string | null;
   companies: { name: string } | null;
+  owner_person_id: string | null;
+  people: { full_name: string } | null;
 };
 
 export function TaskCard({
@@ -122,6 +124,11 @@ export function TaskCard({
           )}
           {task.companies?.name && (
             <span className="text-xs text-muted-foreground">{task.companies.name}</span>
+          )}
+          {task.people?.full_name && (
+            <Badge variant="secondary" className="text-xs">
+              {task.people.full_name}
+            </Badge>
           )}
         </CardContent>
       </Card>
