@@ -144,21 +144,25 @@ export async function deleteDocument(id: string) {
   return null;
 }
 
-export async function queueDocumentDriveBackup(formData: FormData) {
+export async function queueDocumentDriveBackup(formData: FormData): Promise<void> {
   const documentId = String(formData.get("document_id") || "").trim();
-  if (!documentId) return "Document is required.";
+  if (!documentId) throw new Error("Document is required.");
 
   const supabase = await createClient();
   const { data: profileId, error: profileError } = await supabase.rpc("current_profile_id");
-  if (profileError || !profileId) return "No Brain OS profile is linked to this account.";
+  if (profileError || !profileId) {
+    throw new Error("No Brain OS profile is linked to this account.");
+  }
 
   const { data: document, error: findError } = await supabase
     .from("documents")
     .select("id, title, company_id, storage_path")
     .eq("id", documentId)
     .maybeSingle();
-  if (findError) return findError.message;
-  if (!document?.storage_path) return "This document has no stored file to back up.";
+  if (findError) throw findError;
+  if (!document?.storage_path) {
+    throw new Error("This document has no stored file to back up.");
+  }
 
   const { error } = await supabase.from("integration_queue").insert({
     company_id: document.company_id,
@@ -173,10 +177,9 @@ export async function queueDocumentDriveBackup(formData: FormData) {
     status: "queued",
     created_by_profile_id: profileId,
   });
-  if (error) return error.message;
+  if (error) throw error;
 
   revalidatePath("/integrations");
-  return null;
 }
 
 export type ChatTextAttachmentInput = {
