@@ -106,14 +106,17 @@ export function DocumentsTable({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-doc-company">Company</Label>
-          <Select value={values.companyId} onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v }))}>
+          <Select
+            value={values.companyId || "none"}
+            onValueChange={(v: unknown) => typeof v === "string" && setValues((prev) => ({ ...prev, companyId: v === "none" ? "" : v }))}
+          >
             <SelectTrigger id="edit-doc-company" className="w-full">
               <SelectValue>
                 {() => companies.find((c) => c.id === values.companyId)?.name ?? "No company"}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No company</SelectItem>
+              <SelectItem value="none">No company</SelectItem>
               {companies.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
