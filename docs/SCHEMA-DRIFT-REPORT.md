@@ -130,6 +130,12 @@ All are **DEPRECATED/UNCERTAIN** until their live signatures, owners, security m
 | RLS              | Enabled on all declared application tables; policies are defined in base and later migrations                                  | DEPRECATED/UNCERTAIN |
 | Grants           | Function grants are explicit for `sem_execute_ai_command`; view grants hardened; helper-function grants need live verification | DEPRECATED/UNCERTAIN |
 
+### Base-table API grant uncertainty
+
+The applied migration chain declares RLS policies but does not declare base-table privileges for `authenticated`. The first isolated CI run reached the task policy and PostgreSQL returned `permission denied for table people` before the RLS assertions could execute. The pgTAP fixture now grants `SELECT` only on the three tables it reads, inside a transaction that rolls back, so the test isolates policy behavior.
+
+Classification: **CONFLICT/DEPRECATED/UNCERTAIN** until live `information_schema.role_table_grants` and default privileges are captured. Do not add broad production grants as a shortcut; derive the minimum per-table command matrix from actual repository queries and verify every grant together with RLS.
+
 ### Bootstrap schema conflict
 
 `supabase/schema-v0.7-production-core.sql` is a fresh-project bootstrap snapshot, not

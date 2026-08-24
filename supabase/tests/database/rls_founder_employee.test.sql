@@ -110,6 +110,11 @@ insert into public.tasks (
     '30000000-0000-0000-0000-000000000001'
   );
 
+-- Isolate RLS behavior from Supabase platform bootstrap grants. The repository migration
+-- chain does not currently declare base-table API grants; the drift report tracks that
+-- separately. These test-only grants are transactional and disappear at rollback.
+grant select on public.tasks, public.people, public.company_sensitive to authenticated;
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
