@@ -119,3 +119,27 @@ Founder is building a third parallel version using OpenAI Codex/ChatGPT, not yet
 3. For Track 2: `git checkout blankcollar`, read its own `CLAUDE.md` and `docs/STATUS.md` for its internal conventions, then pick up the serverless deployment plan above — Slice 1's code is done (commit `a45757d`), what's left is applying the DB migration and standing up the 3 Vercel projects with real secrets.
 4. Re-authenticate `gh`/`vercel`/`supabase` CLIs as needed (all device-code flows, all worked fine non-interactively this session).
 5. This file won't perfectly track every future change — treat it as the anchor for *why* things are the way they are, and `git log` on each branch as the anchor for *what* changed and *when*. Update this file when a major decision or track status changes, not for every commit.
+
+
+## 2026-08-24 — Chat, editing, and model intelligence checkpoint
+
+Development lane: `codex/sem-brain-v1` only. Master was not modified.
+
+Completed and Vercel-green:
+
+- AI Chat now opens as a blank new conversation, creates the durable Supabase chat session on first send, and retains previous conversations newest-first.
+- Conversation titles are inferred from the AI result; deterministic command/summary naming is the safe fallback when no provider key is available.
+- The conversation sidebar is collapsible, searchable, independently scrollable, grouped by recency, and keeps rename/delete controls visible.
+- Companies and People keep their real Supabase create/edit/delete actions, with the row action menu now permanently visible and labelled.
+- `/models` is the Model Intelligence surface: supported current text/agent models, dated official pricing links, workload inputs, monthly cost estimates, and a capability-versus-cost infographic.
+- Current verified branch head: `564e2e4bd3858ead0cbab4409ca467b82fc108ee`.
+
+Important truth / remaining work:
+
+- OpenAI and Anthropic integrations exist in `supabase/functions/sem-ai-command/index.ts`, but a real provider call requires the corresponding Supabase Edge Function secret. Never paste provider keys into frontend settings or commit them to GitHub.
+- Branch previews deploy the Next.js UI through Vercel. Supabase Edge Function changes are not automatically promoted from this branch; deploy them explicitly only after review.
+- The model catalog intentionally covers text/agent models compatible with structured company commands. Image, audio, realtime, embedding, deprecated, and invitation-only models are separate workloads.
+- Capability scores in the Model Intelligence prototype are clearly labelled provisional planning scores. Replace them with Brain OS workflow eval results before treating them as authoritative.
+- Company relationship and person assignment tables/RLS are real, but the Strategic Control Map does not yet render/edit those records end-to-end.
+- The requested CLIX GPS financial one-pass workflow is not complete. Current Documents handles extracted text/CSV only and does not yet provide durable file storage, PDF/XLSX ingestion, financial statement normalization, CFO/bookkeeper workflow execution, report generation, or financial-health dashboards.
+- Next production slice: Supabase Storage-backed artifacts + finance schema + ingestion workflow + CFO/bookkeeper agents + generated report/dashboard + approval/audit tests.
