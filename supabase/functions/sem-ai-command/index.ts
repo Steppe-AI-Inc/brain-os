@@ -28,6 +28,12 @@
 // similarity search (migration 202608260008), degrading to the old ILIKE keyword match
 // if OPENAI_API_KEY is missing or the embeddings call fails — chat must never hard-fail
 // because of it.
+//
+// Request body also accepts an optional `imageBase64` + `imageMimeType` (an attached
+// photo from the chat composer, e.g. a parking-lot site photo). When present, the model
+// sees the actual image inline in the same turn (real vision, both providers), not a
+// separate describe-then-chat pass. Additive only — the no-image path below is
+// byte-for-byte the same request shape as before this was added.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -66,6 +72,10 @@ You receive one user command and a compact context pack from the database.
 Return strict JSON only. No markdown.
 
 Rules:
+- If an image is attached to this message, it is a real photo/screenshot the user is
+  showing you (e.g. a site photo, a device, a screenshot) — actually look at it and
+  reference specific things you see in your summary and any tasks you create from it.
+  Never say you can't see images; if one is attached, you can.
 - Create narrow atomic tasks only.
 - Do not invent facts outside the context pack.
 - If a fact is missing, create a clarification/research task.
@@ -239,14 +249,20 @@ async function consumeSSE(response: Response, onEvent: (data: any) => void): Pro
 
 type Usage = { input_tokens?: number; output_tokens?: number };
 type StreamResult = { text: string; stopReason: string | null };
+type AttachedImage = { base64: string; mimeType: string } | null;
 
 async function callAnthropicStreaming(
   model: string,
   key: string,
   contextForModel: unknown,
   onDelta: (text: string) => void,
-  onUsage: (usage: Usage) => void
+  onUsage: (usage: Usage) => void,
+  image: AttachedImage = null
 ): Promise<StreamResult> {
+  const textBlock = { type: 'text', text: JSON.stringify(contextForModel, null, 2) };
+  const content = image
+    ? [{ type: 'image', source: { type: 'base64', media_type: image.mimeType, data: image.base64 } }, textBlock]
+    : textBlock.text;
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -258,7 +274,7 @@ async function callAnthropicStreaming(
       model,
       max_tokens: 8192,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: JSON.stringify(contextForModel, null, 2) }],
+      messages: [{ role: 'user', content }],
       temperature: 0.2,
       stream: true,
     }),
@@ -288,8 +304,13 @@ async function callOpenAIStreaming(
   key: string,
   contextForModel: unknown,
   onDelta: (text: string) => void,
-  onUsage: (usage: Usage) => void
+  onUsage: (usage: Usage) => void,
+  image: AttachedImage = null
 ): Promise<StreamResult> {
+  const textBlock = { type: 'input_text', text: JSON.stringify(contextForModel, null, 2) };
+  const userContent = image
+    ? [{ type: 'input_image', image_url: `data:${image.mimeType};base64,${image.base64}`, detail: 'auto' }, textBlock]
+    : textBlock.text;
   const r = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -297,7 +318,7 @@ async function callOpenAIStreaming(
       model,
       input: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: JSON.stringify(contextForModel, null, 2) },
+        { role: 'user', content: userContent },
       ],
       max_output_tokens: 8192,
       temperature: 0.2,
@@ -499,6 +520,7 @@ serve(async (req) => {
   let channelId: string | null = null;
   let providerName: 'openai' | 'anthropic' = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
+  let attachedImage: AttachedImage = null;
   try {
     auth = req.headers.get('Authorization') || '';
     if(!auth.startsWith('Bearer ')) return json({ error:'Missing Authorization bearer token' }, 401);
@@ -506,6 +528,13 @@ serve(async (req) => {
     command = String(body.command || '').trim();
     if(!command) return json({ error:'Missing command' }, 400);
     const requestedChannelId = typeof body.channelId === 'string' ? body.channelId.trim() : '';
+
+    const rawImageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64.trim() : '';
+    const rawImageMimeType = typeof body.imageMimeType === 'string' ? body.imageMimeType.trim().toLowerCase() : '';
+    const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+    if (rawImageBase64 && ALLOWED_IMAGE_TYPES.has(rawImageMimeType)) {
+      attachedImage = { base64: rawImageBase64, mimeType: rawImageMimeType };
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnon = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -585,7 +614,8 @@ serve(async (req) => {
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
-            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
+            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); },
+            attachedImage
           );
           resultText = r.text; stopReason = r.stopReason;
         } else {
@@ -593,7 +623,8 @@ serve(async (req) => {
             model, key,
             { profile:{id:profile.id,role:profile.role}, command, contextPack },
             (delta) => send({ type: 'delta', text: delta }),
-            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
+            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); },
+            attachedImage
           );
           resultText = r.text; stopReason = r.stopReason;
         }

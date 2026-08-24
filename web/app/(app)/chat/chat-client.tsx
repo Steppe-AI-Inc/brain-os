@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, Paperclip, Mic, MicOff, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,28 @@ import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
 import { createChannel, renameChannel, type SidebarChannel } from "@/lib/data/chat-channels";
 import { ChannelSidebar } from "./channel-sidebar";
+
+// The Web Speech API has no standard TS lib entry (still vendor-prefixed as
+// webkitSpeechRecognition in Chrome/Edge) — minimal shape for just what's used here.
+type SpeechRecognitionResultLike = { 0?: { transcript?: string } };
+type SpeechRecognitionEventLike = { results: ArrayLike<SpeechRecognitionResultLike> };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor };
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
 
 type Usage = { input_tokens: number; output_tokens: number };
 type TokenCost = { tokens: number; costUsd: number };
@@ -34,7 +56,13 @@ type Message = {
   usage: Usage | null;
   result?: ChatResult;
   error?: string;
+  imagePreviewUrl?: string;
 };
+
+type AttachedImage = { base64: string; mimeType: string; previewUrl: string; name: string };
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 // "general" is a UI-only sentinel for the pre-channels flat history (channel_id is null
 // in the DB) — never a real chat_channels.id. Translate before any DB call.
@@ -215,6 +243,64 @@ export function ChatClient({
   const [requestUsage, setRequestUsage] = useState<TokenCost>(ZERO);
   const [dbSummary, setDbSummary] = useState(usageSummary);
 
+  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Lazy initializer (not useEffect+setState) so this stays a render-time read, same
+  // SSR-guarded pattern as channel-sidebar.tsx's collapsed-state — window is undefined
+  // during the server pass, so this only resolves true once hydrated on a real browser.
+  const [speechSupported] = useState(() => !!getSpeechRecognitionCtor());
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAttachError(null);
+    if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
+      setAttachError("Only PNG, JPEG, WEBP, or GIF images are supported.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setAttachError("Image is too large — 5MB max.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+      setAttachedImage({ base64, mimeType: file.type, previewUrl: dataUrl, name: file.name });
+    };
+    reader.onerror = () => setAttachError("Couldn't read that file.");
+    reader.readAsDataURL(file);
+  }
+
+  function toggleRecording() {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const SpeechRecognitionCtor = getSpeechRecognitionCtor();
+    if (!SpeechRecognitionCtor) return;
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((r) => r[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      if (transcript) setCommand((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  }
+
   const activeModel = providers.find((p) => p.is_active)?.model || "unknown";
 
   function patchMessage(index: number, patch: Partial<Message> | ((prev: Message) => Partial<Message>)) {
@@ -249,9 +335,12 @@ export function ChatClient({
   }, [history, activeChannelId]);
 
   async function send() {
-    const trimmed = command.trim();
+    const image = attachedImage;
+    const trimmed = command.trim() || (image ? "Look at the attached image and tell me what you see." : "");
     if (!trimmed || isStreaming) return;
     setCommand("");
+    setAttachedImage(null);
+    setAttachError(null);
     setIsStreaming(true);
     setRequestUsage(ZERO);
 
@@ -273,30 +362,35 @@ export function ChatClient({
     let index = -1;
     setMessages((prev) => {
       index = prev.length;
-      return [...prev, { command: trimmed, status: "streaming", usage: null }];
+      return [...prev, { command: trimmed, status: "streaming", usage: null, imagePreviewUrl: image?.previewUrl }];
     });
 
     let finalSummary: string | null = null;
-    await consumeChatStream(trimmed, (evt) => {
-      if (evt.type === "usage") {
-        const input = evt.input_tokens ?? 0;
-        const output = evt.output_tokens ?? 0;
-        setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
-        patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
-      } else if (evt.type === "done") {
-        const result = toChatResult(evt);
-        finalSummary = result.summary;
-        patchMessage(index, { status: "done", result });
-        const usage = result.usage;
-        const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
-        const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
-        setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
-        setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
-        getUsageSummary().then(setDbSummary);
-      } else if (evt.type === "error") {
-        patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
-      }
-    }, targetChannelId);
+    await consumeChatStream(
+      trimmed,
+      (evt) => {
+        if (evt.type === "usage") {
+          const input = evt.input_tokens ?? 0;
+          const output = evt.output_tokens ?? 0;
+          setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
+          patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
+        } else if (evt.type === "done") {
+          const result = toChatResult(evt);
+          finalSummary = result.summary;
+          patchMessage(index, { status: "done", result });
+          const usage = result.usage;
+          const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
+          const finalTokens = usage ? usage.input_tokens + usage.output_tokens : 0;
+          setRequestUsage({ tokens: finalTokens, costUsd: finalCost });
+          setSessionTotal((prev) => ({ tokens: prev.tokens + finalTokens, costUsd: prev.costUsd + finalCost }));
+          getUsageSummary().then(setDbSummary);
+        } else if (evt.type === "error") {
+          patchMessage(index, { status: "error", error: evt.error || "Unknown error" });
+        }
+      },
+      targetChannelId,
+      image ? { base64: image.base64, mimeType: image.mimeType } : null
+    );
 
     if (newChannelId) {
       // Re-title from what the AI actually understood the command to be about, once it's
@@ -342,8 +436,12 @@ export function ChatClient({
           <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
             {messages.map((m, i) => (
               <div key={i} className="flex flex-col gap-2">
-                <div className="ml-auto max-w-lg rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">
-                  {m.command}
+                <div className="ml-auto flex max-w-lg flex-col items-end gap-1.5">
+                  {m.imagePreviewUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- a local data: URL, not a remote asset Next's optimizer can handle
+                    <img src={m.imagePreviewUrl} alt="Attached" className="max-h-40 rounded-xl border border-border/60 object-cover" />
+                  )}
+                  <div className="rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">{m.command}</div>
                 </div>
                 <Card className="max-w-lg bg-card/90">
                   <CardContent className="pt-4 text-sm">
@@ -413,7 +511,51 @@ export function ChatClient({
 
           <Card className="bg-card/90">
             <CardContent className="flex flex-col gap-3 pt-4">
+              {attachedImage && (
+                <div className="flex w-fit items-center gap-2 rounded-lg border border-border/60 bg-muted/40 py-1 pl-1 pr-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a local data: URL, not a remote asset */}
+                  <img src={attachedImage.previewUrl} alt="" className="h-10 w-10 rounded object-cover" />
+                  <span className="max-w-40 truncate text-xs text-muted-foreground">{attachedImage.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedImage(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              {attachError && <p className="text-xs font-medium text-destructive">{attachError}</p>}
               <div className="flex gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <div className="flex flex-col justify-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Attach an image"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      variant={isRecording ? "default" : "outline"}
+                      size="icon"
+                      title={isRecording ? "Stop recording" : "Speak your message"}
+                      onClick={toggleRecording}
+                    >
+                      {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
@@ -423,10 +565,10 @@ export function ChatClient({
                       send();
                     }
                   }}
-                  placeholder="Message Brain OS…"
+                  placeholder={isRecording ? "Listening…" : "Message Brain OS…"}
                   className="min-h-16"
                 />
-                <Button onClick={send} disabled={isStreaming || !command.trim()}>
+                <Button onClick={send} disabled={isStreaming || (!command.trim() && !attachedImage)}>
                   {isStreaming ? "Working…" : "Send"}
                 </Button>
               </div>

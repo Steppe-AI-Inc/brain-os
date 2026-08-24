@@ -44,13 +44,18 @@ export type StreamEvent =
 export async function consumeChatStream(
   command: string,
   onEvent: (evt: StreamEvent) => void,
-  channelId?: string | null
+  channelId?: string | null,
+  image?: { base64: string; mimeType: string } | null
 ): Promise<void> {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command, channelId: channelId ?? null }),
+      body: JSON.stringify({
+        command,
+        channelId: channelId ?? null,
+        ...(image ? { imageBase64: image.base64, imageMimeType: image.mimeType } : {}),
+      }),
     });
 
     if (!res.ok || !res.body) {
