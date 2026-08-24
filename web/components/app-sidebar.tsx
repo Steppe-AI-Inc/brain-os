@@ -27,6 +27,7 @@ import {
   Kanban,
   Landmark,
   Settings2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -41,6 +42,7 @@ const NAV_GROUPS: Array<{
     title: "AI FIRST",
     items: [
       { href: "/chat", navKey: "nav.chatOps", label: "Speak with Brain OS", icon: Sparkles },
+      { href: "/models", navKey: "nav.models", label: "Model Intelligence", icon: BarChart3 },
       { href: "/workflows", navKey: "nav.workflows", label: "Workflow Factory", icon: Workflow },
       { href: "/mindmap", navKey: "nav.mindmap", label: "Operating Mindmap", icon: Network },
     ],

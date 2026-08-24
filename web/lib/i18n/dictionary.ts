@@ -11,6 +11,7 @@ export const DICT: Record<Exclude<Locale, "en">, Record<string, string>> = {
     "navGroup.ADMIN DATA": "УДИРДЛАГЫН МЭДЭЭЛЭЛ",
 
     "nav.chatOps": "Brain OS-той ярих",
+    "nav.models": "Моделийн шинжилгээ",
     "nav.dashboard": "Гүйцэтгэх хяналтын самбар",
     "nav.companies": "Компаниуд",
     "nav.people": "Хүмүүс",
