@@ -231,7 +231,8 @@ export function ChatClient({
     setRequestUsage(ZERO);
 
     let index = -1;
-    let finalResult: ChatResult | null = null;
+    let generatedTitle = "";
+    let generatedSummary = "";
     setMessages((prev) => {
       index = prev.length;
       return [...prev, { command: trimmed, status: "streaming", usage: null }];
@@ -247,7 +248,8 @@ export function ChatClient({
           patchMessage(index, { usage: { input_tokens: input, output_tokens: output } });
         } else if (evt.type === "done") {
           const result = toChatResult(evt);
-          finalResult = result;
+          generatedTitle = result.conversationTitle || "";
+          generatedSummary = result.summary;
           patchMessage(index, { status: "done", result });
           const usage = result.usage;
           const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
@@ -264,15 +266,11 @@ export function ChatClient({
     );
 
     if (createdSession) {
-      const title = normalizeSessionTitle(
-        finalResult?.conversationTitle,
-        finalResult?.summary,
-        trimmed
-      );
+      const title = normalizeSessionTitle(generatedTitle, generatedSummary, trimmed);
       const titleError = await finalizeChatSession(
         targetChannelId,
         title,
-        finalResult?.summary,
+        generatedSummary,
         trimmed
       );
       if (titleError) setSessionError(titleError);
