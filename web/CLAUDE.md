@@ -122,6 +122,39 @@ spread). Fixed by switching to a `{ current: Usage | null }` ref-object instead 
 on type never" error shows up elsewhere on a `let` mutated inside a closure, reach for the
 same ref-object pattern first.
 
+**2026-08-24 follow-up — human-readable streaming, dual usage bars, in-chat provider
+picker, task deletion.** Founder feedback after using the stream live: the raw-JSON
+"watch it type" display read as too programmatic, and the token badge (only inside the
+scrolling message bubble) disappeared once you scrolled past it. `chat-client.tsx` now
+shows a plain "SEM Brain is thinking…" indicator instead of the raw delta text (the delta
+stream is still consumed for the live token/cost numbers, just not rendered verbatim), and
+a live usage bar (`UsageBar`, tokens + `estimateCost()`-derived USD) renders both above the
+message list and next to the input — same numbers, always visible regardless of scroll
+position. `page.tsx` is now a thin server component (`getAiProviders()` → `ChatClient`) so
+the page can also carry an in-chat provider/model picker that calls the same
+`setActiveProvider()` used by `/settings` (now revalidates `/chat` too) instead of forcing
+a trip to Settings to switch models. **Real Base UI gotcha caught by live-testing, not by
+`npm run build`**: `<SelectValue>` renders the raw controlled `value` verbatim (here, a
+provider's uuid) unless given a render-prop child — `<SelectValue>{() => label}</SelectValue>`
+— Radix's automatic child-label lookup doesn't apply here.
+
+Also: chat could create tasks but nothing could delete them — `tasks` had no DELETE RLS
+policy at all (migration 202608260003 added `tasks_delete_scope`, manager+/admin only, plus
+`ON DELETE SET NULL` on the two incoming FKs — `tasks.parent_task_id` self-ref and
+`model_usage.task_id` — so a delete can't fail on an unrelated referencing row). Manual
+delete is a trash icon on each Tasks board card (`task-card.tsx` → `deleteTask()`). AI-driven
+delete is a `deleteTaskIds` field in the model's JSON schema — the model may only reference
+ids that are literally present in the request's own `context.tasks` (cross-checked
+server-side in `sem-ai-command/index.ts`, not just trusted), and any non-empty
+`deleteTaskIds` always forces a review approval, same server-side-forced pattern as other
+high-risk actions. `sem_execute_ai_command`'s signature gained a trailing
+`p_deleted_task_ids uuid[] default '{}'` — note a new Postgres function parameter is a new
+overload, not a replacement, so the migration explicitly `drop function`s the old signature
+first and qualifies `revoke`/`grant` with the full arg list to avoid an ambiguous-name error
+(hit this for real applying the migration — caught immediately by re-querying
+`pg_proc`/`pg_constraint` afterward, same verification discipline as every other migration
+this session).
+
 ## i18n
 
 `lib/i18n/{dictionary,i18n-context}.tsx`, `useT()` hook, same `t(key, fallback)` pattern
