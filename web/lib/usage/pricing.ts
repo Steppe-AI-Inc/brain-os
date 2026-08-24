@@ -9,7 +9,7 @@
 // developers.openai.com/api/docs/pricing (2026-08-24) — not memorized/guessed figures.
 // claude-sonnet-4-6 and the gpt-4.1/4o legacy rows are kept even though newer generations
 // exist below, because a real ai_providers row can still reference them.
-const PRICING_PER_1M: Record<string, [number, number]> = {
+export const PRICING_PER_1M: Record<string, [number, number]> = {
   "gpt-4.1-mini": [0.4, 1.6],
   "gpt-4.1": [2.0, 8.0],
   "gpt-4o-mini": [0.15, 0.6],
@@ -23,6 +23,27 @@ const PRICING_PER_1M: Record<string, [number, number]> = {
   "claude-sonnet-5": [2.0, 10.0],
   "claude-opus-5": [5.0, 25.0],
   "claude-fable-5": [10.0, 50.0],
+};
+
+// Ordinal 1-5 "how capable is this model relative to its own family" — derived from each
+// publisher's own product positioning (nano < mini < flagship < pro; haiku < sonnet <
+// opus/fable), NOT a measured benchmark score. There is no live benchmark API wired up
+// here; presenting a fake numeric "IQ" would be worse than not having one. Use this only
+// for a rough relative ordering, never as a precise capability claim.
+export const CAPABILITY_TIER: Record<string, number> = {
+  "gpt-4o-mini": 1,
+  "gpt-5-nano": 1,
+  "gpt-4.1-mini": 2,
+  "gpt-5-mini": 2,
+  "gpt-4.1": 3,
+  "gpt-4o": 3,
+  "gpt-5": 4,
+  "gpt-5-pro": 5,
+  "claude-haiku-4-5": 2,
+  "claude-sonnet-4-6": 3,
+  "claude-sonnet-5": 4,
+  "claude-opus-5": 5,
+  "claude-fable-5": 5,
 };
 
 export function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
