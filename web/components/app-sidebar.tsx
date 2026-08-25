@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -31,10 +32,14 @@ import {
   Settings2,
   HelpCircle,
   Ruler,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { signOut } from "@/app/(app)/actions";
 
 const NAV_GROUPS: Array<{
@@ -99,6 +104,50 @@ const NAV_GROUPS: Array<{
   },
 ];
 
+const COLLAPSE_STORAGE_KEY = "brainos:sidebar-collapsed";
+
+function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const { t } = useT();
+  return (
+    <nav className="flex flex-1 flex-col gap-4 overflow-auto">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title}>
+          {!collapsed && (
+            <div className="mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted-foreground/80">
+              {t(`navGroup.${group.title}`, group.title)}
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => {
+              const active = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  title={collapsed ? t(item.navKey, item.label) : undefined}
+                  className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                    collapsed ? "justify-center" : ""
+                  } ${
+                    active
+                      ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                  {!collapsed && <span>{t(item.navKey, item.label)}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
 export function AppSidebar({
   profile,
 }: {
@@ -106,101 +155,186 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const { locale, setLocale, t } = useT();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Desktop collapse state is a per-device display preference, not app data —
+  // localStorage is the right home for it, not a DB column. Must start false and flip
+  // post-mount via effect, not a lazy useState initializer, to avoid a server/client
+  // hydration mismatch (server has no localStorage) — same pattern as chat-client.tsx's
+  // speechSupported.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above
+    if (localStorage.getItem(COLLAPSE_STORAGE_KEY) === "1") setCollapsed(true);
+  }, []);
+
+  // A route change means a nav link was just followed — close the mobile drawer so it
+  // doesn't stay covering the page just navigated to. Derive-during-render, not
+  // useEffect+setState, per this project's react-hooks/set-state-in-effect lint rule
+  // (same pattern as chat-client.tsx's syncedChannelId).
+  const [syncedPathname, setSyncedPathname] = useState(pathname);
+  if (pathname !== syncedPathname) {
+    setSyncedPathname(pathname);
+    setMobileOpen(false);
+  }
+
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? "1" : "0");
+      return next;
+    });
+  }
+
+  const brandMark = (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
+      Σ
+    </div>
+  );
+
+  const profileBlock = profile && (
+    <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+        {profile.full_name.slice(0, 1)}
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium">{profile.full_name}</div>
+        <div className="truncate text-xs capitalize text-muted-foreground">
+          {profile.role.replace("_", " ")}
+        </div>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
+      <Link
+        href="/help"
+        onClick={() => setMobileOpen(false)}
+        className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+          pathname.startsWith("/help")
+            ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+            : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        }`}
+      >
+        <HelpCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
+        <span>{t("nav.help", "Help & FAQ")}</span>
+      </Link>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
+        <Button
+          size="sm"
+          variant={locale === "en" ? "default" : "outline"}
+          className="h-6 px-2 text-xs"
+          onClick={() => setLocale("en")}
+        >
+          EN
+        </Button>
+        <Button
+          size="sm"
+          variant={locale === "mn" ? "default" : "outline"}
+          className="h-6 px-2 text-xs"
+          onClick={() => setLocale("mn")}
+        >
+          MN
+        </Button>
+      </div>
+      <form action={signOut}>
+        <Button type="submit" variant="outline" size="sm" className="w-full gap-1.5">
+          <LogOut className="h-3.5 w-3.5" />
+          {t("shell.signOut", "Sign out")}
+        </Button>
+      </form>
+    </div>
+  );
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground">
-      <div className="mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-semibold text-primary-foreground">
+    <>
+      {/* Mobile top bar: the only thing rendered on small screens besides the drawer. */}
+      <div className="flex h-14 w-full shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 text-sidebar-foreground md:hidden">
+        <Button variant="ghost" size="icon-sm" onClick={() => setMobileOpen(true)}>
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
           Σ
         </div>
-        <div>
-          <div className="text-[15px] font-semibold leading-tight">Brain OS</div>
-          <div className="text-xs text-muted-foreground">Company Brain</div>
-        </div>
+        <div className="text-sm font-semibold">Brain OS</div>
       </div>
 
-      {profile && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {profile.full_name.slice(0, 1)}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{profile.full_name}</div>
-            <div className="truncate text-xs capitalize text-muted-foreground">
-              {profile.role.replace("_", " ")}
+      {/* Mobile drawer */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent
+          side="left"
+          className="flex w-72 max-w-[85vw] flex-col gap-0 border-sidebar-border bg-sidebar p-4 text-sidebar-foreground"
+        >
+          <SheetHeader className="sr-only p-0">
+            <SheetTitle>Navigation</SheetTitle>
+          </SheetHeader>
+          <div className="mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4">
+            {brandMark}
+            <div>
+              <div className="text-[15px] font-semibold leading-tight">Brain OS</div>
+              <div className="text-xs text-muted-foreground">Company Brain</div>
             </div>
           </div>
-        </div>
-      )}
+          {profileBlock}
+          <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
+          {footer}
+        </SheetContent>
+      </Sheet>
 
-      <nav className="flex flex-1 flex-col gap-4 overflow-auto">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.title}>
-            <div className="mb-1 px-3 text-[11px] font-semibold tracking-wide text-muted-foreground/80">
-              {t(`navGroup.${group.title}`, group.title)}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {group.items.map((item) => {
-                const active = pathname.startsWith(item.href);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                      active
-                        ? "bg-sidebar-accent font-medium text-sidebar-foreground"
-                        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                    <span>{t(item.navKey, item.label)}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-4">
-        <Link
-          href="/help"
-          className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-            pathname.startsWith("/help")
-              ? "bg-sidebar-accent font-medium text-sidebar-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground transition-[width] duration-150 md:flex ${
+          collapsed ? "w-16" : "w-64"
+        }`}
+      >
+        <div
+          className={`mb-4 flex items-center gap-3 border-b border-sidebar-border pb-4 ${
+            collapsed ? "justify-center" : ""
           }`}
         >
-          <HelpCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span>{t("nav.help", "Help & FAQ")}</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{t("shell.language", "Language")}:</span>
+          {brandMark}
+          {!collapsed && (
+            <div>
+              <div className="text-[15px] font-semibold leading-tight">Brain OS</div>
+              <div className="text-xs text-muted-foreground">Company Brain</div>
+            </div>
+          )}
+        </div>
+
+        {!collapsed && profileBlock}
+
+        <SidebarNav collapsed={collapsed} />
+
+        <div className="mt-2 border-t border-sidebar-border pt-3">
           <Button
+            variant="ghost"
             size="sm"
-            variant={locale === "en" ? "default" : "outline"}
-            className="h-6 px-2 text-xs"
-            onClick={() => setLocale("en")}
+            className={`w-full gap-1.5 text-muted-foreground ${collapsed ? "justify-center px-0" : "justify-start"}`}
+            onClick={toggleCollapsed}
+            title={collapsed ? t("shell.expand", "Expand sidebar") : t("shell.collapse", "Collapse sidebar")}
           >
-            EN
-          </Button>
-          <Button
-            size="sm"
-            variant={locale === "mn" ? "default" : "outline"}
-            className="h-6 px-2 text-xs"
-            onClick={() => setLocale("mn")}
-          >
-            MN
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <>
+                <PanelLeftClose className="h-4 w-4" /> {t("shell.collapse", "Collapse")}
+              </>
+            )}
           </Button>
         </div>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm" className="w-full gap-1.5">
-            <LogOut className="h-3.5 w-3.5" />
-            {t("shell.signOut", "Sign out")}
-          </Button>
-        </form>
-      </div>
-    </aside>
+
+        {!collapsed && footer}
+        {collapsed && (
+          <form action={signOut} className="mt-2">
+            <Button type="submit" variant="outline" size="icon-sm" className="w-full" title={t("shell.signOut", "Sign out")}>
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
+          </form>
+        )}
+      </aside>
+    </>
   );
 }
