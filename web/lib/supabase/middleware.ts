@@ -1,10 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// This is the literal fix for the old app's missing auth gate: the vanilla-JS prototype
-// showed the full app to anyone with the URL, with zero session check (SEM.Store just
-// hardcoded a local currentUserId). Every request now refreshes the session and, unless
-// signed in or already headed to /login, is redirected there before any page renders.
+// Every protected request refreshes the Supabase session before rendering.
+// Public auth entry points are limited to login, signup and invitation acceptance.
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -31,17 +29,23 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+  const pathname = request.nextUrl.pathname;
+  const isPublicAuthRoute =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/invite");
 
-  if (!user && !isLoginRoute) {
+  if (!user && !isPublicAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && isLoginRoute) {
+  if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
