@@ -1290,11 +1290,12 @@ drop policy if exists "documents_write_scope" on public.documents;
 create policy "documents_write_scope" on public.documents for all using (public.is_founder_or_admin() or public.is_company_manager(company_id)) with check (public.is_founder_or_admin() or public.is_company_manager(company_id));
 
 -- Financial reports: same sensitivity tier as documents/memories (founder or the
--- company's own manager) — sensitive but not salary-tier restricted.
+-- company's own manager) — revenue/expenses/margins are the "finance" sensitive domain
+-- per the founder's governance doc; manager+ tier, not every company member.
 alter table public.financial_reports enable row level security;
 drop policy if exists "financial_reports_select_scope" on public.financial_reports;
 create policy "financial_reports_select_scope" on public.financial_reports for select using (
-  public.is_founder_or_admin() or public.has_company_access(company_id)
+  public.is_founder_or_admin() or public.is_company_manager(company_id)
 );
 drop policy if exists "financial_reports_write_scope" on public.financial_reports;
 create policy "financial_reports_write_scope" on public.financial_reports for all using (

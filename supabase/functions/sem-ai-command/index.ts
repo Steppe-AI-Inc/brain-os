@@ -570,7 +570,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const conversationHistoryQuery = channelId
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, conversationRows] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -585,11 +585,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
     supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
+    // RLS-gated to founder/admin or is_company_manager(company_id) — a technician's own
+    // RLS-scoped client gets [] back here, same "no special casing" pattern as
+    // company_relationships above. This is the actual security boundary the founder's
+    // "technician asking for revenue should not reply" requirement depends on: the model
+    // never receives restricted rows in the first place, rather than being told not to
+    // repeat them.
+    supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary').order('created_at', { ascending: false }).limit(20),
     conversationHistoryQuery
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], conversationHistory };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
