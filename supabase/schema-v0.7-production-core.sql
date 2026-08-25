@@ -224,6 +224,7 @@ create table if not exists public.documents (
   uploaded_by_profile_id uuid references public.profiles(id),
   department_id uuid references public.departments(id) on delete set null,
   project_id uuid references public.projects(id) on delete set null,
+  editable_source_status text default 'not_applicable' check (editable_source_status in ('not_applicable', 'present', 'missing')),
   created_at timestamptz default now()
 );
 
@@ -388,6 +389,27 @@ create table if not exists public.salary_rules (
   formula jsonb default '{}'::jsonb,
   approval_required boolean default true,
   active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.person_ai_policy (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid not null unique references public.people(id) on delete cascade,
+  mode text not null default 'manual' check (mode in ('manual', 'draft', 'auto_routine', 'fallback_after_timeout')),
+  fallback_sla_minutes integer default 60 check (fallback_sla_minutes > 0),
+  allowed_categories jsonb not null default '[]'::jsonb,
+  updated_by_profile_id uuid references public.profiles(id),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.ai_reply_log (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid references public.people(id) on delete set null,
+  channel_id uuid references public.chat_channels(id) on delete set null,
+  work_order_id uuid references public.work_orders(id) on delete set null,
+  mode text not null check (mode in ('draft', 'auto_routine', 'fallback_after_timeout')),
+  reply_text text not null,
+  evidence_refs jsonb default '[]'::jsonb,
   created_at timestamptz default now()
 );
 
@@ -1195,6 +1217,8 @@ alter table public.integration_queue enable row level security;
 alter table public.model_usage enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.product_specs enable row level security;
+alter table public.person_ai_policy enable row level security;
+alter table public.ai_reply_log enable row level security;
 
 -- ---------- POLICIES ----------
 -- Profiles
@@ -1405,6 +1429,25 @@ drop policy if exists "salary_rules_select_manager" on public.salary_rules;
 create policy "salary_rules_select_manager" on public.salary_rules for select using (public.is_hr_finance() or public.is_company_manager(company_id));
 drop policy if exists "salary_rules_write_hr" on public.salary_rules;
 create policy "salary_rules_write_hr" on public.salary_rules for all using (public.is_hr_finance()) with check (public.is_hr_finance());
+
+drop policy if exists "person_ai_policy_select" on public.person_ai_policy;
+create policy "person_ai_policy_select" on public.person_ai_policy for select using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.people pe where pe.id = person_ai_policy.person_id and (pe.profile_id = public.current_profile_id() or public.is_company_manager(pe.company_id)))
+);
+drop policy if exists "person_ai_policy_write" on public.person_ai_policy;
+create policy "person_ai_policy_write" on public.person_ai_policy for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
+
+drop policy if exists "ai_reply_log_select" on public.ai_reply_log;
+create policy "ai_reply_log_select" on public.ai_reply_log for select using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.people pe where pe.id = ai_reply_log.person_id and (pe.profile_id = public.current_profile_id() or public.is_company_manager(pe.company_id)))
+);
+drop policy if exists "ai_reply_log_insert" on public.ai_reply_log;
+create policy "ai_reply_log_insert" on public.ai_reply_log for insert with check (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.people pe where pe.id = ai_reply_log.person_id and public.is_company_manager(pe.company_id))
+);
 
 drop policy if exists "integration_queue_select_scope" on public.integration_queue;
 create policy "integration_queue_select_scope" on public.integration_queue for select using (public.is_founder_or_admin() or public.has_company_access(company_id) or created_by_profile_id = public.current_profile_id());

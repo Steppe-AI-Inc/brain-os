@@ -4,7 +4,76 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 const DOCUMENT_SELECT =
-  "id, title, category, sensitivity, summary, mime_type, original_filename, file_size_bytes, storage_path, company_id, department_id, project_id, created_at, companies!documents_company_id_fkey(name), departments(name), projects(title)";
+  "id, title, category, sensitivity, summary, mime_type, original_filename, file_size_bytes, storage_path, company_id, department_id, project_id, editable_source_status, created_at, companies!documents_company_id_fkey(name), departments(name), projects(title)";
+
+// Founder governance doc, section 1: "PDF-only delivery is insufficient for assets that
+// should remain editable." These are the categories where a reusable editable source
+// actually matters (brochures a successor needs to update, proposal templates, HR/legal
+// paperwork) — engineering drawings and financial statements are legitimately PDF-native
+// and excluded on purpose.
+const CATEGORIES_REQUIRING_EDITABLE_SOURCE = new Set(["Marketing & Brochures", "Proposals & Quotations", "Contracts & Legal", "HR"]);
+
+const EDITABLE_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/msword",
+  "application/vnd.ms-excel",
+  "application/vnd.oasis.opendocument.presentation",
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+]);
+const DERIVATIVE_ONLY_MIME_TYPES = new Set(["application/pdf"]);
+
+function normalizeTitle(t: string): string {
+  return t
+    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+// Runs after every upload into a tracked category: an editable file marks itself (and
+// any matching-title PDF already on file) as satisfied; a PDF checks for a
+// matching-title editable sibling and flags itself 'missing' if none exists.
+async function reconcileEditableSource(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  docId: string,
+  companyId: string,
+  category: string,
+  title: string,
+  mimeType: string
+) {
+  if (!CATEGORIES_REQUIRING_EDITABLE_SOURCE.has(category)) return;
+  const isEditable = EDITABLE_MIME_TYPES.has(mimeType);
+  const isDerivativeOnly = DERIVATIVE_ONLY_MIME_TYPES.has(mimeType);
+  if (!isEditable && !isDerivativeOnly) return;
+
+  const normalized = normalizeTitle(title);
+  const { data: siblings } = await supabase
+    .from("documents")
+    .select("id, title, mime_type")
+    .eq("category", category)
+    .eq("company_id", companyId)
+    .neq("id", docId);
+
+  const matchingSibling = (siblings ?? []).find((s) => normalizeTitle(s.title) === normalized);
+
+  if (isEditable) {
+    await supabase.from("documents").update({ editable_source_status: "present" }).eq("id", docId);
+    if (matchingSibling && DERIVATIVE_ONLY_MIME_TYPES.has(matchingSibling.mime_type ?? "")) {
+      await supabase.from("documents").update({ editable_source_status: "present" }).eq("id", matchingSibling.id);
+    }
+    return;
+  }
+
+  const hasEditableSibling = matchingSibling && EDITABLE_MIME_TYPES.has(matchingSibling.mime_type ?? "");
+  await supabase
+    .from("documents")
+    .update({ editable_source_status: hasEditableSibling ? "present" : "missing" })
+    .eq("id", docId);
+}
 
 export async function getDocuments() {
   const supabase = await createClient();
@@ -53,20 +122,26 @@ export async function createDocument(_prevState: string | null, formData: FormDa
     });
     if (uploadError) return uploadError.message;
 
-    const { error } = await supabase.from("documents").insert({
-      title,
-      company_id: companyId || null,
-      department_id: departmentId || null,
-      project_id: projectId || null,
-      category,
-      storage_path: storagePath,
-      mime_type: file.type || "application/octet-stream",
-      original_filename: file.name,
-      file_size_bytes: file.size,
-      sensitivity: "internal",
-      uploaded_by_profile_id: profile.id,
-    });
+    const mimeType = file.type || "application/octet-stream";
+    const { data: inserted, error } = await supabase
+      .from("documents")
+      .insert({
+        title,
+        company_id: companyId || null,
+        department_id: departmentId || null,
+        project_id: projectId || null,
+        category,
+        storage_path: storagePath,
+        mime_type: mimeType,
+        original_filename: file.name,
+        file_size_bytes: file.size,
+        sensitivity: "internal",
+        uploaded_by_profile_id: profile.id,
+      })
+      .select("id")
+      .single();
     if (error) return error.message;
+    if (inserted && companyId) await reconcileEditableSource(supabase, inserted.id, companyId, category, title, mimeType);
   } else {
     const { error } = await supabase.from("documents").insert({
       title,

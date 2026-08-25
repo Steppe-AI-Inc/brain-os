@@ -94,6 +94,61 @@ export type Database = {
           },
         ]
       }
+      ai_reply_log: {
+        Row: {
+          channel_id: string | null
+          created_at: string | null
+          evidence_refs: Json | null
+          id: string
+          mode: string
+          person_id: string | null
+          reply_text: string
+          work_order_id: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string | null
+          evidence_refs?: Json | null
+          id?: string
+          mode: string
+          person_id?: string | null
+          reply_text: string
+          work_order_id?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string | null
+          evidence_refs?: Json | null
+          id?: string
+          mode?: string
+          person_id?: string | null
+          reply_text?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_reply_log_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_reply_log_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_reply_log_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           approval_payload: Json | null
@@ -782,6 +837,7 @@ export type Database = {
           company_match_status: string
           created_at: string | null
           department_id: string | null
+          editable_source_status: string | null
           extracted_text: string | null
           file_size_bytes: number | null
           id: string
@@ -809,6 +865,7 @@ export type Database = {
           company_match_status?: string
           created_at?: string | null
           department_id?: string | null
+          editable_source_status?: string | null
           extracted_text?: string | null
           file_size_bytes?: number | null
           id?: string
@@ -836,6 +893,7 @@ export type Database = {
           company_match_status?: string
           created_at?: string | null
           department_id?: string | null
+          editable_source_status?: string | null
           extracted_text?: string | null
           file_size_bytes?: number | null
           id?: string
@@ -1679,6 +1737,51 @@ export type Database = {
           {
             foreignKeyName: "people_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_ai_policy: {
+        Row: {
+          allowed_categories: Json
+          fallback_sla_minutes: number | null
+          id: string
+          mode: string
+          person_id: string
+          updated_at: string | null
+          updated_by_profile_id: string | null
+        }
+        Insert: {
+          allowed_categories?: Json
+          fallback_sla_minutes?: number | null
+          id?: string
+          mode?: string
+          person_id: string
+          updated_at?: string | null
+          updated_by_profile_id?: string | null
+        }
+        Update: {
+          allowed_categories?: Json
+          fallback_sla_minutes?: number | null
+          id?: string
+          mode?: string
+          person_id?: string
+          updated_at?: string | null
+          updated_by_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_ai_policy_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_ai_policy_updated_by_profile_id_fkey"
+            columns: ["updated_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

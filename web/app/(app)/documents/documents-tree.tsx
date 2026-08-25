@@ -12,6 +12,7 @@ import {
   Download,
   Trash2,
   Loader2,
+  TriangleAlert,
 } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ type DocumentRow = {
   company_id: string | null;
   department_id: string | null;
   project_id: string | null;
+  editable_source_status: string | null;
   created_at: string | null;
   companies: { name: string } | null;
   departments: { name: string } | null;
@@ -190,6 +192,11 @@ export function DocumentsTree({ documents }: { documents: DocumentRow[] }) {
                             <Checkbox checked={selected.has(doc.id)} onCheckedChange={() => toggle(doc.id)} />
                             <FileIcon mime={doc.mime_type} />
                             <span className="flex-1 truncate font-medium">{doc.title}</span>
+                            {doc.editable_source_status === "missing" && (
+                              <Badge variant="destructive" className="gap-1 text-xs">
+                                <TriangleAlert className="h-3 w-3" /> Editable source missing
+                              </Badge>
+                            )}
                             {doc.departments?.name && (
                               <Badge variant="outline" className="text-xs">
                                 {doc.departments.name}

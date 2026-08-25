@@ -35,6 +35,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Bot,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -99,6 +100,7 @@ const NAV_GROUPS: Array<{
       { href: "/people", navKey: "nav.people", label: "People", icon: Users },
       { href: "/projects", navKey: "nav.projects", label: "Projects", icon: FolderKanban },
       { href: "/kpi", navKey: "nav.kpi", label: "KPI + Salary", icon: Gauge },
+      { href: "/ai-assistants", navKey: "nav.aiAssistants", label: "AI Assistants", icon: Bot },
       { href: "/memory", navKey: "nav.memory", label: "Memory", icon: BrainCircuit },
     ],
   },
