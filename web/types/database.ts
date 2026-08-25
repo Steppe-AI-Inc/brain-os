@@ -1334,6 +1334,7 @@ export type Database = {
       kpi_records: {
         Row: {
           actual: number | null
+          bonus_amount: number | null
           company_id: string | null
           created_at: string | null
           id: string
@@ -1349,6 +1350,7 @@ export type Database = {
         }
         Insert: {
           actual?: number | null
+          bonus_amount?: number | null
           company_id?: string | null
           created_at?: string | null
           id?: string
@@ -1364,6 +1366,7 @@ export type Database = {
         }
         Update: {
           actual?: number | null
+          bonus_amount?: number | null
           company_id?: string | null
           created_at?: string | null
           id?: string

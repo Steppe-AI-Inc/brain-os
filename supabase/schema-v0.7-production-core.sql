@@ -372,6 +372,7 @@ create table if not exists public.kpi_records (
   weight numeric default 0,
   score numeric default 0,
   salary_impact_pct numeric default 0,
+  bonus_amount numeric,
   status text default 'draft',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
