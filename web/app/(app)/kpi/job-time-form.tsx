@@ -62,7 +62,9 @@ export function JobTimeForm({ eligiblePeople }: { eligiblePeople: Person[] }) {
           <Label>Technician</Label>
           <Select value={personId} onValueChange={(v) => setPersonId(v as string)}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select…" />
+              <SelectValue placeholder="Select…">
+                {() => eligiblePeople.find((p) => p.id === personId)?.full_name ?? "Select…"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {eligiblePeople.map((p) => (

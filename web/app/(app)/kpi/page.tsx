@@ -58,7 +58,13 @@ export default async function KpiPage() {
           </TableHeader>
           <TableBody>
             {records.map((r) => {
-              const pct = r.target ? Math.min(100, Math.round(((r.actual ?? 0) / r.target) * 100)) : 0;
+              // r.score is already oriented "higher = better" for both efficiency_bonus
+              // directions (see runAutomatedKpiScoring/logTechnicianJobTime) — prefer it
+              // over recomputing actual/target, which reads backwards for a
+              // lower-is-better metric like technician job time (faster than target
+              // would otherwise show as a low, alarming-looking percentage).
+              const displayPct = r.score != null && r.score !== 0 ? r.score : r.target ? Math.round(((r.actual ?? 0) / r.target) * 100) : 0;
+              const barPct = Math.min(100, Math.max(0, displayPct));
               return (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.people?.full_name ?? "—"}</TableCell>
@@ -66,8 +72,8 @@ export default async function KpiPage() {
                   <TableCell>{r.period}</TableCell>
                   <TableCell className="w-40">
                     <div className="flex items-center gap-2">
-                      <Progress value={pct} className="h-2" />
-                      <span className="text-xs text-muted-foreground">{pct}%</span>
+                      <Progress value={barPct} className="h-2" />
+                      <span className="text-xs text-muted-foreground">{displayPct}%</span>
                     </div>
                   </TableCell>
                   <TableCell>
