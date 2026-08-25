@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ export default function LoginPage() {
     <main className="flex min-h-full flex-col items-center justify-center p-8">
       <Card className="w-full max-w-sm border-border/60 bg-card/90 backdrop-blur">
         <CardHeader>
-          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent text-lg font-black text-white">
+          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground">
             Σ
           </div>
           <CardTitle className="text-xl">Sign in to Brain OS</CardTitle>
@@ -42,12 +43,13 @@ export default function LoginPage() {
                 required
               />
             </div>
-            {error && (
-              <p className="text-sm font-medium text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <Button type="submit" className="mt-2" disabled={pending}>
               {pending ? "Signing in…" : "Sign in"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              New to Brain OS? <Link href="/signup" className="font-medium text-foreground underline">Create an account</Link>
+            </p>
           </form>
         </CardContent>
       </Card>
