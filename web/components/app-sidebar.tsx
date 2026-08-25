@@ -36,6 +36,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bot,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -70,6 +71,7 @@ const NAV_GROUPS: Array<{
       { href: "/tasks", navKey: "nav.tasks", label: "Tasks", icon: ListChecks },
       { href: "/approvals", navKey: "nav.approvals", label: "Approvals", icon: ShieldCheck },
       { href: "/finance", navKey: "nav.finance", label: "Finance", icon: Wallet },
+      { href: "/billing", navKey: "nav.billing", label: "Billing", icon: CreditCard },
     ],
   },
   {

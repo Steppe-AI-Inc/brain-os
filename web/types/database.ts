@@ -56,6 +56,35 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_pricing_settings: {
+        Row: {
+          id: boolean
+          markup_multiplier: number
+          updated_at: string | null
+          updated_by_profile_id: string | null
+        }
+        Insert: {
+          id?: boolean
+          markup_multiplier?: number
+          updated_at?: string | null
+          updated_by_profile_id?: string | null
+        }
+        Update: {
+          id?: boolean
+          markup_multiplier?: number
+          updated_at?: string | null
+          updated_by_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_pricing_settings_updated_by_profile_id_fkey"
+            columns: ["updated_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_providers: {
         Row: {
           created_at: string
@@ -309,6 +338,42 @@ export type Database = {
             foreignKeyName: "audit_logs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_accounts: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          currency: string
+          id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "safe_companies"
             referencedColumns: ["id"]
           },
@@ -2417,6 +2482,61 @@ export type Database = {
             columns: ["owner_person_id"]
             isOneToOne: false
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_credit_ledger: {
+        Row: {
+          amount: number
+          billing_account_id: string
+          created_at: string | null
+          created_by_profile_id: string | null
+          description: string | null
+          entry_type: string
+          id: string
+          related_model_usage_id: string | null
+        }
+        Insert: {
+          amount: number
+          billing_account_id: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          description?: string | null
+          entry_type: string
+          id?: string
+          related_model_usage_id?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_account_id?: string
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          description?: string | null
+          entry_type?: string
+          id?: string
+          related_model_usage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_credit_ledger_billing_account_id_fkey"
+            columns: ["billing_account_id"]
+            isOneToOne: false
+            referencedRelation: "billing_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_credit_ledger_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_credit_ledger_related_model_usage_id_fkey"
+            columns: ["related_model_usage_id"]
+            isOneToOne: true
+            referencedRelation: "model_usage"
             referencedColumns: ["id"]
           },
         ]

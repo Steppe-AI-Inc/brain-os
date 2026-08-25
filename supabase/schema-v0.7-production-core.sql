@@ -413,6 +413,32 @@ create table if not exists public.ai_reply_log (
   created_at timestamptz default now()
 );
 
+create table if not exists public.billing_accounts (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null unique references public.companies(id) on delete cascade,
+  currency text not null default 'USD',
+  created_at timestamptz default now()
+);
+
+create table if not exists public.service_credit_ledger (
+  id uuid primary key default gen_random_uuid(),
+  billing_account_id uuid not null references public.billing_accounts(id) on delete cascade,
+  entry_type text not null check (entry_type in ('deposit', 'usage', 'promo_credit', 'refund', 'adjustment')),
+  amount numeric not null,
+  description text,
+  related_model_usage_id uuid references public.model_usage(id) on delete set null,
+  created_by_profile_id uuid references public.profiles(id),
+  created_at timestamptz default now(),
+  constraint service_credit_ledger_usage_once unique (related_model_usage_id)
+);
+
+create table if not exists public.ai_pricing_settings (
+  id boolean primary key default true check (id),
+  markup_multiplier numeric not null default 2.0 check (markup_multiplier > 0),
+  updated_by_profile_id uuid references public.profiles(id),
+  updated_at timestamptz default now()
+);
+
 create table if not exists public.integration_queue (
   id uuid primary key default gen_random_uuid(),
   company_id uuid references public.companies(id) on delete set null,
@@ -1219,6 +1245,9 @@ alter table public.audit_logs enable row level security;
 alter table public.product_specs enable row level security;
 alter table public.person_ai_policy enable row level security;
 alter table public.ai_reply_log enable row level security;
+alter table public.billing_accounts enable row level security;
+alter table public.service_credit_ledger enable row level security;
+alter table public.ai_pricing_settings enable row level security;
 
 -- ---------- POLICIES ----------
 -- Profiles
@@ -1448,6 +1477,24 @@ create policy "ai_reply_log_insert" on public.ai_reply_log for insert with check
   public.is_founder_or_admin()
   or exists (select 1 from public.people pe where pe.id = ai_reply_log.person_id and public.is_company_manager(pe.company_id))
 );
+
+drop policy if exists "billing_accounts_select" on public.billing_accounts;
+create policy "billing_accounts_select" on public.billing_accounts for select using (public.is_founder_or_admin() or public.is_company_manager(company_id));
+drop policy if exists "billing_accounts_write" on public.billing_accounts;
+create policy "billing_accounts_write" on public.billing_accounts for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
+
+drop policy if exists "service_credit_ledger_select" on public.service_credit_ledger;
+create policy "service_credit_ledger_select" on public.service_credit_ledger for select using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.billing_accounts ba where ba.id = service_credit_ledger.billing_account_id and public.is_company_manager(ba.company_id))
+);
+drop policy if exists "service_credit_ledger_insert" on public.service_credit_ledger;
+create policy "service_credit_ledger_insert" on public.service_credit_ledger for insert with check (public.is_founder_or_admin() or public.is_hr_finance());
+
+drop policy if exists "ai_pricing_settings_select" on public.ai_pricing_settings;
+create policy "ai_pricing_settings_select" on public.ai_pricing_settings for select using (public.is_founder_or_admin() or public.is_hr_finance());
+drop policy if exists "ai_pricing_settings_write" on public.ai_pricing_settings;
+create policy "ai_pricing_settings_write" on public.ai_pricing_settings for update using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
 
 drop policy if exists "integration_queue_select_scope" on public.integration_queue;
 create policy "integration_queue_select_scope" on public.integration_queue for select using (public.is_founder_or_admin() or public.has_company_access(company_id) or created_by_profile_id = public.current_profile_id());
