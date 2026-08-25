@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { GraduationCap } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
 import { updatePerson, deletePerson, type PersonInput } from "@/lib/data/people";
+import { generateOnboardingPlan } from "@/lib/data/onboarding";
 
 type PersonRow = {
   id: string;
@@ -32,6 +35,9 @@ export function PeopleTable({
   const router = useRouter();
   const [editing, setEditing] = useState<PersonRow | null>(null);
   const [values, setValues] = useState<PersonInput>(EMPTY);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [genMessage, setGenMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   function openEdit(p: PersonRow) {
     setValues({
@@ -41,6 +47,21 @@ export function PeopleTable({
       companyId: p.company_id,
     });
     setEditing(p);
+  }
+
+  function generatePlan(p: PersonRow) {
+    setGeneratingId(p.id);
+    setGenMessage(null);
+    startTransition(async () => {
+      const result = await generateOnboardingPlan(p.id);
+      setGeneratingId(null);
+      if (typeof result === "string") {
+        setGenMessage(`${p.full_name}: ${result}`);
+        return;
+      }
+      setGenMessage(`${p.full_name}: induction plan + certification test saved to Documents & Knowledge (HR).`);
+      router.refresh();
+    });
   }
 
   return (
@@ -64,12 +85,24 @@ export function PeopleTable({
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
                 <TableCell>
-                  <RowActionsMenu
-                    itemLabel="person"
-                    className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
-                    onEdit={() => openEdit(p)}
-                    onDelete={() => deletePerson(p.id)}
-                  />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Generate 1-week onboarding plan"
+                      disabled={isPending && generatingId === p.id}
+                      className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
+                      onClick={() => generatePlan(p)}
+                    >
+                      <GraduationCap className="h-3.5 w-3.5" />
+                    </Button>
+                    <RowActionsMenu
+                      itemLabel="person"
+                      className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
+                      onEdit={() => openEdit(p)}
+                      onDelete={() => deletePerson(p.id)}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -82,6 +115,7 @@ export function PeopleTable({
             )}
           </TableBody>
         </Table>
+        {genMessage && <p className="border-t p-3 text-sm text-muted-foreground">{genMessage}</p>}
       </Card>
 
       <EditSheet
