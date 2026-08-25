@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { defaultSensitivityForCategory } from "@/lib/data/document-categories";
 
 const DOCUMENT_SELECT =
   "id, title, category, sensitivity, summary, mime_type, original_filename, file_size_bytes, storage_path, company_id, department_id, project_id, editable_source_status, created_at, companies!documents_company_id_fkey(name), departments(name), projects(title)";
@@ -96,6 +97,13 @@ export async function createDocument(_prevState: string | null, formData: FormDa
   const projectId = String(formData.get("project_id") || "").trim();
   const text = String(formData.get("text") || "").trim();
   const file = formData.get("file") as File | null;
+  const sensitivityOverride = String(formData.get("sensitivity") || "").trim();
+  const sensitivity = (sensitivityOverride || defaultSensitivityForCategory(category)) as
+    | "public"
+    | "internal"
+    | "confidential"
+    | "restricted"
+    | "founder_only";
 
   if (!title) return "Title is required.";
   if (!file || file.size === 0) {
@@ -135,7 +143,7 @@ export async function createDocument(_prevState: string | null, formData: FormDa
         mime_type: mimeType,
         original_filename: file.name,
         file_size_bytes: file.size,
-        sensitivity: "internal",
+        sensitivity,
         uploaded_by_profile_id: profile.id,
       })
       .select("id")
@@ -152,7 +160,7 @@ export async function createDocument(_prevState: string | null, formData: FormDa
       mime_type: "text/plain",
       extracted_text: text,
       summary: text.slice(0, 200),
-      sensitivity: "internal",
+      sensitivity,
       uploaded_by_profile_id: profile.id,
     });
     if (error) return error.message;

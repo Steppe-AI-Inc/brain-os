@@ -576,7 +576,10 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
     memoriesQuery,
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
-    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,unit_cost,service_fee_monthly,active').eq('active', true).limit(20),
+    // unit_cost intentionally not selected — it lives in product_costs now (manager+
+    // RLS), not on product_lines itself. The AI's context must not carry cost/margin
+    // data for a caller who couldn't otherwise read it.
+    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
     supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
     supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30),

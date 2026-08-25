@@ -14,8 +14,12 @@ export async function getLeads() {
 }
 
 // Any company member can create/work their own leads (RLS: sales_leads_insert_member /
-// sales_leads_update_own_or_manager) — normal CRM usage, not manager-gated like
-// product_lines/proposals.
+// sales_leads_update_own_or_manager / sales_leads_select_scope) — normal CRM usage, not
+// manager-gated like product_lines/proposals. owner_person_id must actually be set to
+// the creator, or "leads they own" is meaningless: the update and (as of this pass)
+// select policies both key off it, so a lead created without an owner was invisible to
+// its own creator (only managers could see or edit it) — a real pre-existing bug, not
+// just a hardening gap.
 export async function createLead(_prevState: string | null, formData: FormData) {
   const clientName = String(formData.get("client_name") || "").trim();
   const companyId = String(formData.get("company_id") || "").trim();
@@ -25,11 +29,24 @@ export async function createLead(_prevState: string | null, formData: FormData) 
   if (!companyId) return "Company is required.";
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let ownerPersonId: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("id").eq("auth_user_id", user.id).single();
+    if (profile) {
+      const { data: person } = await supabase.from("people").select("id").eq("profile_id", profile.id).maybeSingle();
+      ownerPersonId = person?.id ?? null;
+    }
+  }
+
   const { error } = await supabase.from("sales_leads").insert({
     client_name: clientName,
     company_id: companyId,
     contact_email: contactEmail || null,
     value_estimate: valueEstimate,
+    owner_person_id: ownerPersonId,
   });
   if (error) return error.message;
 

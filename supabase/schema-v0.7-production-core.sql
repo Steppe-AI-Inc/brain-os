@@ -252,12 +252,20 @@ create table if not exists public.product_lines (
   description text,
   currency text default 'USD',
   unit_price numeric default 0,
-  unit_cost numeric default 0,
   service_fee_monthly numeric default 0,
   warranty text,
   delivery_timeline text,
   active boolean default true,
   created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- unit_cost lives here, not on product_lines — RLS is row-level, not column-level, and a
+-- "safe view without the sensitive column" doesn't protect anything if the base table
+-- itself remains directly queryable. Manager+-only, both read and write.
+create table if not exists public.product_costs (
+  product_line_id uuid primary key references public.product_lines(id) on delete cascade,
+  unit_cost numeric,
   updated_at timestamptz default now()
 );
 
@@ -298,12 +306,20 @@ create table if not exists public.proposals (
   subtotal numeric default 0,
   discount_pct numeric default 0,
   total numeric default 0,
-  internal_margin numeric default 0,
   payment_terms text,
   status text default 'draft',
   version int default 1,
   created_by_profile_id uuid references public.profiles(id),
   created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- internal_margin lives here, not on proposals — same reasoning as product_costs above.
+-- safe_proposals (below) already omitted this column from its view, but that only
+-- matters once the base table itself stops being directly queryable by non-managers.
+create table if not exists public.proposal_financials (
+  proposal_id uuid primary key references public.proposals(id) on delete cascade,
+  internal_margin numeric,
   updated_at timestamptz default now()
 );
 
@@ -314,9 +330,15 @@ create table if not exists public.proposal_items (
   description text,
   quantity numeric default 1,
   unit_price numeric default 0,
-  unit_cost numeric default 0,
   line_total numeric default 0,
   created_at timestamptz default now()
+);
+
+-- unit_cost lives here, not on proposal_items — same reasoning as product_costs.
+create table if not exists public.proposal_item_costs (
+  proposal_item_id uuid primary key references public.proposal_items(id) on delete cascade,
+  unit_cost numeric,
+  updated_at timestamptz default now()
 );
 
 create table if not exists public.approvals (
@@ -1248,6 +1270,9 @@ alter table public.ai_reply_log enable row level security;
 alter table public.billing_accounts enable row level security;
 alter table public.service_credit_ledger enable row level security;
 alter table public.ai_pricing_settings enable row level security;
+alter table public.product_costs enable row level security;
+alter table public.proposal_financials enable row level security;
+alter table public.proposal_item_costs enable row level security;
 
 -- ---------- POLICIES ----------
 -- Profiles
@@ -1358,12 +1383,24 @@ create policy "financial_reports_write_scope" on public.financial_reports for al
 );
 
 -- Storage: the `documents` bucket stores uploaded artifacts (financial statements etc.)
--- at path `{company_id}/{document_id}.ext` — RLS keyed off that first path segment.
+-- at path `{company_id}/{document_id}.ext`. RLS must join back to documents.sensitivity,
+-- not just the company folder — a confidential file's bytes must be as restricted as its
+-- table row, or the row-level restriction is theater (folder-only access was a real,
+-- confirmed-live gap: a technician blocked from a confidential document's row could
+-- still fetch the file itself via a signed URL).
 drop policy if exists "documents_bucket_select" on storage.objects;
 create policy "documents_bucket_select" on storage.objects for select using (
-  bucket_id = 'documents' and (
+  bucket_id = 'documents'
+  and (
     public.is_founder_or_admin()
-    or public.has_company_access(public.try_uuid((storage.foldername(name))[1]))
+    or exists (
+      select 1 from public.documents d
+      where d.storage_path = objects.name
+        and (
+          (d.sensitivity in ('public', 'internal') and ((d.company_id is null) or public.has_company_access(d.company_id)))
+          or (d.sensitivity = 'confidential' and ((d.company_id is null) or public.is_company_manager(d.company_id) or public.is_hr_finance()))
+        )
+    )
   )
 );
 drop policy if exists "documents_bucket_write" on storage.objects;
@@ -1380,12 +1417,28 @@ create policy "documents_bucket_write" on storage.objects for all using (
 );
 
 -- Product/inventory/proposals: read is company scope, write is manager-gated (catalog,
--- stock, and pricing/margin data — not general-employee-writable). Proposal internal
--- margin is also column-level sensitive, so hide via views in production UI.
+-- stock data — not general-employee-writable). Cost/margin columns live in their own
+-- companion tables (product_costs, proposal_financials, proposal_item_costs), each with
+-- their own manager+-only RLS — column-level sensitivity can't be expressed as RLS, so
+-- the sensitive figure simply isn't in the row a non-manager can query.
 drop policy if exists "product_lines_company_scope" on public.product_lines;
 create policy "product_lines_select_scope" on public.product_lines for select using (public.has_company_access(company_id));
 drop policy if exists "product_lines_write_manager" on public.product_lines;
 create policy "product_lines_write_manager" on public.product_lines for all using (public.is_company_manager(company_id)) with check (public.is_company_manager(company_id));
+
+drop policy if exists "product_costs_select" on public.product_costs;
+create policy "product_costs_select" on public.product_costs for select using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.product_lines pl where pl.id = product_costs.product_line_id and public.is_company_manager(pl.company_id))
+);
+drop policy if exists "product_costs_write" on public.product_costs;
+create policy "product_costs_write" on public.product_costs for all using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.product_lines pl where pl.id = product_costs.product_line_id and public.is_company_manager(pl.company_id))
+) with check (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.product_lines pl where pl.id = product_costs.product_line_id and public.is_company_manager(pl.company_id))
+);
 
 drop policy if exists "inventory_company_scope" on public.inventory_items;
 create policy "inventory_select_scope" on public.inventory_items for select using (public.has_company_access(company_id));
@@ -1395,7 +1448,11 @@ create policy "inventory_write_manager" on public.inventory_items for all using 
 -- Sales leads: any company member can create/work leads they own (normal CRM usage);
 -- managers can manage all; delete is manager-only.
 drop policy if exists "sales_leads_company_scope" on public.sales_leads;
-create policy "sales_leads_select_scope" on public.sales_leads for select using (public.has_company_access(company_id));
+create policy "sales_leads_select_scope" on public.sales_leads for select using (
+  public.is_founder_or_admin()
+  or public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = sales_leads.owner_person_id and pe.profile_id = public.current_profile_id())
+);
 drop policy if exists "sales_leads_insert_member" on public.sales_leads;
 create policy "sales_leads_insert_member" on public.sales_leads for insert with check (public.has_company_access(company_id));
 drop policy if exists "sales_leads_update_own_or_manager" on public.sales_leads;
@@ -1414,6 +1471,20 @@ create policy "proposals_select_scope" on public.proposals for select using (pub
 drop policy if exists "proposals_write_manager" on public.proposals;
 create policy "proposals_write_manager" on public.proposals for all using (public.is_company_manager(company_id)) with check (public.is_company_manager(company_id));
 
+drop policy if exists "proposal_financials_select" on public.proposal_financials;
+create policy "proposal_financials_select" on public.proposal_financials for select using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.proposals p where p.id = proposal_financials.proposal_id and public.is_company_manager(p.company_id))
+);
+drop policy if exists "proposal_financials_write" on public.proposal_financials;
+create policy "proposal_financials_write" on public.proposal_financials for all using (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.proposals p where p.id = proposal_financials.proposal_id and public.is_company_manager(p.company_id))
+) with check (
+  public.is_founder_or_admin()
+  or exists (select 1 from public.proposals p where p.id = proposal_financials.proposal_id and public.is_company_manager(p.company_id))
+);
+
 drop policy if exists "proposal_items_scope" on public.proposal_items;
 create policy "proposal_items_select_scope" on public.proposal_items for select using (
   exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.has_company_access(p.company_id))
@@ -1425,9 +1496,42 @@ create policy "proposal_items_write_manager" on public.proposal_items for all us
   exists (select 1 from public.proposals p where p.id = proposal_items.proposal_id and public.is_company_manager(p.company_id))
 );
 
+drop policy if exists "proposal_item_costs_select" on public.proposal_item_costs;
+create policy "proposal_item_costs_select" on public.proposal_item_costs for select using (
+  public.is_founder_or_admin()
+  or exists (
+    select 1 from public.proposal_items pi join public.proposals p on p.id = pi.proposal_id
+    where pi.id = proposal_item_costs.proposal_item_id and public.is_company_manager(p.company_id)
+  )
+);
+drop policy if exists "proposal_item_costs_write" on public.proposal_item_costs;
+create policy "proposal_item_costs_write" on public.proposal_item_costs for all using (
+  public.is_founder_or_admin()
+  or exists (
+    select 1 from public.proposal_items pi join public.proposals p on p.id = pi.proposal_id
+    where pi.id = proposal_item_costs.proposal_item_id and public.is_company_manager(p.company_id)
+  )
+) with check (
+  public.is_founder_or_admin()
+  or exists (
+    select 1 from public.proposal_items pi join public.proposals p on p.id = pi.proposal_id
+    where pi.id = proposal_item_costs.proposal_item_id and public.is_company_manager(p.company_id)
+  )
+);
+
 -- Approvals: company managers/admins and requested/approver profile.
+-- Read authority and approve authority are separate rules: salary_hr/finance/legal
+-- domains need manager+/HR-finance tier to even read (not just company membership),
+-- since the row can describe a salary/discount/HR decision. Requester/approver can
+-- always see their own regardless of domain.
 drop policy if exists "approvals_select_scope" on public.approvals;
-create policy "approvals_select_scope" on public.approvals for select using (public.is_founder_or_admin() or public.has_company_access(company_id) or requested_by_profile_id = public.current_profile_id() or approver_profile_id = public.current_profile_id());
+create policy "approvals_select_scope" on public.approvals for select using (
+  public.is_founder_or_admin()
+  or (requested_by_profile_id = public.current_profile_id())
+  or (approver_profile_id = public.current_profile_id())
+  or (domain in ('salary_hr', 'finance', 'legal') and (public.is_hr_finance() or public.is_company_manager(company_id)))
+  or (domain not in ('salary_hr', 'finance', 'legal') and public.has_company_access(company_id))
+);
 drop policy if exists "approvals_insert_scope" on public.approvals;
 create policy "approvals_insert_scope" on public.approvals for insert with check (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id));
 -- Domain-gated: salary/finance approvals require HR-finance; general/production/
@@ -1442,8 +1546,11 @@ create policy "approvals_update_approver" on public.approvals for update using (
 );
 
 -- Work orders/model usage/audit logs.
+-- command/context_pack/output is a snapshot of what the AI knew and said during one
+-- exchange — company membership alone is too weak a rule for that (no channel-
+-- membership model exists yet, so this tightens to creator + manager+).
 drop policy if exists "work_orders_select_scope" on public.work_orders;
-create policy "work_orders_select_scope" on public.work_orders for select using (public.is_founder_or_admin() or created_by_profile_id = public.current_profile_id() or public.has_company_access(company_id));
+create policy "work_orders_select_scope" on public.work_orders for select using (public.is_founder_or_admin() or created_by_profile_id = public.current_profile_id() or public.is_company_manager(company_id));
 drop policy if exists "work_orders_insert_auth" on public.work_orders;
 create policy "work_orders_insert_auth" on public.work_orders for insert with check (auth.uid() is not null);
 drop policy if exists "work_orders_update_admin" on public.work_orders;
@@ -1496,8 +1603,10 @@ create policy "ai_pricing_settings_select" on public.ai_pricing_settings for sel
 drop policy if exists "ai_pricing_settings_write" on public.ai_pricing_settings;
 create policy "ai_pricing_settings_write" on public.ai_pricing_settings for update using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
 
+-- Payloads can carry email bodies, customer communications, document exports, external
+-- recipients — company membership alone is too weak a rule; needs manager+.
 drop policy if exists "integration_queue_select_scope" on public.integration_queue;
-create policy "integration_queue_select_scope" on public.integration_queue for select using (public.is_founder_or_admin() or public.has_company_access(company_id) or created_by_profile_id = public.current_profile_id());
+create policy "integration_queue_select_scope" on public.integration_queue for select using (public.is_founder_or_admin() or public.is_company_manager(company_id) or created_by_profile_id = public.current_profile_id());
 drop policy if exists "integration_queue_insert_scope" on public.integration_queue;
 create policy "integration_queue_insert_scope" on public.integration_queue for insert with check (auth.uid() is not null and (company_id is null or public.has_company_access(company_id)));
 drop policy if exists "integration_queue_update_admin" on public.integration_queue;
@@ -1508,8 +1617,10 @@ create policy "model_usage_select_own_or_admin" on public.model_usage for select
 drop policy if exists "model_usage_insert_auth" on public.model_usage;
 create policy "model_usage_insert_auth" on public.model_usage for insert with check (auth.uid() is not null);
 
+-- An audit row can describe a salary/discount/HR decision — company membership alone is
+-- too broad for non-actor visibility; needs manager+.
 drop policy if exists "audit_logs_select_scope" on public.audit_logs;
-create policy "audit_logs_select_scope" on public.audit_logs for select using (public.is_founder_or_admin() or actor_profile_id = public.current_profile_id() or public.has_company_access(company_id));
+create policy "audit_logs_select_scope" on public.audit_logs for select using (public.is_founder_or_admin() or actor_profile_id = public.current_profile_id() or public.is_company_manager(company_id));
 drop policy if exists "audit_logs_insert_auth" on public.audit_logs;
 create policy "audit_logs_insert_auth" on public.audit_logs for insert with check (auth.uid() is not null);
 
@@ -1601,11 +1712,13 @@ create policy "person_assignments_write_manager" on public.person_assignments fo
 );
 
 alter table public.chat_channels enable row level security;
+-- No channel-membership model exists yet, so this tightens from "any company member" to
+-- creator + manager+, same pattern as work_orders above.
 drop policy if exists "chat_channels_select_scope" on public.chat_channels;
 create policy "chat_channels_select_scope" on public.chat_channels for select using (
   public.is_founder_or_admin()
   or created_by_profile_id = public.current_profile_id()
-  or (company_id is not null and public.has_company_access(company_id))
+  or (company_id is not null and public.is_company_manager(company_id))
 );
 drop policy if exists "chat_channels_write_scope" on public.chat_channels;
 create policy "chat_channels_write_scope" on public.chat_channels for all using (

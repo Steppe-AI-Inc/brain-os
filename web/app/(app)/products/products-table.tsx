@@ -67,9 +67,7 @@ export function ProductsTable({
                 <TableCell>
                   {p.currency} {p.unit_price}
                 </TableCell>
-                <TableCell>
-                  {p.currency} {p.unit_cost}
-                </TableCell>
+                <TableCell>{p.unit_cost != null ? `${p.currency} ${p.unit_cost}` : "—"}</TableCell>
                 <TableCell>
                   <Badge variant={p.active ? "default" : "secondary"}>{p.active ? "active" : "inactive"}</Badge>
                 </TableCell>

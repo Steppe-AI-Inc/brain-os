@@ -5,16 +5,21 @@ import { createClient } from "@/lib/supabase/server";
 import { approvalRisk, domainForRisk } from "@/lib/proposals/risk-score";
 import { renderPdf, type PdfLine } from "@/lib/pdf/simple-pdf";
 
+// internal_margin lives in proposal_financials (manager+ RLS), fetched separately and
+// merged — mirrors getProductLines(). A non-manager's proposal_financials query comes
+// back empty (RLS), so every row is visible with margin simply omitted, not an error.
 export async function getProposals() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("proposals")
-    .select(
-      "id, title, status, currency, subtotal, discount_pct, total, internal_margin, payment_terms, version, created_at, companies(name)"
-    )
-    .order("created_at", { ascending: false });
+  const [{ data, error }, { data: financials }] = await Promise.all([
+    supabase
+      .from("proposals")
+      .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name)")
+      .order("created_at", { ascending: false }),
+    supabase.from("proposal_financials").select("proposal_id, internal_margin"),
+  ]);
   if (error) throw error;
-  return data;
+  const marginByProposal = new Map((financials ?? []).map((f) => [f.proposal_id, f.internal_margin]));
+  return (data ?? []).map((p) => ({ ...p, internal_margin: marginByProposal.get(p.id) ?? null }));
 }
 
 // Consolidates the old dealDesk.js + proposalFactory.js into one flow, per the rewrite
@@ -36,10 +41,15 @@ export async function createProposal(_prevState: string | null, formData: FormDa
 
   const { data: product, error: productError } = await supabase
     .from("product_lines")
-    .select("id, name, currency, unit_price, unit_cost")
+    .select("id, name, currency, unit_price")
     .eq("id", productLineId)
     .single();
   if (productError || !product) return "Could not load the selected product.";
+  // unit_cost lives in product_costs (manager+ RLS) now, not on product_lines — whoever
+  // can create a proposal already has manager-tier access (proposals_write_manager), so
+  // this read is expected to succeed for every real caller of this action.
+  const { data: costRow } = await supabase.from("product_costs").select("unit_cost").eq("product_line_id", productLineId).maybeSingle();
+  const unitCost = costRow?.unit_cost ?? 0;
 
   const { data: inventory } = await supabase
     .from("inventory_items")
@@ -52,7 +62,7 @@ export async function createProposal(_prevState: string | null, formData: FormDa
   const shortageLines = available > 0 && available < quantity ? [`${product.name}: need ${quantity}, available ${available}`] : [];
 
   const subtotal = quantity * (product.unit_price ?? 0);
-  const cost = quantity * (product.unit_cost ?? 0);
+  const cost = quantity * unitCost;
   const discount = subtotal * (discountPct / 100);
   const total = subtotal - discount;
   const margin = total - cost;
@@ -70,7 +80,6 @@ export async function createProposal(_prevState: string | null, formData: FormDa
       subtotal,
       discount_pct: discountPct,
       total,
-      internal_margin: margin,
       payment_terms: paymentTerms || null,
       status: needsApproval ? "needs_approval" : "draft",
     })
@@ -78,15 +87,23 @@ export async function createProposal(_prevState: string | null, formData: FormDa
     .single();
   if (proposalError || !proposal) return proposalError?.message || "Failed to create proposal.";
 
-  await supabase.from("proposal_items").insert({
-    proposal_id: proposal.id,
-    product_line_id: productLineId,
-    description: product.name,
-    quantity,
-    unit_price: product.unit_price,
-    unit_cost: product.unit_cost,
-    line_total: subtotal,
-  });
+  await supabase.from("proposal_financials").insert({ proposal_id: proposal.id, internal_margin: margin });
+
+  const { data: proposalItem } = await supabase
+    .from("proposal_items")
+    .insert({
+      proposal_id: proposal.id,
+      product_line_id: productLineId,
+      description: product.name,
+      quantity,
+      unit_price: product.unit_price,
+      line_total: subtotal,
+    })
+    .select("id")
+    .single();
+  if (proposalItem) {
+    await supabase.from("proposal_item_costs").insert({ proposal_item_id: proposalItem.id, unit_cost: unitCost });
+  }
 
   if (needsApproval) {
     await supabase.from("approvals").insert({

@@ -92,7 +92,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                 <TableCell>
                   {p.currency} {p.total?.toLocaleString()}
                 </TableCell>
-                <TableCell>{p.internal_margin?.toLocaleString()}</TableCell>
+                <TableCell>{p.internal_margin != null ? p.internal_margin.toLocaleString() : "—"}</TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[p.status ?? "draft"] ?? "outline"}>{(p.status ?? "draft").replace("_", " ")}</Badge>
                 </TableCell>

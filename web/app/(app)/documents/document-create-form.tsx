@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createDocument } from "@/lib/data/documents";
-import { DOCUMENT_CATEGORIES } from "@/lib/data/document-categories";
+import { DOCUMENT_CATEGORIES, SENSITIVITY_OPTIONS, defaultSensitivityForCategory } from "@/lib/data/document-categories";
 
 type Company = { id: string; name: string };
 type Department = { id: string; name: string; company_id: string | null };
@@ -27,8 +27,15 @@ export function DocumentCreateForm({
   const [companyId, setCompanyId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [projectId, setProjectId] = useState("");
-  const [category, setCategory] = useState<string>(DOCUMENT_CATEGORIES[DOCUMENT_CATEGORIES.length - 1]);
+  const [category, setCategoryState] = useState<string>(DOCUMENT_CATEGORIES[DOCUMENT_CATEGORIES.length - 1]);
   const [fileName, setFileName] = useState("");
+  const [sensitivity, setSensitivity] = useState<string>(defaultSensitivityForCategory(category));
+  const [sensitivityTouched, setSensitivityTouched] = useState(false);
+
+  function setCategory(next: string) {
+    setCategoryState(next);
+    if (!sensitivityTouched) setSensitivity(defaultSensitivityForCategory(next));
+  }
 
   const scopedDepartments = departments.filter((d) => !companyId || d.company_id === companyId);
   const scopedProjects = projects.filter((p) => !companyId || p.company_id === companyId);
@@ -90,6 +97,29 @@ export function DocumentCreateForm({
                 </SelectContent>
               </Select>
               <input type="hidden" name="category" value={category} />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>Sensitivity</Label>
+              <Select
+                value={sensitivity}
+                onValueChange={(v) => {
+                  setSensitivity(v as string);
+                  setSensitivityTouched(true);
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue>{() => sensitivity}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SENSITIVITY_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="sensitivity" value={sensitivity} />
             </div>
 
             <div className="flex flex-col gap-1.5">

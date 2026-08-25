@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1974,6 +1974,32 @@ export type Database = {
           },
         ]
       }
+      product_costs: {
+        Row: {
+          product_line_id: string
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          product_line_id: string
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          product_line_id?: string
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_costs_product_line_id_fkey"
+            columns: ["product_line_id"]
+            isOneToOne: true
+            referencedRelation: "product_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_lines: {
         Row: {
           active: boolean | null
@@ -1985,7 +2011,6 @@ export type Database = {
           id: string
           name: string
           service_fee_monthly: number | null
-          unit_cost: number | null
           unit_price: number | null
           updated_at: string | null
           warranty: string | null
@@ -2000,7 +2025,6 @@ export type Database = {
           id?: string
           name: string
           service_fee_monthly?: number | null
-          unit_cost?: number | null
           unit_price?: number | null
           updated_at?: string | null
           warranty?: string | null
@@ -2015,7 +2039,6 @@ export type Database = {
           id?: string
           name?: string
           service_fee_monthly?: number | null
-          unit_cost?: number | null
           unit_price?: number | null
           updated_at?: string | null
           warranty?: string | null
@@ -2192,6 +2215,65 @@ export type Database = {
           },
         ]
       }
+      proposal_financials: {
+        Row: {
+          internal_margin: number | null
+          proposal_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          internal_margin?: number | null
+          proposal_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          internal_margin?: number | null
+          proposal_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_financials_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_financials_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "safe_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_item_costs: {
+        Row: {
+          proposal_item_id: string
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          proposal_item_id: string
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          proposal_item_id?: string
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_item_costs_proposal_item_id_fkey"
+            columns: ["proposal_item_id"]
+            isOneToOne: true
+            referencedRelation: "proposal_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_items: {
         Row: {
           created_at: string | null
@@ -2201,7 +2283,6 @@ export type Database = {
           product_line_id: string | null
           proposal_id: string | null
           quantity: number | null
-          unit_cost: number | null
           unit_price: number | null
         }
         Insert: {
@@ -2212,7 +2293,6 @@ export type Database = {
           product_line_id?: string | null
           proposal_id?: string | null
           quantity?: number | null
-          unit_cost?: number | null
           unit_price?: number | null
         }
         Update: {
@@ -2223,7 +2303,6 @@ export type Database = {
           product_line_id?: string | null
           proposal_id?: string | null
           quantity?: number | null
-          unit_cost?: number | null
           unit_price?: number | null
         }
         Relationships: [
@@ -2258,7 +2337,6 @@ export type Database = {
           currency: string | null
           discount_pct: number | null
           id: string
-          internal_margin: number | null
           language: string | null
           lead_id: string | null
           payment_terms: string | null
@@ -2276,7 +2354,6 @@ export type Database = {
           currency?: string | null
           discount_pct?: number | null
           id?: string
-          internal_margin?: number | null
           language?: string | null
           lead_id?: string | null
           payment_terms?: string | null
@@ -2294,7 +2371,6 @@ export type Database = {
           currency?: string | null
           discount_pct?: number | null
           id?: string
-          internal_margin?: number | null
           language?: string | null
           lead_id?: string | null
           payment_terms?: string | null
