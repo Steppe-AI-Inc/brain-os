@@ -222,6 +222,8 @@ create table if not exists public.documents (
   summary text,
   sensitivity visibility_level default 'internal',
   uploaded_by_profile_id uuid references public.profiles(id),
+  department_id uuid references public.departments(id) on delete set null,
+  project_id uuid references public.projects(id) on delete set null,
   created_at timestamptz default now()
 );
 

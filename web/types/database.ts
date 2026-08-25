@@ -781,11 +781,13 @@ export type Database = {
           company_match_reason: string | null
           company_match_status: string
           created_at: string | null
+          department_id: string | null
           extracted_text: string | null
           file_size_bytes: number | null
           id: string
           mime_type: string | null
           original_filename: string | null
+          project_id: string | null
           search_vector: unknown
           sensitivity: Database["public"]["Enums"]["visibility_level"] | null
           storage_path: string | null
@@ -806,11 +808,13 @@ export type Database = {
           company_match_reason?: string | null
           company_match_status?: string
           created_at?: string | null
+          department_id?: string | null
           extracted_text?: string | null
           file_size_bytes?: number | null
           id?: string
           mime_type?: string | null
           original_filename?: string | null
+          project_id?: string | null
           search_vector?: unknown
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
@@ -831,11 +835,13 @@ export type Database = {
           company_match_reason?: string | null
           company_match_status?: string
           created_at?: string | null
+          department_id?: string | null
           extracted_text?: string | null
           file_size_bytes?: number | null
           id?: string
           mime_type?: string | null
           original_filename?: string | null
+          project_id?: string | null
           search_vector?: unknown
           sensitivity?: Database["public"]["Enums"]["visibility_level"] | null
           storage_path?: string | null
@@ -857,6 +863,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
