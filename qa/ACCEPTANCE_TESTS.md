@@ -31,8 +31,10 @@ applicable to this product's current scope (noted why).
 10. All transitions appear in the audit timeline. ⬜ not directly tested this session.
 11. Employee cannot read ownership/cash/salaries/margins/founder memory. ✅ — extensively
     verified this session and the prior one (see SECURITY_MATRIX.md).
-12. Cross-company access returns zero rows. ⬜ not explicitly tested (every RLS check so
-    far used a same-company non-manager, not a different-company member).
+12. Cross-company access returns zero rows. ✅ — tested live: a test account with
+    `manager` role at CLIX GPS correctly saw 0 rows for `financial_reports`/`proposals`
+    belonging to a different company, while correctly retaining full access to its own
+    company's data (1/1 and company-scoped data respectively).
 13. Duplicate submissions do not duplicate work. ✅ (found broken, now fixed) — see
     KNOWN_FAILURE_MODES.md #5.
 14. Missing AI credentials cannot silently create real production work. ⬜ not tested —
