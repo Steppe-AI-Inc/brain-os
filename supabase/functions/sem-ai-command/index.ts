@@ -78,7 +78,26 @@ Rules:
   Never say you can't see images; if one is attached, you can.
 - Create narrow atomic tasks only.
 - Do not invent facts outside the context pack.
-- If a fact is missing, create a clarification/research task.
+- context.counts holds real database-computed totals (tasksTotal, approvalsTotal,
+  companiesTotal, peopleTotal, projectsTotal, goalsTotal, salesLeadsTotal,
+  inventoryItemsTotal) plus tasksShown/approvalsShown (how many of the total made it into
+  context.tasks/context.approvals, which are capped and may not include everything).
+  ALWAYS use context.counts for any question about how many tasks/approvals/companies/
+  people/projects/goals/leads/inventory items exist — NEVER derive a count by counting
+  entries in context.tasks or context.approvals yourself, those arrays are truncated. If
+  tasksShown < tasksTotal (or approvalsShown < approvalsTotal), say so explicitly, e.g.
+  "30 of 69 active tasks shown" — never state the shown number alone as if it were the
+  total.
+- Before creating ANY new task, check context.tasks first — if an existing task (any
+  status in context.tasks) already asks essentially the same question or covers the same
+  missing fact, do NOT create another one. Reference the existing task by title in your
+  summary instead ("already asked in an open task — no new one created"). This applies
+  especially to clarification/blocker tasks: if the user repeats a vague command you've
+  already flagged before (e.g. "clear chat", "delete channels" without specifics), do not
+  spawn a fresh "URGENT/CRITICAL: clarify scope" task each time — the existing one still
+  stands. Answer directly in your summary instead of creating a duplicate.
+- If a fact is missing and no existing task already covers it, create one clarification/
+  research task.
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
@@ -578,10 +597,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const conversationHistoryQuery = channelId
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels] = await Promise.all([
+  const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
+    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
-    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
+    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
     memoriesQuery,
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     // unit_cost intentionally not selected — it lives in product_costs now (manager+
@@ -607,11 +628,35 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // Brain OS's own chat_channels — so the model knows these are internal conversation
     // threads it can be asked to delete, not an external platform (Slack/Teams/Discord)
     // it has no access to.
-    supabase.from('chat_channels').select('id,name').eq('archived', false).limit(30)
+    supabase.from('chat_channels').select('id,name').eq('archived', false).limit(30),
+    // Real aggregate counts, deliberately separate from the (necessarily truncated)
+    // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
+    // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
+    // counting a limited context array (confirmed live bug: reported "20 approvals" —
+    // the .limit(20) cap — when the real total was 75). Same RLS applies to a count
+    // query as a row query, so a technician's counts are scoped exactly like their rows.
+    supabase.from('tasks').select('id', { count: 'exact', head: true }).in('status',TASK_STATUSES),
+    supabase.from('approvals').select('id', { count: 'exact', head: true }).eq('status','pending'),
+    supabase.from('companies').select('id', { count: 'exact', head: true }),
+    supabase.from('people').select('id', { count: 'exact', head: true }),
+    supabase.from('projects').select('id', { count: 'exact', head: true }),
+    supabase.from('goals').select('id', { count: 'exact', head: true }),
+    supabase.from('sales_leads').select('id', { count: 'exact', head: true }),
+    supabase.from('inventory_items').select('id', { count: 'exact', head: true }),
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[] };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error].filter(Boolean).map((e:any)=>e.message) };
+  const counts = {
+    tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
+    approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
+    companiesTotal: companiesCount.count ?? (companies.data||[]).length,
+    peopleTotal: peopleCount.count ?? (people.data||[]).length,
+    projectsTotal: projectsCount.count ?? (projects.data||[]).length,
+    goalsTotal: goalsCount.count ?? (goals.data||[]).length,
+    salesLeadsTotal: salesLeadsCount.count ?? 0,
+    inventoryItemsTotal: inventoryCount.count ?? (inventory.data||[]).length,
+  };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], counts };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
