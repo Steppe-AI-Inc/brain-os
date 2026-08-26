@@ -121,3 +121,30 @@ See LIVE_SYSTEM_MAP.md "Resolved this pass" — `sem-artifact-analyze` was live 
 production with no corresponding file anywhere in git history. Recovered and committed.
 Search performed: all 6 deployed functions cross-checked against `supabase functions
 list`; no other undocumented functions found.
+
+## 7. company_id never populated on audit_logs/work_orders/chat_channels (OPEN — functional gap, not a leak)
+
+**Found while:** closing out SECURITY_MATRIX.md's impersonation-testing gap for these
+three tables.
+
+**Symptom:** `company_id IS NULL` on 100% of real rows — 141/141 `audit_logs`, 99/99
+`work_orders`, 3/3 `chat_channels`. The `is_company_manager(company_id)` RLS branch
+added in migration `202608260024` is therefore inert in current practice: real access
+to these tables is entirely governed by `is_founder_or_admin() OR actor/creator = self`.
+
+**Verified this is NOT a leak:** a non-manager test account's visible rows matched its
+own actor/creator rows exactly (4/4 `audit_logs`, 6/6 `work_orders`, 0/0
+`chat_channels`) — precise match, not "fewer than everything."
+
+**Real consequence:** a company_manager who is not the founder currently cannot see any
+audit trail, work order, or chat history for their own company, because nothing ever
+sets `company_id` on these rows at creation time. The "manager reviews their team's
+activity" capability implied by the RLS design doesn't actually work — not because the
+policy is wrong, but because the data feeding it is incomplete.
+
+**Fix:** not done this pass. Would need `company_id` set at creation time in
+`sem-ai-command` (for `work_orders`/`chat_channels`, from context when the command is
+clearly about one company) and wherever `audit_logs` rows get inserted. Lower priority
+than the leaks fixed tonight since it's over-restrictive (blocks legitimate access)
+rather than under-restrictive (leaks data), but worth fixing before a real
+company_manager persona is onboarded and expects to use this.
