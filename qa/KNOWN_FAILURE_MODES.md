@@ -37,27 +37,38 @@ joined back to the owning document's sensitivity tier.
 `documents.storage_path` and gate by the same sensitivity tiers the table uses
 (migration `202608260021`/`202608260022`).
 
-## 3. Edge Function deployment has no CI/CD (OPEN — process gap, not a live bug)
+## 3. Edge Function deployment has no CI/CD (PARTIALLY FIXED — still blocked on a founder action)
 
-**Symptom:** `.github/workflows/supabase-functions.yml` references Supabase project ref
-`gyqlkgnyyzpwaswhshlw` — different from production's `pvphxgrtdfrudejjhzjk`.
+**Symptom:** `.github/workflows/supabase-functions.yml` referenced Supabase project ref
+`gyqlkgnyyzpwaswhshlw` — different from production's `pvphxgrtdfrudejjhzjk` — and
+triggered on `branches: [main]`, a branch that doesn't exist on `origin` (default is
+`master`). Zero runs, ever, in the repo's history; not even registered in GitHub's
+workflow list.
 
-**Investigation:** this workflow has **zero runs, ever**, and is not even registered in
-GitHub's workflow list (`gh api repos/.../actions/workflows` only shows "Branch Preview
-CI" and "SEM Brain Phase 0 CI"). It has existed since the baseline import commit and has
-never executed once in this repo's history.
+**Root cause (both bugs, confirmed):** (1) wrong branch name in the push trigger — this
+alone means the workflow could never fire from a normal push, regardless of the project
+ref; (2) wrong project ref, so even a `workflow_dispatch` manual run would have deployed
+to the wrong Supabase project.
 
-**Current state:** not an active bug — all 6 deployed Edge Functions were verified
-byte-identical to their tracked git source as of 2026-08-27 (see LIVE_SYSTEM_MAP.md), so
-manual deploys have stayed disciplined so far. But there is **no safety net**: if anyone
-pushes an Edge Function change and forgets the manual `supabase functions deploy` step,
-production will silently run stale code with zero error, zero warning. This is the
-textbook "PRODUCTION STATE NOT VERIFIED" scenario CLAUDE.md §1 warns about.
+**Fixed 2026-08-27:** corrected both — branch to `master`, project ref to
+`pvphxgrtdfrudejjhzjk`, and broadened it to deploy all functions in
+`supabase/functions/` (not just `sem-ai-command`) since all 6 are real production
+dependencies now. Confirmed the workflow is now registered and `active` in GitHub's
+workflow list (`gh api repos/.../actions/workflows`) — it wasn't a YAML parse issue,
+GitHub just hadn't processed a push containing this file before.
 
-**Recommended fix (not yet done):** either fix the workflow's project ref and get it
-actually registered/running, or delete it and rely on a documented manual-deploy
-checklist — a config file that looks like CI but has never run is worse than no file at
-all, since it creates false confidence.
+**Still blocked:** `gh secret list` returns zero configured secrets for this repo.
+`SUPABASE_ACCESS_TOKEN` doesn't exist, so the workflow will now run but fail at the
+deploy step with an auth error. Generating and adding that secret is a founder action
+(Supabase account token generation + GitHub repo secret) — not something to provision
+unsupervised. **BLOCKER for founder:** add `SUPABASE_ACCESS_TOKEN` at Settings →
+Secrets and variables → Actions, generated from
+https://supabase.com/dashboard/account/tokens.
+
+**Until then:** manual deploy + `supabase functions download` + `git diff` verification
+(REGRESSION_CATALOG.md) remains the only real safety net — same as before this fix, just
+now the automated path is one secret away from working instead of two bugs plus a
+secret away.
 
 ## 4. AI context presented truncated arrays as complete totals (FIXED, 2026-08-27)
 
