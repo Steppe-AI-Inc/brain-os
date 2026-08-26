@@ -24,6 +24,23 @@ a live dashboard.
   deployed source and committed it — verified first that it uses the caller's JWT
   (`Authorization` header), not a service-role key, so no RLS bypass was introduced by
   recovering it.
+- Diffed **every** live `public` schema RLS policy (`pg_policy`/`pg_get_expr` against the
+  linked project — 108 policies) against `schema-v0.7-production-core.sql` (95 tracked
+  policies). Found and recovered `boards`/`board_columns`/`board_items` (an unused Kanban
+  feature — 0 rows, RLS enabled, zero app code references outside generated types) as
+  migration `202608270002_recover_boards_kanban_tables.sql`. See
+  KNOWN_FAILURE_MODES.md #9.
+
+## CRITICAL — open, blocked on founder action
+
+- **`approvals_update_approver` production policy has no domain gating** — reproduced
+  live, a plain company manager can approve finance/salary_hr/legal decisions. Fix
+  prepared as migration `202608270001_restore_approvals_domain_gating.sql`, confirmed
+  via `db push --linked --dry-run` as the only pending migration, but the actual push was
+  blocked by this session's own safety classifier as a live production security change —
+  correctly, since it's not something to push unsupervised. **Needs the founder to run
+  `supabase db push --linked` (or explicitly authorize it) for this one migration.** See
+  KNOWN_FAILURE_MODES.md #8 for full evidence.
 
 ## Not yet done
 
@@ -32,3 +49,9 @@ a live dashboard.
   so far, not the full 11-persona list in CLAUDE.md §4.
 - `sem-artifact-analyze`'s logic itself has not been deeply code-reviewed line by line,
   only checked for the RLS-bypass class of issue.
+- The policy-drift diff covered `public` schema tables only — `storage.objects` and any
+  other non-`public` schema policies have not been diffed the same way yet.
+- `engineering_drawings` policies exist correctly in a migration file
+  (`202608260012_engineering_drawings.sql`) but were never folded into the consolidated
+  `schema-v0.7-production-core.sql` — a documentation-consistency gap, not a live drift
+  (content matches), lower priority than the two items above.

@@ -18,8 +18,17 @@ applicable to this product's current scope (noted why).
    waits for approval. ✅ (partially) — confirmed high-risk channel deletion always
    creates a forced approval record regardless of outcome; low-risk task creation
    confirmed not blocked.
-6. Unauthorized manager cannot approve finance/salary/legal. ⬜ not tested — approvals
-   domain-gating was tested for *read*, not for the actual approve-action RLS.
+6. Unauthorized manager cannot approve finance/salary/legal. ❌ **FAILED — real production
+   bug found and reproduced live** (2026-08-27). A test company-manager account (not
+   founder/hr_finance) successfully approved finance, salary_hr, AND legal domain
+   approvals — should only have been able to approve `general`/`production`/
+   `external_comms`. Root cause: production's live `approvals_update_approver` policy is
+   the old ungated v0.7 baseline, not the domain-gated version from migration
+   `202608230001` that Supabase's own migration ledger claims is applied (GitHub↔
+   production drift). Fix prepared as migration `202608270001_restore_approvals_domain_gating.sql`,
+   verified via `db push --dry-run`, but the actual push was blocked by this session's
+   safety classifier as a live production security change — needs founder authorization.
+   See KNOWN_FAILURE_MODES.md #8.
 7. Authorized approver approves an immutable payload; correct work-order step resumes
    exactly once. ⬜ not tested this session.
 8. QA verifies acceptance criteria; failed QA reopens/escalates. ➖ no formal QA-agent

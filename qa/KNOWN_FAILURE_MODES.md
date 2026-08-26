@@ -133,6 +133,102 @@ production with no corresponding file anywhere in git history. Recovered and com
 Search performed: all 6 deployed functions cross-checked against `supabase functions
 list`; no other undocumented functions found.
 
+## 8. Production approvals_update_approver policy has NO domain gating — any company manager can approve finance/salary/legal (OPEN — CRITICAL, fix prepared, blocked on founder approval to push)
+
+**Found while:** testing acceptance test #6 ("unauthorized manager cannot approve
+finance/salary/legal") via real live impersonation, per CLAUDE.md's "test the actual
+write-action RLS, not just read visibility."
+
+**Symptom, reproduced live:** a real, temporary `company_memberships` row was created for
+the standing test account (`profile_id='66ef2052-d002-4592-b841-82cd2171b51a'`,
+`profiles.role='employee'` — NOT founder/holding_admin/hr_finance) as `role_in_company =
+'manager'` at SEM Technologies LLC. Four real temporary `approvals` rows were created,
+one per domain: `finance`, `salary_hr`, `production`, `legal`, all `status='pending'`.
+Impersonating that account, `UPDATE approvals SET status='approved' WHERE id=...` was run
+against each row. **All four succeeded** — finance and salary_hr and legal, not just
+production. All test rows were then deleted (see git-tracked commit for this entry).
+
+**Root cause, confirmed via `pg_policy`/`pg_get_expr` against the live linked project (not
+inferred from any file):** production's actual `approvals_update_approver` policy reads
+```
+(is_founder_or_admin() OR (approver_profile_id = current_profile_id()) OR is_company_manager(company_id))
+```
+— the original v0.7 baseline from `202606190001_sem_brain_v071_production_core.sql`, with
+**no domain gating at all**. But migration `202608230001_security_hardening_rls.sql`
+(already in this repo's tracked history, already merged to `master`) rewrites this exact
+policy to require `is_hr_finance()` for `finance`/`salary_hr` and restricts `legal` to
+founder/admin/explicit-approver only — and Supabase's own migration history
+(`supabase migration list --linked`) reports `202608230001` as **applied** to this
+project. The live policy content does not match what that migration (or the tracked
+`schema-v0.7-production-core.sql`) says it should be. This is GitHub↔production drift of
+exactly the kind CLAUDE.md §2 exists to catch — the migration ledger says one thing, the
+live database says another. Cause of the drift itself (an out-of-band manual policy edit
+after the migration ran, vs. the migration silently no-opping) was not chased further
+since the remediation is identical either way — see "Search performed" below for why this
+wasn't assumed to be an isolated one-off.
+
+**Real-world impact:** any `company_manager`/`owner`/`team_lead`-tier person (not just
+founder or an `hr_finance`-tier profile) can currently approve or reject **any** pending
+approval in their company via a direct PostgREST `PATCH` to `/approvals`, including salary
+decisions, financial approvals, and legal approvals — bypassing the entire point of
+domain-gated approval routing. This is a live, real security gap, not a theoretical one.
+
+**Fix prepared, NOT yet applied to production:** new migration
+`supabase/migrations/202608270001_restore_approvals_domain_gating.sql` re-applies the
+correct domain-gated policy (idempotent `drop policy if exists` + `create policy`,
+identical to `202608230001`'s version). `supabase db push --linked --dry-run` confirms it
+is the only pending migration and would apply cleanly. **The actual push
+(`supabase db push --linked`) was blocked by this session's own auto-mode safety
+classifier as a live production schema/security change** — correctly, since this modifies
+who can approve financial/HR/legal decisions in production. Per this session's own
+operating rules, that block was not routed around via an alternate execution path (e.g.
+raw DDL through `db query`). **This is the one blocking action left in this pass: the
+founder needs to either explicitly authorize `supabase db push --linked` for this specific
+migration, or run it themselves.** The migration file is already committed to git so nothing
+is lost or hidden by the block.
+
+**Search performed for the same drift class:** compared every other policy on
+`public.approvals` (`approvals_select_scope`, `approvals_insert_scope`) — both match their
+tracked source exactly, live `pg_get_expr` output word-for-word identical to
+`schema-v0.7-production-core.sql`. Then went further and dumped **all 108** live `public`
+schema policies (`pg_policy` + `pg_get_expr`, every table) and diffed policy-name-by-table
+against all 95 `create policy` statements in `schema-v0.7-production-core.sql`. Result:
+`approvals_update_approver` is the **only** policy whose live expression text differs from
+its tracked source — every other shared policy matched word-for-word. The diff did surface
+a second, different-shaped issue (13 live policies with no tracked source at all, on 3
+undocumented tables) — see #9. Not yet done: the same diff for `storage.objects` and any
+non-`public`-schema policies.
+
+## 9. Undocumented Kanban tables (boards/board_columns/board_items) live in production with zero tracked source (FIXED — recovered into git, 2026-08-27)
+
+**Found while:** the broader policy-drift sweep for #8 (diffing all live `public` policies
+against `schema-v0.7-production-core.sql`).
+
+**Symptom:** 13 live policies (4 on `boards`, 4 on `board_columns`, 4 on `board_items`,
+covering select/insert/update/delete) exist in production with no corresponding
+`create policy` anywhere in the schema file, and no migration file in
+`supabase/migrations/` mentions these table names at all. A `SECURITY DEFINER` function,
+`can_manage_board_item(board_id, task_id)`, also exists undocumented. This is the same
+failure class as #6 (`sem-artifact-analyze`) — a feature built directly against
+production (likely a Kanban-board prototype) that never had its schema committed.
+
+**Verified NOT an active risk before recovering it:** `relrowsecurity=true` on all three
+tables (RLS is actually enforced, not silently open), all three have **0 rows** in
+production, and `grep`ing `web/` found no reference to `boards`/`board_columns`/
+`board_items` outside the auto-generated `web/types/database.ts` — no shipped UI path
+reads or writes this feature, so nothing is currently exposed through the app.
+`can_manage_board_item`'s logic was read in full: gated correctly by
+founder/company-manager/task-owner, no bypass found.
+
+**Fix:** recovered full DDL (columns, constraints, RLS policies, the function) via direct
+introspection (`information_schema.columns`, `pg_constraint`, `pg_get_functiondef`) into
+`supabase/migrations/202608270002_recover_boards_kanban_tables.sql` — every statement is
+idempotent (`create table if not exists`, `drop policy if exists` + recreate), so applying
+it against production is a verified no-op, not a live change. This migration was NOT
+pushed this pass (bundled with the #8 fix, both awaiting the founder's one-time `db push`
+authorization) but poses zero risk either way since it only re-describes what's already
+live.
+
 ## 7. company_id never populated on audit_logs/work_orders/chat_channels (OPEN — functional gap, not a leak)
 
 **Found while:** closing out SECURITY_MATRIX.md's impersonation-testing gap for these
