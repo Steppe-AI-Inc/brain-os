@@ -130,7 +130,9 @@ export function TaskSheet({
               onValueChange={(v: unknown) => set("companyId", v === "none" ? null : (v as string))}
             >
               <SelectTrigger id="task-company" className="w-full">
-                <SelectValue />
+                <SelectValue>
+                  {() => companies.find((c) => c.id === values.companyId)?.name ?? "No company"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No company</SelectItem>

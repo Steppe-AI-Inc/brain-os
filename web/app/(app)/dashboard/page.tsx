@@ -34,7 +34,11 @@ async function getDashboardData() {
         .from("work_orders")
         .select("id", { count: "exact", head: true })
         .gte("created_at", since14d),
-      supabase.from("companies").select("id", { count: "exact", head: true }),
+      // No `head: true` here (unlike the other counts above) — this one was
+      // observed returning count: null with no error on production, the known
+      // failure mode when a HEAD response's Content-Range header goes missing.
+      // Fetching actual id rows sidesteps that; .length is the real source of truth.
+      supabase.from("companies").select("id", { count: "exact" }),
       supabase
         .from("goals")
         .select("id, title, status, kind, progress, companies(name)")
@@ -49,7 +53,7 @@ async function getDashboardData() {
     activeGoals: activeGoals.count ?? 0,
     pendingApprovals: pendingApprovals.count ?? 0,
     recentRuns: recentRuns.count ?? 0,
-    companies: companies.count ?? 0,
+    companies: companies.data?.length ?? companies.count ?? 0,
     liveGoals: liveGoals.data ?? [],
     attention,
     agents,

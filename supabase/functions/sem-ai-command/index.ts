@@ -87,6 +87,13 @@ Rules:
   literally appear in context.tasks are honored; anything else is silently ignored. If the
   user references a task that isn't in context.tasks, say so in summary instead of
   guessing an id.
+- context.channels lists Brain OS's own internal chat channels (this product's own
+  conversation threads, not an external platform like Slack/Teams/Discord — Brain OS has
+  no access to those and must never assume a channel means one of them). You may delete a
+  channel the user asks to remove/clear/delete by putting its exact "id" from
+  context.channels into deleteChannelIds. Never invent or guess an id — only ids that
+  literally appear in context.channels are honored. If the user references a channel that
+  isn't in context.channels, say so in summary instead of guessing an id.
 - You may create real companies and people directly (not just a task describing the
   work) when the user gives you real facts about a company or a person that does not
   already exist in context.companies / context.people. Check context first — never create
@@ -152,6 +159,7 @@ Output schema:
     }
   ],
   "deleteTaskIds": [string],
+  "deleteChannelIds": [string],
   "createCompanies": [
     {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
   ],
@@ -570,7 +578,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const conversationHistoryQuery = channelId
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows] = await Promise.all([
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',['queued','in_progress','blocked','needs_approval']).limit(30),
@@ -595,11 +603,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // never receives restricted rows in the first place, rather than being told not to
     // repeat them.
     supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary').order('created_at', { ascending: false }).limit(20),
-    conversationHistoryQuery
+    conversationHistoryQuery,
+    // Brain OS's own chat_channels — so the model knows these are internal conversation
+    // threads it can be asked to delete, not an external platform (Slack/Teams/Discord)
+    // it has no access to.
+    supabase.from('chat_channels').select('id,name').eq('archived', false).limit(30)
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[] };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -776,6 +788,31 @@ serve(async (req) => {
         const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
         const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
+        // Channel deletion: same cross-check discipline as task deletion above, but this
+        // isn't part of the sem_execute_ai_command RPC's transaction — chat_channels has
+        // its own existing RLS delete policy (the same one the manual "..." > Delete menu
+        // in channel-sidebar.tsx already relies on), so a plain scoped delete here reuses
+        // that real enforcement rather than adding a new RPC parameter/migration for it.
+        const contextChannelIds = new Set((contextPack?.channels || []).map((c: any) => c.id));
+        const requestedDeleteChannelIds = Array.isArray(result.deleteChannelIds) ? result.deleteChannelIds as unknown[] : [];
+        const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
+        let deletedChannelCount = 0;
+        if (deleteChannelIds.length > 0) {
+          const { data: deletedChannels, error: deleteChannelsError } = await supabase
+            .from('chat_channels')
+            .delete()
+            .in('id', deleteChannelIds)
+            .select('id');
+          // RLS may silently affect 0 rows if the caller lacks delete rights — that's not
+          // a hard error, just nothing to report as deleted; a real error (e.g. network)
+          // still surfaces in summary so it isn't swallowed.
+          if (deleteChannelsError) {
+            result.summary = `${result.summary || ''}\n\n(Channel deletion failed: ${deleteChannelsError.message})`.trim();
+          } else {
+            deletedChannelCount = deletedChannels?.length || 0;
+          }
+        }
+
         // Companies/people creation: defensively coerce shape (never trust the model's
         // JSON structure blindly) — name/fullName are required, everything else is
         // optional. A person's companyId is only trusted if it's a real id from
@@ -929,6 +966,14 @@ serve(async (req) => {
           forcedApprovals.push({
             title: `Approval required: delete ${deleteTaskIds.length} task(s)`,
             reason: 'Server-side risk policy forces approval for any task deletion.',
+            riskLevel: 'high',
+            taskIndex: null,
+          });
+        }
+        if (deletedChannelCount > 0) {
+          forcedApprovals.push({
+            title: `Approval required: deleted ${deletedChannelCount} chat channel(s)`,
+            reason: 'Server-side risk policy forces approval for any channel deletion.',
             riskLevel: 'high',
             taskIndex: null,
           });
