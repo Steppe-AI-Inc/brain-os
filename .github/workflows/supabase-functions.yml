@@ -1,9 +1,23 @@
 name: Deploy Supabase Edge Functions
 
+# BLOCKED until the founder adds a SUPABASE_ACCESS_TOKEN repository secret (Settings ->
+# Secrets and variables -> Actions -> New repository secret). Generate one at
+# https://supabase.com/dashboard/account/tokens. Without it this workflow will run (the
+# two bugs below are fixed) but fail at the deploy step with an auth error - verified via
+# `gh secret list`, which currently returns zero configured secrets for this repo.
+#
+# Two real bugs fixed here, found via a CLAUDE.md-mandated deployment-chain audit
+# (2026-08-27): this workflow had literally never run once in the repo's history.
+# 1. `branches: [main]` never matched - this repo's default/only real branch is `master`
+#    (confirmed: `git branch -a` shows no `main` on `origin`, only on an unrelated
+#    `blankcollar` remote).
+# 2. `--project-ref gyqlkgnyyzpwaswhshlw` was wrong - production actually runs on
+#    `pvphxgrtdfrudejjhzjk` (confirmed against `NEXT_PUBLIC_SUPABASE_URL` in Vercel's
+#    production env and every migration/deploy performed against production).
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'supabase/functions/**'
 
@@ -15,7 +29,11 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Deploy sem-ai-command function
-        run: supabase functions deploy sem-ai-command --project-ref gyqlkgnyyzpwaswhshlw
+      # Deploys every function under supabase/functions/, not just sem-ai-command - all
+      # 6 currently deployed functions (sem-ai-command, embed-text,
+      # analyze-financial-document, sem-artifact-analyze, generate-technical-drawing,
+      # generate-onboarding-plan) are real production dependencies.
+      - name: Deploy all Supabase Edge Functions
+        run: supabase functions deploy --project-ref pvphxgrtdfrudejjhzjk
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
