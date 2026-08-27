@@ -1,0 +1,31 @@
+# HR domain policy. Maps to approval_domain enum value 'salary_hr' and the salary_private
+# / salary_rules / kpi_records tables.
+domain: hr
+approval_domain_enum_value: salary_hr
+description: >
+  Salary, compensation, KPI records, and salary-impacting approvals (raises, bonuses,
+  terminations with pay implications).
+read_capability: hr.read.salary
+write_capability: hr.modify.salary
+approve_capability: hr.approve.salary
+authorized_roles:
+  - founder
+  - holding_admin
+  - hr_finance
+  - self (an employee can always read their own salary_private row)
+explicitly_NOT_authorized:
+  - company_manager (role_in_company: manager/team_lead/owner) — a plain company manager
+    CANNOT approve salary_hr-domain approvals, even for their own company's team. This
+    is a real, deliberate asymmetry from most other domains and was the exact gap found
+    and fixed 2026-08-27 (a company manager could previously approve salary changes —
+    see qa/KNOWN_FAILURE_MODES.md #8). Do not "fix" this asymmetry by widening the
+    policy without an explicit founder decision to do so.
+enforcing_tables:
+  - salary_private
+  - salary_rules
+  - kpi_records
+  - approvals (domain = 'salary_hr')
+verified: true
+verification_evidence: >
+  qa/KNOWN_FAILURE_MODES.md #8 — live impersonation test, company-manager-tier account
+  correctly blocked from approving a salary_hr-domain approval post-fix.

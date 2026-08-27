@@ -1,0 +1,148 @@
+# Brain OS Capability Matrix
+#
+# Every capability listed here maps to a REAL, live RLS policy or backend check —
+# verified against schema-v0.7-production-core.sql and, where marked live_verified,
+# against a real impersonation test in qa/SECURITY_MATRIX.md. This file is descriptive
+# of what's actually enforced today, not aspirational. Where a capability described in
+# the original governance proposal has no real enforcement yet, it's marked
+# enforced: false with a note, not silently included as if it were real.
+#
+# grants: the profiles.role / role_in_company / capability values that satisfy this
+#   capability, expressed as the real function call that grants it.
+
+capabilities:
+  task.read.company:
+    enforced: true
+    mechanism: "tasks_select_scope: has_company_access(company_id)"
+    grants: [any active company member]
+    live_verified: true
+    note: >
+      No task.read.own exists as a distinct, narrower capability — company membership
+      alone grants visibility to ALL of a company's tasks, not just tasks assigned to
+      the caller. See qa/ACCEPTANCE_TESTS.md #4. The per-owner RLS clause exists in the
+      policy but is unreachable today (no people row with an owner also has a linked
+      profile_id) — documented, not removed, in case it becomes reachable later.
+
+  task.write.company:
+    enforced: true
+    mechanism: "tasks_insert_scope: has_company_access(company_id) (any member can create); tasks_update_scope/tasks_delete_scope: is_company_manager(company_id) (manager+ only to edit/delete someone else's task)"
+    grants: [any active company member (create), company manager+ (edit/delete)]
+    live_verified: partial
+
+  finance.read.revenue:
+    enforced: partial
+    mechanism: "financial_reports_select_scope: is_founder_or_admin() OR is_company_manager(company_id) -- is_hr_finance() branch written in migration 202608270003 but NOT YET APPLIED to production (pending founder authorization to push, as of this writing)"
+    grants: [founder, holding_admin, company manager (role_in_company)]
+    grants_once_202608270003_applied: [founder, holding_admin, company manager, hr_finance]
+    live_verified: true
+    note: "live testing 2026-08-27 found hr_finance had zero access despite every other finance-adjacent capability -- fix written same day, still pending push. Re-check supabase migration list --linked before trusting the wider grant list."
+
+  finance.read.cash:
+    enforced: true
+    mechanism: "company_sensitive_select_founder: is_founder_or_admin() only"
+    grants: [founder, holding_admin]
+    live_verified: false
+    note: "Policy text is unambiguous; not yet exercised via a real impersonation test specifically targeting company_sensitive."
+
+  finance.approve.payment:
+    enforced: true
+    mechanism: "approvals_update_approver, domain='finance': is_founder_or_admin() OR is_hr_finance()"
+    grants: [founder, holding_admin, hr_finance]
+    live_verified: true
+    note: "Verified live 2026-08-27 as part of fixing the critical domain-gating drift — a plain company manager cannot approve finance-domain approvals."
+
+  hr.read.salary:
+    enforced: true
+    mechanism: "salary_select_authorized: is_hr_finance() OR the salary row's own subject (self)"
+    grants: [founder, holding_admin, hr_finance, self]
+    live_verified: true
+
+  hr.modify.salary:
+    enforced: true
+    mechanism: "salary_write_hr: is_hr_finance() only"
+    grants: [founder, holding_admin, hr_finance]
+    live_verified: false
+
+  hr.approve.salary:
+    enforced: true
+    mechanism: "approvals_update_approver, domain='salary_hr': is_founder_or_admin() OR is_hr_finance()"
+    grants: [founder, holding_admin, hr_finance]
+    live_verified: true
+    note: "Same fix/verification as finance.approve.payment — both domains share one policy clause."
+
+  legal.approve.contract:
+    enforced: true
+    mechanism: "approvals_update_approver, domain='legal': is_founder_or_admin() OR the approval's explicitly assigned approver_profile_id — no role-based branch at all"
+    grants: [founder, holding_admin, explicitly assigned approver]
+    live_verified: true
+    note: "Deliberately the tightest domain — no dedicated legal-approver role exists yet in app_role, so this is founder-only in practice today."
+
+  sales.read.pipeline:
+    enforced: true
+    mechanism: "sales_leads_select_scope: is_founder_or_admin() OR is_company_manager(company_id) OR the lead's own owner_person_id match"
+    grants: [founder, holding_admin, company manager, lead owner]
+    live_verified: false
+    note: "Policy correct on paper; untestable this pass — 0 real rows exist in production to verify against."
+
+  sales.modify.lead:
+    enforced: true
+    mechanism: "sales_leads_insert_member: has_company_access(company_id) (any member can create); sales_leads_update_own_or_manager: manager+ or the lead's own owner"
+    grants: [any active company member (create), company manager+ or lead owner (edit)]
+    live_verified: false
+
+  inventory.read:
+    enforced: true
+    mechanism: "inventory_select_scope: has_company_access(company_id)"
+    grants: [any active company member]
+    live_verified: false
+
+  inventory.modify:
+    enforced: true
+    mechanism: "inventory_write_manager: is_company_manager(company_id)"
+    grants: [company manager+]
+    live_verified: false
+
+  ownership.read:
+    enforced: true
+    mechanism: "company_sensitive_select_founder (ownership_notes column): is_founder_or_admin() only"
+    grants: [founder, holding_admin]
+    live_verified: false
+
+  ownership.modify:
+    enforced: true
+    mechanism: "company_sensitive_write_founder: is_founder_or_admin() only"
+    grants: [founder, holding_admin]
+    live_verified: false
+
+  production.deploy:
+    enforced: false
+    mechanism: "NOT modeled in Brain OS at all — Edge Function/migration deploys happen via the Supabase CLI outside any tasks/approvals row"
+    grants: []
+    live_verified: false
+    note: >
+      The only real gate on this today is the operating tool's own permission classifier
+      (confirmed working live 2026-08-27: blocked an unattended production RLS push,
+      required explicit founder authorization) — not a Brain OS mechanism, and would not
+      apply under a different tool. See ACTION_RISK_LEVELS.md's L5 section for the
+      honest fix (a real production_deploy approval_domain), not yet built.
+
+  ai.context.read.restricted:
+    enforced: true
+    mechanism: >
+      sem-ai-command's buildContext() uses the caller's own JWT-scoped Supabase client
+      for every context query — never service-role. Data the caller's own RLS would
+      block never enters the model's context at all.
+    grants: [whatever role the caller's own RLS already grants — no separate AI-specific rule]
+    live_verified: true
+    note: "Verified 2026-08-27 via a real adversarial prompt-injection test — see SECURITY_INVARIANTS.md #6."
+
+  ai.memory.write.sensitivity_floor:
+    enforced: false
+    mechanism: "NOT implemented — memories.sensitivity is set by the model's own output with no validation against the sensitivity of the source data it was derived from"
+    grants: []
+    live_verified: false
+    note: >
+      Real open gap, see SECURITY_INVARIANTS.md #7 — a founder-level chat query that
+      surfaces financial/salary facts could be summarized into a memories row tagged
+      'internal' (or even 'public'), which would then be visible to any company member
+      via the normal memories_select_scope path. Highest-priority item in this file.

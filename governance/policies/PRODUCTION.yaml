@@ -1,0 +1,36 @@
+# Production domain policy — TWO DISTINCT MEANINGS, do not conflate them.
+domain: production
+approval_domain_enum_value: production
+description: >
+  This name is genuinely overloaded in this codebase and both meanings matter:
+  (1) 'production' as an approvals.domain value — internal ops/manufacturing/operational
+      work at a company (a normal, company-manager-approvable domain, same gate tier as
+      general/external_comms).
+  (2) "Production" as in the live Brain OS deployment itself (Vercel, Supabase, this
+      very database) — completely different concern, no relation to the enum value.
+      See production_deploy below.
+
+meaning_1_operational_domain:
+  approve_capability: production.operational.approve
+  authorized_roles:
+    - founder
+    - holding_admin
+    - company_manager (role_in_company: owner/manager/team_lead)
+  enforcing_tables:
+    - approvals (domain = 'production')
+  verified: true
+  verification_evidence: >
+    qa/KNOWN_FAILURE_MODES.md #8 live re-verification — a company-manager-tier test
+    account correctly WAS allowed to approve a production-domain approval (contrast with
+    finance/salary_hr/legal, correctly blocked).
+
+meaning_2_deploy_to_live_system:
+  capability: production.deploy
+  enforced: false
+  mechanism: "NOT modeled anywhere in the tasks/approvals system — see capabilities/CAPABILITY_MATRIX.yaml's production.deploy entry and ACTION_RISK_LEVELS.md's L5 discussion"
+  current_real_gate: >
+    The operating tool's own permission classifier (e.g. this session's Claude Code
+    auto-mode classifier) — confirmed live 2026-08-27 blocking an unattended production
+    RLS migration push and requiring explicit founder authorization before it proceeded.
+    Not a Brain OS mechanism; would not exist under a different operating tool.
+  future_work: "A real production_deploy approval_domain, gated founder-only, would make this a Brain-OS-level guarantee instead of an operator-tool-level one."

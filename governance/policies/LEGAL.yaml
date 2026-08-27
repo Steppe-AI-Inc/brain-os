@@ -1,0 +1,28 @@
+# Legal domain policy. Maps to approval_domain enum value 'legal' — the tightest domain
+# in the schema by design.
+domain: legal
+approval_domain_enum_value: legal
+description: >
+  Contracts, entity restructuring, legal disputes, and anything else legally binding.
+  No dedicated "legal" role exists yet in the app_role enum (unlike hr_finance for HR) —
+  this domain is founder-only by construction, not by omission.
+read_capability: legal.read.contract (via approvals_select_scope's salary_hr/finance/legal branch — hr_finance or company_manager can READ legal-domain approvals, narrower than who can decide them)
+approve_capability: legal.approve.contract
+authorized_roles:
+  - founder
+  - holding_admin
+  - whoever is explicitly named in approvals.approver_profile_id for that specific row
+explicitly_NOT_authorized:
+  - company_manager — cannot approve, only read (if hr_finance-tier or manager-tier, per
+    the read policy's broader domain list)
+  - hr_finance — can READ legal-domain approvals but CANNOT approve them (no clause in
+    approvals_update_approver grants hr_finance the legal domain — only
+    salary_hr/finance)
+enforcing_tables:
+  - approvals (domain = 'legal')
+future_work: >
+  If Brain OS ever needs a distinct "ownership/banking" tier stricter than or different
+  from legal (see governance/ACTION_RISK_LEVELS.md's L5 discussion), it would need a new
+  approval_domain enum value and a new RLS clause — legal's current gate (founder/admin
+  or explicit approver only) is reused as the closest existing analog for that tier
+  today, not because the two are conceptually identical.

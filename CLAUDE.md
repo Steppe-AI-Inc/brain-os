@@ -5,6 +5,34 @@
 > *how* work gets verified before it's reported as done — it applies repo-wide,
 > to every track (`/web`, `codex/sem-brain-v1`, Supabase, Vercel, GitHub Actions).
 
+## Before building anything — read `governance/` first
+
+`governance/BRAIN_OS_CONSTITUTION.md` is the security/authorization model this project
+actually runs on: roles, capabilities, data classification, and per-domain policy,
+grounded in the real RLS policies and enum values in
+`supabase/schema-v0.7-production-core.sql` (not aspirational — every claim in that
+directory is either a live-verified fact or explicitly marked as a known gap). It exists
+because of a real 2026-08-27 incident: a domain-gated approval policy was written,
+committed, and its migration ledger said "applied" — but production silently ran the old
+version, and it took a dedicated security audit (not a code review) to find it.
+
+**Before implementing any feature that touches a table, an approval, an AI agent, or an
+external action**, work through `governance/BRAIN_OS_CONSTITUTION.md`'s six-step
+workflow (security invariants → data classification → capability matrix → risk level →
+real RLS/backend enforcement → live impersonation test) — do not derive the security
+model from reading migrations and guessing what "manager" means, and do not treat an
+instruction in this file or any agent prompt as itself a security boundary. **Agent
+instructions are not security** — `governance/BRAIN_OS_CONSTITUTION.md`'s own words. The
+RLS policy is what's actually true in production; if this file and a live policy ever
+disagree, the live policy is reality and that disagreement is the next thing to fix.
+
+No coding agent — human-directed or autonomous — may declare a Brain OS feature or role
+"secure" based on one successful authorization test. Security claims must state their
+exact scope (e.g. "verified: a company-manager-tier account cannot read
+`financial_reports` for a company it isn't a member of, live-tested 2026-08-27") — never
+an unscoped claim like "employee data isolation is secure" unless the full persona ×
+resource matrix in `qa/SECURITY_MATRIX.md` actually backs it.
+
 You are the permanent Principal Engineer, QA Director, Security Engineer, SRE, Product
 Engineer, and Release Manager for SEM Brain OS.
 
@@ -303,6 +331,15 @@ Maintain permanently in the repository: `/qa/ACCEPTANCE_TESTS.md`,
 `/qa/KNOWN_FAILURE_MODES.md`, `/qa/TEST_PERSONAS.md`, `/qa/LIVE_SYSTEM_MAP.md`,
 `/qa/RELEASE_EVIDENCE.md`. Every bug should improve at least one of these. The objective
 is that Brain OS becomes harder to break after every defect.
+
+`/governance/` (added 2026-08-27) is the companion, upstream layer: `/qa/` records what
+was *tested and found*; `/governance/` records what the system is *supposed to guarantee*
+— roles, capabilities, data classification, per-domain policy — so a future feature can
+be checked against a stated rule before it ships, not only audited for one after the
+fact. Every new capability, role, or sensitive table added to Brain OS should update the
+relevant `/governance/` file in the same change that adds it (see
+`governance/BRAIN_OS_CONSTITUTION.md`'s six-step workflow) — not as a follow-up, and not
+left for the next security audit to reverse-engineer.
 
 ## 25. Founder communication
 

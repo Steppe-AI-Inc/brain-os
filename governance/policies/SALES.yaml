@@ -1,0 +1,37 @@
+# Sales domain policy. NOTE: 'sales' is NOT a distinct approval_domain enum value —
+# sales-related approvals (a discount, a proposal signature) fall under 'general' unless
+# they independently trigger a forced-approval keyword match into a stricter domain.
+# This file documents the real sales_leads/proposals authorization, not a domain that
+# doesn't exist in the schema.
+domain: sales
+approval_domain_enum_value: general (no dedicated 'sales' value exists)
+description: >
+  Sales leads, proposals, and quotations. Financial figures inside a proposal
+  (unit_cost, internal_margin) are physically separated into companion tables gated by
+  the finance domain's rules (see FINANCE.yaml) — the proposal's customer-facing content
+  itself is a normal company-scoped resource, not finance-domain-gated.
+read_capability: sales.read.pipeline
+write_capability: sales.modify.lead
+authorized_roles:
+  - founder
+  - holding_admin
+  - company_manager (role_in_company: owner/manager/team_lead) — full read/write
+  - any active company member — can create leads/proposals, can update/delete only ones
+    they own (sales_leads_update_own_or_manager)
+enforcing_tables:
+  - sales_leads
+  - proposals
+  - proposal_items
+  - product_lines
+verified: false
+note: >
+  Policy correct on paper (reviewed against schema-v0.7-production-core.sql), but
+  untestable via live impersonation this pass — 0 real rows exist in production
+  sales_leads to verify RLS filtering against. Revisit once real data exists.
+future_work: >
+  If sales approvals (e.g. "approve this discount") need a distinct gate stricter than
+  general company-manager approval, a real 'sales' approval_domain enum value would need
+  to be added — currently any sales-related approval either stays in 'general' (company
+  manager can approve) or gets classified into 'finance' by
+  detectApprovalDomain()/detectForcedApprovalKeywords() if it touches pricing/discount
+  language, which is the current de facto mechanism, not a dedicated sales gate.

@@ -290,3 +290,71 @@ clearly about one company) and wherever `audit_logs` rows get inserted. Lower pr
 than the leaks fixed tonight since it's over-restrictive (blocks legitimate access)
 rather than under-restrictive (leaks data), but worth fixing before a real
 company_manager persona is onboarded and expects to use this.
+
+## 11. `memories` sensitivity is model-assigned with no floor against source data (OPEN — real gap, found while writing governance docs 2026-08-27)
+
+**Found while:** writing `governance/SECURITY_INVARIANTS.md` invariant #7
+("AI-generated summaries inherit the highest sensitivity of their source information")
+— checking whether this held true against the actual `sem_execute_ai_command` RPC found
+that it doesn't, structurally.
+
+**Root cause:** the RPC inserts a `memories` row with
+`coalesce((v_memory->>'sensitivity')::visibility_level, 'internal'::visibility_level)` —
+the sensitivity tier is whatever the model itself decided to output (or `internal` if it
+said nothing), with **no validation against what the memory's `fact` text was actually
+derived from**. `memories_select_scope` then honors that tier normally
+(`sensitivity in ('public','internal')` → any company member; `confidential` → manager+/
+hr_finance).
+
+**Concrete failure scenario:** the founder (who has real access to `financial_reports`)
+asks Brain OS chat "summarize how CLIX GPS is doing financially." If the model writes
+the resulting summary as a `memories` row tagged `internal` (the default if it doesn't
+think to tag it `confidential`), that memory — containing real revenue/cash figures —
+becomes readable by any active member of CLIX GPS via the normal RAG/memory pipeline,
+even though `financial_reports` itself remains correctly locked to manager+/hr_finance.
+This is a real leak path through a side door, not through the table the data actually
+lives in.
+
+**Status:** not reproduced live this pass (would require actually prompting the model
+and inspecting the resulting `memories.sensitivity` value across several real
+financial/salary-adjacent questions) and not fixed — found via code/architecture review
+while writing `governance/SECURITY_INVARIANTS.md`, flagged here per this file's own
+"write it down even when found outside a live test" standard. Two possible fixes, either
+is legitimate, founder's call: (a) have the RPC compute a floor for `sensitivity` based
+on which source tables/fields the memory candidate's context was drawn from, or (b)
+require the same authorization as the source data to even create a memory referencing
+it (e.g. only manager+/hr_finance-tier callers can create memories tagged `internal` or
+lower that touch financial/salary facts). **Recommend live-reproducing this before
+fixing** — per this project's own "no fake verification" standard, confirm the actual
+failure (ask the real chat a real financial question, inspect the resulting
+`memories.sensitivity` value directly via SQL) before writing a fix for it.
+
+## 12. `hr_finance` role has zero access to `financial_reports` (FIX WRITTEN, PENDING PRODUCTION PUSH, 2026-08-27)
+
+**Found while:** persona-matrix testing (`qa/SECURITY_MATRIX.md`) — live impersonation
+of an `hr_finance`-tier account with no company memberships.
+
+**Symptom, reproduced live:** the test account correctly saw all `finance`/`salary_hr`
+domain approvals (21/21) and all `salary_rules` (3/3), but **0 of 2 real
+`financial_reports` rows** — despite `financial_reports` being exactly the kind of
+company financial data an HR/Finance role would be expected to review, and despite
+every *other* finance-adjacent table (`salary_private`, `salary_rules`, `kpi_records`)
+already including `is_hr_finance()` in its policy.
+
+**Root cause:** `financial_reports_select_scope`/`_write_scope` were
+`is_founder_or_admin() OR is_company_manager(company_id)` — never called
+`is_hr_finance()` at all. Inconsistent with the pattern every sibling table already
+uses.
+
+**Fix written:** `supabase/migrations/202608270003_financial_reports_hr_finance_access.sql`
+adds `is_hr_finance()` to both policies, matching the established pattern.
+`schema-v0.7-production-core.sql` updated to match. `supabase db push --linked --dry-run`
+confirms it's the only pending migration and applies cleanly.
+
+**NOT yet applied to production** — the push was blocked by this session's own
+auto-mode safety classifier as a live security-policy change (same class of block the
+`approvals_update_approver` fix hit before the founder explicitly authorized that one).
+Per this session's operating rules, not routed around. **Needs the founder to run
+`supabase db push --linked` or explicitly authorize it**, then re-verify live (same
+method as #8: temporary hr_finance-tier test account, confirm it now sees the real
+`financial_reports` count, clean up after).

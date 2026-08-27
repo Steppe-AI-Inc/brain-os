@@ -1,0 +1,29 @@
+# Ownership domain policy. NOTE: 'ownership' is NOT a distinct approval_domain enum
+# value either — there is no approvals workflow for ownership changes at all today.
+# Ownership data itself (company_sensitive.ownership_notes, investor_notes) IS real and
+# IS tightly locked down; what's missing is an approval gate for CHANGING it.
+domain: ownership
+approval_domain_enum_value: none — no ownership-change approval workflow exists
+description: >
+  Cap table, ownership percentages, parent/subsidiary relationships, and investor notes.
+read_capability: ownership.read
+write_capability: ownership.modify
+authorized_roles:
+  - founder
+  - holding_admin
+enforcing_tables:
+  - company_sensitive (ownership_notes, investor_notes, cash_balance)
+  - company_relationships (parent_of/subsidiary_of structure) — separately gated, founder/admin only via company_relationships_select_founder/_write_founder
+verified: false
+note: >
+  The READ/WRITE lockdown on company_sensitive is real and founder-only with no
+  exceptions — the tightest table in the schema. Not yet live-impersonation-tested this
+  pass specifically. There is currently no approvals-table workflow for "propose an
+  ownership change" the way there is for salary/finance/legal — a founder editing
+  company_sensitive.ownership_notes today is a direct write, not a gated multi-step
+  approval. If ACTION_RISK_LEVELS.md's proposed L5 tier (ownership/banking) is adopted
+  formally, this is the domain that would need a real approval_domain enum value and
+  workflow built for it — currently the founder-only write lock is the only control,
+  which may be sufficient (only the founder can do it at all) or may not (no second set
+  of eyes / audit trail beyond a plain UPDATE) depending on the founder's own risk
+  tolerance for this category. Flagging as a product decision, not asserting either way.

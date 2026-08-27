@@ -1373,13 +1373,13 @@ create policy "documents_write_scope" on public.documents for all using (public.
 alter table public.financial_reports enable row level security;
 drop policy if exists "financial_reports_select_scope" on public.financial_reports;
 create policy "financial_reports_select_scope" on public.financial_reports for select using (
-  public.is_founder_or_admin() or public.is_company_manager(company_id)
+  public.is_founder_or_admin() or public.is_company_manager(company_id) or public.is_hr_finance()
 );
 drop policy if exists "financial_reports_write_scope" on public.financial_reports;
 create policy "financial_reports_write_scope" on public.financial_reports for all using (
-  public.is_founder_or_admin() or public.is_company_manager(company_id)
+  public.is_founder_or_admin() or public.is_company_manager(company_id) or public.is_hr_finance()
 ) with check (
-  public.is_founder_or_admin() or public.is_company_manager(company_id)
+  public.is_founder_or_admin() or public.is_company_manager(company_id) or public.is_hr_finance()
 );
 
 -- Storage: the `documents` bucket stores uploaded artifacts (financial statements etc.)

@@ -1,0 +1,24 @@
+# Finance domain policy. Maps directly to the real approval_domain enum value 'finance'
+# and the capabilities defined in capabilities/CAPABILITY_MATRIX.yaml under finance.*.
+domain: finance
+approval_domain_enum_value: finance
+description: >
+  Company revenue, expenses, financial reports, and payment approvals. Does NOT cover
+  cash position/ownership (see OWNERSHIP.yaml) or salary (see HR.yaml) — those are
+  separate domains/tables with tighter or different gates even though a human might
+  casually call all three "finance."
+read_capability: finance.read.revenue
+approve_capability: finance.approve.payment
+authorized_roles:
+  - founder
+  - holding_admin
+  - hr_finance
+  - company_manager (role_in_company: owner/manager/team_lead — read only, cannot approve finance-domain approvals; see HR.yaml note on the same asymmetry)
+enforcing_tables:
+  - financial_reports
+  - product_costs
+  - proposal_financials
+  - proposal_item_costs
+  - approvals (domain = 'finance')
+known_gaps:
+  - "PENDING (not yet applied to production): hr_finance currently has zero read access to financial_reports. Fix written as migration 202608270003, blocked on founder authorization to push (same class of block the approvals_update_approver fix hit before being explicitly authorized). Re-check `supabase migration list --linked` before trusting this line is resolved."
