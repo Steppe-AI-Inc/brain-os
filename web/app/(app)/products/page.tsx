@@ -10,7 +10,7 @@ export default async function ProductsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader icon={Package} title="Product Factory" description="Product catalog. Writes are manager-gated by RLS." />
+      <PageHeader icon={Package} title="Product Factory" description="Product catalog, editable by managers." />
       <ProductCreateForm companies={companies} />
       <ProductsTable products={products} companies={companies.map((c) => ({ id: c.id, name: c.name }))} />
     </div>

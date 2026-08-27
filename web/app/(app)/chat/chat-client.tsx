@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ChevronDown, ChevronUp, Paperclip, Mic, MicOff, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -417,7 +418,7 @@ export function ChatClient({
       <PageHeader
         icon={Sparkles}
         title="Speak with Brain OS"
-        description="Every command goes through the real sem-ai-command Edge Function — RLS-scoped context, server-side risk-approval enforcement, transactional persistence. Nothing is simulated locally."
+        description="Ask a question or give a command — Brain OS pulls real data and routes anything high-risk to you for approval."
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card/60 px-4 py-2.5">
@@ -466,7 +467,11 @@ export function ChatClient({
                       </div>
                     ) : (
                       <>
-                        <p>{m.result?.summary}</p>
+                        {m.result?.summary && (
+                          <div className="flex flex-col gap-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
+                            <ReactMarkdown>{m.result.summary}</ReactMarkdown>
+                          </div>
+                        )}
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
                           <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>

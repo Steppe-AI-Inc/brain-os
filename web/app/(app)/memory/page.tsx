@@ -28,7 +28,7 @@ export default async function MemoryPage() {
       <PageHeader
         icon={BrainCircuit}
         title="Memory"
-        description="Source-linked organizational knowledge. Confidential+ requires manager/HR-finance (RLS)."
+        description="Organizational knowledge, linked back to its source. Confidential entries are limited to managers and HR/Finance."
       />
       <MemoryCreateForm companies={companies} />
       <div className="flex flex-col gap-2">

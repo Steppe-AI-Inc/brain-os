@@ -12,7 +12,7 @@ export default async function TasksPage() {
       <PageHeader
         icon={ListChecks}
         title="Tasks"
-        description="Drag a card to change status, click to edit, or add one per column. Grouped by status, scoped to what RLS allows you to see."
+        description="Drag a card to change status, click to edit, or add one per column."
       />
       <TasksBoard
         tasks={tasks}

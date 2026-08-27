@@ -18,7 +18,7 @@ export default function WorkflowsPage() {
       <PageHeader
         icon={Workflow}
         title="Workflow Factory"
-        description="One-click workflows. Each runs the real sem-ai-command Edge Function — no local simulation, unlike the old app's version of this page."
+        description="One-click workflows for common requests."
       />
       <SoftwareFactoryComposer />
       <WorkflowGrid workflows={WORKFLOWS} />

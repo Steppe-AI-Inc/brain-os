@@ -32,7 +32,7 @@ export default async function KpiPage() {
       <PageHeader
         icon={Gauge}
         title="KPI + Salary"
-        description="Salary figures are RLS-gated to HR-finance/founder — not fetched here at all for other roles."
+        description="Salary figures are only visible to HR/Finance and the founder."
         actions={
           <div className="flex flex-col items-end gap-2">
             <ScoringButton />

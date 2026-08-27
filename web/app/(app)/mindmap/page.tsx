@@ -77,7 +77,7 @@ export default async function MindmapPage() {
       <PageHeader
         icon={Network}
         title="Operating Mindmap"
-        description="Companies → projects → people → AI agents → tasks → approvals, built from real, RLS-scoped data."
+        description="How your companies, projects, people, and work all connect."
       />
       <MindmapView graph={graph} />
     </div>

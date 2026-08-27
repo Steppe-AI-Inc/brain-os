@@ -12,7 +12,7 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader icon={ShieldCheck} title="Approvals" description="Domain-gated: only the right authority can decide each one." />
+      <PageHeader icon={ShieldCheck} title="Approvals" description="Routed automatically to whoever has the authority to decide each one." />
 
       <div className="flex flex-col gap-3">
         {pending.map((a) => (

@@ -23,7 +23,7 @@ export default async function DocumentsPage() {
       <PageHeader
         icon={FileText}
         title="Documents & Knowledge"
-        description="Real files, stored and sorted by company → category. Select multiple to batch-download or delete."
+        description="Files stored and sorted by company and category. Select multiple to batch-download or delete."
       />
       <DocumentCreateForm
         companies={companies.map((c) => ({ id: c.id, name: c.name }))}

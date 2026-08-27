@@ -32,7 +32,7 @@ export default async function BillingPage() {
       <PageHeader
         icon={Wallet}
         title="Billing"
-        description="SEM Brain AI Service Credits — a prepaid ledger customers deposit into, not transferable provider tokens. Balance is always the sum of ledger entries."
+        description="Your prepaid AI credit balance and usage history."
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

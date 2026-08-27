@@ -13,7 +13,7 @@ export default async function AccessPage() {
       <PageHeader
         icon={KeyRound}
         title="User Access"
-        description="Real accounts and company memberships — not the old app's fake 'switch user' simulator. RLS decides what you see here, not this page."
+        description="Who has access, and to which companies."
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden bg-card/80 backdrop-blur">

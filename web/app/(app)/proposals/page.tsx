@@ -25,7 +25,7 @@ export default async function ProposalsPage() {
       <PageHeader
         icon={FileSignature}
         title="Proposal Factory"
-        description="Consolidated quote → proposal flow with server-computed risk scoring."
+        description="Quote-to-proposal workflow with automatic risk scoring."
       />
       <ProposalCreateForm companies={companies} products={products} />
       <ProposalsTable proposals={proposals} />

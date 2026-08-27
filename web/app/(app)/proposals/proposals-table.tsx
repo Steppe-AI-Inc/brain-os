@@ -140,7 +140,7 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
         open={!!editing}
         onOpenChange={(open) => !open && setEditing(null)}
         title="Edit proposal"
-        description="Financials (subtotal, total, margin) are server-computed at creation and not editable here."
+        description="Totals and margin are calculated automatically and can't be edited here."
         saveDisabled={!values.title.trim()}
         onSave={async () => {
           if (!editing) return null;
