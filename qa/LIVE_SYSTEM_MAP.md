@@ -72,10 +72,14 @@ safe_companies/safe_proposals now 0/0, tasks now 0 for a non-creator/non-owner e
   (see SECURITY_MATRIX.md), not individually live-tested.
 - `sem-artifact-analyze`'s logic itself has not been deeply code-reviewed line by line,
   only checked for the RLS-bypass class of issue.
-- The policy-drift diff covered `public` schema tables only — `storage.objects` and any
-  other non-`public` schema policies have not been diffed the same way yet. **Given the
-  drift class just found affected 3 of 6 tickets in one migration alone, this should not
-  be assumed clean until actually checked.**
+- ~~The policy-drift diff covered `public` schema tables only~~ — **checked 2026-08-27**:
+  `storage.objects`' 2 policies (`documents_bucket_select`/`_write`) match tracked
+  source exactly (same function signatures), the `documents` bucket is correctly
+  private, RLS is enabled on `storage.objects`, and every `public`-schema view was
+  checked for the same missing-`security_invoker` class — only `safe_companies`/
+  `safe_proposals` exist, both already fixed. Re-verified live: a non-manager employee
+  still can't fetch a confidential document's storage object. Clean, no further drift
+  found here.
 - `engineering_drawings` policies exist correctly in a migration file
   (`202608260012_engineering_drawings.sql`) but were never folded into the consolidated
   `schema-v0.7-production-core.sql` — a documentation-consistency gap, not a live drift
