@@ -22,23 +22,26 @@ applicable to this product's current scope (noted why).
    foreign key to `goals.id` — tasks and goals created by the same command share a
    label, not a real relational link. Worth knowing if a future feature needs to query
    "tasks under goal X" reliably.
-4. An employee sees only assigned work. ⚠️ **Tested live, and the literal wording is
-   FALSE by design, not a bug** (2026-08-27): a non-manager `employee`-tier test account
-   with company membership saw all 30 of that company's tasks, not just tasks it owns
-   — confirmed both directions: 0 visible tasks with no membership at all, 30 visible
-   (the company's full total) once given plain `employee` membership. Root cause:
-   `tasks_select_scope`'s `has_company_access(company_id)` branch grants visibility to
-   any active company member regardless of ownership; the narrower "own task" branch
-   (`pe.profile_id = current_profile_id()`) exists in the policy but is effectively
-   unreachable in production today — checked globally, only 6 of 72 real tasks have
-   `owner_person_id` set at all, and **zero** of those linked `people` rows have a
-   `profile_id` (auth account) attached, so the per-owner clause has never actually
-   matched a real row. This is company-wide task visibility (a legitimate,
-   probably-intentional "team transparency" design — company boundary is still
-   correctly enforced, verified above), not a data leak. Flagging because the
-   acceptance-test wording assumes per-assignee restriction, which is not what's
-   built; worth the founder confirming this is the intended behavior rather than
-   silently treating it as passing.
+4. An employee sees only assigned work. ✅ **CORRECTION of an earlier entry in this same
+   file** (2026-08-27): originally marked "false by design, not a bug" after finding a
+   plain employee saw all 30 of a company's tasks. That was wrong — it was a real,
+   reproduced bug, not a design choice, discovered while reproducing a separate issue
+   (`qa/KNOWN_FAILURE_MODES.md` #11). Root cause: `tasks_select_scope` was supposed to
+   be narrowed to founder/company-manager/task-creator/task-owner by migration
+   `202608230001` (its own comment literally says "tasks_select_scope let any company
+   member see every task," describing this exact bug as something already fixed) — that
+   narrowing never took effect live, the same GitHub↔production drift class as #8/#11.
+   **Fixed and re-verified live**: migration `202608270004` re-applied the narrowed
+   policy; the same plain-employee test account (not a creator or owner of any of CLIX
+   GPS's tasks) now sees 0 tasks there (real total: 7), down from seeing the full
+   company total before the fix. One caveat carried over from the original
+   investigation, still real: the "owner" branch of this policy
+   (`pe.profile_id = current_profile_id()`) is still effectively unreachable — 0 of the
+   6 real tasks with `owner_person_id` set have a `profile_id` link on that `people`
+   row — so today this policy's real behavior is "founder, company manager, or whoever
+   created the task," not yet "or whoever it's assigned to." Not a security issue
+   (narrower than intended, not broader), but worth knowing before relying on assignee-
+   based visibility.
 5. Low-risk task executes without founder interruption; high-risk/external action
    waits for approval. ✅ (partially) — confirmed high-risk channel deletion always
    creates a forced approval record regardless of outcome; low-risk task creation
@@ -151,16 +154,20 @@ applicable to this product's current scope (noted why).
 
 ## Honest summary
 
-All 18 now have real evidence behind them (up from 7 at the start of this pass). 12
-passing (#1, #2, #3, #5, #6, #9, #11, #12, #13, #15, #16, #18 — several partial), 2
+All 18 now have real evidence behind them (up from 7 at the start of this pass). 13
+passing (#1, #2, #3, #4, #5, #6, #9, #11, #12, #13, #15, #16, #18 — several partial), 2
 confirmed failing with root cause identified (#7 not implemented, #10 no audit trail for
-manual UI actions), 1 confirmed working-but-not-matching-its-literal-wording by design
-(#4), 1 flagged as a product-intent question rather than pass/fail (#14), 1 mixed
-pass/fail with a concrete bug found (#17 — mobile nav/EN-MN mostly works, `/chat`
-composer broken by default), 1 not applicable (#8). #6 was found broken, fixed, pushed
-to production with founder authorization, and re-verified live — the only one of the 18
-that moved from failing to passing within this sweep. Every "passing" mark above is
-backed by either a live production test (curl against real `brain.open-spot.ai`, real
-RLS impersonation, or a real browser session) or a read of the actual deployed source
-(`pg_get_functiondef` against the live database, not the migration file) — none are
-assumed from intent alone.
+manual UI actions), 1 flagged as a product-intent question rather than pass/fail (#14),
+1 mixed pass/fail with a concrete bug found (#17 — mobile nav/EN-MN mostly works,
+`/chat` composer broken by default), 1 not applicable (#8). **Two of the 18 moved from
+failing to passing within this sweep, both real production bugs, both fixed and
+re-verified live with the founder's explicit authorization to push:** #6
+(`approvals_update_approver` domain gating) and #4 (`tasks_select_scope` — note #4 was
+*first marked passing-by-design in this same file*, then corrected to failing, then
+fixed and re-verified, all within this one sweep — see its entry above for why, and
+treat any "X is fine by design" conclusion in this project with appropriate suspicion
+until it's actually been tried to fail). Every "passing" mark above is backed by either
+a live production test (curl against real `brain.open-spot.ai`, real RLS impersonation,
+or a real browser session) or a read of the actual deployed source
+(`pg_get_functiondef`/`pg_get_expr` against the live database, not the migration file)
+— none are assumed from intent alone.

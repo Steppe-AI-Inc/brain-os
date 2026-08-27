@@ -46,15 +46,36 @@ a live dashboard.
   recovery migration was a true no-op as designed. See KNOWN_FAILURE_MODES.md #8 for
   full before/after evidence.
 
+## Resolved this pass (continued 2) — the same drift class hit three more policies
+
+Asked to reproduce a hypothesized `memories` gap; reproducing it live found the real bug
+was different (see KNOWN_FAILURE_MODES.md #11) and traced back to the same migration
+(`202608230001`) as the approvals fix above. A proper signature-based diff (which
+authorization function calls each policy contains, not just whether the policy name
+exists) of all 108 live policies against the schema file — the name-only diff done
+earlier in this pass wasn't sufficient, see REGRESSION_CATALOG.md's corrected
+methodology — found two more casualties: `tasks_select_scope` (was letting any company
+member see the full company task list, not just founder/manager/creator/owner) and both
+`safe_companies`/`safe_proposals` views (missing `security_invoker`, the most severe of
+the three — a caller with zero company memberships anywhere could read all 7 companies
+via direct query, complete RLS bypass). Fixed via migration `202608270004`, pushed with
+the founder's explicit authorization, independently re-verified live for all three
+(fresh impersonation tests, not trusted from the push report): memories now 0/2,
+safe_companies/safe_proposals now 0/0, tasks now 0 for a non-creator/non-owner employee
+(real total 7). All temporary test data cleaned up after.
+
 ## Not yet done
 
-- Full persona × table RLS matrix (see SECURITY_MATRIX.md) — only 2 personas
-  (founder, one non-manager test employee) have been used for real impersonation testing
-  so far, not the full 11-persona list in CLAUDE.md §4.
+- Full persona × table RLS matrix (see SECURITY_MATRIX.md) — 5 personas now tested
+  (founder, non-manager employee, holding_admin, hr_finance, investor_viewer) of the
+  11-persona list in CLAUDE.md §4; the rest confirmed as inert no-ops by code search
+  (see SECURITY_MATRIX.md), not individually live-tested.
 - `sem-artifact-analyze`'s logic itself has not been deeply code-reviewed line by line,
   only checked for the RLS-bypass class of issue.
 - The policy-drift diff covered `public` schema tables only — `storage.objects` and any
-  other non-`public` schema policies have not been diffed the same way yet.
+  other non-`public` schema policies have not been diffed the same way yet. **Given the
+  drift class just found affected 3 of 6 tickets in one migration alone, this should not
+  be assumed clean until actually checked.**
 - `engineering_drawings` policies exist correctly in a migration file
   (`202608260012_engineering_drawings.sql`) but were never folded into the consolidated
   `schema-v0.7-production-core.sql` — a documentation-consistency gap, not a live drift

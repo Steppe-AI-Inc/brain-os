@@ -83,27 +83,34 @@ risk" is not the same as "tested," flagged as remaining work).
 
 ## 7. AI-generated summaries inherit the highest sensitivity of their source information.
 
-**Mechanism:** none exists yet as a distinct enforcement layer. Today this invariant
-holds only as a side effect of rule 6 (the AI never receives sensitive source data for a
-caller who can't already see it, so a summary it generates for that caller can't
-accidentally leak something it never had). For a caller who *can* see sensitive data
-(e.g. founder), nothing currently stops the model from writing that data into a `memories`
-row with a lower `sensitivity` tier than the source, which a lower-privilege caller could
-then read.
+**Mechanism:** none exists as a *distinct* enforcement layer — this invariant relies on
+`memories_select_scope` correctly honoring whatever `sensitivity` tag a memory carries
+(the model does tag financial/salary-derived facts `confidential` in practice — verified
+below), combined with rule 6 (sensitive source data never reaching a low-privilege
+caller's context in the first place).
 
-**Status:** OPEN, real gap, not yet fixed. `memories.sensitivity` is set by the model
-itself (`coalesce((v_memory->>'sensitivity')::visibility_level, 'internal')`) with no
-validation against the sensitivity of whatever the memory was derived from. Concretely:
-if the founder asks Brain OS to "summarize how CLIX GPS is doing financially" and the
-model writes a `memories` row with `sensitivity: 'internal'` containing real revenue
-figures, that memory becomes visible to any company member via
-`memories_select_scope`'s `sensitivity in ('public','internal')` branch — a real
-company-cash-position leak through the memory/RAG pipeline, distinct from the
-`financial_reports` table itself (which is correctly locked down). **This needs a fix:**
-either the RPC should compute a floor for `sensitivity` based on which source tables the
-memory's `fact` text was derived from, or memory-writing should require the same
-authorization as the source data itself (e.g. only company-manager+/hr_finance+ callers
-can create `internal`-or-lower memories that reference financial/salary facts). Not
-implemented this pass — flagging as the highest-priority open item in this file since
-it's the one real gap in the "AI context obeys RLS" architecture that RLS itself can't
-close.
+**Status: reproduced as broken, then fixed and re-verified live, 2026-08-27.** This
+entry originally hypothesized the failure mode as "the model forgets to tag something
+`confidential` (no floor validation at write time)." Reproducing it live found a
+different, more direct bug: the model *had* correctly tagged the relevant memories
+`confidential` — the bug was that `memories_select_scope` never actually enforced the
+`confidential` tier at all, lumping it into the same broad `has_company_access()` branch
+as `public`/`internal` (a GitHub↔production drift bug, same class as
+`approvals_update_approver` — see `qa/KNOWN_FAILURE_MODES.md` #11 for the full trace).
+Reproduced by asking the real production chat, as founder, "summarize how CLIX GPS is
+doing financially" — it answered from a pre-existing `confidential`-tagged memory
+containing exact real figures; a plain employee test account then read that same memory
+in full, while correctly blocked from the `financial_reports` table those figures came
+from (0 rows). Fixed via migration `202608270004`, re-verified: the same employee
+account now sees 0 of the previously-readable confidential memories.
+
+**Remaining, narrower gap, not yet reproduced or fixed:** the *original* hypothesis —
+no floor validation at write time — is still real, just not what caused this particular
+incident. `memories.sensitivity` is still set by
+`coalesce((v_memory->>'sensitivity')::visibility_level, 'internal')` with no check
+against what the memory's `fact` text actually contains; the model happened to tag these
+particular financial facts correctly, but nothing guarantees it always will. Worth a
+second, separate live test (deliberately try to get the model to write a
+financial/salary-derived fact as `internal` or `public`) before considering this
+invariant fully closed — the enforcement bug is fixed, the trust-the-model's-own-tagging
+design gap is not.

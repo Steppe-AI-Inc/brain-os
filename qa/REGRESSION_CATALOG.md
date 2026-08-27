@@ -78,12 +78,33 @@ where n.nspname = 'public'
 order by c.relname, pol.polname;
 ```
 via `supabase db query --linked --file`. Diff the output against every `create policy`
-in `schema-v0.7-production-core.sql` — by table+name (catches undocumented
-live-only policies, the #9 class) and by expression text (catches a tracked migration
-that never actually took effect live, the #8 class — this is how the critical
-`approvals_update_approver` gap was found). A one-off Node script did the diffing
-mechanically last time (`table::policy_name` sorted set comparison) — worth writing as
-a real script if this becomes a routine check rather than re-deriving it each time.
+in `schema-v0.7-production-core.sql` two ways — **both are required, one alone isn't
+enough:**
+
+1. **By table+name** (a sorted `table::policy_name` set comparison) — catches
+   undocumented live-only policies, the #9 class.
+2. **By expression content** — catches a tracked migration that never actually took
+   effect live, the #8/#11 class. **A name-presence diff alone is not sufficient here
+   and was proven insufficient in practice**: the first pass through this project only
+   did a manual text comparison for `approvals` specifically (which is how the
+   `approvals_update_approver` gap was found) plus a name-only diff for everything else
+   — and that missed three more casualties of the *same* migration
+   (`memories_select_scope`, `tasks_select_scope`, and both `safe_*` views'
+   `security_invoker` setting) that sat live-broken until a completely unrelated request
+   (reproducing a different hypothesized bug) surfaced one of them by accident. Exact
+   string comparison between live `pg_get_expr` output and hand-written schema-file SQL
+   produces too many false positives from formatting/qualification differences to be
+   useful directly — instead, extract a *signature* per policy (which security-relevant
+   function calls it contains — `is_founder_or_admin`, `is_company_manager`,
+   `is_hr_finance`, `has_company_access`, `current_profile_id` — sorted, deduplicated)
+   from both the live expression and the schema file's block for that policy name, and
+   diff the signatures. This is robust to formatting/quoting differences while still
+   catching a missing or extra authorization function call. A one-off Node script did
+   this last time; worth writing as a real script if this becomes a routine check.
+3. **View-level settings are not policies and won't show up in `pg_policy` at all** —
+   the `safe_companies`/`safe_proposals` `security_invoker` gap was only found by
+   separately checking `pg_class.reloptions` for those two views. Any future "safe view"
+   pattern needs this checked explicitly; it isn't covered by the policy diff above.
 
 ## AI adversarial prompt-injection (verified once, 2026-08-27 — re-run after any
 sem-ai-command system-prompt change)

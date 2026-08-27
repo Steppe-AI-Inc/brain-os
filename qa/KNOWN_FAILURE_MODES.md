@@ -291,43 +291,69 @@ than the leaks fixed tonight since it's over-restrictive (blocks legitimate acce
 rather than under-restrictive (leaks data), but worth fixing before a real
 company_manager persona is onboarded and expects to use this.
 
-## 11. `memories` sensitivity is model-assigned with no floor against source data (OPEN — real gap, found while writing governance docs 2026-08-27)
+## 11. `memories` "confidential" tier was not actually enforced — plus two sibling bugs from the same root cause (FIXED and VERIFIED LIVE, 2026-08-27)
 
-**Found while:** writing `governance/SECURITY_INVARIANTS.md` invariant #7
-("AI-generated summaries inherit the highest sensitivity of their source information")
-— checking whether this held true against the actual `sem_execute_ai_command` RPC found
-that it doesn't, structurally.
+**Found while:** the founder asked to reproduce a *hypothesized* gap
+("`memories` sensitivity is model-assigned with no floor against source data," written
+while drafting `governance/SECURITY_INVARIANTS.md`). Reproducing it live found the real
+bug was different from, and worse than, the hypothesis.
 
-**Root cause:** the RPC inserts a `memories` row with
-`coalesce((v_memory->>'sensitivity')::visibility_level, 'internal'::visibility_level)` —
-the sensitivity tier is whatever the model itself decided to output (or `internal` if it
-said nothing), with **no validation against what the memory's `fact` text was actually
-derived from**. `memories_select_scope` then honors that tier normally
-(`sensitivity in ('public','internal')` → any company member; `confidential` → manager+/
-hr_finance).
+**What was actually reproduced:** asked the real production chat, as founder, "summarize
+how CLIX GPS is doing financially" — the model answered from an **existing** memory row
+(created in an earlier session), not a new one, so this wasn't about the model failing
+to set a floor at write time. The pre-existing memory (`id: f4fc3190...`, and a sibling
+`f6b1a5d6...`) was already correctly tagged `sensitivity: 'confidential'`. The bug: **the
+live `memories_select_scope` policy never actually restricted `confidential` at all** —
+it lumped `confidential` into the same broad `has_company_access(company_id)` branch as
+`public`/`internal`, instead of requiring `is_company_manager()`/`is_hr_finance()` the
+way `documents_select_scope` (right next to it, same migration) correctly does.
+Live-verified with a real impersonation: a plain non-manager employee at CLIX GPS read
+both `confidential`-tagged memories in full, containing the company's exact real
+revenue/expense/cash figures, while correctly blocked from `financial_reports` itself
+(0 rows) — the leak was entirely through the memory side door, not the source table.
 
-**Concrete failure scenario:** the founder (who has real access to `financial_reports`)
-asks Brain OS chat "summarize how CLIX GPS is doing financially." If the model writes
-the resulting summary as a `memories` row tagged `internal` (the default if it doesn't
-think to tag it `confidential`), that memory — containing real revenue/cash figures —
-becomes readable by any active member of CLIX GPS via the normal RAG/memory pipeline,
-even though `financial_reports` itself remains correctly locked to manager+/hr_finance.
-This is a real leak path through a side door, not through the table the data actually
-lives in.
+**Root cause, and why it widened into a bigger investigation:** the tracked schema file
+(`schema-v0.7-production-core.sql`) already had the *correct* memories policy — this was
+GitHub↔production drift, the same class as #8 (`approvals_update_approver`). Tracing
+where that policy came from led to `202608230001_security_hardening_rls.sql`, which
+bundled six security tickets. A systematic signature-based diff (which RLS-relevant
+function calls each live policy contains vs. what the schema file specifies) of every
+one of the 108 live `public`-schema policies against that file found **two more
+casualties of the same migration never fully taking effect**:
 
-**Status:** not reproduced live this pass (would require actually prompting the model
-and inspecting the resulting `memories.sensitivity` value across several real
-financial/salary-adjacent questions) and not fixed — found via code/architecture review
-while writing `governance/SECURITY_INVARIANTS.md`, flagged here per this file's own
-"write it down even when found outside a live test" standard. Two possible fixes, either
-is legitimate, founder's call: (a) have the RPC compute a floor for `sensitivity` based
-on which source tables/fields the memory candidate's context was drawn from, or (b)
-require the same authorization as the source data to even create a memory referencing
-it (e.g. only manager+/hr_finance-tier callers can create memories tagged `internal` or
-lower that touch financial/salary facts). **Recommend live-reproducing this before
-fixing** — per this project's own "no fake verification" standard, confirm the actual
-failure (ask the real chat a real financial question, inspect the resulting
-`memories.sensitivity` value directly via SQL) before writing a fix for it.
+- **`tasks_select_scope`** — the migration's own comment says "tasks_select_scope let
+  any company member see every task" (ticket 5, meant to narrow it to
+  founder/manager/creator/owner). That narrowing never took effect live. This directly
+  contradicts what `qa/ACCEPTANCE_TESTS.md` #4 said earlier this same session ("false by
+  design, not a bug") — that was wrong; it's the exact known bug this migration already
+  tried to fix once. Corrected in that file.
+- **`safe_companies`/`safe_proposals` views** — missing `security_invoker = true`
+  (ticket 1), meaning they evaluated RLS as the view owner (bypass) instead of the
+  caller. **The most severe of the three**: live-verified a test account with *zero*
+  company memberships anywhere read all 7 companies via `safe_companies` (0 via the real
+  `companies` table, correctly) — exploitable by any authenticated user via a direct
+  query, independent of whether the app itself uses these views (it doesn't; grepped
+  `web/` — only referenced in generated FK type metadata, never queried directly — but
+  PostgREST's `grant select ... to authenticated` still makes them reachable).
+
+**Fix applied and verified live in production, 2026-08-27:**
+`supabase/migrations/202608270004_reapply_missing_security_hardening_tickets.sql`
+re-applies all three (memories policy, tasks policy, both views' `security_invoker`),
+pushed with the founder's explicit authorization. Re-verified all three independently
+after the push: `pg_get_expr`/`reloptions` now match the schema file exactly;
+`safe_companies`/`safe_proposals` now return 0 rows for the zero-membership test
+account (was 7/1); the memories test account now sees 0 of the two confidential rows
+(was 2); the plain-employee test account now sees 0 tasks at CLIX GPS via
+`tasks_select_scope` (was all 7 real company tasks, confirmed against the real total).
+All temporary company_memberships rows deleted after.
+
+**Search performed for further casualties of the same migration:** the signature-based
+diff covered all 108 live policies against all policies in the schema file — no further
+mismatches found beyond these three plus the already-fixed #8. Not yet done: the same
+diff for `storage.objects` policies, and confirming Ticket 3 (product_lines/
+inventory_items/sales_leads/proposals/proposal_items) — already independently verified
+live earlier this session — has no further undiscovered gaps within itself beyond what
+was checked.
 
 ## 12. `hr_finance` role has zero access to `financial_reports` (FIXED and VERIFIED LIVE, 2026-08-27)
 

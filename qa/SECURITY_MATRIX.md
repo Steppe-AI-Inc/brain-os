@@ -33,12 +33,14 @@ treatment.
 
 **`investor_viewer` (global `profiles.role`) — tested live, confirmed to carry zero
 special restriction:** given `role='investor_viewer'` + a plain `role_in_company='employee'`
-membership, the test account saw exactly what the earlier plain-`employee` test saw (30/30
-company tasks) — identical access, not reduced. If the founder's intent for this role
-was "an investor should see less than a regular employee" (a reasonable reading of the
-name), that behavior isn't built. Not a leak in the sense of exposing anything a
-same-tier employee couldn't already see, but worth the founder's explicit call on
-whether investor accounts should actually be more restricted.
+membership, the test account saw exactly what the earlier plain-`employee` test saw
+(access matched 1:1, both measured against `tasks` before the `tasks_select_scope` fix
+below — the *identical-to-employee* finding still holds after that fix too, just against
+a smaller real number now) — identical access, not reduced. If the founder's intent for
+this role was "an investor should see less than a regular employee" (a reasonable
+reading of the name), that behavior isn't built. Not a leak in the sense of exposing
+anything a same-tier employee couldn't already see, but worth the founder's explicit
+call on whether investor accounts should actually be more restricted.
 
 **`holding_admin` — tested live, confirmed equivalent to founder:** with no company
 memberships at all, saw the real global totals exactly (7/7 companies, 2/2
@@ -78,6 +80,22 @@ it confirmed directly rather than inferred.
 | `work_orders` | exactly own rows only (6/6 exact match) | — | full access | ✅ live impersonation |
 | `chat_channels` | 0 rows (none are the test account's own) | — | full access | ✅ live impersonation |
 | `integration_queue`, `sales_leads` | **untestable — 0 rows exist in production**, nothing to verify against yet | — | — | ⬜ policy correct on paper, unexercised by real data |
+| `memories` (confidential row) | **found broken 2026-08-27, then fixed**: pre-fix, 2/2 real confidential rows fully readable (real revenue/cash figures) despite 0/2 access to their `financial_reports` source; post-fix, 0/2 | — | full access | ✅ live impersonation, both before and after the fix — `qa/KNOWN_FAILURE_MODES.md` #11 |
+| `safe_companies` / `safe_proposals` views | **found broken 2026-08-27, then fixed**: pre-fix, a test account with ZERO company memberships anywhere saw all 7 companies / 1 proposal via these views (0 via the real `companies` table); post-fix, 0/0 | — | full access | ✅ live impersonation, both before and after — most severe of the three, exploitable with no company membership at all |
+| `tasks` (company-wide vs. narrowed) | **found broken 2026-08-27, then fixed**: pre-fix, a plain employee saw the company's full task total regardless of ownership; post-fix, 0 (real total 7, this account created/owns none of them) | — | full access | ✅ live impersonation, both before and after — `qa/ACCEPTANCE_TESTS.md` #4 |
+
+**Root cause behind all three rows just above:** migration `202608230001_security_hardening_rls.sql`
+bundled six security tickets back in an earlier session. One of them
+(`approvals_update_approver`, `qa/KNOWN_FAILURE_MODES.md` #8) was found and fixed
+2026-08-26/27; reproducing a hypothesized `memories` gap surfaced that the *same
+migration's* other tickets had also silently not taken effect — a systematic
+signature-based diff of all 108 live `public`-schema policies against
+`schema-v0.7-production-core.sql` found the memories/tasks policies and both `safe_*`
+views' `security_invoker` setting still didn't match the tracked source, despite the
+migration showing as applied. All three fixed the same way as #8: a new migration
+re-applying the missing pieces, pushed with the founder's explicit authorization, then
+independently re-verified live (not just trusted from the push report). See
+`qa/KNOWN_FAILURE_MODES.md` #11 for the full trace.
 
 **Important finding, not a leak but worth knowing:** `company_id` is `NULL` on **100% of
 the 243 real rows** across `audit_logs` (141), `work_orders` (99), and `chat_channels`
