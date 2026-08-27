@@ -4,6 +4,54 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 14. No segregation of duties for finance/salary (OPEN — schema gap, reproduced live 2026-08-27)
+
+**Found while:** building the permanent QA scenario library (`qa/scenarios/`), scenario
+SC-058.
+
+**Symptom, reproduced live:** an `hr_finance` account (the only role a "bookkeeper" or
+"CFO" maps to — there is no separate preparer role in `app_role`) can both write
+`salary_private` directly AND approve a `finance`-domain approval it itself requested.
+Reproduced in a rolled-back transaction: promoted the standing employee test profile to
+`hr_finance`, inserted a `salary_private` row directly (succeeded), and self-approved a
+`finance` approval whose `requested_by_profile_id` was the same profile (succeeded). See
+`qa/scenarios-runner/sc058_bookkeeper_sod_gap.sql`.
+
+**Root cause:** `salary_write_hr` is `for all using (is_hr_finance())` — insert/update/
+delete with no preparer restriction; `approvals_update_approver` has no
+`requested_by_profile_id <> current_profile_id()` clause for finance/salary domains. The
+schema cannot express "prepare but not approve."
+
+**Fix:** not done — needs either a new `bookkeeper` app_role (insert-only, no approval) or
+a requester≠approver clause on `approvals_update_approver` for salary_hr/finance. A schema
+change requiring founder-authorized `db push`. **Do NOT report SC-058 as a passing test.**
+
+## 15. Approval payload is not immutable after creation (OPEN — reproduced live 2026-08-27)
+
+**Found while:** building SC-060.
+
+**Symptom, reproduced live:** an approver authorized to DECIDE an approval can also REWRITE
+its `approval_payload`. Reproduced in a rolled-back transaction: a company manager changed
+a pending `production` approval's `approval_payload` from `{"offerPrice":2200}` to
+`{"offerPrice":1200}` via a plain `UPDATE`. See
+`qa/scenarios-runner/sc060_payload_immutability_gap.sql`.
+
+**Root cause:** `approvals_update_approver` is a row-level policy — it authorizes UPDATE on
+the row, and Postgres RLS cannot pin individual columns as immutable. Nothing rejects a
+change to `approval_payload`/`title`/`domain`/`company_id` on an existing approval.
+
+**Real-world impact:** the "approve $2,200, then quietly change it to $1,200 before
+execution" attack is not blocked at the database layer. Today it is mitigated only by
+convention: sem-ai-command builds the `execute` payload server-side (never from the model's
+raw JSON), the /web UI exposes no payload-edit control, and `decide_approval()` re-reads the
+payload at decision time — real mitigations, but not a hard guarantee against a direct
+PostgREST PATCH by an authorized approver.
+
+**Fix:** a `BEFORE UPDATE` trigger on `approvals` that raises if the payload/title/domain/
+company_id changes once set (a content change must be a brand-new approval). Not built —
+schema change needs founder-authorized push. **Do NOT report SC-060 as a passing hard
+control.**
+
 ## 10. `/chat` composer unusable on mobile by default (OPEN — not fixed this pass)
 
 **Found while:** live mobile testing (acceptance test #17) against real production at
