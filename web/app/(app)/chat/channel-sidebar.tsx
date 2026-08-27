@@ -13,24 +13,32 @@ import { renameChannel, deleteChannel, type SidebarChannel } from "@/lib/data/ch
 
 const COLLAPSE_KEY = "brainos.chat.sidebarCollapsed";
 
-function getInitialCollapsed(): boolean {
+// No stored preference yet (first visit, or storage unavailable) — default to
+// collapsed on a narrow viewport so the message thread and composer aren't
+// squeezed into a sliver next to the channel list. An explicit stored
+// preference (the user manually toggled it before) always wins over this.
+function getInitialCollapsed(defaultCollapsedOnMobile: boolean): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
+    const stored = window.localStorage.getItem(COLLAPSE_KEY);
+    if (stored !== null) return stored === "1";
   } catch {
-    return false;
+    // fall through to the viewport-based default
   }
+  return defaultCollapsedOnMobile && window.matchMedia("(max-width: 767px)").matches;
 }
 
 export function ChannelSidebar({
   channels,
   activeChannelId,
+  defaultCollapsedOnMobile = false,
 }: {
   channels: SidebarChannel[];
   activeChannelId: string | null;
+  defaultCollapsedOnMobile?: boolean;
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(getInitialCollapsed);
+  const [collapsed, setCollapsed] = useState(() => getInitialCollapsed(defaultCollapsedOnMobile));
   const [editing, setEditing] = useState<SidebarChannel | null>(null);
   const [editValue, setEditValue] = useState("");
 

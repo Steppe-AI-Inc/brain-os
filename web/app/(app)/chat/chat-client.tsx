@@ -437,8 +437,8 @@ export function ChatClient({
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
-        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} />
+      <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
+        <ChannelSidebar channels={channels} activeChannelId={activeChannelId} defaultCollapsedOnMobile />
         <div className="flex flex-1 flex-col gap-3 overflow-hidden">
           <ChannelMemoryStrip memories={channelMemories} />
           <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
