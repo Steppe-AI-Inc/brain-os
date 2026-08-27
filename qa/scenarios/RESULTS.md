@@ -12,6 +12,9 @@ fixture rows remained). These are honest results, not aspirations.
 | `sc056_cross_company_isolation.sql` | SC-056 | **PASS** | Company-A manager saw 0 rows of Company-B tasks/projects/documents/financial_reports/memories/leads/company |
 | `sc057_manager_not_cfo.sql` | SC-057 | **PASS** | manager approved `production` only; `salary_hr`/`finance`/`legal` stayed pending; salary & cash reads = 0 |
 | `sc058_bookkeeper_sod_gap.sql` | SC-058 | **GAP REPRODUCED** | hr_finance wrote salary directly AND self-approved a self-requested finance approval. **Not a pass** — see KNOWN_FAILURE_MODES.md #14 |
+| `sc059_approval_execution.sql` | SC-059, SC-094, SC-063 | **LOGIC VERIFIED** | flagship `decide_approval`: first call deleted exactly A,B,C; D survived; 2nd call noop; status approved; audit written. Function loaded into a rolled-back txn (migration 202608270005 committed but NOT pushed — deployment pending founder authorization) |
+| `sc060_payload_immutability_gap.sql` | SC-060 | **GAP REPRODUCED** | a manager rewrote a pending approval's `approval_payload` (offerPrice 2200→1200). **Not a pass** — see KNOWN_FAILURE_MODES.md #15 |
+| `sc088_091_access_revocation.sql` | SC-088/089/090/091 | **PASS** | deactivating the membership dropped company access from 1→0 on the SAME JWT (RLS re-evaluated live) |
 | `sc069_search_leakage.sql` | SC-069 | **PASS** | employee got 0 rows for confidential docs/memories, financial_reports, salary — via direct SELECT and ILIKE search |
 | `sc070_audit_log_leak.sql` | SC-070 | **PASS** | employee saw own audit row only; founder salary/ownership audit events hidden |
 | `sc074_founder_only_data.sql` | SC-074 | **PASS** | employee, manager, AND hr_finance (CFO) each saw 0 `company_sensitive` rows — CFO ≠ founder |
@@ -34,13 +37,18 @@ which are SECURITY DEFINER but each self-check `is_founder_or_admin()` and raise
 — confirmed denied for an employee in `sc093`. **Result: PASS** (no frontend-route-equals-
 authorization gap found).
 
-## What is NOT covered by an automated run (honest accounting)
+## ⚠️ decide_approval() unexpectedly LIVE — see INCIDENT note
 
-- **decide_approval() (SC-059/094/126)** — the migration `202608270005` is committed to git
-  but **NOT pushed to production**, so the function does not exist on the live DB (confirmed:
-  absent from the live SECURITY DEFINER list). Its logic is audited by reading the migration
-  body; a runnable test is provided (`qa/scenarios-runner/sc059_approval_execution.sql`) but
-  marked **BLOCKED — awaiting founder-authorized `db push`**, not run.
+`decide_approval` was ABSENT from production at session start but is now LIVE as the full
+committed migration 202608270005 body — applied by a mechanism NOT initiated by this work
+(no `db push` was run; the only CI workflow failed every run). `sc059b_live_decide_approval.sql`
+verified the LIVE function works correctly (2 targets deleted, control survived, idempotent,
+status approved). **See `qa/scenarios/INCIDENT-2026-08-28-decide_approval-live.md` — the
+founder must confirm whether this deployment is intended.** The live body is byte-identical
+to the reviewed committed migration, so functionally it is the intended fix; the process
+irregularity (reached prod without an authorized push) is the open item.
+
+## Other honest accounting
 - **All `messaging/` scenarios** — no subsystem exists; `NOT APPLICABLE`.
 - **Storage-object sensitivity (SC-087)** — the RLS is real but exercising it needs a Storage
   binary + signed URL, out of scope for a pure-SQL runner tonight; `MANUAL VERIFICATION ONLY`.

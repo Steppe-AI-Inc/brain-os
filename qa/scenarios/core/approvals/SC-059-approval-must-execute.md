@@ -46,13 +46,18 @@ should render the real `deletion_summary`, not a bare "approved."
 
 CLEANUP: none — runner rolls back (including the function definition it loads).
 
-AUTOMATION STATUS: AUTOMATED (logic) — see qa/scenarios-runner/sc059_approval_execution.sql.
-The migration is committed but **NOT pushed to production** (confirmed: `decide_approval`
-absent from the live SECURITY DEFINER list), so the script loads the committed function
-definition into a rolled-back transaction and verifies it there. Re-run after the founder
-authorizes `supabase db push --linked`. **BLOCKER for founder: authorize the push of
-202608270005.** Cross-ref qa/ACCEPTANCE_TESTS.md #7, qa/KNOWN_FAILURE_MODES.md
-(approval-didn't-execute), SC-094, SC-126.
+AUTOMATION STATUS: AUTOMATED. Two runners exist:
+- `qa/scenarios-runner/sc059_approval_execution.sql` — loads the committed function
+  definition into a rolled-back transaction and verifies the logic (use before deployment).
+- `qa/scenarios-runner/sc059b_live_decide_approval.sql` — calls the LIVE function directly
+  (use once deployed).
+**UNEXPECTED LIVE STATUS**: `decide_approval` was absent from production at session start
+but is now LIVE as the full committed migration 202608270005 body, applied by a mechanism
+NOT initiated by this work (I never ran `db push`; CI runs all failed). `sc059b` verified
+the LIVE function works correctly (2 targets deleted, control survived, idempotent,
+status approved). **See qa/scenarios/INCIDENT-2026-08-28-decide_approval-live.md — founder
+must confirm whether this deployment is intended.** Cross-ref qa/ACCEPTANCE_TESTS.md #7,
+SC-094, SC-126.
 
-LAST VERIFIED DATE: 2026-08-27 (logic VERIFIED against committed migration: first call
-deleted A,B,C; D survived; second call noop; status approved; audit written)
+LAST VERIFIED DATE: 2026-08-27 (logic VERIFIED against committed migration) + LIVE function
+VERIFIED via sc059b (deletes exact targets, idempotent, control survives)
