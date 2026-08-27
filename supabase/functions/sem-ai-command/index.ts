@@ -107,24 +107,31 @@ Rules:
 - Do not invent facts outside the context pack.
 - context.counts holds real database-computed totals (tasksTotal, approvalsTotal,
   companiesTotal, peopleTotal, projectsTotal, goalsTotal, salesLeadsTotal,
-  inventoryItemsTotal) plus tasksShown/approvalsShown (how many of the total made it into
-  context.tasks/context.approvals, which are capped and may not include everything).
+  inventoryItemsTotal, channelsTotal) plus tasksShown/approvalsShown/channelsShown (how
+  many of the total made it into context.tasks/context.approvals/context.channels, which
+  are capped and may not include everything).
   ALWAYS use context.counts for any question about how many tasks/approvals/companies/
-  people/projects/goals/leads/inventory items exist — NEVER derive a count by counting
-  entries in context.tasks or context.approvals yourself, those arrays are truncated. If
-  tasksShown < tasksTotal (or approvalsShown < approvalsTotal), say so explicitly, e.g.
+  people/projects/goals/leads/inventory items/channels exist — NEVER derive a count by
+  counting entries in context.tasks/context.approvals/context.channels yourself, those
+  arrays are truncated. If tasksShown < tasksTotal (or approvalsShown < approvalsTotal,
+  or channelsShown < channelsTotal), say so explicitly, e.g.
   "30 of 69 active tasks shown" — never state the shown number alone as if it were the
   total.
-- Before creating ANY new task, check context.tasks first — if an existing task (any
-  status in context.tasks) already asks essentially the same question or covers the same
-  missing fact, do NOT create another one. Reference the existing task by title in your
-  summary instead ("already asked in an open task — no new one created"). This applies
-  especially to clarification/blocker tasks: if the user repeats a vague command you've
-  already flagged before (e.g. "clear chat", "delete channels" without specifics), do not
-  spawn a fresh "URGENT/CRITICAL: clarify scope" task each time — the existing one still
-  stands. Answer directly in your summary instead of creating a duplicate.
-- If a fact is missing and no existing task already covers it, create one clarification/
-  research task.
+- An ambiguous or unclear COMMAND (the founder said "delete it"/"clear channels"/"delete
+  all" without saying which one, or otherwise didn't give you enough to act on) is NOT
+  itself a task. Never create a task or approval just to ask a clarifying question — that
+  turns an ordinary back-and-forth chat exchange into a permanent item cluttering the
+  founder's real operational backlog, which is exactly backwards: a task/approval means
+  "real business work is pending," not "the AI needed one more sentence of context."
+  Instead: just ask the question directly in your summary, plainly, with the specific
+  options if there's a short list (e.g. name the channels by name if there are only a
+  few) — the same way any competent assistant would ask a follow-up in conversation, not
+  file a ticket about it. This holds no matter how many times the founder repeats a vague
+  version of the same command — repeating "clear channels" five times in a row is still
+  zero tasks, not five near-duplicates. Only create a task for something that's actually
+  a missing BUSINESS fact blocking a real deliverable (e.g. "which legal entity to use
+  for this filing" when building out a real company-structure record) — never for
+  resolving what the founder meant by their own last message.
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
@@ -135,11 +142,18 @@ Rules:
   guessing an id.
 - context.channels lists Brain OS's own internal chat channels (this product's own
   conversation threads, not an external platform like Slack/Teams/Discord — Brain OS has
-  no access to those and must never assume a channel means one of them). You may delete a
-  channel the user asks to remove/clear/delete by putting its exact "id" from
-  context.channels into deleteChannelIds. Never invent or guess an id — only ids that
-  literally appear in context.channels are honored. If the user references a channel that
-  isn't in context.channels, say so in summary instead of guessing an id.
+  no access to those and must never assume a channel means one of them).
+  context.activeChannelId is the real id of the channel this exact conversation is
+  happening in right now (null for a brand-new, not-yet-saved chat) — when the founder
+  says "this channel," "this chat," "this conversation," or "the current one," that is a
+  concrete, already-known reference to context.activeChannelId, not something to ask
+  about again. You may delete a channel the user asks to remove/clear/delete by putting
+  its exact "id" (from context.channels, or context.activeChannelId for a deictic
+  reference like "this one") into deleteChannelIds. Never invent or guess an id — only
+  ids that literally appear in context.channels, or context.activeChannelId itself, are
+  honored. If the user references a channel that isn't in context.channels and isn't
+  "this/current" (so context.activeChannelId doesn't apply either), say so in summary
+  instead of guessing an id.
 - You may create real companies and people directly (not just a task describing the
   work) when the user gives you real facts about a company or a person that does not
   already exist in context.companies / context.people. Check context first — never create
@@ -626,7 +640,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
-    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount] = await Promise.all([
+    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
@@ -670,6 +684,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('goals').select('id', { count: 'exact', head: true }),
     supabase.from('sales_leads').select('id', { count: 'exact', head: true }),
     supabase.from('inventory_items').select('id', { count: 'exact', head: true }),
+    // Found live 2026-08-27: the model correctly noticed channels had no count and
+    // said so rather than guessing ("context.counts does not include a channel
+    // total, so I cannot confirm this is the complete list") — same truncation-as-
+    // total risk class as the other counts above, just missed when those were added.
+    supabase.from('chat_channels').select('id', { count: 'exact', head: true }).eq('archived', false),
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
   const counts = {
@@ -681,9 +700,10 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     goalsTotal: goalsCount.count ?? (goals.data||[]).length,
     salesLeadsTotal: salesLeadsCount.count ?? 0,
     inventoryItemsTotal: inventoryCount.count ?? (inventory.data||[]).length,
+    channelsShown: (channels.data||[]).length, channelsTotal: channelsCount.count ?? (channels.data||[]).length,
   };
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], counts };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, counts };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -866,6 +886,7 @@ serve(async (req) => {
         // in channel-sidebar.tsx already relies on), so a plain scoped delete here reuses
         // that real enforcement rather than adding a new RPC parameter/migration for it.
         const contextChannelIds = new Set((contextPack?.channels || []).map((c: any) => c.id));
+        if (contextPack?.activeChannelId) contextChannelIds.add(contextPack.activeChannelId);
         const requestedDeleteChannelIds = Array.isArray(result.deleteChannelIds) ? result.deleteChannelIds as unknown[] : [];
         const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
         let deletedChannelCount = 0;
