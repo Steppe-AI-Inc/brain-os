@@ -385,3 +385,47 @@ financial_reports fix"), and it was applied. Re-verified live: confirmed
 temporary hr_finance-tier test account used to find the bug — it now sees all 2 real
 `financial_reports` rows (was 0 before the fix). Test profile role reverted to
 `employee` after.
+
+## 13. `sem-ai-command` chat replies padded far beyond what was asked (FIXED and VERIFIED LIVE, 2026-08-27)
+
+**Found while:** the founder used the live product directly (not a test) — a sequence
+of ordinary chat commands (`delete channel <id>`, `is it done?`, `delete and clear
+channels`) each got back a multi-paragraph reply restating task IDs, blocker lists, and
+the model's own reasoning about why a command was ambiguous or not, even for a plain
+yes/no status check. The founder's own words: *"look at this reply! fucking long
+reply."*
+
+**Root cause:** `SYSTEM_PROMPT` had extensive rules about *what* to do (check
+context.tasks before creating a duplicate, use context.counts for totals, don't guess
+IDs, etc.) but zero guidance on reply *length* — nothing told the model that
+`result.summary` is the literal chat bubble text a founder reads on a phone, not an
+internal audit trail. Every other rule in the prompt implicitly rewards including more
+detail ("say so explicitly," "reference specific things"), so a model with no
+brevity constraint padded every reply with everything relevant it had in context.
+
+**Fix applied and verified live, 2026-08-27:** added an explicit brevity rule to
+`SYSTEM_PROMPT` (deployed via `supabase functions deploy sem-ai-command`, confirmed
+byte-identical to source via `supabase functions download` + `git diff` both times) —
+match reply length to the question, a "how many X" gets the number and nothing else, a
+yes/no check gets one sentence, don't restate reasoning already covered in
+`context.conversationHistory`. Verified live before/after with real chat messages:
+- "quick check - how many pending approvals are there?" — before the fix (in the
+  founder's own transcript) got a 4-sentence breakdown by risk tier with specific
+  approval IDs for a plain count question; after the first-pass fix it dropped the
+  self-justifying reasoning but still included an unrequested risk-tier breakdown, so
+  the prompt was tightened further with a concrete good/bad example.
+- "quick check - how many active tasks are there right now?" — after the second pass:
+  *"30 of 65 active tasks shown. 4 critical, 11 high priority, 8 medium, 7 low."* — two
+  short sentences, no IDs, no narration.
+
+**Known remaining rough edge, not fully closed:** a genuinely ambiguous "is it done?"
+with no real referent in the conversation (tested live, a fresh channel with no prior
+action to refer to) still gets a fuller status-overview reply rather than a short
+clarifying question back to the founder — softer than the original complaint (no more
+walls of self-justifying reasoning) but not yet ideal. Not iterated further this pass;
+flagged for whoever picks this up next rather than over-fitting the prompt to one more
+test case.
+
+**Test channels created while verifying this were deleted after** (2 temporary
+channels from the live chat tests above) — no residue left in the founder's real
+channel list.
