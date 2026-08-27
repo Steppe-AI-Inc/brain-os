@@ -107,3 +107,15 @@ export async function deleteTask(id: string) {
   revalidatePath("/tasks");
   return null;
 }
+
+// Same RLS scoping as deleteTask (tasks outside the caller's access are silently
+// skipped, not an error), just for a whole board column at once — added so clearing
+// out a stale batch of tasks doesn't mean clicking delete one card at a time.
+export async function deleteTasks(ids: string[]) {
+  if (ids.length === 0) return null;
+  const supabase = await createClient();
+  const { error } = await supabase.from("tasks").delete().in("id", ids);
+  if (error) return error.message;
+  revalidatePath("/tasks");
+  return null;
+}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, User } from "lucide-react";
+import { Plus, User, Trash2 } from "lucide-react";
 import {
   DndContext,
   useDroppable,
@@ -12,8 +12,18 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TASK_COLUMNS } from "@/lib/data/task-columns";
-import { updateTaskStatus } from "@/lib/data/tasks";
+import { updateTaskStatus, deleteTasks } from "@/lib/data/tasks";
 import { TaskCard, type TaskRow } from "./task-card";
 import { TaskSheet, type EditingTask } from "./task-sheet";
 import type { Database } from "@/types/database";
@@ -57,9 +67,26 @@ export function TasksBoard({
   const [prevInitialTasks, setPrevInitialTasks] = useState(initialTasks);
   const [target, setTarget] = useState<EditingTask | null>(null);
   const [myTasksOnly, setMyTasksOnly] = useState(false);
+  const [clearingColumn, setClearingColumn] = useState<(typeof TASK_COLUMNS)[number] | null>(null);
+  const [clearBusy, setClearBusy] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const visibleTasks = myTasksOnly && currentPersonId ? tasks.filter((t) => t.owner_person_id === currentPersonId) : tasks;
+
+  async function confirmClearColumn() {
+    if (!clearingColumn) return;
+    const ids = visibleTasks.filter((t) => t.status === clearingColumn).map((t) => t.id);
+    setClearBusy(true);
+    const result = await deleteTasks(ids);
+    setClearBusy(false);
+    if (result) {
+      setClearError(result);
+      return;
+    }
+    setClearingColumn(null);
+    router.refresh();
+  }
 
   // Reconcile local (optimistic) state with fresh server data after router.refresh() —
   // done during render, not an effect, per React's "adjusting state on a prop change"
@@ -133,7 +160,20 @@ export function TasksBoard({
               <Column key={status} status={status}>
                 <div className="flex items-center justify-between px-1">
                   <h2 className="text-sm font-bold">{COLUMN_LABELS[status]}</h2>
-                  <span className="text-xs text-muted-foreground">{columnTasks.length}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">{columnTasks.length}</span>
+                    {columnTasks.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                        title={`Clear all ${COLUMN_LABELS[status]} tasks`}
+                        onClick={() => setClearingColumn(status)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {columnTasks.map((task) => (
                   <TaskCard key={task.id} task={task} onEdit={() => openEdit(task)} onDeleted={refresh} />
@@ -161,6 +201,36 @@ export function TasksBoard({
         onOpenChange={(open) => !open && setTarget(null)}
         onSaved={refresh}
       />
+
+      <AlertDialog
+        open={!!clearingColumn}
+        onOpenChange={(open) => {
+          if (!open) {
+            setClearingColumn(null);
+            setClearError(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Clear all {clearingColumn ? visibleTasks.filter((t) => t.status === clearingColumn).length : 0}{" "}
+              {clearingColumn ? COLUMN_LABELS[clearingColumn] : ""} tasks?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes these tasks — unlike channels, there&apos;s no recovery bucket for
+              deleted tasks. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {clearError && <p className="text-sm font-medium text-destructive">{clearError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={clearBusy} onClick={confirmClearColumn}>
+              {clearBusy ? "Clearing…" : "Clear all"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

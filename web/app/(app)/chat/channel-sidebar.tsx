@@ -3,13 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { SquarePen, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { SquarePen, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
-import { renameChannel, deleteChannel, type SidebarChannel } from "@/lib/data/chat-channels";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { renameChannel, deleteChannel, deleteAllChannels, type SidebarChannel } from "@/lib/data/chat-channels";
 
 const COLLAPSE_KEY = "brainos.chat.sidebarCollapsed";
 
@@ -41,6 +51,27 @@ export function ChannelSidebar({
   const [collapsed, setCollapsed] = useState(() => getInitialCollapsed(defaultCollapsedOnMobile));
   const [editing, setEditing] = useState<SidebarChannel | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
+  const [clearAllError, setClearAllError] = useState<string | null>(null);
+
+  const realChannels = channels.filter((c) => !c.isGeneral);
+
+  async function confirmClearAll() {
+    setClearingAll(true);
+    const result = await deleteAllChannels(realChannels.map((c) => c.id));
+    setClearingAll(false);
+    if (result) {
+      setClearAllError(result);
+      return;
+    }
+    setClearAllOpen(false);
+    if (activeChannelId && realChannels.some((c) => c.id === activeChannelId)) {
+      router.push("/chat");
+    } else {
+      router.refresh();
+    }
+  }
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -78,6 +109,17 @@ export function ChannelSidebar({
             New chat
           </Button>
         </Link>
+        {realChannels.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setClearAllOpen(true)}
+            title="Clear all channels"
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon-sm" onClick={toggleCollapsed} title="Collapse">
           <PanelLeftClose className="h-4 w-4" />
         </Button>
@@ -133,6 +175,31 @@ export function ChannelSidebar({
           <Input id="edit-channel-name" value={editValue} onChange={(e) => setEditValue(e.target.value)} />
         </div>
       </EditSheet>
+
+      <AlertDialog
+        open={clearAllOpen}
+        onOpenChange={(open) => {
+          setClearAllOpen(open);
+          if (!open) setClearAllError(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all {realChannels.length} channel{realChannels.length === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the channels from the sidebar. Messages aren&apos;t deleted — they move to
+              &quot;General&quot; and stay searchable. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {clearAllError && <p className="text-sm font-medium text-destructive">{clearAllError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingAll}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={clearingAll} onClick={confirmClearAll}>
+              {clearingAll ? "Clearing…" : `Clear all ${realChannels.length}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

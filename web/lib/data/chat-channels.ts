@@ -93,3 +93,18 @@ export async function deleteChannel(id: string): Promise<string | null> {
   revalidatePath("/chat");
   return null;
 }
+
+// Same non-destructive-to-messages property as deleteChannel, just for every real
+// channel at once (the synthetic "General" entry isn't a real row and is never passed
+// in). One real query, not N — added after repeated one-at-a-time "delete channel X"
+// chat commands turned out to be slow going through the AI for something that's really
+// just "empty the sidebar," which RLS on chat_channels already scopes correctly on its
+// own without needing per-row confirmation from the model.
+export async function deleteAllChannels(ids: string[]): Promise<string | null> {
+  if (ids.length === 0) return null;
+  const supabase = await createClient();
+  const { error } = await supabase.from("chat_channels").delete().in("id", ids);
+  if (error) return error.message;
+  revalidatePath("/chat");
+  return null;
+}
