@@ -4,6 +4,38 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 10. `/chat` composer unusable on mobile by default (OPEN — not fixed this pass)
+
+**Found while:** live mobile testing (acceptance test #17) against real production at
+~500px viewport width.
+
+**Symptom, reproduced live and confirmed via zoomed screenshot:** the message input on
+the "Speak with Brain OS" page — the app's core interaction — collapses to roughly 30px
+wide, rendering its own placeholder text one character per line. Confirmed this isn't a
+one-off render glitch: it's consistent, and collapsing the page's channel-thread sidebar
+(a manual toggle that exists on the page) immediately fixes it, which pinpoints the cause.
+
+**Root cause:** `web/app/(app)/chat/chat-client.tsx:440` lays out the channel-thread
+`ChannelSidebar` and the main chat column in one `flex` row
+(`<div className="flex flex-1 gap-4 overflow-hidden">`) with no responsive
+breakpoint to stack or hide the thread sidebar at narrow widths — unlike the app-wide
+navigation sidebar (`app-sidebar.tsx`), which already has a proper mobile drawer
+(fixed in an earlier session, commit `e6346e0`). The manual collapse toggle on
+`ChannelSidebar` is a real workaround, but nothing collapses it automatically for a
+narrow viewport, so a first-time mobile visitor lands on a broken composer by default.
+
+**Fix:** not done this pass — flagged for the founder rather than pushed live
+unsupervised, consistent with this session's approach to any production-facing change
+found late in a sweep. The fix shape is straightforward (default `collapsed` to `true`
+below a width threshold, or switch the outer container to stack vertically on small
+screens the same way the main sidebar does) but wasn't written speculatively without
+being able to verify it live end-to-end in the remaining session time.
+
+**Search performed for the same class:** did not yet check every other page for the same
+"two fixed-width flex siblings, no mobile breakpoint" pattern — only `/chat` was
+exercised live at mobile width this pass. Flagged as the next step before this failure
+class can be closed with confidence.
+
 ## 1. Legacy write-bypass RLS policies (FIXED, 2026-08-26)
 
 **Symptom:** none visible from the UI — this was found by systematically auditing every

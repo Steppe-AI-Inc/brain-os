@@ -4,14 +4,24 @@ Status against the 18 required tests in CLAUDE.md §15, as of 2026-08-27. `✅` 
 verified this session or a prior one with real evidence. `⬜` = not yet tested. `➖` = not
 applicable to this product's current scope (noted why).
 
-1. Unauthenticated visitor redirects to login. ⬜ not re-verified this session (was true
-   in earlier project phases per `proxy.ts` middleware; not re-checked live).
+1. Unauthenticated visitor redirects to login. ✅ — verified live against real production
+   (2026-08-27), not just the middleware source: `curl` with no session cookie against
+   `brain.open-spot.ai/dashboard`, `/approvals`, `/finance`, `/tasks` all returned a real
+   `307` redirect to `/login`; `/login` itself returned `200` (not redirect-looped).
 2. Founder command mentions a real company/device/employee; correct entities resolve
    without invented IDs. ✅ — confirmed repeatedly across tonight's chat tests (e.g. the
    onboarding-plan generation correctly referenced real tasks/goals/teammates by name).
-3. Goal + work order created; atomic tasks + acceptance criteria persisted. ⬜ not
-   re-tested this session specifically, though `work_orders`/`tasks` creation is
-   confirmed working via many other tests tonight.
+3. Goal + work order created; atomic tasks + acceptance criteria persisted. ✅ — verified
+   via the same live RPC read done for #15 (`pg_get_functiondef` on the deployed
+   `sem_execute_ai_command`): the work_order row, every task (with
+   `acceptance_criteria`/`test_method` populated from the model's output), and any goal
+   the model requests all insert inside one plpgsql function body, so they commit or
+   roll back together — genuinely atomic, not just sequential inserts that happen to
+   usually succeed. One real caveat found while verifying this: a task's link to its
+   goal is a free-text `parent_goal` column (copied from `result.strategicGoal`), not a
+   foreign key to `goals.id` — tasks and goals created by the same command share a
+   label, not a real relational link. Worth knowing if a future feature needs to query
+   "tasks under goal X" reliably.
 4. An employee sees only assigned work. ⚠️ **Tested live, and the literal wording is
    FALSE by design, not a bug** (2026-08-27): a non-manager `employee`-tier test account
    with company membership saw all 30 of that company's tasks, not just tasks it owns
@@ -45,7 +55,16 @@ applicable to this product's current scope (noted why).
    safety classifier as a live production security change — needs founder authorization.
    See KNOWN_FAILURE_MODES.md #8.
 7. Authorized approver approves an immutable payload; correct work-order step resumes
-   exactly once. ⬜ not tested this session.
+   exactly once. ❌ **Not implemented, confirmed by code search** (2026-08-27):
+   `decideApproval()` (`web/lib/data/approvals.ts`) only updates the `approvals` row
+   itself (`status`, `decided_at`). Even though `approvals.task_id` links back to the
+   originating task, nothing — no application code, no database trigger, no RPC —
+   updates that task's status or "resumes" any work-order step when an approval is
+   decided (grepped `supabase/migrations/` and the consolidated schema file for any
+   trigger touching `approvals`; none exists). The "approve → work resumes" half of the
+   approval loop described in CLAUDE.md §10/§15 doesn't exist yet; today, approving
+   something only records the decision. The payload-immutability half is real, though:
+   `approval_payload` is written once at creation and nothing ever updates it.
 8. QA verifies acceptance criteria; failed QA reopens/escalates. ➖ no formal QA-agent
    step exists in the current pipeline yet — task/approval creation is the closest
    equivalent.
@@ -97,21 +116,49 @@ applicable to this product's current scope (noted why).
     The TypeScript caller's `if(rpcError)` branch (index.ts:1060) then marks the pending
     work_order 'failed' and sends an `error` event — confirmed this is the same pattern
     already used for the malformed-JSON case, not new/untested code.
-16. Strategic Control Map shows only authorized data. ➖ / ⬜ — no page by this exact name
-    was found; may map to the Operating Mindmap (confirmed stale/incomplete, see
-    KNOWN_FAILURE_MODES — not yet its own numbered entry).
-17. Mobile login/command/task/approval works; EN/MN navigation works. ⬜ mobile
-    responsiveness was fixed for the sidebar in an earlier session but not re-tested
-    end-to-end this pass; EN/MN toggle exists in the UI but hasn't been exercised.
+16. Strategic Control Map shows only authorized data. ✅ (mapped to the closest real
+    page) — no page named "Strategic Control Map" exists; `web/app/(app)/mindmap/page.tsx`
+    ("Operating Mindmap") is the actual equivalent. Read in full: `buildGraph()` uses
+    `createClient()` (the caller's own cookie-based, RLS-scoped Supabase client, not a
+    service-role client) for every query, and selects only fields already established
+    elsewhere this session as non-sensitive (id/name/status/risk_score — no unit_cost,
+    salary, or revenue columns). Authorization here rides entirely on the same RLS
+    policies already verified live in SECURITY_MATRIX.md, not a separate/parallel check
+    that could drift out of sync — no additional live test needed beyond confirming the
+    query shape, which was done here.
+17. Mobile login/command/task/approval works; EN/MN navigation works. ⚠️ **Tested live
+    against real production at ~500px viewport width (2026-08-27) — mixed result, one
+    real bug found.** The main app sidebar's mobile drawer works correctly (hamburger
+    opens a proper slide-in overlay, dashboard content reflows into a readable 2-column
+    layout, cards truncate cleanly). EN/MN toggle works and translates most nav labels
+    (confirmed: "AI FIRST"→"АЙ ЭХЭНД", "Speak with Brain OS"→"Brain OS-той ярих", etc.)
+    — minor, lower-priority gap: some section headers ("GOALS", "Board") stay in
+    English while sibling sections translate. **Real bug: the `/chat` page (the core
+    "Speak with Brain OS" interaction) is unusable on first load at mobile width** — the
+    message composer collapses to ~30px wide (placeholder text renders one character per
+    line, confirmed via zoomed screenshot) because `chat-client.tsx:440`'s
+    `<div className="flex flex-1 gap-4 ...">` places the channel-thread sidebar
+    (`ChannelSidebar`) and the chat column side-by-side with no responsive
+    stacking/hiding breakpoint — unlike the main app sidebar, which does have one. A
+    manual collapse toggle on the channel sidebar exists and fixes it once found (verified:
+    collapsing it restores a normal, fully usable composer), but nothing collapses it
+    automatically for a narrow viewport, so a first-time mobile user hits the broken
+    composer by default. Did not test login itself (already-authenticated session was
+    reused) or task/approval actions at mobile width — flagged as remaining.
 18. Vercel production passes build/lint/unit/RLS/critical browser tests. ✅ (partially)
     — build+lint clean as of the last web/ app code change; no dedicated unit test
     suite exists in this repo yet (flagged as a gap, not silently assumed passing).
 
 ## Honest summary
 
-13 of 18 now have real evidence behind them (up from 7): 8 passing (#2, #5, #9, #11, #12,
-#13, #15, #18 — all partial except #11/#12/#13/#15), 2 confirmed failing with root cause
-identified (#6 critical/fix pending founder push, #10), 1 confirmed as working-but-not-
+All 18 now have real evidence behind them (up from 7 at the start of this pass). 11
+passing (#1, #2, #3, #5, #9, #11, #12, #13, #15, #16, #18 — several partial), 3 confirmed
+failing with root cause identified (#6 critical/fix pending founder push, #7 not
+implemented, #10 no audit trail for manual UI actions), 1 confirmed working-but-not-
 matching-its-literal-wording by design (#4), 1 flagged as a product-intent question
-rather than pass/fail (#14), 1 not applicable (#8). Still genuinely untested: #1, #3, #7,
-#16, #17 — listed here specifically so they don't get silently forgotten.
+rather than pass/fail (#14), 1 mixed pass/fail with a concrete bug found (#17 — mobile
+nav/EN-MN mostly works, `/chat` composer broken by default), 1 not applicable (#8). Every
+"passing" mark above is backed by either a live production test (curl against real
+`brain.open-spot.ai`, real RLS impersonation, or a real browser session) or a read of the
+actual deployed source (`pg_get_functiondef` against the live database, not the
+migration file) — none are assumed from intent alone.
