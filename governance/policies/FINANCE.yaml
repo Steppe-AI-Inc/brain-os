@@ -21,4 +21,4 @@ enforcing_tables:
   - proposal_item_costs
   - approvals (domain = 'finance')
 known_gaps:
-  - "PENDING (not yet applied to production): hr_finance currently has zero read access to financial_reports. Fix written as migration 202608270003, blocked on founder authorization to push (same class of block the approvals_update_approver fix hit before being explicitly authorized). Re-check `supabase migration list --linked` before trusting this line is resolved."
+  - "RESOLVED 2026-08-27: hr_finance previously had zero read access to financial_reports. Fixed via migration 202608270003, applied to production and re-verified live (see governance/roles/HR_FINANCE.md)."

@@ -11,10 +11,8 @@ manager status).
 - `salary_private` — read (`salary_select_authorized`) and write (`salary_write_hr`).
 - `salary_rules` — read and write.
 - `kpi_records` — read and write.
-- `financial_reports` — read and write, **once migration `202608270003` is applied to
-  production** (written and dry-run-verified 2026-08-27, but the actual push is still
-  pending founder authorization at time of writing — see below. Do not assume this is
-  live without re-checking `supabase migration list --linked`.)
+- `financial_reports` — read and write (migration `202608270003`, applied and live-verified
+  2026-08-27 — see below).
 - `approvals` with `domain in ('salary_hr','finance')` — can both see and decide these,
   same tier as founder for these two domains specifically.
 
@@ -33,15 +31,13 @@ manager status).
 Tested live 2026-08-27 (`qa/SECURITY_MATRIX.md`): with zero company memberships, an
 `hr_finance`-tier test account correctly saw all `finance`/`salary_hr` approvals (21/21)
 and all `salary_rules` (3/3), but **zero of 2 real `financial_reports` rows** — a real
-gap, since `financial_reports_select_scope` never called `is_hr_finance()` at all. Fix
-written same day as migration `202608270003_financial_reports_hr_finance_access.sql`
-(adds `is_hr_finance()` to both `financial_reports_select_scope` and
+gap, since `financial_reports_select_scope` never called `is_hr_finance()` at all. Fixed
+same day via migration `202608270003_financial_reports_hr_finance_access.sql` (adds
+`is_hr_finance()` to both `financial_reports_select_scope` and
 `financial_reports_write_scope`, matching the pattern every other finance-adjacent table
-already used) — **PENDING, not yet pushed to production** as of this writing (blocked by
-the operating tool's safety classifier as a live security-policy change, same as the
-`approvals_update_approver` fix was before the founder explicitly authorized that push).
-Needs the same explicit go-ahead before this section of this file is actually true in
-production.
+already used) — applied to production with the founder's explicit authorization, then
+re-verified: the same temporary hr_finance-tier test account now sees all 2 real
+`financial_reports` rows (was 0 before the fix).
 
 ## Real-world identity
 No production profile currently holds this role.

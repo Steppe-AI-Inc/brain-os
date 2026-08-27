@@ -30,12 +30,11 @@ capabilities:
     live_verified: partial
 
   finance.read.revenue:
-    enforced: partial
-    mechanism: "financial_reports_select_scope: is_founder_or_admin() OR is_company_manager(company_id) -- is_hr_finance() branch written in migration 202608270003 but NOT YET APPLIED to production (pending founder authorization to push, as of this writing)"
-    grants: [founder, holding_admin, company manager (role_in_company)]
-    grants_once_202608270003_applied: [founder, holding_admin, company manager, hr_finance]
+    enforced: true
+    mechanism: "financial_reports_select_scope: is_founder_or_admin() OR is_company_manager(company_id) OR is_hr_finance()"
+    grants: [founder, holding_admin, company manager (role_in_company), hr_finance]
     live_verified: true
-    note: "live testing 2026-08-27 found hr_finance had zero access despite every other finance-adjacent capability -- fix written same day, still pending push. Re-check supabase migration list --linked before trusting the wider grant list."
+    note: "is_hr_finance() branch added via migration 202608270003, applied to production and re-verified live 2026-08-27 -- the same test account that found the gap now sees all real financial_reports rows."
 
   finance.read.cash:
     enforced: true

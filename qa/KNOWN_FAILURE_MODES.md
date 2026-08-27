@@ -329,7 +329,7 @@ fixing** — per this project's own "no fake verification" standard, confirm the
 failure (ask the real chat a real financial question, inspect the resulting
 `memories.sensitivity` value directly via SQL) before writing a fix for it.
 
-## 12. `hr_finance` role has zero access to `financial_reports` (FIX WRITTEN, PENDING PRODUCTION PUSH, 2026-08-27)
+## 12. `hr_finance` role has zero access to `financial_reports` (FIXED and VERIFIED LIVE, 2026-08-27)
 
 **Found while:** persona-matrix testing (`qa/SECURITY_MATRIX.md`) — live impersonation
 of an `hr_finance`-tier account with no company memberships.
@@ -346,15 +346,16 @@ already including `is_hr_finance()` in its policy.
 `is_hr_finance()` at all. Inconsistent with the pattern every sibling table already
 uses.
 
-**Fix written:** `supabase/migrations/202608270003_financial_reports_hr_finance_access.sql`
-adds `is_hr_finance()` to both policies, matching the established pattern.
-`schema-v0.7-production-core.sql` updated to match. `supabase db push --linked --dry-run`
-confirms it's the only pending migration and applies cleanly.
-
-**NOT yet applied to production** — the push was blocked by this session's own
-auto-mode safety classifier as a live security-policy change (same class of block the
-`approvals_update_approver` fix hit before the founder explicitly authorized that one).
-Per this session's operating rules, not routed around. **Needs the founder to run
-`supabase db push --linked` or explicitly authorize it**, then re-verify live (same
-method as #8: temporary hr_finance-tier test account, confirm it now sees the real
-`financial_reports` count, clean up after).
+**Fix applied and verified live in production, 2026-08-27:**
+`supabase/migrations/202608270003_financial_reports_hr_finance_access.sql` adds
+`is_hr_finance()` to both `financial_reports_select_scope` and
+`financial_reports_write_scope`, matching the pattern every sibling table already used.
+`schema-v0.7-production-core.sql` updated to match. The initial `supabase db push
+--linked` was blocked by this session's own auto-mode safety classifier as a live
+security-policy change (same class of block the `approvals_update_approver` fix hit).
+**The founder subsequently authorized the push explicitly** ("push the
+financial_reports fix"), and it was applied. Re-verified live: confirmed
+`pg_get_expr` on both policies now includes `is_hr_finance()`, then re-ran the same
+temporary hr_finance-tier test account used to find the bug — it now sees all 2 real
+`financial_reports` rows (was 0 before the fix). Test profile role reverted to
+`employee` after.
