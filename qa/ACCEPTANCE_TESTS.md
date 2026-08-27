@@ -43,17 +43,17 @@ applicable to this product's current scope (noted why).
    waits for approval. ✅ (partially) — confirmed high-risk channel deletion always
    creates a forced approval record regardless of outcome; low-risk task creation
    confirmed not blocked.
-6. Unauthorized manager cannot approve finance/salary/legal. ❌ **FAILED — real production
-   bug found and reproduced live** (2026-08-27). A test company-manager account (not
-   founder/hr_finance) successfully approved finance, salary_hr, AND legal domain
-   approvals — should only have been able to approve `general`/`production`/
-   `external_comms`. Root cause: production's live `approvals_update_approver` policy is
-   the old ungated v0.7 baseline, not the domain-gated version from migration
-   `202608230001` that Supabase's own migration ledger claims is applied (GitHub↔
-   production drift). Fix prepared as migration `202608270001_restore_approvals_domain_gating.sql`,
-   verified via `db push --dry-run`, but the actual push was blocked by this session's
-   safety classifier as a live production security change — needs founder authorization.
-   See KNOWN_FAILURE_MODES.md #8.
+6. Unauthorized manager cannot approve finance/salary/legal. ✅ **Found broken, fixed,
+   and re-verified live in production** (2026-08-27). Originally found via real
+   impersonation: a test company-manager account (not founder/hr_finance) successfully
+   approved finance, salary_hr, AND legal domain approvals — root cause was
+   GitHub↔production drift (migration ledger said the domain-gated policy from
+   `202608230001` was applied; the live policy didn't match it). Fix migration
+   `202608270001_restore_approvals_domain_gating.sql` was pushed to production with the
+   founder's explicit authorization, then re-verified with a fresh live impersonation
+   test (new temp manager account, new temp approvals, one per domain): `finance`/
+   `salary_hr`/`legal` all correctly stayed `pending`, `production` correctly became
+   `approved`. See KNOWN_FAILURE_MODES.md #8 for full before/after evidence.
 7. Authorized approver approves an immutable payload; correct work-order step resumes
    exactly once. ❌ **Not implemented, confirmed by code search** (2026-08-27):
    `decideApproval()` (`web/lib/data/approvals.ts`) only updates the `approvals` row
@@ -151,14 +151,16 @@ applicable to this product's current scope (noted why).
 
 ## Honest summary
 
-All 18 now have real evidence behind them (up from 7 at the start of this pass). 11
-passing (#1, #2, #3, #5, #9, #11, #12, #13, #15, #16, #18 — several partial), 3 confirmed
-failing with root cause identified (#6 critical/fix pending founder push, #7 not
-implemented, #10 no audit trail for manual UI actions), 1 confirmed working-but-not-
-matching-its-literal-wording by design (#4), 1 flagged as a product-intent question
-rather than pass/fail (#14), 1 mixed pass/fail with a concrete bug found (#17 — mobile
-nav/EN-MN mostly works, `/chat` composer broken by default), 1 not applicable (#8). Every
-"passing" mark above is backed by either a live production test (curl against real
-`brain.open-spot.ai`, real RLS impersonation, or a real browser session) or a read of the
-actual deployed source (`pg_get_functiondef` against the live database, not the
-migration file) — none are assumed from intent alone.
+All 18 now have real evidence behind them (up from 7 at the start of this pass). 12
+passing (#1, #2, #3, #5, #6, #9, #11, #12, #13, #15, #16, #18 — several partial), 2
+confirmed failing with root cause identified (#7 not implemented, #10 no audit trail for
+manual UI actions), 1 confirmed working-but-not-matching-its-literal-wording by design
+(#4), 1 flagged as a product-intent question rather than pass/fail (#14), 1 mixed
+pass/fail with a concrete bug found (#17 — mobile nav/EN-MN mostly works, `/chat`
+composer broken by default), 1 not applicable (#8). #6 was found broken, fixed, pushed
+to production with founder authorization, and re-verified live — the only one of the 18
+that moved from failing to passing within this sweep. Every "passing" mark above is
+backed by either a live production test (curl against real `brain.open-spot.ai`, real
+RLS impersonation, or a real browser session) or a read of the actual deployed source
+(`pg_get_functiondef` against the live database, not the migration file) — none are
+assumed from intent alone.

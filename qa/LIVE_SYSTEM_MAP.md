@@ -31,16 +31,20 @@ a live dashboard.
   migration `202608270002_recover_boards_kanban_tables.sql`. See
   KNOWN_FAILURE_MODES.md #9.
 
-## CRITICAL — open, blocked on founder action
+## Resolved this pass (continued)
 
-- **`approvals_update_approver` production policy has no domain gating** — reproduced
-  live, a plain company manager can approve finance/salary_hr/legal decisions. Fix
-  prepared as migration `202608270001_restore_approvals_domain_gating.sql`, confirmed
-  via `db push --linked --dry-run` as the only pending migration, but the actual push was
-  blocked by this session's own safety classifier as a live production security change —
-  correctly, since it's not something to push unsupervised. **Needs the founder to run
-  `supabase db push --linked` (or explicitly authorize it) for this one migration.** See
-  KNOWN_FAILURE_MODES.md #8 for full evidence.
+- **`approvals_update_approver` production policy had no domain gating** — reproduced
+  live, a plain company manager could approve finance/salary_hr/legal decisions.
+  Migrations `202608270001` (the fix) and `202608270002` (the boards recovery, idempotent
+  no-op) were pushed to production with the founder's explicit authorization
+  ("push the approvals fix") and both now show `local`==`remote` in
+  `supabase migration list --linked`. Re-verified live with a fresh impersonation test
+  (not just trusting the migration ledger, given that's exactly what was misleading
+  before the fix): finance/salary_hr/legal domain approvals correctly stay `pending` for
+  a plain company manager, production domain correctly becomes `approved`. Confirmed
+  `boards`/`board_columns`/`board_items` are still empty (0 rows) post-push — the
+  recovery migration was a true no-op as designed. See KNOWN_FAILURE_MODES.md #8 for
+  full before/after evidence.
 
 ## Not yet done
 

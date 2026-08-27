@@ -165,7 +165,7 @@ production with no corresponding file anywhere in git history. Recovered and com
 Search performed: all 6 deployed functions cross-checked against `supabase functions
 list`; no other undocumented functions found.
 
-## 8. Production approvals_update_approver policy has NO domain gating — any company manager can approve finance/salary/legal (OPEN — CRITICAL, fix prepared, blocked on founder approval to push)
+## 8. Production approvals_update_approver policy has NO domain gating — any company manager can approve finance/salary/legal (FIXED and VERIFIED LIVE, 2026-08-27)
 
 **Found while:** testing acceptance test #6 ("unauthorized manager cannot approve
 finance/salary/legal") via real live impersonation, per CLAUDE.md's "test the actual
@@ -205,19 +205,22 @@ approval in their company via a direct PostgREST `PATCH` to `/approvals`, includ
 decisions, financial approvals, and legal approvals — bypassing the entire point of
 domain-gated approval routing. This is a live, real security gap, not a theoretical one.
 
-**Fix prepared, NOT yet applied to production:** new migration
+**Fix applied and verified live in production, 2026-08-27:** migration
 `supabase/migrations/202608270001_restore_approvals_domain_gating.sql` re-applies the
 correct domain-gated policy (idempotent `drop policy if exists` + `create policy`,
-identical to `202608230001`'s version). `supabase db push --linked --dry-run` confirms it
-is the only pending migration and would apply cleanly. **The actual push
-(`supabase db push --linked`) was blocked by this session's own auto-mode safety
-classifier as a live production schema/security change** — correctly, since this modifies
-who can approve financial/HR/legal decisions in production. Per this session's own
-operating rules, that block was not routed around via an alternate execution path (e.g.
-raw DDL through `db query`). **This is the one blocking action left in this pass: the
-founder needs to either explicitly authorize `supabase db push --linked` for this specific
-migration, or run it themselves.** The migration file is already committed to git so nothing
-is lost or hidden by the block.
+identical to `202608230001`'s version). The initial `supabase db push --linked` was
+blocked by this session's own auto-mode safety classifier as a live production
+security change, correctly — that block was not routed around. **The founder
+subsequently authorized the push explicitly** ("push the approvals fix"), and it was
+applied. Re-verified with the exact same live impersonation methodology used to find
+the bug (not just re-reading the policy text or trusting `supabase migration list`,
+given that's precisely what was misleading the first time): a fresh temporary
+company-manager test account attempted to approve four new temporary test approvals,
+one per domain. Result — `finance`: stayed `pending` (blocked, correct); `salary_hr`:
+stayed `pending` (blocked, correct); `legal`: stayed `pending` (blocked, correct);
+`production`: became `approved` (allowed, correct). All test rows and the temporary
+membership deleted after. Live `pg_get_expr` on `approvals_update_approver` now matches
+the migration exactly.
 
 **Search performed for the same drift class:** compared every other policy on
 `public.approvals` (`approvals_select_scope`, `approvals_insert_scope`) — both match their
