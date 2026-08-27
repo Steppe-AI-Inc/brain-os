@@ -58,25 +58,34 @@ applicable to this product's current scope (noted why).
    `salary_hr`/`legal` all correctly stayed `pending`, `production` correctly became
    `approved`. See KNOWN_FAILURE_MODES.md #8 for full before/after evidence.
 7. Authorized approver approves an immutable payload; correct work-order step resumes
-   exactly once. ❌ **Not implemented, confirmed by code search** (2026-08-27):
-   `decideApproval()` (`web/lib/data/approvals.ts`) only updates the `approvals` row
-   itself (`status`, `decided_at`). Even though `approvals.task_id` links back to the
-   originating task, nothing — no application code, no database trigger, no RPC —
-   updates that task's status or "resumes" any work-order step when an approval is
-   decided (grepped `supabase/migrations/` and the consolidated schema file for any
-   trigger touching `approvals`; none exists). The "approve → work resumes" half of the
-   approval loop described in CLAUDE.md §10/§15 doesn't exist yet; today, approving
-   something only records the decision. The payload-immutability half is real, though:
-   `approval_payload` is written once at creation and nothing ever updates it.
-   **Confirmed with real consequences, not just code review, 2026-08-27:** the founder
-   asked to "approve the 68-task deletion" for a real pending approval. Its
-   `approval_payload` turned out to contain no task IDs at all (`task_id` was also
-   `null`) — the model had recorded *that* deletion was needed but never *which* tasks,
-   so there was nothing an approval-driven executor could have acted on even if one
-   existed. Clicking Approve would have flipped the status and deleted nothing. Resolved
-   by executing the actual intent directly (the real per-column "Clear all" UI action)
-   and then marking the approval `approved` with a note explaining why, rather than
-   approving first and leaving the founder to discover nothing happened.
+   exactly once. ✅ **FIXED and VERIFIED LIVE, 2026-08-28**
+   (`supabase/migrations/202608270005_approval_decision_resumes_work.sql` — the
+   `decide_approval()` SECURITY DEFINER RPC). Re-checks the same domain-gated approver
+   authority as `approvals_update_approver` RLS, only transitions a still-`pending`
+   approval (idempotent by construction — deciding twice is a safe no-op), resumes a
+   linked task (`needs_approval` → `queued`/`rejected`), and executes a deferred
+   deletion captured in `approval_payload.execute` (built server-side in
+   `sem-ai-command/index.ts` from `pendingDeleteTaskIds`/`pendingDeleteChannelIds`,
+   cross-checked against real context ids, never trusted from the model's own JSON —
+   see KNOWN_FAILURE_MODES.md #16 for the deployment story, which was not the clean
+   authorized-push path this session otherwise used). `web/lib/data/approvals.ts`'s
+   `decideApproval()` now calls this RPC instead of a bare status update. Confirmed live
+   directly against production: `pg_get_functiondef` matches the reviewed migration
+   byte-for-byte, and a rolled-back live transaction test (deletion targets deleted
+   exactly, control task untouched, idempotent re-run) passed —
+   `qa/scenarios-runner/sc059b_live_decide_approval.sql`. The payload-immutability half
+   (below) is still real and separately tracked as SC-060/KNOWN_FAILURE_MODES.md #15 —
+   `approval_payload` still has no write-protection after creation; only decide_approval
+   reading `.execute` from it exists now, not a guarantee nothing else can rewrite it
+   first.
+   **Original bug, now fixed:** the founder asked to "approve the 68-task deletion" for
+   a real pending approval whose `approval_payload` had no task IDs at all (`task_id`
+   was also `null`) — the model had recorded *that* deletion was needed but never
+   *which* tasks, so there was nothing an approval-driven executor could have acted on
+   even if one had existed. Clicking Approve would have flipped the status and deleted
+   nothing. At the time this was resolved by executing the actual intent directly (the
+   real per-column "Clear all" UI action); going forward, the fix above is the real
+   mechanism.
 8. QA verifies acceptance criteria; failed QA reopens/escalates. ➖ no formal QA-agent
    step exists in the current pipeline yet — task/approval creation is the closest
    equivalent.

@@ -1,7 +1,15 @@
 # INCIDENT NOTE — `decide_approval()` is live on production (unexpected)
 
-**Status: OPEN — needs founder confirmation. Not a data-loss event; flagged for process
-transparency.**
+**Status: CLOSED, 2026-08-28 (follow-up session). Content confirmed safe and correct;
+left live. Mechanism narrowed but not fully pinned down — see
+`qa/KNOWN_FAILURE_MODES.md` #16 for the full follow-up writeup, which is now the
+authoritative record.** Not a data-loss event.
+
+Follow-up confirmed independently: `pg_get_functiondef` against the live DB matches
+this migration byte-for-byte; `supabase migration list` shows `202608270005` as
+`remote`; `audit_logs` has zero `approval_decided` rows (no real approval has run
+through it yet); the founder's `web` deploy for the same commit is `success` on Vercel.
+Disposition: keep it live, treat the migration as applied.
 
 ## What
 
