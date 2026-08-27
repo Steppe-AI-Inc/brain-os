@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SquarePen, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
@@ -23,19 +23,22 @@ import { renameChannel, deleteChannel, deleteAllChannels, type SidebarChannel } 
 
 const COLLAPSE_KEY = "brainos.chat.sidebarCollapsed";
 
-// No stored preference yet (first visit, or storage unavailable) — default to
-// collapsed on a narrow viewport so the message thread and composer aren't
-// squeezed into a sliver next to the channel list. An explicit stored
-// preference (the user manually toggled it before) always wins over this.
-function getInitialCollapsed(defaultCollapsedOnMobile: boolean): boolean {
-  if (typeof window === "undefined") return false;
+// Reads a stored preference only — deliberately does NOT look at viewport width here,
+// because this runs during useState's lazy initializer, which executes during the
+// server render too (server has no window, so it'd always disagree with whatever the
+// client's real viewport says) as well as the client's first render before hydration
+// reconciles. Either way a viewport-dependent value here means the server-rendered HTML
+// and the client's first render disagree — a real hydration mismatch (confirmed live:
+// React error #418, recurring in production console logs), not a hypothetical one. The
+// mobile-default behavior is applied after mount instead, in a useEffect below.
+function getStoredCollapsed(): boolean | null {
+  if (typeof window === "undefined") return null;
   try {
     const stored = window.localStorage.getItem(COLLAPSE_KEY);
-    if (stored !== null) return stored === "1";
+    return stored === null ? null : stored === "1";
   } catch {
-    // fall through to the viewport-based default
+    return null;
   }
-  return defaultCollapsedOnMobile && window.matchMedia("(max-width: 767px)").matches;
 }
 
 export function ChannelSidebar({
@@ -48,12 +51,36 @@ export function ChannelSidebar({
   defaultCollapsedOnMobile?: boolean;
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(() => getInitialCollapsed(defaultCollapsedOnMobile));
+  // Always starts false (matches what the server rendered — it has no window at all) —
+  // any browser-only correction (stored preference, or the mobile default) happens in
+  // the effect below, after mount, never during the initial render. See getStoredCollapsed's
+  // comment for why doing this during render was a real, reproduced hydration bug.
+  const [collapsed, setCollapsed] = useState(false);
   const [editing, setEditing] = useState<SidebarChannel | null>(null);
   const [editValue, setEditValue] = useState("");
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
   const [clearAllError, setClearAllError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Deliberately a synchronous setState in an effect, which the lint rule normally
+    // flags as an anti-pattern — but this is exactly the case that pattern exists for:
+    // synchronizing React state with a browser-only external source (localStorage,
+    // matchMedia) that genuinely cannot be read during the server render, so it can't
+    // go in the initial useState value without reintroducing the hydration mismatch
+    // this effect exists to avoid. The one extra client-only render this causes is the
+    // correct, accepted cost here, not a bug.
+    const stored = getStoredCollapsed();
+    if (stored !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsed(stored);
+    } else if (defaultCollapsedOnMobile && window.matchMedia("(max-width: 767px)").matches) {
+      setCollapsed(true);
+    }
+    // Only ever run once, right after mount — a later prop change shouldn't fight a
+    // preference the user may have already toggled by hand in this same session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const realChannels = channels.filter((c) => !c.isGeneral);
 
