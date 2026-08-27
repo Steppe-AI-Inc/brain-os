@@ -68,6 +68,15 @@ applicable to this product's current scope (noted why).
    approval loop described in CLAUDE.md §10/§15 doesn't exist yet; today, approving
    something only records the decision. The payload-immutability half is real, though:
    `approval_payload` is written once at creation and nothing ever updates it.
+   **Confirmed with real consequences, not just code review, 2026-08-27:** the founder
+   asked to "approve the 68-task deletion" for a real pending approval. Its
+   `approval_payload` turned out to contain no task IDs at all (`task_id` was also
+   `null`) — the model had recorded *that* deletion was needed but never *which* tasks,
+   so there was nothing an approval-driven executor could have acted on even if one
+   existed. Clicking Approve would have flipped the status and deleted nothing. Resolved
+   by executing the actual intent directly (the real per-column "Clear all" UI action)
+   and then marking the approval `approved` with a note explaining why, rather than
+   approving first and leaving the founder to discover nothing happened.
 8. QA verifies acceptance criteria; failed QA reopens/escalates. ➖ no formal QA-agent
    step exists in the current pipeline yet — task/approval creation is the closest
    equivalent.
