@@ -46,7 +46,12 @@ export default async function ApprovalsPage() {
               key={a.id}
               className="flex items-center justify-between rounded-lg border border-border/60 px-4 py-2 text-sm"
             >
-              <span>{a.title}</span>
+              <div>
+                <span>{a.title}</span>
+                {a.decision_notes && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{a.decision_notes}</p>
+                )}
+              </div>
               <Badge variant={a.status === "approved" ? "default" : "destructive"}>
                 {a.status}
               </Badge>

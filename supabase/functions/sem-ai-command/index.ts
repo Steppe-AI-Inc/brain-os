@@ -139,7 +139,15 @@ Rules:
   from context.tasks into deleteTaskIds. Never invent or guess an id — only ids that
   literally appear in context.tasks are honored; anything else is silently ignored. If the
   user references a task that isn't in context.tasks, say so in summary instead of
-  guessing an id.
+  guessing an id. deleteTaskIds executes immediately — this is correct and expected for an
+  explicit, unambiguous delete instruction; do not add unnecessary approval friction to a
+  clear direct request. Use pendingDeleteTaskIds instead (same id-provenance rule) only
+  when you genuinely want an authorized reviewer to confirm before it happens — e.g. the
+  requester's own role may lack delete rights, or you judge the scale/ambiguity of the
+  request itself warrants a second look. A pending id deletes nothing now: it is attached
+  to an approval, and the deletion only actually runs once an authorized approver approves
+  it on the Approvals page — so if you use pendingDeleteTaskIds, say in summary that
+  nothing is deleted yet and it's waiting on approval.
 - context.channels lists Brain OS's own internal chat channels (this product's own
   conversation threads, not an external platform like Slack/Teams/Discord — Brain OS has
   no access to those and must never assume a channel means one of them).
@@ -153,7 +161,9 @@ Rules:
   ids that literally appear in context.channels, or context.activeChannelId itself, are
   honored. If the user references a channel that isn't in context.channels and isn't
   "this/current" (so context.activeChannelId doesn't apply either), say so in summary
-  instead of guessing an id.
+  instead of guessing an id. Same immediate-vs-deferred choice as task deletion above:
+  deleteChannelIds executes now, pendingDeleteChannelIds only attaches the real ids to an
+  approval for a reviewer to confirm — nothing is deleted until that approval is approved.
 - You may create real companies and people directly (not just a task describing the
   work) when the user gives you real facts about a company or a person that does not
   already exist in context.companies / context.people. Check context first — never create
@@ -220,6 +230,8 @@ Output schema:
   ],
   "deleteTaskIds": [string],
   "deleteChannelIds": [string],
+  "pendingDeleteTaskIds": [string],
+  "pendingDeleteChannelIds": [string],
   "createCompanies": [
     {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
   ],
@@ -880,6 +892,15 @@ serve(async (req) => {
         const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
         const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
+        // Deferred deletion: the model chose NOT to execute now (see the pendingDeleteTaskIds
+        // prompt rule) but still identified real, validated targets — captured here as an
+        // approval_payload.execute action (below) so decide_approval() (migration
+        // 202608270005) can actually run the deletion once an authorized approver approves
+        // it, instead of the approval being a dead-end description with no target ids (the
+        // exact gap a real 68-task bulk-deletion approval hit live tonight).
+        const requestedPendingDeleteTaskIds = Array.isArray(result.pendingDeleteTaskIds) ? result.pendingDeleteTaskIds as unknown[] : [];
+        const pendingDeleteTaskIds = requestedPendingDeleteTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
+
         // Channel deletion: same cross-check discipline as task deletion above, but this
         // isn't part of the sem_execute_ai_command RPC's transaction — chat_channels has
         // its own existing RLS delete policy (the same one the manual "..." > Delete menu
@@ -889,6 +910,8 @@ serve(async (req) => {
         if (contextPack?.activeChannelId) contextChannelIds.add(contextPack.activeChannelId);
         const requestedDeleteChannelIds = Array.isArray(result.deleteChannelIds) ? result.deleteChannelIds as unknown[] : [];
         const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
+        const requestedPendingDeleteChannelIds = Array.isArray(result.pendingDeleteChannelIds) ? result.pendingDeleteChannelIds as unknown[] : [];
+        const pendingDeleteChannelIds = requestedPendingDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
         let deletedChannelCount = 0;
         if (deleteChannelIds.length > 0) {
           const { data: deletedChannels, error: deleteChannelsError } = await supabase
@@ -1047,7 +1070,8 @@ serve(async (req) => {
 
         const modelApprovals = (result.approvals || []) as Array<{title?:string; reason?:string; riskLevel?:string; taskIndex?:number|null}>;
         const modelApprovalTaskIndexes = new Set(modelApprovals.map(a => a.taskIndex).filter((i): i is number => typeof i === 'number'));
-        const forcedApprovals: Array<{title:string; reason:string; riskLevel:string; taskIndex:number|null}> = forcedApprovalTaskIndexes
+        type ForcedApproval = {title:string; reason:string; riskLevel:string; taskIndex:number|null; execute?:{action:string; taskIds?:string[]; channelIds?:string[]}};
+        const forcedApprovals: ForcedApproval[] = forcedApprovalTaskIndexes
           .filter(i => !modelApprovalTaskIndexes.has(i))
           .map(i => ({
             title: `Approval required: ${resultTasks[i].title}`,
@@ -1071,15 +1095,44 @@ serve(async (req) => {
             taskIndex: null,
           });
         }
+        // Deferred deletions (pendingDeleteTaskIds/pendingDeleteChannelIds): nothing has
+        // been deleted yet — the execute payload is what lets decide_approval() (migration
+        // 202608270005) perform the deletion later, exactly once, only once approved. The
+        // ids were already cross-checked against contextTaskIds/contextChannelIds above,
+        // same discipline as the immediate delete path.
+        if (pendingDeleteTaskIds.length > 0) {
+          forcedApprovals.push({
+            title: `Approval required: delete ${pendingDeleteTaskIds.length} task(s)`,
+            reason: 'Deletion deferred pending approval — will delete these exact tasks once approved.',
+            riskLevel: 'high',
+            taskIndex: null,
+            execute: { action: 'delete_tasks', taskIds: pendingDeleteTaskIds },
+          });
+        }
+        if (pendingDeleteChannelIds.length > 0) {
+          forcedApprovals.push({
+            title: `Approval required: delete ${pendingDeleteChannelIds.length} channel(s)`,
+            reason: 'Deletion deferred pending approval — will delete these exact channels once approved.',
+            riskLevel: 'high',
+            taskIndex: null,
+            execute: { action: 'delete_channels', channelIds: pendingDeleteChannelIds },
+          });
+        }
         // Domain drives approvals_update_approver RLS routing (salary/finance -> HR-finance role,
         // legal -> founder/admin only, general/production/external_comms -> company manager).
         // Prefer the linked task's own text (more specific) over the approval's own title/reason.
-        const approvalPayloads = [...modelApprovals, ...forcedApprovals].map(a => {
+        // execute is intentionally read only from forcedApprovals (server-built, from ids
+        // already cross-checked against context above) and never from modelApprovals — the
+        // model's raw JSON output is untrusted input, and letting it set its own "execute"
+        // object here would let it name arbitrary task/channel ids for decide_approval() to
+        // delete later, bypassing the context cross-check entirely.
+        const approvalPayloads = [...modelApprovals, ...forcedApprovals].map((a, idx) => {
           const sourceTask = typeof a.taskIndex === 'number' ? resultTasks[a.taskIndex] : null;
           const domain = sourceTask
             ? detectApprovalDomain(sourceTask.title || '', sourceTask.description || '')
             : detectApprovalDomain(a.title || '', a.reason || '');
-          return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null };
+          const execute = idx >= modelApprovals.length ? (a as ForcedApproval).execute ?? null : null;
+          return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null, execute };
         });
 
         const finalInputTokens = usageRef.current?.input_tokens || tokenEstimate;

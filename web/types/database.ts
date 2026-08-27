@@ -2988,6 +2988,18 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      decide_approval: {
+        Args: {
+          p_approval_id: string
+          p_decision: Database["public"]["Enums"]["approval_status"]
+          p_decision_notes?: string
+        }
+        Returns: {
+          decided: boolean
+          deletion_summary: string
+          task_resumed: boolean
+        }[]
+      }
       delete_mcp_connector_secret: {
         Args: { p_secret_id: string }
         Returns: undefined
