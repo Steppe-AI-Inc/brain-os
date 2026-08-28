@@ -55,7 +55,7 @@ do $$ begin
   create type relationship_state as enum ('current','planned','historical','under_restructuring');
 exception when duplicate_object then null; end $$;
 do $$ begin
-  create type company_relationship_type as enum ('parent_of','owned_by_percentage');
+  create type company_relationship_type as enum ('parent_of','owned_by_percentage','business_unit_of','brand_of','subsidiary_of','department_of');
 exception when duplicate_object then null; end $$;
 do $$ begin
   create type employment_type as enum ('full_time','part_time','contractor','advisor');
@@ -87,6 +87,11 @@ create table if not exists public.companies (
   strategic_priority int default 5,
   risk_score int default 0,
   is_seed_data boolean default false,
+  -- Distinguishes a real legal company from a business unit/brand/department that just
+  -- happens to live in the same table - see 202608280006_organization_graph_fixes.sql.
+  -- Without this, "CLIX GPS is a business unit, not a company" had nowhere to go.
+  organization_type text not null default 'legal_entity'
+    check (organization_type in ('legal_entity','holding_company','subsidiary','business_unit','brand','department','country_operation')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -984,12 +989,13 @@ begin
 
   for v_company in select * from jsonb_array_elements(coalesce(p_companies, '[]'::jsonb))
   loop
-    insert into public.companies (name, country, legal_entity_name, description)
+    insert into public.companies (name, country, legal_entity_name, description, organization_type)
     values (
       v_company->>'name',
       nullif(v_company->>'country',''),
       nullif(v_company->>'legalEntityName',''),
-      nullif(v_company->>'description','')
+      nullif(v_company->>'description',''),
+      coalesce(nullif(v_company->>'organizationType',''), 'legal_entity')
     )
     returning id into v_new_company_id;
 
@@ -1085,25 +1091,54 @@ begin
       else null
     end;
 
+    v_new_relationship_id := null;
     if v_entry_company_id is not null
        and ((v_entry_related_company_id is not null)::int + (v_entry_owner_profile_id is not null)::int = 1)
     then
-      insert into public.company_relationships (
-        company_id, related_company_id, owner_profile_id, relationship_type,
-        ownership_pct, state, effective_date, notes, created_by_profile_id
-      ) values (
-        v_entry_company_id,
-        v_entry_related_company_id,
-        v_entry_owner_profile_id,
-        coalesce((v_relationship->>'relationshipType')::company_relationship_type,'parent_of'::company_relationship_type),
-        nullif(v_relationship->>'ownershipPct','')::numeric,
-        coalesce((v_relationship->>'state')::relationship_state,'planned'::relationship_state),
-        nullif(v_relationship->>'effectiveDate','')::date,
-        nullif(v_relationship->>'notes',''),
-        v_profile_id
-      )
-      returning id into v_new_relationship_id;
+      -- A 'current' company-to-company relationship goes through the idempotent RPC
+      -- (202608280006_organization_graph_fixes.sql) - this is exactly the case that
+      -- produced a live duplicate row when the founder repeated "make SEM GRT owned by
+      -- SEM LLC." 'planned'/'historical'/'under_restructuring' rows and personal
+      -- (owner_profile_id) ownership keep the richer raw insert (notes, effective_date,
+      -- states set_company_relationship doesn't model) - the integrity trigger still
+      -- applies to those either way. Wrapped in its own sub-transaction: a cycle or
+      -- >100%-ownership violation must skip just this one relationship (same silent-skip
+      -- discipline as every other entry in this function), never abort the founder's
+      -- entire chat command - tasks/companies/etc. from the same turn must still commit.
+      begin
+        if v_entry_related_company_id is not null
+           and coalesce((v_relationship->>'state')::relationship_state,'planned'::relationship_state) = 'current'::relationship_state
+        then
+          v_new_relationship_id := public.set_company_relationship(
+            v_entry_company_id,
+            v_entry_related_company_id,
+            coalesce((v_relationship->>'relationshipType')::company_relationship_type,'parent_of'::company_relationship_type),
+            nullif(v_relationship->>'ownershipPct','')::numeric,
+            'current'
+          );
+        else
+          insert into public.company_relationships (
+            company_id, related_company_id, owner_profile_id, relationship_type,
+            ownership_pct, state, effective_date, notes, created_by_profile_id
+          ) values (
+            v_entry_company_id,
+            v_entry_related_company_id,
+            v_entry_owner_profile_id,
+            coalesce((v_relationship->>'relationshipType')::company_relationship_type,'parent_of'::company_relationship_type),
+            nullif(v_relationship->>'ownershipPct','')::numeric,
+            coalesce((v_relationship->>'state')::relationship_state,'planned'::relationship_state),
+            nullif(v_relationship->>'effectiveDate','')::date,
+            nullif(v_relationship->>'notes',''),
+            v_profile_id
+          )
+          returning id into v_new_relationship_id;
+        end if;
+      exception when others then
+        v_new_relationship_id := null;
+      end;
+    end if;
 
+    if v_new_relationship_id is not null then
       v_created_relationships := v_created_relationships || jsonb_build_object('id', v_new_relationship_id);
     end if;
   end loop;
@@ -1983,6 +2018,107 @@ drop policy if exists "company_relationships_select_founder" on public.company_r
 create policy "company_relationships_select_founder" on public.company_relationships for select using (public.is_founder_or_admin());
 drop policy if exists "company_relationships_write_founder" on public.company_relationships;
 create policy "company_relationships_write_founder" on public.company_relationships for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
+
+-- See 202608280006_organization_graph_fixes.sql for the real-world defect this closes:
+-- a repeated "move CLIX GPS under SEM LLC" created duplicate rows with no idempotency,
+-- and nothing enforced ownership <=100% or blocked ownership cycles.
+create unique index if not exists company_relationships_current_unique
+  on public.company_relationships (company_id, related_company_id, relationship_type)
+  where state = 'current' and related_company_id is not null;
+
+create or replace function public.check_company_relationship_integrity()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  cyclic boolean;
+begin
+  if new.state = 'current' and new.related_company_id is not null then
+    if new.relationship_type = 'owned_by_percentage' and new.ownership_pct is not null then
+      if (
+        select coalesce(sum(ownership_pct), 0)
+        from public.company_relationships
+        where company_id = new.company_id
+          and relationship_type = 'owned_by_percentage'
+          and state = 'current'
+          and id <> coalesce(new.id, '00000000-0000-0000-0000-000000000000'::uuid)
+      ) + new.ownership_pct > 100 then
+        raise exception 'Total current ownership of company % would exceed 100%%', new.company_id;
+      end if;
+    end if;
+
+    if new.relationship_type in ('parent_of', 'business_unit_of', 'brand_of', 'subsidiary_of', 'department_of') then
+      with recursive ancestors as (
+        select company_id as id from public.company_relationships
+        where related_company_id = new.company_id
+          and state = 'current'
+          and relationship_type in ('parent_of', 'business_unit_of', 'brand_of', 'subsidiary_of', 'department_of')
+        union
+        select r.company_id from public.company_relationships r
+        join ancestors a on r.related_company_id = a.id
+        where r.state = 'current'
+          and r.relationship_type in ('parent_of', 'business_unit_of', 'brand_of', 'subsidiary_of', 'department_of')
+      )
+      select exists(select 1 from ancestors where id = new.related_company_id) into cyclic;
+      if cyclic or new.company_id = new.related_company_id then
+        raise exception 'This relationship would create a cycle in the organization hierarchy';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists company_relationships_integrity on public.company_relationships;
+create trigger company_relationships_integrity
+  before insert or update on public.company_relationships
+  for each row execute function public.check_company_relationship_integrity();
+
+create or replace function public.set_company_relationship(
+  p_company_id uuid,
+  p_related_company_id uuid,
+  p_relationship_type public.company_relationship_type,
+  p_ownership_pct numeric default null,
+  p_state text default 'current'
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if not public.is_founder_or_admin() then
+    raise exception 'Only the founder or an admin can restructure the organization graph';
+  end if;
+  if p_company_id = p_related_company_id then
+    raise exception 'A company cannot be related to itself';
+  end if;
+  if p_state not in ('current', 'planned', 'historical', 'under_restructuring') then
+    raise exception 'Unknown state %', p_state;
+  end if;
+
+  if p_state = 'current' and p_relationship_type <> 'owned_by_percentage' then
+    update public.company_relationships
+      set state = 'historical'
+      where company_id = p_company_id
+        and relationship_type <> 'owned_by_percentage'
+        and state = 'current'
+        and not (related_company_id = p_related_company_id and relationship_type = p_relationship_type);
+  end if;
+
+  insert into public.company_relationships (company_id, related_company_id, relationship_type, ownership_pct, state, created_by_profile_id)
+  values (p_company_id, p_related_company_id, p_relationship_type, p_ownership_pct, p_state, public.current_profile_id())
+  on conflict (company_id, related_company_id, relationship_type) where state = 'current' and related_company_id is not null
+  do update set ownership_pct = coalesce(excluded.ownership_pct, public.company_relationships.ownership_pct)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.set_company_relationship(uuid, uuid, public.company_relationship_type, numeric, text) to authenticated;
 
 alter table public.person_assignments enable row level security;
 drop policy if exists "person_assignments_select_scope" on public.person_assignments;

@@ -605,6 +605,7 @@ export type Database = {
           is_seed_data: boolean | null
           legal_entity_name: string | null
           name: string
+          organization_type: string
           risk_score: number | null
           status: string | null
           strategic_priority: number | null
@@ -619,6 +620,7 @@ export type Database = {
           is_seed_data?: boolean | null
           legal_entity_name?: string | null
           name: string
+          organization_type?: string
           risk_score?: number | null
           status?: string | null
           strategic_priority?: number | null
@@ -633,6 +635,7 @@ export type Database = {
           is_seed_data?: boolean | null
           legal_entity_name?: string | null
           name?: string
+          organization_type?: string
           risk_score?: number | null
           status?: string | null
           strategic_priority?: number | null
@@ -3046,6 +3049,16 @@ export type Database = {
         }
         Returns: string
       }
+      set_company_relationship: {
+        Args: {
+          p_company_id: string
+          p_ownership_pct?: number
+          p_related_company_id: string
+          p_relationship_type: Database["public"]["Enums"]["company_relationship_type"]
+          p_state?: string
+        }
+        Returns: string
+      }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
         Returns: {
@@ -3123,7 +3136,7 @@ export type Database = {
         | "changes_requested"
         | "cancelled"
       assignment_state: "current" | "planned" | "historical"
-      company_relationship_type: "parent_of" | "owned_by_percentage"
+      company_relationship_type: "parent_of" | "owned_by_percentage" | "business_unit_of" | "brand_of" | "subsidiary_of" | "department_of"
       employment_type: "full_time" | "part_time" | "contractor" | "advisor"
       financial_health_status: "healthy" | "watch" | "at_risk" | "unknown"
       goal_kind: "ephemeral" | "standing" | "routine" | "decision"
@@ -3306,7 +3319,7 @@ export const Constants = {
         "cancelled",
       ],
       assignment_state: ["current", "planned", "historical"],
-      company_relationship_type: ["parent_of", "owned_by_percentage"],
+      company_relationship_type: ["parent_of", "owned_by_percentage", "business_unit_of", "brand_of", "subsidiary_of", "department_of"],
       employment_type: ["full_time", "part_time", "contractor", "advisor"],
       financial_health_status: ["healthy", "watch", "at_risk", "unknown"],
       goal_kind: ["ephemeral", "standing", "routine", "decision"],

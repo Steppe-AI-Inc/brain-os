@@ -305,6 +305,33 @@ Rules:
   ownershipPct stays null unless the user states an actual number. For person assignments,
   personId/personIndex works like companyId/companyIndex (personIndex points at
   createPeople in this same response); leave any field null rather than guessing.
+  A "current" company-to-company relationship is idempotent server-side — repeating the
+  same "move X under Y" command is safe and will not create a duplicate.
+- Companies carry an "organizationType": legal_entity (default — a real registered
+  company), holding_company, subsidiary, business_unit, brand, department, or
+  country_operation. "X is not a company, it's a business unit of Y" / "remove X from the
+  company list, it belongs under Y" is TWO things together, not one: an updateCompanies
+  entry setting X's organizationType to "business_unit" (or "brand"/"department" —
+  whichever the user's own words imply), AND a createCompanyRelationships entry with
+  relationshipType "business_unit_of" (or "brand_of"/"department_of"), state "current",
+  companyId=X, relatedCompanyId=Y. Do only one half and the restructuring will look like a
+  no-op to the founder even though something changed.
+  "X is N% owned by Y" — plain legal ownership between two companies, X stays its own
+  distinct legal entity — uses relationshipType "parent_of" with ownershipPct set (this is
+  the existing convention already correctly used in production: SEM LLC's 100% ownership
+  of SEM Global Robotics Technologies is recorded exactly this way). Use "subsidiary_of"
+  instead only if the user explicitly calls X a subsidiary, not just "owned by."
+  relationshipType "owned_by_percentage" is a DIFFERENT case — reserved for when the owner
+  is an individual person (ownerProfileId set, relatedCompanyId left null), never for
+  company-to-company ownership.
+  DIRECTION MATTERS and reverses depending on the relationship name — read it as a literal
+  sentence "companyId [relationshipType] relatedCompanyId": for "parent_of", companyId is
+  the PARENT/owner and relatedCompanyId is the child/owned ("SEM LLC parent_of SEM GRT" —
+  companyId=SEM LLC, relatedCompanyId=SEM GRT). For "business_unit_of"/"brand_of"/
+  "subsidiary_of"/"department_of", companyId is the SUBORDINATE one and relatedCompanyId is
+  the container ("CLIX GPS business_unit_of SEM LLC" — companyId=CLIX GPS,
+  relatedCompanyId=SEM LLC). Get this backwards and the hierarchy inverts silently — always
+  read the relationshipType name as the literal English sentence connecting the two ids.
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation: do not repeat an action you already took
   earlier in this history, and refer back to it naturally when relevant.
@@ -346,10 +373,10 @@ Output schema:
   "pendingDeleteTaskIds": [string],
   "pendingDeleteChannelIds": [string],
   "createCompanies": [
-    {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
+    {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null, "organizationType": "legal_entity"|"holding_company"|"subsidiary"|"business_unit"|"brand"|"department"|"country_operation"|null}
   ],
   "updateCompanies": [
-    {"id": string, "name": string|null, "country": string|null, "legalEntityName": string|null, "status": string|null}
+    {"id": string, "name": string|null, "country": string|null, "legalEntityName": string|null, "status": string|null, "organizationType": "legal_entity"|"holding_company"|"subsidiary"|"business_unit"|"brand"|"department"|"country_operation"|null}
   ],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
@@ -407,7 +434,7 @@ Output schema:
   ],
   "deleteProposalIds": [string],
   "createCompanyRelationships": [
-    {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
+    {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|"business_unit_of"|"brand_of"|"subsidiary_of"|"department_of"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
   ],
   "createPersonAssignments": [
     {"personId": string|null, "personIndex": number|null, "legalEmployerCompanyId": string|null, "legalEmployerCompanyIndex": number|null, "operatingCompanyId": string|null, "operatingCompanyIndex": number|null, "departmentId": string|null, "jobTitle": string|null, "managerPersonId": string|null, "managerPersonIndex": number|null, "employmentType": "full_time"|"part_time"|"contractor"|"advisor"|null, "allocationPct": number|null, "startDate": string|null, "endDate": string|null, "isPrimary": boolean|null, "responsibilities": string|null, "state": "current"|"planned"|"historical"|null}
@@ -836,7 +863,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount] = await Promise.all([
-    supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
+    supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
     memoriesQuery,
@@ -851,7 +878,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
-    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,state').limit(20),
+    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state').limit(20),
     supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
     // RLS-gated to founder/admin or is_company_manager(company_id) — a technician's own
     // RLS-scoped client gets [] back here, same "no special casing" pattern as
@@ -1215,6 +1242,7 @@ serve(async (req) => {
         // however many companies actually get created this request.
         const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
         const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
+        const VALID_ORGANIZATION_TYPES = new Set(['legal_entity', 'holding_company', 'subsidiary', 'business_unit', 'brand', 'department', 'country_operation']);
         const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
         const createCompanies = requestedCompanies
           .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as any).name === 'string' && (c as any).name.trim())
@@ -1223,6 +1251,7 @@ serve(async (req) => {
             country: typeof c.country === 'string' ? c.country : null,
             legalEntityName: typeof c.legalEntityName === 'string' ? c.legalEntityName : null,
             description: typeof c.description === 'string' ? c.description : null,
+            organizationType: typeof c.organizationType === 'string' && VALID_ORGANIZATION_TYPES.has(c.organizationType) ? c.organizationType : null,
           }));
 
         // Company updates target an existing row by real id — never a company being
@@ -1240,6 +1269,7 @@ serve(async (req) => {
             country: typeof c.country === 'string' ? c.country : null,
             legalEntityName: typeof c.legalEntityName === 'string' ? c.legalEntityName : null,
             status: typeof c.status === 'string' ? c.status : null,
+            organizationType: typeof c.organizationType === 'string' && VALID_ORGANIZATION_TYPES.has(c.organizationType) ? c.organizationType : null,
           }));
         let updatedCompanyCount = 0;
         for (const c of updateCompaniesReq) {
@@ -1248,6 +1278,7 @@ serve(async (req) => {
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
           if (c.status) patch.status = c.status;
+          if (c.organizationType) patch.organization_type = c.organizationType;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
           if (data && data.length > 0) updatedCompanyCount++;
@@ -1489,7 +1520,7 @@ serve(async (req) => {
         // ever honored, and ownerProfileId is only trusted if it exactly matches the
         // calling profile — never any other value the model might supply.
         const VALID_RELATIONSHIP_STATES = new Set(['current', 'planned', 'historical', 'under_restructuring']);
-        const VALID_RELATIONSHIP_TYPES = new Set(['parent_of', 'owned_by_percentage']);
+        const VALID_RELATIONSHIP_TYPES = new Set(['parent_of', 'owned_by_percentage', 'business_unit_of', 'brand_of', 'subsidiary_of', 'department_of']);
         const requestedRelationships = Array.isArray(result.createCompanyRelationships) ? result.createCompanyRelationships as unknown[] : [];
         const createCompanyRelationships = requestedRelationships
           .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object' && hasCompanyRef(r))

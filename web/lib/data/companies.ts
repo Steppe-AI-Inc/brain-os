@@ -7,9 +7,26 @@ export async function getCompanies() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select("id, name, country, legal_entity_name, status, strategic_priority, risk_score")
+    .select("id, name, country, legal_entity_name, status, organization_type, strategic_priority, risk_score")
     .order("strategic_priority", { ascending: false });
   if (error) throw error;
+  return data;
+}
+
+// Read-only organization graph for the Companies page — the actual defect this closes:
+// company_relationships has existed since 2026-08-24 and the AI has been able to write
+// to it, but until now nothing anywhere ever read it back. RLS on this table is
+// founder/admin-only (company_relationships_select_founder), matching how ownership
+// structure is treated everywhere else in this schema (company_sensitive is the same
+// tier) — a non-founder simply gets an empty array here, not an error.
+export async function getOrganizationRelationships() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("company_relationships")
+    .select("id, company_id, related_company_id, relationship_type, ownership_pct, state")
+    .eq("state", "current")
+    .not("related_company_id", "is", null);
+  if (error) return [];
   return data;
 }
 
@@ -36,6 +53,7 @@ export type CompanyInput = {
   country: string;
   legalEntityName: string;
   status: string;
+  organizationType: string;
 };
 
 // Both check affected row count, not just `error` — companies_write_admin RLS
@@ -51,6 +69,7 @@ export async function updateCompany(id: string, input: CompanyInput) {
       country: input.country.trim() || null,
       legal_entity_name: input.legalEntityName.trim() || null,
       status: input.status || "active",
+      organization_type: input.organizationType || "legal_entity",
     })
     .eq("id", id)
     .select("id");
