@@ -167,7 +167,9 @@ export function GoalHeaderActions({
 
 export function KeyResultsSection({ goalId, keyResults }: { goalId: string; keyResults: KeyResult[] }) {
   const [error, formAction, pending] = useActionState(createKeyResult, null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [, startDelete] = useTransition();
+  const router = useRouter();
 
   return (
     <Card className="border-border/80 shadow-none">
@@ -193,7 +195,13 @@ export function KeyResultsSection({ goalId, keyResults }: { goalId: string; keyR
                     className="text-muted-foreground hover:text-destructive"
                     onClick={() =>
                       startDelete(async () => {
-                        await deleteKeyResult(kr.id, goalId);
+                        setDeleteError(null);
+                        // deleteKeyResult now checks affected rows for real (see
+                        // qa/KNOWN_FAILURE_MODES.md #18) — this result was previously
+                        // discarded, so a real failure had no way to reach the user.
+                        const result = await deleteKeyResult(kr.id, goalId);
+                        if (result) setDeleteError(result);
+                        router.refresh();
                       })
                     }
                   >
@@ -205,6 +213,7 @@ export function KeyResultsSection({ goalId, keyResults }: { goalId: string; keyR
             </div>
           );
         })}
+        {deleteError && <p className="text-sm font-medium text-destructive">{deleteError}</p>}
 
         <form action={formAction} className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
           <input type="hidden" name="goal_id" value={goalId} />

@@ -106,11 +106,16 @@ export async function updateMarkup(multiplier: number): Promise<string | null> {
   if (!user) return "Not signed in.";
   const { data: profile } = await supabase.from("profiles").select("id").eq("auth_user_id", user.id).single();
 
-  const { error } = await supabase
+  // Checks affected row count, not just `error` — ai_pricing_settings_write RLS
+  // (founder-only) means a non-founder caller's update silently matches 0 rows rather
+  // than erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
+  const { data, error } = await supabase
     .from("ai_pricing_settings")
     .update({ markup_multiplier: multiplier, updated_by_profile_id: profile?.id, updated_at: new Date().toISOString() })
-    .eq("id", true);
+    .eq("id", true)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — you may not have access to update pricing.";
   revalidatePath("/billing");
   return null;
 }

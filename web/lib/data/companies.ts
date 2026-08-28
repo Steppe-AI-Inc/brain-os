@@ -38,10 +38,13 @@ export type CompanyInput = {
   status: string;
 };
 
+// Both check affected row count, not just `error` — companies_write_admin RLS
+// (founder/admin only) means a non-admin caller's update/delete silently matches 0 rows
+// rather than erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateCompany(id: string, input: CompanyInput) {
   if (!input.name.trim()) return "Company name is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("companies")
     .update({
       name: input.name.trim(),
@@ -49,16 +52,19 @@ export async function updateCompany(id: string, input: CompanyInput) {
       legal_entity_name: input.legalEntityName.trim() || null,
       status: input.status || "active",
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this company may no longer exist or you may not have access to it.";
   revalidatePath("/companies");
   return null;
 }
 
 export async function deleteCompany(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("companies").delete().eq("id", id);
+  const { data, error } = await supabase.from("companies").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this company may no longer exist or you may not have access to it.";
   revalidatePath("/companies");
   return null;
 }

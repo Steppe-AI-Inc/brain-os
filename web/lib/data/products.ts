@@ -56,11 +56,14 @@ export async function createProductLine(_prevState: string | null, formData: For
 
 export type ProductLineInput = { name: string; companyId: string; unitPrice: number; unitCost: number; active: boolean };
 
+// Both check affected row count, not just `error` — product_lines_write_manager RLS
+// means a caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateProductLine(id: string, input: ProductLineInput) {
   if (!input.name.trim()) return "Name is required.";
   if (!input.companyId) return "Company is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("product_lines")
     .update({
       name: input.name.trim(),
@@ -68,8 +71,10 @@ export async function updateProductLine(id: string, input: ProductLineInput) {
       unit_price: input.unitPrice,
       active: input.active,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this product may no longer exist or you may not have access to it.";
 
   const { error: costError } = await supabase
     .from("product_costs")
@@ -84,8 +89,9 @@ export async function updateProductLine(id: string, input: ProductLineInput) {
 // DELETE CASCADE) — pre-existing data-integrity rule, not something added here.
 export async function deleteProductLine(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("product_lines").delete().eq("id", id);
+  const { data, error } = await supabase.from("product_lines").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this product may no longer exist or you may not have access to it.";
   revalidatePath("/products");
   return null;
 }

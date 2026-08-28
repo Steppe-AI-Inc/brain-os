@@ -172,10 +172,13 @@ export async function createDocument(_prevState: string | null, formData: FormDa
 
 export type DocumentInput = { title: string; companyId: string; sensitivity: string; summary: string };
 
+// All three check affected row count, not just `error` — documents_write_scope RLS
+// means a caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateDocument(id: string, input: DocumentInput) {
   if (!input.title.trim()) return "Title is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("documents")
     .update({
       title: input.title.trim(),
@@ -183,16 +186,19 @@ export async function updateDocument(id: string, input: DocumentInput) {
       sensitivity: input.sensitivity as "public" | "internal" | "confidential" | "restricted" | "founder_only",
       summary: input.summary.trim() || null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this document may no longer exist or you may not have access to it.";
   revalidatePath("/documents");
   return null;
 }
 
 export async function deleteDocument(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("documents").delete().eq("id", id);
+  const { data, error } = await supabase.from("documents").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this document may no longer exist or you may not have access to it.";
   revalidatePath("/documents");
   return null;
 }
@@ -200,9 +206,13 @@ export async function deleteDocument(id: string) {
 export async function deleteDocuments(ids: string[]) {
   if (ids.length === 0) return null;
   const supabase = await createClient();
-  const { error } = await supabase.from("documents").delete().in("id", ids);
+  const { data, error } = await supabase.from("documents").delete().in("id", ids).select("id");
   if (error) return error.message;
-  revalidatePath("/documents");
+  const deletedCount = data?.length || 0;
+  if (deletedCount > 0) revalidatePath("/documents");
+  if (deletedCount < ids.length) {
+    return `Only ${deletedCount} of ${ids.length} document(s) were deleted — the rest may no longer exist or you may not have access to them.`;
+  }
   return null;
 }
 

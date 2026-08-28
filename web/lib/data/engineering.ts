@@ -60,10 +60,14 @@ export async function generateEngineeringDrawing(_prevState: string | null, form
   return null;
 }
 
+// Checks affected row count, not just `error` — engineering_drawings_delete RLS means a
+// caller outside the company's manager tier silently matches 0 rows rather than erroring.
+// Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function deleteEngineeringDrawing(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("engineering_drawings").delete().eq("id", id);
+  const { data, error } = await supabase.from("engineering_drawings").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this drawing may no longer exist or you may not have access to it.";
   revalidatePath("/engineering");
   return null;
 }

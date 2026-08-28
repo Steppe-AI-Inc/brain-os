@@ -138,12 +138,18 @@ function StatPair({ label, tokens, costUsd }: { label: string; tokens: number; c
 function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const active = providers.find((p) => p.is_active);
 
   function onChange(v: unknown) {
     if (typeof v !== "string") return;
+    setError(null);
     startTransition(async () => {
-      await setActiveProvider(v);
+      // setActiveProvider now checks affected rows for real (ai_providers_update_founder_only
+      // RLS — see qa/KNOWN_FAILURE_MODES.md #18); this result used to be discarded, so a
+      // non-founder's blocked switch had no way to reach the user.
+      const result = await setActiveProvider(v);
+      if (result) setError(result);
       router.refresh();
     });
   }
@@ -157,20 +163,23 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   }
 
   return (
-    <Select value={active?.id} onValueChange={onChange} disabled={pending}>
-      <SelectTrigger className="h-8 w-56 text-xs">
-        <SelectValue placeholder="Select provider">
-          {() => (active ? `${active.label} · ${active.model}` : "Select provider")}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {providers.map((p) => (
-          <SelectItem key={p.id} value={p.id}>
-            {p.label} · {p.model}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-1">
+      <Select value={active?.id} onValueChange={onChange} disabled={pending}>
+        <SelectTrigger className="h-8 w-56 text-xs">
+          <SelectValue placeholder="Select provider">
+            {() => (active ? `${active.label} · ${active.model}` : "Select provider")}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {providers.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.label} · {p.model}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </div>
   );
 }
 

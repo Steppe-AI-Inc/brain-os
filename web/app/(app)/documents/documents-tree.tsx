@@ -133,6 +133,9 @@ export function DocumentsTree({ documents }: { documents: DocumentRow[] }) {
     setBusy(false);
     if (result) {
       setMessage(`Error: ${result}`);
+      // A partial result still deleted some real rows — refresh so the tree reflects
+      // that, even though selection/message stay for the error.
+      router.refresh();
       return;
     }
     setSelected(new Set());

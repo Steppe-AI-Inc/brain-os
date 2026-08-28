@@ -34,11 +34,14 @@ export async function createProject(_prevState: string | null, formData: FormDat
 
 export type ProjectInput = { title: string; companyId: string; goal: string; status: string; deadline: string };
 
+// Both check affected row count, not just `error` — projects_write_manager RLS means a
+// caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateProject(id: string, input: ProjectInput) {
   if (!input.title.trim()) return "Title is required.";
   if (!input.companyId) return "Company is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("projects")
     .update({
       title: input.title.trim(),
@@ -47,16 +50,19 @@ export async function updateProject(id: string, input: ProjectInput) {
       status: input.status.trim() || "active",
       deadline: input.deadline || null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this project may no longer exist or you may not have access to it.";
   revalidatePath("/projects");
   return null;
 }
 
 export async function deleteProject(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("projects").delete().eq("id", id);
+  const { data, error } = await supabase.from("projects").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this project may no longer exist or you may not have access to it.";
   revalidatePath("/projects");
   return null;
 }

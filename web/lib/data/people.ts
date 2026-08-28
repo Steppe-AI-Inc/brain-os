@@ -40,10 +40,13 @@ export type PersonInput = {
   companyId: string | null;
 };
 
+// Both check affected row count, not just `error` — people_write_manager RLS means a
+// caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updatePerson(id: string, input: PersonInput) {
   if (!input.fullName.trim()) return "Full name is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("people")
     .update({
       full_name: input.fullName.trim(),
@@ -51,16 +54,19 @@ export async function updatePerson(id: string, input: PersonInput) {
       role_title: input.roleTitle.trim() || null,
       company_id: input.companyId,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this person may no longer exist or you may not have access to them.";
   revalidatePath("/people");
   return null;
 }
 
 export async function deletePerson(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("people").delete().eq("id", id);
+  const { data, error } = await supabase.from("people").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this person may no longer exist or you may not have access to them.";
   revalidatePath("/people");
   return null;
 }

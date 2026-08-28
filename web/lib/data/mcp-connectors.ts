@@ -59,8 +59,12 @@ export async function deleteMcpConnector(id: string) {
     .eq("id", id)
     .single();
 
-  const { error } = await supabase.from("mcp_connectors").delete().eq("id", id);
+  // Checks affected row count, not just `error` — mcp_connectors_founder_only RLS means
+  // a non-founder caller's delete silently matches 0 rows rather than erroring. Same
+  // defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
+  const { data: deleted, error } = await supabase.from("mcp_connectors").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!deleted || deleted.length === 0) return "Nothing was deleted — this connector may no longer exist or you may not have access to it.";
 
   if (connector?.vault_secret_id) {
     try {

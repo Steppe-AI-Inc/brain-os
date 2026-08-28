@@ -138,26 +138,32 @@ export async function createProposal(_prevState: string | null, formData: FormDa
 
 export type ProposalInput = { title: string; status: string; paymentTerms: string };
 
+// Both check affected row count, not just `error` — proposals_write_manager RLS means a
+// caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateProposal(id: string, input: ProposalInput) {
   if (!input.title.trim()) return "Title is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("proposals")
     .update({
       title: input.title.trim(),
       status: input.status.trim() || "draft",
       payment_terms: input.paymentTerms.trim() || null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this proposal may no longer exist or you may not have access to it.";
   revalidatePath("/proposals");
   return null;
 }
 
 export async function deleteProposal(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("proposals").delete().eq("id", id);
+  const { data, error } = await supabase.from("proposals").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this proposal may no longer exist or you may not have access to it.";
   revalidatePath("/proposals");
   return null;
 }

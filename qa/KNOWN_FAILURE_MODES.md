@@ -4,7 +4,7 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
-## 18. "Silent no-op reported as success" is a whole class, not just the AI-chat approvals bug — found across nearly every delete/update in the app (PARTIALLY FIXED, 2026-08-28)
+## 18. "Silent no-op reported as success" is a whole class, not just the AI-chat approvals bug — found across nearly every delete/update in the app (FIXED, 2026-08-28)
 
 **Found while:** searching for the same defect class as #17, per the founder's explicit
 ask and CLAUDE.md §12 ("finding one instance of a pattern means searching for the whole
@@ -53,13 +53,42 @@ can just as easily claim a create succeeded that was actually dropped — same r
 the deletion fact-lines in #17. Fixed by extending that same fact-line mechanism: a
 gap-only note when `requested.length > created.length` for any of the four.
 
-**NOT fixed this pass, scoped and listed, not silently dropped:** the ~20 remaining
-functions in `ai-providers.ts`, `billing.ts`, `companies.ts`, `departments.ts`,
-`documents.ts`, `engineering.ts`, `goals.ts`, `mcp-connectors.ts`, `people.ts`,
-`products.ts`, `projects.ts`, `proposals.ts`, `sales.ts`, `software.ts`. Same fix shape
-applies to each (`.select('id')` + affected-count check + honest partial/zero message +
-`router.refresh()` on the calling component's error path where relevant) — a real,
-bounded follow-up, not a new investigation.
+**Remaining ~20 functions fixed in a follow-up pass, same day:** every function named
+above now does the same `.select('id')` + affected-count check + honest, deliberately
+generic partial/zero message — `ai-providers.ts` (`setActiveProvider`, `deleteAiProvider`),
+`billing.ts` (`updateMarkup`), `companies.ts` (`updateCompany`, `deleteCompany`),
+`departments.ts` (`updateDepartment`, `deleteDepartment`), `documents.ts`
+(`updateDocument`, `deleteDocument`, `deleteDocuments`), `engineering.ts`
+(`deleteEngineeringDrawing`), `goals.ts` (`updateGoal`, `updateGoalDetails`,
+`deleteGoal`, `deleteKeyResult`), `mcp-connectors.ts` (`deleteMcpConnector`), `people.ts`
+(`updatePerson`, `deletePerson`), `products.ts` (`updateProductLine`,
+`deleteProductLine`), `projects.ts` (`updateProject`, `deleteProject`), `proposals.ts`
+(`updateProposal`, `deleteProposal`), `sales.ts` (`updateLead`, `deleteLead`),
+`software.ts` (`updateProductSpec`, `deleteProductSpec`).
+
+**Two real UI-side gaps found and fixed while wiring this up** — components that
+discarded the result entirely, so even a real error now had nowhere to surface: (1)
+`goal-detail-client.tsx`'s key-result delete button (`await deleteKeyResult(...)` with no
+result variable at all) — added a `deleteError` state and an explicit `router.refresh()`.
+(2) `chat-client.tsx`'s AI-provider picker (`await setActiveProvider(v)`, same shape) —
+added the same. Every other calling site (`RowActionsMenu`, `EditSheet`, and each page's
+own custom confirm dialog) already awaited and checked the result correctly — they simply
+never had a real error to handle before, since the underlying functions always returned
+`null`. Not a new investigation to find these two; found by re-grepping every call site of
+each of the ~20 functions above and skimming for a discarded return value, same as the
+`documents-tree.tsx`/`tasks-board.tsx`/`channel-sidebar.tsx` bulk-delete callers already
+fixed in the first pass.
+
+**Deliberately not touched, and why:** a few internal, non-user-facing bookkeeping
+mutations keep the unchecked pattern on purpose — `documents.ts`'s
+`reconcileEditableSource` (runs immediately after the *same* caller's own successful
+upload of that exact row, so an RLS-blocked write here is not a realistic case) and
+`mcp-connectors.ts`'s connection-test status updates (a health-check side effect, not a
+user-initiated action reporting success/failure). `kpi.ts`'s `upsertKpiRecord` (used by
+the batch KPI scorer) has the same theoretical risk but wasn't in the original ~20 and
+would need the batch summary (`{scored, skipped}`) restructured to carry a real failure
+count, not just a boolean-per-call fix — flagged as a distinct, smaller follow-up, not
+silently absorbed into "fixed."
 
 ## 17. AI claimed approvals were deleted with no mechanism to have done it; chat lost its active conversation on every menu navigation; approvals page buried history (FIXED, 2026-08-28)
 

@@ -85,26 +85,32 @@ export async function createSoftwareSpec(_prevState: string | null, formData: Fo
 
 export type ProductSpecInput = { title: string; status: string; bodyMd: string };
 
+// Both check affected row count, not just `error` — product_specs_write_manager RLS
+// means a caller outside the allowed tier silently matches 0 rows rather than erroring.
+// Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateProductSpec(id: string, input: ProductSpecInput) {
   if (!input.title.trim()) return "Title is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("product_specs")
     .update({
       title: input.title.trim(),
       status: input.status.trim() || "draft",
       body_md: input.bodyMd.trim() || null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this spec may no longer exist or you may not have access to it.";
   revalidatePath("/software");
   return null;
 }
 
 export async function deleteProductSpec(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("product_specs").delete().eq("id", id);
+  const { data, error } = await supabase.from("product_specs").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this spec may no longer exist or you may not have access to it.";
   revalidatePath("/software");
   return null;
 }

@@ -50,6 +50,9 @@ export async function createDepartment(_prevState: string | null, formData: Form
 
 export type DepartmentInput = { name: string; companyId: string };
 
+// Both check affected row count, not just `error` — departments_write_manager RLS
+// means a caller outside the company's manager tier silently matches 0 rows rather than
+// erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateDepartment(id: string, input: DepartmentInput) {
   if (!input.name.trim()) return "Name is required.";
   if (!input.companyId) return "Company is required.";
@@ -60,19 +63,22 @@ export async function updateDepartment(id: string, input: DepartmentInput) {
     .replace(/(^-|-$)/g, "");
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("departments")
     .update({ name: input.name.trim(), company_id: input.companyId, slug })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this department may no longer exist or you may not have access to it.";
   revalidatePath("/departments");
   return null;
 }
 
 export async function deleteDepartment(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("departments").delete().eq("id", id);
+  const { data, error } = await supabase.from("departments").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this department may no longer exist or you may not have access to it.";
   revalidatePath("/departments");
   return null;
 }

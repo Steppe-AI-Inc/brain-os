@@ -64,6 +64,11 @@ export async function createGoal(_prevState: string | null, formData: FormData) 
   redirect(`/goals/${data.id}`);
 }
 
+// All four check affected row count, not just `error` — goals_update_scope/
+// goals_delete_manager/key_results_write_scope RLS means a caller outside the allowed
+// tier silently matches 0 rows rather than erroring. Same defect class as
+// qa/KNOWN_FAILURE_MODES.md #17/#18.
+
 /** Generic patch used by both the Kanban drag-drop and the per-kind action panel. */
 export async function updateGoal(
   id: string,
@@ -73,8 +78,9 @@ export async function updateGoal(
   }>
 ) {
   const supabase = await createClient();
-  const { error } = await supabase.from("goals").update(patch).eq("id", id);
+  const { data, error } = await supabase.from("goals").update(patch).eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this goal may no longer exist or you may not have access to it.";
 
   revalidatePath("/goals");
   revalidatePath("/board");
@@ -88,11 +94,13 @@ export type GoalDetailsInput = { title: string; description: string };
 export async function updateGoalDetails(id: string, input: GoalDetailsInput) {
   if (!input.title.trim()) return "Title is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("goals")
     .update({ title: input.title.trim(), description: input.description.trim() || null })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this goal may no longer exist or you may not have access to it.";
 
   revalidatePath("/goals");
   revalidatePath("/board");
@@ -102,8 +110,9 @@ export async function updateGoalDetails(id: string, input: GoalDetailsInput) {
 
 export async function deleteGoal(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("goals").delete().eq("id", id);
+  const { data, error } = await supabase.from("goals").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this goal may no longer exist or you may not have access to it.";
 
   revalidatePath("/goals");
   revalidatePath("/board");
@@ -136,8 +145,9 @@ export async function createKeyResult(_prevState: string | null, formData: FormD
 
 export async function deleteKeyResult(id: string, goalId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("key_results").delete().eq("id", id);
+  const { data, error } = await supabase.from("key_results").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this key result may no longer exist or you may not have access to it.";
 
   revalidatePath(`/goals/${goalId}`);
   return null;

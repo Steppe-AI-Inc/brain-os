@@ -63,11 +63,14 @@ export type LeadInput = {
   valueEstimate: number;
 };
 
+// Both check affected row count, not just `error` — sales_leads_update_own_or_manager/
+// sales_leads_delete_manager RLS means a caller outside the allowed tier silently matches
+// 0 rows rather than erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateLead(id: string, input: LeadInput) {
   if (!input.clientName.trim()) return "Client name is required.";
   if (!input.companyId) return "Company is required.";
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("sales_leads")
     .update({
       client_name: input.clientName.trim(),
@@ -77,16 +80,19 @@ export async function updateLead(id: string, input: LeadInput) {
       stage: input.stage.trim() || "lead",
       value_estimate: input.valueEstimate,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this lead may no longer exist or you may not have access to it.";
   revalidatePath("/sales");
   return null;
 }
 
 export async function deleteLead(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("sales_leads").delete().eq("id", id);
+  const { data, error } = await supabase.from("sales_leads").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this lead may no longer exist or you may not have access to it.";
   revalidatePath("/sales");
   return null;
 }
