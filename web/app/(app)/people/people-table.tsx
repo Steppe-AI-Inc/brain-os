@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, UserPlus, CheckCircle2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
-import { updatePerson, deletePerson, type PersonInput } from "@/lib/data/people";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { updatePerson, deletePerson, invitePerson, type PersonInput } from "@/lib/data/people";
 import { generateOnboardingPlan } from "@/lib/data/onboarding";
 
 type PersonRow = {
@@ -20,6 +30,7 @@ type PersonRow = {
   email: string | null;
   role_title: string | null;
   company_id: string | null;
+  profile_id: string | null;
   companies: { name: string } | null;
 };
 
@@ -37,6 +48,9 @@ export function PeopleTable({
   const [values, setValues] = useState<PersonInput>(EMPTY);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [genMessage, setGenMessage] = useState<string | null>(null);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteConfirm, setInviteConfirm] = useState<PersonRow | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function openEdit(p: PersonRow) {
@@ -64,6 +78,20 @@ export function PeopleTable({
     });
   }
 
+  function confirmInvite() {
+    const p = inviteConfirm;
+    if (!p) return;
+    setInvitingId(p.id);
+    setInviteMessage(null);
+    startTransition(async () => {
+      const result = await invitePerson(p.id);
+      setInvitingId(null);
+      setInviteConfirm(null);
+      setInviteMessage(result.message);
+      if (result.ok) router.refresh();
+    });
+  }
+
   return (
     <>
       <Card className="overflow-hidden bg-card/80 backdrop-blur">
@@ -86,6 +114,22 @@ export function PeopleTable({
                 <TableCell>{p.email ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {p.profile_id ? (
+                      <span title="Has a login account" className="flex h-7 w-7 items-center justify-center text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title={p.email ? "Invite to log in" : "Add an email before inviting"}
+                        disabled={!p.email || (isPending && invitingId === p.id)}
+                        className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
+                        onClick={() => setInviteConfirm(p)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -116,7 +160,26 @@ export function PeopleTable({
           </TableBody>
         </Table>
         {genMessage && <p className="border-t p-3 text-sm text-muted-foreground">{genMessage}</p>}
+        {inviteMessage && <p className="border-t p-3 text-sm text-muted-foreground">{inviteMessage}</p>}
       </Card>
+
+      <AlertDialog open={!!inviteConfirm} onOpenChange={(open) => !open && setInviteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invite {inviteConfirm?.full_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This sends a real login-invite email to {inviteConfirm?.email}. They&apos;ll be able to sign in
+              and use Brain OS chat as an employee of {inviteConfirm?.companies?.name ?? "their company"} once they accept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!invitingId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={!!invitingId} onClick={confirmInvite}>
+              {invitingId ? "Sending…" : "Send invite"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EditSheet
         open={!!editing}
