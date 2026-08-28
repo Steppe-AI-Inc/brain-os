@@ -243,9 +243,14 @@ every other approval-authority exemption in this app). `decide_approval()` also 
 `production`/`external_comms` — those domains are a "pause and confirm intent" gate, not a
 dual-control fraud concern, and a manager self-approving their own routine request there is
 the existing, intended flow; broadening the block would have been an unrequested behavior
-change. Not yet re-run against `qa/scenarios-runner/sc058_bookkeeper_sod_gap.sql` live
-(pending the same push authorization as everything else in this batch) — re-run that
-script post-push to confirm SC-058 now actually blocks the self-approval it used to allow.
+change. **Re-run live, 2026-08-28** (`sc058_bookkeeper_sod_gap.sql`, rewritten from a
+KNOWN-GAP reproduction into a real `all_pass` assertion): confirmed direct writes
+blocked, `propose_salary_change()` creates the proposal, self-approval denied, founder
+can still decide it — **and a real second bug found by this exact re-run**: the first
+pass at `update_salary` was a plain `UPDATE`, which silently did nothing for a person's
+first-ever salary proposal (no existing `salary_private` row — `person_id` is that
+table's primary key, not auto-created per person). Fixed with a real upsert in migration
+`202608280005`. `all_pass: true` after the fix.
 
 ## 15. Approval payload is not immutable after creation (FIXED, 2026-08-28)
 
@@ -273,10 +278,10 @@ PostgREST PATCH by an authorized approver.
 `domain`, or `company_id` changes on an existing row — a content change requires a brand-
 new approval, exactly as this entry originally specified. `decide_approval()` never
 touches those four columns (only `status`/`decided_at`/`decision_notes`/
-`approver_profile_id`), so the trigger doesn't interfere with real decisions. Not yet
-re-run against `qa/scenarios-runner/sc060_payload_immutability_gap.sql` live (pending the
-same push authorization as everything else in this batch) — that script should now fail
-to reproduce the mutation it was built to demonstrate.
+`approver_profile_id`), so the trigger doesn't interfere with real decisions. **Re-run
+live, 2026-08-28** (rewritten from a KNOWN-GAP reproduction into a real `all_pass`
+assertion): the mutation attempt is now caught (`P0001`), the payload stays byte-for-byte
+unchanged, and `decide_approval()` still works normally on the same row. `all_pass: true`.
 
 ## 10. `/chat` composer unusable on mobile by default (FIXED — this entry was just stale, 2026-08-28)
 

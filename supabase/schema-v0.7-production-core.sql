@@ -1773,14 +1773,24 @@ begin
         end if;
 
       elsif v_action = 'update_salary' then
-        update public.salary_private
-        set base_salary = coalesce((v_execute ->> 'baseSalary')::numeric, base_salary),
-            currency = coalesce(v_execute ->> 'currency', currency),
-            compensation_notes = coalesce(v_execute ->> 'compensationNotes', compensation_notes),
-            updated_at = now()
-        where person_id = nullif(v_execute ->> 'personId', '')::uuid;
-        get diagnostics v_deleted_count = row_count;
-        v_deletion_summary := case when v_deleted_count > 0 then 'Salary updated.' else 'Salary update failed — person record not found.' end;
+        -- Upsert, not a plain UPDATE (migration 202608280005 fixed a real bug found by
+        -- re-running SC-058 after this went live): person_id is salary_private's primary
+        -- key, not auto-created per person, so a person's first-ever salary proposal
+        -- must be able to create the row, not just update one that may not exist yet.
+        insert into public.salary_private (person_id, base_salary, currency, compensation_notes, updated_at)
+        values (
+          nullif(v_execute ->> 'personId', '')::uuid,
+          (v_execute ->> 'baseSalary')::numeric,
+          coalesce(v_execute ->> 'currency', 'USD'),
+          v_execute ->> 'compensationNotes',
+          now()
+        )
+        on conflict (person_id) do update set
+          base_salary = coalesce(excluded.base_salary, public.salary_private.base_salary),
+          currency = coalesce(excluded.currency, public.salary_private.currency),
+          compensation_notes = coalesce(excluded.compensation_notes, public.salary_private.compensation_notes),
+          updated_at = now();
+        v_deletion_summary := 'Salary updated.';
       end if;
     end if;
   else

@@ -50,7 +50,10 @@ multi-line statements preserved). Inline strings are fine only for a single one-
 | `sc054_employee_task_visibility.sql` | SC-054 | employee sees only own tasks, not other/founder/finance/other-company tasks | 2026-08-27 |
 | `sc056_cross_company_isolation.sql` | SC-056 | employee/manager of company A sees 0 rows of company B across tables | 2026-08-27 |
 | `sc057_manager_not_cfo.sql` | SC-057 | company manager cannot approve salary/finance/legal, cannot read salary/cash | 2026-08-27 |
-| `sc058_bookkeeper_sod_gap.sql` | SC-058 | **documents the KNOWN GAP**: hr_finance can write salary and approve own finance approval | 2026-08-27 |
+| `sc058_bookkeeper_sod_gap.sql` | SC-058 | FIXED (migrations 202608280003, 202608280005): direct salary_private writes are founder/admin only, hr_finance must use `propose_salary_change()`, self-approval on salary_hr/finance is denied, a different decider (founder) still can | 2026-08-28 |
+| `sc059_approval_execution.sql` | SC-059, SC-094 | logic-level check of `decide_approval()`'s delete_tasks execute path against the committed migration body | 2026-08-27 |
+| `sc059b_live_decide_approval.sql` | SC-059, SC-094 | same, called live against the deployed `decide_approval()` function | 2026-08-28 |
+| `sc060_payload_immutability_gap.sql` | SC-060 | FIXED (migration 202608280003): a `BEFORE UPDATE` trigger rejects any change to `approval_payload`/`title`/`domain`/`company_id` once set; `decide_approval()` itself still works normally | 2026-08-28 |
 | `sc069_search_leakage.sql` | SC-069 | employee gets 0 rows for salary/financial/ownership/confidential content | 2026-08-27 |
 | `sc070_audit_log_leak.sql` | SC-070 | employee sees only own audit rows, not others' | 2026-08-27 |
 | `sc071_create_wrong_company.sql` | SC-071 | employee cannot insert a task/lead into a company they are not a member of | 2026-08-27 |

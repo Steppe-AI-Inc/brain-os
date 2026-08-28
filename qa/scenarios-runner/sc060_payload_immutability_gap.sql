@@ -1,9 +1,11 @@
--- SC-060 Approval payload immutability — KNOWN GAP (qa/KNOWN_FAILURE_MODES.md #15).
--- Reproduces live: an approver authorized to DECIDE an approval can also REWRITE its
--- approval_payload, because approvals_update_approver is a row-level policy and Postgres
--- RLS cannot pin individual columns as immutable. A manager rewrites offerPrice 2200 ->
--- 1200 on a pending production approval. A real fix is a BEFORE UPDATE trigger that
--- rejects changes to approval_payload/title/domain/company_id once set. Rolled back.
+-- SC-060 Approval payload immutability — FIXED (qa/KNOWN_FAILURE_MODES.md #15, migration
+-- 202608280003). Previously this script REPRODUCED the gap: a manager authorized to
+-- DECIDE an approval could also silently REWRITE its approval_payload (offerPrice 2200 ->
+-- 1200) via a plain UPDATE. Now asserts the fix: a BEFORE UPDATE trigger
+-- (prevent_approval_payload_mutation) rejects any change to approval_payload/title/
+-- domain/company_id once set, so the attempt is caught and the payload is provably
+-- unchanged. Also proves decide_approval() itself is unaffected (only touches status/
+-- decided_at/decision_notes/approver_profile_id, never the locked columns). Rolled back.
 begin;
 insert into public.approvals (id, company_id, title, domain, status, risk_level, approval_payload)
  values ('060a0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC060 offer','production','pending','high','{"offerPrice":2200}'::jsonb);
@@ -12,15 +14,44 @@ insert into public.company_memberships (company_id, profile_id, role_in_company,
 
 set local role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub','9c92a8d5-853c-4ef3-846a-f4fe8c42d97a','role','authenticated')::text, true);
-update public.approvals set approval_payload='{"offerPrice":1200}'::jsonb where id='060a0000-0000-0000-0000-000000000001';
+
+-- Attempt the same rewrite as before — must now be rejected by the trigger, caught here
+-- so the script can keep going and report cleanly instead of aborting.
+do $$
+begin
+  begin
+    update public.approvals set approval_payload='{"offerPrice":1200}'::jsonb where id='060a0000-0000-0000-0000-000000000001';
+    perform set_config('sc060.mutation_blocked', 'false', true);
+  exception when raise_exception then
+    perform set_config('sc060.mutation_blocked', 'true', true);
+  end;
+end $$;
+
+-- decide_approval() itself must still work normally (only touches status/decided_at/
+-- decision_notes/approver_profile_id, never the locked columns) — a manager decides this
+-- production-domain approval.
+do $$
+declare
+  v_decided boolean;
+begin
+  select decided into v_decided from public.decide_approval('060a0000-0000-0000-0000-000000000001'::uuid, 'approved');
+  perform set_config('sc060.decide_still_works', v_decided::text, true);
+end $$;
+
 reset role;
 
 select json_build_object(
   'scenario','SC-060',
-  'classification','KNOWN GAP — no DB-level payload immutability',
-  'payload_after', (select approval_payload from public.approvals where id='060a0000-0000-0000-0000-000000000001'),
-  'gap_reproduced', (select approval_payload->>'offerPrice' from public.approvals where id='060a0000-0000-0000-0000-000000000001')='1200',
-  'mitigations_in_place','server-built execute payloads (sem-ai-command), no payload-edit UI in /web, decision-time re-read in decide_approval() — real but not a hard guarantee',
-  'note','Do NOT report SC-060 as a passing hard control. Fix = BEFORE UPDATE trigger on approvals.'
+  'classification','FIXED',
+  'mutation_blocked', current_setting('sc060.mutation_blocked', true) = 'true',
+  'payload_unchanged', (select approval_payload->>'offerPrice' from public.approvals where id='060a0000-0000-0000-0000-000000000001')='2200',
+  'decide_approval_still_works', current_setting('sc060.decide_still_works', true) = 'true',
+  'approval_status_after', (select status from public.approvals where id='060a0000-0000-0000-0000-000000000001'),
+  'all_pass', (
+        current_setting('sc060.mutation_blocked', true) = 'true'
+    and (select approval_payload->>'offerPrice' from public.approvals where id='060a0000-0000-0000-0000-000000000001')='2200'
+    and current_setting('sc060.decide_still_works', true) = 'true'
+    and (select status from public.approvals where id='060a0000-0000-0000-0000-000000000001')='approved'
+  )
 ) as verdict;
 rollback;
