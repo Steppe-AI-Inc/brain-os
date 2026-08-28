@@ -364,7 +364,7 @@ joined back to the owning document's sensitivity tier.
 `documents.storage_path` and gate by the same sensitivity tiers the table uses
 (migration `202608260021`/`202608260022`).
 
-## 3. Edge Function deployment has no CI/CD (PARTIALLY FIXED — still blocked on a founder action)
+## 3. Edge Function deployment has no CI/CD (FIXED, verified live 2026-08-28)
 
 **Symptom:** `.github/workflows/supabase-functions.yml` referenced Supabase project ref
 `gyqlkgnyyzpwaswhshlw` — different from production's `pvphxgrtdfrudejjhzjk` — and
@@ -384,18 +384,21 @@ dependencies now. Confirmed the workflow is now registered and `active` in GitHu
 workflow list (`gh api repos/.../actions/workflows`) — it wasn't a YAML parse issue,
 GitHub just hadn't processed a push containing this file before.
 
-**Still blocked:** `gh secret list` returns zero configured secrets for this repo.
-`SUPABASE_ACCESS_TOKEN` doesn't exist, so the workflow will now run but fail at the
-deploy step with an auth error. Generating and adding that secret is a founder action
-(Supabase account token generation + GitHub repo secret) — not something to provision
-unsupervised. **BLOCKER for founder:** add `SUPABASE_ACCESS_TOKEN` at Settings →
-Secrets and variables → Actions, generated from
-https://supabase.com/dashboard/account/tokens.
+**Resolved 2026-08-28 (home PC, evening):** founder generated a Supabase personal access
+token and set it as the `SUPABASE_ACCESS_TOKEN` repo secret. First attempt silently
+produced an **empty** secret — routing `gh secret set` through Claude Code's `!` shell
+passthrough isn't a real interactive TTY, so its masked stdin prompt read EOF immediately
+and set `""` with no error (`gh secret list` still showed the secret *name*, which is why
+presence-of-name is not sufficient verification — confirm with an actual run). Fixed by
+writing the token to a local scratch file and running `gh secret set NAME < file`, then
+deleting the file — never put the raw token in the chat transcript or a command string.
+Verified with a real triggered run:
+https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33177250946 — green, 44s, deployed
+all 6 functions.
 
-**Until then:** manual deploy + `supabase functions download` + `git diff` verification
-(REGRESSION_CATALOG.md) remains the only real safety net — same as before this fix, just
-now the automated path is one secret away from working instead of two bugs plus a
-secret away.
+**Manual deploy + `supabase functions download` + `git diff` verification
+(REGRESSION_CATALOG.md) is still worth doing after any Edge Function change** as a second
+check, but CI is now the automated first line of defense as originally intended.
 
 ## 4. AI context presented truncated arrays as complete totals (FIXED, 2026-08-27)
 

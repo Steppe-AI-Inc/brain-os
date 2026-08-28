@@ -1,10 +1,7 @@
 name: Deploy Supabase Edge Functions
 
-# BLOCKED until the founder adds a SUPABASE_ACCESS_TOKEN repository secret (Settings ->
-# Secrets and variables -> Actions -> New repository secret). Generate one at
-# https://supabase.com/dashboard/account/tokens. Without it this workflow will run (the
-# two bugs below are fixed) but fail at the deploy step with an auth error - verified via
-# `gh secret list`, which currently returns zero configured secrets for this repo.
+# RESOLVED 2026-08-28: SUPABASE_ACCESS_TOKEN repo secret is set and this workflow has a
+# verified green run (https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33177250946).
 #
 # Two real bugs fixed here, found via a CLAUDE.md-mandated deployment-chain audit
 # (2026-08-27): this workflow had literally never run once in the repo's history.

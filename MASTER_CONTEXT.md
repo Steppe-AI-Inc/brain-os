@@ -206,11 +206,17 @@ environment inherits it with zero extra steps. Treat every subagent as if it can
 production DB credentials regardless of what its prompt says not to do; see the new rule in
 `CLAUDE.md` §22.
 
-### One real open item, needs a human (either machine)
-**Edge Function CI/CD is one GitHub secret away from working.** `.github/workflows/supabase-functions.yml` is correct (branch/project-ref bugs already fixed) but blocked on
-`SUPABASE_ACCESS_TOKEN` never being added as a repo secret — Settings → Secrets and
-variables → Actions → New repository secret, token from
-https://supabase.com/dashboard/account/tokens. Can't be done by an AI session.
+### Edge Function CI/CD — RESOLVED 2026-08-28 (home PC, evening)
+`SUPABASE_ACCESS_TOKEN` is now set as a repo secret and the "Deploy Supabase Edge
+Functions" workflow has a real, verified green run:
+https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33177250946 (triggered manually via
+`gh workflow run`, completed successfully in 44s, deployed all 6 functions). One retry was
+needed: the founder's first `gh secret set` attempt (run through Claude Code's `!`
+passthrough, which isn't a real interactive TTY) silently set the secret to an **empty**
+string — `gh secret list` still showed the name, so don't trust presence alone, confirm
+with an actual workflow run. Fixed by writing the token to a local scratch file and using
+`gh secret set NAME < file`, then deleting the file immediately — avoids both the empty-
+stdin trap and putting the token in any chat transcript. No further action needed here.
 
 ### `supabase logout` policy — decided, then reversed, same session — see `CLAUDE.md` §22
 Tried "log out by default" first; the founder explicitly overrode it a few messages later
