@@ -135,6 +135,32 @@ Rules:
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
+- BEFORE any destructive or bulk-scoped action below (deleting many things at once, or a
+  sweeping/ambiguous-scope request like "delete all test data", "wipe everything", "clear
+  the whole workspace", "start fresh"), check context.pendingConfirmation first, then
+  decide whether to ask or act:
+  - If context.pendingConfirmation is present AND the founder's message is any form of
+    agreement (yes, confirm, do it, go ahead, sure, proceed, etc.) — re-emit the EXACT
+    fields from context.pendingConfirmation.action verbatim into this response (e.g. if
+    it holds {"deleteProductLineIds": [...]}, put that same array into your own
+    deleteProductLineIds field this turn). Do not reinterpret, re-derive, re-scope, or
+    add to it — the ids were already validated against context when first proposed, and
+    the founder is confirming exactly that, not a fresh command. If the founder's message
+    instead declines or asks for something else, do not execute — pendingConfirmation is
+    implicitly cancelled by not re-emitting it.
+  - A request naming ONE specific entity ("delete the QA TEST DEPT department") is never
+    sweeping enough for this — it stays on the normal immediate-execute-then-audit path
+    each entity's own rules below already describe. Do not add a confirmation step to an
+    already-safe single-entity action.
+  - For a genuinely sweeping/ambiguous-scope destructive request with no
+    context.pendingConfirmation yet: do NOT populate any delete-id-array field this turn.
+    Instead set "pendingConfirmation": {"summary": <specific, e.g. "delete 4 product
+    lines, 2 proposals, and 1 software spec across QA TEST CO">, "action": {<the exact
+    delete-id-array fields you would otherwise execute, using only real ids from
+    context, never guessed>}}, and write your "summary" as a direct confirmation
+    question naming exactly what and how many, e.g. "Delete 4 product lines, 2 proposals,
+    and 1 software spec? This can't be undone." Nothing executes until the founder
+    actually confirms next turn.
 - You may delete existing tasks the user asks to remove/clear/delete: put their exact "id"
   from context.tasks into deleteTaskIds. Never invent or guess an id — only ids that
   literally appear in context.tasks are honored; anything else is silently ignored. If the
@@ -296,6 +322,7 @@ Output schema:
 {
   "strategicGoal": string,
   "summary": string,
+  "pendingConfirmation": {"summary": string, "action": object}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
     {
@@ -904,7 +931,16 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
     documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], counts };
+  // Pending confirmation state (BRAIN OS master prompt §6-7): the previous turn in this
+  // channel may have asked the founder to confirm a bulk/sweeping action instead of
+  // executing it — its exact payload rides along in that turn's own work_orders.output,
+  // no new table needed. Only the LAST turn counts as "awaiting confirmation"; once a
+  // turn executes (or the founder moves on), the newest output has no pendingConfirmation
+  // and this naturally reads as null again — that's the whole idempotency mechanism, see
+  // the deterministic short-circuit in serve() below.
+  const lastTurnOutput = conversationRows.data?.[conversationRows.data.length - 1]?.output as { pendingConfirmation?: unknown } | undefined;
+  const pendingConfirmation = lastTurnOutput?.pendingConfirmation ?? null;
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingConfirmation, counts };
   return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
@@ -1007,7 +1043,27 @@ serve(async (req) => {
         let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
 
-        if(!key){
+        // Pending-confirmation fast path (BRAIN OS master prompt §6-7): "confirmation
+        // executes the stored action... do not reinterpret the original command after
+        // approval." A short, unambiguous affirmative replying to a turn that set
+        // pendingConfirmation skips the LLM entirely — the action fields are exactly what
+        // was proposed and already id-cross-checked last turn; re-deriving them through a
+        // fresh model call is itself a chance to drift from what was actually confirmed.
+        // This only ever fires immediately after the specific turn that proposed it (see
+        // buildContext's pendingConfirmation extraction) — a second "yes" one turn later
+        // finds nothing pending and falls through to the model as an ordinary message,
+        // which is the idempotency guarantee, not a separate check here.
+        const pendingConfirmation = contextPack?.pendingConfirmation as { summary?: string; action?: Record<string, unknown> } | null;
+        const isShortAffirmative = /^(yes|yep|yeah|yup|confirm|confirmed|go ahead|go for it|do it|execute|proceed|sure|okay|ok)[.!]?$/i.test(command.trim());
+
+        if (pendingConfirmation?.action && typeof pendingConfirmation.action === 'object' && isShortAffirmative) {
+          resultText = JSON.stringify({
+            summary: pendingConfirmation.summary ? `Confirmed — ${pendingConfirmation.summary}` : 'Confirmed.',
+            ...pendingConfirmation.action,
+          });
+          model = 'deterministic-confirmation';
+          if (typeof pendingConfirmation.summary === 'string') send({ type: 'delta', text: `Confirmed — ${pendingConfirmation.summary}` });
+        } else if(!key){
           const fb = fallbackPlan(command, contextPack);
           resultText = JSON.stringify(fb);
           model = 'fallback-no-api-key';
