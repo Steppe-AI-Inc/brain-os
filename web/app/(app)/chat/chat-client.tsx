@@ -186,6 +186,49 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   );
 }
 
+// Founder-facing chat should read like a result, not a diagnostics panel — task/approval
+// counts, model name, and token usage are real and sometimes useful, but showing them on
+// every single reply is exactly the "0 task(s) 2 approval(s) claude-haiku-4-5 15,888
+// tokens" noise the product's own UX policy calls out. Collapsed by default, one click
+// away per message — nothing is deleted, it just isn't the founder's default view.
+function MessageDetails({ result }: { result: ChatResult }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        Details
+      </button>
+      {open && (
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          <Badge variant="outline">{result.taskCount} task(s)</Badge>
+          <Badge variant="outline">{result.approvalCount} approval(s)</Badge>
+          {!!result.deletedCount && <Badge variant="outline">{result.deletedCount} task(s) deleted</Badge>}
+          {!!result.companyCount && (
+            <Badge variant="outline">{result.companyCount} compan{result.companyCount === 1 ? "y" : "ies"}</Badge>
+          )}
+          {!!result.personCount && <Badge variant="outline">{result.personCount} people</Badge>}
+          {!!result.projectCount && <Badge variant="outline">{result.projectCount} project(s)</Badge>}
+          {!!result.goalCount && <Badge variant="outline">{result.goalCount} goal(s)</Badge>}
+          {!!result.relationshipCount && <Badge variant="outline">{result.relationshipCount} relationship(s)</Badge>}
+          {!!result.assignmentCount && <Badge variant="outline">{result.assignmentCount} assignment(s)</Badge>}
+          {!!result.memoryCount && <Badge variant="outline">{result.memoryCount} memory fact(s) saved</Badge>}
+          <Badge variant="secondary">{result.model}</Badge>
+          {result.usage && (
+            <Badge variant="outline" className="tabular-nums">
+              {(result.usage.input_tokens + result.usage.output_tokens).toLocaleString()} tokens
+            </Badge>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChannelMemoryStrip({ memories }: { memories: Array<{ id: string; fact: string; confidence: number | null }> }) {
   const [open, setOpen] = useState(false);
   if (memories.length === 0) return null;
@@ -533,41 +576,7 @@ export function ChatClient({
                             <ReactMarkdown>{m.result.summary}</ReactMarkdown>
                           </div>
                         )}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <Badge variant="outline">{m.result?.taskCount} task(s)</Badge>
-                          <Badge variant="outline">{m.result?.approvalCount} approval(s)</Badge>
-                          {!!m.result?.deletedCount && (
-                            <Badge variant="outline">{m.result.deletedCount} task(s) deleted</Badge>
-                          )}
-                          {!!m.result?.companyCount && (
-                            <Badge variant="outline">{m.result.companyCount} compan{m.result.companyCount === 1 ? "y" : "ies"}</Badge>
-                          )}
-                          {!!m.result?.personCount && (
-                            <Badge variant="outline">{m.result.personCount} people</Badge>
-                          )}
-                          {!!m.result?.projectCount && (
-                            <Badge variant="outline">{m.result.projectCount} project(s)</Badge>
-                          )}
-                          {!!m.result?.goalCount && (
-                            <Badge variant="outline">{m.result.goalCount} goal(s)</Badge>
-                          )}
-                          {!!m.result?.relationshipCount && (
-                            <Badge variant="outline">{m.result.relationshipCount} relationship(s)</Badge>
-                          )}
-                          {!!m.result?.assignmentCount && (
-                            <Badge variant="outline">{m.result.assignmentCount} assignment(s)</Badge>
-                          )}
-                          {!!m.result?.memoryCount && (
-                            <Badge variant="outline">{m.result.memoryCount} memory fact(s) saved</Badge>
-                          )}
-                          <Badge variant="secondary">{m.result?.model}</Badge>
-                          {m.result?.usage && (
-                            <Badge variant="outline" className="tabular-nums">
-                              {(m.result.usage.input_tokens + m.result.usage.output_tokens).toLocaleString()}{" "}
-                              tokens
-                            </Badge>
-                          )}
-                        </div>
+                        {m.result && <MessageDetails result={m.result} />}
                       </>
                     )}
                   </CardContent>

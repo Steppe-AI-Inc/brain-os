@@ -209,6 +209,14 @@ Rules:
   or person is not itself high-risk (write access is already restricted by the database) —
   only flag an approval if the request also involves something from the high-risk list
   above, e.g. a change of legal ownership or control.
+- A direct, unambiguous instruction to change an EXISTING company's own record (rename it,
+  correct its country, update its legal entity name, change its status) is an
+  updateCompanies call, not a task. Use the real "id" from context.companies — never a
+  name-based guess. Do not decompose this into steps ("find company", "rename company",
+  "verify company") as separate tasks; the update either succeeds now (you'll see the real
+  result in this same turn) or it doesn't, and a task describing work that isn't actually
+  going to happen is worse than no task. Only fall back to a task when the company genuinely
+  isn't in context.companies and can't be resolved.
 - You may create real projects and goals the same way — check context.projects /
   context.goals first, never duplicate. Every project and goal requires a company: use a
   real companyId from context.companies, or companyIndex into this response's own
@@ -228,6 +236,34 @@ Rules:
   updateDepartments/updateLeads may only reference an "id" literally present in
   context.departments/context.leads — same id-provenance rule as every other update/delete
   field in this schema; leave any field null to leave it unchanged rather than guessing.
+- You may create/update/delete product lines, software specs (product_specs), and
+  engineering drawings the same low-risk immediate way, check context.products /
+  context.productSpecs / context.engineeringDrawings first, never duplicate, same
+  companyId/companyIndex and id-provenance rules as above. Product lines: unitPrice is
+  the only pricing field you may set — never propose a unitCost (that lives in a
+  manager-only-visible cost table and is deliberately kept out of your context and out
+  of your write path; a chat-created product line always gets cost left unset). Software
+  specs: createProductSpecs mirrors the manual "Software Factory" flow exactly — it also
+  creates 6 fixed engineering tickets and one production-domain release approval, not
+  just the spec row alone; do not separately propose those same tickets as regular tasks.
+  Engineering drawings: createEngineeringDrawings takes only a plain-language
+  "description" — the real SVG is generated server-side by the same drawing-generation
+  service the manual page uses, you never invent SVG content yourself.
+- Proposals are different: you may create a bare draft (title + company only, no pricing)
+  via createProposals, and update only title/paymentTerms via updateProposals — never
+  propose or infer subtotal/discount/total/status. Real proposal pricing runs a risk-
+  scoring and margin calculation that only exists in the product's own UI (Proposal
+  Factory) and would need real line items and cost data you don't have; a request that
+  needs real numbers is a clarification task pointing at Proposal Factory, not a guess.
+  You may deleteProposals (same id-provenance and immediate-deletion rule as tasks above).
+- You may create/update AI providers (createAiProviders/activateAiProviderId) and delete
+  AI providers or MCP connectors (deleteAiProviders/deleteMcpConnectors) — check
+  context.aiProviders/context.mcpConnectors first. ai_providers carries no key/secret
+  column by design, so none of this touches real credentials. You may NEVER create or
+  update an MCP connector — that requires a real bearer token, and a token typed into
+  this chat would transit your own context window and the plaintext command audit log,
+  which is a real secret-leak class this product deliberately avoids; if the user wants
+  to add one, create a task pointing them at Settings → MCP Connectors instead.
 - You may record company ownership/parent relationships (createCompanyRelationships) and
   person work assignments (createPersonAssignments) — check context.companyRelationships /
   context.personAssignments first, never duplicate. CRITICAL: every relationship has a
@@ -285,6 +321,9 @@ Output schema:
   "createCompanies": [
     {"name": string, "country": string|null, "legalEntityName": string|null, "description": string|null}
   ],
+  "updateCompanies": [
+    {"id": string, "name": string|null, "country": string|null, "legalEntityName": string|null, "status": string|null}
+  ],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
   ],
@@ -309,6 +348,37 @@ Output schema:
   "createDocuments": [
     {"title": string, "companyId": string|null, "companyIndex": number|null, "category": string|null, "sensitivity": "public"|"internal"|"confidential"|"restricted"|"founder_only"|null, "text": string}
   ],
+  "createProductLines": [
+    {"name": string, "companyId": string|null, "companyIndex": number|null, "currency": string|null, "unitPrice": number|null}
+  ],
+  "updateProductLines": [
+    {"id": string, "name": string|null, "unitPrice": number|null, "active": boolean|null}
+  ],
+  "deleteProductLineIds": [string],
+  "createProductSpecs": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "problem": string|null}
+  ],
+  "updateProductSpecs": [
+    {"id": string, "title": string|null, "status": string|null, "bodyMd": string|null}
+  ],
+  "deleteProductSpecIds": [string],
+  "createEngineeringDrawings": [
+    {"description": string, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "deleteEngineeringDrawingIds": [string],
+  "createAiProviders": [
+    {"provider": string, "model": string, "label": string|null}
+  ],
+  "activateAiProviderId": string,
+  "deleteAiProviderIds": [string],
+  "deleteMcpConnectorIds": [string],
+  "createProposals": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "updateProposals": [
+    {"id": string, "title": string|null, "paymentTerms": string|null}
+  ],
+  "deleteProposalIds": [string],
   "createCompanyRelationships": [
     {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
   ],
@@ -737,7 +807,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
-    departments, leads, documents,
+    departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
@@ -780,6 +850,24 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('departments').select('id,name,company_id').limit(30),
     supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate').limit(30),
     supabase.from('documents').select('id,title,company_id,category').limit(30),
+    // Proposals: id/title/company/status only for id-provenance + duplicate checks —
+    // subtotal/discount_pct/total/internal_margin deliberately excluded from context.
+    // Chat only ever creates a bare draft (no pricing) and updates title/payment terms;
+    // the real risk-scored pricing flow (createProposal, lib/proposals/risk-score.ts)
+    // only exists in the Next.js app, not duplicated here.
+    supabase.from('proposals').select('id,title,company_id,status').limit(20),
+    supabase.from('product_specs').select('id,title,company_id,status').limit(20),
+    supabase.from('engineering_drawings').select('id,title,company_id').limit(20),
+    // ai_providers has no key column by design (founder's explicit choice, see
+    // web/CLAUDE.md) — provider/model/label/is_active carry no secret, safe in context.
+    supabase.from('ai_providers').select('id,provider,model,label,is_active').limit(10),
+    // mcp_connectors: name/endpoint only, never vault_secret_id — chat can delete a
+    // connector by id but can never create/update one (that requires typing a bearer
+    // token, which would transit the chat message, the LLM's own context, and the
+    // plaintext work_orders.command audit column — a real secret-leak pattern, not just
+    // caution; see qa/scenarios/core/audit/SC-104-log-secret-leak.md for the same class
+    // of concern this codebase already tracks elsewhere).
+    supabase.from('mcp_connectors').select('id,name,endpoint_url').limit(10),
     // Real aggregate counts, deliberately separate from the (necessarily truncated)
     // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
     // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
@@ -816,8 +904,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
     documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], counts };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,departments.error,leads.error,documents.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], counts };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -1081,6 +1169,34 @@ serve(async (req) => {
             description: typeof c.description === 'string' ? c.description : null,
           }));
 
+        // Company updates target an existing row by real id — never a company being
+        // created this same turn (renaming something that doesn't exist yet is
+        // incoherent), so this executes immediately here rather than waiting for the RPC.
+        // companies_write_admin RLS (founder/admin only) is the real enforcement; a
+        // non-founder caller's update just affects 0 rows, same honest-result discipline
+        // as every other mutation in this file.
+        const requestedCompanyUpdates = Array.isArray(result.updateCompanies) ? result.updateCompanies as unknown[] : [];
+        const updateCompaniesReq = requestedCompanyUpdates
+          .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as any).id === 'string' && contextCompanyIds.has((c as any).id))
+          .map((c: any) => ({
+            id: c.id as string,
+            name: typeof c.name === 'string' && c.name.trim() ? c.name.trim() : null,
+            country: typeof c.country === 'string' ? c.country : null,
+            legalEntityName: typeof c.legalEntityName === 'string' ? c.legalEntityName : null,
+            status: typeof c.status === 'string' ? c.status : null,
+          }));
+        let updatedCompanyCount = 0;
+        for (const c of updateCompaniesReq) {
+          const patch: Record<string, unknown> = {};
+          if (c.name) patch.name = c.name;
+          if (c.country !== null) patch.country = c.country;
+          if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
+          if (c.status) patch.status = c.status;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
+          if (data && data.length > 0) updatedCompanyCount++;
+        }
+
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
         const createPeople = requestedPeople
           .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).fullName === 'string' && (p as any).fullName.trim())
@@ -1187,6 +1303,128 @@ serve(async (req) => {
             sensitivity: typeof doc.sensitivity === 'string' && VALID_SENSITIVITY.has(doc.sensitivity) ? doc.sensitivity : 'internal',
             text: String(doc.text).trim(),
           }));
+
+        // Product lines/specs/drawings, AI providers, MCP connectors, proposals: same
+        // low-risk immediate-execution treatment, resolved/executed in TS after the RPC
+        // (see the departments/leads/documents block above for why). unitCost is
+        // deliberately never accepted from the model — matches web/CLAUDE.md's existing
+        // line that margin/cost data must not enter a caller's context beyond what
+        // their own RLS already allows, extended here to the write path too.
+        const contextProductIds = new Set((contextPack?.products || []).map((p: any) => p.id));
+        const contextProductSpecIds = new Set((contextPack?.productSpecs || []).map((s: any) => s.id));
+        const contextDrawingIds = new Set((contextPack?.engineeringDrawings || []).map((d: any) => d.id));
+        const contextAiProviderIds = new Set((contextPack?.aiProviders || []).map((p: any) => p.id));
+        const contextMcpConnectorIds = new Set((contextPack?.mcpConnectors || []).map((c: any) => c.id));
+        const contextProposalIds = new Set((contextPack?.proposals || []).map((p: any) => p.id));
+
+        const requestedProductLineCreates = Array.isArray(result.createProductLines) ? result.createProductLines as unknown[] : [];
+        const createProductLinesReq = requestedProductLineCreates
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).name === 'string' && (p as any).name.trim() && hasCompanyRef(p))
+          .map((p: any) => ({
+            name: String(p.name).trim(),
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+            currency: typeof p.currency === 'string' && p.currency.trim() ? p.currency.trim() : 'USD',
+            unitPrice: typeof p.unitPrice === 'number' ? p.unitPrice : 0,
+          }));
+        const requestedProductLineUpdates = Array.isArray(result.updateProductLines) ? result.updateProductLines as unknown[] : [];
+        const updateProductLinesReq = requestedProductLineUpdates
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).id === 'string' && contextProductIds.has((p as any).id))
+          .map((p: any) => ({
+            id: p.id as string,
+            name: typeof p.name === 'string' && p.name.trim() ? p.name.trim() : null,
+            unitPrice: typeof p.unitPrice === 'number' ? p.unitPrice : null,
+            active: typeof p.active === 'boolean' ? p.active : null,
+          }));
+        const requestedDeleteProductLineIds = Array.isArray(result.deleteProductLineIds) ? result.deleteProductLineIds as unknown[] : [];
+        const deleteProductLineIds = requestedDeleteProductLineIds.filter((id): id is string => typeof id === 'string' && contextProductIds.has(id));
+
+        const requestedProductSpecCreates = Array.isArray(result.createProductSpecs) ? result.createProductSpecs as unknown[] : [];
+        const createProductSpecsReq = requestedProductSpecCreates
+          .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object' && typeof (s as any).title === 'string' && (s as any).title.trim())
+          .map((s: any) => ({
+            title: String(s.title).trim(),
+            companyId: typeof s.companyId === 'string' && contextCompanyIds.has(s.companyId) ? s.companyId : null,
+            companyIndex: typeof s.companyIndex === 'number' ? s.companyIndex : null,
+            problem: typeof s.problem === 'string' ? s.problem : null,
+          }));
+        const requestedProductSpecUpdates = Array.isArray(result.updateProductSpecs) ? result.updateProductSpecs as unknown[] : [];
+        const updateProductSpecsReq = requestedProductSpecUpdates
+          .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object' && typeof (s as any).id === 'string' && contextProductSpecIds.has((s as any).id))
+          .map((s: any) => ({
+            id: s.id as string,
+            title: typeof s.title === 'string' && s.title.trim() ? s.title.trim() : null,
+            status: typeof s.status === 'string' ? s.status : null,
+            bodyMd: typeof s.bodyMd === 'string' ? s.bodyMd : null,
+          }));
+        const requestedDeleteProductSpecIds = Array.isArray(result.deleteProductSpecIds) ? result.deleteProductSpecIds as unknown[] : [];
+        const deleteProductSpecIds = requestedDeleteProductSpecIds.filter((id): id is string => typeof id === 'string' && contextProductSpecIds.has(id));
+
+        const requestedDrawingCreates = Array.isArray(result.createEngineeringDrawings) ? result.createEngineeringDrawings as unknown[] : [];
+        const createDrawingsReq = requestedDrawingCreates
+          .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object' && typeof (d as any).description === 'string' && (d as any).description.trim())
+          .map((d: any) => ({
+            description: String(d.description).trim(),
+            companyId: typeof d.companyId === 'string' && contextCompanyIds.has(d.companyId) ? d.companyId : null,
+            companyIndex: typeof d.companyIndex === 'number' ? d.companyIndex : null,
+          }));
+        const requestedDeleteDrawingIds = Array.isArray(result.deleteEngineeringDrawingIds) ? result.deleteEngineeringDrawingIds as unknown[] : [];
+        const deleteDrawingIds = requestedDeleteDrawingIds.filter((id): id is string => typeof id === 'string' && contextDrawingIds.has(id));
+
+        const VALID_AI_PROVIDERS = new Set(['openai', 'anthropic']);
+        const requestedAiProviderCreates = Array.isArray(result.createAiProviders) ? result.createAiProviders as unknown[] : [];
+        const createAiProvidersReq = requestedAiProviderCreates
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).provider === 'string' && VALID_AI_PROVIDERS.has((p as any).provider) && typeof (p as any).model === 'string' && (p as any).model.trim())
+          .map((p: any) => ({
+            provider: p.provider as 'openai' | 'anthropic',
+            model: String(p.model).trim(),
+            label: typeof p.label === 'string' && p.label.trim() ? p.label.trim() : String(p.model).trim(),
+          }));
+        const activateAiProviderId = typeof result.activateAiProviderId === 'string' && contextAiProviderIds.has(result.activateAiProviderId) ? result.activateAiProviderId : null;
+        const requestedDeleteAiProviderIds = Array.isArray(result.deleteAiProviderIds) ? result.deleteAiProviderIds as unknown[] : [];
+        const deleteAiProviderIds = requestedDeleteAiProviderIds.filter((id): id is string => typeof id === 'string' && contextAiProviderIds.has(id));
+        const requestedDeleteMcpConnectorIds = Array.isArray(result.deleteMcpConnectorIds) ? result.deleteMcpConnectorIds as unknown[] : [];
+        const deleteMcpConnectorIds = requestedDeleteMcpConnectorIds.filter((id): id is string => typeof id === 'string' && contextMcpConnectorIds.has(id));
+
+        // Proposals: deliberately thin — bare draft only, never pricing/status. See the
+        // system prompt rule above for why real proposal pricing isn't duplicated here.
+        const requestedProposalCreates = Array.isArray(result.createProposals) ? result.createProposals as unknown[] : [];
+        const createProposalsReq = requestedProposalCreates
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).title === 'string' && (p as any).title.trim() && hasCompanyRef(p))
+          .map((p: any) => ({
+            title: String(p.title).trim(),
+            companyId: typeof p.companyId === 'string' && contextCompanyIds.has(p.companyId) ? p.companyId : null,
+            companyIndex: typeof p.companyIndex === 'number' ? p.companyIndex : null,
+          }));
+        const requestedProposalUpdates = Array.isArray(result.updateProposals) ? result.updateProposals as unknown[] : [];
+        const updateProposalsReq = requestedProposalUpdates
+          .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).id === 'string' && contextProposalIds.has((p as any).id))
+          .map((p: any) => ({
+            id: p.id as string,
+            title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : null,
+            paymentTerms: typeof p.paymentTerms === 'string' ? p.paymentTerms : null,
+          }));
+        const requestedDeleteProposalIds = Array.isArray(result.deleteProposalIds) ? result.deleteProposalIds as unknown[] : [];
+        const deleteProposalIds = requestedDeleteProposalIds.filter((id): id is string => typeof id === 'string' && contextProposalIds.has(id));
+
+        // Execute all six deletions now (immediate, same as channels/approvals above) —
+        // one shared helper since the shape (delete by id list, count real affected rows,
+        // surface a real error instead of swallowing it) is identical across all of them.
+        async function deleteByIds(table: string, ids: string[], label: string): Promise<number> {
+          if (ids.length === 0) return 0;
+          const { data, error } = await supabase.from(table).delete().in('id', ids).select('id');
+          if (error) {
+            result.summary = `${result.summary || ''}\n\n(${label} deletion failed: ${error.message})`.trim();
+            return 0;
+          }
+          return data?.length || 0;
+        }
+        const deletedProductLineCount = await deleteByIds('product_lines', deleteProductLineIds, 'Product line');
+        const deletedProductSpecCount = await deleteByIds('product_specs', deleteProductSpecIds, 'Software spec');
+        const deletedDrawingCount = await deleteByIds('engineering_drawings', deleteDrawingIds, 'Engineering drawing');
+        const deletedAiProviderCount = await deleteByIds('ai_providers', deleteAiProviderIds, 'AI provider');
+        const deletedMcpConnectorCount = await deleteByIds('mcp_connectors', deleteMcpConnectorIds, 'MCP connector');
+        const deletedProposalCount = await deleteByIds('proposals', deleteProposalIds, 'Proposal');
 
         // Company relationships / person assignments: real, sensitive data (founder-only
         // and manager-scoped RLS is the real authorization) — state defaults to the
@@ -1301,6 +1539,14 @@ serve(async (req) => {
             taskIndex: null,
           });
         }
+        // Same immediate-delete-then-audit shape for the newer entities — one push per
+        // non-zero count, deliberately not a loop, so each keeps its own clear label.
+        if (deletedProductLineCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedProductLineCount} product line(s)`, reason: 'Server-side risk policy forces approval for any product/pricing deletion.', riskLevel: 'high', taskIndex: null });
+        if (deletedProductSpecCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedProductSpecCount} software spec(s)`, reason: 'Server-side risk policy forces approval for any deletion.', riskLevel: 'high', taskIndex: null });
+        if (deletedDrawingCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedDrawingCount} engineering drawing(s)`, reason: 'Server-side risk policy forces approval for any deletion.', riskLevel: 'high', taskIndex: null });
+        if (deletedAiProviderCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedAiProviderCount} AI provider(s)`, reason: 'Server-side risk policy forces approval for any AI provider deletion.', riskLevel: 'high', taskIndex: null });
+        if (deletedMcpConnectorCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedMcpConnectorCount} MCP connector(s)`, reason: 'Server-side risk policy forces approval for any MCP connector deletion.', riskLevel: 'high', taskIndex: null });
+        if (deletedProposalCount > 0) forcedApprovals.push({ title: `Approval required: deleted ${deletedProposalCount} proposal(s)`, reason: 'Server-side risk policy forces approval for any proposal deletion.', riskLevel: 'high', taskIndex: null });
         // Deferred deletions (pendingDeleteTaskIds/pendingDeleteChannelIds): nothing has
         // been deleted yet — the execute payload is what lets decide_approval() (migration
         // 202608270005) perform the deletion later, exactly once, only once approved. The
@@ -1480,6 +1726,139 @@ serve(async (req) => {
           if (!error && data) createdDocuments.push(data);
         }
 
+        const createdProductLines: { id: string }[] = [];
+        for (const p of createProductLinesReq) {
+          const companyId = resolveCompanyId(p.companyId, p.companyIndex);
+          if (!companyId) continue;
+          const { data: inserted, error } = await supabase.from('product_lines').insert({
+            name: p.name, company_id: companyId, currency: p.currency, unit_price: p.unitPrice,
+          }).select('id').single();
+          if (!error && inserted) {
+            // unit_cost intentionally always 0 here, never model-supplied — see the
+            // system prompt rule: cost/margin data stays out of the AI's write path,
+            // same line already drawn for what enters its read-side context.
+            await supabase.from('product_costs').insert({ product_line_id: inserted.id, unit_cost: 0 });
+            createdProductLines.push(inserted);
+          }
+        }
+        let updatedProductLineCount = 0;
+        for (const p of updateProductLinesReq) {
+          const patch: Record<string, unknown> = {};
+          if (p.name) patch.name = p.name;
+          if (p.unitPrice !== null) patch.unit_price = p.unitPrice;
+          if (p.active !== null) patch.active = p.active;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('product_lines').update(patch).eq('id', p.id).select('id');
+          if (data && data.length > 0) updatedProductLineCount++;
+        }
+        // Any product-line create/update that actually touched pricing gets the same
+        // forced audit-approval as a deletion — pricing is on the "discounts/financing"
+        // high-risk list even though the write itself is immediate, same reasoning as
+        // channel/task deletion executing now and being audited after the fact. This one
+        // can't go through the shared forcedApprovals/RPC path above (that's built and
+        // sent before this section runs, since these writes need createdCompanies from
+        // the RPC's own result) — a plain insert has the identical real-world effect.
+        const productLinePricingTouched = createdProductLines.length > 0 || (updatedProductLineCount > 0 && updateProductLinesReq.some((p) => p.unitPrice !== null));
+        if (productLinePricingTouched) {
+          await supabase.from('approvals').insert({
+            company_id: primaryCompanyId,
+            title: `Approval required: product line pricing changed via chat (${createdProductLines.length} created, ${updatedProductLineCount} updated)`,
+            reason: 'Server-side risk policy forces approval for any product/pricing change.',
+            risk_level: 'high', domain: 'general',
+          });
+        }
+
+        const createdProductSpecs: { id: string }[] = [];
+        for (const s of createProductSpecsReq) {
+          const companyId = resolveCompanyId(s.companyId, s.companyIndex);
+          const { data: spec, error } = await supabase.from('product_specs').insert({
+            title: `AI PRD: ${s.title}`, company_id: companyId, status: 'draft', body_md: s.problem,
+          }).select('id').single();
+          if (error || !spec) continue;
+          createdProductSpecs.push(spec);
+          // Mirrors createSoftwareSpec's fixed ticket template exactly (web/lib/data/software.ts)
+          // — same 6 titles, same approval-required split, so chat-created specs behave
+          // identically to UI-created ones rather than a thinner lookalike.
+          const ticketTitles = [
+            'Write product requirement and acceptance criteria',
+            'Identify allowed modules and files only',
+            'Implement patch-only code change',
+            'Add module-specific UI check',
+            'Run regression QA and record evidence',
+            'Prepare release approval summary',
+          ];
+          for (let i = 0; i < ticketTitles.length; i++) {
+            await supabase.from('tasks').insert({
+              title: `${ticketTitles[i]}: ${s.title}`, company_id: companyId, owner_type: 'human', status: 'queued',
+              priority: 'high', risk_level: 'medium', approval_required: i >= 2, source: 'software_factory',
+            });
+          }
+          await supabase.from('approvals').insert({
+            company_id: companyId, title: `Approve software factory release: AI PRD: ${s.title}`,
+            reason: 'Production-impacting software changes require release gate approval.', risk_level: 'high', domain: 'production',
+          });
+        }
+        let updatedProductSpecCount = 0;
+        for (const s of updateProductSpecsReq) {
+          const patch: Record<string, unknown> = {};
+          if (s.title) patch.title = s.title;
+          if (s.status) patch.status = s.status;
+          if (s.bodyMd !== null) patch.body_md = s.bodyMd;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('product_specs').update(patch).eq('id', s.id).select('id');
+          if (data && data.length > 0) updatedProductSpecCount++;
+        }
+
+        // Engineering drawings: invokes the same real generate-technical-drawing Edge
+        // Function the manual page uses (web/lib/data/engineering.ts) — the SVG is real
+        // generated content, never something the model writes into the row itself.
+        const createdDrawings: { id: string }[] = [];
+        for (const d of createDrawingsReq) {
+          const companyId = resolveCompanyId(d.companyId, d.companyIndex);
+          const { data: gen, error: genError } = await supabase.functions.invoke('generate-technical-drawing', { body: { description: d.description } });
+          if (genError) continue;
+          const genResult = gen?.result;
+          if (!genResult?.svg) continue;
+          const { data: inserted, error } = await supabase.from('engineering_drawings').insert({
+            company_id: companyId,
+            title: typeof genResult.title === 'string' && genResult.title.trim() ? genResult.title.trim() : d.description.slice(0, 80),
+            description: d.description, svg_content: genResult.svg,
+            dimensions_summary: typeof genResult.dimensionsSummary === 'string' ? genResult.dimensionsSummary : null,
+            notes: typeof genResult.notes === 'string' ? genResult.notes : null,
+            created_by_profile_id: profile.id,
+          }).select('id').single();
+          if (!error && inserted) createdDrawings.push(inserted);
+        }
+
+        const createdAiProviders: { id: string }[] = [];
+        for (const p of createAiProvidersReq) {
+          const { data, error } = await supabase.from('ai_providers').insert({ provider: p.provider, model: p.model, label: p.label }).select('id').single();
+          if (!error && data) createdAiProviders.push(data);
+        }
+        let activatedAiProvider = false;
+        if (activateAiProviderId) {
+          await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId);
+          const { data } = await supabase.from('ai_providers').update({ is_active: true }).eq('id', activateAiProviderId).select('id');
+          activatedAiProvider = !!data && data.length > 0;
+        }
+
+        const createdProposals: { id: string }[] = [];
+        for (const p of createProposalsReq) {
+          const companyId = resolveCompanyId(p.companyId, p.companyIndex);
+          if (!companyId) continue;
+          const { data, error } = await supabase.from('proposals').insert({ title: p.title, company_id: companyId, status: 'draft' }).select('id').single();
+          if (!error && data) createdProposals.push(data);
+        }
+        let updatedProposalCount = 0;
+        for (const p of updateProposalsReq) {
+          const patch: Record<string, unknown> = {};
+          if (p.title) patch.title = p.title;
+          if (p.paymentTerms !== null) patch.payment_terms = p.paymentTerms;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('proposals').update(patch).eq('id', p.id).select('id');
+          if (data && data.length > 0) updatedProposalCount++;
+        }
+
         // Ground the reply in what the executor actually did, not what the model's own
         // prose claims — prepended so it's the first thing read regardless of anything the
         // model wrote further down. This is the direct fix for a real production bug: the
@@ -1515,14 +1894,30 @@ serve(async (req) => {
         if (createLeadsReq.length > createdLeads.length) factLines.push(`${createLeadsReq.length - createdLeads.length} of ${createLeadsReq.length} requested lead(s) could not be created — missing a valid company reference.`);
         if (updateLeadsReq.length > updatedLeadCount) factLines.push(`${updateLeadsReq.length - updatedLeadCount} of ${updateLeadsReq.length} requested lead update(s) did not apply — no matching lead or no access.`);
         if (createDocumentsReq.length > createdDocuments.length) factLines.push(`${createDocumentsReq.length - createdDocuments.length} of ${createDocumentsReq.length} requested document(s) could not be created.`);
+        if (createProductLinesReq.length > createdProductLines.length) factLines.push(`${createProductLinesReq.length - createdProductLines.length} of ${createProductLinesReq.length} requested product line(s) could not be created — missing a valid company reference.`);
+        if (updateProductLinesReq.length > updatedProductLineCount) factLines.push(`${updateProductLinesReq.length - updatedProductLineCount} of ${updateProductLinesReq.length} requested product line update(s) did not apply — no matching product or no access.`);
+        if (deleteProductLineIds.length > 0) factLines.push(`Deleted ${deletedProductLineCount} of ${deleteProductLineIds.length} requested product line(s).`);
+        if (createProductSpecsReq.length > createdProductSpecs.length) factLines.push(`${createProductSpecsReq.length - createdProductSpecs.length} of ${createProductSpecsReq.length} requested software spec(s) could not be created.`);
+        if (updateProductSpecsReq.length > updatedProductSpecCount) factLines.push(`${updateProductSpecsReq.length - updatedProductSpecCount} of ${updateProductSpecsReq.length} requested software spec update(s) did not apply — no matching spec or no access.`);
+        if (deleteProductSpecIds.length > 0) factLines.push(`Deleted ${deletedProductSpecCount} of ${deleteProductSpecIds.length} requested software spec(s).`);
+        if (createDrawingsReq.length > createdDrawings.length) factLines.push(`${createDrawingsReq.length - createdDrawings.length} of ${createDrawingsReq.length} requested engineering drawing(s) could not be generated.`);
+        if (deleteDrawingIds.length > 0) factLines.push(`Deleted ${deletedDrawingCount} of ${deleteDrawingIds.length} requested engineering drawing(s).`);
+        if (createAiProvidersReq.length > createdAiProviders.length) factLines.push(`${createAiProvidersReq.length - createdAiProviders.length} of ${createAiProvidersReq.length} requested AI provider(s) could not be created.`);
+        if (activateAiProviderId && !activatedAiProvider) factLines.push(`Could not activate the requested AI provider — no matching provider or no access.`);
+        if (deleteAiProviderIds.length > 0) factLines.push(`Deleted ${deletedAiProviderCount} of ${deleteAiProviderIds.length} requested AI provider(s).`);
+        if (deleteMcpConnectorIds.length > 0) factLines.push(`Deleted ${deletedMcpConnectorCount} of ${deleteMcpConnectorIds.length} requested MCP connector(s).`);
+        if (createProposalsReq.length > createdProposals.length) factLines.push(`${createProposalsReq.length - createdProposals.length} of ${createProposalsReq.length} requested proposal(s) could not be created — missing a valid company reference.`);
+        if (updateProposalsReq.length > updatedProposalCount) factLines.push(`${updateProposalsReq.length - updatedProposalCount} of ${updateProposalsReq.length} requested proposal update(s) did not apply — no matching proposal or no access.`);
+        if (deleteProposalIds.length > 0) factLines.push(`Deleted ${deletedProposalCount} of ${deleteProposalIds.length} requested proposal(s).`);
+        if (updateCompaniesReq.length > updatedCompanyCount) factLines.push(`${updateCompaniesReq.length - updatedCompanyCount} of ${updateCompaniesReq.length} requested company update(s) did not apply — no matching company or no access.`);
 
         if (factLines.length > 0) {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {
