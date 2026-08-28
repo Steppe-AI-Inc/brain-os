@@ -86,15 +86,20 @@ environment inherits it with zero extra steps. Treat every subagent as if it can
 production DB credentials regardless of what its prompt says not to do; see the new rule in
 `CLAUDE.md` §22.
 
-### Two real open items, need a human (either machine)
-1. **Edge Function CI/CD is one GitHub secret away from working.** `.github/workflows/supabase-functions.yml` is correct (branch/project-ref bugs already fixed) but blocked on
-   `SUPABASE_ACCESS_TOKEN` never being added as a repo secret — Settings → Secrets and
-   variables → Actions → New repository secret, token from
-   https://supabase.com/dashboard/account/tokens. Can't be done by an AI session.
-2. **`supabase logout` policy decision, undecided on purpose.** See the incident section
-   above — logging out would force re-authentication before any future push (safer against a
-   repeat of the incident) but would also block your own next legitimate push until you log
-   back in. Founder's call, not something to flip unilaterally mid-session.
+### One real open item, needs a human (either machine)
+**Edge Function CI/CD is one GitHub secret away from working.** `.github/workflows/supabase-functions.yml` is correct (branch/project-ref bugs already fixed) but blocked on
+`SUPABASE_ACCESS_TOKEN` never being added as a repo secret — Settings → Secrets and
+variables → Actions → New repository secret, token from
+https://supabase.com/dashboard/account/tokens. Can't be done by an AI session.
+
+### `supabase logout` policy — DECIDED 2026-08-28 (office machine session)
+Log out by default: `supabase login` is scoped to the one task at hand, not a standing
+session — run `supabase logout --yes` right after any `db push`/`migration up`/`functions
+deploy` completes. Verified end-to-end on the office machine (logged out, confirmed
+`supabase projects list` then fails with no ambient credential for a subagent to inherit).
+Standing rule on every machine now, not a one-off — see `CLAUDE.md` §22 for the full
+reasoning. A single continuous, attended task needing several pushes in a row may stay
+logged in for that task; log out again once it's done.
 
 ### Everything else still open (smaller, tracked in KNOWN_FAILURE_MODES.md, not urgent)
 `kpi.ts`'s batch KPI scorer has the same "assumed success" shape as the fixed class above but

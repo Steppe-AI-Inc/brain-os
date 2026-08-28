@@ -344,6 +344,19 @@ block the founder's own next legitimate push until a fresh login), not something
 unilaterally mid-session. Flagged as a concrete decision point, not left as a vague
 "someone should fix this someday."
 
+**Decided, 2026-08-28 (office machine session), per explicit founder instruction: log out
+by default.** Policy: `supabase login` is scoped to the one task at hand, not a standing
+session — run `supabase logout --yes` immediately after any `db push`/`migration up`/
+`functions deploy` completes, rather than leaving the CLI authenticated. Verified working
+end-to-end on the office machine: logged out, then confirmed `supabase projects list`
+correctly fails with `LegacyPlatformAuthRequiredError` (no ambient credential left for a
+subagent to inherit). This is the standing rule going forward on every machine, not a
+one-time cleanup — the founder's own next legitimate push costs one browser re-auth
+(~1 minute), which is cheap against a repeat of the incident above on an app that holds
+real legal/financial/HR data. If a session's task genuinely requires several pushes in
+quick succession, staying logged in for that single continuous, attended task is fine —
+log out again once it's done, don't leave it standing afterward.
+
 ## 23. Code review yourself
 
 After writing code, switch roles mentally and do not approve your own implementation
