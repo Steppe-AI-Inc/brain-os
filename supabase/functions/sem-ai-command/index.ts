@@ -214,6 +214,20 @@ Rules:
   real companyId from context.companies, or companyIndex into this response's own
   createCompanies array. If neither is available, create a clarification task instead of
   guessing which company it belongs to.
+- You may create real departments, sales leads, and text-content documents directly, same
+  low-risk treatment as companies/people/projects/goals above (none of these are on the
+  high-risk list — deletion, financing, and external messaging are, plain CRM/org records
+  are not). Check context.departments / context.leads / context.documents first, never
+  duplicate. companyId/companyIndex works exactly like projects/goals above (a lead or
+  department with no resolvable company is a clarification task instead of a guess — a
+  document may skip company entirely, same as the manual "paste text" upload path, but
+  still prefer a real company when one is clearly implied). createDocuments only supports
+  pasted text content, never a real file attachment — chat cannot upload files; if the
+  user is clearly describing an actual file they have, create a task asking them to
+  attach it via the Documents page instead of inventing document content.
+  updateDepartments/updateLeads may only reference an "id" literally present in
+  context.departments/context.leads — same id-provenance rule as every other update/delete
+  field in this schema; leave any field null to leave it unchanged rather than guessing.
 - You may record company ownership/parent relationships (createCompanyRelationships) and
   person work assignments (createPersonAssignments) — check context.companyRelationships /
   context.personAssignments first, never duplicate. CRITICAL: every relationship has a
@@ -279,6 +293,21 @@ Output schema:
   ],
   "createGoals": [
     {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|"archived"|null, "dueAt": string|null}
+  ],
+  "createDepartments": [
+    {"name": string, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "updateDepartments": [
+    {"id": string, "name": string|null, "companyId": string|null, "companyIndex": number|null}
+  ],
+  "createLeads": [
+    {"clientName": string, "companyId": string|null, "companyIndex": number|null, "contactName": string|null, "contactEmail": string|null, "stage": string|null, "valueEstimate": number|null}
+  ],
+  "updateLeads": [
+    {"id": string, "clientName": string|null, "contactName": string|null, "contactEmail": string|null, "stage": string|null, "valueEstimate": number|null}
+  ],
+  "createDocuments": [
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "category": string|null, "sensitivity": "public"|"internal"|"confidential"|"restricted"|"founder_only"|null, "text": string}
   ],
   "createCompanyRelationships": [
     {"companyId": string|null, "companyIndex": number|null, "relatedCompanyId": string|null, "relatedCompanyIndex": number|null, "ownerProfileId": string|null, "relationshipType": "parent_of"|"owned_by_percentage"|null, "ownershipPct": number|null, "state": "current"|"planned"|"historical"|"under_restructuring", "effectiveDate": string|null, "notes": string|null}
@@ -708,7 +737,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
-    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount] = await Promise.all([
+    departments, leads, documents,
+    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount] = await Promise.all([
     supabase.from('companies').select('id,name,status,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
@@ -741,6 +771,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // (company_id backfill on work_orders/chat_channels/audit_logs) — see
     // derivePrimaryCompanyId() below.
     supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(30),
+    // Low-risk, chat-creatable/editable entities (createDepartments/updateDepartments,
+    // createLeads/updateLeads, createDocuments) — same "check context first, never
+    // duplicate" and id-provenance discipline as every other entity above. Documents:
+    // no extracted_text/summary here — content isn't needed to avoid a title/category
+    // duplicate, and keeping it out holds the same "no restricted content enters the
+    // model's context beyond what it needs" line already drawn for financial_reports.
+    supabase.from('departments').select('id,name,company_id').limit(30),
+    supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate').limit(30),
+    supabase.from('documents').select('id,title,company_id,category').limit(30),
     // Real aggregate counts, deliberately separate from the (necessarily truncated)
     // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
     // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
@@ -760,6 +799,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // total, so I cannot confirm this is the complete list") — same truncation-as-
     // total risk class as the other counts above, just missed when those were added.
     supabase.from('chat_channels').select('id', { count: 'exact', head: true }).eq('archived', false),
+    supabase.from('departments').select('id', { count: 'exact', head: true }),
+    supabase.from('documents').select('id', { count: 'exact', head: true }),
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
   const counts = {
@@ -769,12 +810,14 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     peopleTotal: peopleCount.count ?? (people.data||[]).length,
     projectsTotal: projectsCount.count ?? (projects.data||[]).length,
     goalsTotal: goalsCount.count ?? (goals.data||[]).length,
-    salesLeadsTotal: salesLeadsCount.count ?? 0,
+    salesLeadsShown: (leads.data||[]).length, salesLeadsTotal: salesLeadsCount.count ?? (leads.data||[]).length,
     inventoryItemsTotal: inventoryCount.count ?? (inventory.data||[]).length,
     channelsShown: (channels.data||[]).length, channelsTotal: channelsCount.count ?? (channels.data||[]).length,
+    departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
+    documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, counts };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], counts };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,departments.error,leads.error,documents.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -1078,6 +1121,73 @@ serve(async (req) => {
             dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
           }));
 
+        // Departments/leads/documents: same low-risk, immediate-execution treatment as
+        // companies/people/projects/goals above — not on the high-risk list, so no
+        // approval gate. Unlike projects/goals these don't go through the
+        // sem_execute_ai_command RPC (no schema reason they must be transactional with
+        // task/approval creation), so companyIndex is resolved in TS below, after the RPC
+        // call, once createdCompanies is known — same "check a real context set, resolve
+        // an index into this same response's own creates, never guess" discipline either
+        // way. Documents require title+text only (chat can never attach a real file);
+        // company is optional for a text-content document, matching createDocument's own
+        // manual "paste text" path in web/lib/data/documents.ts.
+        const contextDepartmentIds = new Set((contextPack?.departments || []).map((d: any) => d.id));
+        const contextLeadIds = new Set((contextPack?.leads || []).map((l: any) => l.id));
+        const VALID_SENSITIVITY = new Set(['public', 'internal', 'confidential', 'restricted', 'founder_only']);
+        const requestedDepartmentCreates = Array.isArray(result.createDepartments) ? result.createDepartments as unknown[] : [];
+        const createDepartmentsReq = requestedDepartmentCreates
+          .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object' && typeof (d as any).name === 'string' && (d as any).name.trim() && hasCompanyRef(d))
+          .map((d: any) => ({
+            name: String(d.name).trim(),
+            companyId: typeof d.companyId === 'string' && contextCompanyIds.has(d.companyId) ? d.companyId : null,
+            companyIndex: typeof d.companyIndex === 'number' ? d.companyIndex : null,
+          }));
+        const requestedDepartmentUpdates = Array.isArray(result.updateDepartments) ? result.updateDepartments as unknown[] : [];
+        const updateDepartmentsReq = requestedDepartmentUpdates
+          .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object' && typeof (d as any).id === 'string' && contextDepartmentIds.has((d as any).id))
+          .map((d: any) => ({
+            id: d.id as string,
+            name: typeof d.name === 'string' && d.name.trim() ? d.name.trim() : null,
+            companyId: typeof d.companyId === 'string' && contextCompanyIds.has(d.companyId) ? d.companyId : null,
+            companyIndex: typeof d.companyIndex === 'number' ? d.companyIndex : null,
+          }));
+
+        const requestedLeadCreates = Array.isArray(result.createLeads) ? result.createLeads as unknown[] : [];
+        const createLeadsReq = requestedLeadCreates
+          .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object' && typeof (l as any).clientName === 'string' && (l as any).clientName.trim() && hasCompanyRef(l))
+          .map((l: any) => ({
+            clientName: String(l.clientName).trim(),
+            companyId: typeof l.companyId === 'string' && contextCompanyIds.has(l.companyId) ? l.companyId : null,
+            companyIndex: typeof l.companyIndex === 'number' ? l.companyIndex : null,
+            contactName: typeof l.contactName === 'string' ? l.contactName : null,
+            contactEmail: typeof l.contactEmail === 'string' ? l.contactEmail : null,
+            stage: typeof l.stage === 'string' ? l.stage : null,
+            valueEstimate: typeof l.valueEstimate === 'number' ? l.valueEstimate : null,
+          }));
+        const requestedLeadUpdates = Array.isArray(result.updateLeads) ? result.updateLeads as unknown[] : [];
+        const updateLeadsReq = requestedLeadUpdates
+          .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object' && typeof (l as any).id === 'string' && contextLeadIds.has((l as any).id))
+          .map((l: any) => ({
+            id: l.id as string,
+            clientName: typeof l.clientName === 'string' && l.clientName.trim() ? l.clientName.trim() : null,
+            contactName: typeof l.contactName === 'string' ? l.contactName : null,
+            contactEmail: typeof l.contactEmail === 'string' ? l.contactEmail : null,
+            stage: typeof l.stage === 'string' ? l.stage : null,
+            valueEstimate: typeof l.valueEstimate === 'number' ? l.valueEstimate : null,
+          }));
+
+        const requestedDocumentCreates = Array.isArray(result.createDocuments) ? result.createDocuments as unknown[] : [];
+        const createDocumentsReq = requestedDocumentCreates
+          .filter((doc): doc is Record<string, unknown> => !!doc && typeof doc === 'object' && typeof (doc as any).title === 'string' && (doc as any).title.trim() && typeof (doc as any).text === 'string' && (doc as any).text.trim())
+          .map((doc: any) => ({
+            title: String(doc.title).trim(),
+            companyId: typeof doc.companyId === 'string' && contextCompanyIds.has(doc.companyId) ? doc.companyId : null,
+            companyIndex: typeof doc.companyIndex === 'number' ? doc.companyIndex : null,
+            category: typeof doc.category === 'string' && doc.category.trim() ? doc.category.trim() : 'General',
+            sensitivity: typeof doc.sensitivity === 'string' && VALID_SENSITIVITY.has(doc.sensitivity) ? doc.sensitivity : 'internal',
+            text: String(doc.text).trim(),
+          }));
+
         // Company relationships / person assignments: real, sensitive data (founder-only
         // and manager-scoped RLS is the real authorization) — state defaults to the
         // safest option ("planned") per the "never treat an intention as an
@@ -1297,6 +1407,79 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
+        // Departments/leads/documents: executed here, outside the RPC's transaction —
+        // resolves companyIndex against createdCompanies (just returned above) the same
+        // way the RPC resolves it internally for projects/goals, then does a plain
+        // RLS-scoped insert/update and checks the real affected/inserted row, same
+        // honest-result discipline as every other mutation in this file (never assume
+        // success — qa/KNOWN_FAILURE_MODES.md #17/#18).
+        const resolveCompanyId = (companyId: string | null, companyIndex: number | null): string | null =>
+          companyId || (typeof companyIndex === 'number' ? (createdCompanies[companyIndex]?.id ?? null) : null);
+
+        const createdDepartments: { id: string }[] = [];
+        for (const d of createDepartmentsReq) {
+          const companyId = resolveCompanyId(d.companyId, d.companyIndex);
+          if (!companyId) continue;
+          const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          const { data, error } = await supabase.from('departments').insert({ company_id: companyId, name: d.name, slug }).select('id').single();
+          if (!error && data) createdDepartments.push(data);
+        }
+        let updatedDepartmentCount = 0;
+        for (const d of updateDepartmentsReq) {
+          const patch: Record<string, unknown> = {};
+          if (d.name) { patch.name = d.name; patch.slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
+          const companyId = resolveCompanyId(d.companyId, d.companyIndex);
+          if (companyId) patch.company_id = companyId;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('departments').update(patch).eq('id', d.id).select('id');
+          if (data && data.length > 0) updatedDepartmentCount++;
+        }
+
+        // owner_person_id must be the caller's own person row — matches createLead's own
+        // reasoning in web/lib/data/sales.ts: sales_leads_update_own_or_manager requires
+        // either company-manager or an owner_person_id match, so a lead left ownerless is
+        // invisible to non-manager updates from here on, same real bug already fixed once
+        // for the manual path. Only resolved if createLeadsReq is non-empty (skip the
+        // query entirely on requests that don't need it).
+        let callerPersonId: string | null = null;
+        if (createLeadsReq.length > 0) {
+          const { data: callerPerson } = await supabase.from('people').select('id').eq('profile_id', profile.id).maybeSingle();
+          callerPersonId = callerPerson?.id ?? null;
+        }
+        const createdLeads: { id: string }[] = [];
+        for (const l of createLeadsReq) {
+          const companyId = resolveCompanyId(l.companyId, l.companyIndex);
+          if (!companyId) continue;
+          const { data, error } = await supabase.from('sales_leads').insert({
+            client_name: l.clientName, company_id: companyId, contact_name: l.contactName, contact_email: l.contactEmail,
+            stage: l.stage || 'lead', value_estimate: l.valueEstimate ?? 0, owner_person_id: callerPersonId,
+          }).select('id').single();
+          if (!error && data) createdLeads.push(data);
+        }
+        let updatedLeadCount = 0;
+        for (const l of updateLeadsReq) {
+          const patch: Record<string, unknown> = {};
+          if (l.clientName) patch.client_name = l.clientName;
+          if (l.contactName !== null) patch.contact_name = l.contactName;
+          if (l.contactEmail !== null) patch.contact_email = l.contactEmail;
+          if (l.stage) patch.stage = l.stage;
+          if (l.valueEstimate !== null) patch.value_estimate = l.valueEstimate;
+          if (Object.keys(patch).length === 0) continue;
+          const { data } = await supabase.from('sales_leads').update(patch).eq('id', l.id).select('id');
+          if (data && data.length > 0) updatedLeadCount++;
+        }
+
+        const createdDocuments: { id: string }[] = [];
+        for (const doc of createDocumentsReq) {
+          const companyId = resolveCompanyId(doc.companyId, doc.companyIndex);
+          const { data, error } = await supabase.from('documents').insert({
+            title: doc.title, company_id: companyId, category: doc.category, mime_type: 'text/plain',
+            extracted_text: doc.text, summary: doc.text.slice(0, 200), sensitivity: doc.sensitivity,
+            uploaded_by_profile_id: profile.id,
+          }).select('id').single();
+          if (!error && data) createdDocuments.push(data);
+        }
+
         // Ground the reply in what the executor actually did, not what the model's own
         // prose claims — prepended so it's the first thing read regardless of anything the
         // model wrote further down. This is the direct fix for a real production bug: the
@@ -1327,14 +1510,19 @@ serve(async (req) => {
         if (requestedGoals.length > createdGoals.length) factLines.push(`${requestedGoals.length - createdGoals.length} of ${requestedGoals.length} requested goal(s) could not be created — missing a valid company reference.`);
         if (requestedRelationships.length > createdCompanyRelationships.length) factLines.push(`${requestedRelationships.length - createdCompanyRelationships.length} of ${requestedRelationships.length} requested company relationship(s) could not be created — missing a valid company reference or invalid owner/related-company combination.`);
         if (requestedAssignments.length > createdPersonAssignments.length) factLines.push(`${requestedAssignments.length - createdPersonAssignments.length} of ${requestedAssignments.length} requested person assignment(s) could not be created — missing a valid person reference.`);
+        if (createDepartmentsReq.length > createdDepartments.length) factLines.push(`${createDepartmentsReq.length - createdDepartments.length} of ${createDepartmentsReq.length} requested department(s) could not be created — missing a valid company reference.`);
+        if (updateDepartmentsReq.length > updatedDepartmentCount) factLines.push(`${updateDepartmentsReq.length - updatedDepartmentCount} of ${updateDepartmentsReq.length} requested department update(s) did not apply — no matching department or no access.`);
+        if (createLeadsReq.length > createdLeads.length) factLines.push(`${createLeadsReq.length - createdLeads.length} of ${createLeadsReq.length} requested lead(s) could not be created — missing a valid company reference.`);
+        if (updateLeadsReq.length > updatedLeadCount) factLines.push(`${updateLeadsReq.length - updatedLeadCount} of ${updateLeadsReq.length} requested lead update(s) did not apply — no matching lead or no access.`);
+        if (createDocumentsReq.length > createdDocuments.length) factLines.push(`${createDocumentsReq.length - createdDocuments.length} of ${createDocumentsReq.length} requested document(s) could not be created.`);
 
         if (factLines.length > 0) {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {
