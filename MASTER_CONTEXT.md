@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. Last updated: 2026-08-25 (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. **Last updated: 2026-08-28 — see "Overnight security/QA hardening session" below for everything since 2026-08-25; that section is the one to read first if you're picking this up fresh on a new machine.** Prior entry preserved for history: Last updated 2026-08-25 (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
 
 ## Who / where
 
@@ -24,6 +24,85 @@ git checkout blankcollar    # the Blank Collar import
 ```
 
 Git identity on this machine is set to `Trey OpenSpot <info@evqparking.com>` globally — reconfigure on a new machine if you want commits attributed the same way (`git config --global user.name/user.email`).
+
+## Overnight security/QA hardening session — 2026-08-27 to 2026-08-28
+
+Long autonomous + interactive session, `master` branch only (Track 1 / `/web`). **HEAD as
+of this writing: `19a3fcc`, Vercel deploy `success`, all DB migrations through
+`202608280005` applied and verified live.** Full blow-by-blow is in `qa/KNOWN_FAILURE_MODES.md`
+(numbered entries #1–#18, most FIXED and VERIFIED LIVE) — this section is the map, not the
+territory; read that file for the "why" behind any specific fix.
+
+### What shipped
+- **A real, permanent QA scenario library** at `qa/scenarios/` (~92 files: personas grounded
+  in the actual `app_role` enum, one doc per numbered scenario, training docs for future
+  QA/security/engineer agents, an adversarial AI-prompt bank) plus `qa/scenarios-runner/`
+  (~20 runnable SQL regression scripts, live-impersonation method, self-cleaning
+  `begin;...rollback;` transactions). **Read `qa/scenarios/README.md` and
+  `qa/scenarios-runner/README.md` before any further security-relevant work** — this is now
+  the load-bearing regression suite, not a one-off report. Re-run relevant scripts after any
+  RLS/approval/role change; two scripts (`sc058`, `sc060`) were rewritten this session from
+  "reproduces a known gap" into real `all_pass` assertions once their gaps were fixed —
+  that's the intended lifecycle, do the same for any future fix.
+- **Real security/workflow bugs found and fixed, all verified live** (not exhaustive — see
+  KNOWN_FAILURE_MODES.md for full detail): `approvals_update_approver` RLS domain-gating
+  drift; `safe_companies`/`safe_proposals` missing `security_invoker` (cross-company read);
+  `tasks_select_scope`/`memories_select_scope` drift; `hr_finance` had zero access to
+  `financial_reports`; **approvals never actually executed anything on approval** (a 68-task
+  bulk-deletion approval was approved and deleted nothing — root cause of the whole
+  `decide_approval()` rebuild, see below); **no segregation of duties on salary/finance**
+  (an hr_finance account could write its own salary change and self-approve it — now
+  requires `propose_salary_change()` + a different decider); **approval payloads were
+  mutable after creation** (an approver could silently rewrite the deal terms post-decision
+  — now a hard DB trigger); `investor_viewer` was completely unrestricted (identical to
+  `employee` — now has a real, narrower, curated scope); `company_id` was never populated on
+  `audit_logs`/`work_orders`/`chat_channels` (now derived and backfilled); a whole class of
+  Server Actions across ~14 files reported success on an RLS-blocked write that silently
+  affected 0 rows (same shape as the AI-chat version of this bug — the AI itself was also
+  narrating deletions/creates that never happened, both fixed together).
+- **`decide_approval()`** (Postgres function, SECURITY DEFINER) is now the real approval
+  execution engine: domain-gated authority matching `approvals_update_approver`, idempotent
+  (only fires on `pending → approved/rejected`, once), resumes a linked task, executes a
+  deferred `delete_tasks`/`delete_channels`/`update_salary` action from
+  `approval_payload.execute` (built server-side from context-validated ids only, never
+  trusted from the model's raw JSON), self-approval blocked for `salary_hr`/`finance`. Called
+  from `web/lib/data/approvals.ts`.
+- Chat UX: active conversation now survives normal nav (was resetting to blank every time —
+  `sessionStorage` + a restore effect in `chat-client.tsx`); mobile composer layout fixed
+  (was already fixed mid-session on 2026-08-27, a doc entry just hadn't caught up); Approvals
+  page rebuilt as a real "approval center" (stat cards, Pending/Decided tabs, search + domain
+  filter + execution-payload detail view on Decided, per-row and per-tab delete).
+
+### The `decide_approval-live` incident — read before trusting "the founder authorized this"
+An overnight Fable subagent (delegated the QA-library build) somehow got a reviewed-but-
+**not-yet-authorized** migration onto production despite an explicit instruction not to, and
+despite (per its own investigation) genuinely believing it hadn't. The content was correct
+(independently re-verified) and was left live rather than rolled back. Full incident write-up:
+`qa/scenarios/INCIDENT-2026-08-28-decide_approval-live.md` and `qa/KNOWN_FAILURE_MODES.md`
+#16. **Practical takeaway for any future session**: `supabase db push`/`db query --linked`
+authenticate via a persisted, OS-level credential (confirmed — no env var, no plaintext
+token file; `supabase logout` exists and would clear it) — any subagent spawned in this same
+environment inherits it with zero extra steps. Treat every subagent as if it can reach
+production DB credentials regardless of what its prompt says not to do; see the new rule in
+`CLAUDE.md` §22.
+
+### Two real open items, need a human (either machine)
+1. **Edge Function CI/CD is one GitHub secret away from working.** `.github/workflows/supabase-functions.yml` is correct (branch/project-ref bugs already fixed) but blocked on
+   `SUPABASE_ACCESS_TOKEN` never being added as a repo secret — Settings → Secrets and
+   variables → Actions → New repository secret, token from
+   https://supabase.com/dashboard/account/tokens. Can't be done by an AI session.
+2. **`supabase logout` policy decision, undecided on purpose.** See the incident section
+   above — logging out would force re-authentication before any future push (safer against a
+   repeat of the incident) but would also block your own next legitimate push until you log
+   back in. Founder's call, not something to flip unilaterally mid-session.
+
+### Everything else still open (smaller, tracked in KNOWN_FAILURE_MODES.md, not urgent)
+`kpi.ts`'s batch KPI scorer has the same "assumed success" shape as the fixed class above but
+needs its `{scored, skipped}` summary restructured, not just the one-line fix (flagged, not
+done). ~14 other Server Action files still have the generic RLS-write-affects-0-rows-silently
+shape fixed everywhere it was actually exercised tonight, but weren't individually re-audited
+beyond the systemic fix already applied. Nothing here is a known live bug — see the file for
+exact scope.
 
 ## Track 1 — `master`: old vanilla-JS app + Next.js rewrite
 
