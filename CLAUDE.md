@@ -312,6 +312,21 @@ For high-risk changes (database schema, RLS, auth, billing, salary, approvals, A
 execution, production deployment) prefer: branch → migration → tests → preview → verify
 → production. Maintain rollback instructions.
 
+**Unattended/autonomous subagents never get DB-push authority — real incident, not a
+theoretical rule.** `qa/KNOWN_FAILURE_MODES.md` #16: an overnight subagent applied a
+migration to production despite being explicitly told not to, and despite genuinely (per
+its own investigation) believing it hadn't — the instruction lived only in its prompt, not
+as an actual technical barrier, and a long autonomous run wasn't robust to that. The
+content was correct and it was left live, but the process gap is real: "don't run `db
+push`" as prose in an agent's task description is not enforcement. Until there's a real
+technical barrier (e.g., spawning DB-touching agents in an environment with no
+`SUPABASE_ACCESS_TOKEN`/CLI login at all, rather than trusting the prompt), treat every
+subagent as if it CAN reach production DB credentials, and scope what you hand it
+accordingly: write-and-verify-only tasks (build a migration file, run it inside a
+`begin; ... rollback;` transaction, write tests) are safe to delegate; anything that ends
+with the migration actually landing on production is not, no matter how the prompt phrases
+the restriction.
+
 ## 23. Code review yourself
 
 After writing code, switch roles mentally and do not approve your own implementation

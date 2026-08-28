@@ -14,6 +14,9 @@ export type ChatResult = {
   memoryCount: number;
   model: string;
   usage: { input_tokens: number; output_tokens: number } | null;
+  // Only set when the command was unambiguously about one company — used to backfill a
+  // freshly-created channel's company_id (KNOWN_FAILURE_MODES.md #7). Null otherwise.
+  primaryCompanyId: string | null;
 };
 
 export type StreamEvent =
@@ -35,6 +38,7 @@ export type StreamEvent =
       createdMemories?: unknown[];
       model?: string;
       usage?: { input_tokens?: number; output_tokens?: number } | null;
+      primaryCompanyId?: string | null;
     }
   | { type: "error"; error?: string };
 
@@ -128,5 +132,6 @@ export function toChatResult(evt: Extract<StreamEvent, { type: "done" }>): ChatR
     usage: evt.usage
       ? { input_tokens: evt.usage.input_tokens ?? 0, output_tokens: evt.usage.output_tokens ?? 0 }
       : null,
+    primaryCompanyId: evt.primaryCompanyId ?? null,
   };
 }

@@ -644,6 +644,26 @@ function detectForcedApprovalMatches(title:string, description:string){
   const text = `${title || ''} ${description || ''}`.toLowerCase();
   return FORCED_APPROVAL_KEYWORDS.filter(k => text.includes(k.keyword));
 }
+// SECURITY_INVARIANTS.md #7 / governance's "no floor validation at write time" gap:
+// memoryCandidates' sensitivity is entirely model-assigned, with nothing server-side
+// double-checking it against the actual content — the model could tag a salary/cash fact
+// 'public' and it would be stored and shown that broadly. Same defensive pattern as
+// FORCED_APPROVAL_KEYWORDS above: never trust the model's own risk self-assessment for a
+// keyword-matched sensitive category. Upgrade-only (never downgrades a stricter tier the
+// model already chose) and only ever raises to 'confidential' — memories_select_scope has
+// no separate branch for 'restricted'/'founder_only', so those stay founder-only-visible
+// by the policy's own default, which is already the strictest possible outcome.
+const MEMORY_SENSITIVITY_FLOOR_KEYWORDS = [
+  'salary','wage','wages','compensation','payroll','bonus amount','base pay',
+  'cash balance','bank account','revenue','net income','profit margin','burn rate',
+  'ownership','equity stake','cap table','shareholder','ssn','social security',
+  'passport number','legal dispute','lawsuit','termination','fired','layoff',
+];
+function detectMemorySensitivityFloor(fact: string): 'confidential' | null {
+  const text = fact.toLowerCase();
+  return MEMORY_SENSITIVITY_FLOOR_KEYWORDS.some(k => text.includes(k)) ? 'confidential' : null;
+}
+const SENSITIVITY_RANK: Record<string, number> = { public: 0, internal: 1, confidential: 2, restricted: 3, founder_only: 4 };
 function detectForcedApprovalKeywords(title:string, description:string){
   return detectForcedApprovalMatches(title, description).map(m => m.keyword);
 }
@@ -717,7 +737,10 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // Brain OS's own chat_channels — so the model knows these are internal conversation
     // threads it can be asked to delete, not an external platform (Slack/Teams/Discord)
     // it has no access to.
-    supabase.from('chat_channels').select('id,name').eq('archived', false).limit(30),
+    // company_id included so a primary-company can be derived for KNOWN_FAILURE_MODES #7
+    // (company_id backfill on work_orders/chat_channels/audit_logs) — see
+    // derivePrimaryCompanyId() below.
+    supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(30),
     // Real aggregate counts, deliberately separate from the (necessarily truncated)
     // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
     // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
@@ -889,9 +912,15 @@ serve(async (req) => {
           const errorMessage = truncated
             ? 'Response was cut off before it finished (too long for one reply) — try breaking the request into smaller steps.'
             : 'Model returned invalid JSON';
+          // KNOWN_FAILURE_MODES.md #7 — the fuller task-derived primaryCompanyId isn't
+          // computable yet this early (parsing failed before any tasks exist), but the
+          // active channel's own company_id (if any) is a safe, real signal.
+          const earlyCompanyId = contextPack?.activeChannelId
+            ? (contextPack?.channels || []).find((c: any) => c.id === contextPack.activeChannelId)?.company_id ?? null
+            : null;
           await supabase.from('audit_logs').insert({
             actor_profile_id: profile.id, actor_role: profile.role,
-            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: workOrderId,
+            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: workOrderId, company_id: earlyCompanyId,
             message: errorMessage, metadata: { command, model, stopReason, raw: resultText.slice(0, 4000) }
           });
           if (workOrderId) {
@@ -1115,12 +1144,16 @@ serve(async (req) => {
             const entityId = typeof m.entityId === 'string' && m.entityId.trim()
               ? m.entityId.trim()
               : (entityType === 'chat_channel' ? channelId : null);
+            const fact = String(m.fact).trim();
+            const modelSensitivity = typeof m.sensitivity === 'string' && VALID_MEMORY_SENSITIVITY.has(m.sensitivity) ? m.sensitivity : 'internal';
+            const floor = detectMemorySensitivityFloor(fact);
+            const sensitivity = floor && SENSITIVITY_RANK[modelSensitivity] < SENSITIVITY_RANK[floor] ? floor : modelSensitivity;
             return {
               entityType,
               entityId,
-              fact: String(m.fact).trim(),
+              fact,
               confidence: typeof m.confidence === 'number' ? m.confidence : 0.8,
-              sensitivity: typeof m.sensitivity === 'string' && VALID_MEMORY_SENSITIVITY.has(m.sensitivity) ? m.sensitivity : 'internal',
+              sensitivity,
               companyId: typeof m.companyId === 'string' && contextCompanyIds.has(m.companyId) ? m.companyId : null,
               companyIndex: typeof m.companyIndex === 'number' ? m.companyIndex : null,
             };
@@ -1198,10 +1231,26 @@ serve(async (req) => {
           return { title: a.title || 'Approval required', reason: a.reason || 'Risk policy requires approval', riskLevel: a.riskLevel || 'medium', domain, taskIndex: a.taskIndex ?? null, execute };
         });
 
+        // KNOWN_FAILURE_MODES.md #7: company_id was never populated on work_orders/
+        // chat_channels/audit_logs (100% null on real rows), which makes company_manager
+        // RLS visibility on those tables inert in practice — silently over-restrictive,
+        // not a leak, but real. Only set when the command is unambiguously about one
+        // company (the active channel's own company, or every task this command touched
+        // agreeing on the same company) — never guessed when multiple companies are
+        // involved or none are, since a wrong company tag would be worse than none.
+        const activeChannelCompanyId = contextPack?.activeChannelId
+          ? (contextPack?.channels || []).find((c: any) => c.id === contextPack.activeChannelId)?.company_id ?? null
+          : null;
+        const taskCompanyIds = new Set(taskPayloads.map(t => t.companyId).filter((id): id is string => !!id));
+        const primaryCompanyId: string | null = activeChannelCompanyId
+          ? activeChannelCompanyId
+          : taskCompanyIds.size === 1 ? [...taskCompanyIds][0] : null;
+
         const finalInputTokens = usageRef.current?.input_tokens || tokenEstimate;
         const finalOutputTokens = usageRef.current?.output_tokens || 0;
         const { data: rpcResult, error: rpcError } = await supabase.rpc('sem_execute_ai_command', {
           p_command: command,
+          p_primary_company_id: primaryCompanyId,
           p_context_pack: contextPack,
           p_output: result,
           p_token_estimate: tokenEstimate,
@@ -1276,9 +1325,9 @@ serve(async (req) => {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, model, usage: usageRef.current, tokenEstimate, contextErrors });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {

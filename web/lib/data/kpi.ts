@@ -60,7 +60,7 @@ function periodBounds(period: string): { start: string; end: string } {
 // person using whichever salary_rules formula applies to their role_title (falling back
 // to the company-wide default rule), for the formula types that don't need manual input.
 // Technician "manual_time_log" rules are deliberately skipped here — see logTechnicianJobTime.
-export async function runAutomatedKpiScoring(period?: string): Promise<string | { scored: number; skipped: number }> {
+export async function runAutomatedKpiScoring(period?: string): Promise<string | { scored: number; skipped: number; failed: number }> {
   const supabase = await createClient();
   const p = period && /^\d{4}-\d{2}$/.test(period) ? period : currentPeriod();
   const { start, end } = periodBounds(p);
@@ -71,10 +71,11 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
   ]);
   if (peopleError) return peopleError.message;
   if (rulesError) return rulesError.message;
-  if (!people || !rules) return { scored: 0, skipped: 0 };
+  if (!people || !rules) return { scored: 0, skipped: 0, failed: 0 };
 
   let scored = 0;
   let skipped = 0;
+  let failed = 0;
 
   for (const person of people) {
     const rule =
@@ -102,7 +103,7 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
         .lt("created_at", end);
       const totalValue = (won ?? []).reduce((sum, r) => sum + (r.total ?? 0), 0);
       const commission = Math.round(totalValue * (formula.rate_pct / 100) * 100) / 100;
-      await upsertKpiRecord(supabase, {
+      const ok = await upsertKpiRecord(supabase, {
         person_id: person.id,
         company_id: person.company_id,
         period: p,
@@ -112,7 +113,7 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
         salary_impact_pct: formula.rate_pct,
         bonus_amount: commission,
       });
-      scored++;
+      if (ok) scored++; else failed++;
       continue;
     }
 
@@ -134,7 +135,7 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
       ).length;
       const scorePct = Math.round((onTime / total) * 100);
       const bonusPct = bonusPctForScore(formula.bonus_bands, scorePct);
-      await upsertKpiRecord(supabase, {
+      const ok = await upsertKpiRecord(supabase, {
         person_id: person.id,
         company_id: person.company_id,
         period: p,
@@ -144,7 +145,7 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
         score: scorePct,
         salary_impact_pct: bonusPct,
       });
-      scored++;
+      if (ok) scored++; else failed++;
       continue;
     }
 
@@ -153,7 +154,7 @@ export async function runAutomatedKpiScoring(period?: string): Promise<string | 
   }
 
   revalidatePath("/kpi");
-  return { scored, skipped };
+  return { scored, skipped, failed };
 }
 
 type KpiRecordUpsert = {
@@ -168,7 +169,12 @@ type KpiRecordUpsert = {
   bonus_amount?: number;
 };
 
-async function upsertKpiRecord(supabase: Awaited<ReturnType<typeof createClient>>, record: KpiRecordUpsert) {
+// Returns whether the write actually happened — checks affected rows on the update path
+// and real insert success on the create path, instead of assuming success unconditionally.
+// The caller (runAutomatedKpiScoring) used to increment scored++ regardless of this
+// result; same defect class as qa/KNOWN_FAILURE_MODES.md #18, just inside a batch loop
+// instead of a single Server Action, so it needed its own fix rather than the generic one.
+async function upsertKpiRecord(supabase: Awaited<ReturnType<typeof createClient>>, record: KpiRecordUpsert): Promise<boolean> {
   const { data: existing } = await supabase
     .from("kpi_records")
     .select("id")
@@ -179,10 +185,11 @@ async function upsertKpiRecord(supabase: Awaited<ReturnType<typeof createClient>
 
   const payload = { ...record, status: "scored", updated_at: new Date().toISOString() };
   if (existing) {
-    await supabase.from("kpi_records").update(payload).eq("id", existing.id);
-  } else {
-    await supabase.from("kpi_records").insert(payload);
+    const { data, error } = await supabase.from("kpi_records").update(payload).eq("id", existing.id).select("id");
+    return !error && !!data && data.length > 0;
   }
+  const { error } = await supabase.from("kpi_records").insert(payload);
+  return !error;
 }
 
 // Manual half of the bonus engine: there's no time-clock system yet, so a manager logs

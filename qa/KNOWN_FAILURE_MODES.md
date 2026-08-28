@@ -213,7 +213,7 @@ enforcement point for autonomous/overnight agent runs (e.g. an environment witho
 instruction), if this class of agent is going to be given DB CLI access unattended
 again. Flagged for the founder; not implemented in this pass.
 
-## 14. No segregation of duties for finance/salary (OPEN — schema gap, reproduced live 2026-08-27)
+## 14. No segregation of duties for finance/salary (FIXED, 2026-08-28)
 
 **Found while:** building the permanent QA scenario library (`qa/scenarios/`), scenario
 SC-058.
@@ -231,11 +231,23 @@ delete with no preparer restriction; `approvals_update_approver` has no
 `requested_by_profile_id <> current_profile_id()` clause for finance/salary domains. The
 schema cannot express "prepare but not approve."
 
-**Fix:** not done — needs either a new `bookkeeper` app_role (insert-only, no approval) or
-a requester≠approver clause on `approvals_update_approver` for salary_hr/finance. A schema
-change requiring founder-authorized `db push`. **Do NOT report SC-058 as a passing test.**
+**Fix (migration 202608280003):** `salary_write_hr` direct writes are now founder/admin
+only. An `hr_finance` caller proposes a change via the new `propose_salary_change()`
+SECURITY DEFINER RPC, which creates a real `salary_hr`-domain approval (not a direct
+write). `decide_approval()` gained a `requested_by_profile_id IS DISTINCT FROM` self-check
+for the `salary_hr`/`finance` domains specifically — the same profile that proposed a
+salary/finance change cannot also be the one who decides it (founder/admin exempt, same as
+every other approval-authority exemption in this app). `decide_approval()` also gained an
+`update_salary` execute action so an approved proposal actually applies to
+`salary_private`. Deliberately did **not** extend the self-approval block to `general`/
+`production`/`external_comms` — those domains are a "pause and confirm intent" gate, not a
+dual-control fraud concern, and a manager self-approving their own routine request there is
+the existing, intended flow; broadening the block would have been an unrequested behavior
+change. Not yet re-run against `qa/scenarios-runner/sc058_bookkeeper_sod_gap.sql` live
+(pending the same push authorization as everything else in this batch) — re-run that
+script post-push to confirm SC-058 now actually blocks the self-approval it used to allow.
 
-## 15. Approval payload is not immutable after creation (OPEN — reproduced live 2026-08-27)
+## 15. Approval payload is not immutable after creation (FIXED, 2026-08-28)
 
 **Found while:** building SC-060.
 
@@ -256,12 +268,17 @@ raw JSON), the /web UI exposes no payload-edit control, and `decide_approval()` 
 payload at decision time — real mitigations, but not a hard guarantee against a direct
 PostgREST PATCH by an authorized approver.
 
-**Fix:** a `BEFORE UPDATE` trigger on `approvals` that raises if the payload/title/domain/
-company_id changes once set (a content change must be a brand-new approval). Not built —
-schema change needs founder-authorized push. **Do NOT report SC-060 as a passing hard
-control.**
+**Fix (migration 202608280003):** a `BEFORE UPDATE` trigger
+(`prevent_approval_payload_mutation`) now raises if `approval_payload`, `title`,
+`domain`, or `company_id` changes on an existing row — a content change requires a brand-
+new approval, exactly as this entry originally specified. `decide_approval()` never
+touches those four columns (only `status`/`decided_at`/`decision_notes`/
+`approver_profile_id`), so the trigger doesn't interfere with real decisions. Not yet
+re-run against `qa/scenarios-runner/sc060_payload_immutability_gap.sql` live (pending the
+same push authorization as everything else in this batch) — that script should now fail
+to reproduce the mutation it was built to demonstrate.
 
-## 10. `/chat` composer unusable on mobile by default (OPEN — not fixed this pass)
+## 10. `/chat` composer unusable on mobile by default (FIXED — this entry was just stale, 2026-08-28)
 
 **Found while:** live mobile testing (acceptance test #17) against real production at
 ~500px viewport width.
@@ -281,17 +298,31 @@ navigation sidebar (`app-sidebar.tsx`), which already has a proper mobile drawer
 `ChannelSidebar` is a real workaround, but nothing collapses it automatically for a
 narrow viewport, so a first-time mobile visitor lands on a broken composer by default.
 
-**Fix:** not done this pass — flagged for the founder rather than pushed live
-unsupervised, consistent with this session's approach to any production-facing change
-found late in a sweep. The fix shape is straightforward (default `collapsed` to `true`
-below a width threshold, or switch the outer container to stack vertically on small
-screens the same way the main sidebar does) but wasn't written speculatively without
-being able to verify it live end-to-end in the remaining session time.
+**Fix, actually already landed later the same night this was found (this entry just never
+got updated to say so):** commit `72bccce` ("Fix mobile chat layout — page scrolled as one
+block, sidebar squeezed composer") gave `ChannelSidebar` a `defaultCollapsedOnMobile` prop
+— on first mount, with no stored preference yet, it checks `window.matchMedia("(max-width:
+767px)")` and defaults `collapsed` to `true` if it matches, so a first-time mobile visitor
+now lands with the thread sidebar already collapsed and the composer at full width. A
+later commit, `a239849` ("Fix recurring React hydration error in the channel sidebar"),
+corrected how that default is applied — the viewport check now runs in a post-mount
+`useEffect` rather than during the initial render, avoiding a real server/client hydration
+mismatch (React error #418) the first version of this fix introduced. Both commits are on
+`master` and deployed.
 
-**Search performed for the same class:** did not yet check every other page for the same
-"two fixed-width flex siblings, no mobile breakpoint" pattern — only `/chat` was
-exercised live at mobile width this pass. Flagged as the next step before this failure
-class can be closed with confidence.
+**Honest verification gap:** re-confirmed the fix is genuinely on `master`/deployed
+(`git merge-base --is-ancestor` against both commits, both true) and re-read the current
+code — the logic is correct. Did **not** get a fresh live mobile screenshot this pass:
+`resize_window` (the same tool limitation noted earlier this session) reported success but
+the resulting screenshot still rendered at desktop width (1568px, not the requested 390px),
+and a fresh Playwright browser has no logged-in session to test against without asking the
+founder to authenticate a second window. Marking this FIXED on strong code+commit evidence,
+not a live pixel-count confirmation — flagged plainly rather than claiming a verification
+that didn't happen.
+
+**Search performed for the same class:** did not check every other page for the same "two
+fixed-width flex siblings, no mobile breakpoint" pattern beyond `/chat` — still open as a
+possible follow-up, not claimed as closed.
 
 ## 1. Legacy write-bypass RLS policies (FIXED, 2026-08-26)
 
@@ -521,7 +552,7 @@ pushed this pass (bundled with the #8 fix, both awaiting the founder's one-time 
 authorization) but poses zero risk either way since it only re-describes what's already
 live.
 
-## 7. company_id never populated on audit_logs/work_orders/chat_channels (OPEN — functional gap, not a leak)
+## 7. company_id never populated on audit_logs/work_orders/chat_channels (FIXED, 2026-08-28)
 
 **Found while:** closing out SECURITY_MATRIX.md's impersonation-testing gap for these
 three tables.
@@ -541,12 +572,25 @@ sets `company_id` on these rows at creation time. The "manager reviews their tea
 activity" capability implied by the RLS design doesn't actually work — not because the
 policy is wrong, but because the data feeding it is incomplete.
 
-**Fix:** not done this pass. Would need `company_id` set at creation time in
-`sem-ai-command` (for `work_orders`/`chat_channels`, from context when the command is
-clearly about one company) and wherever `audit_logs` rows get inserted. Lower priority
-than the leaks fixed tonight since it's over-restrictive (blocks legitimate access)
-rather than under-restrictive (leaks data), but worth fixing before a real
-company_manager persona is onboarded and expects to use this.
+**Fix (migration 202608280002 + `sem-ai-command`):** `sem-ai-command` now derives a
+`primaryCompanyId` server-side — the active channel's own `company_id` if the conversation
+is already scoped to one, else the single company every task this command touched agrees
+on, else `null` (never guessed across multiple/no companies, matching this codebase's
+existing "don't infer what isn't unambiguous" discipline). `sem_execute_ai_command` gained
+`p_primary_company_id`, sets it on both the `work_orders` insert and update paths, and
+includes it on its own internal `ai_command_executed` audit_logs row; the two Edge
+Function-side audit_logs inserts (`ai_command_json_parse_failed`,
+`ai_command_request_completed`) do the same (the parse-failure path uses a lighter
+channel-only derivation, since no tasks exist yet to help narrow it further). `chat_channels`
+is trickier — a channel is created before the model responds, so its company can't be
+known at creation time — so it's backfilled after the fact via a new
+`set_channel_company_id()` RPC, the same "known only after the model replies" pattern
+`chat-client.tsx` already used for auto-titling a new channel from the AI's understanding.
+Not yet re-verified live (pending the same push authorization as everything else in this
+batch) — re-check `company_id IS NULL` rates on fresh rows post-push; existing historical
+rows stay null (not backfilled retroactively, no real signal to backfill them with).
+`sem-artifact-analyze`'s own audit_logs inserts already correctly set `company_id` and were
+never part of this gap — confirmed by reading its source, not assumed.
 
 ## 11. `memories` "confidential" tier was not actually enforced — plus two sibling bugs from the same root cause (FIXED and VERIFIED LIVE, 2026-08-27)
 

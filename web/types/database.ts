@@ -3037,6 +3037,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      propose_salary_change: {
+        Args: {
+          p_base_salary: number
+          p_compensation_notes?: string
+          p_currency?: string
+          p_person_id: string
+        }
+        Returns: string
+      }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
         Returns: {
@@ -3075,12 +3084,17 @@ export type Database = {
           p_output_tokens: number
           p_people?: Json
           p_person_assignments?: Json
+          p_primary_company_id?: string
           p_projects?: Json
           p_tasks: Json
           p_token_estimate: number
           p_work_order_id?: string
         }
         Returns: Json
+      }
+      set_channel_company_id: {
+        Args: { p_channel_id: string; p_company_id: string }
+        Returns: undefined
       }
       try_uuid: { Args: { t: string }; Returns: string }
     }

@@ -16,7 +16,8 @@ export function ScoringButton() {
       if (typeof result === "string") setMessage(`Error: ${result}`);
       else
         setMessage(
-          `Scored ${result.scored} — non-negotiable, formula-computed bonus, no manager discretion. ${result.skipped} skipped (no applicable data this period).`
+          `Scored ${result.scored} — non-negotiable, formula-computed bonus, no manager discretion. ${result.skipped} skipped (no applicable data this period).` +
+            (result.failed > 0 ? ` ${result.failed} failed to write — check access/RLS, not counted as scored.` : "")
         );
     });
   }

@@ -8,7 +8,7 @@ export async function getApprovals() {
   const { data, error } = await supabase
     .from("approvals")
     .select(
-      "id, title, reason, status, risk_level, domain, decision_notes, created_at, companies(name)"
+      "id, title, reason, status, risk_level, domain, decision_notes, approval_payload, created_at, decided_at, companies(name)"
     )
     .order("created_at", { ascending: false });
   if (error) throw error;

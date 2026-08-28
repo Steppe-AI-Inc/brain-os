@@ -77,6 +77,17 @@ export async function createChannel(name: string, companyId?: string | null): Pr
 // already-gone channel returns success with 0 rows, not an error. Same defect class as
 // the AI-chat "claimed a deletion that never executed" bug (qa/KNOWN_FAILURE_MODES.md
 // #17/#18); found by searching for the same pattern elsewhere per CLAUDE.md §12.
+// Backfills a freshly-created channel's company_id once the AI's response makes it known
+// (KNOWN_FAILURE_MODES.md #7) — mirrors the existing "rename from the AI's understanding
+// once the stream finishes" pattern, since the channel is created before the model
+// responds and there's no company-picker in the "New chat" flow to know it any earlier.
+// Only ever sets it once (`set_channel_company_id`'s own `company_id is null` guard) —
+// never overwrites an explicitly-set company later.
+export async function setChannelCompanyId(id: string, companyId: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc("set_channel_company_id", { p_channel_id: id, p_company_id: companyId });
+}
+
 export async function renameChannel(id: string, name: string): Promise<string | null> {
   const trimmed = name.trim();
   if (!trimmed) return "Channel name is required.";

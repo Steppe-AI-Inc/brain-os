@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ApprovalActions } from "./approval-actions";
 import { ApprovalDeleteButton } from "./approval-delete-button";
 import { ClearAllApprovals } from "./clear-all-approvals";
+import { DecidedList } from "./decided-list";
 
 // Redesigned as a real "approval center": a top summary strip so the founder can see the
 // state of the whole queue without scrolling, and Pending/Decided split into tabs instead
@@ -74,43 +75,7 @@ export default async function ApprovalsPage() {
         </TabsContent>
 
         <TabsContent value="decided" className="mt-4">
-          <div className="mb-3 flex items-center justify-end">
-            <ClearAllApprovals ids={decided.map((a) => a.id)} scopeLabel="decided" />
-          </div>
-          <div className="flex flex-col gap-2">
-            {decided.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-4 py-2 text-sm"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span>{a.title}</span>
-                    <Badge variant="outline" className="text-[10px]">{a.domain}</Badge>
-                    {a.companies?.name && (
-                      <Badge variant="secondary" className="text-[10px]">{a.companies.name}</Badge>
-                    )}
-                  </div>
-                  {/* decision_notes is the real "what actually happened" record — a task
-                      resumed, a deletion executed, or nothing at all if this approval had
-                      no linked action. Showing it here is the direct fix for "approved"
-                      silently meaning nothing happened. */}
-                  {a.decision_notes && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{a.decision_notes}</p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Badge variant={a.status === "approved" ? "default" : "destructive"}>
-                    {a.status}
-                  </Badge>
-                  <ApprovalDeleteButton approvalId={a.id} title={a.title} />
-                </div>
-              </div>
-            ))}
-            {decided.length === 0 && (
-              <p className="text-sm text-muted-foreground">No decided approvals yet.</p>
-            )}
-          </div>
+          <DecidedList approvals={decided} />
         </TabsContent>
       </Tabs>
     </div>

@@ -15,7 +15,7 @@ import { estimateCost } from "@/lib/usage/pricing";
 import { setActiveProvider } from "@/lib/data/ai-providers";
 import { getUsageSummary, type UsageSummary } from "@/lib/data/usage";
 import { getChatHistory, type ChatHistoryMessage } from "@/lib/data/chat-history";
-import { createChannel, renameChannel, type SidebarChannel } from "@/lib/data/chat-channels";
+import { createChannel, renameChannel, setChannelCompanyId, type SidebarChannel } from "@/lib/data/chat-channels";
 import { ChannelSidebar } from "./channel-sidebar";
 
 // The Web Speech API has no standard TS lib entry (still vendor-prefixed as
@@ -112,6 +112,9 @@ function historyToMessage(h: ChatHistoryMessage): Message {
       memoryCount: h.counts?.memories ?? 0,
       model: h.modelName || "unknown",
       usage,
+      // Not persisted in history (only ever used transiently right after a fresh reply
+      // to backfill the channel's company_id) — irrelevant when replaying past history.
+      primaryCompanyId: null,
     },
   };
 }
@@ -427,6 +430,7 @@ export function ChatClient({
     });
 
     let finalSummary: string | null = null;
+    let finalPrimaryCompanyId: string | null = null;
     await consumeChatStream(
       trimmed,
       (evt) => {
@@ -438,6 +442,7 @@ export function ChatClient({
         } else if (evt.type === "done") {
           const result = toChatResult(evt);
           finalSummary = result.summary;
+          finalPrimaryCompanyId = result.primaryCompanyId;
           patchMessage(index, { status: "done", result });
           const usage = result.usage;
           const finalCost = usage ? estimateCost(result.model, usage.input_tokens, usage.output_tokens) : 0;
@@ -457,6 +462,10 @@ export function ChatClient({
       // Re-title from what the AI actually understood the command to be about, once it's
       // known — a better name than the raw first message, still zero extra API calls.
       if (finalSummary) await renameChannel(newChannelId, deriveChannelTitle(finalSummary));
+      // Same "known only after the model responds" backfill, for company_id
+      // (KNOWN_FAILURE_MODES.md #7) — best-effort, no result to check (see
+      // setChannelCompanyId's own comment).
+      if (finalPrimaryCompanyId) await setChannelCompanyId(newChannelId, finalPrimaryCompanyId);
       router.push(`/chat?channel=${newChannelId}`, { scroll: false });
     }
 
