@@ -148,6 +148,41 @@ Rules:
   to an approval, and the deletion only actually runs once an authorized approver approves
   it on the Approvals page — so if you use pendingDeleteTaskIds, say in summary that
   nothing is deleted yet and it's waiting on approval.
+- CRITICAL — never claim in summary that you deleted, changed, or created more than what
+  the structured fields of this exact response actually contain. A real bug happened from
+  this: asked to "delete all tasks and approvals," a past response wrote "deleting all 12
+  tasks and 85 pending approvals" in summary — the 12 tasks really were deleted
+  (deleteTaskIds), but there has never been any way to delete an approval via chat (no
+  field for it exists in this schema — approvals can only be decided approved/rejected via
+  the Approvals page, or bulk-deleted there with its own "Clear all" button), so the other
+  claim was a flat lie the founder had no way to catch except by checking the database
+  themselves. If the founder asks for something you have no field for (deleting an
+  approval, editing a person's email, anything not listed in this schema), say plainly in
+  summary that you can't do that via chat and name the real place to do it if you know one
+  — never narrate it as done. Same discipline for scale: context.tasks/context.channels/
+  context.approvals are all capped (see context.counts.tasksShown/tasksTotal,
+  approvalsShown/approvalsTotal etc. above) — if the founder says "delete all" and the
+  shown count is less than the total, you can only see and delete the ones actually in
+  context; say exactly how many you deleted and that more exist beyond what you could see
+  (and point at the relevant page's own "Clear all" button, which has no such limit, for
+  finishing the rest), never claim the full total was handled. This exact failure happened
+  for real: asked to delete "all tasks and approvals," a past response wrote "deleting all
+  12 tasks and 85 pending approvals" — the 12 tasks really were deleted, but there was no
+  deleteApprovalIds field at the time, so the other 85 were an outright fabricated claim,
+  not even a truncation issue. Never do that: if a field doesn't exist for what's asked,
+  say so; if it exists but is capped, report the real, capped result.
+- You may delete existing approvals the user asks to remove/clear/delete: put their exact
+  "id" from context.approvals into deleteApprovalIds. Same id-provenance rule as tasks/
+  channels — only ids literally in context.approvals are honored, never invented. Note
+  context.approvals only ever contains pending approvals (decided ones aren't shown), so
+  you cannot reference a decided approval by id from chat at all — say so if asked.
+  Deleting an approval record is a different action from deciding it (approving/rejecting)
+  — deleteApprovalIds removes the row outright, including its decision history, and does
+  not run whatever a decision would have (a linked task resuming, a deferred deletion
+  executing); it is not gated by an extra approval of its own, same as channel deletion.
+  There is no pendingDeleteApprovalIds — approval-record deletion is itself an
+  administrative action (RLS-scoped to founder/admin or the approval's own company
+  manager), not a high-risk business decision that needs a second reviewer.
 - context.channels lists Brain OS's own internal chat channels (this product's own
   conversation threads, not an external platform like Slack/Teams/Discord — Brain OS has
   no access to those and must never assume a channel means one of them).
@@ -230,6 +265,7 @@ Output schema:
   ],
   "deleteTaskIds": [string],
   "deleteChannelIds": [string],
+  "deleteApprovalIds": [string],
   "pendingDeleteTaskIds": [string],
   "pendingDeleteChannelIds": [string],
   "createCompanies": [
@@ -929,6 +965,33 @@ serve(async (req) => {
           }
         }
 
+        // Approval deletion: same cross-check + scoped-delete pattern as channels above —
+        // real enforcement is approvals_delete_scope RLS (migration 202608280001,
+        // founder/admin or the approval's own company manager). context.approvals only
+        // ever holds pending approvals (see buildContext()), so this can only ever
+        // reference a pending one from chat — matches the prompt rule above. Added after a
+        // real bug: this field didn't exist at all before, so a model claiming it deleted
+        // approvals was always a fabrication with nothing behind it (see
+        // qa/KNOWN_FAILURE_MODES.md #16 in KNOWN_FAILURE_MODES for the incident, and the
+        // factual result-line built below for how the response is now grounded in what
+        // actually happened instead of the model's own claim).
+        const contextApprovalIds = new Set((contextPack?.approvals || []).map((a: any) => a.id));
+        const requestedDeleteApprovalIds = Array.isArray(result.deleteApprovalIds) ? result.deleteApprovalIds as unknown[] : [];
+        const deleteApprovalIds = requestedDeleteApprovalIds.filter((id): id is string => typeof id === 'string' && contextApprovalIds.has(id));
+        let deletedApprovalCount = 0;
+        if (deleteApprovalIds.length > 0) {
+          const { data: deletedApprovals, error: deleteApprovalsError } = await supabase
+            .from('approvals')
+            .delete()
+            .in('id', deleteApprovalIds)
+            .select('id');
+          if (deleteApprovalsError) {
+            result.summary = `${result.summary || ''}\n\n(Approval deletion failed: ${deleteApprovalsError.message})`.trim();
+          } else {
+            deletedApprovalCount = deletedApprovals?.length || 0;
+          }
+        }
+
         // Companies/people creation: defensively coerce shape (never trust the model's
         // JSON structure blindly) — name/fullName are required, everything else is
         // optional. A person's companyId is only trusted if it's a real id from
@@ -1178,7 +1241,26 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
+        // Ground the reply in what the executor actually did, not what the model's own
+        // prose claims — prepended so it's the first thing read regardless of anything the
+        // model wrote further down. This is the direct fix for a real production bug: the
+        // model narrated "deleting all 12 tasks and 85 pending approvals" when only the 12
+        // tasks were real (approvals had no delete mechanism at all at the time) — the
+        // model cannot know a true affected count when it writes summary, since execution
+        // happens after parsing, so its prose is always describing intent, never a
+        // verified result. One line per action actually requested this turn; nothing shown
+        // for actions that weren't requested at all.
+        const factLines: string[] = [];
+        if (deleteTaskIds.length > 0) factLines.push(`Deleted ${deletedTaskIds.length} of ${deleteTaskIds.length} requested task(s).`);
+        if (deleteChannelIds.length > 0) factLines.push(`Deleted ${deletedChannelCount} of ${deleteChannelIds.length} requested channel(s).`);
+        if (deleteApprovalIds.length > 0) factLines.push(`Deleted ${deletedApprovalCount} of ${deleteApprovalIds.length} requested approval(s).`);
+        if (pendingDeleteTaskIds.length > 0) factLines.push(`${pendingDeleteTaskIds.length} task(s) deletion is pending approval — not deleted yet.`);
+        if (pendingDeleteChannelIds.length > 0) factLines.push(`${pendingDeleteChannelIds.length} channel(s) deletion is pending approval — not deleted yet.`);
+        if (factLines.length > 0) {
+          result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
+        }
+
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, model, usage: usageRef.current, tokenEstimate, contextErrors });
       } catch (e: any) {

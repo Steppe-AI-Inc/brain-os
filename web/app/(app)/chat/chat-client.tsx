@@ -207,6 +207,15 @@ function ChannelMemoryStrip({ memories }: { memories: Array<{ id: string; fact: 
 
 const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
 
+// Persists which conversation is "active" across normal in-app navigation (the main nav's
+// "Speak with Brain OS" link is a plain href="/chat", so without this every trip through
+// Tasks/Approvals and back landed on a forced-blank chat — the founder's own words: he
+// shouldn't have to "open Channels, find conversation, select latest chat" every time).
+// sessionStorage, not localStorage: scoped to this browser tab/session, matching "same
+// login + same browser session -> return to last active conversation," and a fresh tab is
+// a fresh session, matching "new session -> blank chat" by default.
+const ACTIVE_CHANNEL_KEY = "brainos.chat.activeChannelId";
+
 export function ChatClient({
   providers,
   usageSummary,
@@ -214,6 +223,7 @@ export function ChatClient({
   channels,
   activeChannelId,
   channelMemories,
+  forceNew,
 }: {
   providers: ProviderRow[];
   usageSummary: { today: UsageSummary; last7d: UsageSummary; last30d: UsageSummary };
@@ -221,6 +231,7 @@ export function ChatClient({
   channels: SidebarChannel[];
   activeChannelId: string | null;
   channelMemories: Array<{ id: string; fact: string; confidence: number | null }>;
+  forceNew: boolean;
 }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
@@ -261,6 +272,38 @@ export function ChatClient({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see comment above the state declaration
     setSpeechSupported(!!getSpeechRecognitionCtor());
   }, []);
+
+  // Restore-on-navigate / persist-on-change. A real channel loaded (from a nav link, a
+  // direct URL, or after send() creates one) is remembered; landing on a genuinely blank
+  // chat with nothing remembered, or via the explicit "New chat" button (forceNew), stays
+  // blank. router.replace (not push) so restoring doesn't add a back-button entry.
+  useEffect(() => {
+    if (activeChannelId !== null) {
+      try {
+        sessionStorage.setItem(ACTIVE_CHANNEL_KEY, activeChannelId);
+      } catch {
+        // per-tab convenience only — fine if it doesn't persist
+      }
+      return;
+    }
+    if (forceNew) {
+      try {
+        sessionStorage.removeItem(ACTIVE_CHANNEL_KEY);
+      } catch {
+        // same as above
+      }
+      return;
+    }
+    let stored: string | null = null;
+    try {
+      stored = sessionStorage.getItem(ACTIVE_CHANNEL_KEY);
+    } catch {
+      stored = null;
+    }
+    if (stored) {
+      router.replace(`/chat?channel=${stored}`, { scroll: false });
+    }
+  }, [activeChannelId, forceNew, router]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

@@ -1544,6 +1544,12 @@ create policy "approvals_update_approver" on public.approvals for update using (
   or (domain in ('salary_hr','finance') and public.is_hr_finance())
   or (domain in ('general','production','external_comms') and public.is_company_manager(company_id))
 );
+-- Deleting the record outright (not deciding it) is administrative housekeeping, same
+-- tier as tasks_delete_scope, not the domain-gated decide tier above.
+drop policy if exists "approvals_delete_scope" on public.approvals;
+create policy "approvals_delete_scope" on public.approvals for delete using (
+  public.is_founder_or_admin() or public.is_company_manager(company_id)
+);
 
 -- Work orders/model usage/audit logs.
 -- command/context_pack/output is a snapshot of what the AI knew and said during one

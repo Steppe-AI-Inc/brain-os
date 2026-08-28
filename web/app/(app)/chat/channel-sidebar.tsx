@@ -118,7 +118,7 @@ export function ChannelSidebar({
         <Button variant="ghost" size="icon-sm" onClick={toggleCollapsed} title="Expand channels">
           <PanelLeftOpen className="h-4 w-4" />
         </Button>
-        <Link href="/chat" title="New chat">
+        <Link href="/chat?new=1" title="New chat">
           <Button variant="ghost" size="icon-sm">
             <SquarePen className="h-4 w-4" />
           </Button>
@@ -130,7 +130,7 @@ export function ChannelSidebar({
   return (
     <div className="flex h-full w-64 shrink-0 flex-col rounded-xl border border-border/80 bg-card/60">
       <div className="flex items-center gap-1 border-b border-border/60 p-2">
-        <Link href="/chat" className="flex-1">
+        <Link href="/chat?new=1" className="flex-1">
           <Button variant="secondary" className="w-full justify-start gap-2 text-sm">
             <SquarePen className="h-4 w-4" />
             New chat

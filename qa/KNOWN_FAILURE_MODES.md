@@ -4,6 +4,68 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 17. AI claimed approvals were deleted with no mechanism to have done it; chat lost its active conversation on every menu navigation; approvals page buried history (FIXED, 2026-08-28)
+
+**Found while:** the founder was actively testing Brain OS live and hit all three in one
+session — "delete all data, they were test data" -> "yes delete all tasks and approvals"
+-> Brain OS replied claiming both were deleted; tasks really were, approvals were not.
+
+**Bug A — fabricated approval deletion.** `sem-ai-command` had `deleteTaskIds`/
+`deleteChannelIds` but no `deleteApprovalIds` field at all, no execution code, and
+`public.approvals` had no DELETE RLS policy — confirmed directly against production
+(`pending_approval_count` stayed at 85 after the AI said "deleting ... 85 pending
+approvals"). The model's `summary` narrates in the same pass it emits structured action
+fields, before anything executes, so it was asserting a result it could never actually
+know.
+
+**Fix:** `supabase/migrations/202608280001_approvals_delete_scope.sql` adds
+`approvals_delete_scope` RLS (founder/admin or the approval's own company manager, same
+tier as `tasks_delete_scope`). `sem-ai-command` gains `deleteApprovalIds` (immediate,
+cross-checked against `context.approvals`, same discipline as tasks/channels).
+`web/lib/data/approvals.ts` gains `deleteApproval`/`deleteAllApprovals`; the Approvals page
+gains a per-row delete button and per-tab "Clear all" (pending/decided scoped separately).
+**Systemic half of the fix, not just approvals-specific:** `sem-ai-command` now prepends a
+deterministic, code-generated fact line to `result.summary` — built from real
+post-execution counts (`deletedTaskIds.length` from the RPC's actual return,
+`deletedChannelCount`, `deletedApprovalCount`), ahead of anything the model's own prose
+says, for every deletion actually requested that turn. This is the durable fix: even if the
+model's free text still overclaims, the true numbers are shown first. SYSTEM_PROMPT also
+gained an explicit rule against claiming an action beyond what a real field/count backs.
+See SC-132, SC-133.
+
+**Bug B — active chat lost on every menu navigation.** The main nav's "Speak with Brain
+OS" link (`components/app-sidebar.tsx`) is a plain `href="/chat"`; `/chat` with no
+`channel` query param has always meant "brand-new blank chat"
+(`app/(app)/chat/page.tsx`) — nothing remembered which channel was open, so every trip
+through Tasks/Approvals/etc. and back discarded the conversation.
+
+**Fix:** `app/(app)/chat/chat-client.tsx` persists the active channel id to
+`sessionStorage` (`brainos.chat.activeChannelId`) whenever a real channel is active, and
+restores it via a single `router.replace` when `/chat` loads blank with nothing else
+telling it to stay blank. The explicit "New chat" links now pass `?new=1`
+(`channel-sidebar.tsx`) so the restore is skipped and the stored id is cleared — an
+explicit "start fresh" is never overridden by the restore. See SC-134, SC-135.
+
+**Bug C — approvals page UX.** Pending list and decided history were one long stacked
+page; history was "too far down," nothing separated active work from the audit trail.
+
+**Fix:** `web/app/(app)/approvals/page.tsx` redesigned around a summary-stats strip
+(needs-decision / approved / rejected / total) and a Pending/Decided `Tabs` split, each
+with its own scoped "Clear all." Decided rows now show `decision_notes` inline — the real
+`decide_approval()` outcome ("3 task(s) deleted.", "Linked task resumed (queued).") instead
+of a bare "approved" badge that could mean nothing happened. See SC-136, SC-137. **Not
+done in this pass** (scoped down deliberately, not silently skipped): the fuller "Approval
+Center" vision — per-row execution-payload detail panel, search/filter on the Decided tab,
+a large-dataset (200-500 row) load test, real-browser verification of all of the above
+(no browser available this pass — `tsc`/`eslint`/`next build` all clean, but nothing here
+has been clicked through live yet).
+
+**Status:** code complete and build-verified (`npx tsc --noEmit`, `npx eslint`, `npm run
+build` all clean). `supabase/functions/sem-ai-command/index.ts` not yet redeployed;
+`202608280001_approvals_delete_scope.sql` not yet pushed — both need the same
+verify-then-authorize sequence as every other change in this file. Not yet re-verified
+live in a browser.
+
 ## 16. A pending production migration was applied without a human-authorized `db push` (PROCESS GAP — content confirmed safe, mechanism confirmed by strong circumstantial evidence, not by a direct log)
 
 **Found:** 2026-08-28, immediately after an overnight autonomous QA-scenario-library
