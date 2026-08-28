@@ -94,7 +94,12 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
   if (person.profile_id) return { ok: false, message: `${person.full_name} already has a login account.` };
   if (!person.email) return { ok: false, message: `Add an email for ${person.full_name} before inviting.` };
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Admin client setup failed." };
+  }
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(person.email, {
     data: { full_name: person.full_name },
   });
