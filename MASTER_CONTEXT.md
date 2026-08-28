@@ -113,6 +113,17 @@ chat isn't responding, check Anthropic's and Supabase's status pages before assu
 code regression — this session already ruled that out once with a real rollback test, no
 need to repeat the isolation work, just confirm the outage (if any) has cleared.
 
+**Update, home-PC session, 2026-08-28 evening: confirmed cleared.** Live-tested chat end-
+to-end from a fresh browser session — "what is 2+2" and a real data query ("how many open
+approvals do we have right now") both completed normally in ~8-10s with correct answers
+and real token/cost counters updating. Checked the `sem-ai-command` Edge Function's
+Invocations log in the Supabase dashboard directly: the relevant invocation returned a
+clean `200`. One earlier attempt in this same verification did show the app's own
+"Connection ended before this finished" error, but that traced to the browser automation's
+own extension disconnecting mid-stream (a known, previously-documented tool flakiness, not
+an app or backend issue) — the edge function was never the failure point once isolated. No
+further action needed on this item.
+
 ### The `deleted 5 chat channel(s)` / `delete 11 task(s)` mystery — resolved, not a new incident
 While cleaning up test approvals, found two real (non-test) approval records reading
 *"Approval required: deleted 5 chat channel(s)"* and *"Approval required: delete 11
