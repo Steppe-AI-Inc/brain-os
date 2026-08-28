@@ -82,6 +82,9 @@ export function TasksBoard({
     setClearBusy(false);
     if (result) {
       setClearError(result);
+      // A partial result still deleted some real rows — refresh so those don't stay
+      // stuck showing stale in the column, even though the dialog stays open on the error.
+      router.refresh();
       return;
     }
     setClearingColumn(null);

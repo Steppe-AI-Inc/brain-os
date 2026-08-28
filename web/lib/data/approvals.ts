@@ -65,11 +65,20 @@ export async function deleteApproval(id: string): Promise<string | null> {
   return deleteAllApprovals([id]);
 }
 
+// Checks affected row count, not just `error` — an RLS-blocked or already-gone approval
+// returns success with 0 rows, not an error. Same defect class this whole session has
+// been closing everywhere else (qa/KNOWN_FAILURE_MODES.md #17/#18) — a delete button that
+// reports success without checking is exactly the same false-claim shape as the AI
+// narrating a deletion that never ran, just triggered by a human click.
 export async function deleteAllApprovals(ids: string[]): Promise<string | null> {
   if (ids.length === 0) return null;
   const supabase = await createClient();
-  const { error } = await supabase.from("approvals").delete().in("id", ids);
+  const { data, error } = await supabase.from("approvals").delete().in("id", ids).select("id");
   if (error) return error.message;
-  revalidatePath("/approvals");
+  const deletedCount = data?.length || 0;
+  if (deletedCount > 0) revalidatePath("/approvals");
+  if (deletedCount < ids.length) {
+    return `Only ${deletedCount} of ${ids.length} approval(s) were deleted — the rest may no longer exist or you may not have access to them.`;
+  }
   return null;
 }

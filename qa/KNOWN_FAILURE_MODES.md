@@ -4,6 +4,63 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 18. "Silent no-op reported as success" is a whole class, not just the AI-chat approvals bug — found across nearly every delete/update in the app (PARTIALLY FIXED, 2026-08-28)
+
+**Found while:** searching for the same defect class as #17, per the founder's explicit
+ask and CLAUDE.md §12 ("finding one instance of a pattern means searching for the whole
+class before closing it").
+
+**The pattern:** a Server Action does `const { error } = await supabase.from(t).delete()/
+.update()...; if (error) return error.message; ... return null` — and returns `null`
+("success") even when the RLS-scoped mutation matched and changed **zero rows**. Postgres/
+PostgREST treats an RLS-filtered delete/update as a successful no-op, not an error, so
+`error` alone can never distinguish "it worked" from "nothing was there to work on." This
+is the exact same shape as the AI-chat bug in #17 — a caller is told an action succeeded
+when nothing actually happened — just triggered by a human clicking a button instead of
+the model narrating a chat reply. `web/lib/data/approvals.ts`'s original `decideApproval()`
+(before this session's `decide_approval()` RPC fix) already showed the correct pattern
+once for approvals specifically; this entry is about everywhere else that pattern was
+missing.
+
+**Grep confirmed this is genuinely widespread** — `grep -rn "\.delete()\|\.update(" web/lib/data/*.ts` turns up the bare `if (error) return error.message; return null` shape (no
+affected-row check) in essentially every mutation across the app: `ai-providers.ts`,
+`billing.ts`, `companies.ts`, `departments.ts`, `documents.ts`, `engineering.ts`,
+`goals.ts` (including `key_results`), `mcp-connectors.ts`, `people.ts`, `products.ts`,
+`projects.ts`, `proposals.ts`, `sales.ts`, `software.ts` — roughly 20+ functions across 14
+files.
+
+**FIXED this pass** (the three data layers directly touched by tonight's live testing —
+`tasks.ts`: `updateTaskStatus`/`deleteTask`/`deleteTasks`; `chat-channels.ts`:
+`renameChannel`/`deleteChannel`/`deleteAllChannels`; `approvals.ts`: `deleteAllApprovals`/
+`deleteApproval`): each now does `.select('id')` after the mutation and checks the real
+affected count. A full/expected result still returns `null` and revalidates as before; a
+partial or zero result returns an honest, deliberately generic message (doesn't say
+*why* — lack of access and "already gone" look identical from here, matching this
+codebase's existing choice not to leak permission info to an unauthorized caller) and
+still revalidates when *something* changed, so a partial bulk delete doesn't leave the UI
+showing stale rows that are actually gone. The calling components
+(`tasks-board.tsx`, `channel-sidebar.tsx`, `clear-all-approvals.tsx`) already handled a
+truthy return value correctly (show the error, in one case revert an optimistic drag) —
+they only needed to also `router.refresh()` on that path so a partial success isn't left
+stale, not a redesign.
+
+**Also found and fixed in the same pass, one level up:** `sem-ai-command`'s create paths
+(`createProjects`/`createGoals`/`createCompanyRelationships`/`createPersonAssignments`)
+silently drop entries missing a resolvable company/person reference — before the RPC even
+runs (TS-side `.filter()`) and, for relationships/assignments, a second time inside the
+RPC itself. The model's `summary` is written before any of this filtering happens, so it
+can just as easily claim a create succeeded that was actually dropped — same root cause as
+the deletion fact-lines in #17. Fixed by extending that same fact-line mechanism: a
+gap-only note when `requested.length > created.length` for any of the four.
+
+**NOT fixed this pass, scoped and listed, not silently dropped:** the ~20 remaining
+functions in `ai-providers.ts`, `billing.ts`, `companies.ts`, `departments.ts`,
+`documents.ts`, `engineering.ts`, `goals.ts`, `mcp-connectors.ts`, `people.ts`,
+`products.ts`, `projects.ts`, `proposals.ts`, `sales.ts`, `software.ts`. Same fix shape
+applies to each (`.select('id')` + affected-count check + honest partial/zero message +
+`router.refresh()` on the calling component's error path where relevant) — a real,
+bounded follow-up, not a new investigation.
+
 ## 17. AI claimed approvals were deleted with no mechanism to have done it; chat lost its active conversation on every menu navigation; approvals page buried history (FIXED, 2026-08-28)
 
 **Found while:** the founder was actively testing Brain OS live and hit all three in one

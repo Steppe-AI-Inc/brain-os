@@ -73,12 +73,21 @@ export async function createChannel(name: string, companyId?: string | null): Pr
   return { id: data.id };
 }
 
+// All three below check affected row count, not just `error` — an RLS-blocked or
+// already-gone channel returns success with 0 rows, not an error. Same defect class as
+// the AI-chat "claimed a deletion that never executed" bug (qa/KNOWN_FAILURE_MODES.md
+// #17/#18); found by searching for the same pattern elsewhere per CLAUDE.md §12.
 export async function renameChannel(id: string, name: string): Promise<string | null> {
   const trimmed = name.trim();
   if (!trimmed) return "Channel name is required.";
   const supabase = await createClient();
-  const { error } = await supabase.from("chat_channels").update({ name: trimmed, updated_at: new Date().toISOString() }).eq("id", id);
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .update({ name: trimmed, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing changed — this channel may no longer exist or you may not have access to it.";
   revalidatePath("/chat");
   return null;
 }
@@ -88,8 +97,9 @@ export async function renameChannel(id: string, name: string): Promise<string | 
 // rather than being destroyed.
 export async function deleteChannel(id: string): Promise<string | null> {
   const supabase = await createClient();
-  const { error } = await supabase.from("chat_channels").delete().eq("id", id);
+  const { data, error } = await supabase.from("chat_channels").delete().eq("id", id).select("id");
   if (error) return error.message;
+  if (!data || data.length === 0) return "Nothing was deleted — this channel may no longer exist or you may not have access to it.";
   revalidatePath("/chat");
   return null;
 }
@@ -103,8 +113,12 @@ export async function deleteChannel(id: string): Promise<string | null> {
 export async function deleteAllChannels(ids: string[]): Promise<string | null> {
   if (ids.length === 0) return null;
   const supabase = await createClient();
-  const { error } = await supabase.from("chat_channels").delete().in("id", ids);
+  const { data, error } = await supabase.from("chat_channels").delete().in("id", ids).select("id");
   if (error) return error.message;
-  revalidatePath("/chat");
+  const deletedCount = data?.length || 0;
+  if (deletedCount > 0) revalidatePath("/chat");
+  if (deletedCount < ids.length) {
+    return `Only ${deletedCount} of ${ids.length} channel(s) were deleted — the rest may no longer exist or you may not have access to them.`;
+  }
   return null;
 }

@@ -90,6 +90,9 @@ export function ChannelSidebar({
     setClearingAll(false);
     if (result) {
       setClearAllError(result);
+      // A partial result still deleted some real rows — refresh so the sidebar reflects
+      // that, even though the dialog stays open on the error.
+      router.refresh();
       return;
     }
     setClearAllOpen(false);

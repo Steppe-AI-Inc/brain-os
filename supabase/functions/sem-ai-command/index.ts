@@ -1256,6 +1256,22 @@ serve(async (req) => {
         if (deleteApprovalIds.length > 0) factLines.push(`Deleted ${deletedApprovalCount} of ${deleteApprovalIds.length} requested approval(s).`);
         if (pendingDeleteTaskIds.length > 0) factLines.push(`${pendingDeleteTaskIds.length} task(s) deletion is pending approval — not deleted yet.`);
         if (pendingDeleteChannelIds.length > 0) factLines.push(`${pendingDeleteChannelIds.length} channel(s) deletion is pending approval — not deleted yet.`);
+
+        // Same defect class as the deletion fact-lines above, found by searching for it
+        // elsewhere per CLAUDE.md's "find one instance, search the whole class" rule:
+        // createProjects/createGoals/createCompanyRelationships/createPersonAssignments
+        // are silently filtered (missing a resolvable company/person reference) before
+        // ever reaching the RPC, and relationships/assignments have a second silent-skip
+        // inside the RPC itself (a malformed entry just doesn't get inserted, no error).
+        // The model's summary is written before any of this runs, so exactly like
+        // deletions, it can claim a create succeeded when it was actually dropped. Only
+        // reported when there's an actual shortfall, so a fully-successful request stays
+        // quiet — this is a gap notice, not a routine status line.
+        if (requestedProjects.length > createdProjects.length) factLines.push(`${requestedProjects.length - createdProjects.length} of ${requestedProjects.length} requested project(s) could not be created — missing a valid company reference.`);
+        if (requestedGoals.length > createdGoals.length) factLines.push(`${requestedGoals.length - createdGoals.length} of ${requestedGoals.length} requested goal(s) could not be created — missing a valid company reference.`);
+        if (requestedRelationships.length > createdCompanyRelationships.length) factLines.push(`${requestedRelationships.length - createdCompanyRelationships.length} of ${requestedRelationships.length} requested company relationship(s) could not be created — missing a valid company reference or invalid owner/related-company combination.`);
+        if (requestedAssignments.length > createdPersonAssignments.length) factLines.push(`${requestedAssignments.length - createdPersonAssignments.length} of ${requestedAssignments.length} requested person assignment(s) could not be created — missing a valid person reference.`);
+
         if (factLines.length > 0) {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
         }

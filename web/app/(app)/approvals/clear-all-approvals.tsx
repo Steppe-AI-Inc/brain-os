@@ -42,6 +42,9 @@ export function ClearAllApprovals({
       const result = await deleteAllApprovals(ids);
       if (result) {
         setError(result);
+        // A partial result still deleted some real rows — refresh so the list reflects
+        // that, even though the dialog stays open on the error.
+        router.refresh();
         return;
       }
       setOpen(false);
