@@ -85,10 +85,12 @@ mutations keep the unchecked pattern on purpose — `documents.ts`'s
 upload of that exact row, so an RLS-blocked write here is not a realistic case) and
 `mcp-connectors.ts`'s connection-test status updates (a health-check side effect, not a
 user-initiated action reporting success/failure). `kpi.ts`'s `upsertKpiRecord` (used by
-the batch KPI scorer) has the same theoretical risk but wasn't in the original ~20 and
-would need the batch summary (`{scored, skipped}`) restructured to carry a real failure
-count, not just a boolean-per-call fix — flagged as a distinct, smaller follow-up, not
-silently absorbed into "fixed."
+the batch KPI scorer) had the same theoretical risk and wasn't in the original ~20 —
+**since fixed in commit `a147840`** (same night, a later pass): `upsertKpiRecord` now
+returns a real per-call success boolean, `runAutomatedKpiScoring`'s summary is
+`{scored, skipped, failed}`, and `scoring-button.tsx` surfaces the failure count to the
+user. Confirmed on `master`/deployed 2026-08-28 (office machine) — this entry's earlier
+"flagged, not done" language was stale.
 
 ## 17. AI claimed approvals were deleted with no mechanism to have done it; chat lost its active conversation on every menu navigation; approvals page buried history (FIXED, 2026-08-28)
 

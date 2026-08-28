@@ -102,12 +102,13 @@ reasoning. A single continuous, attended task needing several pushes in a row ma
 logged in for that task; log out again once it's done.
 
 ### Everything else still open (smaller, tracked in KNOWN_FAILURE_MODES.md, not urgent)
-`kpi.ts`'s batch KPI scorer has the same "assumed success" shape as the fixed class above but
-needs its `{scored, skipped}` summary restructured, not just the one-line fix (flagged, not
-done). ~14 other Server Action files still have the generic RLS-write-affects-0-rows-silently
-shape fixed everywhere it was actually exercised tonight, but weren't individually re-audited
-beyond the systemic fix already applied. Nothing here is a known live bug — see the file for
-exact scope.
+This note was stale — checked 2026-08-28 (office machine): `kpi.ts`'s batch KPI scorer
+was in fact restructured to `{scored, skipped, failed}` in commit `a147840`, already on
+`master`/deployed; `scoring-button.tsx` surfaces the failure count to the user. Nothing
+outstanding here. ~14 other Server Action files still have the generic
+RLS-write-affects-0-rows-silently shape fixed everywhere it was actually exercised
+tonight, but weren't individually re-audited beyond the systemic fix already applied.
+Nothing here is a known live bug — see the file for exact scope.
 
 ## Track 1 — `master`: old vanilla-JS app + Next.js rewrite
 
