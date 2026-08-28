@@ -1235,16 +1235,23 @@ serve(async (req) => {
         // chat_channels/audit_logs (100% null on real rows), which makes company_manager
         // RLS visibility on those tables inert in practice — silently over-restrictive,
         // not a leak, but real. Only set when the command is unambiguously about one
-        // company (the active channel's own company, or every task this command touched
-        // agreeing on the same company) — never guessed when multiple companies are
-        // involved or none are, since a wrong company tag would be worse than none.
+        // company (the active channel's own company, or every task/memory this command
+        // touched agreeing on the same company) — never guessed when multiple companies
+        // are involved or none are, since a wrong company tag would be worse than none.
+        // memoryFacts is included, not just tasks: a real live test found a memory-only
+        // command (no task created, just "remember X about CLIX GPS") left company_id
+        // null even though the memory itself resolved a real company — tasks alone missed
+        // this whole class of command.
         const activeChannelCompanyId = contextPack?.activeChannelId
           ? (contextPack?.channels || []).find((c: any) => c.id === contextPack.activeChannelId)?.company_id ?? null
           : null;
-        const taskCompanyIds = new Set(taskPayloads.map(t => t.companyId).filter((id): id is string => !!id));
+        const touchedCompanyIds = new Set([
+          ...taskPayloads.map(t => t.companyId).filter((id): id is string => !!id),
+          ...memoryFacts.map(m => m.companyId).filter((id): id is string => !!id),
+        ]);
         const primaryCompanyId: string | null = activeChannelCompanyId
           ? activeChannelCompanyId
-          : taskCompanyIds.size === 1 ? [...taskCompanyIds][0] : null;
+          : touchedCompanyIds.size === 1 ? [...touchedCompanyIds][0] : null;
 
         const finalInputTokens = usageRef.current?.input_tokens || tokenEstimate;
         const finalOutputTokens = usageRef.current?.output_tokens || 0;

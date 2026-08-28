@@ -327,6 +327,23 @@ accordingly: write-and-verify-only tasks (build a migration file, run it inside 
 with the migration actually landing on production is not, no matter how the prompt phrases
 the restriction.
 
+**Investigated concretely, 2026-08-28 — the credential lever exists but wasn't pulled.**
+Checked directly: `supabase db push`/`db query --linked` work all night with no
+`SUPABASE_ACCESS_TOKEN` env var set and no plaintext token in `~/.supabase/`,
+`supabase/.temp/`, or any XDG/AppData path this session could find — the CLI's `logout`
+command ("Log out and delete access tokens locally") confirms a persisted credential does
+exist, just stored somewhere this session couldn't directly inspect (almost certainly the
+OS credential store, not a stray dotfile — a mild positive on its own). Because it's
+persisted at the OS/user level rather than per-shell, any subagent spawned in this same
+environment inherits the identical authenticated `supabase` CLI state with zero extra
+steps — which is exactly how an unattended subagent was *able* to reach production
+tonight, whatever the precise command it ran. `supabase logout` is the real, available
+lever to force re-authentication before the next push (subagent or otherwise) — not run
+here, since it's a security-posture tradeoff for the founder to decide (it would also
+block the founder's own next legitimate push until a fresh login), not something to flip
+unilaterally mid-session. Flagged as a concrete decision point, not left as a vague
+"someone should fix this someday."
+
 ## 23. Code review yourself
 
 After writing code, switch roles mentally and do not approve your own implementation

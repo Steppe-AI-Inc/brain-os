@@ -60,7 +60,9 @@ multi-line statements preserved). Inline strings are fine only for a single one-
 | `sc072_073_security_field_mutation.sql` | SC-072, SC-073 | employee cannot change task company/owner, cannot downgrade document sensitivity | 2026-08-27 |
 | `sc074_founder_only_data.sql` | SC-074 | employee/manager/hr_finance all get 0 rows of company_sensitive; only founder reads it | 2026-08-27 |
 | `sc092_service_role_paths.sql` | SC-092 | inventory of service-role usage + confirms MCP-token RPCs self-check `is_founder_or_admin()` | 2026-08-27 |
-| `sc093_security_definer_audit.sql` | SC-093 | enumerates every live SECURITY DEFINER function and its guard | 2026-08-27 |
+| `sc093_security_definer_audit.sql` | SC-093 | enumerates every live SECURITY DEFINER function and its guard, including `propose_salary_change`/`is_investor_viewer_of`/`decide_approval` added 2026-08-28 | 2026-08-28 |
+| `investor_viewer_scope.sql` | (new fix, no SC-#) | `investor_viewer` sees companies/goals/financial_reports/public-tier docs, denied people/projects/product_lines/task-insert, `has_company_access` correctly excludes it | 2026-08-28 |
+| `approval_deletion_audit_trail.sql` | (new fix, no SC-#) | deleting an approval record writes a real `audit_logs` row (`approval_deleted`, correct entity/company/metadata) | 2026-08-28 |
 | `sc103_audit_integrity.sql` | SC-103 | audit_logs has no UPDATE/DELETE policy (default-deny); employee cannot modify an audit row | 2026-08-27 |
 | `sc118_resource_operations_matrix.sql` | SC-118 | SELECT/INSERT/UPDATE/DELETE tested separately per table for employee vs manager | 2026-08-27 |
 | `sc119_security_fields.sql` | SC-119 | unauthorized mutation attempts on security columns are denied | 2026-08-27 |

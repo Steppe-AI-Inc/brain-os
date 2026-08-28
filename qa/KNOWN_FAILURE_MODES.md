@@ -579,11 +579,11 @@ policy is wrong, but because the data feeding it is incomplete.
 
 **Fix (migration 202608280002 + `sem-ai-command`):** `sem-ai-command` now derives a
 `primaryCompanyId` server-side — the active channel's own `company_id` if the conversation
-is already scoped to one, else the single company every task this command touched agrees
-on, else `null` (never guessed across multiple/no companies, matching this codebase's
-existing "don't infer what isn't unambiguous" discipline). `sem_execute_ai_command` gained
-`p_primary_company_id`, sets it on both the `work_orders` insert and update paths, and
-includes it on its own internal `ai_command_executed` audit_logs row; the two Edge
+is already scoped to one, else the single company every task/memory this command touched
+agrees on, else `null` (never guessed across multiple/no companies, matching this
+codebase's existing "don't infer what isn't unambiguous" discipline). `sem_execute_ai_command`
+gained `p_primary_company_id`, sets it on both the `work_orders` insert and update paths,
+and includes it on its own internal `ai_command_executed` audit_logs row; the two Edge
 Function-side audit_logs inserts (`ai_command_json_parse_failed`,
 `ai_command_request_completed`) do the same (the parse-failure path uses a lighter
 channel-only derivation, since no tasks exist yet to help narrow it further). `chat_channels`
@@ -591,11 +591,20 @@ is trickier — a channel is created before the model responds, so its company c
 known at creation time — so it's backfilled after the fact via a new
 `set_channel_company_id()` RPC, the same "known only after the model replies" pattern
 `chat-client.tsx` already used for auto-titling a new channel from the AI's understanding.
-Not yet re-verified live (pending the same push authorization as everything else in this
-batch) — re-check `company_id IS NULL` rates on fresh rows post-push; existing historical
-rows stay null (not backfilled retroactively, no real signal to backfill them with).
-`sem-artifact-analyze`'s own audit_logs inserts already correctly set `company_id` and were
-never part of this gap — confirmed by reading its source, not assumed.
+
+**Re-verified live, 2026-08-28, and one real gap found + fixed by that verification:** a
+real chat command creating only a memory (no task) — "Remember for CLIX GPS: …" in a
+brand-new blank chat — landed with the new channel's `company_id` still `null`, even
+though the memory itself correctly resolved to CLIX GPS. Root cause: the derivation only
+looked at `taskPayloads`, never `memoryFacts` — a whole class of memory-only commands was
+invisible to it. Fixed by folding `memoryFacts`' resolved `companyId`s into the same
+candidate set as tasks; redeployed and re-tested live with a fresh memory-only command —
+the new channel correctly got CLIX GPS's `company_id` this time. `work_orders`/`audit_logs`
+backfill (the task-driven path) was separately confirmed live with a real CLIX GPS-scoped
+task-creation command. `sem-artifact-analyze`'s own audit_logs inserts already correctly
+set `company_id` and were never part of this gap — confirmed by reading its source, not
+assumed. Existing historical rows stay null (not backfilled retroactively, no real signal
+to backfill them with).
 
 ## 11. `memories` "confidential" tier was not actually enforced — plus two sibling bugs from the same root cause (FIXED and VERIFIED LIVE, 2026-08-27)
 
