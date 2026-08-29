@@ -93,6 +93,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agent_runs_canonical_work_order_id_fkey"
             columns: ["canonical_work_order_id"]
             isOneToOne: false
@@ -133,12 +140,20 @@ export type Database = {
         Row: {
           active: boolean | null
           allowed_tools: Json | null
+          category: string | null
           cost_limit_usd: number | null
           created_at: string | null
+          definition_hash: string | null
+          definition_path: string | null
           description: string | null
+          display_name: string | null
+          execution_provider: string | null
           forbidden_actions: Json | null
+          has_production_authority: boolean
           id: string
           name: string
+          permission_mode: string | null
+          provenance: Json | null
           role: string
           skills: Json | null
           updated_at: string | null
@@ -146,12 +161,20 @@ export type Database = {
         Insert: {
           active?: boolean | null
           allowed_tools?: Json | null
+          category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
+          definition_hash?: string | null
+          definition_path?: string | null
           description?: string | null
+          display_name?: string | null
+          execution_provider?: string | null
           forbidden_actions?: Json | null
+          has_production_authority?: boolean
           id?: string
           name: string
+          permission_mode?: string | null
+          provenance?: Json | null
           role: string
           skills?: Json | null
           updated_at?: string | null
@@ -159,12 +182,20 @@ export type Database = {
         Update: {
           active?: boolean | null
           allowed_tools?: Json | null
+          category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
+          definition_hash?: string | null
+          definition_path?: string | null
           description?: string | null
+          display_name?: string | null
+          execution_provider?: string | null
           forbidden_actions?: Json | null
+          has_production_authority?: boolean
           id?: string
           name?: string
+          permission_mode?: string | null
+          provenance?: Json | null
           role?: string
           skills?: Json | null
           updated_at?: string | null
@@ -756,6 +787,13 @@ export type Database = {
             columns: ["owner_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_owner_agent_id_fkey"
+            columns: ["owner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
             referencedColumns: ["id"]
           },
           {
@@ -1535,6 +1573,13 @@ export type Database = {
             columns: ["owner_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_owner_agent_id_fkey"
+            columns: ["owner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
             referencedColumns: ["id"]
           },
           {
@@ -2981,6 +3026,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_owner_agent_id_fkey"
+            columns: ["owner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_owner_person_id_fkey"
             columns: ["owner_person_id"]
             isOneToOne: false
@@ -3061,6 +3113,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "work_orders_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "work_orders_canonical_work_order_id_fkey"
             columns: ["canonical_work_order_id"]
             isOneToOne: false
@@ -3099,6 +3158,93 @@ export type Database = {
       }
     }
     Views: {
+      agents_with_live_status: {
+        Row: {
+          active: boolean | null
+          allowed_tools: Json | null
+          category: string | null
+          cost_limit_usd: number | null
+          created_at: string | null
+          definition_hash: string | null
+          definition_path: string | null
+          description: string | null
+          display_name: string | null
+          execution_provider: string | null
+          forbidden_actions: Json | null
+          has_production_authority: boolean | null
+          id: string | null
+          last_run_at: string | null
+          last_run_head_commit: string | null
+          last_run_id: string | null
+          last_run_provider_run_id: string | null
+          last_run_status: Database["public"]["Enums"]["work_status"] | null
+          last_run_summary: string | null
+          live_status: string | null
+          name: string | null
+          permission_mode: string | null
+          provenance: Json | null
+          role: string | null
+          skills: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          allowed_tools?: Json | null
+          category?: string | null
+          cost_limit_usd?: number | null
+          created_at?: string | null
+          definition_hash?: string | null
+          definition_path?: string | null
+          description?: string | null
+          display_name?: string | null
+          execution_provider?: string | null
+          forbidden_actions?: Json | null
+          has_production_authority?: boolean | null
+          id?: string | null
+          last_run_at?: never
+          last_run_head_commit?: never
+          last_run_id?: never
+          last_run_provider_run_id?: never
+          last_run_status?: never
+          last_run_summary?: never
+          live_status?: never
+          name?: string | null
+          permission_mode?: string | null
+          provenance?: Json | null
+          role?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          allowed_tools?: Json | null
+          category?: string | null
+          cost_limit_usd?: number | null
+          created_at?: string | null
+          definition_hash?: string | null
+          definition_path?: string | null
+          description?: string | null
+          display_name?: string | null
+          execution_provider?: string | null
+          forbidden_actions?: Json | null
+          has_production_authority?: boolean | null
+          id?: string | null
+          last_run_at?: never
+          last_run_head_commit?: never
+          last_run_id?: never
+          last_run_provider_run_id?: never
+          last_run_status?: never
+          last_run_summary?: never
+          live_status?: never
+          name?: string | null
+          permission_mode?: string | null
+          provenance?: Json | null
+          role?: string | null
+          skills?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       safe_companies: {
         Row: {
           country: string | null
