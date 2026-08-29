@@ -14,6 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_runs: {
+        Row: {
+          agent_definition_hash: string | null
+          agent_definition_path: string | null
+          agent_id: string | null
+          base_commit: string | null
+          branch: string | null
+          canonical_work_order_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by_profile_id: string | null
+          error: string | null
+          execution_provider: string
+          finished_at: string | null
+          head_commit: string | null
+          id: string
+          provider_run_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["work_status"]
+          summary: string | null
+          task_id: string | null
+          updated_at: string
+          verification_status: string | null
+        }
+        Insert: {
+          agent_definition_hash?: string | null
+          agent_definition_path?: string | null
+          agent_id?: string | null
+          base_commit?: string | null
+          branch?: string | null
+          canonical_work_order_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          error?: string | null
+          execution_provider?: string
+          finished_at?: string | null
+          head_commit?: string | null
+          id?: string
+          provider_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_status"]
+          summary?: string | null
+          task_id?: string | null
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Update: {
+          agent_definition_hash?: string | null
+          agent_definition_path?: string | null
+          agent_id?: string | null
+          base_commit?: string | null
+          branch?: string | null
+          canonical_work_order_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          error?: string | null
+          execution_provider?: string
+          finished_at?: string | null
+          head_commit?: string | null
+          id?: string
+          provider_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_status"]
+          summary?: string | null
+          task_id?: string | null
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_canonical_work_order_id_fkey"
+            columns: ["canonical_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           active: boolean | null
@@ -537,6 +652,122 @@ export type Database = {
           {
             foreignKeyName: "boards_created_by_profile_id_fkey"
             columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      canonical_work_orders: {
+        Row: {
+          acceptance_criteria: Json
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by_profile_id: string | null
+          goal_id: string | null
+          id: string
+          objective: string | null
+          owner_agent_id: string | null
+          owner_person_id: string | null
+          owner_type: string
+          previous_status: Database["public"]["Enums"]["work_status"] | null
+          priority: Database["public"]["Enums"]["priority_level"]
+          requested_by_profile_id: string | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          status: Database["public"]["Enums"]["work_status"]
+          title: string
+          updated_at: string
+          work_type: string
+        }
+        Insert: {
+          acceptance_criteria?: Json
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          goal_id?: string | null
+          id?: string
+          objective?: string | null
+          owner_agent_id?: string | null
+          owner_person_id?: string | null
+          owner_type?: string
+          previous_status?: Database["public"]["Enums"]["work_status"] | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          requested_by_profile_id?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          status?: Database["public"]["Enums"]["work_status"]
+          title: string
+          updated_at?: string
+          work_type?: string
+        }
+        Update: {
+          acceptance_criteria?: Json
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by_profile_id?: string | null
+          goal_id?: string | null
+          id?: string
+          objective?: string | null
+          owner_agent_id?: string | null
+          owner_person_id?: string | null
+          owner_type?: string
+          previous_status?: Database["public"]["Enums"]["work_status"] | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          requested_by_profile_id?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          status?: Database["public"]["Enums"]["work_status"]
+          title?: string
+          updated_at?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_work_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_owner_agent_id_fkey"
+            columns: ["owner_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "canonical_work_orders_requested_by_profile_id_fkey"
+            columns: ["requested_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2635,6 +2866,7 @@ export type Database = {
         Row: {
           acceptance_criteria: Json | null
           approval_required: boolean | null
+          canonical_work_order_id: string | null
           company_id: string | null
           created_at: string | null
           created_by_profile_id: string | null
@@ -2661,6 +2893,7 @@ export type Database = {
         Insert: {
           acceptance_criteria?: Json | null
           approval_required?: boolean | null
+          canonical_work_order_id?: string | null
           company_id?: string | null
           created_at?: string | null
           created_by_profile_id?: string | null
@@ -2687,6 +2920,7 @@ export type Database = {
         Update: {
           acceptance_criteria?: Json | null
           approval_required?: boolean | null
+          canonical_work_order_id?: string | null
           company_id?: string | null
           created_at?: string | null
           created_by_profile_id?: string | null
@@ -2711,6 +2945,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_canonical_work_order_id_fkey"
+            columns: ["canonical_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_work_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_company_id_fkey"
             columns: ["company_id"]
@@ -2765,6 +3006,7 @@ export type Database = {
       work_orders: {
         Row: {
           assigned_agent_id: string | null
+          canonical_work_order_id: string | null
           channel_id: string | null
           command: string
           company_id: string | null
@@ -2780,6 +3022,7 @@ export type Database = {
         }
         Insert: {
           assigned_agent_id?: string | null
+          canonical_work_order_id?: string | null
           channel_id?: string | null
           command: string
           company_id?: string | null
@@ -2795,6 +3038,7 @@ export type Database = {
         }
         Update: {
           assigned_agent_id?: string | null
+          canonical_work_order_id?: string | null
           channel_id?: string | null
           command?: string
           company_id?: string | null
@@ -2814,6 +3058,13 @@ export type Database = {
             columns: ["assigned_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_canonical_work_order_id_fkey"
+            columns: ["canonical_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_work_orders"
             referencedColumns: ["id"]
           },
           {
