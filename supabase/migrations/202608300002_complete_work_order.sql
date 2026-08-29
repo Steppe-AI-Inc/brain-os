@@ -99,8 +99,9 @@ declare
   v_incomplete_task_count int;
   v_failed_run record;
   v_incomplete_run_count int;
-  v_has_commit boolean;
+  v_unverified_commit_exists boolean;
   v_verified_run_id uuid;
+  v_verified_commit_run_count int;
   v_cross_company_task record;
   v_task_count int;
   v_run_count int;
@@ -169,35 +170,48 @@ begin
       'incompleteRunCount',v_incomplete_run_count);
   end if;
 
-  -- Point 6/7/8c: if real code was mutated (any linked run carries a real head_commit),
-  -- independent verification is required for THAT SPECIFIC commit. Independent review
-  -- (brain-os-db-security-engineer, live-reproduced, rolled back) found the original form
-  -- of this check split "has a commit" and "has a passing verification" across two
-  -- independent EXISTS queries with no row binding between them — an unrelated verified
-  -- run (e.g. a background/bootstrap run with no commit of its own) could vouch for a
-  -- completely different, never-actually-verified commit under the same Work Order. Fixed
-  -- by requiring head_commit, status='done', and a passing verification_status on the SAME
-  -- row: the run that made the commit is the run that must carry its own verification
-  -- result — matching how complete_agent_run's own signature already supports setting
-  -- head_commit and verification_status together in one call against one row. If no run
-  -- carries a commit at all, this Work Order made no code change and verification was
-  -- never applicable - matches "when verification is required" exactly.
+  -- Point 6/7/8c: if real code was mutated, independent verification is required for
+  -- EVERY commit that was made - not just one. Independent review
+  -- (brain-os-db-security-engineer, live-reproduced, rolled back) found two successive
+  -- defects here: (1) the original form split "has a commit" and "has a passing
+  -- verification" across two independent EXISTS queries with no row binding, so an
+  -- unrelated verified run (e.g. a background/bootstrap run with no commit of its own)
+  -- could vouch for a completely different, never-verified commit - fixed by requiring
+  -- head_commit, status='done', and a passing verification_status on the SAME row; (2) a
+  -- second review pass then found that binding alone still only required ONE commit-
+  -- carrying run to be verified to close the WHOLE Work Order - live-reproduced against
+  -- the real, documented multi-task dispatch shape (dispatch-task.mjs creates one
+  -- agent_runs row per task): a Work Order with two tasks, each with its own commit, one
+  -- verified and one never verified at all, still completed. Fixed by inverting the check
+  -- to a NOT EXISTS "any commit-carrying run that is NOT properly verified" - every commit
+  -- must clear the bar now, not just one.
   select exists(
-    select 1 from public.agent_runs where canonical_work_order_id = p_work_order_id and head_commit is not null
-  ) into v_has_commit;
-  if v_has_commit then
-    select id into v_verified_run_id
-      from public.agent_runs
-      where canonical_work_order_id = p_work_order_id
-        and head_commit is not null
-        and status = 'done'
-        and verification_status in ('live_verified','e2e_verified')
-      limit 1;
-    if v_verified_run_id is null then
-      return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
-        'changed',false,'authorized',true,'currentStatus',v_status,'reason','verification_required_not_found');
-    end if;
+    select 1 from public.agent_runs
+    where canonical_work_order_id = p_work_order_id
+      and head_commit is not null
+      and (status <> 'done'
+           or (verification_status is distinct from 'live_verified' and verification_status is distinct from 'e2e_verified'))
+  ) into v_unverified_commit_exists;
+
+  if v_unverified_commit_exists then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','verification_required_not_found');
   end if;
+
+  select id into v_verified_run_id
+    from public.agent_runs
+    where canonical_work_order_id = p_work_order_id
+      and head_commit is not null
+      and status = 'done'
+      and verification_status in ('live_verified','e2e_verified')
+    order by started_at desc limit 1;
+
+  select count(*) into v_verified_commit_run_count
+    from public.agent_runs
+    where canonical_work_order_id = p_work_order_id
+      and head_commit is not null
+      and status = 'done'
+      and verification_status in ('live_verified','e2e_verified');
 
   -- Point 8d: cross-company defense-in-depth, matching the established two-layer pattern
   -- (enforce_canonical_work_order_goal_company/enforce_task_work_order_company) - structurally
@@ -225,7 +239,7 @@ begin
     'changed',true,'authorized',true,'previousStatus',v_status,'newStatus','done',
     'completedAt',(select completed_at from public.canonical_work_orders where id = p_work_order_id),
     'taskCount',v_task_count,'agentRunCount',v_run_count,'verifiedByAgentRunId',v_verified_run_id,
-    'summary',p_summary,'reason','completed');
+    'verifiedCommitRunCount',v_verified_commit_run_count,'summary',p_summary,'reason','completed');
 end;
 $$;
 

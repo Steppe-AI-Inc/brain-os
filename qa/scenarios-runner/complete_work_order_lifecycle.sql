@@ -49,6 +49,17 @@
 --      bypassing the RPC entirely. The guard trigger was originally BEFORE UPDATE only;
 --      canonical_work_orders_insert_scope allows any user with has_company_access (not
 --      just founder/admin) to INSERT, so this was a real bypass, not merely theoretical.
+--
+-- Plus a third regression added after a SECOND independent review pass (same reviewer role,
+-- fresh session, re-reviewing the fix above — live-reproduced against the real, documented
+-- multi-task dispatch shape, rolled back):
+--  13. FACTORY_WORK_ORDER_REQUIRES_EVERY_COMMIT_VERIFIED — same-row binding (regression #11)
+--      closed the cross-row exploit, but still only required ONE commit-carrying run to be
+--      verified to close the WHOLE Work Order. A real multi-task Work Order (one agent_runs
+--      row per task, per dispatch-task.mjs) with two separate commits — one verified, one
+--      never verified at all — still completed. Fixed by inverting the check to a NOT
+--      EXISTS "any commit-carrying run that is NOT properly verified" — every commit must
+--      now individually clear the bar, not just one.
 
 begin;
 
@@ -119,6 +130,19 @@ insert into public.tasks (id, company_id, title, status, canonical_work_order_id
 insert into public.agent_runs (id, canonical_work_order_id, company_id, execution_provider, provider_run_id, status, head_commit, verification_status, started_at) values
   ('cccc2004-0000-0000-0000-000000000007','cccc2002-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-7a-unverified-commit','done'::work_status,'exploitcommit1',null,now()),
   ('cccc2004-0000-0000-0000-000000000008','cccc2002-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-7b-unrelated-verified','done'::work_status,null,'live_verified',now());
+
+-- WO8: the exact partial-verification shape independent review's second pass confirmed
+-- exploitable — a real multi-task Work Order (two tasks, one agent_runs row per task, the
+-- actual dispatch-task.mjs shape), where Run8a's OWN commit is genuinely verified but
+-- Run8b's OWN, different commit was never verified at all.
+insert into public.canonical_work_orders (id, company_id, title, status) values
+  ('cccc2002-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','CWO Partial Verification','in_progress');
+insert into public.tasks (id, company_id, title, status, canonical_work_order_id) values
+  ('cccc2003-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','CWO Task 8a','done','cccc2002-0000-0000-0000-000000000008'),
+  ('cccc2003-0000-0000-0000-000000000009','cccc2001-0000-0000-0000-000000000001','CWO Task 8b','done','cccc2002-0000-0000-0000-000000000008');
+insert into public.agent_runs (id, canonical_work_order_id, company_id, execution_provider, provider_run_id, status, head_commit, verification_status, started_at) values
+  ('cccc2004-0000-0000-0000-000000000009','cccc2002-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-8a-verified','done'::work_status,'partialcommita','live_verified',now()),
+  ('cccc2004-0000-0000-0000-000000000010','cccc2002-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-8b-unverified','done'::work_status,'partialcommitb',null,now());
 
 -- ================== TESTS ==================
 
@@ -204,6 +228,10 @@ begin
   end;
 end $$;
 
+-- TEST 13 (regression #13): partial verification (one commit verified, one not) is rejected.
+select set_config('cwo.complete_wo8',
+  (public.complete_work_order('cccc2002-0000-0000-0000-000000000008'::uuid))::text, true);
+
 reset role;
 
 select json_build_object(
@@ -224,6 +252,7 @@ select json_build_object(
   'wo6_status_after_direct_attempt', current_setting('cwo.wo6_status_after_direct_attempt', true),
   'complete_wo7', current_setting('cwo.complete_wo7', true)::jsonb,
   'direct_insert_done_blocked', current_setting('cwo.direct_insert_done_blocked', true) = 'true',
+  'complete_wo8', current_setting('cwo.complete_wo8', true)::jsonb,
   'all_pass', (
         (current_setting('cwo.complete_wo1', true)::jsonb->>'changed') = 'true'
     and (current_setting('cwo.complete_wo1', true)::jsonb->>'authorized') = 'true'
@@ -254,6 +283,8 @@ select json_build_object(
     and (current_setting('cwo.complete_wo7', true)::jsonb->>'changed') = 'false'
     and (current_setting('cwo.complete_wo7', true)::jsonb->>'reason') = 'verification_required_not_found'
     and current_setting('cwo.direct_insert_done_blocked', true) = 'true'
+    and (current_setting('cwo.complete_wo8', true)::jsonb->>'changed') = 'false'
+    and (current_setting('cwo.complete_wo8', true)::jsonb->>'reason') = 'verification_required_not_found'
   )
 ) as verdict;
 
