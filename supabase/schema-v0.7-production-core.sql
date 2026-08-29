@@ -226,9 +226,33 @@ create table if not exists public.tasks (
   deadline timestamptz,
   source text,
   created_by_profile_id uuid references public.profiles(id),
+  -- See 202608290001_task_goal_archive_restore.sql: stores the exact status a task had
+  -- right before archive_task() archived it (a task has no single "active" state to
+  -- restore to the way companies do), so restore_task() can put it back precisely
+  -- instead of guessing.
+  previous_status work_status,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- force_task_creator: unconditional BEFORE INSERT, same pattern as force_company_creator
+-- above - closes a real gap where createTask() (manual UI path) never set this column at
+-- all, while the AI-creation RPC path did, leaving it inconsistently populated.
+create or replace function public.force_task_creator()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  new.created_by_profile_id := public.current_profile_id();
+  return new;
+end;
+$$;
+drop trigger if exists tasks_force_creator on public.tasks;
+create trigger tasks_force_creator
+  before insert on public.tasks
+  for each row execute function public.force_task_creator();
 
 create table if not exists public.memories (
   id uuid primary key default gen_random_uuid(),
@@ -583,6 +607,25 @@ create table if not exists public.goals (
 );
 create index if not exists goals_company_status_idx on public.goals (company_id, status);
 create index if not exists goals_department_idx on public.goals (department_id);
+
+-- force_goal_creator: unconditional BEFORE INSERT, same pattern as force_company_creator/
+-- force_task_creator - createGoal() (manual UI path) and the AI-creation RPC path both
+-- previously left this column null on every real goal.
+create or replace function public.force_goal_creator()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  new.created_by_profile_id := public.current_profile_id();
+  return new;
+end;
+$$;
+drop trigger if exists goals_force_creator on public.goals;
+create trigger goals_force_creator
+  before insert on public.goals
+  for each row execute function public.force_goal_creator();
 
 create table if not exists public.key_results (
   id uuid primary key default gen_random_uuid(),
@@ -1508,7 +1551,38 @@ create policy "tasks_select_scope" on public.tasks for select using (
 drop policy if exists "tasks_insert_scope" on public.tasks;
 create policy "tasks_insert_scope" on public.tasks for insert with check (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id));
 drop policy if exists "tasks_update_scope" on public.tasks;
-create policy "tasks_update_scope" on public.tasks for update using (public.is_founder_or_admin() or public.is_company_manager(company_id) or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id()));
+-- See 202608290001_task_goal_archive_restore.sql: creator+active-membership tier added,
+-- same rule as companies - a company_id IS NULL task's creator needs no membership check
+-- (nothing to have been removed from).
+create policy "tasks_update_scope" on public.tasks for update using (
+  public.is_founder_or_admin()
+  or public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id())
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and (
+      company_id is null
+      or exists (
+        select 1 from public.company_memberships m
+        where m.company_id = tasks.company_id and m.profile_id = public.current_profile_id() and m.active = true
+      )
+    )
+  )
+) with check (
+  public.is_founder_or_admin()
+  or public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = tasks.owner_person_id and pe.profile_id = public.current_profile_id())
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and (
+      company_id is null
+      or exists (
+        select 1 from public.company_memberships m
+        where m.company_id = tasks.company_id and m.profile_id = public.current_profile_id() and m.active = true
+      )
+    )
+  )
+);
 -- Delete is manager+/admin only, deliberately narrower than update (no owner
 -- self-service) — deleting is harder to undo than editing. Migration 202608260003.
 drop policy if exists "tasks_delete_scope" on public.tasks;
@@ -2077,11 +2151,32 @@ drop policy if exists "goals_insert_scope" on public.goals;
 create policy "goals_insert_scope" on public.goals for insert with check (
   public.is_founder_or_admin() or public.has_company_access(company_id)
 );
+-- See 202608290001_task_goal_archive_restore.sql: creator+active-membership tier added,
+-- same rule as companies/tasks. goals.company_id is NOT NULL, so no null-company branch
+-- is needed here the way tasks required.
 drop policy if exists "goals_update_scope" on public.goals;
 create policy "goals_update_scope" on public.goals for update using (
   public.is_founder_or_admin()
   or public.is_company_manager(company_id)
   or exists (select 1 from public.people pe where pe.id = goals.owner_person_id and pe.profile_id = public.current_profile_id())
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = goals.company_id and m.profile_id = public.current_profile_id() and m.active = true
+    )
+  )
+) with check (
+  public.is_founder_or_admin()
+  or public.is_company_manager(company_id)
+  or exists (select 1 from public.people pe where pe.id = goals.owner_person_id and pe.profile_id = public.current_profile_id())
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = goals.company_id and m.profile_id = public.current_profile_id() and m.active = true
+    )
+  )
 );
 drop policy if exists "goals_delete_manager" on public.goals;
 create policy "goals_delete_manager" on public.goals for delete using (
@@ -2552,6 +2647,296 @@ drop trigger if exists companies_lifecycle_guard on public.companies;
 create trigger companies_lifecycle_guard
   before update on public.companies
   for each row execute function public.enforce_company_lifecycle_via_rpc();
+
+-- archive_task / restore_task -------------------------------------------------------
+
+create or replace function public.archive_task(p_task_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status public.work_status;
+  v_company_id uuid;
+  v_owner_person_id uuid;
+  v_created_by uuid;
+  v_is_creator_authorized boolean;
+  v_authorized boolean;
+begin
+  select status, company_id, owner_person_id, created_by_profile_id
+    into v_previous_status, v_company_id, v_owner_person_id, v_created_by
+    from public.tasks where id = p_task_id;
+  if not found then
+    return jsonb_build_object('operation','task.archive','taskId',p_task_id,
+      'changed',false,'authorized',false,'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_authorized := v_created_by = public.current_profile_id()
+    and (v_company_id is null or exists (
+      select 1 from public.company_memberships m
+      where m.company_id = v_company_id and m.profile_id = public.current_profile_id() and m.active = true
+    ));
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(v_company_id)
+    or exists (select 1 from public.people pe where pe.id = v_owner_person_id and pe.profile_id = public.current_profile_id())
+    or v_is_creator_authorized;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','task.archive','taskId',p_task_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_previous_status = 'archived' then
+    return jsonb_build_object('operation','task.archive','taskId',p_task_id,
+      'previousStatus','archived','newStatus','archived','changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_archived');
+  end if;
+
+  perform set_config('app.task_lifecycle_rpc', 'true', true);
+  update public.tasks set previous_status = v_previous_status, status = 'archived', updated_at = now() where id = p_task_id;
+  perform set_config('app.task_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','task.archive','taskId',p_task_id,
+    'previousStatus',v_previous_status,'newStatus','archived','changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = 'archived' from public.tasks where id = p_task_id),
+    'reason','archived');
+end;
+$$;
+
+create or replace function public.restore_task(p_task_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_current_status public.work_status;
+  v_previous_status public.work_status;
+  v_company_id uuid;
+  v_owner_person_id uuid;
+  v_created_by uuid;
+  v_is_creator_authorized boolean;
+  v_authorized boolean;
+  v_target_status public.work_status;
+begin
+  select status, previous_status, company_id, owner_person_id, created_by_profile_id
+    into v_current_status, v_previous_status, v_company_id, v_owner_person_id, v_created_by
+    from public.tasks where id = p_task_id;
+  if not found then
+    return jsonb_build_object('operation','task.restore','taskId',p_task_id,
+      'changed',false,'authorized',false,'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_authorized := v_created_by = public.current_profile_id()
+    and (v_company_id is null or exists (
+      select 1 from public.company_memberships m
+      where m.company_id = v_company_id and m.profile_id = public.current_profile_id() and m.active = true
+    ));
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(v_company_id)
+    or exists (select 1 from public.people pe where pe.id = v_owner_person_id and pe.profile_id = public.current_profile_id())
+    or v_is_creator_authorized;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','task.restore','taskId',p_task_id,
+      'previousStatus',v_current_status,'newStatus',v_current_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_current_status <> 'archived' then
+    return jsonb_build_object('operation','task.restore','taskId',p_task_id,
+      'previousStatus',v_current_status,'newStatus',v_current_status,'changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_active');
+  end if;
+
+  -- No recorded prior status (shouldn't happen via archive_task, but a directly-created
+  -- 'archived' row via seed/import could lack one) - fall back to 'queued', the column's
+  -- own default, rather than leaving status unset.
+  v_target_status := coalesce(v_previous_status, 'queued'::public.work_status);
+
+  perform set_config('app.task_lifecycle_rpc', 'true', true);
+  update public.tasks set status = v_target_status, previous_status = null, updated_at = now() where id = p_task_id;
+  perform set_config('app.task_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','task.restore','taskId',p_task_id,
+    'previousStatus','archived','newStatus',v_target_status,'changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = v_target_status from public.tasks where id = p_task_id),
+    'reason','restored');
+end;
+$$;
+
+revoke all on function public.archive_task(uuid) from public, anon;
+revoke all on function public.restore_task(uuid) from public, anon;
+grant execute on function public.archive_task(uuid) to authenticated;
+grant execute on function public.restore_task(uuid) to authenticated;
+
+create or replace function public.enforce_task_lifecycle_via_rpc()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (new.status = 'archived' and old.status is distinct from 'archived')
+     or (old.status = 'archived' and new.status is distinct from 'archived')
+  then
+    if coalesce(current_setting('app.task_lifecycle_rpc', true), 'false') <> 'true' then
+      raise exception 'Task archive/restore must go through archive_task()/restore_task()';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists tasks_lifecycle_guard on public.tasks;
+create trigger tasks_lifecycle_guard
+  before update on public.tasks
+  for each row execute function public.enforce_task_lifecycle_via_rpc();
+
+-- archive_goal / restore_goal --------------------------------------------------------
+
+create or replace function public.archive_goal(p_goal_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status public.goal_status;
+  v_company_id uuid;
+  v_owner_person_id uuid;
+  v_created_by uuid;
+  v_is_creator_authorized boolean;
+  v_authorized boolean;
+begin
+  select status, company_id, owner_person_id, created_by_profile_id
+    into v_previous_status, v_company_id, v_owner_person_id, v_created_by
+    from public.goals where id = p_goal_id;
+  if not found then
+    return jsonb_build_object('operation','goal.archive','goalId',p_goal_id,
+      'changed',false,'authorized',false,'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_authorized := v_created_by = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = v_company_id and m.profile_id = public.current_profile_id() and m.active = true
+    );
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(v_company_id)
+    or exists (select 1 from public.people pe where pe.id = v_owner_person_id and pe.profile_id = public.current_profile_id())
+    or v_is_creator_authorized;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','goal.archive','goalId',p_goal_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_previous_status = 'archived' then
+    return jsonb_build_object('operation','goal.archive','goalId',p_goal_id,
+      'previousStatus','archived','newStatus','archived','changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_archived');
+  end if;
+
+  perform set_config('app.goal_lifecycle_rpc', 'true', true);
+  update public.goals set status = 'archived', updated_at = now() where id = p_goal_id;
+  perform set_config('app.goal_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','goal.archive','goalId',p_goal_id,
+    'previousStatus',v_previous_status,'newStatus','archived','changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = 'archived' from public.goals where id = p_goal_id),
+    'reason','archived');
+end;
+$$;
+
+create or replace function public.restore_goal(p_goal_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status public.goal_status;
+  v_company_id uuid;
+  v_owner_person_id uuid;
+  v_created_by uuid;
+  v_is_creator_authorized boolean;
+  v_authorized boolean;
+begin
+  select status, company_id, owner_person_id, created_by_profile_id
+    into v_previous_status, v_company_id, v_owner_person_id, v_created_by
+    from public.goals where id = p_goal_id;
+  if not found then
+    return jsonb_build_object('operation','goal.restore','goalId',p_goal_id,
+      'changed',false,'authorized',false,'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_authorized := v_created_by = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = v_company_id and m.profile_id = public.current_profile_id() and m.active = true
+    );
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(v_company_id)
+    or exists (select 1 from public.people pe where pe.id = v_owner_person_id and pe.profile_id = public.current_profile_id())
+    or v_is_creator_authorized;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','goal.restore','goalId',p_goal_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_previous_status <> 'archived' then
+    return jsonb_build_object('operation','goal.restore','goalId',p_goal_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_active');
+  end if;
+
+  perform set_config('app.goal_lifecycle_rpc', 'true', true);
+  update public.goals set status = 'active', updated_at = now() where id = p_goal_id;
+  perform set_config('app.goal_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','goal.restore','goalId',p_goal_id,
+    'previousStatus','archived','newStatus','active','changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = 'active' from public.goals where id = p_goal_id),
+    'reason','restored');
+end;
+$$;
+
+revoke all on function public.archive_goal(uuid) from public, anon;
+revoke all on function public.restore_goal(uuid) from public, anon;
+grant execute on function public.archive_goal(uuid) to authenticated;
+grant execute on function public.restore_goal(uuid) to authenticated;
+
+create or replace function public.enforce_goal_lifecycle_via_rpc()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (new.status = 'archived' and old.status is distinct from 'archived')
+     or (old.status = 'archived' and new.status is distinct from 'archived')
+  then
+    if coalesce(current_setting('app.goal_lifecycle_rpc', true), 'false') <> 'true' then
+      raise exception 'Goal archive/restore must go through archive_goal()/restore_goal()';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists goals_lifecycle_guard on public.goals;
+create trigger goals_lifecycle_guard
+  before update on public.goals
+  for each row execute function public.enforce_goal_lifecycle_via_rpc();
+
 
 alter table public.person_assignments enable row level security;
 drop policy if exists "person_assignments_select_scope" on public.person_assignments;

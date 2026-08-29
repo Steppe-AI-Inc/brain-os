@@ -2648,6 +2648,7 @@ export type Database = {
           owner_type: string
           parent_goal: string | null
           parent_task_id: string | null
+          previous_status: Database["public"]["Enums"]["work_status"] | null
           priority: Database["public"]["Enums"]["priority_level"] | null
           project_id: string | null
           risk_level: Database["public"]["Enums"]["risk_level"] | null
@@ -2673,6 +2674,7 @@ export type Database = {
           owner_type?: string
           parent_goal?: string | null
           parent_task_id?: string | null
+          previous_status?: Database["public"]["Enums"]["work_status"] | null
           priority?: Database["public"]["Enums"]["priority_level"] | null
           project_id?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"] | null
@@ -2698,6 +2700,7 @@ export type Database = {
           owner_type?: string
           parent_goal?: string | null
           parent_task_id?: string | null
+          previous_status?: Database["public"]["Enums"]["work_status"] | null
           priority?: Database["public"]["Enums"]["priority_level"] | null
           project_id?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"] | null
@@ -2970,6 +2973,8 @@ export type Database = {
     }
     Functions: {
       archive_company: { Args: { p_company_id: string }; Returns: Json }
+      archive_goal: { Args: { p_goal_id: string }; Returns: Json }
+      archive_task: { Args: { p_task_id: string }; Returns: Json }
       can_manage_board_item: {
         Args: { p_board_id: string; p_task_id: string }
         Returns: boolean
@@ -3063,6 +3068,8 @@ export type Database = {
         Returns: string
       }
       restore_company: { Args: { p_company_id: string }; Returns: Json }
+      restore_goal: { Args: { p_goal_id: string }; Returns: Json }
+      restore_task: { Args: { p_task_id: string }; Returns: Json }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
         Returns: {
