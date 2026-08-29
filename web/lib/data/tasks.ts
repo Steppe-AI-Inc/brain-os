@@ -10,7 +10,7 @@ type RiskLevel = Database["public"]["Enums"]["risk_level"];
 type WorkStatus = Database["public"]["Enums"]["work_status"];
 
 const TASK_SELECT =
-  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), owner_person_id, people(full_name), created_at";
+  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), owner_person_id, people(full_name), created_at, updated_at";
 
 export async function getTasks() {
   const supabase = await createClient();
@@ -19,6 +19,17 @@ export async function getTasks() {
     .select(TASK_SELECT)
     .in("status", TASK_COLUMNS)
     .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function getArchivedTasks() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(TASK_SELECT)
+    .eq("status", "archived")
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -106,6 +117,42 @@ export async function updateTaskStatus(id: string, status: WorkStatus) {
   return null;
 }
 
+// The ordinary delete path — reversible, and open to the task's own creator (not just a
+// manager), matching AI chat exactly (both call the same RPC). Fast by design: archiving
+// doesn't destroy or reassign anything, so there is nothing to check first.
+export async function archiveTask(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("archive_task", { p_task_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Archive failed — no result returned.";
+  if (result.reason === "not_found") return "This task no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to archive this task.";
+  revalidatePath("/tasks");
+  return null;
+}
+
+// Returns the task to the exact status it had right before archiving (there is no
+// single "active" status the way companies/goals have) — see archive_task/restore_task
+// in 202608290001_task_goal_archive_restore.sql.
+export async function restoreTask(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_task", { p_task_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Restore failed — no result returned.";
+  if (result.reason === "not_found") return "This task no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to restore this task.";
+  revalidatePath("/tasks");
+  return null;
+}
+
+// The real, permanent removal — kept separate from archiveTask above, same
+// safe-default/rare-destructive split as companies (archiveCompany vs
+// permanentlyDeleteCompany). tasks_delete_scope RLS (manager+/admin only) is the real
+// gate; no dependency-blocking logic is needed here the way companies needed one, since
+// nothing else in the schema references a task by FK the way projects/documents/etc.
+// reference a company.
 export async function deleteTask(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("tasks").delete().eq("id", id).select("id");

@@ -15,7 +15,7 @@ import { EditSheet } from "@/components/edit-sheet";
 import {
   updateGoal,
   updateGoalDetails,
-  deleteGoal,
+  archiveGoal,
   createKeyResult,
   deleteKeyResult,
   saveGoalContext,
@@ -57,6 +57,17 @@ export function GoalKindActions({ goal }: { goal: Goal; keyResults?: KeyResult[]
     });
   }
 
+  // 'archived' is never a plain updateGoal() patch (the DB trigger rejects a direct
+  // write into it outside archive_goal()/restore_goal()) - both "Decline" and "Archive"
+  // below are really the same lifecycle transition regardless of the label shown.
+  function archive() {
+    setError(null);
+    startTransition(async () => {
+      const result = await archiveGoal(goal.id);
+      if (result) setError(result);
+    });
+  }
+
   return (
     <div className="flex flex-col items-end gap-1.5">
       <div className="flex flex-wrap justify-end gap-2">
@@ -69,7 +80,7 @@ export function GoalKindActions({ goal }: { goal: Goal; keyResults?: KeyResult[]
               size="sm"
               variant="outline"
               disabled={pending}
-              onClick={() => apply({ status: "archived" })}
+              onClick={archive}
             >
               Decline
             </Button>
@@ -99,7 +110,7 @@ export function GoalKindActions({ goal }: { goal: Goal; keyResults?: KeyResult[]
             size="sm"
             variant="outline"
             disabled={pending}
-            onClick={() => apply({ status: "archived" })}
+            onClick={archive}
           >
             Archive
           </Button>
@@ -131,10 +142,12 @@ export function GoalHeaderActions({
           setEditing(true);
         }}
         onDelete={async () => {
-          const result = await deleteGoal(goal.id);
+          const result = await archiveGoal(goal.id);
           if (!result) router.push("/goals");
           return result;
         }}
+        deletingLabel="Archiving…"
+        deleteDescription="The goal is archived, not destroyed — its key results stay intact, and you can restore it from Goals → Archived at any time."
       />
       <EditSheet
         open={editing}

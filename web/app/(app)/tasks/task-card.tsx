@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteTask } from "@/lib/data/tasks";
+import { archiveTask } from "@/lib/data/tasks";
 
 export type TaskRow = {
   id: string;
@@ -58,7 +58,7 @@ export function TaskCard({
 
   async function confirmDelete() {
     setDeleting(true);
-    const result = await deleteTask(task.id);
+    const result = await archiveTask(task.id);
     setDeleting(false);
     if (result) {
       setError(result);
@@ -138,7 +138,8 @@ export function TaskCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this task?</AlertDialogTitle>
             <AlertDialogDescription>
-              &ldquo;{task.title}&rdquo; will be permanently deleted. This can&apos;t be undone.
+              &ldquo;{task.title}&rdquo; is archived, not destroyed — nothing referencing it
+              is touched, and you can restore it from Tasks → Archived at any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}

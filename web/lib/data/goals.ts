@@ -6,13 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import { classifyGoal, type GoalKind } from "@/lib/goals/classify";
 
 const GOAL_LIST_COLUMNS =
-  "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name), departments(name)";
+  "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name), departments(name), updated_at";
 
 export async function getGoals() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("goals")
     .select(GOAL_LIST_COLUMNS)
+    .neq("status", "archived")
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) throw error;
@@ -69,11 +70,15 @@ export async function createGoal(_prevState: string | null, formData: FormData) 
 // tier silently matches 0 rows rather than erroring. Same defect class as
 // qa/KNOWN_FAILURE_MODES.md #17/#18.
 
-/** Generic patch used by both the Kanban drag-drop and the per-kind action panel. */
+/** Generic patch used by both the Kanban drag-drop and the per-kind action panel.
+ * 'archived' is deliberately excluded from status - the DB trigger
+ * (enforce_goal_lifecycle_via_rpc, 202608290001) now rejects any direct write into/out
+ * of 'archived' outside archive_goal()/restore_goal(); use those (or the archiveGoal()/
+ * restoreGoal() actions below) instead. */
 export async function updateGoal(
   id: string,
   patch: Partial<{
-    status: "draft" | "active" | "paused" | "achieved" | "archived";
+    status: "draft" | "active" | "paused" | "achieved";
     progress: number;
   }>
 ) {
@@ -108,6 +113,8 @@ export async function updateGoalDetails(id: string, input: GoalDetailsInput) {
   return null;
 }
 
+// The real, permanent removal (cascades key_results, unlike archiveGoal below) - kept
+// separate, same safe-default/rare-destructive split as companies/tasks.
 export async function deleteGoal(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("goals").delete().eq("id", id).select("id");
@@ -118,6 +125,51 @@ export async function deleteGoal(id: string) {
   revalidatePath("/board");
   revalidatePath("/dashboard");
   return null;
+}
+
+// The ordinary "archive"/"decline" path - reversible, destroys nothing (key_results stay
+// intact), open to the goal's own creator with active membership too, not just a
+// manager. Matches AI chat exactly - both call the same RPC.
+export async function archiveGoal(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("archive_goal", { p_goal_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Archive failed — no result returned.";
+  if (result.reason === "not_found") return "This goal no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to archive this goal.";
+  revalidatePath("/goals");
+  revalidatePath("/board");
+  revalidatePath(`/goals/${id}`);
+  revalidatePath("/dashboard");
+  return null;
+}
+
+export async function restoreGoal(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_goal", { p_goal_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Restore failed — no result returned.";
+  if (result.reason === "not_found") return "This goal no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to restore this goal.";
+  revalidatePath("/goals");
+  revalidatePath("/board");
+  revalidatePath(`/goals/${id}`);
+  revalidatePath("/dashboard");
+  return null;
+}
+
+export async function getArchivedGoals() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("goals")
+    .select(GOAL_LIST_COLUMNS)
+    .eq("status", "archived")
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return data;
 }
 
 export async function createKeyResult(_prevState: string | null, formData: FormData) {

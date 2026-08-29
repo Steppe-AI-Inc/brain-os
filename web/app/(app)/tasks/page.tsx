@@ -1,7 +1,9 @@
-import { ListChecks } from "lucide-react";
+import Link from "next/link";
+import { ListChecks, Archive } from "lucide-react";
 import { getTasks, getCurrentPersonId } from "@/lib/data/tasks";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { TasksBoard } from "./tasks-board";
 
 export default async function TasksPage() {
@@ -13,6 +15,12 @@ export default async function TasksPage() {
         icon={ListChecks}
         title="Tasks"
         description="Drag a card to change status, click to edit, or add one per column."
+        actions={
+          <Link href="/tasks/archived" className={buttonVariants({ variant: "outline" })}>
+            <Archive className="h-4 w-4" />
+            Archived
+          </Link>
+        }
       />
       <TasksBoard
         tasks={tasks}

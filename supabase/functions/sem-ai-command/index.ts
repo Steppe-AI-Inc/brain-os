@@ -161,19 +161,42 @@ Rules:
     question naming exactly what and how many, e.g. "Delete 4 product lines, 2 proposals,
     and 1 software spec? This can't be undone." Nothing executes until the founder
     actually confirms next turn.
-- You may delete existing tasks the user asks to remove/clear/delete: put their exact "id"
-  from context.tasks into deleteTaskIds. Never invent or guess an id — only ids that
-  literally appear in context.tasks are honored; anything else is silently ignored. If the
-  user references a task that isn't in context.tasks, say so in summary instead of
-  guessing an id. deleteTaskIds executes immediately — this is correct and expected for an
-  explicit, unambiguous delete instruction; do not add unnecessary approval friction to a
-  clear direct request. Use pendingDeleteTaskIds instead (same id-provenance rule) only
-  when you genuinely want an authorized reviewer to confirm before it happens — e.g. the
+- "Delete"/"remove"/"clear" a task with ORDINARY language ("delete this task", "remove
+  it", "clear my old tasks") means archiveTaskIds, not deleteTaskIds — put the exact "id"
+  from context.tasks (or context.archivedTasks for a task already archived, though
+  archiving an already-archived task is just an idempotent no-op) into archiveTaskIds.
+  This is the safe, reversible, immediate default: nothing referencing the task is
+  touched, and the task's own creator (not just a manager) can do this to their own
+  task. Only route to deleteTaskIds — the real, permanent, unrecoverable removal — when
+  the user's own words are explicit about permanence: "permanently delete", "actually
+  delete, don't just archive", "delete forever", "remove it for good". When in doubt
+  between the two, prefer archiveTaskIds — it's the reversible choice, and an
+  unauthorized user attempting either one gets a real, honest denial either way (never a
+  fabricated success). Never invent or guess an id for either field — only ids literally
+  present in context.tasks/context.archivedTasks are honored; if the user references a
+  task that isn't there, say so in summary instead of guessing.
+- "Restore"/"un-archive"/"bring back" a task works the same way via restoreTaskIds,
+  resolved from context.archivedTasks (a task already archived is not in the ordinary
+  context.tasks list, which only shows in-flight work) — it returns to the exact status
+  it had right before archiving, not a fixed default.
+  archiveTaskIds/restoreTaskIds both execute immediately (no approval friction — archiving
+  is safe and reversible, so adding a confirmation step to an explicit, unambiguous
+  request would be unnecessary friction, same reasoning deleteTaskIds already used for
+  permanent deletion). The real outcome (archived/restored/denied/already in that
+  state/not found) is reported back to you after this actually runs and REPLACES whatever
+  you say here — never independently declare a task archived or restored in your own
+  words.
+- deleteTaskIds (the real, permanent removal — reserved for explicit "permanently
+  delete" language per above) still executes immediately, same id-provenance rule as
+  always: only ids literally in context.tasks are honored, nothing invented. Use
+  pendingDeleteTaskIds instead (same id-provenance rule) only when you genuinely want an
+  authorized reviewer to confirm before a PERMANENT deletion happens — e.g. the
   requester's own role may lack delete rights, or you judge the scale/ambiguity of the
   request itself warrants a second look. A pending id deletes nothing now: it is attached
   to an approval, and the deletion only actually runs once an authorized approver approves
   it on the Approvals page — so if you use pendingDeleteTaskIds, say in summary that
-  nothing is deleted yet and it's waiting on approval.
+  nothing is deleted yet and it's waiting on approval. archiveTaskIds/restoreTaskIds have
+  no pending/approval variant — archiving needs none, it's already safe and reversible.
 - CRITICAL — never claim in summary that you deleted, changed, or created more than what
   the structured fields of this exact response actually contain. A real bug happened from
   this: asked to "delete all tasks and approvals," a past response wrote "deleting all 12
@@ -268,6 +291,15 @@ Rules:
   real companyId from context.companies, or companyIndex into this response's own
   createCompanies array. If neither is available, create a clarification task instead of
   guessing which company it belongs to.
+- "Delete"/"archive"/"remove" a goal (ordinary language, same reasoning as tasks above)
+  means archiveGoalIds — put its real "id" from context.goals (context.goals carries no
+  status filter, so an already-archived goal is still resolvable there for restore too).
+  "Restore"/"un-archive" works the same way via restoreGoalIds, returning the goal to
+  'active'. Both execute immediately, no approval needed — archiving destroys nothing.
+  There is no separate hard-delete-goal field exposed to chat at all (unlike tasks) — a
+  goal's real, permanent removal is a founder/admin-only action on the Goals page
+  itself, not something chat can do. Never invent or guess an id; the real outcome
+  replaces whatever you say here, same grounding discipline as archiveCompanyIds.
 - You may create real departments, sales leads, and text-content documents directly, same
   low-risk treatment as companies/people/projects/goals above (none of these are on the
   high-risk list — deletion, financing, and external messaging are, plain CRM/org records
@@ -397,6 +429,8 @@ Output schema:
     }
   ],
   "deleteTaskIds": [string],
+  "archiveTaskIds": [string],
+  "restoreTaskIds": [string],
   "deleteChannelIds": [string],
   "deleteApprovalIds": [string],
   "pendingDeleteTaskIds": [string],
@@ -416,8 +450,10 @@ Output schema:
     {"title": string, "companyId": string|null, "companyIndex": number|null, "goal": string|null, "deadline": string|null, "blockers": string|null}
   ],
   "createGoals": [
-    {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|"archived"|null, "dueAt": string|null}
+    {"title": string, "companyId": string|null, "companyIndex": number|null, "description": string|null, "kind": "ephemeral"|"standing"|"routine"|"decision"|null, "status": "draft"|"active"|"paused"|"achieved"|null, "dueAt": string|null}
   ],
+  "archiveGoalIds": [string],
+  "restoreGoalIds": [string],
   "createDepartments": [
     {"name": string, "companyId": string|null, "companyIndex": number|null}
   ],
@@ -894,7 +930,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
-    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount] = await Promise.all([
+    tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
+    archivedTasks] = await Promise.all([
     supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
@@ -975,6 +1012,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('chat_channels').select('id', { count: 'exact', head: true }).eq('archived', false),
     supabase.from('departments').select('id', { count: 'exact', head: true }),
     supabase.from('documents').select('id', { count: 'exact', head: true }),
+    // context.tasks above is deliberately scoped to in-flight statuses only (see
+    // TASK_STATUSES) - an archived task is never in it, so restoreTaskIds would have
+    // nothing to resolve from without this separate, small, recent-archived query. Goals
+    // need no equivalent: context.goals already carries no status filter.
+    supabase.from('tasks').select('id,company_id,title').eq('status','archived').order('updated_at',{ascending:false}).limit(15),
   ]);
   const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
   const counts = {
@@ -1212,6 +1254,51 @@ serve(async (req) => {
         const requestedPendingDeleteTaskIds = Array.isArray(result.pendingDeleteTaskIds) ? result.pendingDeleteTaskIds as unknown[] : [];
         const pendingDeleteTaskIds = requestedPendingDeleteTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
+        // Archive/restore: the ordinary-language delete path for tasks (see prompt
+        // guidance above) - archive_task/restore_task are the same shared RPC the UI's
+        // archive/restore actions call, DB-trigger-enforced as the sole path in/out of
+        // 'archived' (202608290001_task_goal_archive_restore.sql). restoreTaskIds
+        // resolves against context.archivedTasks specifically, since context.tasks is
+        // scoped to in-flight statuses only and never contains an archived task.
+        const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
+        const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
+        const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id)))];
+        const requestedRestoreTaskIds = Array.isArray(result.restoreTaskIds) ? result.restoreTaskIds as unknown[] : [];
+        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && contextArchivedTaskIds.has(id)))];
+        const taskTitleById = new Map([
+          ...((contextPack?.tasks || []).map((t: any) => [t.id, t.title])),
+          ...((contextPack?.archivedTasks || []).map((t: any) => [t.id, t.title])),
+        ]);
+        const lifecycleReasonText: Record<string, string> = {
+          archived: 'archived', restored: 'restored',
+          already_archived: 'was already archived', already_active: 'was already active',
+          denied: 'you do not have permission to archive/restore this',
+          not_found: 'could not be found',
+        };
+        const taskArchiveRestoreLines: string[] = [];
+        for (const id of archiveTaskIds) {
+          const { data, error } = await supabase.rpc('archive_task', { p_task_id: id });
+          const name = taskTitleById.get(id) || id;
+          if (error || !data) { taskArchiveRestoreLines.push(`Task "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          taskArchiveRestoreLines.push(`Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        for (const id of restoreTaskIds) {
+          const { data, error } = await supabase.rpc('restore_task', { p_task_id: id });
+          const name = taskTitleById.get(id) || id;
+          if (error || !data) { taskArchiveRestoreLines.push(`Task "${name}": restore failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          // Tasks restore to their exact prior status (not a fixed target like companies/
+          // goals) - worth naming explicitly rather than a generic "restored", since
+          // which status it landed on is real information the founder would ask about.
+          taskArchiveRestoreLines.push(r.reason === 'restored'
+            ? `Task "${name}": restored (back to "${r.newStatus}").`
+            : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        const taskArchiveRestoreReport = taskArchiveRestoreLines.length > 0 ? taskArchiveRestoreLines.join(' ') : null;
+        const claimsTaskDeleted = archiveTaskIds.length === 0 && restoreTaskIds.length === 0 && deleteTaskIds.length === 0 && pendingDeleteTaskIds.length === 0
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\btask\b|\btask\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+
         // Channel deletion: same cross-check discipline as task deletion above, but this
         // isn't part of the sem_execute_ai_command RPC's transaction — chat_channels has
         // its own existing RLS delete policy (the same one the manual "..." > Delete menu
@@ -1432,6 +1519,34 @@ serve(async (req) => {
           }
         }
 
+        // Archive/restore for goals: context.goals carries no status filter (unlike
+        // context.tasks), so both archive and restore ids resolve from the same set -
+        // an already-archived goal is still resolvable there by name for "restore X".
+        const contextGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+        const requestedArchiveGoalIds = Array.isArray(result.archiveGoalIds) ? result.archiveGoalIds as unknown[] : [];
+        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
+        const requestedRestoreGoalIds = Array.isArray(result.restoreGoalIds) ? result.restoreGoalIds as unknown[] : [];
+        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
+        const goalTitleById = new Map((contextPack?.goals || []).map((g: any) => [g.id, g.title]));
+        const goalArchiveRestoreLines: string[] = [];
+        for (const id of archiveGoalIds) {
+          const { data, error } = await supabase.rpc('archive_goal', { p_goal_id: id });
+          const name = goalTitleById.get(id) || id;
+          if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        for (const id of restoreGoalIds) {
+          const { data, error } = await supabase.rpc('restore_goal', { p_goal_id: id });
+          const name = goalTitleById.get(id) || id;
+          if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": restore failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
+        const claimsGoalDeleted = archiveGoalIds.length === 0 && restoreGoalIds.length === 0
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\bgoal\b|\bgoal\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
         const createPeople = requestedPeople
           .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).fullName === 'string' && (p as any).fullName.trim())
@@ -1469,7 +1584,10 @@ serve(async (req) => {
             companyIndex: typeof g.companyIndex === 'number' ? g.companyIndex : null,
             description: typeof g.description === 'string' ? g.description : null,
             kind: typeof g.kind === 'string' ? g.kind : null,
-            status: typeof g.status === 'string' ? g.status : null,
+            // 'archived' is never a creatable status - a fresh INSERT isn't a status
+            // transition, so the lifecycle-guard trigger (UPDATE-only) can't catch this
+            // the way it catches a later attempt to archive outside archive_goal().
+            status: typeof g.status === 'string' && g.status !== 'archived' ? g.status : null,
             dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
           }));
         const createGoalsFiltered = dropArchivedCompanyTarget(createGoals);
@@ -2198,10 +2316,18 @@ serve(async (req) => {
         // Same full-replacement treatment as the organization graph check above, for the
         // exact defect this migration exists to close: a real archive/restore attempt's
         // outcome is not negotiable prose, it is what actually happened in the database.
-        if (archiveRestoreReport) {
-          result.summary = archiveRestoreReport;
-        } else if (claimsCompanyDeleted) {
-          result.summary = 'No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.';
+        // Combined (not each independently overwriting result.summary) so a turn that
+        // touches more than one of companies/tasks/goals doesn't silently lose all but
+        // the last report - real, if uncommon (e.g. "archive this company and its task").
+        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport].filter((r): r is string => !!r);
+        const lifecycleMismatchCorrections: string[] = [];
+        if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.');
+        if (claimsTaskDeleted) lifecycleMismatchCorrections.push('No task was actually archived, restored, or deleted this turn — tell me exactly which task, using its title as it appears in the Tasks list.');
+        if (claimsGoalDeleted) lifecycleMismatchCorrections.push('No goal was actually archived or restored this turn — tell me exactly which goal, using its title as it appears in the Goals list.');
+        if (lifecycleReports.length > 0) {
+          result.summary = lifecycleReports.join(' ');
+        } else if (lifecycleMismatchCorrections.length > 0) {
+          result.summary = lifecycleMismatchCorrections.join(' ');
         }
 
         // Real, systemic gap found live: work_orders.output was written once, as
@@ -2215,11 +2341,11 @@ serve(async (req) => {
         // getChatHistory in web/lib/data/chat-history.ts reads work_orders.output
         // directly). Persisting the corrected summary here is what makes every one of
         // those fixes actually durable instead of a one-time-per-request illusion.
-        if (factLines.length > 0 || organizationGraphCheck || archiveRestoreReport || claimsCompanyDeleted) {
+        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
