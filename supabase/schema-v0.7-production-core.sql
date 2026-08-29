@@ -3944,6 +3944,17 @@ begin
       'changed',false,'authorized',true,'currentStatus',v_status,'reason','invalid_state_for_completion');
   end if;
 
+  select count(*) into v_task_count from public.tasks where canonical_work_order_id = p_work_order_id;
+  select count(*) into v_run_count from public.agent_runs where canonical_work_order_id = p_work_order_id;
+  if v_task_count = 0 then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','no_tasks_to_complete');
+  end if;
+  if v_run_count = 0 then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','no_agent_runs_recorded');
+  end if;
+
   select count(*) into v_incomplete_task_count
     from public.tasks where canonical_work_order_id = p_work_order_id and status not in ('done','archived');
   if v_incomplete_task_count > 0 then
@@ -4004,9 +4015,6 @@ begin
       'changed',false,'authorized',true,'currentStatus',v_status,'reason','cross_company_task_reference',
       'conflictingTaskId',v_cross_company_task.id);
   end if;
-
-  select count(*) into v_task_count from public.tasks where canonical_work_order_id = p_work_order_id;
-  select count(*) into v_run_count from public.agent_runs where canonical_work_order_id = p_work_order_id;
 
   perform set_config('app.work_order_completion_rpc', 'true', true);
   update public.canonical_work_orders

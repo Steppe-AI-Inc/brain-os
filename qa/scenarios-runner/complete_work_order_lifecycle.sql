@@ -60,6 +60,18 @@
 --      never verified at all — still completed. Fixed by inverting the check to a NOT
 --      EXISTS "any commit-carrying run that is NOT properly verified" — every commit must
 --      now individually clear the bar, not just one.
+--
+-- Plus a fourth regression added after a THIRD independent review pass (fresh session,
+-- extended adversarial fourth-pass testing, rolled back):
+--  14. FACTORY_WORK_ORDER_REJECTS_VACUOUS_COMPLETION — a Work Order with zero linked tasks
+--      and zero linked agent_runs at all could still reach 'done', because every prior
+--      check only rejects an INCOMPLETE task/run; none required at least one to actually
+--      exist. Live-reproduced both as a trivially empty Work Order and as the realistic
+--      exploit chain (tasks force-completed some other way outside the real agent-dispatch
+--      pipeline, given a separate, pre-existing gap in tasks_update_scope RLS, with zero
+--      agent_runs ever created) — either way, "done" with no real work ever verified.
+--      Fixed by requiring at least one task and at least one agent_run to exist before any
+--      of the "is everything done/verified" checks are even reached.
 
 begin;
 
@@ -86,11 +98,15 @@ insert into public.agent_runs (id, canonical_work_order_id, company_id, executio
   ('cccc2004-0000-0000-0000-000000000001','cccc2002-0000-0000-0000-000000000001','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-1a','done'::work_status,'deadbeef1','live_verified',now()),
   ('cccc2004-0000-0000-0000-000000000002','cccc2002-0000-0000-0000-000000000001','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-1b','done'::work_status,null,null,now());
 
--- WO2: a still-running task blocks completion.
+-- WO2: a still-running task blocks completion. Carries a done run (irrelevant to what's
+-- being tested) purely so the new zero-run guard (regression #14) doesn't preempt this
+-- fixture's own point before the incomplete_task check is ever reached.
 insert into public.canonical_work_orders (id, company_id, title, status) values
   ('cccc2002-0000-0000-0000-000000000002','cccc2001-0000-0000-0000-000000000001','CWO Running Task','in_progress');
 insert into public.tasks (id, company_id, title, status, canonical_work_order_id) values
   ('cccc2003-0000-0000-0000-000000000003','cccc2001-0000-0000-0000-000000000001','CWO Task 2a','in_progress','cccc2002-0000-0000-0000-000000000002');
+insert into public.agent_runs (id, canonical_work_order_id, company_id, execution_provider, provider_run_id, status, started_at) values
+  ('cccc2004-0000-0000-0000-000000000011','cccc2002-0000-0000-0000-000000000002','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-2a','done'::work_status,now());
 
 -- WO3: a failed/rejected run blocks completion even though its linked task is done.
 insert into public.canonical_work_orders (id, company_id, title, status) values
@@ -143,6 +159,19 @@ insert into public.tasks (id, company_id, title, status, canonical_work_order_id
 insert into public.agent_runs (id, canonical_work_order_id, company_id, execution_provider, provider_run_id, status, head_commit, verification_status, started_at) values
   ('cccc2004-0000-0000-0000-000000000009','cccc2002-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-8a-verified','done'::work_status,'partialcommita','live_verified',now()),
   ('cccc2004-0000-0000-0000-000000000010','cccc2002-0000-0000-0000-000000000008','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-8b-unverified','done'::work_status,'partialcommitb',null,now());
+
+-- WO9: the exact vacuous-completion shape independent review's third pass confirmed
+-- exploitable — a trivially empty Work Order, zero tasks and zero agent_runs at all.
+insert into public.canonical_work_orders (id, company_id, title, status) values
+  ('cccc2002-0000-0000-0000-000000000009','cccc2001-0000-0000-0000-000000000001','CWO Empty','in_progress');
+
+-- WO10: the realistic exploit chain for the same defect — a task force-completed some
+-- other way outside the real agent-dispatch pipeline (a separate, pre-existing gap in
+-- tasks_update_scope RLS, unrelated to this migration), with zero agent_runs ever created.
+insert into public.canonical_work_orders (id, company_id, title, status) values
+  ('cccc2002-0000-0000-0000-000000000010','cccc2001-0000-0000-0000-000000000001','CWO Tasks Without Runs','in_progress');
+insert into public.tasks (id, company_id, title, status, canonical_work_order_id) values
+  ('cccc2003-0000-0000-0000-00000000000a','cccc2001-0000-0000-0000-000000000001','CWO Task 10a','done','cccc2002-0000-0000-0000-000000000010');
 
 -- ================== TESTS ==================
 
@@ -232,6 +261,14 @@ end $$;
 select set_config('cwo.complete_wo8',
   (public.complete_work_order('cccc2002-0000-0000-0000-000000000008'::uuid))::text, true);
 
+-- TEST 14a (regression #14): a trivially empty Work Order cannot vacuously complete.
+select set_config('cwo.complete_wo9',
+  (public.complete_work_order('cccc2002-0000-0000-0000-000000000009'::uuid))::text, true);
+
+-- TEST 14b (regression #14): tasks force-done with zero agent_runs cannot vacuously complete.
+select set_config('cwo.complete_wo10',
+  (public.complete_work_order('cccc2002-0000-0000-0000-000000000010'::uuid))::text, true);
+
 reset role;
 
 select json_build_object(
@@ -253,6 +290,8 @@ select json_build_object(
   'complete_wo7', current_setting('cwo.complete_wo7', true)::jsonb,
   'direct_insert_done_blocked', current_setting('cwo.direct_insert_done_blocked', true) = 'true',
   'complete_wo8', current_setting('cwo.complete_wo8', true)::jsonb,
+  'complete_wo9', current_setting('cwo.complete_wo9', true)::jsonb,
+  'complete_wo10', current_setting('cwo.complete_wo10', true)::jsonb,
   'all_pass', (
         (current_setting('cwo.complete_wo1', true)::jsonb->>'changed') = 'true'
     and (current_setting('cwo.complete_wo1', true)::jsonb->>'authorized') = 'true'
@@ -285,6 +324,10 @@ select json_build_object(
     and current_setting('cwo.direct_insert_done_blocked', true) = 'true'
     and (current_setting('cwo.complete_wo8', true)::jsonb->>'changed') = 'false'
     and (current_setting('cwo.complete_wo8', true)::jsonb->>'reason') = 'verification_required_not_found'
+    and (current_setting('cwo.complete_wo9', true)::jsonb->>'changed') = 'false'
+    and (current_setting('cwo.complete_wo9', true)::jsonb->>'reason') = 'no_tasks_to_complete'
+    and (current_setting('cwo.complete_wo10', true)::jsonb->>'changed') = 'false'
+    and (current_setting('cwo.complete_wo10', true)::jsonb->>'reason') = 'no_agent_runs_recorded'
   )
 ) as verdict;
 

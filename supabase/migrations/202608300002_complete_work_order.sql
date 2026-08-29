@@ -139,6 +139,27 @@ begin
       'changed',false,'authorized',true,'currentStatus',v_status,'reason','invalid_state_for_completion');
   end if;
 
+  -- A THIRD independent review pass (fresh session, no memory of the prior two) found this
+  -- gap by live-reproducing it: a Work Order with zero tasks and zero agent_runs at all -
+  -- or with tasks force-completed some other way outside the real agent-dispatch pipeline,
+  -- given a separate, pre-existing gap in tasks_update_scope RLS unrelated to this migration
+  -- - could still reach 'done' vacuously, because every check below only rejects an
+  -- INCOMPLETE task/run; none of them require at least one to actually exist. This directly
+  -- undermines the whole point of the RPC ("prove real work happened and was verified") for
+  -- the trivial case of no real work being linked at all. Fixed by requiring at least one
+  -- task and at least one agent_run to exist before any of the "is everything done/verified"
+  -- checks below are even reached.
+  select count(*) into v_task_count from public.tasks where canonical_work_order_id = p_work_order_id;
+  select count(*) into v_run_count from public.agent_runs where canonical_work_order_id = p_work_order_id;
+  if v_task_count = 0 then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','no_tasks_to_complete');
+  end if;
+  if v_run_count = 0 then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','no_agent_runs_recorded');
+  end if;
+
   -- Point 4/8a: every required (non-archived) task must be done. 'archived' tasks are
   -- out-of-scope/cancelled, not required. Any task in queued/in_progress/blocked/
   -- needs_approval/rejected blocks completion - a rejected task is a real failure, not
@@ -225,9 +246,6 @@ begin
       'changed',false,'authorized',true,'currentStatus',v_status,'reason','cross_company_task_reference',
       'conflictingTaskId',v_cross_company_task.id);
   end if;
-
-  select count(*) into v_task_count from public.tasks where canonical_work_order_id = p_work_order_id;
-  select count(*) into v_run_count from public.agent_runs where canonical_work_order_id = p_work_order_id;
 
   perform set_config('app.work_order_completion_rpc', 'true', true);
   update public.canonical_work_orders
