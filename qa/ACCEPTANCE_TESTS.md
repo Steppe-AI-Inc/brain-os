@@ -263,3 +263,171 @@ followed literally, one channel/message at a time, so no interpretation is neede
 Every ⬜ above should flip to ✅/❌ with a real timestamp and evidence (screenshot or
 console/network trace) the first time this page is actually exercised in a browser —
 per CLAUDE.md §2, a passing `npm run build` is not itself proof any of this works.
+
+## Manual regression checklist — conversation state machine + entity resolution + response formatting
+
+Added 2026-08-29 alongside PR B (branch `pr-b-conversation-state-and-response-formatting`,
+`supabase/functions/sem-ai-command/index.ts` only — generalizes `pendingConfirmation`
+into `pendingAction` with 4 kinds (`bulk_confirmation`/`single_entity_clarification`/
+`disambiguation`/`open_question`), adds `context.recentlyResolvedEntities`, expands
+entity-name-matching guidance, and fixes the factory-work-order response-duplication +
+internal-detail-leak bug). Direct source: the master plan's Workstream 3/4/5 and its
+"Required real end-to-end chat test" scenarios A-C.
+
+**⬜ NOT YET RUN against a live deployment** — this Edge Function change has not been
+deployed (deploying `supabase/functions/**` is a founder-authorization-gated action per
+`.githooks/pre-push`; this implementation session stopped at a committed branch, per
+instruction). Each entry below is the exact live-chat script the `brain-os-verifier` (or
+the founder) should run through the real `/chat` UI once deployed — a script to execute,
+not a simulated/self-certified result. Use a disposable test company/employee (e.g.
+`QA-CONTINUITY-*`, matching the master plan's own fixture naming) so a failed run is easy
+to spot and clean up.
+
+`pendingAction` is never founder-visible directly in the chat bubble — its presence and
+resolution are checked here via the real, persisted `work_orders.output` row (readable
+via `getChatHistory`/a direct `work_orders` query), not via the model's own prose. A
+`model` value of `deterministic-confirmation`/`deterministic-clarification`/
+`deterministic-disambiguation` in that row is the real, checkable evidence that a turn
+resolved without an LLM call at all — the strongest possible evidence for
+CHAT_PENDING_ACTION_SURVIVES_CLARIFICATION-class scenarios, since it proves the
+resolution isn't just the LLM "getting lucky" from conversationHistory.
+
+### CHAT_PENDING_ACTION_SURVIVES_CLARIFICATION
+
+1. Turn 1: `Delete that employee.` (deliberately vague — no employee named, no prior
+   context in this channel). Expect: Brain OS asks a clarifying question in `summary`,
+   and the persisted `work_orders.output.pendingAction` is non-null — one of
+   `single_entity_clarification`/`disambiguation`/`open_question` depending on how many
+   real candidates exist in context. Never null while `summary` ends in a question mark
+   (the system prompt's own `open_question` requirement is itself part of what this
+   scenario is checking).
+2. Turn 2 (same channel): reply with something that is NOT a bare "yes" — e.g. `Yes,
+   that one, go ahead and delete them.` PASS: Brain OS resolves the SAME entity the
+   clarifying question named (not a fresh guess, not "I don't understand, please
+   clarify"). FAIL (the original bug): turn 2 is treated as a brand-new, unrelated
+   message and Brain OS either re-asks the same question or invents a different
+   referent.
+3. Turn 3: send an unrelated new command. PASS (idempotency): the resolved
+   `pendingAction` from turn 1 does not leak into turn 3 — a later "yes" with no pending
+   question falls through to the ordinary LLM call rather than re-triggering turn 2's
+   resolution.
+
+### CHAT_CONFIRMATION_RESOLVES_PREVIOUS_ENTITY
+
+1. Turn 1: `Archive the wrong task — I mean the QA-CONTINUITY deploy task.` where the
+   exact task title is close-but-not-exact to a real fixture task's title. Expect
+   `work_orders.output.pendingAction` = `{"kind": "single_entity_clarification",
+   "candidateIds": [<the real task id>], "entityType": "task", "question": ...}`.
+2. Turn 2: `yes, delete that task` (note: deliberately uses "delete," ordinary language,
+   not "archive," to also confirm the ordinary-language-means-archive convention still
+   applies on the deterministic path). PASS: the reply is recognized as an affirming
+   clarification response (`isClarificationAffirmative` — a trailing-text reply, not
+   just a bare "yes," is what the original narrow `isShortAffirmative` regex could never
+   match), `work_orders.output.model === "deterministic-clarification"` for turn 2, and
+   the real task named in turn 1 is actually archived (verify via a direct `tasks` table
+   read, not the chat reply text). Re-run the same two-turn script substituting
+   "company"/"goal"/"channel"/"approval" for "task" to cover every currently-mapped
+   `CLARIFICATION_ENTITY_ACTION_FIELD` entity type.
+3. Negative-scope note (not a PR B failure): a `single_entity_clarification` about a
+   *person* ("delete that employee") correctly asks the clarifying question and targets
+   the real person id, but does not yet resolve deterministically on turn 2 — there is no
+   `person → endEmploymentPersonIds` mapping until Workstream 1 ships in a later PR. Turn
+   2 for a person clarification should fall through to the ordinary LLM call (still
+   correct behavior, just not the zero-LLM-call fast path) rather than silently doing
+   nothing or archiving the wrong thing.
+
+### CHAT_COMPOUND_COMMAND_PRESERVES_RESOLVED_COMPANY
+
+1. Turn 1: `Create a company called QA-CONTINUITY-CO under SEM LLC and add a new
+   employee there.` Expect Brain OS to create `QA-CONTINUITY-CO` (a real
+   `createCompanies` entry) and ask ONLY for the missing employee fields (name/role) in
+   `summary` — not re-ask which company. Confirm
+   `work_orders.output.resolvedEntities.companies` contains `{id, name:
+   "QA-CONTINUITY-CO"}` for this turn (real, persisted — not just visible in the one-time
+   SSE stream).
+2. Turn 2: `Her name is Jane Doe, she's the ops lead.` PASS: the new person is created
+   under `QA-CONTINUITY-CO`'s real id — verify both via this turn's own
+   `context.recentlyResolvedEntities.companies` (present in the request the Edge
+   Function received) and via the actual `people.company_id` row in the database. FAIL
+   (the original bug): Brain OS asks again which company Jane Doe belongs to, or creates
+   her with no company / the wrong company.
+
+### CHAT_SHORT_REPLY_DOES_NOT_TRIGGER_GENERIC_FALLBACK
+
+1. Turn 1: ask something genuinely open-ended with no clean single answer available from
+   context (e.g. in a fresh channel with more than one real company in context: `Which
+   company should I use for this?`). Expect `summary` ends in a question mark AND
+   `work_orders.output.pendingAction` is `{"kind": "open_question", "question": ...}` —
+   never null.
+2. Turn 2: reply with a short, low-signal message, e.g. `test3` or `not sure`. PASS: the
+   reply engages with the actual open question from turn 1 (using
+   `context.pendingAction.question` as real context) rather than free-associating into
+   describing its own system prompt or capabilities — the original reported defect
+   ("test3" produced a description of Brain OS itself, not a question about the pending
+   topic). FAIL: the reply is generic/self-referential with no connection to what was
+   actually asked in turn 1.
+
+### CHAT_NATURAL_ENTITY_REFERENCE_RESOLVES
+
+1. Set up a company literally named `Test Business Unit` (organizationType
+   `business_unit`, under any real parent).
+2. Turn 1: `Show me tasks for test business unit.` (lowercase, unquoted, phrased exactly
+   like a type description rather than a proper name). PASS: Brain OS resolves it to the
+   real `Test Business Unit` company by its literal name (case-insensitive,
+   quote-agnostic) rather than misreading "test business unit" as a description of the
+   `business_unit` organizationType and asking "which business unit did you mean?" or
+   silently ignoring the reference. FAIL: Brain OS asks a clarifying question that
+   reveals it never matched the literal company name, or answers about the wrong/no
+   company.
+3. Re-run addressing the same company as `"Test Business Unit"` (quoted, exact case) and
+   `TEST BUSINESS UNIT` (all caps) — all three phrasings must resolve identically to
+   step 2.
+4. Negative/disambiguation case: create a SECOND company whose name also plausibly
+   matches (e.g. `Test Business Unit 2`), then repeat turn 1's phrasing. PASS: Brain OS
+   sets `pendingAction: {"kind": "disambiguation", "options": [...]}` naming both real
+   companies by name rather than silently guessing one. Confirm turn 2 (`the second one`
+   or naming one option's exact label) resolves deterministically
+   (`work_orders.output.model === "deterministic-disambiguation"`).
+
+### BRAIN_CHAT_RESPONSE_NO_DUPLICATE_RESULT
+
+1. Turn: `Build a new page that shows partner revenue by month.` against a real company
+   (a genuine `createFactoryWorkOrders` request). PASS: `summary` is exactly the
+   three-line deterministic report — `Work Order created: <title>.` / `Status: Queued.`
+   / `I'll track build and independent verification in the Agent Control Center.` — and
+   does NOT ALSO contain a second, model-written restatement of the same fact below it
+   (no separate "I've created a Work Order to..." paragraph duplicating the
+   deterministic line). FAIL (the original bug): the deterministic line is followed by
+   the model's own near-duplicate prose, so the founder reads the same fact twice in
+   different words.
+
+### BRAIN_CHAT_RESPONSE_HIDES_INTERNAL_IDS
+
+1. Same turn as above. PASS: `summary` (what the founder actually reads in the chat
+   bubble) contains no UUID (pattern `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
+   [0-9a-f]{12}`) and no full git commit SHA. The real id is present ONLY in the
+   structured `result.executionEvidence.factoryWorkOrders[].id` field (and the existing
+   SSE `done` event's own `createdFactoryWorkOrders` array, unchanged) — confirm both by
+   inspecting the persisted `work_orders.output` row directly, not by trusting the chat
+   bubble text alone.
+2. Follow-up turn: `What happened with that work?` against a Work Order that has a real
+   `lastRunHeadCommit`. PASS: `summary` does not quote the full SHA unless the founder
+   explicitly asks "which commit" — and even then, only the first 7 characters.
+
+### BRAIN_CHAT_RESPONSE_HIDES_INTERNAL_EXECUTION_NOISE
+
+1. Same Work Order status follow-up as above (`What happened with that work?` / `Is it
+   done yet?`). PASS: `summary` uses only the founder-facing status vocabulary —
+   "Created" / "Queued" / "Running" / "Waiting for approval" / "Verifying" / "Completed"
+   / "Failed" — and never a raw enum value (`e2e_verified`, `in_progress`, `qa_review`,
+   `needs_approval` verbatim, etc.) or the word "Runner". Confirm by checking the real
+   `agent_runs.status`/`verification_status` values in the database for that Work Order
+   and verifying the reply's wording maps correctly (e.g. a real `lastRunStatus: "done"`
+   with no `lastRunVerificationStatus` set must read as "Verifying," never "done" or
+   "e2e_verified").
+2. Negative/regression check: confirm the destination named in `summary` is "Agent
+   Control Center" (the real sidebar entry that actually shows this Work Order —
+   `web/components/app-sidebar.tsx`, href `/software-factory`, verified against
+   `web/lib/data/factory.ts` querying `canonical_work_orders` directly) — not "Workflow
+   Factory" (a different feature at `/workflows`, unrelated to this Work Order's own
+   build/verification tracking) and not any raw internal path.

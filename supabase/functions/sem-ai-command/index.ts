@@ -65,6 +65,76 @@ type AiTask = {
   testMethod?: string[];
 };
 
+// Workstream 3: pendingAction generalizes the old pendingConfirmation-only mechanism
+// (a single bulk-destructive-confirmation shape) into 4 kinds — see the big
+// context.pendingAction system-prompt block below for the full behavioral spec, and the
+// resolution-precedence comment in serve() for how each kind is (or isn't) resolved
+// deterministically without an LLM call.
+type PendingActionOption = { label: string; id: string; entityType: string };
+type PendingAction =
+  | { kind: 'bulk_confirmation'; summary?: string; action?: Record<string, unknown> }
+  | { kind: 'single_entity_clarification'; question?: string; candidateIds?: string[]; entityType?: string }
+  | { kind: 'disambiguation'; question?: string; options?: PendingActionOption[] }
+  | { kind: 'open_question'; question?: string };
+
+// Workstream 3c: real id+name of anything createCompanies/createPeople/createGoals
+// actually created last turn (reused straight from the sem_execute_ai_command RPC's own
+// createdCompanies/createdPeople/createdGoals return value — no extra query), threaded
+// into the NEXT turn's context as context.recentlyResolvedEntities so a compound
+// follow-up command doesn't need to re-derive an id from prose.
+type ResolvedEntities = {
+  companies: { id: string; name: string }[];
+  people: { id: string; name: string }[];
+  goals: { id: string; name: string }[];
+};
+
+// Maps a single_entity_clarification/disambiguation entityType to the real mutation
+// field it resolves to when the founder confirms deterministically (no LLM call) —
+// deliberately only the ordinary-language, safe/reversible "delete this one thing"
+// fields that already exist in this file's own JSON schema (see the
+// archiveTaskIds/archiveCompanyIds/archiveGoalIds/deleteChannelIds/deleteApprovalIds
+// prompt rules above). This map only decides WHICH field — every id resolved through it
+// is still re-validated against the real context id sets downstream exactly like a
+// model-produced id would be (contextTaskIds/contextCompanyIds/etc.), so a stale or
+// hallucinated candidateId from an earlier turn can never bypass the existing
+// id-provenance trust boundary.
+const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, string> = {
+  task: 'archiveTaskIds',
+  company: 'archiveCompanyIds',
+  goal: 'archiveGoalIds',
+  channel: 'deleteChannelIds',
+  approval: 'deleteApprovalIds',
+};
+
+// Broader than the bulk_confirmation isShortAffirmative check below (an exact
+// whole-string match) — a clarification reply is realistically phrased with trailing
+// content ("yes, delete that employee") or a referent phrase ("that one", "correct")
+// rather than a bare "yes". This is the direct fix for the narrow anchored-regex defect
+// described in the plan (Workstream 3, Bugs 1-3): "yes, delete that employee" failed the
+// old exact-match check entirely. Only used for single_entity_clarification resolution
+// (Workstream 3b step 3) — bulk_confirmation (step 2) keeps using the original exact
+// isShortAffirmative regex, unchanged, per the plan's explicit "today's exact
+// deterministic short-circuit, unchanged" requirement.
+function isClarificationAffirmative(command: string): boolean {
+  const trimmed = command.trim();
+  if (!trimmed) return false;
+  return /^(yes|yep|yeah|yup|confirm|confirmed|correct|right|that'?s\s+(it|right|correct|the\s+one)|that\s+one|this\s+one|go ahead|go for it|do it|execute|proceed|sure|okay|ok)\b/i.test(trimmed);
+}
+
+// Workstream 3b step 4 (disambiguation, "referent resolution"): resolves
+// deterministically only when the reply's text contains exactly ONE option's label as a
+// case-insensitive substring — zero matches or more than one match stays genuinely
+// ambiguous and falls through to the ordinary LLM call (step 5) rather than guessing.
+function matchDisambiguationOption(command: string, options: PendingActionOption[]): PendingActionOption | null {
+  const normalizedCommand = command.trim().toLowerCase();
+  if (!normalizedCommand) return null;
+  const matches = options.filter((o) =>
+    o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string' &&
+    o.label.trim().length > 0 && normalizedCommand.includes(o.label.trim().toLowerCase())
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
 const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
 Refer to yourself as "Brain OS" if you need to name yourself in a reply, never "SEM Brain".
@@ -135,32 +205,71 @@ Rules:
 - High-risk actions require approval: salary, HR, money, legal, contracts, external emails, publishing, production systems, deletion, ownership, investor communications, discounts above policy, barter/financing terms.
 - Do not expose ownership/cash/salary data unless present in context and user role permits it.
 - Use only the provided company/project/person/agent IDs if assigning IDs.
-- BEFORE any destructive or bulk-scoped action below (deleting many things at once, or a
-  sweeping/ambiguous-scope request like "delete all test data", "wipe everything", "clear
-  the whole workspace", "start fresh"), check context.pendingConfirmation first, then
-  decide whether to ask or act:
-  - If context.pendingConfirmation is present AND the founder's message is any form of
-    agreement (yes, confirm, do it, go ahead, sure, proceed, etc.) — re-emit the EXACT
-    fields from context.pendingConfirmation.action verbatim into this response (e.g. if
-    it holds {"deleteProductLineIds": [...]}, put that same array into your own
-    deleteProductLineIds field this turn). Do not reinterpret, re-derive, re-scope, or
-    add to it — the ids were already validated against context when first proposed, and
-    the founder is confirming exactly that, not a fresh command. If the founder's message
-    instead declines or asks for something else, do not execute — pendingConfirmation is
-    implicitly cancelled by not re-emitting it.
-  - A request naming ONE specific entity ("delete the QA TEST DEPT department") is never
-    sweeping enough for this — it stays on the normal immediate-execute-then-audit path
-    each entity's own rules below already describe. Do not add a confirmation step to an
-    already-safe single-entity action.
-  - For a genuinely sweeping/ambiguous-scope destructive request with no
-    context.pendingConfirmation yet: do NOT populate any delete-id-array field this turn.
-    Instead set "pendingConfirmation": {"summary": <specific, e.g. "delete 4 product
-    lines, 2 proposals, and 1 software spec across QA TEST CO">, "action": {<the exact
-    delete-id-array fields you would otherwise execute, using only real ids from
-    context, never guessed>}}, and write your "summary" as a direct confirmation
-    question naming exactly what and how many, e.g. "Delete 4 product lines, 2 proposals,
-    and 1 software spec? This can't be undone." Nothing executes until the founder
-    actually confirms next turn.
+- context.pendingAction (if present) is the exact structured state of a clarifying
+  question a PRIOR turn asked and never got resolved yet — always check it first, then
+  decide whether to ask something new or act. It carries a "kind" of exactly one of
+  "bulk_confirmation" | "single_entity_clarification" | "disambiguation" |
+  "open_question". Every turn you produce must either leave "pendingAction" null (nothing
+  left unresolved) or set it to exactly one of these four shapes whenever "summary" asks
+  the founder something that needs a specific answer — never leave it null while summary
+  ends in a question mark, and never invent a fifth shape.
+  - "bulk_confirmation" — BEFORE any destructive or bulk-scoped action (deleting many
+    things at once, or a sweeping/ambiguous-scope request like "delete all test data",
+    "wipe everything", "clear the whole workspace", "start fresh"):
+    - If context.pendingAction.kind is "bulk_confirmation" AND the founder's message is
+      any form of agreement (yes, confirm, do it, go ahead, sure, proceed, etc.) —
+      re-emit the EXACT fields from context.pendingAction.action verbatim into this
+      response (e.g. if it holds {"deleteProductLineIds": [...]}, put that same array
+      into your own deleteProductLineIds field this turn). Do not reinterpret, re-derive,
+      re-scope, or add to it — the ids were already validated against context when first
+      proposed, and the founder is confirming exactly that, not a fresh command. If the
+      founder's message instead declines or asks for something else, do not execute —
+      this pendingAction is implicitly cancelled by not re-emitting it (leave
+      pendingAction null this turn).
+    - A request naming ONE specific entity ("delete the QA TEST DEPT department") is
+      never sweeping enough for this — it stays on the normal immediate-execute-then-
+      audit path each entity's own rules below already describe. Do not add a
+      confirmation step to an already-safe single-entity action.
+    - For a genuinely sweeping/ambiguous-scope destructive request with no
+      context.pendingAction yet: do NOT populate any delete-id-array field this turn.
+      Instead set "pendingAction": {"kind": "bulk_confirmation", "summary": <specific,
+      e.g. "delete 4 product lines, 2 proposals, and 1 software spec across QA TEST
+      CO">, "action": {<the exact delete-id-array fields you would otherwise execute,
+      using only real ids from context, never guessed>}}, and write your "summary" as a
+      direct confirmation question naming exactly what and how many, e.g. "Delete 4
+      product lines, 2 proposals, and 1 software spec? This can't be undone." Nothing
+      executes until the founder actually confirms next turn.
+  - "single_entity_clarification" — when you are proposing ONE specific real entity as
+    the likely referent of an ambiguous ordinary-language request about it (e.g. the
+    founder says "delete that employee" and exactly one context.people entry plausibly
+    matches, or a name is close-but-not-exact to one real record) and want the founder to
+    confirm it's the right one before you act: do NOT populate any mutation field this
+    turn. Set "pendingAction": {"kind": "single_entity_clarification", "question": <your
+    actual clarifying question, e.g. "Did you mean John Doe at QA TEST CO?">,
+    "candidateIds": [<the one real id you're proposing, from context, never guessed>],
+    "entityType": "task"|"company"|"goal"|"channel"|"approval"}, and ask exactly that
+    question in "summary" — nothing else. A short confirming reply next turn ("yes",
+    "yes, delete that employee", "that one", "correct") resolves this deterministically
+    against candidateIds without you needing to re-derive anything.
+  - "disambiguation" — when MULTIPLE real, genuinely different entities could plausibly
+    be what the founder means (two companies with similar names, two tasks that could
+    both be "the deploy task") and you cannot tell which: do NOT guess and do NOT
+    populate any mutation field this turn. Set "pendingAction": {"kind":
+    "disambiguation", "question": <your question>, "options": [{"label": <short
+    human-readable name so the founder can recognize it, e.g. the real company name>,
+    "id": <its real id from context>, "entityType":
+    "task"|"company"|"goal"|"channel"|"approval"}, ...]}, and name the real options by
+    their real names in "summary" (e.g. "Did you mean SEM LLC or SEM Global Robotics
+    Technologies?"). A reply naming one option by its label next turn (e.g. "the SEM LLC
+    one") resolves this deterministically without you needing to re-derive which id that
+    was.
+  - "open_question" — the catch-all: whenever your "summary" ends in a question mark and
+    this turn populates no mutation fields (nothing created/updated/deleted/archived/
+    restored), you MUST set "pendingAction": {"kind": "open_question", "question": <the
+    same question, verbatim>} — never leave pendingAction null in this case. This keeps
+    every clarifying question you ever ask structurally visible to the next turn, even a
+    short, free-form one that doesn't fit the other three shapes (e.g. "which company did
+    you mean?" with no specific candidates yet).
 - "Delete"/"remove"/"clear" a task with ORDINARY language ("delete this task", "remove
   it", "clear my old tasks") means archiveTaskIds, not deleteTaskIds — put the exact "id"
   from context.tasks (or context.archivedTasks for a task already archived, though
@@ -332,22 +441,24 @@ Rules:
   something in Brain OS's own codebase (e.g. "build a partner revenue dashboard", "fix
   the bug where X", "add a page for Y") — a request for real autonomous coding agent
   work, not a spec ticket — use createFactoryWorkOrders instead. This creates a real,
-  queued Work Order that Brain OS's own execution Runner picks up separately and
+  queued Work Order that Brain OS's own execution pipeline picks up separately and
   dispatches to a real, registered coding agent; it does NOT write any code itself and
   does NOT run synchronously in this turn. Never claim in your summary that the feature
   was built, that code was written, or that the change is live — you have no way to know
-  that from this turn alone. Confirm only that the Work Order was created and name its
-  real id; the real outcome (queued/in_progress/done/blocked) is something the founder
-  checks later in the Agent Control Center (/software-factory), not something you can
-  report now. Every Work Order needs a real company (companyId from context.companies or
-  companyIndex into this response's own createCompanies) and should reference a goal when
-  one is clearly implied (goalId from context.goals or goalIndex into this response's own
-  createGoals) — a Work Order with no resolvable company is a clarification task instead
-  of a guess, same as every other company-scoped create above. workType defaults to
-  "software_development" if omitted. If the request is genuinely ambiguous about scope
-  (e.g. "make it better" with no specifics), ask a clarifying question instead of
-  creating a vague Work Order — acceptanceCriteria should be concrete enough that an
-  engineer could tell when it's done.
+  that from this turn alone. A deterministic confirmation line is generated for you after
+  this actually runs and FULLY REPLACES whatever you write in summary for this turn, so
+  do not restate the Work Order's id or repeat your own "Work Order created" confirmation
+  — it is dead weight the founder would just read twice. If you have nothing else to add,
+  leave summary minimal; only add words here that the deterministic line doesn't already
+  cover (why this scope, what the founder should expect to happen next). Every Work Order
+  needs a real company (companyId from context.companies or companyIndex into this
+  response's own createCompanies) and should reference a goal when one is clearly implied
+  (goalId from context.goals or goalIndex into this response's own createGoals) — a Work
+  Order with no resolvable company is a clarification task instead of a guess, same as
+  every other company-scoped create above. workType defaults to "software_development" if
+  omitted. If the request is genuinely ambiguous about scope (e.g. "make it better" with
+  no specifics), ask a clarifying question instead of creating a vague Work Order —
+  acceptanceCriteria should be concrete enough that an engineer could tell when it's done.
 - When the founder asks about the status of a Work Order you or a prior turn created
   (e.g. "what happened with that work?", "did the dashboard get built?", "is it done
   yet?") — answer from context.factoryWorkOrders, which holds real, persisted state
@@ -355,13 +466,23 @@ Rules:
   lastRunSummary, lastRunHeadCommit) for the founder's real recent Work Orders,
   regardless of whether this is a fresh conversation with no memory of creating it.
   This is real, current truth from the database, not something you need
-  conversationHistory for. Report exactly what it says — \`lastRunStatus: "done"\` with
-  no \`lastRunVerificationStatus\` means the agent finished but independent verification
-  hasn't confirmed it yet; never round that up to "done and verified" or invent a
-  status/commit/outcome that isn't literally present in context.factoryWorkOrders. If
-  the founder asks about a Work Order that isn't in this list at all (it may be older
-  than the 10 most recent, or belong to a company you can't see), say you don't have it
-  in view rather than guessing.
+  conversationHistory for. Translate the real status into plain founder-facing language —
+  NEVER repeat a raw database enum value like \`e2e_verified\` or \`in_progress\` in your
+  own prose. Use exactly this vocabulary: "Created" (the record exists but no Work Order
+  yet), "Queued" (status queued, no run started yet), "Running" (a run is in progress),
+  "Waiting for approval" (status needs_approval), "Verifying" (a run finished and
+  independent verification hasn't confirmed it yet — \`lastRunStatus: "done"\` with no
+  \`lastRunVerificationStatus\` set), "Completed" (\`lastRunStatus: "done"\` AND
+  lastRunVerificationStatus confirms it), "Failed" (status blocked/rejected, or the run
+  itself failed) — never round "Verifying" up to "done and verified", and never invent a
+  status/commit/outcome that isn't literally present in context.factoryWorkOrders. Point
+  the founder at the real destination for full detail — Brain OS's Software Factory
+  dashboard (the "Agent Control Center" entry in the sidebar) — never call it "the
+  Runner" or quote a raw internal path. If the founder specifically asks which commit,
+  you may quote the first 7 characters of lastRunHeadCommit — never the full SHA, and
+  never volunteer a commit hash unless asked. If the founder asks about a Work Order that
+  isn't in this list at all (it may be older than the 10 most recent, or belong to a
+  company you can't see), say you don't have it in view rather than guessing.
 - Proposals are different: you may create a bare draft (title + company only, no pricing)
   via createProposals, and update only title/paymentTerms via updateProposals — never
   propose or infer subtotal/discount/total/status. Real proposal pricing runs a risk-
@@ -419,6 +540,19 @@ Rules:
   the container ("CLIX GPS business_unit_of SEM LLC" — companyId=CLIX GPS,
   relatedCompanyId=SEM LLC). Get this backwards and the hierarchy inverts silently — always
   read the relationshipType name as the literal English sentence connecting the two ids.
+- Matching a name the founder types to a real record (context.companies[].name,
+  context.people[].full_name, context.tasks[].title, context.goals[].title, etc.) is
+  case-insensitive and quote-agnostic — "sem llc", "SEM LLC", and a quoted "SEM LLC" all
+  match a company actually named "SEM LLC" the same way; strip surrounding quote
+  characters before comparing. If the founder's phrase reads like it could be describing
+  a TYPE ("business unit", "the subsidiary") rather than naming an entity, but it is ALSO
+  an exact (case-insensitive) match for one real record's actual name in context, prefer
+  the literal name match — do not read "test business unit" as a description of an
+  organizationType when a company is literally named "Test Business Unit" and that's the
+  only entity in context named anything close to it. If more than one record could
+  plausibly match (two companies with overlapping names, a name that's genuinely
+  ambiguous), do not guess — use pendingAction:{"kind":"disambiguation"} above instead of
+  silently picking one.
 - "Check [company]'s structure", "reconcile the organization", "fix inconsistent company
   references", or any request to audit/verify the org graph itself (not change it) sets
   checkOrganizationGraph — {companyId/companyIndex} for one company, or both null to check
@@ -431,6 +565,17 @@ Rules:
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation: do not repeat an action you already took
   earlier in this history, and refer back to it naturally when relevant.
+- context.recentlyResolvedEntities (present only immediately after a turn that actually
+  created something) holds the real id+name of every company/person/goal created in the
+  PREVIOUS turn — {"companies": [{"id","name"}], "people": [{"id","name"}], "goals":
+  [{"id","name"}]}. When the founder's very next message refers back to something you
+  just created in a compound follow-up ("create QA-CONTINUITY-CO and add a new employee
+  there", "add a goal for that company"), use the real id straight from
+  context.recentlyResolvedEntities — never re-derive it by matching names out of your own
+  prior prose, and never ask the founder to repeat a company/person/goal they just told
+  you to create in the same conversation. Only the immediately preceding turn counts;
+  once something exists it also shows up in context.companies/context.people/
+  context.goals directly, which take priority for anything older than one turn back.
 - context.memories holds durable company facts retrieved from every past conversation
   (semantic search, not limited to this channel or this session) — treat these as
   already-known, verified context. Do not propose a memoryCandidate that restates one
@@ -445,7 +590,7 @@ Output schema:
 {
   "strategicGoal": string,
   "summary": string,
-  "pendingConfirmation": {"summary": string, "action": object}|null,
+  "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "options": [{"label": string, "id": string, "entityType": string}]|null}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
     {
@@ -1093,15 +1238,38 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
     documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
-  // Pending confirmation state (BRAIN OS master prompt §6-7): the previous turn in this
-  // channel may have asked the founder to confirm a bulk/sweeping action instead of
-  // executing it — its exact payload rides along in that turn's own work_orders.output,
-  // no new table needed. Only the LAST turn counts as "awaiting confirmation"; once a
-  // turn executes (or the founder moves on), the newest output has no pendingConfirmation
-  // and this naturally reads as null again — that's the whole idempotency mechanism, see
-  // the deterministic short-circuit in serve() below.
-  const lastTurnOutput = conversationRowsChronological?.[conversationRowsChronological.length - 1]?.output as { pendingConfirmation?: unknown } | undefined;
-  const pendingConfirmation = lastTurnOutput?.pendingConfirmation ?? null;
+  // Pending action state (Workstream 3 — generalizes the old bulk-confirmation-only
+  // mechanism into 4 kinds: bulk_confirmation, single_entity_clarification,
+  // disambiguation, open_question). The previous turn in this channel may have asked the
+  // founder a question that needs a structured answer instead of executing right away —
+  // its exact payload rides along in that turn's own work_orders.output, no new table
+  // needed. Only the LAST turn counts as "awaiting an answer"; once a turn executes (or
+  // the founder moves on to something else), the newest output has no pendingAction and
+  // this naturally reads as null again — that's the whole idempotency mechanism, see the
+  // deterministic short-circuit in serve() below.
+  // Back-compat: a turn persisted under the OLD pendingConfirmation-only shape (no
+  // "kind") before this generalization still resolves correctly here — read as an
+  // equivalent bulk_confirmation rather than silently dropped mid-conversation.
+  // Reads conversationRowsChronological (not conversationRows.data directly) — the
+  // ordering fix above fetches newest-first for the LIMIT to keep the right rows, so
+  // "last element" only means "most recent turn" against the reversed, chronological
+  // array; conversationRows.data itself is now newest-first and would silently make this
+  // pick the OLDEST of the kept window instead.
+  const lastTurnOutput = conversationRowsChronological?.[conversationRowsChronological.length - 1]?.output as {
+    pendingAction?: PendingAction | null;
+    pendingConfirmation?: { summary?: string; action?: Record<string, unknown> } | null;
+    resolvedEntities?: ResolvedEntities | null;
+  } | undefined;
+  const legacyPendingConfirmation = lastTurnOutput?.pendingConfirmation;
+  const pendingAction: PendingAction | null = lastTurnOutput?.pendingAction
+    ?? (legacyPendingConfirmation && typeof legacyPendingConfirmation === 'object'
+      ? { kind: 'bulk_confirmation', summary: legacyPendingConfirmation.summary, action: legacyPendingConfirmation.action }
+      : null);
+  // Workstream 3c: real id+name of anything created LAST turn, so a compound follow-up
+  // command ("create QA-CONTINUITY-CO and add a new employee there") can thread the real
+  // id straight through instead of the model re-deriving it from its own prior prose.
+  // Same "only the last turn counts" scoping as pendingAction above.
+  const recentlyResolvedEntities: ResolvedEntities | null = lastTurnOutput?.resolvedEntities ?? null;
   // Compact real summary, not the full row shape - enough for "what happened with that
   // work?" to be answerable from real state (title/status/task+run counts/last run
   // outcome/real commit), not a dashboard-sized dump. Every field here is real,
@@ -1128,7 +1296,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     };
   });
 
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingConfirmation, counts };
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
   return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
@@ -1231,26 +1399,69 @@ serve(async (req) => {
         let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
 
-        // Pending-confirmation fast path (BRAIN OS master prompt §6-7): "confirmation
-        // executes the stored action... do not reinterpret the original command after
-        // approval." A short, unambiguous affirmative replying to a turn that set
-        // pendingConfirmation skips the LLM entirely — the action fields are exactly what
-        // was proposed and already id-cross-checked last turn; re-deriving them through a
-        // fresh model call is itself a chance to drift from what was actually confirmed.
+        // Pending-action resolution precedence (Workstream 3b — explicit code, not left
+        // to model judgment):
+        //   1. Explicit new command — no special handling needed: it simply won't match
+        //      any of the narrow deterministic patterns in steps 2-4 below, so it falls
+        //      straight through to the ordinary LLM call (step 5) by construction.
+        //   2. Pending operation continuation — pendingAction.kind === "bulk_confirmation"
+        //      + an exact short affirmative — today's ORIGINAL mechanism, byte-for-byte
+        //      unchanged (same regex, same "Confirmed — {summary}" phrasing).
+        //   3. Clarification response — pendingAction.kind === "single_entity_clarification"
+        //      + a short AFFIRMING reply (not necessarily an exact whole-string match —
+        //      "yes, delete that employee" must resolve too, unlike step 2's stricter
+        //      match) — resolved deterministically against candidateIds, no LLM call.
+        //      Direct fix for CHAT_PENDING_ACTION_SURVIVES_CLARIFICATION /
+        //      CHAT_CONFIRMATION_RESOLVES_PREVIOUS_ENTITY.
+        //   4. Referent resolution — pendingAction.kind === "disambiguation" + the reply
+        //      naming one real option by its label — resolved deterministically, no LLM
+        //      call.
+        //   5. Normal query — no pendingAction, or one that didn't match 2-4 — today's
+        //      ordinary LLM call, unchanged; context.pendingAction still rides along in
+        //      contextPack so the model itself can handle a decline, a redirect, or a
+        //      genuinely new instruction.
+        //   6. Generic fallback — only reached if the LLM itself produces a low-signal
+        //      reply; enforced by the system prompt's own open_question requirement
+        //      (Workstream 3d), not by code here.
         // This only ever fires immediately after the specific turn that proposed it (see
-        // buildContext's pendingConfirmation extraction) — a second "yes" one turn later
-        // finds nothing pending and falls through to the model as an ordinary message,
-        // which is the idempotency guarantee, not a separate check here.
-        const pendingConfirmation = contextPack?.pendingConfirmation as { summary?: string; action?: Record<string, unknown> } | null;
+        // buildContext's pendingAction extraction) — a second "yes" one turn later finds
+        // nothing pending and falls through to the model as an ordinary message, which is
+        // the idempotency guarantee, not a separate check here.
+        const pendingAction = contextPack?.pendingAction as PendingAction | null;
         const isShortAffirmative = /^(yes|yep|yeah|yup|confirm|confirmed|go ahead|go for it|do it|execute|proceed|sure|okay|ok)[.!]?$/i.test(command.trim());
 
-        if (pendingConfirmation?.action && typeof pendingConfirmation.action === 'object' && isShortAffirmative) {
-          resultText = JSON.stringify({
-            summary: pendingConfirmation.summary ? `Confirmed — ${pendingConfirmation.summary}` : 'Confirmed.',
-            ...pendingConfirmation.action,
-          });
-          model = 'deterministic-confirmation';
-          if (typeof pendingConfirmation.summary === 'string') send({ type: 'delta', text: `Confirmed — ${pendingConfirmation.summary}` });
+        let deterministic: { summary: string; fields: Record<string, unknown>; tag: string } | null = null;
+        if (pendingAction && pendingAction.kind === 'bulk_confirmation' && pendingAction.action && typeof pendingAction.action === 'object' && isShortAffirmative) {
+          deterministic = {
+            summary: pendingAction.summary ? `Confirmed — ${pendingAction.summary}` : 'Confirmed.',
+            fields: pendingAction.action,
+            tag: 'deterministic-confirmation',
+          };
+        } else if (pendingAction && pendingAction.kind === 'single_entity_clarification' && Array.isArray(pendingAction.candidateIds) && pendingAction.candidateIds.length > 0 && isClarificationAffirmative(command)) {
+          const field = CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || ''];
+          if (field) {
+            deterministic = {
+              summary: pendingAction.question ? `Confirmed — ${pendingAction.question.replace(/\?+\s*$/, '')}.` : 'Confirmed.',
+              fields: { [field]: pendingAction.candidateIds },
+              tag: 'deterministic-clarification',
+            };
+          }
+        } else if (pendingAction && pendingAction.kind === 'disambiguation' && Array.isArray(pendingAction.options) && pendingAction.options.length > 0) {
+          const matchedOption = matchDisambiguationOption(command, pendingAction.options);
+          const field = matchedOption ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType] : undefined;
+          if (matchedOption && field) {
+            deterministic = {
+              summary: `Confirmed — ${matchedOption.label}.`,
+              fields: { [field]: [matchedOption.id] },
+              tag: 'deterministic-disambiguation',
+            };
+          }
+        }
+
+        if (deterministic) {
+          resultText = JSON.stringify({ summary: deterministic.summary, ...deterministic.fields });
+          model = deterministic.tag;
+          send({ type: 'delta', text: deterministic.summary });
         } else if(!key){
           const fb = fallbackPlan(command, contextPack);
           resultText = JSON.stringify(fb);
@@ -2132,6 +2343,25 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
+        // Workstream 3c: thread real ids for anything created this turn into the NEXT
+        // turn's context (contextPack.recentlyResolvedEntities, built in buildContext()
+        // from the immediately-preceding turn's own work_orders.output) so a compound
+        // follow-up ("create QA-CONTINUITY-CO and add a new employee there") doesn't need
+        // the model to re-derive a just-created company's id from its own prior prose.
+        // Reuses the ids/names the RPC already returned above — no extra query, no new
+        // persistence mechanism beyond the existing work_orders.output column this same
+        // file already writes lifecycle/factLine corrections into. Direct fix for
+        // CHAT_COMPOUND_COMMAND_PRESERVES_RESOLVED_COMPANY.
+        const resolvedEntities: ResolvedEntities = {
+          companies: createdCompanies.map((c: any) => ({ id: c.id, name: c.name })),
+          people: createdPeople.map((p: any) => ({ id: p.id, name: p.full_name })),
+          goals: createdGoals.map((g: any) => ({ id: g.id, name: g.title })),
+        };
+        const hasResolvedEntities = resolvedEntities.companies.length > 0 || resolvedEntities.people.length > 0 || resolvedEntities.goals.length > 0;
+        if (hasResolvedEntities) {
+          result.resolvedEntities = resolvedEntities;
+        }
+
         // Departments/leads/documents: executed here, outside the RPC's transaction —
         // resolves companyIndex against createdCompanies (just returned above) the same
         // way the RPC resolves it internally for projects/goals, then does a plain
@@ -2392,14 +2622,47 @@ serve(async (req) => {
         // quiet — this is a gap notice, not a routine status line.
         if (requestedProjects.length > createdProjects.length) factLines.push(`${requestedProjects.length - createdProjects.length} of ${requestedProjects.length} requested project(s) could not be created — missing a valid company reference.`);
         if (requestedGoals.length > createdGoals.length) factLines.push(`${requestedGoals.length - createdGoals.length} of ${requestedGoals.length} requested goal(s) could not be created — missing a valid company reference.`);
-        // Unconditional, not just on failure: the "never claim the feature was built"
-        // gate depends on this always overriding whatever the model's own prose said —
-        // matches the master plan's explicit requirement that only a real created id,
-        // never the model's own words, confirms a Work Order exists.
+        // Workstream 5 (Bugs 18/19): factory-work-order confirmations get their OWN
+        // full-replacement report instead of living in the shared factLines array (which
+        // only PREPENDS to result.summary below) — prepending still let the model's own
+        // near-duplicate restatement follow it, the exact reported defect. Exact
+        // three-line Outcome/Status/Next-action format the founder specified, and the
+        // real UI destination name: "Agent Control Center" is the actual sidebar entry
+        // (web/components/app-sidebar.tsx) for Brain OS's Software Factory dashboard,
+        // which is where a canonical_work_orders row created here actually shows up
+        // (web/lib/data/factory.ts's getRecentWorkOrders/getFactoryOverview both query
+        // canonical_work_orders directly) — verified against the live sidebar rather than
+        // assumed; "/workflows"'s own sidebar label "Workflow Factory" is a DIFFERENT
+        // feature (one-click command templates + product-spec ticket creation, not this
+        // Work Order's real build/verification tracking) and is deliberately not used
+        // here even though it sounds like the more obvious name. Never "Runner", never a
+        // raw UUID in the sentence itself — see executionEvidence below for where the
+        // real id goes instead.
+        const factoryWorkOrderLines: string[] = [];
         for (const w of createdFactoryWorkOrders) {
-          factLines.push(`Created Software Factory Work Order "${w.title}" (id: ${w.id}) — queued for Brain OS's execution Runner, not yet built. Check /software-factory for real progress.`);
+          factoryWorkOrderLines.push(
+            `Work Order created: ${w.title}.\n\nStatus: Queued.\n\nI'll track build and independent verification in the Agent Control Center.`
+          );
         }
-        if (createFactoryWorkOrdersReq.length > createdFactoryWorkOrders.length) factLines.push(`${createFactoryWorkOrdersReq.length - createdFactoryWorkOrders.length} of ${createFactoryWorkOrdersReq.length} requested Factory Work Order(s) could not be created — missing a valid company reference.`);
+        if (createFactoryWorkOrdersReq.length > createdFactoryWorkOrders.length) {
+          factoryWorkOrderLines.push(`${createFactoryWorkOrdersReq.length - createdFactoryWorkOrders.length} of ${createFactoryWorkOrdersReq.length} requested Factory Work Order(s) could not be created — missing a valid company reference.`);
+        }
+        const factoryWorkOrderReport = factoryWorkOrderLines.length > 0 ? factoryWorkOrderLines.join('\n\n') : null;
+
+        // Structured, not narrated: the real id (and, once a run exists, a real commit
+        // sha) stays out of default founder-facing prose (see the report above) but
+        // remains reachable for a future UI "Details" expansion, same reasoning as the
+        // existing SSE `done` event's own createdFactoryWorkOrders array — this is the
+        // persisted (work_orders.output), not just streamed, copy of that same fact.
+        const executionEvidence: Record<string, unknown> = {};
+        if (createdFactoryWorkOrders.length > 0) {
+          executionEvidence.factoryWorkOrders = createdFactoryWorkOrders.map((w) => ({ id: w.id, title: w.title, status: 'queued' }));
+        }
+        const hasExecutionEvidence = Object.keys(executionEvidence).length > 0;
+        if (hasExecutionEvidence) {
+          result.executionEvidence = executionEvidence;
+        }
+
         if (archivedCompanyBlockedCount > 0) factLines.push(`${archivedCompanyBlockedCount} item(s) were not created because the target company is archived — restore it first.`);
 
         // Master-prompt spec §42: a batch (>1 item) request gets a structured
@@ -2462,7 +2725,10 @@ serve(async (req) => {
         // Combined (not each independently overwriting result.summary) so a turn that
         // touches more than one of companies/tasks/goals doesn't silently lose all but
         // the last report - real, if uncommon (e.g. "archive this company and its task").
-        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport].filter((r): r is string => !!r);
+        // factoryWorkOrderReport (Workstream 5) joins the same combine array for the
+        // identical reason: a real Work Order creation is the entire point of the turn,
+        // so it fully replaces the model's own prose rather than merely prepending to it.
+        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport].filter((r): r is string => !!r);
         const lifecycleMismatchCorrections: string[] = [];
         if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.');
         if (claimsTaskDeleted) lifecycleMismatchCorrections.push('No task was actually archived, restored, or deleted this turn — tell me exactly which task, using its title as it appears in the Tasks list.');
@@ -2484,7 +2750,12 @@ serve(async (req) => {
         // getChatHistory in web/lib/data/chat-history.ts reads work_orders.output
         // directly). Persisting the corrected summary here is what makes every one of
         // those fixes actually durable instead of a one-time-per-request illusion.
-        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0) {
+        // hasResolvedEntities/hasExecutionEvidence (Workstream 3c/5) join the same
+        // persist condition for the identical reason — both mutate `result` directly
+        // rather than result.summary, so without this they'd be visible only in this
+        // request's own SSE `done` event, not to the next turn's buildContext() read of
+        // work_orders.output (recentlyResolvedEntities) or a future reload.
+        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
