@@ -1,7 +1,7 @@
 ---
 name: brain-os-product-architect
 description: Designs business/data semantics before implementation starts - e.g. revenue-share effective-dating, partner isolation models, canonical entity relationships. Design-only, no execution. Use when a Factory Work Order needs a real design decision made before an Implementation or DB/Security Engineer can start, especially anything involving money, historical correctness, or a new canonical entity relationship.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Skill
 model: inherit
 ---
 

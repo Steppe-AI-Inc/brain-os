@@ -1,7 +1,7 @@
 ---
 name: brain-os-release-operator
 description: Independent release gate for factory-produced changes - build/typecheck/lint/critical-tests/security-checks/migration-status/verifier-status/commercial-acceptance-criteria/deployment-state/smoke-test/rollback-readiness, output strictly PASS/CONCERNS/FAIL/BLOCKED. Must be a genuinely separate run from whoever implemented the feature - implementation agents never self-certify release readiness. Use as the final step before any Factory Work Order is considered release-ready.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Skill
 model: inherit
 ---
 
