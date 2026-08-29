@@ -3236,20 +3236,24 @@ create policy "agent_runs_select_scope" on public.agent_runs for select using (
   or created_by_profile_id = public.current_profile_id()
 );
 
--- Independent DB/Security Engineer review (2026-08-29) found a real defect in an
--- earlier version of this policy: `company_id is null or has_company_access(company_id)`
--- alone let ANY authenticated session insert an agent_runs row with company_id left
--- null and an arbitrary spoofed created_by_profile_id (including a fabricated
--- verification_status = 'live_verified') — the "only the trusted service-role Runner
--- inserts here" rationale in this file's header comment was correct about the INTENDED
--- path but did not actually hold as an RLS-enforced guarantee. Fixed by additionally
--- requiring created_by_profile_id to be null or the caller's own profile — the trusted
--- Runner (service role) bypasses RLS entirely and is unaffected; an ordinary
--- authenticated session can now only attribute a row to itself or leave it unattributed,
--- never spoof someone else's identity.
+-- Independent DB/Security Engineer review (2026-08-29, first pass) found a real defect:
+-- `company_id is null or has_company_access(company_id)` alone let ANY authenticated
+-- session insert an agent_runs row with company_id left null and an arbitrary spoofed
+-- created_by_profile_id (including a fabricated verification_status = 'live_verified').
+-- Fixed once by additionally requiring created_by_profile_id to be null or the caller's
+-- own profile — but a SECOND independent review (same day, reviewing Phase 6's new
+-- public.agents_with_live_status view) found that fix was still insufficient: an
+-- authenticated user could still fabricate an UNATTRIBUTED (created_by_profile_id left
+-- null) agent_runs row against any real Software Factory agent, which the new view would
+-- then surface as a genuine-looking RUNNING/FAILED status. See
+-- 202608290004_agent_runs_insert_scope_tighten.sql: the only real insert path today is
+-- the trusted service-role Runner (bypasses RLS entirely, completely unaffected by this),
+-- so the policy is now founder/admin-only outright — no legitimate non-admin, non-
+-- service-role flow inserts agent_runs rows directly today. A future legitimate
+-- non-admin insert path should get its own properly-scoped branch when actually built,
+-- not have this one left open on spec.
 create policy "agent_runs_insert_scope" on public.agent_runs for insert with check (
-  (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id))
-  and (created_by_profile_id is null or created_by_profile_id = public.current_profile_id())
+  public.is_founder_or_admin()
 );
 
 create policy "agent_runs_update_scope" on public.agent_runs for update using (
@@ -3259,3 +3263,55 @@ create policy "agent_runs_update_scope" on public.agent_runs for update using (
 );
 
 create policy "agent_runs_delete_scope" on public.agent_runs for delete using (public.is_founder_or_admin());
+
+-- ---------- FACTORY AGENT REGISTRY (Phase 6, expand-only) ----------
+-- see supabase/migrations/202608290003_factory_agent_registry.sql
+--
+-- Purely additive: new nullable columns on the EXISTING, live public.agents table
+-- (already RLS-restricted to founder/admin for all writes via agents_write_admin,
+-- defined earlier in this file — confirmed live, no new RLS policy needed for the
+-- requirement that ordinary users cannot change execution/security configuration) plus
+-- one real view computing live run status from actual public.agent_runs rows, never a
+-- stored/fakeable status. Appended here (needs public.agent_runs, defined above) rather
+-- than folded into the original `agents` table definition, for the same forward-
+-- reference reason as the canonical Work Order section above.
+
+alter table public.agents add column display_name text;
+alter table public.agents add column category text check (category in (
+  'SOFTWARE_FACTORY','SECURITY','INTEGRATION','VERIFICATION','RELEASE'
+));
+alter table public.agents add column definition_path text;
+alter table public.agents add column definition_hash text;
+alter table public.agents add column execution_provider text check (execution_provider is null or execution_provider in (
+  'claude_code_background','claude_code_local'
+));
+alter table public.agents add column permission_mode text;
+alter table public.agents add column has_production_authority boolean not null default false;
+alter table public.agents add column provenance jsonb;
+
+alter table public.agents add constraint agents_name_unique unique (name);
+
+create or replace view public.agents_with_live_status as
+select
+  a.*,
+  case
+    when a.execution_provider is null then 'UNKNOWN'
+    when exists (
+      select 1 from public.agent_runs ar
+      where ar.agent_id = a.id and ar.status in ('queued'::work_status,'in_progress'::work_status)
+    ) then 'RUNNING'
+    when (
+      select ar.status from public.agent_runs ar
+      where ar.agent_id = a.id order by ar.created_at desc limit 1
+    ) = 'rejected'::work_status then 'FAILED'
+    else 'IDLE'
+  end as live_status,
+  (select ar.id from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_id,
+  (select ar.created_at from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_at,
+  (select ar.status from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_status,
+  (select ar.summary from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_summary,
+  (select ar.head_commit from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_head_commit,
+  (select ar.provider_run_id from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_provider_run_id
+from public.agents a;
+
+alter view public.agents_with_live_status set (security_invoker = true);

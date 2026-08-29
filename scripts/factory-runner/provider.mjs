@@ -15,8 +15,13 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { writeFileSync, unlinkSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const execFileAsync = promisify(execFile);
+const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
 // Strips the ANSI color/cursor-control codes claude logs/attach output includes -
 // matches the exact sed pipeline used manually this session to make transcripts
@@ -124,4 +129,108 @@ export async function healthCheck() {
   } catch {
     return false;
   }
+}
+
+// ============================================================================
+// Registry-driven execution — Phase 6 of the Software Factory master plan.
+// ============================================================================
+// The Phase 6 acceptance test: the caller supplies a canonical Brain OS Agent ID (a
+// public.agents UUID), never a raw agent name/definition path/CLI flag. Every actual
+// dispatch parameter (name, execution_provider, whether it's even allowed to run) comes
+// from a real, trusted read of the registry - not from anything the caller supplies.
+// This is the concrete mechanism behind "client cannot spoof definition_path" and
+// "unknown agent cannot execute": there is no code path here that accepts a name/path
+// string directly from untrusted input and hands it to `claude --agent`.
+
+async function runSqlSelect(sql) {
+  const file = join(tmpdir(), `provider-registry-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
+  writeFileSync(file, sql, 'utf8');
+  try {
+    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
+      cwd: REPO_ROOT,
+      shell: true,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const jsonStart = stdout.indexOf('{');
+    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
+    return JSON.parse(stdout.slice(jsonStart));
+  } finally {
+    unlinkSync(file);
+  }
+}
+
+/**
+ * Real read of the trusted registry - the only source of truth for what a given
+ * canonical Agent ID is actually allowed to do.
+ * @param {string} agentId - a real public.agents UUID.
+ */
+export async function resolveAgentFromRegistry(agentId) {
+  if (!/^[0-9a-f-]{36}$/i.test(agentId)) {
+    throw new Error(`resolveAgentFromRegistry: "${agentId}" is not a well-formed UUID`);
+  }
+  const sql = `select id, name, active, execution_provider, has_production_authority, definition_path, definition_hash
+from public.agents where id = '${agentId}'::uuid;`;
+  const result = await runSqlSelect(sql);
+  const row = result.rows?.[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    active: row.active,
+    executionProvider: row.execution_provider,
+    hasProductionAuthority: row.has_production_authority,
+    definitionPath: row.definition_path,
+    definitionHash: row.definition_hash,
+  };
+}
+
+/**
+ * The Phase 6 acceptance chain: Brain OS Agent ID -> Agent registry -> execution
+ * provider resolves the approved agent definition -> real detached Claude execution.
+ * Refuses to dispatch anything the registry itself doesn't vouch for.
+ *
+ * No `cwd` parameter, deliberately (a real gap an independent review caught in the first
+ * version of this function): always dispatches against the real REPO_ROOT, never a
+ * caller-supplied path — there is no legitimate reason the Runner's own dispatch target
+ * directory should ever be something a caller chooses per-call.
+ *
+ * Also re-verifies the live on-disk file's real hash against the registry's stored
+ * definition_hash before dispatching (the second gap the same review caught: the column
+ * existed for drift detection but nothing ever actually checked it at dispatch time) -
+ * refuses to dispatch on any mismatch rather than silently running a definition that may
+ * have drifted from what was registered.
+ * @param {string} agentId
+ * @param {string} task
+ */
+export async function startRunByAgentId(agentId, task) {
+  const agent = await resolveAgentFromRegistry(agentId);
+  if (!agent) {
+    throw new Error(`startRunByAgentId: no registry row for agent id ${agentId} - unknown agents cannot execute`);
+  }
+  if (!agent.active) {
+    throw new Error(`startRunByAgentId: agent ${agentId} (${agent.name}) is registered but not active`);
+  }
+  if (!agent.executionProvider) {
+    throw new Error(`startRunByAgentId: agent ${agentId} (${agent.name}) has no execution_provider - this is a design-only agent, never dispatched by the Runner`);
+  }
+  if (agent.executionProvider !== 'claude_code_background') {
+    throw new Error(`startRunByAgentId: agent ${agentId} (${agent.name}) uses unsupported execution_provider "${agent.executionProvider}"`);
+  }
+  if (!agent.hasProductionAuthority) {
+    throw new Error(`startRunByAgentId: agent ${agentId} (${agent.name}) does not have production authority - refusing to dispatch`);
+  }
+  if (!agent.definitionPath) {
+    throw new Error(`startRunByAgentId: agent ${agentId} (${agent.name}) has no definition_path registered - refusing to dispatch`);
+  }
+  const liveContent = readFileSync(join(REPO_ROOT, agent.definitionPath), 'utf8');
+  const liveHash = createHash('sha256').update(liveContent, 'utf8').digest('hex');
+  if (liveHash !== agent.definitionHash) {
+    throw new Error(
+      `startRunByAgentId: definition_hash mismatch for ${agent.name} - registry has ${agent.definitionHash}, ` +
+      `live file ${agent.definitionPath} hashes to ${liveHash}. The on-disk definition has drifted from what ` +
+      `was registered; re-run sync-agents.mjs to confirm the change is intentional before dispatching.`
+    );
+  }
+  const result = await startRun(agent.name, task, REPO_ROOT);
+  return { ...result, agentId: agent.id, agentName: agent.name, definitionHash: agent.definitionHash };
 }
