@@ -3872,3 +3872,142 @@ $$;
 
 revoke all on function public.complete_agent_run(uuid, public.work_status, text, text, text) from public, anon;
 grant execute on function public.complete_agent_run(uuid, public.work_status, text, text, text) to authenticated;
+
+-- 202608300002_complete_work_order.sql mirror
+
+create or replace function public.enforce_work_order_completion_via_rpc()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (new.status = 'done' and coalesce(old.status, 'draft') is distinct from 'done')
+     or (coalesce(old.status, 'draft') = 'done' and new.status is distinct from 'done')
+  then
+    if coalesce(current_setting('app.work_order_completion_rpc', true), 'false') <> 'true' then
+      raise exception 'canonical_work_orders.status may only transition into/out of ''done'' through complete_work_order() - direct writes are blocked';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists canonical_work_orders_completion_guard on public.canonical_work_orders;
+create trigger canonical_work_orders_completion_guard
+  before update on public.canonical_work_orders
+  for each row execute function public.enforce_work_order_completion_via_rpc();
+
+create or replace function public.complete_work_order(p_work_order_id uuid, p_summary text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_status public.work_status;
+  v_company_id uuid;
+  v_authorized boolean;
+  v_incomplete_task record;
+  v_incomplete_task_count int;
+  v_failed_run record;
+  v_incomplete_run_count int;
+  v_has_commit boolean;
+  v_verified_run_id uuid;
+  v_cross_company_task record;
+  v_task_count int;
+  v_run_count int;
+begin
+  select status, company_id into v_status, v_company_id
+    from public.canonical_work_orders where id = p_work_order_id;
+  if not found then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',false,'reason','not_found');
+  end if;
+
+  v_authorized := public.is_founder_or_admin();
+  if not v_authorized then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',false,'currentStatus',v_status,'reason','denied');
+  end if;
+
+  if v_status = 'done' then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus','done',
+      'completedAt',(select completed_at from public.canonical_work_orders where id = p_work_order_id),
+      'reason','already_completed');
+  end if;
+
+  if v_status in ('rejected','archived') then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','invalid_state_for_completion');
+  end if;
+
+  select count(*) into v_incomplete_task_count
+    from public.tasks where canonical_work_order_id = p_work_order_id and status not in ('done','archived');
+  if v_incomplete_task_count > 0 then
+    select id, title, status into v_incomplete_task
+      from public.tasks where canonical_work_order_id = p_work_order_id and status not in ('done','archived')
+      order by created_at limit 1;
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','incomplete_task',
+      'incompleteTaskId',v_incomplete_task.id,'incompleteTaskTitle',v_incomplete_task.title,
+      'incompleteTaskStatus',v_incomplete_task.status,'incompleteTaskCount',v_incomplete_task_count);
+  end if;
+
+  select count(*) into v_incomplete_run_count
+    from public.agent_runs where canonical_work_order_id = p_work_order_id and status <> 'done';
+  if v_incomplete_run_count > 0 then
+    select id, status into v_failed_run
+      from public.agent_runs where canonical_work_order_id = p_work_order_id and status <> 'done'
+      order by started_at limit 1;
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','incomplete_or_failed_run',
+      'incompleteRunId',v_failed_run.id,'incompleteRunStatus',v_failed_run.status,
+      'incompleteRunCount',v_incomplete_run_count);
+  end if;
+
+  select exists(
+    select 1 from public.agent_runs where canonical_work_order_id = p_work_order_id and head_commit is not null
+  ) into v_has_commit;
+  if v_has_commit then
+    select id into v_verified_run_id
+      from public.agent_runs
+      where canonical_work_order_id = p_work_order_id
+        and status = 'done'
+        and verification_status in ('live_verified','e2e_verified')
+      limit 1;
+    if v_verified_run_id is null then
+      return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+        'changed',false,'authorized',true,'currentStatus',v_status,'reason','verification_required_not_found');
+    end if;
+  end if;
+
+  select id, company_id into v_cross_company_task
+    from public.tasks where canonical_work_order_id = p_work_order_id and company_id is distinct from v_company_id
+    limit 1;
+  if v_cross_company_task.id is not null then
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,'currentStatus',v_status,'reason','cross_company_task_reference',
+      'conflictingTaskId',v_cross_company_task.id);
+  end if;
+
+  select count(*) into v_task_count from public.tasks where canonical_work_order_id = p_work_order_id;
+  select count(*) into v_run_count from public.agent_runs where canonical_work_order_id = p_work_order_id;
+
+  perform set_config('app.work_order_completion_rpc', 'true', true);
+  update public.canonical_work_orders
+    set status = 'done', previous_status = v_status, completed_at = now(), updated_at = now()
+    where id = p_work_order_id;
+  perform set_config('app.work_order_completion_rpc', 'false', true);
+
+  return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+    'changed',true,'authorized',true,'previousStatus',v_status,'newStatus','done',
+    'completedAt',(select completed_at from public.canonical_work_orders where id = p_work_order_id),
+    'taskCount',v_task_count,'agentRunCount',v_run_count,'verifiedByAgentRunId',v_verified_run_id,
+    'summary',p_summary,'reason','completed');
+end;
+$$;
+
+revoke all on function public.complete_work_order(uuid, text) from public, anon;
+grant execute on function public.complete_work_order(uuid, text) to authenticated;
