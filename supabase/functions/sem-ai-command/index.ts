@@ -327,6 +327,27 @@ Rules:
   Engineering drawings: createEngineeringDrawings takes only a plain-language
   "description" — the real SVG is generated server-side by the same drawing-generation
   service the manual page uses, you never invent SVG content yourself.
+- Distinct from createProductSpecs above (which only creates a spec/ticket row, never
+  writes code): when the founder asks Brain OS to actually BUILD, FIX, or CHANGE
+  something in Brain OS's own codebase (e.g. "build a partner revenue dashboard", "fix
+  the bug where X", "add a page for Y") — a request for real autonomous coding agent
+  work, not a spec ticket — use createFactoryWorkOrders instead. This creates a real,
+  queued Work Order that Brain OS's own execution Runner picks up separately and
+  dispatches to a real, registered coding agent; it does NOT write any code itself and
+  does NOT run synchronously in this turn. Never claim in your summary that the feature
+  was built, that code was written, or that the change is live — you have no way to know
+  that from this turn alone. Confirm only that the Work Order was created and name its
+  real id; the real outcome (queued/in_progress/done/blocked) is something the founder
+  checks later in the Agent Control Center (/software-factory), not something you can
+  report now. Every Work Order needs a real company (companyId from context.companies or
+  companyIndex into this response's own createCompanies) and should reference a goal when
+  one is clearly implied (goalId from context.goals or goalIndex into this response's own
+  createGoals) — a Work Order with no resolvable company is a clarification task instead
+  of a guess, same as every other company-scoped create above. workType defaults to
+  "software_development" if omitted. If the request is genuinely ambiguous about scope
+  (e.g. "make it better" with no specifics), ask a clarifying question instead of
+  creating a vague Work Order — acceptanceCriteria should be concrete enough that an
+  engineer could tell when it's done.
 - Proposals are different: you may create a bare draft (title + company only, no pricing)
   via createProposals, and update only title/paymentTerms via updateProposals — never
   propose or infer subtotal/discount/total/status. Real proposal pricing runs a risk-
@@ -454,6 +475,9 @@ Output schema:
   ],
   "archiveGoalIds": [string],
   "restoreGoalIds": [string],
+  "createFactoryWorkOrders": [
+    {"title": string, "objective": string|null, "companyId": string|null, "companyIndex": number|null, "goalId": string|null, "goalIndex": number|null, "workType": "general"|"software_development"|"sales"|"operations"|"service"|"finance"|"engineering"|null, "priority": "low"|"medium"|"high"|"critical"|null, "acceptanceCriteria": [string]}
+  ],
   "createDepartments": [
     {"name": string, "companyId": string|null, "companyIndex": number|null}
   ],
@@ -1592,6 +1616,29 @@ serve(async (req) => {
           }));
         const createGoalsFiltered = dropArchivedCompanyTarget(createGoals);
 
+        // Factory Work Orders: real, queued rows for Brain OS's own execution Runner to
+        // pick up separately - never executed synchronously in this turn (see the system
+        // prompt rule above). Same hasCompanyRef/companyIndex/goalIndex resolution
+        // discipline as goals/projects above; workType/priority default server-side to
+        // match public.canonical_work_orders' own column defaults, not guessed here.
+        const VALID_WORK_TYPES = new Set(['general', 'software_development', 'sales', 'operations', 'service', 'finance', 'engineering']);
+        const VALID_PRIORITIES = new Set(['low', 'medium', 'high', 'critical']);
+        const requestedFactoryWorkOrders = Array.isArray(result.createFactoryWorkOrders) ? result.createFactoryWorkOrders as unknown[] : [];
+        const createFactoryWorkOrdersReq = requestedFactoryWorkOrders
+          .filter((w): w is Record<string, unknown> => !!w && typeof w === 'object' && typeof (w as any).title === 'string' && (w as any).title.trim() && hasCompanyRef(w))
+          .map((w: any) => ({
+            title: String(w.title).trim(),
+            objective: typeof w.objective === 'string' ? w.objective : null,
+            companyId: typeof w.companyId === 'string' && contextCompanyIds.has(w.companyId) ? w.companyId : null,
+            companyIndex: typeof w.companyIndex === 'number' ? w.companyIndex : null,
+            goalId: typeof w.goalId === 'string' && contextGoalIds.has(w.goalId) ? w.goalId : null,
+            goalIndex: typeof w.goalIndex === 'number' ? w.goalIndex : null,
+            workType: typeof w.workType === 'string' && VALID_WORK_TYPES.has(w.workType) ? w.workType : 'software_development',
+            priority: typeof w.priority === 'string' && VALID_PRIORITIES.has(w.priority) ? w.priority : 'medium',
+            acceptanceCriteria: Array.isArray(w.acceptanceCriteria) ? w.acceptanceCriteria.filter((c: unknown) => typeof c === 'string') : [],
+          }));
+        const createFactoryWorkOrdersReqFiltered = dropArchivedCompanyTarget(createFactoryWorkOrdersReq);
+
         // Departments/leads/documents: same low-risk, immediate-execution treatment as
         // companies/people/projects/goals above — not on the high-risk list, so no
         // approval gate. Unlike projects/goals these don't go through the
@@ -2030,6 +2077,31 @@ serve(async (req) => {
         // success — qa/KNOWN_FAILURE_MODES.md #17/#18).
         const resolveCompanyId = (companyId: string | null, companyIndex: number | null): string | null =>
           companyId || (typeof companyIndex === 'number' ? (createdCompanies[companyIndex]?.id ?? null) : null);
+        const resolveGoalId = (goalId: string | null, goalIndex: number | null): string | null =>
+          goalId || (typeof goalIndex === 'number' ? (createdGoals[goalIndex]?.id ?? null) : null);
+
+        // Factory Work Orders: real RPC call (create_factory_work_order, security
+        // invoker - the same canonical_work_orders_insert_scope RLS every other caller
+        // goes through, founder/admin or has_company_access(company_id)) per requested
+        // Work Order. Never batched into sem_execute_ai_command's own transaction -
+        // same "not on the high-risk list, resolved/executed here" treatment as
+        // departments/leads/documents above.
+        const createdFactoryWorkOrders: { id: string; title: string }[] = [];
+        for (const w of createFactoryWorkOrdersReqFiltered) {
+          const companyId = resolveCompanyId(w.companyId, w.companyIndex);
+          if (!companyId) continue;
+          const goalId = resolveGoalId(w.goalId, w.goalIndex);
+          const { data, error } = await supabase.rpc('create_factory_work_order', {
+            p_title: w.title,
+            p_objective: w.objective,
+            p_company_id: companyId,
+            p_goal_id: goalId,
+            p_work_type: w.workType,
+            p_priority: w.priority,
+            p_acceptance_criteria: w.acceptanceCriteria,
+          });
+          if (!error && data) createdFactoryWorkOrders.push({ id: data as string, title: w.title });
+        }
 
         const createdDepartments: { id: string }[] = [];
         for (const d of createDepartmentsReqFiltered) {
@@ -2257,6 +2329,14 @@ serve(async (req) => {
         // quiet — this is a gap notice, not a routine status line.
         if (requestedProjects.length > createdProjects.length) factLines.push(`${requestedProjects.length - createdProjects.length} of ${requestedProjects.length} requested project(s) could not be created — missing a valid company reference.`);
         if (requestedGoals.length > createdGoals.length) factLines.push(`${requestedGoals.length - createdGoals.length} of ${requestedGoals.length} requested goal(s) could not be created — missing a valid company reference.`);
+        // Unconditional, not just on failure: the "never claim the feature was built"
+        // gate depends on this always overriding whatever the model's own prose said —
+        // matches the master plan's explicit requirement that only a real created id,
+        // never the model's own words, confirms a Work Order exists.
+        for (const w of createdFactoryWorkOrders) {
+          factLines.push(`Created Software Factory Work Order "${w.title}" (id: ${w.id}) — queued for Brain OS's execution Runner, not yet built. Check /software-factory for real progress.`);
+        }
+        if (createFactoryWorkOrdersReq.length > createdFactoryWorkOrders.length) factLines.push(`${createFactoryWorkOrdersReq.length - createdFactoryWorkOrders.length} of ${createFactoryWorkOrdersReq.length} requested Factory Work Order(s) could not be created — missing a valid company reference.`);
         if (archivedCompanyBlockedCount > 0) factLines.push(`${archivedCompanyBlockedCount} item(s) were not created because the target company is archived — restore it first.`);
 
         // Master-prompt spec §42: a batch (>1 item) request gets a structured
@@ -2345,9 +2425,9 @@ serve(async (req) => {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, createdFactoryWorkOrders, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {
