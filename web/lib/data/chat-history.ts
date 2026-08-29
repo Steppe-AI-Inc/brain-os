@@ -3,16 +3,16 @@
 import { createClient } from "@/lib/supabase/server";
 
 // Chat history is reconstructed from tables that already have everything — no dedicated
-// history table needed. work_orders is one row per chat turn (command + the model's raw
-// output); model_usage has a real FK to it; audit_logs' 'ai_command_executed' event
-// (entity_id = work_order id, logged from inside sem_execute_ai_command itself) has the
-// exact per-action counts (tasks, approvals, deletedTasks, companies, people, projects,
-// goals, companyRelationships, personAssignments) from when the RPC actually ran. Not
-// 'ai_command_request_completed' — that's a separate, later Edge-Function-level audit
-// event that never included tasks/approvals in its metadata (a pre-existing gap, caught
-// live: history showed "0 task(s)" for a message that had in fact created a real task).
-// All three source tables are already RLS-scoped to the caller's own rows
-// (work_orders_select_scope: created_by_profile_id = self, or founder/admin).
+// history table needed. ai_command_runs is one row per chat turn (command + the model's
+// raw output); model_usage has a real FK to it; audit_logs' 'ai_command_executed' event
+// (entity_id = ai_command_run id, logged from inside sem_execute_ai_command itself) has
+// the exact per-action counts (tasks, approvals, deletedTasks, companies, people,
+// projects, goals, companyRelationships, personAssignments) from when the RPC actually
+// ran. Not 'ai_command_request_completed' — that's a separate, later Edge-Function-level
+// audit event that never included tasks/approvals in its metadata (a pre-existing gap,
+// caught live: history showed "0 task(s)" for a message that had in fact created a real
+// task). All three source tables are already RLS-scoped to the caller's own rows
+// (ai_command_runs_select_scope: created_by_profile_id = self, or founder/admin).
 export type ChatHistoryCounts = {
   tasks: number;
   approvals: number;
@@ -27,7 +27,7 @@ export type ChatHistoryCounts = {
 };
 
 export type ChatHistoryMessage = {
-  workOrderId: string;
+  aiCommandRunId: string;
   command: string;
   status: string; // 'queued' | 'done' | 'rejected' | ...
   output: { summary?: string; error?: string } | null;
@@ -45,17 +45,17 @@ export async function getChatHistory(limit = 30, channelId?: string | null): Pro
   const supabase = await createClient();
 
   let query = supabase
-    .from("work_orders")
+    .from("ai_command_runs")
     .select("id, command, status, output, created_at, model_usage(model_name, input_tokens, output_tokens, estimated_cost_usd)")
     .order("created_at", { ascending: true })
     .limit(limit);
   if (channelId === null) query = query.is("channel_id", null);
   else if (channelId) query = query.eq("channel_id", channelId);
 
-  const { data: workOrders, error } = await query;
+  const { data: aiCommandRuns, error } = await query;
   if (error) throw error;
 
-  const ids = (workOrders ?? []).map((w) => w.id);
+  const ids = (aiCommandRuns ?? []).map((w) => w.id);
   const { data: auditRows } = ids.length
     ? await supabase
         .from("audit_logs")
@@ -64,14 +64,14 @@ export async function getChatHistory(limit = 30, channelId?: string | null): Pro
         .in("entity_id", ids)
     : { data: [] };
 
-  const auditByWorkOrder = new Map((auditRows ?? []).map((a) => [a.entity_id, a.metadata as Record<string, number>]));
+  const auditByAiCommandRun = new Map((auditRows ?? []).map((a) => [a.entity_id, a.metadata as Record<string, number>]));
 
-  return (workOrders ?? []).map((w) => {
+  return (aiCommandRuns ?? []).map((w) => {
     const usageRow = Array.isArray(w.model_usage) ? w.model_usage[0] : w.model_usage;
-    const metadata = auditByWorkOrder.get(w.id);
+    const metadata = auditByAiCommandRun.get(w.id);
     const output = w.output as { summary?: string; error?: string } | null;
     return {
-      workOrderId: w.id,
+      aiCommandRunId: w.id,
       command: w.command,
       status: w.status ?? "queued",
       output,

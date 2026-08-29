@@ -80,8 +80,8 @@ function deriveChannelTitle(text: string): string {
   return cleaned.length > 48 ? `${cleaned.slice(0, 48).trimEnd()}…` : cleaned;
 }
 
-// work_orders.status is 'queued' until sem_execute_ai_command marks it 'done', or
-// mark_work_order_failed marks it 'rejected' — 'queued' on reload means the message was
+// ai_command_runs.status is 'queued' until sem_execute_ai_command marks it 'done', or
+// mark_ai_command_run_failed marks it 'rejected' — 'queued' on reload means the message was
 // still generating when the user navigated away (generation itself survives a client
 // disconnect, verified live; only the UI needed a way to reconnect to it).
 function historyToMessage(h: ChatHistoryMessage): Message {

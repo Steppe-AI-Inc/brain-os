@@ -31,7 +31,7 @@ async function getDashboardData() {
         .select("id", { count: "exact", head: true })
         .eq("status", "pending"),
       supabase
-        .from("work_orders")
+        .from("ai_command_runs")
         .select("id", { count: "exact", head: true })
         .gte("created_at", since14d),
       // No `head: true` here (unlike the other counts above) — this one was
