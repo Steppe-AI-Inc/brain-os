@@ -131,13 +131,53 @@ agent: Agent (name/display_name), Category, Capabilities (`allowed_tools`), Skil
 `last_run_head_commit`), Definition status (`definition_path`, `definition_hash`) — all
 from real persisted/computed state, nothing mocked.
 
-## Pending founder authorization
+## Live evidence (post-push, 2026-08-29) — E2E VERIFIED — FACTORY AGENT REGISTRY
 
-Both migrations are prepared, rollback-tested individually and combined, and reviewed
-twice independently (one real defect found and fixed, re-verified). Not yet pushed.
-Once authorized: `supabase db push` (both migrations), run `sync-agents.mjs` for real
-against the live schema (proving `FACTORY_AGENT_SYNC_IDEMPOTENT` by running it twice),
-run a real registry-driven dispatch via `startRunByAgentId` (proving
-`FACTORY_AGENT_REGISTRY_DRIVES_EXECUTION`), independent verification of that live run,
-and this document will be updated with the real evidence before Phase 6 is tagged
-`E2E VERIFIED — FACTORY AGENT REGISTRY`.
+Both migrations (`202608290003_factory_agent_registry.sql`,
+`202608290004_agent_runs_insert_scope_tighten.sql`) are pushed and confirmed applied
+against production (`npx supabase migration list --linked` shows both `local`/`remote`
+entries present and matching; `202608290004`'s live `pg_policy` check expression on
+`agent_runs_insert_scope` is exactly `is_founder_or_admin()`).
+
+`sync-agents.mjs` had a real Windows-only bug (the `import.meta.url === argv[1]` guard
+never matches on Windows, so `main()` silently never ran) — fixed by removing the guard
+(same commit). Run twice against real production after the fix: all 7 agents got real
+registry rows with real SHA-256 `definition_hash` values, exactly 1 row per `name` both
+times (`FACTORY_AGENT_SYNC_IDEMPOTENT` — confirmed, not simulated).
+
+Registry-driven dispatch (`scripts/factory-runner/phase6-registry-dispatch-test.mjs`,
+`FACTORY_AGENT_REGISTRY_DRIVES_EXECUTION`): called `startRunByAgentId` with only the
+canonical id `7703cae0-2a4f-4f11-b79f-f1bff1904820` — no name/path supplied by the
+caller. The registry resolved `brain-os-implementation-engineer`, re-verified the live
+on-disk file's SHA-256 against the stored `definition_hash`, and dispatched a real
+detached Claude Code background session (`provider_run_id c5d1ffd3`, persisted as
+`agent_runs` id `f5aafcf7-3dd1-4693-9aff-ba02cde80a9f`). The session ran under
+`@brain-os-implementation-engineer` and its real transcript (`claude logs c5d1ffd3`)
+shows the exact response `REGISTRY DISPATCH OK`.
+
+**Independently re-verified by a separate verifier session** (not a continuation of the
+above — no implementer reasoning trusted, only committed repo state + live DB/CLI
+evidence): re-derived all 7 `definition_hash` values from the live `.claude/agents/*.md`
+files byte-for-byte via an independent SHA-256 computation — exact match against the
+stored rows. Confirmed `has_production_authority=true` /
+`execution_provider='claude_code_background'` only for the 5 agents whose frontmatter
+actually declares `permissionMode: auto` (`brain-os-factory-director`,
+`brain-os-implementation-engineer`, `brain-os-db-security-engineer`,
+`brain-os-integration-engineer`, `brain-os-verifier`) — `brain-os-product-architect` and
+`brain-os-release-operator` correctly have `execution_provider=null` /
+`has_production_authority=false` (design-only agents, per this doc's own "Agent vs.
+Agent Run" section above). Re-ran `factory_agent_registry_adversarial.sql` live inside a
+fresh `BEGIN;...ROLLBACK;` transaction against real production — all 8 named assertions
+`all_pass: true`, and a post-rollback re-query confirmed zero residue (no spoofed rows,
+no duplicate slug, real `definition_hash` unchanged). Confirmed via a real join that
+`agent_runs` row `f5aafcf7-3dd1-4693-9aff-ba02cde80a9f` has
+`agent_id = 7703cae0-2a4f-4f11-b79f-f1bff1904820` and `provider_run_id = c5d1ffd3`, and
+persisted `verification_status = 'e2e_verified'` on that row, re-confirmed via a fresh
+independent `SELECT` (not the `UPDATE`'s own `RETURNING`). Full evidence in
+`qa/KNOWN_FAILURE_MODES.md` #23 and `qa/verification/CURRENT_CAMPAIGN.json`.
+
+One real gap found and fixed by this pass: this document itself still said "Not yet
+pushed" / "Pending founder authorization" after the migrations were actually pushed and
+the live dispatch evidence already existed in the commit message of `a8dfb4f` — the
+commit message had the real evidence, but this file was never updated to match. Doc-only
+staleness, no functional defect; fixed in this pass.

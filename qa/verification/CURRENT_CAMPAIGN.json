@@ -1,58 +1,70 @@
 {
-  "campaign_id": "verify-2026-08-29-phase5-software-factory-bootstrap",
-  "base_commit": "f27997b8c34ff645dc4b65fc05347ec19b31d533",
+  "campaign_id": "verify-2026-08-29-phase6-factory-agent-registry",
+  "base_commit": "a8dfb4faa60d245b2d13e882114e51c077f83925",
   "project_ref": "pvphxgrtdfrudejjhzjk",
-  "started_at": "2026-08-29T19:55:00Z",
-  "last_checkpoint_at": "2026-08-29T20:10:00Z",
+  "started_at": "2026-08-29T20:50:00Z",
+  "last_checkpoint_at": "2026-08-29T21:40:00Z",
   "status": "COMPLETE",
-  "scope": "Independent verification of a specific narrow claim: Software Factory dispatched a real detached Claude Code background agent (persona brain-os-implementation-engineer) to execute a real Task (68468064-13df-4c91-a6af-9908a017c9bd) under a real canonical Work Order (91f6ac74-f738-4fb5-9d46-01c426a31e12) linked to a real Goal (a4cf3ee0-9eb0-4458-bdbb-050093a0013d); the agent wrote and committed real code (commit f27997b8c34ff645dc4b65fc05347ec19b31d533 on master, docs/software-factory/BOOTSTRAP_ARTIFACT.md); execution evidence persisted (agent_runs row 8edcdf3e-7027-4a20-843d-81603ba72dac); no temp worktree/branch left behind. Not a full CRUD lifecycle campaign.",
-  "browser_ai_chat_tools_available": "not loaded - scope was git plus DB verification only, no UI/AI chat surface part of the claim",
-  "prior_campaign_note": "Previous campaign verify-2026-08-29-canonical-work-order-migration (status COMPLETE, base_commit df8e41d) is superseded by this file for the current scope; its pending_db_pushes entry (migration recommended SAFE TO PUSH) remains valid and unaffected, and is not re-verified here - out of scope for this specific bootstrap-chain check.",
+  "scope": "Independent verification of Phase 6 (Factory Agent Registry) of the Software Factory master plan: migrations 202608290003_factory_agent_registry.sql and 202608290004_agent_runs_insert_scope_tighten.sql, claimed pushed to production; scripts/factory-runner/sync-agents.mjs registering 7 real agents; a real registry-driven dispatch via startRunByAgentId supplying only a canonical agent id, resulting in agent_runs row f5aafcf7-3dd1-4693-9aff-ba02cde80a9f / provider_run_id c5d1ffd3.",
+  "browser_ai_chat_tools_available": "not loaded - scope is backend DB/RLS/CLI-process verification only, no UI or AI-chat surface exists for the Factory Agent Registry yet (Phase 7 control-center UI is explicitly deferred per PHASE_6_FINDINGS.md). This is a real, stated coverage gap for future phases, not applicable to this specific claim.",
+  "prior_campaign_note": "Previous campaign verify-2026-08-29-phase5-software-factory-bootstrap (status COMPLETE, base_commit f27997b) is superseded by this file for the current scope; it verified a different, earlier claim (Task/Work Order dispatch to a real coding agent) and is not re-verified here - out of scope for this specific Phase 6 registry check. Its own findings remain valid and unaffected.",
   "synthetic_entities": {
-    "note": "No new synthetic QA-VERIFY entities were created by this verifier. Every checked entity (Goal, canonical_work_orders row, task, agent_runs row, the commit itself) was a pre-existing real artifact of the claim under test. The only write performed was the in-scope UPDATE of agent_runs.verification_status on the single existing row 8edcdf3e-7027-4a20-843d-81603ba72dac from null to e2e_verified, confirmed afterward to be the only row in the table and the only row changed."
+    "note": "No new synthetic QA-VERIFY entities were created. All adversarial mutation testing (self-escalation attempt, spoofed agent_runs insert, duplicate-slug insert, hash-drift insert) was run against real production inside a single BEGIN;...ROLLBACK; transaction (qa/scenarios-runner/factory_agent_registry_adversarial.sql) and confirmed rolled back via a post-rollback re-query (definition_hash reverted, zero spoofed/duplicate rows). The only real, intentional, persisted write was the in-scope UPDATE of agent_runs.verification_status on the single existing row f5aafcf7-3dd1-4693-9aff-ba02cde80a9f, from null to e2e_verified, re-confirmed via a fresh independent SELECT."
   },
   "scenarios": {
-    "1_commit_exists_locally_and_on_origin_master": {
+    "1_seven_agents_exist_with_claimed_ids_hashes": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "git rev-parse HEAD at session start equals the claimed SHA f27997b8c34ff645dc4b65fc05347ec19b31d533 exactly, 40 hex chars, byte-for-byte match. git fetch origin master; git rev-parse origin/master equals same SHA; git merge-base --is-ancestor confirms it. git log -1 confirms real author, commit message, timestamp."
+      "method": "Independently computed SHA-256 of all 7 live .claude/agents/<name>.md files via sha256sum, compared byte-for-byte against public.agents.definition_hash queried live via npx supabase db query --linked. Exact match on all 7. All 7 claimed UUIDs, names, categories, definition_path, active=true confirmed via direct SELECT. execution_provider/has_production_authority confirmed true only for the 5 agents whose frontmatter has permissionMode: auto (factory-director, implementation-engineer, db-security-engineer, integration-engineer, verifier); false/null for product-architect and release-operator, consistent with their frontmatter lacking that line and with sync-agents.mjs's own hasProductionAuthority = fm.permissionMode === 'auto' logic and PHASE_6_FINDINGS.md's documented design. NOTE: the launch prompt's blanket claim that all 7 have has_production_authority=true was false for 2 of 7 - correct system behavior, but a real narrative/reality mismatch caught by independent re-derivation rather than trusting the prompt."
     },
-    "2_artifact_file_content": {
+    "2_exactly_one_row_per_name": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "Read docs/software-factory/BOOTSTRAP_ARTIFACT.md directly - contains the real canonical Work Order id 91f6ac74-f738-4fb5-9d46-01c426a31e12 and Task id 68468064-13df-4c91-a6af-9908a017c9bd verbatim, matching the DB rows queried in scenario 4."
+      "method": "SELECT name, count(*) FROM public.agents WHERE name LIKE 'brain-os-%' GROUP BY name - all 7 return count=1. Total agents = 16 = 9 pre-existing legacy (category IS NULL, untouched) + 7 new, matching migration's own claim."
     },
-    "3_diff_scope": {
+    "3_insert_scope_policy_and_view_security_invoker": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "git show --stat on the commit shows exactly one file changed: docs/software-factory/BOOTSTRAP_ARTIFACT.md, 17 insertions, 0 deletions. No other file touched by this commit."
+      "method": "Direct pg_policy query (not trusting migration file text): agent_runs_insert_scope with_check_expr is exactly is_founder_or_admin(). agents_with_live_status confirmed via pg_class.reloptions to have security_invoker=true. RLS confirmed enabled (relrowsecurity=true) on both agents and agent_runs. agents table policies confirmed unchanged: agents_select_authenticated (auth.uid() is not null) + agents_write_admin (is_founder_or_admin(), ALL commands)."
     },
-    "4_db_fk_chain_real_join": {
+    "4_adversarial_non_admin_insert_and_update": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "Read-only SELECTs via npx supabase db query --linked against production project pvphxgrtdfrudejjhzjk. agent_runs id 8edcdf3e-7027-4a20-843d-81603ba72dac has status done, branch master, head_commit f27997b8c34ff645dc4b65fc05347ec19b31d533 exact match to the real commit, task_id 68468064.... canonical_work_orders id 91f6ac74... has goal_id a4cf3ee0..., company_id 4e4a0553-4069-4367-960e-d671e0025fcd, status qa_review. tasks id 68468064... has canonical_work_order_id 91f6ac74..., company_id matches. goals id a4cf3ee0... has status active, company_id matches. A single real four-way JOIN query across goals, canonical_work_orders, tasks, agent_runs plus a left join to agents filtered on all four claimed IDs simultaneously returned exactly one row with every field consistent, not four isolated per-row checks."
+      "method": "Inside a rolled-back transaction, impersonated a real ordinary employee identity (auth sub 9c92a8d5-853c-4ef3-846a-f4fe8c42d97a / profile 66ef2052-..., the same real test identity already proven live in the canonical_work_order_model_adversarial pass) via set local role authenticated + request.jwt.claims. Attempted UPDATE has_production_authority/execution_provider on brain-os-product-architect - silently rejected by RLS, row unchanged (still null/false), confirmed by direct re-SELECT. Attempted INSERT of a fabricated agent_runs row (company_id null, real target agent_id for brain-os-db-security-engineer, fake summary/verification_status='e2e_verified') - 0 rows persisted, confirmed by direct re-SELECT for that summary marker post-attempt."
     },
-    "5_no_stray_worktree_or_branch": {
+    "5_real_dispatch_chain": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "git worktree list shows only two legitimate pre-existing worktrees: C colon slash Users slash Dell slash dev slash brain-os on master, and a separate long-lived worktree on codex/sem-brain-v1 unrelated to this task. git branch -a shows no factory/phase5-bootstrap-artifact or similar temp branch anywhere, local or remote. Directly confirmed the claimed temp worktree path no longer exists on disk. Cross-checked against the real background agent own session transcript, session dbf0e5ed, state done, which explicitly narrates creating that exact temp worktree and branch, fast-forward merging it into master with no merge commit, then deleting both - matches the observed clean state exactly."
+      "method": "claude agents --json showed session c5d1ffd3 as a real background-kind process, state done, cwd=C:\\Users\\Dell\\dev\\brain-os. claude logs c5d1ffd3, ANSI-stripped and grepped (not summarized/trusted from a report) shows real persona @brain-os-implementation-engineer, real prompt text matching phase6-registry-dispatch-test.mjs's literal task string, and real response '\u25cf REGISTRY DISPATCH OK'. A real SQL JOIN (not two isolated existence checks) of agent_runs to agents confirmed row f5aafcf7-3dd1-4693-9aff-ba02cde80a9f has agent_id=7703cae0-2a4f-4f11-b79f-f1bff1904820 (name brain-os-implementation-engineer) and provider_run_id=c5d1ffd3. Read provider.mjs's startRunByAgentId source directly - confirmed it genuinely re-queries public.agents by id (no hardcoded name/path), refuses on inactive/no-execution_provider/no-production-authority/no-definition_path, and re-computes the live file's real SHA-256 against the stored definition_hash before every dispatch, refusing on mismatch."
     },
-    "6_agent_and_dispatch_mechanism_are_real": {
+    "6_regression_script_passes_live_rollback_tested": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "Registered agent persona file dot claude slash agents slash brain-os-implementation-engineer dot md exists and matches the agent_runs.agent_id row, agents.id 7703cae0-2a4f-4f11-b79f-f1bff1904820, name brain-os-implementation-engineer, role implementation_engineer, via a direct DB query. Dispatch tooling genuinely shells out to the real claude CLI background agent flag, not a simulation. Running claude agents as json live in this session showed session id dbf0e5ed as a REAL background-kind process, pid 30428, cwd matching the repo root, state done - this is the exact provider_run_id stored in agent_runs.provider_run_id. Reading claude logs for that session id showed the real non-fabricated transcript: the agent creating the worktree, writing the file, committing, fast-forward merging, cleaning up, and reporting the exact real git rev-parse HEAD output matching the claimed commit."
+      "method": "Ran qa/scenarios-runner/factory_agent_registry_adversarial.sql wrapped in BEGIN;...ROLLBACK; against real production (migration DDL already live, matching the file's own stated assumption). All 8 named assertions returned all_pass: true: FACTORY_AGENT_SYNC_NO_DUPLICATE_SLUG, FACTORY_AGENT_DEFINITION_HASH_DETECTS_CHANGE, FACTORY_UNKNOWN_AGENT_CANNOT_EXECUTE, FACTORY_AGENT_CANNOT_SELF_ESCALATE_AUTHORITY, FACTORY_STATUS_DERIVED_FROM_REAL_RUN (across IDLE/RUNNING/FAILED states), FACTORY_AGENT_RUN_REFERENCES_CANONICAL_AGENT, FACTORY_STATUS_CANNOT_BE_SPOOFED_VIA_FAKE_AGENT_RUN. hash_before in the test output (7c5d1d41...) matched my own independently-computed SHA-256 for brain-os-implementation-engineer exactly, confirming the test ran against real live data, not a fixture copy. Post-ROLLBACK re-query confirmed zero residue: definition_hash reverted to the real value, 0 duplicate-slug rows, 0 spoofed-marker rows, 0 fake-FK-test rows."
     },
     "7_persist_verification_result": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "UPDATE public.agent_runs SET verification_status to e2e_verified WHERE id equals 8edcdf3e-7027-4a20-843d-81603ba72dac, run live against production via npx supabase db query --linked, RETURNING confirmed the new value. Re-confirmed via a separate independent fresh SELECT, not the UPDATE own RETURNING clause: agent_runs has exactly 1 total row and exactly 1 row with verification_status equal e2e_verified - the write landed on the correct single row and touched nothing else."
+      "method": "UPDATE public.agent_runs SET verification_status='e2e_verified' WHERE id='f5aafcf7-3dd1-4693-9aff-ba02cde80a9f', run live via npx supabase db query --linked. Re-confirmed via a separate, fresh, independent SELECT (not the UPDATE's own RETURNING): verification_status='e2e_verified', agent_id and provider_run_id unchanged and correct. total rows with verification_status='e2e_verified' across the whole table = 2 (this row + the pre-existing Phase 5 bootstrap row 8edcdf3e set in the prior campaign) - no unintended rows touched."
     }
   },
   "global_integrity": {
-    "scope_note": "Full global_integrity sweep across all canonical tables is out of scope for this narrow bootstrap-chain check and was already covered by the prior campaign for the schema this depends on. Within this run scope specifically: agent_runs row count is 1, canonical_work_orders row referenced by that agent_run task resolves cleanly, task to canonical work order to goal chain has zero broken links, zero orphan or dangling references found anywhere in the four-way join."
+    "orphan_agent_runs_referencing_missing_agent": 0,
+    "duplicate_agent_names": 0,
+    "null_name_agents": 0,
+    "dispatch_row_count_for_provider_run_id_c5d1ffd3": 1,
+    "migration_ledger_matches_live_schema": true,
+    "note": "Full cross-table sweep (companies/tasks/goals/etc.) out of scope for this narrow Phase 6 registry check and already covered by prior campaigns (#19-#22 in KNOWN_FAILURE_MODES.md) for schema this doesn't touch. Within scope: zero orphans, zero duplicates, migration ledger (npx supabase migration list --linked) confirmed to match live observed schema/RLS/data, not trusted on ledger text alone."
   },
   "pending_db_pushes": [],
   "prepared_fixes": [],
-  "live_verified_fixes": [],
+  "live_verified_fixes": [
+    {
+      "description": "docs/software-factory/PHASE_6_FINDINGS.md was stale - said 'Not yet pushed'/'Pending founder authorization' after the migrations were genuinely pushed and live dispatch evidence already existed in commit a8dfb4f's message. Doc-only, no functional/security impact.",
+      "fix": "Replaced the 'Pending founder authorization' section with a 'Live evidence (post-push...)' section stating the real, independently-reverified evidence.",
+      "file": "docs/software-factory/PHASE_6_FINDINGS.md",
+      "committed": true
+    }
+  ],
   "defects_found": [
     {
-      "note": "No defect found. Every claimed ID, the commit, the diff scope, the DB FK chain verified as one real join rather than isolated per-row checks, the worktree and branch cleanup, and the underlying dispatch mechanism, a real background CLI process independently found completed in this session own live agent listing output, were all independently reproduced and confirmed true, not merely asserted by the prior session report.",
-      "classification": "N/A clean E2E VERIFIED result"
+      "note": "No functional or security defect found. All 7 agents, hashes, RLS policies, adversarial rejections, and the real dispatch chain independently re-derived and confirmed true. One narrative/reality mismatch caught: the launch prompt claimed all 7 agents have has_production_authority=true, but live production data (and the code/frontmatter it's derived from) correctly shows this true for only 5 of 7 - the other 2 are design-only agents by explicit, documented design. Not a system defect - flagged as a caution about trusting secondhand launch-prompt claims over live re-derivation, exactly per this verifier's own charter.",
+      "classification": "N/A - clean E2E VERIFIED result, one doc-staleness fix, one narrative-vs-reality discrepancy noted"
     }
   ],
   "remaining_scenarios": [],
-  "browser_ui_ai_chat_coverage_gap": "This specific claim under test, Task and Work Order dispatch to a real coding agent to a real commit, has no UI or AI-chat surface to check - it is a backend git DB chain only. No coverage gap for this scope. Browser and AI-chat tools were not loaded this run because they were not needed for the claim being verified; that is a scoping decision, not a dropped check."
+  "browser_ui_ai_chat_coverage_gap": "No UI or AI-chat surface exists yet for the Factory Agent Registry (Phase 7's control-center UI is explicitly deferred per PHASE_6_FINDINGS.md's own 'Data-layer prep for Phase 7' section) - not a dropped check, genuinely out of scope for what Phase 6 built. Browser tools were not loaded this run for that reason."
 }

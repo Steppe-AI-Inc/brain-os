@@ -4,6 +4,84 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 23. Independent verification of Phase 6 (Factory Agent Registry, migrations 202608290003/202608290004, commit a8dfb4f) — no functional defect found; one doc-staleness gap found and fixed (E2E VERIFIED — FACTORY AGENT REGISTRY, 2026-08-29)
+
+**Why this entry exists even with no product bug:** same rationale as #21/#22 — a clean
+independent verification pass, run by a genuinely separate session with no access to the
+implementer's reasoning (only committed repo state, live production DB, and live CLI
+process state), is itself worth recording as institutional evidence, distinct from the
+implementer's own self-report.
+
+**Independently re-derived, not accepted on the launch prompt's word:** computed a real
+SHA-256 of all 7 live `.claude/agents/<name>.md` files directly (`sha256sum`) and
+cross-checked against `public.agents.definition_hash` via a live production query — exact
+byte-for-byte match on all 7. Confirmed exactly 7 rows with `category is not null`,
+exactly 1 row per `name` (no duplicates from the two real sync runs), and the 9
+pre-existing legacy seed rows (`category is null`) untouched (16 total agents = 9 + 7).
+Confirmed `agent_runs_insert_scope`'s live `pg_policy` `with_check` expression is exactly
+`is_founder_or_admin()` (not just trusting the migration file text) and
+`agents_with_live_status` has real `security_invoker=true` in `pg_class.reloptions`.
+Confirmed both migrations appear in `npx supabase migration list --linked` with matching
+`local`/`remote` entries (ledger says applied) **and** independently confirmed the actual
+live schema/RLS/data match that claim (not ledger-only trust — this file's own #16 entry
+is exactly the failure mode of trusting a migration ledger alone).
+
+**One real discrepancy caught between the launch prompt's narrative and live reality —
+exactly the kind of secondhand claim this verifier's own charter says not to trust:** the
+launch prompt asserted all 7 agents have `has_production_authority=true` and
+`execution_provider='claude_code_background'`. Live production data shows only 5 of the 7
+do — `brain-os-product-architect` and `brain-os-release-operator` correctly have
+`execution_provider=null` / `has_production_authority=false`, because their
+`.claude/agents/*.md` frontmatter has no `permissionMode: auto` line (they're
+design-only/independent-gate agents by explicit design, consistent with
+`PHASE_6_FINDINGS.md`'s own "Agent vs. Agent Run" section and `sync-agents.mjs`'s
+`hasProductionAuthority = fm.permissionMode === 'auto'` logic). This is **correct system
+behavior, not a defect** — flagged here only because a narrative handed to a verifier
+turned out to be imprecise on a checkable, material fact, which is precisely why the
+verifier re-derives everything instead of trusting the summary.
+
+**Adversarial RLS re-test, live, rollback-tested:** ran
+`qa/scenarios-runner/factory_agent_registry_adversarial.sql` (all 8 named assertions)
+wrapped in a fresh `BEGIN;...ROLLBACK;` against real production — `all_pass: true`.
+Covers: unique-slug enforcement, hash-drift detection, unknown-agent FK rejection, a
+simulated ordinary employee (`sub 9c92a8d5-...`, the same real test identity proven in
+the canonical-work-order-model pass) failing to self-escalate
+`has_production_authority`/`execution_provider` on `brain-os-product-architect`, and the
+exact previously-exploited spoofing path (`company_id` null, fabricated `agent_runs` row
+against a real registered agent) now genuinely rejected post-202608290004. Re-queried
+after rollback: `brain-os-implementation-engineer`'s `definition_hash` reverted to its
+real value, zero spoofed/duplicate rows left behind — the rollback was real, not just
+claimed.
+
+**Real dispatch chain re-verified independently, not re-narrated:** `claude agents --json`
+showed `c5d1ffd3` as a real `background`-kind process, `state: done`, `cwd` matching the
+repo root. `claude logs c5d1ffd3` (raw transcript, ANSI-stripped and grepped, not
+summarized) shows the real prompt ("Report back the exact text: REGISTRY DISPATCH OK.
+Take no other action.") under persona `@brain-os-implementation-engineer` and the real
+response `● REGISTRY DISPATCH OK`. A real SQL join (not two isolated existence checks)
+confirmed `agent_runs` row `f5aafcf7-3dd1-4693-9aff-ba02cde80a9f` has
+`agent_id = 7703cae0-2a4f-4f11-b79f-f1bff1904820` (the canonical
+`brain-os-implementation-engineer` row, via `public.agents`) and
+`provider_run_id = 'c5d1ffd3'`. Read `provider.mjs`'s `startRunByAgentId` directly —
+confirmed it genuinely re-reads `public.agents` by id, refuses on inactive/no-provider/no-
+authority/hash-mismatch, and re-computes the live file's SHA-256 before every dispatch
+(not merely trusting the stored `definition_hash`).
+
+**One real gap found and fixed (documentation only, no functional/security impact):**
+`docs/software-factory/PHASE_6_FINDINGS.md` still said "Not yet pushed" / "Pending
+founder authorization" after the migrations were genuinely pushed and the real dispatch
+evidence already existed in commit `a8dfb4f`'s message — the evidence was real, but never
+copied into the findings doc itself. Fixed in this pass (doc now states the live
+evidence directly, matching commit `a8dfb4f`).
+
+**Persisted the verification result as instructed:** `UPDATE public.agent_runs SET
+verification_status = 'e2e_verified' WHERE id = 'f5aafcf7-3dd1-4693-9aff-ba02cde80a9f'`,
+run live against production, re-confirmed via a separate fresh `SELECT` (not the
+`UPDATE`'s own `RETURNING`).
+
+**Evidence:** `qa/verification/CURRENT_CAMPAIGN.json` (campaign
+`verify-2026-08-29-phase6-factory-agent-registry`).
+
 ## 22. Independent verification of the NOT-YET-PUSHED canonical Work Order model migration (202608290002_canonical_work_order_model.sql) - one already-fixed defect independently re-confirmed, zero new defects, one test-construction bug found and fixed in this pass own new regression script (FIX PREPARED - migration is rollback-tested, not yet pushed to production, 2026-08-29)
 
 **Why this entry exists even with no new product bug:** same rationale as #21 - a clean
