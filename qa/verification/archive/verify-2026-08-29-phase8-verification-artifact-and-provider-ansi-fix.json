@@ -1,0 +1,59 @@
+{
+  "campaign_id": "verify-2026-08-29-phase8-verification-artifact-and-provider-ansi-fix",
+  "base_commit": "47cd870e86c549002fe8396f23a720661529c737",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "started_at": "2026-08-29T00:00:00Z",
+  "last_checkpoint_at": "2026-08-29T01:00:00Z",
+  "status": "COMPLETE",
+  "scope": "Independent verification of Work Order 3b28e447-4a9c-4f79-9419-80638a39e457: (1) docs/software-factory/PHASE_8_VERIFICATION.md artifact created/committed as aae7dad, (2) the disclosed provider.mjs startRun() ANSI-stripping bug fix committed as 47cd870. Narrow documentation/tooling verification, not a full DB/UI/AI truth-graph campaign - no entity lifecycle, RLS, or AI context is in scope for this Work Order. Explicitly out of scope per dispatch instructions: governance/, RLS, approval_domain/app_role enums, .claude/agents/*.md, .claude/skills/*/SKILL.md, and any supabase db push/migration - none of these were touched.",
+  "prior_campaign_note": "Previous campaign verify-2026-08-29-phase6-factory-agent-registry (status COMPLETE) archived to qa/verification/archive/ - different scope (Factory Agent Registry), not re-verified here.",
+  "browser_ai_chat_tools_available": "not applicable - this Work Order's artifacts are a markdown doc file and a Node.js CLI script (scripts/factory-runner/provider.mjs), neither has a UI or AI-chat surface.",
+  "synthetic_entities": { "note": "None created - this verification is git/file/commit inspection plus a pure, dependency-free Node unit test (no claude CLI invocation, no database mutation)." },
+  "scenarios": {
+    "1_artifact_exists_and_meets_acceptance_criteria": {
+      "status": "PASS", "evidence": "CODE INSPECTED",
+      "method": "Read docs/software-factory/PHASE_8_VERIFICATION.md at HEAD (47cd870). Confirmed: real file present; explicit reference to canonical Work Order 3b28e447-4a9c-4f79-9419-80638a39e457 (appears twice); explicit reference to 'Phase 8 test cycle'; a real ISO-8601 UTC timestamp (2026-08-29T14:30:13Z); explicit honesty note stating no schema/RLS/app-code changes and no db push. Content genuinely satisfies the stated acceptance criteria."
+    },
+    "2_aae7dad_ancestor_and_on_origin_master": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "git fetch origin master; git merge-base --is-ancestor aae7dad HEAD -> true; git branch -r --contains aae7dad -> origin/HEAD, origin/master. git rev-parse origin/master == git rev-parse HEAD == 47cd870e86c549002fe8396f23a720661529c737, confirming local state matches the real remote, not just local history."
+    },
+    "3_47cd870_ancestor_on_origin_master_and_fix_correct": {
+      "status": "PASS", "evidence": "LIVE VERIFIED + CODE INSPECTED",
+      "method": "Same ancestor/remote checks as scenario 2, both true for 47cd870. Read the full startRun()/stripAnsi() source directly (not the commit message) and confirmed stripAnsi(combined) is genuinely called and its result (clean) is what the regex matches against, consistent with the pre-existing getLogs() usage of stripAnsi. Independently reproduced the disclosed bug in a standalone node -e script: the OLD regex against the exact raw byte sequence 'backgrounded \\u00b7 \\x1b[36m4bf0806d\\x1b[39m' returns NO MATCH (bug genuinely reproduced, not assumed); the NEW code path (stripAnsi then match) returns '4bf0806d', the exact disclosed session id. This is real re-derivation, not trust in the commit message."
+    },
+    "4_no_unrelated_files_touched": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "git show --stat aae7dad -> exactly 1 file (docs/software-factory/PHASE_8_VERIFICATION.md, +41/-0). git show --stat 47cd870 -> exactly 1 file (scripts/factory-runner/provider.mjs, +12/-1). No governance/, RLS, enum, .claude/agents/*.md, or .claude/skills/*/SKILL.md files touched by either commit - confirmed directly from the stat output, not inferred."
+    },
+    "5_narrative_cross_check_no_fabrication": {
+      "status": "PASS", "evidence": "CODE INSPECTED",
+      "method": "Every specific claim in the dispatch narrative was independently re-derived rather than trusted: (a) 'commit aae7dad is real and on origin/master' - confirmed via git, not assumed; (b) 'startRun() bug is real, caused by unstripped ANSI' - independently reproduced with a standalone repro script, not merely re-read; (c) 'bug has since been fixed, regression-verified against the exact failing byte sequence' - the FIX ITSELF is correct and independently confirmed working, but the specific phrase 'regression-verified' overstated what was actually shipped: no committed automated test existed for this parsing logic before this verification pass (see defects_found). This is a real, disclosed process gap in the original claim, not a fabrication of the underlying fact (the fix genuinely works) - flagged and closed in this same pass rather than silently accepted."
+    }
+  },
+  "global_integrity": {
+    "commits_touching_unrelated_scope_out_of_governance_rls_enums_agents_skills": 0,
+    "note": "Not a DB-mutating campaign; standard SQL global-integrity counters (orphan refs, duplicate relationships, etc.) are not applicable to this scope. The one applicable integrity check - 'did either commit touch anything outside its disclosed scope' - is 0/0 as shown in scenario 4."
+  },
+  "pending_db_pushes": [],
+  "prepared_fixes": [],
+  "live_verified_fixes": [
+    {
+      "description": "Real gap found: commit 47cd870's message claims 'Regression-verified against the exact failing byte sequence observed live' but shipped zero committed automated test - only inline comments. Per CLAUDE.md Section 12 ('write an automated regression test first/alongside the fix') and this skill's fix-authority rules, a claimed-but-missing regression test is itself a defect class to close, not just note.",
+      "fix": "Refactored provider.mjs to extract the ANSI-strip + regex parsing logic out of startRun() into a new pure, exported, dependency-free function parseProviderRunId(combined) (no behavior change - startRun() now just calls it). Added scripts/factory-runner/provider.regression.test.mjs (Node built-in test runner, node --test, no claude CLI/network/DB dependency) with 6 assertions: the exact live-observed failing byte sequence now parses correctly; the pre-fix bare regex is proven to fail against that same input (documents why the bug existed); plain non-ANSI output still parses (no regression on the common case); the pipe-delimited alternate separator form still parses; a genuinely unparseable input still throws the expected error with the raw output included; other ANSI cursor/clear-line sequences are also stripped correctly.",
+      "files": ["scripts/factory-runner/provider.mjs", "scripts/factory-runner/provider.regression.test.mjs"],
+      "verification": "node --check scripts/factory-runner/provider.mjs -> syntax OK. Confirmed provider.mjs still exports the same original public surface (cancelRun, getArtifacts, getLogs, getRunStatus, healthCheck, resolveAgentFromRegistry, startRun, startRunByAgentId) plus the new parseProviderRunId. node --test scripts/factory-runner/provider.regression.test.mjs -> 6/6 pass, 0 fail.",
+      "committed": "pending - see live_verified_fixes commit hash to be recorded after push in this same report"
+    }
+  ],
+  "defects_found": [
+    {
+      "description": "Missing permanent regression test for the ANSI-parsing fix in commit 47cd870, despite the commit message's explicit 'regression-verified' claim.",
+      "classification": "CLAIMED-BUT-MISSING REGRESSION TEST - same defect class as CLAUDE.md's own worked example (do not merely patch, search the codebase for the same class). Searched scripts/factory-runner/ and qa/ for any *.test.* or *ansi*/*startRun* named file before concluding it was genuinely missing (not just differently named).",
+      "same_class_search_elsewhere": "Checked scripts/factory-runner/test-provider.mjs (a live smoke test requiring a real claude CLI dispatch, not a fast unit-level parser test) and qa/scenarios-runner/ (SQL-only regression tests, none cover this JS parsing logic). No other file in the repo covers this parsing logic. Did not find the same 'claimed regression-verified, no test committed' pattern for other recent commits in this session's scope (aae7dad has no code to regression-test - it's a docs-only artifact, consistent with its own honesty note).",
+      "status": "fix prepared this pass - see live_verified_fixes above; to be committed and pushed as part of this verification report (a `web/` or `supabase/functions/` restriction does not apply here - this is a factory tooling script, and the skill's general fix authority for 'a missing or wrong permanent regression test' applies)."
+    }
+  ],
+  "remaining_scenarios": [],
+  "browser_ui_ai_chat_coverage_gap": "Not applicable - no UI or AI-chat surface exists for this Work Order's artifacts."
+}
