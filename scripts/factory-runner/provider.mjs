@@ -52,8 +52,19 @@ export async function startRun(agentName, task, cwd) {
     { cwd, maxBuffer: 10 * 1024 * 1024 }
   );
   const combined = stdout + stderr;
+  // Real defect found live 2026-08-29 (Phase 8 repeatability dispatch): the CLI wraps the
+  // hex id itself in ANSI color codes (e.g. "backgrounded · \x1b[36m4bf0806d\x1b[39m"),
+  // which the old regex - matched directly against raw stdout/stderr - could not see past,
+  // even though the "backgrounded \s* ·" prefix matched fine. Root cause was matching
+  // un-stripped output; getLogs()/getArtifacts() already stripped ANSI before matching,
+  // this function did not. Fix: strip ANSI first, exactly like every other parser here.
+  // Real consequence observed live: the underlying `claude --bg` dispatch genuinely
+  // succeeded and later produced a real commit, but this function threw before the
+  // provider_run_id could be captured, so the caller (dispatch-task.mjs) never recorded
+  // an agent_runs row - a real, disclosed tracking gap, not a hypothetical one.
+  const clean = stripAnsi(combined);
   // Real output shape observed live this session: "backgrounded · <8-hex-id>"
-  const match = combined.match(/backgrounded\s*(?:·|\|)\s*([0-9a-f]{6,})/i);
+  const match = clean.match(/backgrounded\s*(?:·|\|)\s*([0-9a-f]{6,})/i);
   if (!match) {
     throw new Error(
       `startRun: could not parse a provider_run_id from claude --bg output. Raw output: ${combined}`
