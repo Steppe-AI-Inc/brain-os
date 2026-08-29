@@ -54,6 +54,35 @@ One file per domain in `lib/data/<domain>.ts`, always `"use server"`:
 See `lib/data/goals.ts` for the fullest example (all three shapes in one file) and
 `lib/data/companies.ts` for the minimal case.
 
+## Canonical operations & execution truth
+
+Three rules added 2026-08-29, after a real incident: AI chat claimed a company was
+deleted with zero mechanism behind it, and the real Delete button then hit a raw
+"too many dependencies" error from an earlier, overly defensive fix. Both were the same
+underlying design mistake. See `supabase/migrations/202608280013_frictionless_company_delete.sql`
+(`archive_company`/`restore_company`) for the reference implementation.
+
+1. **Security decides whether an operation is allowed. It should not make an allowed
+   ordinary operation difficult.** A permission check either passes or fails — it must
+   not degrade into a maze of dependency warnings for an operation the caller is
+   authorized to perform. (Archiving a company was redesigned to destroy nothing, so
+   there is nothing to check beyond authorization — no dependency traversal at all.)
+2. **The same business action from UI, AI, agent or API must converge on the same
+   canonical domain operation.** Never let a chat handler and a UI Server Action
+   independently implement "delete this thing" — they drift, silently, and stop
+   agreeing about what the action even means. One shared RPC/function is the only path;
+   where possible, make it a real DB-enforced invariant (a trigger checking a
+   session-local flag the canonical function sets), not just a convention every caller
+   is expected to follow.
+3. **The execution result — not generated language — is the source of truth for whether
+   an action happened.** An LLM's own summary text must never be trusted for outcome
+   claims. Ground every mutation-claiming response in the real return value of the
+   operation it ran, and replace (not merely prepend to) the model's prose when the real
+   result is the entire point of the turn — prepending was proven insufficient live: the
+   model can still contradict a correct prepended fact. When nothing was actually
+   attempted, detect language that claims an action happened anyway and correct it
+   explicitly, since there is no result to ground against in that case.
+
 ## Shared UI
 
 `components/page-header.tsx` and `components/stat-card.tsx` are the only two shared
