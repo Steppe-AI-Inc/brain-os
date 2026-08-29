@@ -1109,3 +1109,84 @@ relationships anywhere in the UI; the two `'planned'` SEM Technologies LLC rows 
 live (real, pre-existing founder intent, not touched — promoting a plan to current is a
 founder decision, not something to infer).
 channel list.
+
+## 24. `create_factory_work_order` accepted a cross-company `goal_id` — RLS alone didn't catch it (FOUND LIVE, 2026-08-29)
+
+**Symptom:** the new `create_factory_work_order` RPC (Phase 8, migration
+`202608290005`) accepted `p_goal_id` with no check that the referenced goal actually
+belonged to `p_company_id`. `canonical_work_orders_insert_scope` RLS authorizes based on
+`company_id` alone (founder/admin or `has_company_access(company_id)`); a foreign key
+existence check does not enforce which company the *referenced* row belongs to. A caller
+with real, legitimate access to Company A could set `company_id = A` and `goal_id = <a
+real goal belonging to Company B>`, cross-associating data across companies — found by an
+independent security review, live in production, before any founder had used the new
+capability.
+
+**Root cause:** classic "RLS covers the row being written, not entities it merely
+references" gap — the same class of mistake as #17-#21's archive/restore issues, applied
+to a brand-new cross-entity relationship instead of a lifecycle transition. RLS is
+necessary but was treated as sufficient here without a real check.
+
+**Fixed 2026-08-29**, two layers deliberately (not relying on RLS alone, and not on a
+single code path either): a real `BEFORE INSERT OR UPDATE` trigger on
+`canonical_work_orders` itself (`enforce_canonical_work_order_goal_company` — structural,
+holds for any future write path, not just this RPC) plus an explicit equivalent check
+inside `create_factory_work_order` (specific, immediate error, redundant with the trigger
+by design). Immediate containment (execute `REVOKE`d for `authenticated`) happened before
+the fix was even written. See `docs/software-factory/PHASE_8_SECURITY_INCIDENT.md` for
+the full record.
+
+**Audited the same class elsewhere** on `canonical_work_orders`/`tasks`/`agent_runs`:
+found two more dormant (not currently exploitable — no live capability exposes them as
+settable parameters yet) instances — `canonical_work_orders.owner_person_id` (people are
+company-scoped, no check exists) and `tasks.canonical_work_order_id` vs `tasks.company_id`
+consistency. Neither fixed yet (nothing reachable today), both flagged for a follow-up
+migration before any future capability exposes them.
+
+**Permanent regression:** `qa/scenarios-runner/create_factory_work_order_adversarial.sql`
+— 8 named assertions (founder same-company OK, cross-company goal rejected via both the
+RPC and a direct table insert bypassing it, nonexistent goal rejected, unauthorized
+caller rejected, no-goal OK, cross-company-but-valid-pair OK for founder). `all_pass:
+true`, rollback-tested against real production.
+
+## 25. `git push master` silently triggered a real production Edge Function deploy — governance gap, not just a code bug (FOUND LIVE, 2026-08-29)
+
+**Symptom:** a commit intended as source-only preparation (explicitly described as "NOT
+deployed" in its own commit message, pending independent review and founder
+authorization) was automatically deployed to production the moment it was pushed.
+`.github/workflows/supabase-functions.yml` auto-deploys all 6 Edge Functions on any push
+to `master` touching `supabase/functions/**` — fixed and verified working the day before
+(2026-08-28, see #3 above), documented in this project's own files, but not accounted
+for by the session pushing the change.
+
+**Root cause:** `git push` had been treated as a uniformly low-risk, "just source
+control" action throughout this session, correctly for `web/` (Vercel auto-deploy is
+long-accepted as low-risk here) and for DB migrations (never auto-applied — confirmed no
+workflow runs `db push`). That same assumption was wrongly generalized to
+`supabase/functions/**` changes, which — unlike migrations — genuinely do auto-deploy on
+push and affect all real founder chat traffic (`sem-ai-command`) immediately.
+
+**This is a governance failure independent of any code defect**: a production-affecting
+action occurred without the expected founder-approval boundary, because the risk
+classifier (this session's own judgment about what counts as "just a push") did not
+account for a real, documented downstream CI/CD consequence.
+
+**Fixed 2026-08-29** by documenting the real, current state of every production
+deployment path (`docs/software-factory/PRODUCTION_DEPLOYMENT_PATHS.md`) and establishing
+a binding rule: before pushing any commit touching `supabase/functions/**`, treat it with
+the same deployment-safety rigor as a DB migration — independent review, explicit
+founder flag that the push *is* the deploy — before pushing, not after.
+
+**Also found, related**: the same incident's forensic investigation found that
+`supabase db query --file` combined with `--project-ref <ref>` **and** `--linked` in the
+same invocation likely does not maintain real transaction semantics across a multi-
+statement file the way `--linked` alone does (every `--linked`-alone invocation this
+session was independently confirmed safe; the one invocation combining both flags left a
+rollback-tested migration live in production despite the script itself correctly ending
+in `ROLLBACK`). Binding rule: `--linked` alone, never combined with `--project-ref`, for
+any rollback-tested verification against production.
+
+**Not yet built:** an automated production-risk classifier that inspects a diff's file
+paths against known auto-deploy trigger paths before a push happens, rather than relying
+on the agent's own judgment each time. Tracked as real, deferred scope — the manual rule
+above is the interim mitigation.
