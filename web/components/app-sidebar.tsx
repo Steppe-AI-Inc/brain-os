@@ -37,6 +37,7 @@ import {
   PanelLeftOpen,
   Bot,
   CreditCard,
+  Factory,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -88,7 +89,13 @@ const NAV_GROUPS: Array<{
     title: "FACTORIES",
     items: [
       { href: "/products", navKey: "nav.products", label: "Product Factory", icon: Package },
-      { href: "/software", navKey: "nav.software", label: "Software Factory", icon: Code2 },
+      { href: "/software", navKey: "nav.software", label: "Software Specs", icon: Code2 },
+      {
+        href: "/software-factory",
+        navKey: "nav.softwareFactory",
+        label: "Agent Control Center",
+        icon: Factory,
+      },
       { href: "/engineering", navKey: "nav.engineering", label: "Engineering Factory", icon: Ruler },
     ],
   },
