@@ -25,14 +25,14 @@ export async function getChannels(): Promise<ChatChannel[]> {
 export type SidebarChannel = { id: string; name: string; isGeneral: boolean; lastActivityAt: string | null };
 
 // Merges real channels with a synthetic "General" entry (the pre-channels flat history —
-// ai_command_runs.channel_id is null) into one list ordered by last activity, newest
-// first. "General" only appears if it actually has messages — no point showing an empty
-// legacy bucket to a founder who's never used anything but channels.
+// work_orders.channel_id is null) into one list ordered by last activity, newest first.
+// "General" only appears if it actually has messages — no point showing an empty legacy
+// bucket to a founder who's never used anything but channels.
 export async function getChannelsForSidebar(): Promise<SidebarChannel[]> {
   const supabase = await createClient();
   const [{ data: channels, error: channelsError }, { data: generalRows, error: generalError }] = await Promise.all([
     supabase.from("chat_channels").select("id, name, updated_at").eq("archived", false),
-    supabase.from("ai_command_runs").select("created_at").is("channel_id", null).order("created_at", { ascending: false }).limit(1),
+    supabase.from("work_orders").select("created_at").is("channel_id", null).order("created_at", { ascending: false }).limit(1),
   ]);
   if (channelsError) throw channelsError;
   if (generalError) throw generalError;
@@ -103,7 +103,7 @@ export async function renameChannel(id: string, name: string): Promise<string | 
   return null;
 }
 
-// Deleting a channel does not delete its messages — ai_command_runs.channel_id is
+// Deleting a channel does not delete its messages — work_orders.channel_id is
 // ON DELETE SET NULL, so every message just becomes unfiled (visible in "General")
 // rather than being destroyed.
 export async function deleteChannel(id: string): Promise<string | null> {

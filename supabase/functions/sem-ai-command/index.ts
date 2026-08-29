@@ -14,7 +14,7 @@
 //
 // Streams the response as Server-Sent Events: `delta` (incremental text), `usage`
 // (running token count as the provider reports it), `done` (the final parsed result +
-// persisted ai_command_run/tasks/approvals, once the full JSON is available and the
+// persisted work_order/tasks/approvals, once the full JSON is available and the
 // sem_execute_ai_command RPC has committed), or `error`. Context building, provider
 // resolution, and DB persistence are NOT streamed — only the LLM generation itself is;
 // the task/approval-creation RPC needs the complete parsed JSON and can only run once
@@ -925,7 +925,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // Short-term continuity: the last few turns in this same channel, chronological.
   // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
   const conversationHistoryQuery = channelId
-    ? supabase.from('ai_command_runs').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
+    ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
@@ -987,7 +987,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // mcp_connectors: name/endpoint only, never vault_secret_id — chat can delete a
     // connector by id but can never create/update one (that requires typing a bearer
     // token, which would transit the chat message, the LLM's own context, and the
-    // plaintext ai_command_runs.command audit column — a real secret-leak pattern, not just
+    // plaintext work_orders.command audit column — a real secret-leak pattern, not just
     // caution; see qa/scenarios/core/audit/SC-104-log-secret-leak.md for the same class
     // of concern this codebase already tracks elsewhere).
     supabase.from('mcp_connectors').select('id,name,endpoint_url').limit(10),
@@ -1034,7 +1034,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   };
   // Pending confirmation state (BRAIN OS master prompt §6-7): the previous turn in this
   // channel may have asked the founder to confirm a bulk/sweeping action instead of
-  // executing it — its exact payload rides along in that turn's own ai_command_runs.output,
+  // executing it — its exact payload rides along in that turn's own work_orders.output,
   // no new table needed. Only the LAST turn counts as "awaiting confirmation"; once a
   // turn executes (or the founder moves on), the newest output has no pendingConfirmation
   // and this naturally reads as null again — that's the whole idempotency mechanism, see
@@ -1122,22 +1122,22 @@ serve(async (req) => {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
-      let aiCommandRunId: string | null = null;
+      let workOrderId: string | null = null;
       try {
         // A real row now exists in the database before the LLM call even starts, not
         // just after it finishes — verified live that generation itself survives a
         // client disconnect (a command was sent, the browser hard-disconnected before it
-        // could have finished, and the task/ai_command_run/model_usage rows all landed
+        // could have finished, and the task/work_order/model_usage rows all landed
         // successfully anyway), so this pending row is what the chat page reconnects to
         // if the user navigates away and back mid-generation.
-        const { data: pendingId, error: pendingError } = await supabase.rpc('create_pending_ai_command_run', {
+        const { data: pendingId, error: pendingError } = await supabase.rpc('create_pending_work_order', {
           p_command: command,
           p_context_pack: contextPack,
           p_channel_id: channelId,
         });
         if (!pendingError && pendingId) {
-          aiCommandRunId = pendingId;
-          send({ type: 'ai_command_run', id: aiCommandRunId });
+          workOrderId = pendingId;
+          send({ type: 'work_order', id: workOrderId });
         }
 
         let resultText: string;
@@ -1193,8 +1193,8 @@ serve(async (req) => {
         try {
           result = parseModelJson(resultText);
         } catch {
-          // Now attached to a real ai_command_run row (entity_id) instead of null, and
-          // that row itself gets marked 'rejected' rather than sitting stuck at 'queued'
+          // Now attached to a real work_order row (entity_id) instead of null, and that
+          // row itself gets marked 'rejected' rather than sitting stuck at 'queued'
           // forever — both diagnosable and visible in chat history afterward.
           const truncated = stopReason === 'max_tokens' || stopReason === 'max_output_tokens';
           const errorMessage = truncated
@@ -1208,11 +1208,11 @@ serve(async (req) => {
             : null;
           await supabase.from('audit_logs').insert({
             actor_profile_id: profile.id, actor_role: profile.role,
-            event_type: 'ai_command_json_parse_failed', entity_type: 'ai_command_run', entity_id: aiCommandRunId, company_id: earlyCompanyId,
+            event_type: 'ai_command_json_parse_failed', entity_type: 'work_order', entity_id: workOrderId, company_id: earlyCompanyId,
             message: errorMessage, metadata: { command, model, stopReason, raw: resultText.slice(0, 4000) }
           });
-          if (aiCommandRunId) {
-            await supabase.rpc('mark_ai_command_run_failed', { p_ai_command_run_id: aiCommandRunId, p_error: errorMessage });
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage });
           }
           send({ type: 'error', error: errorMessage, raw: resultText.slice(0, 2000) });
           return;
@@ -1220,7 +1220,7 @@ serve(async (req) => {
 
         // Business logic (risk-keyword forcing, domain routing) stays here in TypeScript;
         // persistence is delegated to the sem_execute_ai_command RPC (migration
-        // 202608230002) so ai_command_run + tasks + approvals + model_usage + audit_logs all
+        // 202608230002) so work_order + tasks + approvals + model_usage + audit_logs all
         // commit or roll back together instead of a sequential-insert approach, which
         // silently swallowed per-row errors and could leave partial state.
         const resultTasks = (result.tasks || []) as AiTask[];
@@ -1999,18 +1999,18 @@ serve(async (req) => {
           p_goals: createGoalsFiltered,
           p_company_relationships: createCompanyRelationships,
           p_person_assignments: createPersonAssignmentsFiltered,
-          p_ai_command_run_id: aiCommandRunId,
+          p_work_order_id: workOrderId,
           p_memory_candidates: createMemoryCandidates
         });
         if(rpcError) {
-          if (aiCommandRunId) {
-            await supabase.rpc('mark_ai_command_run_failed', { p_ai_command_run_id: aiCommandRunId, p_error: rpcError.message || 'Failed to persist AI command result' });
+          if (workOrderId) {
+            await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: rpcError.message || 'Failed to persist AI command result' });
           }
           send({ type: 'error', error: rpcError.message || 'Failed to persist AI command result' });
           return;
         }
 
-        const aiCommandRun = { id: rpcResult.aiCommandRunId };
+        const workOrder = { id: rpcResult.workOrderId };
         const createdTasks = rpcResult.createdTasks || [];
         const createdApprovals = rpcResult.createdApprovals || [];
         const deletedTaskIds = rpcResult.deletedTaskIds || [];
@@ -2330,7 +2330,7 @@ serve(async (req) => {
           result.summary = lifecycleMismatchCorrections.join(' ');
         }
 
-        // Real, systemic gap found live: ai_command_runs.output was written once, as
+        // Real, systemic gap found live: work_orders.output was written once, as
         // p_output, INSIDE the sem_execute_ai_command call above — necessarily before
         // any of the factLines/organizationGraphCheck grounding logic runs, since that
         // logic depends on the RPC's own return values (createdCompanyRelationships etc).
@@ -2338,20 +2338,20 @@ serve(async (req) => {
         // "N of M could not be created" gap notices, the organization graph check
         // override — was visible only in the live SSE stream and reverted to the raw,
         // ungrounded model text on any page reload or channel revisit (confirmed live:
-        // getChatHistory in web/lib/data/chat-history.ts reads ai_command_runs.output
+        // getChatHistory in web/lib/data/chat-history.ts reads work_orders.output
         // directly). Persisting the corrected summary here is what makes every one of
         // those fixes actually durable instead of a one-time-per-request illusion.
         if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0) {
-          await supabase.from('ai_command_runs').update({ output: result }).eq('id', aiCommandRun.id);
+          await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'ai_command_run', entity_id:aiCommandRun.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
-        send({ type: 'done', result, aiCommandRun, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
+        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
-        if (aiCommandRunId) {
-          await supabase.rpc('mark_ai_command_run_failed', { p_ai_command_run_id: aiCommandRunId, p_error: errorMessage }).catch(() => {});
+        if (workOrderId) {
+          await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage }).catch(() => {});
         }
         send({ type: 'error', error: errorMessage });
       } finally {

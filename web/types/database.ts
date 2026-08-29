@@ -173,7 +173,7 @@ export type Database = {
             foreignKeyName: "ai_reply_log_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
-            referencedRelation: "ai_command_runs"
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1740,7 +1740,7 @@ export type Database = {
             foreignKeyName: "model_usage_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
-            referencedRelation: "ai_command_runs"
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2657,7 +2657,6 @@ export type Database = {
           test_method: Json | null
           title: string
           updated_at: string | null
-          work_order_id: string | null
         }
         Insert: {
           acceptance_criteria?: Json | null
@@ -2684,7 +2683,6 @@ export type Database = {
           test_method?: Json | null
           title: string
           updated_at?: string | null
-          work_order_id?: string | null
         }
         Update: {
           acceptance_criteria?: Json | null
@@ -2711,7 +2709,6 @@ export type Database = {
           test_method?: Json | null
           title?: string
           updated_at?: string | null
-          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -2763,16 +2760,9 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tasks_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "work_orders"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      ai_command_runs: {
+      work_orders: {
         Row: {
           assigned_agent_id: string | null
           channel_id: string | null
@@ -2787,7 +2777,6 @@ export type Database = {
           status: Database["public"]["Enums"]["work_status"] | null
           token_estimate: number | null
           updated_at: string | null
-          work_order_id: string | null
         }
         Insert: {
           assigned_agent_id?: string | null
@@ -2803,7 +2792,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["work_status"] | null
           token_estimate?: number | null
           updated_at?: string | null
-          work_order_id?: string | null
         }
         Update: {
           assigned_agent_id?: string | null
@@ -2819,233 +2807,22 @@ export type Database = {
           status?: Database["public"]["Enums"]["work_status"] | null
           token_estimate?: number | null
           updated_at?: string | null
-          work_order_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "ai_command_runs_assigned_agent_id_fkey"
+            foreignKeyName: "work_orders_assigned_agent_id_fkey"
             columns: ["assigned_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ai_command_runs_channel_id_fkey"
+            foreignKeyName: "work_orders_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "chat_channels"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ai_command_runs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_command_runs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "safe_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_command_runs_created_by_profile_id_fkey"
-            columns: ["created_by_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_command_runs_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "work_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      agent_runs: {
-        Row: {
-          agent_definition_hash: string | null
-          agent_definition_path: string | null
-          agent_id: string | null
-          base_commit: string | null
-          branch: string | null
-          company_id: string | null
-          created_at: string
-          created_by_profile_id: string | null
-          error: string | null
-          execution_provider: string
-          finished_at: string | null
-          head_commit: string | null
-          id: string
-          provider_run_id: string | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["work_status"]
-          summary: string | null
-          task_id: string | null
-          updated_at: string
-          verification_status: string | null
-          work_order_id: string | null
-        }
-        Insert: {
-          agent_definition_hash?: string | null
-          agent_definition_path?: string | null
-          agent_id?: string | null
-          base_commit?: string | null
-          branch?: string | null
-          company_id?: string | null
-          created_at?: string
-          created_by_profile_id?: string | null
-          error?: string | null
-          execution_provider?: string
-          finished_at?: string | null
-          head_commit?: string | null
-          id?: string
-          provider_run_id?: string | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["work_status"]
-          summary?: string | null
-          task_id?: string | null
-          updated_at?: string
-          verification_status?: string | null
-          work_order_id?: string | null
-        }
-        Update: {
-          agent_definition_hash?: string | null
-          agent_definition_path?: string | null
-          agent_id?: string | null
-          base_commit?: string | null
-          branch?: string | null
-          company_id?: string | null
-          created_at?: string
-          created_by_profile_id?: string | null
-          error?: string | null
-          execution_provider?: string
-          finished_at?: string | null
-          head_commit?: string | null
-          id?: string
-          provider_run_id?: string | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["work_status"]
-          summary?: string | null
-          task_id?: string | null
-          updated_at?: string
-          verification_status?: string | null
-          work_order_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_runs_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_runs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_runs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "safe_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_runs_created_by_profile_id_fkey"
-            columns: ["created_by_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_runs_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_runs_work_order_id_fkey"
-            columns: ["work_order_id"]
-            isOneToOne: false
-            referencedRelation: "work_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      work_orders: {
-        Row: {
-          acceptance_criteria: Json
-          company_id: string
-          completed_at: string | null
-          created_at: string
-          created_by_profile_id: string | null
-          goal_id: string | null
-          id: string
-          objective: string | null
-          owner_agent_id: string | null
-          owner_person_id: string | null
-          owner_type: string
-          previous_status: Database["public"]["Enums"]["work_status"] | null
-          priority: Database["public"]["Enums"]["priority_level"]
-          requested_by_profile_id: string | null
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          status: Database["public"]["Enums"]["work_status"]
-          title: string
-          updated_at: string
-          work_type: string
-        }
-        Insert: {
-          acceptance_criteria?: Json
-          company_id: string
-          completed_at?: string | null
-          created_at?: string
-          created_by_profile_id?: string | null
-          goal_id?: string | null
-          id?: string
-          objective?: string | null
-          owner_agent_id?: string | null
-          owner_person_id?: string | null
-          owner_type?: string
-          previous_status?: Database["public"]["Enums"]["work_status"] | null
-          priority?: Database["public"]["Enums"]["priority_level"]
-          requested_by_profile_id?: string | null
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          status?: Database["public"]["Enums"]["work_status"]
-          title: string
-          updated_at?: string
-          work_type?: string
-        }
-        Update: {
-          acceptance_criteria?: Json
-          company_id?: string
-          completed_at?: string | null
-          created_at?: string
-          created_by_profile_id?: string | null
-          goal_id?: string | null
-          id?: string
-          objective?: string | null
-          owner_agent_id?: string | null
-          owner_person_id?: string | null
-          owner_type?: string
-          previous_status?: Database["public"]["Enums"]["work_status"] | null
-          priority?: Database["public"]["Enums"]["priority_level"]
-          requested_by_profile_id?: string | null
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          status?: Database["public"]["Enums"]["work_status"]
-          title?: string
-          updated_at?: string
-          work_type?: string
-        }
-        Relationships: [
           {
             foreignKeyName: "work_orders_company_id_fkey"
             columns: ["company_id"]
@@ -3063,34 +2840,6 @@ export type Database = {
           {
             foreignKeyName: "work_orders_created_by_profile_id_fkey"
             columns: ["created_by_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_owner_agent_id_fkey"
-            columns: ["owner_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_owner_person_id_fkey"
-            columns: ["owner_person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_orders_requested_by_profile_id_fkey"
-            columns: ["requested_by_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3250,7 +2999,7 @@ export type Database = {
         Args: { p_name: string; p_secret: string }
         Returns: string
       }
-      create_pending_ai_command_run: {
+      create_pending_work_order: {
         Args: { p_channel_id?: string; p_command: string; p_context_pack: Json }
         Returns: string
       }
@@ -3284,8 +3033,8 @@ export type Database = {
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_hr_finance: { Args: never; Returns: boolean }
       is_investor_viewer_of: { Args: { cid: string }; Returns: boolean }
-      mark_ai_command_run_failed: {
-        Args: { p_ai_command_run_id: string; p_error: string }
+      mark_work_order_failed: {
+        Args: { p_error: string; p_work_order_id: string }
         Returns: undefined
       }
       match_memories: {
@@ -3344,7 +3093,6 @@ export type Database = {
       }
       sem_execute_ai_command: {
         Args: {
-          p_ai_command_run_id?: string
           p_approvals: Json
           p_command: string
           p_companies?: Json
@@ -3364,6 +3112,7 @@ export type Database = {
           p_projects?: Json
           p_tasks: Json
           p_token_estimate: number
+          p_work_order_id?: string
         }
         Returns: Json
       }
