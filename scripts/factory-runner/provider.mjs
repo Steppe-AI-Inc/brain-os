@@ -45,23 +45,28 @@ function stripAnsi(text) {
  * @param {string} cwd - repo root to dispatch from.
  * @returns {Promise<{providerRunId: string, raw: string}>}
  */
-export async function startRun(agentName, task, cwd) {
-  const { stdout, stderr } = await execFileAsync(
-    'claude',
-    ['--agent', agentName, '--permission-mode', 'auto', '--bg', task],
-    { cwd, maxBuffer: 10 * 1024 * 1024 }
-  );
-  const combined = stdout + stderr;
-  // Real defect found live 2026-08-29 (Phase 8 repeatability dispatch): the CLI wraps the
-  // hex id itself in ANSI color codes (e.g. "backgrounded · \x1b[36m4bf0806d\x1b[39m"),
-  // which the old regex - matched directly against raw stdout/stderr - could not see past,
-  // even though the "backgrounded \s* ·" prefix matched fine. Root cause was matching
-  // un-stripped output; getLogs()/getArtifacts() already stripped ANSI before matching,
-  // this function did not. Fix: strip ANSI first, exactly like every other parser here.
-  // Real consequence observed live: the underlying `claude --bg` dispatch genuinely
-  // succeeded and later produced a real commit, but this function threw before the
-  // provider_run_id could be captured, so the caller (dispatch-task.mjs) never recorded
-  // an agent_runs row - a real, disclosed tracking gap, not a hypothetical one.
+// Real defect found live 2026-08-29 (Phase 8 repeatability dispatch, Work Order
+// 3b28e447-4a9c-4f79-9419-80638a39e457): the CLI wraps the hex id itself in ANSI color
+// codes (e.g. "backgrounded · \x1b[36m4bf0806d\x1b[39m"), which the old regex - matched
+// directly against raw stdout/stderr - could not see past, even though the
+// "backgrounded \s* ·" prefix matched fine. Root cause was matching un-stripped output;
+// getLogs()/getArtifacts() already stripped ANSI before matching, this function did not.
+// Fix: strip ANSI first, exactly like every other parser here. Real consequence observed
+// live: the underlying `claude --bg` dispatch genuinely succeeded and later produced a
+// real commit (aae7dad), but this function threw before the provider_run_id could be
+// captured, so the caller (dispatch-task.mjs) never recorded an agent_runs row - a real,
+// disclosed tracking gap, not a hypothetical one.
+//
+// Extracted as its own pure, exported function (no process spawn, no I/O) specifically so
+// it has a permanent, fast, deterministic regression test - see
+// provider.regression.test.mjs, which independently reproduces the exact failing byte
+// sequence observed live and asserts this parses it correctly. A comment claiming
+// "regression-verified" is not itself a regression test; this function + that test file
+// is - added by independent verification (Work Order 3b28e447-4a9c-4f79-9419-80638a39e457)
+// because the original fix commit shipped only inline comments, no committed test.
+// @param {string} combined - concatenated raw stdout+stderr from `claude --bg`.
+// @returns {string} the parsed provider run id (hex string, 6+ chars).
+export function parseProviderRunId(combined) {
   const clean = stripAnsi(combined);
   // Real output shape observed live this session: "backgrounded · <8-hex-id>"
   const match = clean.match(/backgrounded\s*(?:·|\|)\s*([0-9a-f]{6,})/i);
@@ -70,7 +75,18 @@ export async function startRun(agentName, task, cwd) {
       `startRun: could not parse a provider_run_id from claude --bg output. Raw output: ${combined}`
     );
   }
-  return { providerRunId: match[1], raw: combined };
+  return match[1];
+}
+
+export async function startRun(agentName, task, cwd) {
+  const { stdout, stderr } = await execFileAsync(
+    'claude',
+    ['--agent', agentName, '--permission-mode', 'auto', '--bg', task],
+    { cwd, maxBuffer: 10 * 1024 * 1024 }
+  );
+  const combined = stdout + stderr;
+  const providerRunId = parseProviderRunId(combined);
+  return { providerRunId, raw: combined };
 }
 
 /**

@@ -4,6 +4,72 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 26. Independent verification of Work Order 3b28e447 (Phase 8 verification artifact, commit aae7dad; ANSI-parsing fix, commit 47cd870) — both real, fix genuinely correct; commit's own "regression-verified" claim was overstated, closed with a real committed test in this pass (E2E VERIFIED, 2026-08-29)
+
+**Why this entry exists even with the underlying fix being correct:** same rationale as
+#21/#22/#23 — a clean independent verification pass by a genuinely separate session (no
+access to the implementer's own reasoning, only committed repo state and live
+`origin/master`) is institutional evidence distinct from a self-report, and this pass
+specifically caught a narrower but real gap worth recording on its own: a commit message
+asserting a form of testing ("regression-verified") that had not actually been committed
+anywhere as a reproducible artifact.
+
+**Independently re-derived, not accepted on the dispatch narrative's word:**
+`docs/software-factory/PHASE_8_VERIFICATION.md` confirmed to genuinely exist at `HEAD`
+with a real UTC timestamp (`2026-08-29T14:30:13Z`) and explicit references to canonical
+Work Order `3b28e447-4a9c-4f79-9419-80638a39e457` and the "Phase 8 test cycle." Both
+`aae7dad` and `47cd870` independently confirmed (`git fetch origin master` +
+`git merge-base --is-ancestor` + `git branch -r --contains`) to be real ancestors of
+`HEAD` **and** present on real `origin/master` — `git rev-parse origin/master` matched
+local `HEAD` exactly, not just local history. `git show --stat` on both commits confirmed
+each touches exactly one file matching its disclosed scope (`docs/software-factory/
+PHASE_8_VERIFICATION.md` alone; `scripts/factory-runner/provider.mjs` alone) — no
+`governance/`, RLS, enum, `.claude/agents/*.md`, or `.claude/skills/*/SKILL.md` files
+touched by either.
+
+**The fix itself was independently re-derived as genuinely correct, not merely re-read:**
+read `provider.mjs`'s `startRun()` source directly and confirmed `stripAnsi(combined)` is
+actually called and its output is what the regex matches against (consistent with the
+pre-existing `getLogs()` usage of the same helper). Then, in a standalone `node -e`
+script with no dependency on this repo's code, reproduced the disclosed bug from
+scratch: the *old* pattern (`combined.match(/backgrounded\s*(?:·|\|)\s*([0-9a-f]{6,})/i)`
+run against the raw byte sequence `"backgrounded · \x1b[36m4bf0806d\x1b[39m"`) genuinely
+returns no match; running `stripAnsi()` first and then matching correctly extracts
+`4bf0806d` — the exact disclosed session id. This is real, independent re-derivation of
+both the failure and the fix, not trust in the commit message's description of either.
+
+**The one real discrepancy caught — the commit's own claim overstated its evidence:** commit
+`47cd870`'s message states "Regression-verified against the exact failing byte sequence
+observed live," but the commit shipped **zero** committed automated test — only inline
+code comments narrating that the byte sequence had been checked. Per CLAUDE.md §12 ("write
+an automated regression test first/alongside the fix") and this project's own worked
+example in that same section (do not just fix the instance, close the whole class), a
+claimed-but-uncommitted regression test is treated here as the same defect class as any
+other missing regression test, not waived because the underlying fix happens to be
+correct. Searched `scripts/factory-runner/` and `qa/scenarios-runner/` for any existing
+coverage of this parsing logic before concluding it was genuinely absent:
+`test-provider.mjs` is a live smoke test requiring a real `claude` CLI background
+dispatch (not a fast, deterministic unit-level parser test), and `qa/scenarios-runner/`
+contains only SQL-based regression scripts, none touching this JS parsing logic.
+
+**Fixed in this same verification pass, 2026-08-29:** refactored `provider.mjs` to
+extract the ANSI-strip-then-match logic out of `startRun()` into a new pure, exported,
+dependency-free function `parseProviderRunId(combined)` — `startRun()` now just calls it;
+no behavior change, confirmed via `node --check` and by confirming the module's exported
+surface is unchanged plus the one addition. Added
+`scripts/factory-runner/provider.regression.test.mjs` (Node's built-in `node --test`
+runner — no `claude` CLI, no network, no database dependency, so it can actually run in
+CI or any future verification pass) with 6 assertions: the exact live-observed failing
+byte sequence now parses correctly; the bare pre-fix regex is proven, in the same test
+file, to fail against that exact input (documents *why* the bug existed, not just that
+the fix works); plain non-ANSI output still parses (no regression on the common case);
+the pipe-delimited alternate separator form still parses; a genuinely unparseable input
+still throws with the raw output included in the message; other ANSI cursor-control/
+clear-line sequences are stripped correctly too. Ran `node --test
+scripts/factory-runner/provider.regression.test.mjs` — 6/6 pass, 0 fail.
+
+**Permanent regression:** `scripts/factory-runner/provider.regression.test.mjs` (new).
+
 ## 23. Independent verification of Phase 6 (Factory Agent Registry, migrations 202608290003/202608290004, commit a8dfb4f) — no functional defect found; one doc-staleness gap found and fixed (E2E VERIFIED — FACTORY AGENT REGISTRY, 2026-08-29)
 
 **Why this entry exists even with no product bug:** same rationale as #21/#22 — a clean
