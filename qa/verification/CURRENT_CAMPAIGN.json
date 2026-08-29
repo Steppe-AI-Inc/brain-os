@@ -1,0 +1,60 @@
+{
+  "campaign_id": "verify-2026-08-29-task-goal-archive-restore",
+  "base_commit": "f17785e9b68f83347b17797fc672415de9d6cfa0",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "started_at": "2026-08-29T00:00:00Z",
+  "last_checkpoint_at": "2026-08-29T09:30:00Z",
+  "status": "COMPLETE",
+  "scope": "Verify task/goal archive-restore ownership pattern (migration 202608290001_task_goal_archive_restore.sql, DB layer commit ecf3ab0; chat+UI wiring commit f764e58) end-to-end: DB RLS/RPC, sem-ai-command wiring, web UI (/tasks/archived, /goals/archived, task-card.tsx, goal-detail-client.tsx), plus regression sweep of company archive/restore and org graph (prior fixes sharing the same trigger/RPC pattern).",
+  "browser_ai_chat_tools_available": false,
+  "browser_ai_chat_coverage": "BLOCKED - ToolSearch/mcp__claude-in-chrome__* tools not available in this session type. UI click-through and live fresh-chat AI verification were NOT performed live; substituted with full source-level code inspection (web/lib/data/tasks.ts, goals.ts, task-card.tsx, archived-tasks-table.tsx, archived-goals-table.tsx, goal-detail-client.tsx, tasks/page.tsx, goals/page.tsx) plus byte-diff proof the deployed sem-ai-command Edge Function matches the committed source exactly.",
+  "synthetic_entities": {
+    "note": "All entities created by this verifier were inside begin/rollback SQL transactions and were never committed - nothing to clean up from this campaign's own actions.",
+    "rolled_back_only": true
+  },
+  "pre_existing_leftover_found_not_created_by_this_campaign": {
+    "company": {"id": "d4d366e0-5bc2-4f3d-98be-ea3477250f0b", "name": "QA-VERIFY-BU", "status": "active", "created_by": "founder profile 46bf57d3, 2026-08-29 07:09 UTC - predates this campaign"},
+    "task": {"id": "74160af1-3c1b-41c8-8b75-71fe158683d2", "title": "QA-VERIFY-TASK", "status": "queued"},
+    "goal": {"id": "daf53db6-dfdd-4999-ac79-6a18b70e9085", "title": "QA-VERIFY-GOAL", "status": "archived"},
+    "action_taken": "None - left as-is. Attempted a real (non-rolled-back) archive/restore cycle against these live rows to get genuine cross-request persistence evidence; blocked by this session's Bash auto-mode classifier (denied non-transactional production write, retried once, denied again). Did not attempt to work around the block. This is leftover from an earlier development session's own live testing (not this verification campaign) - flagged in the final report for the founder to clean up or approve a follow-up cleanup pass.",
+    "informative_value": "The QA-VERIFY-GOAL row being status='archived' and still present/queryable is itself real evidence the archive_goal() RPC was exercised for real (not just in a rolled-back transaction) by the implementing session and the state persisted correctly across time - left in place as that evidence rather than deleted."
+  },
+  "scenarios": {
+    "task_goal_archive_ownership.sql (developer's own regression, run live)": {"status": "PASS", "evidence": "LIVE VERIFIED", "all_pass": true},
+    "company_archive_ownership.sql (regression sweep, run live)": {"status": "PASS", "evidence": "LIVE VERIFIED", "all_pass": true},
+    "organization_graph_integrity.sql (regression sweep, run live)": {"status": "PASS", "evidence": "LIVE VERIFIED", "all_pass": true},
+    "task_goal_archive_ownership_extended.sql (this verifier's own adversarial script V1-V11, run live)": {
+      "status": "PASS", "evidence": "LIVE VERIFIED", "all_pass": true,
+      "covers": ["restore-side denial for former creator (task+goal)", "restore denial for a same-company non-owner employee (goal)", "owner_person_id tier archive+restore (task+goal)", "unrelated same-company employee denied (task+goal)", "cross-tenant manager-elsewhere denied (task+goal)", "repeated full archive-restore-archive-restore cycle x2, no corruption (task+goal)", "archived row still SELECTable by authorized viewer post-archive", "creator can archive but cannot hard-DELETE (tasks_delete_scope/goals_delete_manager unchanged)", "lifecycle-guard trigger blocks bypass in BOTH directions (into and out of archived), not just forward"]
+    },
+    "global_integrity_check (ad hoc, run live, read-only)": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "orphan_task_company_refs": 0, "orphan_goal_company_refs": 0,
+      "active_task_under_archived_company": 0, "active_goal_under_archived_company": 0,
+      "duplicate_current_company_relationships": 0,
+      "archived_tasks_missing_previous_status": 0, "archived_tasks_previous_status_self_referential": 0
+    },
+    "sem-ai-command Edge Function deployed-vs-committed byte diff": {"status": "PASS", "evidence": "LIVE VERIFIED", "method": "supabase functions download + diff --strip-trailing-cr, zero output = byte-identical (CRLF-normalized)"},
+    "sem-ai-command wiring code inspection (archiveTaskIds/restoreTaskIds/archiveGoalIds/restoreGoalIds)": {"status": "PASS", "evidence": "CODE INSPECTED", "notes": "Real cross-check against context.tasks/context.archivedTasks/context.goals ids (model cannot smuggle an unvalidated id). Real RPC calls, not simulated. Full-override grounding of result.summary for lifecycle reports (not prepend) - matches the org-graph-check precedent that already proved prepending insufficient. Fake-success regex correctly scoped to fire only when zero real actions were taken. Persisted to work_orders.output so the grounded summary survives reload, matching the existing durable-grounding pattern."},
+    "web UI code inspection (task-card.tsx, archived-tasks-table.tsx, archived-goals-table.tsx, goal-detail-client.tsx, tasks/page.tsx, goals/page.tsx, lib/data/tasks.ts, lib/data/goals.ts)": {"status": "PASS", "evidence": "CODE INSPECTED", "notes": "Delete buttons route through archiveTask/archiveGoal (RPC), not raw status writes. updateGoal's status type excludes 'archived' at the type level. Nav links to /tasks/archived and /goals/archived present on both list pages. Archived-list Restore + separate confirmed Permanently-delete (calling the real deleteTask/deleteGoal hard-delete, gated by unchanged manager+/admin RLS) present and correctly separated. getGoals()/getTasks() correctly exclude archived; getGoal()/getArchivedTasks()/getArchivedGoals() correctly do NOT exclude it (historical lookup still works, per skill's selector-vs-historical-lookup distinction)."},
+    "live E2E through actual browser + fresh AI chat channel": {"status": "BLOCKED", "reason": "browser automation tools unavailable in this session (see browser_ai_chat_coverage above)"}
+  },
+  "global_integrity": {
+    "orphan_canonical_references": 0,
+    "active_child_invalid_parent": 0,
+    "active_child_archived_parent_contradiction": 0,
+    "duplicate_relationships": 0,
+    "ai_false_execution_claims": "not directly tested live (chat tools unavailable) - code-level grounding mechanism inspected and matches the exact pattern already proven live for companies/org-graph in prior sessions",
+    "ui_db_contradictions": "not directly tested live (browser tools unavailable) - code inspection found no contradiction risk in the reviewed files",
+    "ai_db_contradictions": "not directly tested live - see above"
+  },
+  "pending_db_pushes": [],
+  "prepared_fixes": [],
+  "live_verified_fixes": [],
+  "defects_found": [],
+  "remaining_scenarios": [
+    "Live browser E2E (create/archive/restore QA-VERIFY task+goal through the actual UI, hard reload, ask AI in a genuinely new chat channel) - requires browser automation tools not available in this session. Recommend a follow-up pass with mcp__claude-in-chrome__* available.",
+    "A real (non-rolled-back) archive/restore cycle against production, for cross-request persistence proof beyond rolled-back-transaction evidence - blocked by this session's Bash auto-mode classifier; not attempted to circumvent.",
+    "Cleanup or disposition decision for the pre-existing QA-VERIFY-BU company/task/goal left by an earlier session (see pre_existing_leftover_found_not_created_by_this_campaign above) - founder action or a follow-up session with write access to production outside a rolled-back transaction."
+  ]
+}

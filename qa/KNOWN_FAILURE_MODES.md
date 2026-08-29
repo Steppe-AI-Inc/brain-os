@@ -4,6 +4,77 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 21. Independent verification of task/goal archive-restore (migration 202608290001, commits ecf3ab0/f764e58) — no defect found, coverage gaps closed with a permanent regression script (VERIFIED, 2026-08-29)
+
+**Why this entry exists even with no bug:** per CLAUDE.md's evidence-based-reporting rule,
+a clean independent verification pass is itself worth recording — this is what "checked
+by someone with no memory of the implementation, against the real live system" actually
+looked like for this feature, not a rubber stamp.
+
+**Scope:** the DB layer (`archive_task`/`restore_task`/`archive_goal`/`restore_goal`,
+`tasks_update_scope`/`goals_update_scope` RLS, `tasks_lifecycle_guard`/
+`goals_lifecycle_guard` triggers) and the chat/UI wiring on top of it
+(`sem-ai-command`'s `archiveTaskIds`/`restoreTaskIds`/`archiveGoalIds`/`restoreGoalIds`,
+`web/lib/data/tasks.ts`/`goals.ts`, `/tasks/archived`, `/goals/archived`,
+`task-card.tsx`, `goal-detail-client.tsx`).
+
+**What was independently re-verified live against production** (not re-trusting the
+implementing session's own claims): the developer's own
+`qa/scenarios-runner/task_goal_archive_ownership.sql` (18 assertions) and
+`company_archive_ownership.sql`/`organization_graph_integrity.sql` (cross-resource
+regression sweep, same trigger/RPC pattern) all re-ran live with `all_pass: true`. The
+deployed `sem-ai-command` Edge Function was downloaded and byte-diffed against the
+committed source (`diff --strip-trailing-cr`, zero output) — confirms the claimed
+deployment actually matches what's on `master`, not merely that a deploy command was run
+once. A read-only global-integrity sweep (orphan company refs, active children under an
+archived company, duplicate `current` relationships, archived tasks missing
+`previous_status`) returned all zeros against real production data.
+
+**Real coverage gaps the developer's own test script had, found and closed with a new
+permanent script** (`qa/scenarios-runner/task_goal_archive_ownership_extended.sql`, 21
+assertions, `all_pass: true` live): the original script only tested archive-side denial
+for a former creator, never restore-side denial; never tested the `owner_person_id`
+tier at all; never tested an unrelated same-company employee or a cross-tenant manager;
+never tested a repeated full archive→restore→archive→restore cycle (only a single
+already-archived no-op); never confirmed an archived row stays SELECTable by an
+authorized viewer; never confirmed the creator-can-archive-but-not-hard-delete boundary;
+and — the one that would have mattered most if it were wrong — never tested the
+lifecycle-guard trigger's REVERSE bypass direction (a raw `UPDATE ... SET status =
+'queued'`/`'active'` on an already-archived row, skipping `restore_task()`/
+`restore_goal()` entirely). All eleven were run live and passed; the trigger's `WHEN`
+condition is genuinely symmetric in both directions, not just the forward one the
+original test happened to exercise.
+
+**One real methodology trap hit and fixed while building the new test, worth recording
+as its own small lesson:** `current_profile_id()` resolves via
+`profiles.auth_user_id = auth.uid()`, and `profiles.id` is a separate generated uuid —
+`request.jwt.claims->>'sub'` must be the *auth* id, while every FK column
+(`created_by_profile_id`, `company_memberships.profile_id`, `people.profile_id`) needs
+the resulting *profile* id, not the sub. Reusing the same literal uuid for both (an easy
+mistake — the existing scripts happen to reuse two real users where this distinction is
+invisible unless you go looking) causes an FK violation, not a silent wrong-authorization
+pass — safe-by-construction in that sense, but worth knowing before writing the next
+fixture script from scratch. Synthetic actors for this new script are genuinely
+fabricated `auth.users`/`profiles` rows (minimal-columns insert, `auth.users.id` is the
+only `NOT NULL` column there) rather than more real-user reuse, discovered live that
+`on_auth_user_created` auto-creates the matching `profiles` row — do not also insert one
+explicitly.
+
+**Not verified this pass, real coverage gap, not silently skipped:** live browser
+click-through and a genuinely fresh-chat-channel AI check — `mcp__claude-in-chrome__*`
+tools were unavailable in this verification session. Substituted with full source
+inspection of every UI file in scope (see `qa/verification/CURRENT_CAMPAIGN.json` for the
+exact file list and findings) plus the Edge Function byte-diff above, but this is
+genuinely weaker evidence than a live click-through and should not be reported as
+equivalent. A real (non-rolled-back) archive/restore cycle against a pre-existing live
+`QA-VERIFY-GOAL`/`QA-VERIFY-TASK` pair (leftover from the implementing session's own
+testing, not created by this pass) was attempted for stronger cross-request persistence
+proof and was denied twice by this session's own Bash auto-mode classifier as a
+non-transactional production write; not worked around. That leftover
+`QA-VERIFY-BU` company (`d4d366e0-5bc2-4f3d-98be-ea3477250f0b`) and its task/goal remain
+in production, undisturbed — flagged for the founder to clean up or approve a follow-up
+pass with real write access.
+
 ## 18. "Silent no-op reported as success" is a whole class, not just the AI-chat approvals bug — found across nearly every delete/update in the app (FIXED, 2026-08-28)
 
 **Found while:** searching for the same defect class as #17, per the founder's explicit
