@@ -157,7 +157,13 @@ async function main() {
   console.log(JSON.stringify({ synced: results, deactivated }, null, 2));
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+// Deliberately unconditional (no import.meta.url === argv[1] guard): that comparison is
+// unreliable on Windows (import.meta.url is file:///C:/... with three slashes; a naive
+// process.argv[1]-based reconstruction doesn't match) - confirmed live, this guard
+// silently skipped main() entirely (script exited 0, produced zero output, zero real
+// sync happened). This module's only real usage is as a directly-run script anyway,
+// matching provider.mjs/test-provider.mjs's own convention of no such guard.
+{
   main().catch((e) => {
     console.error('SYNC FAILED:', e);
     process.exit(1);
