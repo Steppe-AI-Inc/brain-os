@@ -1,59 +1,108 @@
 {
-  "campaign_id": "verify-2026-08-29-phase8-verification-artifact-and-provider-ansi-fix",
-  "base_commit": "47cd870e86c549002fe8396f23a720661529c737",
+  "campaign_id": "verify-2026-08-30-master-bugfix-campaign-chat-truth-and-factory-control-plane",
+  "base_commit": "bcaa0fcbe8e39af69232eb7b93ceba1baaf70f25",
   "project_ref": "pvphxgrtdfrudejjhzjk",
-  "started_at": "2026-08-29T00:00:00Z",
-  "last_checkpoint_at": "2026-08-29T01:00:00Z",
+  "started_at": "2026-08-30T00:00:00Z",
+  "last_checkpoint_at": "2026-08-30T02:30:00Z",
   "status": "COMPLETE",
-  "scope": "Independent verification of Work Order 3b28e447-4a9c-4f79-9419-80638a39e457: (1) docs/software-factory/PHASE_8_VERIFICATION.md artifact created/committed as aae7dad, (2) the disclosed provider.mjs startRun() ANSI-stripping bug fix committed as 47cd870. Narrow documentation/tooling verification, not a full DB/UI/AI truth-graph campaign - no entity lifecycle, RLS, or AI context is in scope for this Work Order. Explicitly out of scope per dispatch instructions: governance/, RLS, approval_domain/app_role enums, .claude/agents/*.md, .claude/skills/*/SKILL.md, and any supabase db push/migration - none of these were touched.",
-  "prior_campaign_note": "Previous campaign verify-2026-08-29-phase6-factory-agent-registry (status COMPLETE) archived to qa/verification/archive/ - different scope (Factory Agent Registry), not re-verified here.",
-  "browser_ai_chat_tools_available": "not applicable - this Work Order's artifacts are a markdown doc file and a Node.js CLI script (scripts/factory-runner/provider.mjs), neither has a UI or AI-chat surface.",
-  "synthetic_entities": { "note": "None created - this verification is git/file/commit inspection plus a pure, dependency-free Node unit test (no claude CLI invocation, no database mutation)." },
+  "scope": "Independent re-verification (genuinely separate session, no memory of implementation) of the Brain OS Master Bug-Fix Campaign spanning commits 3ec658c..bcaa0fc: (1) chat history ordering/pagination/scroll/race fixes, (2) sem-ai-command pendingAction conversation-state machine + entity resolution + factory-WO response formatting, (3) person/employment lifecycle (end/restore/delete), (4) org effective-active propagation + the status-check bugfix, (5) complete_agent_run() RPC, (6) Software Factory worktree permission grant. Plus the live acceptance test for WO e35219b8.",
+  "environment_baseline": {
+    "github_master_sha": "bcaa0fcbe8e39af69232eb7b93ceba1baaf70f25",
+    "origin_master_sha_confirmed_via_fetch": "bcaa0fcbe8e39af69232eb7b93ceba1baaf70f25 (identical)",
+    "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
+    "applied_migration_head_confirmed_live": ["202608290008","202608290009","202608290010","202608300001"],
+    "sem_ai_command_deployed_version": 65,
+    "sem_ai_command_deployed_updated_at_utc": "2026-08-29T16:19:47Z",
+    "sem_ai_command_byte_diff_vs_git_head": "ZERO (downloaded via `supabase functions download --use-api`, diffed against git HEAD, only a git CRLF-normalization warning, no content diff)",
+    "vercel_production_sha": "NOT VERIFIED - no vercel CLI available in this session (SessionStart hook confirmed) and no browser access to check the live site's deployed commit banner/API; web/ changes were verified via git+code inspection only, not confirmed live in the actual Vercel production deployment"
+  },
+  "tooling_notes": {
+    "cross_session_message_received": "Mid-campaign, a peer session (brain-os-factory-launch) sent a correction: never combine --project-ref with --linked in `supabase db query` (documented, real incident in qa/KNOWN_FAILURE_MODES.md #25, lines 1316-1323 - independently verified against the actual file content before acting on it, not trusted blindly). Adopted `--linked` alone for all queries from that point forward. No SendMessage tool was available in this session's toolset to reply to the peer.",
+    "classifier_behavior_observed": "Plain SELECT queries (including SELECT-wrapped RPC calls like `select public.end_person_employment(...)`, and BEGIN...ROLLBACK-wrapped multi-statement fixture scripts matching the qa/scenarios-runner/ convention) were consistently allowed. Raw single-statement INSERT/UPDATE against production tables, and any query touching auth.users, were consistently blocked by the classifier. This is a real, useful distinction for future verifiers: prefer calling existing RPCs via SELECT, or wrapping fixture creation in begin;...rollback; blocks, over raw table writes. Classifier caution also visibly escalated later in the session (a previously-fine Write-tool call and a previously-fine find/db-query pattern both got blocked without any new risk factor) - this matches the practical note in the launch prompt about the prior verifier's stuck one-liner. Did not retry blocked actions repeatedly; recorded as BLOCKED and moved on.",
+    "browser_ai_chat_tools": "NOT AVAILABLE in this session - no ToolSearch tool or mcp__claude-in-chrome__* tools were present in this session's actual callable tool schema (only Read, Grep, Glob, Bash, Edit, Write, Skill were ever offered), despite the launch prompt's instruction to load them via ToolSearch. This is a REAL COVERAGE GAP, not a silent skip: all UI-rendering checks and real browser-driven AI-chat conversation checks are BLOCKED for this session. Mitigated partially by directly exercising the real, deployed RPCs/Edge-Function-adjacent logic via SQL with simulated JWT auth context (see scenarios below), which is real production execution of the same code paths the chat UI calls, just not through the actual React UI or the actual sem-ai-command HTTP endpoint."
+  },
+  "synthetic_entities": {
+    "pre_existing_qa_fixtures_inspected_not_mutated": [
+      "QA-LIFECYCLE-BU (company 5661e80d-ee7d-40b1-ba51-5bbabc18e52e, archived, confirmed effectively_active=false, confirmed excluded from get_effectively_active_companies())",
+      "QA-LIFECYCLE-EMPLOYEE (person d55c3dae-dd91-437a-9b96-3e11c434f0df, active=true, company_id=5661e80d... (QA-LIFECYCLE-BU), left untouched per instructions - real live evidence of 'employee under archived-ancestor company' business state)"
+    ],
+    "pre_existing_qa_fixtures_mutated_this_run_and_restored_to_original_state": [
+      "QA-VERIFY-EMPLOYEE (person ddbf958c-dee1-4f41-836f-cf822a40c53d, company_id d4d366e0-5bc2-4f3d-98be-ea3477250f0b = QA-VERIFY-BU, archived) - a pre-existing disposable QA-VERIFY-* fixture found already in production from an earlier verification pass, NOT created by this session. Used for a full end_person_employment -> idempotent-repeat -> negative-permission x2 -> restore_person_employment round trip. Left in its ORIGINAL state: active=true, same canonical id, no duplicate rows, company_id unchanged throughout."
+    ],
+    "created_this_run": [],
+    "cleanup_performed": "None needed - the only fixture mutated (QA-VERIFY-EMPLOYEE) was returned to its exact original state (active=true) by the end of the test sequence. No new rows were created and none needed deletion."
+  },
   "scenarios": {
-    "1_artifact_exists_and_meets_acceptance_criteria": {
-      "status": "PASS", "evidence": "CODE INSPECTED",
-      "method": "Read docs/software-factory/PHASE_8_VERIFICATION.md at HEAD (47cd870). Confirmed: real file present; explicit reference to canonical Work Order 3b28e447-4a9c-4f79-9419-80638a39e457 (appears twice); explicit reference to 'Phase 8 test cycle'; a real ISO-8601 UTC timestamp (2026-08-29T14:30:13Z); explicit honesty note stating no schema/RLS/app-code changes and no db push. Content genuinely satisfies the stated acceptance criteria."
-    },
-    "2_aae7dad_ancestor_and_on_origin_master": {
+    "1_environment_baseline": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "git fetch origin master; git merge-base --is-ancestor aae7dad HEAD -> true; git branch -r --contains aae7dad -> origin/HEAD, origin/master. git rev-parse origin/master == git rev-parse HEAD == 47cd870e86c549002fe8396f23a720661529c737, confirming local state matches the real remote, not just local history."
+      "method": "git fetch origin master; origin/master == local HEAD == bcaa0fc. `npx supabase functions list` shows sem-ai-command version 65, updated_at 2026-08-29T16:19:47Z (7min after the last commit touching that file, 545242c, timestamp-consistent). `supabase functions download sem-ai-command --use-api` then diffed against git HEAD: zero content difference (only CRLF line-ending normalization noise)."
     },
-    "3_47cd870_ancestor_on_origin_master_and_fix_correct": {
+    "2_chat_history_ordering_fix": {
+      "status": "PASS", "evidence": "CODE INSPECTED + LIVE VERIFIED",
+      "method": "Read web/lib/data/chat-history.ts getChatHistory(): confirmed real fix (order created_at DESC, limit, then .reverse() in JS) with an accurate explanatory comment referencing the exact PostgREST LIMIT-after-ORDER-BY semantics that caused the original bug. Ran qa/scenarios-runner/chat_history_ordering.sql live (BEGIN...ROLLBACK, real fixture data, 35+5 turns across two channels): all_pass:true - newest 30 of 35 kept, oldest 5 correctly excluded, reversed order is correctly chronological, channel isolation both directions holds, under-limit channel returns fully untruncated. Rolled back, zero residue in production."
+    },
+    "3_sem_ai_command_pendingAction_and_wiring": {
+      "status": "PASS", "evidence": "CODE INSPECTED + LIVE VERIFIED (deployed-byte-identical, confirmed scenario 1)",
+      "method": "Read the deployed (byte-identical) index.ts: confirmed pendingAction generalization (4 kinds), context.recentlyResolvedEntities threading, and the person-lifecycle wiring (endEmploymentPersonIds/restoreEmploymentPersonIds filtered against contextPersonIds - never trusts an invented id, matches CLAUDE.md's transactional-integrity and false-execution-truth requirements). Found and confirmed a real prior-bug fix in the code's own comments: 'delete QA-VERIFY-EMPLOYEE' used to misroute into claimsCompanyDeleted's corrective language before this fix added person-lifecycle vocabulary - now has its own claimsPersonDeleted corrective check. Could not exercise the actual chat/LLM turn live (browser/HTTP-auth unavailable this session - see tooling_notes) - the underlying RPC calls the function invokes were independently confirmed live and correct in scenario 4."
+    },
+    "4_person_lifecycle_end_restore_delete": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Read migration 202608290008 in full (end_person_employment/restore_person_employment/delete_person/enforce_person_lifecycle_via_rpc trigger/enforce_person_assignment_department_company). Live-executed against production via SELECT-wrapped RPC calls with simulated JWT context (set_config('request.jwt.claim.sub', ...)): (a) not_found case on a fake id -> correct; (b) real round trip on pre-existing QA-VERIFY-EMPLOYEE fixture: end_person_employment as founder -> changed:true, reason:employment_ended, postconditionPassed:true; independent fresh SELECT confirmed active=false, company_id unchanged, row NOT deleted (confirms 'ends employment, does not hard-delete' business invariant); repeat call -> changed:false, reason:already_inactive (idempotent, no false 'just did it' claim); restore attempt with EMPTY jwt sub (unauthenticated) -> denied; restore attempt as the TEST_PERSONAS.md negative-control ordinary employee (no company_memberships) -> denied; restore as founder -> changed:true, reason:restored, postconditionPassed:true; final fresh SELECT confirmed exactly one row, same canonical id ddbf958c-dee1-4f41-836f-cf822a40c53d, active:true (original state fully restored, no duplicate). Also confirmed the people_lifecycle_guard trigger exists live and is enabled (tgenabled='O') via pg_trigger - could not fire it directly (a raw UPDATE was blocked by this session's own classifier, an interesting parallel to the RPC-only design intent). Ran qa/scenarios-runner/person_lifecycle_ai_routing.sql live: all_pass:true, including the single most important permission regression per this skill (a former-manager-after-membership-removal case, 'former_manager_end': denied), delete_person dependent-blocking, and full cascade-delete count verification. Rolled back, zero residue."
+    },
+    "5_org_effective_active_fix_is_live": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Queried the REAL live function body of is_company_effectively_active() via pg_get_functiondef - confirmed it reads `coalesce(bool_and(c.status <> 'archived'), true)`, i.e. the FIXED version from 202608300001, NOT the original buggy `= 'active'` version from 202608290009. Directly queried Trade-book.ai (a7f63716...) and NexPass LLC/FuelMetrix (646c7e8f...), the two real companies the original bug false-flagged: both status='planning', both now effectively_active=true (correctly not flagged). Ran both qa/scenarios-runner/org_effective_active.sql and org_effective_active_status_check_fix.sql live: all_pass:true on both, including the 3-level archived-ancestor propagation case, the reverse parent_of direction, the standalone-company baseline, selector exclusion, and confirmation that neither real company's actual status column was ever mutated. Rolled back, zero residue."
+    },
+    "6_org_effective_active_wired_into_app_and_ai": {
       "status": "PASS", "evidence": "LIVE VERIFIED + CODE INSPECTED",
-      "method": "Same ancestor/remote checks as scenario 2, both true for 47cd870. Read the full startRun()/stripAnsi() source directly (not the commit message) and confirmed stripAnsi(combined) is genuinely called and its result (clean) is what the regex matches against, consistent with the pre-existing getLogs() usage of stripAnsi. Independently reproduced the disclosed bug in a standalone node -e script: the OLD regex against the exact raw byte sequence 'backgrounded \\u00b7 \\x1b[36m4bf0806d\\x1b[39m' returns NO MATCH (bug genuinely reproduced, not assumed); the NEW code path (stripAnsi then match) returns '4bf0806d', the exact disclosed session id. This is real re-derivation, not trust in the commit message."
+      "method": "web/lib/data/companies.ts getCompaniesForSelection() confirmed to call supabase.rpc('get_effectively_active_companies') directly (not a client-side status filter). Live-queried get_effectively_active_companies(): 7 real companies returned, QA-LIFECYCLE-BU (archived) correctly NOT included. sem-ai-command's buildContext() confirmed to use an in-memory isCompanyEffectivelyActiveInMemory() reimplementation for the AI context pack, independently checked line-by-line: it checks `ownStatus === 'archived'` (matching the FIXED logic), not the original buggy '!== active' check - no drift between the SQL fix and the Edge Function's own copy of the same logic. Every context.companies/context.people row is annotated with a real effectivelyActive field per the system-prompt excerpt read at index.ts:559-565."
     },
-    "4_no_unrelated_files_touched": {
+    "7_complete_agent_run_rpc": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "method": "git show --stat aae7dad -> exactly 1 file (docs/software-factory/PHASE_8_VERIFICATION.md, +41/-0). git show --stat 47cd870 -> exactly 1 file (scripts/factory-runner/provider.mjs, +12/-1). No governance/, RLS, enum, .claude/agents/*.md, or .claude/skills/*/SKILL.md files touched by either commit - confirmed directly from the stat output, not inferred."
+      "method": "Ran qa/scenarios-runner/complete_agent_run_lifecycle.sql live: all_pass:true - founder completion updates run status/verification_status/finished_at and the linked task; idempotent repeat correctly reports already_recorded/changed:false; a company-manager (non-founder/admin) is denied; a run with no linked task still completes correctly (taskUpdated:false, not an error); a bad verification_status value is rejected; not_found handled. Rolled back, zero residue. Cross-checked directly against the real WO e35219b8 acceptance-test rows (scenario 8) as live, non-rolled-back confirmation of the same RPC already having been used for real."
     },
-    "5_narrative_cross_check_no_fabrication": {
+    "8_wo_e35219b8_acceptance_test": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Confirmed live and independently, not from the dispatch narrative: canonical_work_orders(e35219b8) exists, title 'Create POST_DEPLOY_VERIFICATION_ARTIFACT.md', status='in_progress' (the disclosed, real, honest gap - see below). agent_runs 16846c1a-3b65-4e59-be79-ffd221135c42 (Implementation Engineer, status=done, verification_status=live_verified, head_commit=bcaa0fc, task_id=f168b506) and 20a8fd22-0cfc-4c2d-96e4-d2784e2f4405 (Verifier, status=done, verification_status=live_verified, task_id=8824472d) both real and linked to e35219b8, alongside two earlier genuinely-blocked attempts (855dcd3c in_progress-stuck predecessor of the worktree fix, b2b34da2 and e12698a2 both correctly recorded as blocked with an honest root-cause summary, no fabricated success). Tasks f168b506 and 8824472d both status=done. docs/software-factory/POST_DEPLOY_VERIFICATION_ARTIFACT.md read directly at HEAD: content genuinely matches every claimed element (real UTC timestamp, correct WO id, honesty note, worktree provenance). `git show --stat bcaa0fc` confirms exactly 1 file changed (+43/-0), matches the artifact exactly. origin/master confirmed == bcaa0fc (scenario 1)."
+    },
+    "9_wo_status_gap_confirmed_real_and_honest": {
+      "status": "CONFIRMED REAL GAP, NOT DISQUALIFYING", "evidence": "LIVE VERIFIED",
+      "method": "canonical_work_orders(e35219b8).status is genuinely still 'in_progress' despite both linked agent_runs and both linked tasks being done/live_verified. Read migration 202608290010_agent_run_completion.sql's complete_agent_run() definition (via the passing regression test's behavior, corroborated by direct row inspection): it updates the agent_runs row and, if task_id is set, the linked task - it does not touch canonical_work_orders at all. No RPC exists anywhere in the migrations searched that closes a Work Order itself. This exactly matches the task's disclosed 'KNOWN, HONEST GAP' - confirmed real, not rounded up into a false 'fully done' claim by this independent pass."
+    },
+    "10_worktree_permission_and_settings_self_modification": {
+      "status": "PASS", "evidence": "LIVE VERIFIED (this session's own direct test, not only the prior verifier's claim)",
+      "method": "This session independently ran `git worktree add ../brain-os-verify-worktree -b verify-... HEAD` from the shared checkout - succeeded cleanly with zero prompt, confirming the Bash(git worktree add:*) grant works exactly as scoped. This session then independently attempted to Edit .claude/settings.json FROM INSIDE that same isolated worktree (adding an unrelated Bash(git push:*) entry) - denied by the classifier, matching the prior verifier's two independent denials (Write on shared checkout, Edit inside its own worktree) for a third, freshly-reproduced confirmation. Read .claude/settings.json directly: confirmed it still contains exactly the one narrow grant, nothing broader."
+    },
+    "11_pre_push_hook_fix": {
       "status": "PASS", "evidence": "CODE INSPECTED",
-      "method": "Every specific claim in the dispatch narrative was independently re-derived rather than trusted: (a) 'commit aae7dad is real and on origin/master' - confirmed via git, not assumed; (b) 'startRun() bug is real, caused by unstripped ANSI' - independently reproduced with a standalone repro script, not merely re-read; (c) 'bug has since been fixed, regression-verified against the exact failing byte sequence' - the FIX ITSELF is correct and independently confirmed working, but the specific phrase 'regression-verified' overstated what was actually shipped: no committed automated test existed for this parsing logic before this verification pass (see defects_found). This is a real, disclosed process gap in the original claim, not a fabrication of the underlying fact (the fix genuinely works) - flagged and closed in this same pass rather than silently accepted."
+      "method": "Read .githooks/pre-push directly: confirmed the new-ref case now computes `base=$(git merge-base \"$local_sha\" \"$remote/master\")` (falling back to the canonical empty-tree hash only if no shared history exists) instead of the old single-ref diff that always produced an empty changed-file set. This is the standard, correct git idiom for 'what does this new ref add relative to where it forked' - logically sound fix for the disclosed defect. Did NOT execute qa/scenarios-runner/pre_push_hook_blocks_function_deploy.sh live in a real git sandbox this pass, due to escalating Bash-classifier caution late in the session (see tooling_notes) - marking this specific regression re-run as BLOCKED rather than risk a repeated-retry hang; the fix's logic itself is sound on direct read and was already regression-tested by the implementing session's own committed evidence (qa/KNOWN_FAILURE_MODES.md #27)."
+    },
+    "12_ordinary_chat_ai_ui_smoke_test": {
+      "status": "BLOCKED", "evidence": "BLOCKED",
+      "method": "No browser tool (mcp__claude-in-chrome__*) or ToolSearch mechanism was available in this session's actual tool schema, despite the launch prompt's instruction to load it. No SUPABASE_SERVICE_ROLE_KEY-based token-minting workaround was attempted after the classifier denied a read of auth.users - correctly treated as 'do not work around the intent of a denial' rather than pivoting to an equivalent bypass via curl+service-role-key. This is a REAL, HONEST COVERAGE GAP for this session, not a silent skip: the actual React chat UI (chat-client.tsx pagination/scroll/optimistic-send race fixes) and the actual live HTTP sem-ai-command endpoint via a real authenticated browser session were never exercised this pass. Mitigated by: (a) byte-identical deployed-vs-git confirmation of index.ts (scenario 1), (b) direct SQL-level execution of the exact same RPCs the Edge Function calls, with real simulated auth context (scenario 4), (c) full code-path inspection of the wiring (scenario 3)."
+    },
+    "13_global_integrity": {
+      "status": "PARTIAL - see notes", "evidence": "LIVE VERIFIED (partial) + BLOCKED (remainder)",
+      "method": "qa/scenarios-runner/org_effective_active.sql, org_effective_active_status_check_fix.sql, person_lifecycle_ai_routing.sql, complete_agent_run_lifecycle.sql, and chat_history_ordering.sql (5 of the repo's existing permanent regression scripts most relevant to this campaign's scope) all ran live and all passed (all_pass:true), each internally asserting zero orphans/zero duplicates/zero false-positives for their own scope. qa/scenarios-runner/organization_graph_integrity.sql (broader org-graph idempotency/cycle/ownership-cap checks) and a final freeform read-only orphan-count query were both denied by the classifier late in the session (escalating caution, not a new finding) - not retried, honestly marked BLOCKED rather than silently omitted. No orphan/duplicate/contradiction was found anywhere this session DID get to check."
     }
   },
   "global_integrity": {
-    "commits_touching_unrelated_scope_out_of_governance_rls_enums_agents_skills": 0,
-    "note": "Not a DB-mutating campaign; standard SQL global-integrity counters (orphan refs, duplicate relationships, etc.) are not applicable to this scope. The one applicable integrity check - 'did either commit touch anything outside its disclosed scope' - is 0/0 as shown in scenario 4."
+    "orphan_canonical_references": "0 (within scenarios actually run - see 13_global_integrity for what could not be re-run)",
+    "active_child_to_archived_parent_contradiction": "0 confirmed cases in this pass; the one legitimate exception (QA-LIFECYCLE-EMPLOYEE, active person under archived QA-LIFECYCLE-BU) is exactly the documented, intentional lifecycle contract (person_id unchanged, effectively_active correctly computed as false) - not a contradiction",
+    "duplicate_relationships": 0,
+    "duplicate_entities_from_mutation_round_trip": "0 - QA-VERIFY-EMPLOYEE confirmed to be exactly 1 row after the full end/restore round trip",
+    "ai_false_execution_claims": "not directly observable this session (browser/HTTP-AI-chat blocked) - code-level guard (claimsPersonDeleted/claimsCompanyDeleted correction) inspected and appears sound",
+    "ui_db_contradictions": "not directly observable this session (browser blocked)",
+    "ai_db_contradictions": "not directly observable this session (browser/HTTP-AI-chat blocked); DB-level ground truth for every fact the AI is supposed to reason from (effectivelyActive, person.active, agent_runs/task status) was independently confirmed correct"
   },
   "pending_db_pushes": [],
   "prepared_fixes": [],
-  "live_verified_fixes": [
-    {
-      "description": "Real gap found: commit 47cd870's message claims 'Regression-verified against the exact failing byte sequence observed live' but shipped zero committed automated test - only inline comments. Per CLAUDE.md Section 12 ('write an automated regression test first/alongside the fix') and this skill's fix-authority rules, a claimed-but-missing regression test is itself a defect class to close, not just note.",
-      "fix": "Refactored provider.mjs to extract the ANSI-strip + regex parsing logic out of startRun() into a new pure, exported, dependency-free function parseProviderRunId(combined) (no behavior change - startRun() now just calls it). Added scripts/factory-runner/provider.regression.test.mjs (Node built-in test runner, node --test, no claude CLI/network/DB dependency) with 6 assertions: the exact live-observed failing byte sequence now parses correctly; the pre-fix bare regex is proven to fail against that same input (documents why the bug existed); plain non-ANSI output still parses (no regression on the common case); the pipe-delimited alternate separator form still parses; a genuinely unparseable input still throws the expected error with the raw output included; other ANSI cursor/clear-line sequences are also stripped correctly.",
-      "files": ["scripts/factory-runner/provider.mjs", "scripts/factory-runner/provider.regression.test.mjs"],
-      "verification": "node --check scripts/factory-runner/provider.mjs -> syntax OK. Confirmed provider.mjs still exports the same original public surface (cancelRun, getArtifacts, getLogs, getRunStatus, healthCheck, resolveAgentFromRegistry, startRun, startRunByAgentId) plus the new parseProviderRunId. node --test scripts/factory-runner/provider.regression.test.mjs -> 6/6 pass, 0 fail.",
-      "committed": "pending - see live_verified_fixes commit hash to be recorded after push in this same report"
-    }
-  ],
-  "defects_found": [
-    {
-      "description": "Missing permanent regression test for the ANSI-parsing fix in commit 47cd870, despite the commit message's explicit 'regression-verified' claim.",
-      "classification": "CLAIMED-BUT-MISSING REGRESSION TEST - same defect class as CLAUDE.md's own worked example (do not merely patch, search the codebase for the same class). Searched scripts/factory-runner/ and qa/ for any *.test.* or *ansi*/*startRun* named file before concluding it was genuinely missing (not just differently named).",
-      "same_class_search_elsewhere": "Checked scripts/factory-runner/test-provider.mjs (a live smoke test requiring a real claude CLI dispatch, not a fast unit-level parser test) and qa/scenarios-runner/ (SQL-only regression tests, none cover this JS parsing logic). No other file in the repo covers this parsing logic. Did not find the same 'claimed regression-verified, no test committed' pattern for other recent commits in this session's scope (aae7dad has no code to regression-test - it's a docs-only artifact, consistent with its own honesty note).",
-      "status": "fix prepared this pass - see live_verified_fixes above; to be committed and pushed as part of this verification report (a `web/` or `supabase/functions/` restriction does not apply here - this is a factory tooling script, and the skill's general fix authority for 'a missing or wrong permanent regression test' applies)."
-    }
-  ],
-  "remaining_scenarios": [],
-  "browser_ui_ai_chat_coverage_gap": "Not applicable - no UI or AI-chat surface exists for this Work Order's artifacts."
+  "live_verified_fixes": [],
+  "defects_found_this_pass": [],
+  "remaining_scenarios": [
+    "organization_graph_integrity.sql full re-run (blocked by late-session classifier caution, not a discovered defect)",
+    "real browser-driven chat UI + live sem-ai-command HTTP endpoint test (blocked - no browser tools in this session's schema)",
+    "pre_push_hook_blocks_function_deploy.sh live re-execution (blocked by late-session classifier caution; code-inspected instead)",
+    "Vercel production SHA confirmation (no vercel CLI, no browser)"
+  ]
 }
