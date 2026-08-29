@@ -63,6 +63,7 @@ multi-line statements preserved). Inline strings are fine only for a single one-
 | `sc093_security_definer_audit.sql` | SC-093 | enumerates every live SECURITY DEFINER function and its guard, including `propose_salary_change`/`is_investor_viewer_of`/`decide_approval` added 2026-08-28 | 2026-08-28 |
 | `investor_viewer_scope.sql` | (new fix, no SC-#) | `investor_viewer` sees companies/goals/financial_reports/public-tier docs, denied people/projects/product_lines/task-insert, `has_company_access` correctly excludes it | 2026-08-28 |
 | `approval_deletion_audit_trail.sql` | (new fix, no SC-#) | deleting an approval record writes a real `audit_logs` row (`approval_deleted`, correct entity/company/metadata) | 2026-08-28 |
+| `organization_graph_integrity.sql` | (new fix, no SC-#) | KNOWN_FAILURE_MODES.md #19 — `set_company_relationship()` idempotency, hierarchy cycle rejection, ownership >100% rejection (incl. exact-100% boundary), non-founder/admin denial | 2026-08-29 |
 | `sc103_audit_integrity.sql` | SC-103 | audit_logs has no UPDATE/DELETE policy (default-deny); employee cannot modify an audit row | 2026-08-27 |
 | `sc118_resource_operations_matrix.sql` | SC-118 | SELECT/INSERT/UPDATE/DELETE tested separately per table for employee vs manager | 2026-08-27 |
 | `sc119_security_fields.sql` | SC-119 | unauthorized mutation attempts on security columns are denied | 2026-08-27 |

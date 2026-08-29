@@ -749,3 +749,80 @@ test case.
 **Test channels created while verifying this were deleted after** (2 temporary
 channels from the live chat tests above) — no residue left in the founder's real
 channel list.
+
+## 19. Organization graph — business units/ownership had no real mechanism, and nothing read it back anywhere (FIXED and VERIFIED LIVE, 2026-08-29)
+
+**Symptom (the founder's real report):** manually renamed companies; asked Brain AI to
+remove CLIX GPS and Tradebook from the company list ("they are business units under SEM
+LLC"); asked it to make SEM Global Robotics Technologies 100% owned by SEM LLC; opened
+People — still showed the old flat company list, restructuring nowhere visible.
+
+**Root cause — NOT what it looked like.** Investigated the obvious hypothesis first
+(stale denormalized company name / Next.js cache) and ruled it out with a direct live
+test: created a throwaway company, renamed it via raw SQL, hard-loaded `/people` in a
+brand-new browser tab — the new name appeared instantly. `people.company_id` is a real
+FK, always was; that was never the bug. The real defects, all confirmed against
+production data:
+1. `company_relationships` (built 2026-08-24, already wired into `sem-ai-command` and
+   `sem_execute_ai_command`) had no `organization_type` distinction on `companies` and no
+   relationship type for "business unit" separate from "owns" — so "CLIX GPS is a
+   business unit of SEM LLC" had nowhere real to go. Zero relationship rows existed for
+   CLIX GPS or Tradebook despite the founder's explicit command in a real, findable
+   chat thread — the AI's own reply claimed "This restructuring is now complete" while
+   the deterministic fact-line correctly flagged "0 of 2 requested company
+   relationship(s)... could not be created," the exact hallucinated-success class as
+   the original approvals-execution gap (#1) and #17/#18.
+2. No idempotency: the SEM LLC → SEM GRT ownership relationship existed as two
+   duplicate `current` rows from two separate founder attempts.
+3. **Most severe:** zero UI anywhere ever read `company_relationships` or
+   `person_assignments` (grepped `web/` — only generated types referenced either
+   table). Even the one relationship that *was* persisted correctly was invisible
+   everywhere in the product, indistinguishable from a total no-op.
+
+**Fixed (migrations 202608280006/07/08/09):** `organization_type` on `companies`
+(legal_entity/business_unit/brand/subsidiary/department/holding_company/country_operation);
+4 new relationship types (`business_unit_of`/`brand_of`/`subsidiary_of`/`department_of`);
+a unique index + integrity trigger on `company_relationships` blocking hierarchy cycles
+and total ownership >100%; an idempotent `set_company_relationship()` RPC (founder/admin
+re-derived, SECURITY DEFINER, same pattern as `decide_approval`); `sem_execute_ai_command`
+routes `state='current'` company-to-company relationships through it, wrapped so one bad
+relationship can't abort the whole chat command; `sem-ai-command`'s prompt teaches the
+model `organizationType` + the new relationship types, including an explicit worked
+example of *direction* (which id is the subordinate vs. the container swaps by type
+name — a real, easy-to-invert detail); a real "Organization structure" tree + type
+badges on the Companies page — the actual missing piece, since nothing rendered this
+data before.
+
+**Two real bugs found and fixed only by actually running the founder's live scenario
+end-to-end** (not just reviewing the SQL — worth remembering for next time):
+- `set_company_relationship`'s `p_state` parameter is plain `text`; Postgres does not
+  implicitly cast a text *variable* to an enum column (only unknown-typed literals get
+  that treatment) — every relationship creation failed with a `42804` type error until
+  202608280008 added the explicit cast. The Edge Function's fact-line grounding caught
+  this correctly in the live test before the DB error was even inspected.
+- The ownership-total trigger checked `relationship_type = 'owned_by_percentage'` (dead
+  code — that type's `related_company_id` is always null, so it can never reach the
+  branch) instead of `'parent_of'` (the real, already-in-production company-to-company
+  ownership convention), and grouped by the wrong column — fixed in 202608280009,
+  caught by the QA regression script written for this exact migration, run before that
+  script was ever relied on as passing.
+
+**Verified live end-to-end**, in the founder's own real, pre-existing chat thread (not a
+fresh test conversation): "reclassify CLIX GPS and Tradebook as business units under SEM
+LLC" → both relationships created, `organization_type` set to `business_unit` on both,
+Companies page tree immediately showed them nested under SEM LLC with "Business unit of"
+badges instead of sitting at the top level. Repeated the identical command twice more
+(once mid-bug-hunt, once after the final fix) — exactly one `current` row per company
+both times, confirmed by direct query — real, live idempotency, not just the unit test.
+
+**Permanent regression:** `qa/scenarios-runner/organization_graph_integrity.sql` —
+idempotency, cycle rejection, ownership >100% rejection (including the exact-100%
+boundary case), non-founder/admin denial. `all_pass: true` after 202608280009.
+
+**Explicitly deferred, not built this pass:** a manual UI form for setting
+relationships directly (chat/the RPC is the only write path for now); full
+alias/entity-resolution for company names; surfacing `'planned'` (not-yet-current)
+relationships anywhere in the UI; the two `'planned'` SEM Technologies LLC rows found
+live (real, pre-existing founder intent, not touched — promoting a plan to current is a
+founder decision, not something to infer).
+channel list.

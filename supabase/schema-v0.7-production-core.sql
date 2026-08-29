@@ -2035,16 +2035,23 @@ declare
   cyclic boolean;
 begin
   if new.state = 'current' and new.related_company_id is not null then
-    if new.relationship_type = 'owned_by_percentage' and new.ownership_pct is not null then
+    -- Company-to-company ownership is 'parent_of' + ownership_pct (the existing,
+    -- already-correct production convention: SEM LLC's 100% ownership of SEM GRT is
+    -- recorded exactly this way) - 'owned_by_percentage' is a different case entirely
+    -- (an individual's personal stake, owner_profile_id set, related_company_id always
+    -- null, so it can never even reach this branch). Multiple different company_id
+    -- owners can each hold a stake in the SAME related_company_id, so the sum must group
+    -- by related_company_id (the owned company), not company_id (one specific owner).
+    if new.relationship_type = 'parent_of' and new.ownership_pct is not null then
       if (
         select coalesce(sum(ownership_pct), 0)
         from public.company_relationships
-        where company_id = new.company_id
-          and relationship_type = 'owned_by_percentage'
+        where related_company_id = new.related_company_id
+          and relationship_type = 'parent_of'
           and state = 'current'
           and id <> coalesce(new.id, '00000000-0000-0000-0000-000000000000'::uuid)
       ) + new.ownership_pct > 100 then
-        raise exception 'Total current ownership of company % would exceed 100%%', new.company_id;
+        raise exception 'Total current ownership of company % would exceed 100%%', new.related_company_id;
       end if;
     end if;
 
@@ -2109,7 +2116,7 @@ begin
   end if;
 
   insert into public.company_relationships (company_id, related_company_id, relationship_type, ownership_pct, state, created_by_profile_id)
-  values (p_company_id, p_related_company_id, p_relationship_type, p_ownership_pct, p_state, public.current_profile_id())
+  values (p_company_id, p_related_company_id, p_relationship_type, p_ownership_pct, p_state::relationship_state, public.current_profile_id())
   on conflict (company_id, related_company_id, relationship_type) where state = 'current' and related_company_id is not null
   do update set ownership_pct = coalesce(excluded.ownership_pct, public.company_relationships.ownership_pct)
   returning id into v_id;
