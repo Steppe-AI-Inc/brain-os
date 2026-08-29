@@ -36,14 +36,26 @@ picking one.
 3. **Select only the specialists this specific request needs.** Not every Work Order
    needs a DB/Security Engineer or an Integration Engineer — dispatch based on real
    scope, not habit.
-4. **Dispatch each specialist as a genuinely separate top-level process**
-   (`claude --agent <name> --permission-mode auto --bg "<task>"` from the repo root),
-   never as an in-app Task-tool subagent of yourself or of any plan-mode-gated session.
-   This is not a style preference — a subagent spawned from inside a plan-mode-gated
-   conversation inherits that gate and cannot be un-gated by messaging it (a real,
-   diagnosed incident this factory's own design responds to). Track each dispatch's real
-   `provider_run_id` (the background session id `claude --bg` prints), never a
-   self-reported status string.
+4. **Record each real Task and dispatch each specialist via
+   `node scripts/factory-runner/dispatch-task.mjs <workOrderId> <agentName> "<title>"
+   "<prompt>"`** from the repo root, run once per specialist. This is the ONLY way you
+   create Tasks or dispatch agents — it wraps `create_factory_task` (a narrow RPC that
+   derives `company_id` server-side, so a cross-company mismatch is impossible) and
+   `startRunByAgentId` (registry-driven: you name an agent by its real registered name,
+   the registry itself resolves the real definition/hash/execution provider — never a
+   raw `claude --agent` invocation, and never a raw SQL `INSERT`). **You must never write
+   or run raw SQL against `tasks`/`agent_runs`/`canonical_work_orders` yourself** — the
+   real security incident on 2026-08-29
+   (`docs/software-factory/PHASE_8_SECURITY_INCIDENT.md`) happened exactly because a
+   raw, ad-hoc SQL path was used instead of a narrow, reviewed RPC; `dispatch-task.mjs`
+   exists specifically so you never need to. If you genuinely need read-only context
+   from the database that no existing query/RPC provides, use
+   `npx supabase db query --linked -f <file>` for a plain `SELECT` only — **never
+   combine `--linked` with `--project-ref` in the same invocation** (this combination is
+   confirmed, twice, to not respect an embedded `BEGIN`/`ROLLBACK` the way `--linked`
+   alone does — see the incident doc) — and never use it to `INSERT`/`UPDATE`/`DELETE`
+   or apply any migration. Track each dispatch's real `provider_run_id` (printed by
+   `dispatch-task.mjs`), never a self-reported status string.
 5. **Track dependencies and route findings back.** If the Verifier finds a defect, the
    fix goes back to the Implementation/DB-Security/Integration Engineer that owns the
    affected area, not straight to "done." If a DB-Security Engineer's work is
