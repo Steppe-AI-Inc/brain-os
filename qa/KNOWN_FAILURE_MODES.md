@@ -1449,7 +1449,7 @@ verification here means "attempt the specific action and observe the classifier'
 behavior," as done above. Re-verify manually (repeat the two settings-edit attempts) any
 time `.claude/settings.json`'s `permissions` block is touched again.
 
-## 30. `complete_work_order` — two real defects found by independent review before push (FOUND + FIXED pre-production, 2026-08-30); one adjacent gap deferred as a fast-follow, not yet fixed
+## 30. `complete_work_order` — three real defects found across two independent review passes before push (FOUND + FIXED pre-production, 2026-08-30); one adjacent gap deferred as a fast-follow, not yet fixed
 
 **Real incident**: `complete_work_order()` (migration `202608300002_complete_work_order.sql`)
 was written to close the last known factory-state gap — `complete_agent_run()` never
@@ -1482,6 +1482,33 @@ Both exploits were added as new permanent regressions
 against production (`--linked` alone, rolled back): all 12 named regressions pass, and the
 function/trigger/fixture data are all confirmed absent from production afterward, both
 before and after the fix.
+
+**A fresh, second independent review session** (per the first reviewer's own explicit
+"resubmit for review" instruction — this session had no memory of the first review, only
+the committed diff) confirmed defects 1 and 2 genuinely fixed, then, via its own extended
+adversarial testing beyond the original two exploits, live-reproduced a **third** real
+defect in the exact security property this migration exists to guarantee:
+
+3. **Partial verification**: same-row binding (fix 1, above) closed the cross-run exploit,
+   but the check still only required **one** commit-carrying `agent_runs` row to be
+   verified to close the **whole** Work Order. Reproduced against the real, documented
+   multi-task dispatch shape (`dispatch-task.mjs` creates one `agent_runs` row per task): a
+   Work Order with two tasks, each with its own real commit — one verified, one never
+   verified at all — still completed, silently including unverified code under a `done`
+   Work Order. This directly contradicted the migration's own stated intent ("independent
+   verification is required for THAT SPECIFIC commit") — a defect against the author's own
+   design, not an ambiguous policy question. Fixed by inverting the check to `NOT EXISTS`
+   "any commit-carrying run that is NOT properly verified" — every commit must now
+   individually clear the bar, not just one.
+
+Added as regression #13 (`FACTORY_WORK_ORDER_REQUIRES_EVERY_COMMIT_VERIFIED`), committed as
+`fe4bf3b`. Re-run against production (`--linked` alone, rolled back): all 13 named
+regressions pass, function/trigger/fixture data confirmed absent afterward. The second
+reviewer also independently re-confirmed the schema mirror
+(`supabase/schema-v0.7-production-core.sql`) matched the migration file exactly, and that
+the fix does not break the real legitimate pattern (`complete_agent_run`'s own signature
+supports setting `head_commit` and `verification_status` together on one call against one
+row — same-row binding matches actual usage, not just the test fixtures).
 
 **Deferred fast-follow, not yet fixed**: while probing defect 1's exploitability, the
 reviewer also confirmed (live, rolled back) a **pre-existing, adjacent** gap that predates
