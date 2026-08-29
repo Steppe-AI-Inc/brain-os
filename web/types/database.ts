@@ -3376,6 +3376,16 @@ export type Database = {
         Args: { p_board_id: string; p_task_id: string }
         Returns: boolean
       }
+      complete_agent_run: {
+        Args: {
+          p_agent_run_id: string
+          p_head_commit?: string
+          p_status: Database["public"]["Enums"]["work_status"]
+          p_summary?: string
+          p_verification_status?: string
+        }
+        Returns: Json
+      }
       create_board_task: {
         Args: {
           p_board_id: string
@@ -3390,6 +3400,28 @@ export type Database = {
       }
       create_board_with_defaults: {
         Args: { p_company_id: string; p_description?: string; p_name: string }
+        Returns: string
+      }
+      create_factory_task: {
+        Args: {
+          p_acceptance_criteria?: Json
+          p_description?: string
+          p_owner_agent_id?: string
+          p_title: string
+          p_work_order_id: string
+        }
+        Returns: string
+      }
+      create_factory_work_order: {
+        Args: {
+          p_acceptance_criteria?: Json
+          p_company_id: string
+          p_goal_id?: string
+          p_objective: string
+          p_priority?: string
+          p_title: string
+          p_work_type?: string
+        }
         Returns: string
       }
       create_mcp_connector_secret: {
@@ -3421,11 +3453,28 @@ export type Database = {
         Args: { p_secret_id: string }
         Returns: undefined
       }
+      delete_person: { Args: { p_person_id: string }; Returns: Json }
+      end_person_employment: {
+        Args: { p_end_date?: string; p_person_id: string }
+        Returns: Json
+      }
+      get_effectively_active_companies: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          status: string
+        }[]
+      }
       get_mcp_connector_token: {
         Args: { p_connector_id: string }
         Returns: string
       }
       has_company_access: { Args: { cid: string }; Returns: boolean }
+      is_company_effectively_active: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
       is_company_manager: { Args: { cid: string }; Returns: boolean }
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_hr_finance: { Args: never; Returns: boolean }
@@ -3466,6 +3515,10 @@ export type Database = {
       }
       restore_company: { Args: { p_company_id: string }; Returns: Json }
       restore_goal: { Args: { p_goal_id: string }; Returns: Json }
+      restore_person_employment: {
+        Args: { p_person_id: string }
+        Returns: Json
+      }
       restore_task: { Args: { p_task_id: string }; Returns: Json }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
