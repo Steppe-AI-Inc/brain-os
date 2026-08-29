@@ -332,6 +332,15 @@ Rules:
   the container ("CLIX GPS business_unit_of SEM LLC" — companyId=CLIX GPS,
   relatedCompanyId=SEM LLC). Get this backwards and the hierarchy inverts silently — always
   read the relationshipType name as the literal English sentence connecting the two ids.
+- "Check [company]'s structure", "reconcile the organization", "fix inconsistent company
+  references", or any request to audit/verify the org graph itself (not change it) sets
+  checkOrganizationGraph — {companyId/companyIndex} for one company, or both null to check
+  everything. This runs a real database query (validateOrganizationGraph) and the result
+  gets appended to your response as verified fact — do not also describe hypothetical
+  problems yourself; report only what that real result actually contains. Never set this
+  alongside createCompanyRelationships/updateCompanies in the same turn — check first, let
+  the founder act on the real findings next turn, don't guess-fix in the same breath as
+  auditing.
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation: do not repeat an action you already took
   earlier in this history, and refer back to it naturally when relevant.
@@ -439,6 +448,7 @@ Output schema:
   "createPersonAssignments": [
     {"personId": string|null, "personIndex": number|null, "legalEmployerCompanyId": string|null, "legalEmployerCompanyIndex": number|null, "operatingCompanyId": string|null, "operatingCompanyIndex": number|null, "departmentId": string|null, "jobTitle": string|null, "managerPersonId": string|null, "managerPersonIndex": number|null, "employmentType": "full_time"|"part_time"|"contractor"|"advisor"|null, "allocationPct": number|null, "startDate": string|null, "endDate": string|null, "isPrimary": boolean|null, "responsibilities": string|null, "state": "current"|"planned"|"historical"|null}
   ],
+  "checkOrganizationGraph": {"companyId": string|null, "companyIndex": number|null}|null,
   "approvals": [
     {"title": string, "reason": string, "riskLevel": "medium"|"high"|"critical", "taskIndex": number|null}
   ],
@@ -1284,6 +1294,49 @@ serve(async (req) => {
           if (data && data.length > 0) updatedCompanyCount++;
         }
 
+        // Organization graph audit — real database query, not a guess. Runs immediately
+        // (like company updates above) since it's read-only and doesn't belong in the
+        // mutation transaction. organizationGraphCheck stays null unless the model
+        // actually requested one, so the fact-line below is silent on every other turn.
+        const checkGraphReq = result.checkOrganizationGraph && typeof result.checkOrganizationGraph === 'object'
+          ? result.checkOrganizationGraph as Record<string, unknown>
+          : null;
+        let organizationGraphCheck: { scope: string; clean: boolean; summary: string; report: string } | null = null;
+        if (checkGraphReq) {
+          const targetCompanyId = typeof checkGraphReq.companyId === 'string' && contextCompanyIds.has(checkGraphReq.companyId)
+            ? checkGraphReq.companyId
+            : null;
+          const { data: graphResult, error: graphError } = await supabase.rpc('validate_organization_graph', { p_company_id: targetCompanyId });
+          if (!graphError && graphResult) {
+            const g = graphResult as Record<string, unknown>;
+            const dupNames = Array.isArray(g.duplicateCompanyNames) ? g.duplicateCompanyNames as any[] : [];
+            const overOwned = Array.isArray(g.ownershipOver100) ? g.ownershipOver100 as any[] : [];
+            const cycles = Array.isArray(g.hierarchyCycles) ? g.hierarchyCycles as any[] : [];
+            const orphanUnits = Array.isArray(g.businessUnitsWithoutParentEdge) ? g.businessUnitsWithoutParentEdge as any[] : [];
+            const stalePlanned = Array.isArray(g.stalePlannedRelationships) ? g.stalePlannedRelationships as any[] : [];
+            const noCompanyPeople = Array.isArray(g.peopleWithNoCompany) ? g.peopleWithNoCompany as any[] : [];
+            const issues: string[] = [];
+            const reportLines: string[] = [];
+            if (dupNames.length) { issues.push(`${dupNames.length} duplicate company name(s)`); reportLines.push(`- Duplicate names: ${dupNames.map(d => `"${d.name}" (${d.count}x)`).join(', ')}`); }
+            if (overOwned.length) { issues.push(`${overOwned.length} company/companies with total ownership over 100%`); reportLines.push(`- Over-owned: ${overOwned.map(o => `${o.companyName} at ${o.totalPct}%`).join(', ')}`); }
+            if (cycles.length) { issues.push(`${cycles.length} hierarchy cycle(s)`); reportLines.push(`- Cycles involving: ${cycles.map(c => c.companyName).join(', ')}`); }
+            if (orphanUnits.length) { issues.push(`${orphanUnits.length} business unit/brand/subsidiary with no parent relationship set`); reportLines.push(`- No parent set: ${orphanUnits.map(o => `${o.name} (${o.organizationType})`).join(', ')}`); }
+            if (stalePlanned.length) { issues.push(`${stalePlanned.length} relationship(s) left "planned" for over a week`); reportLines.push(`- Stale planned: ${stalePlanned.map(s => `${s.company} ${s.relationshipType} ${s.relatedCompany}`).join(', ')}`); }
+            if (noCompanyPeople.length) { issues.push(`${noCompanyPeople.length} people record(s) with no company`); reportLines.push(`- No company: ${noCompanyPeople.map(p => p.fullName).join(', ')}`); }
+            const scope = String(g.scope ?? 'all companies');
+            organizationGraphCheck = {
+              scope,
+              clean: g.clean === true,
+              summary: issues.length === 0
+                ? `Organization graph check (${scope}): clean, no issues found.`
+                : `Organization graph check (${scope}): ${issues.join('; ')}.`,
+              report: issues.length === 0
+                ? `Organization graph check — ${scope}: clean, no issues found. Every company resolves correctly, no duplicate names, no ownership conflicts, no hierarchy cycles, no orphaned business units, no stale relationships, no people without a company.`
+                : `Organization graph check — ${scope}: ${issues.length} issue(s) found.\n${reportLines.join('\n')}`,
+            };
+          }
+        }
+
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
         const createPeople = requestedPeople
           .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object' && typeof (p as any).fullName === 'string' && (p as any).fullName.trim())
@@ -1961,6 +2014,7 @@ serve(async (req) => {
         if (deleteApprovalIds.length > 0) factLines.push(`Deleted ${deletedApprovalCount} of ${deleteApprovalIds.length} requested approval(s).`);
         if (pendingDeleteTaskIds.length > 0) factLines.push(`${pendingDeleteTaskIds.length} task(s) deletion is pending approval — not deleted yet.`);
         if (pendingDeleteChannelIds.length > 0) factLines.push(`${pendingDeleteChannelIds.length} channel(s) deletion is pending approval — not deleted yet.`);
+        if (organizationGraphCheck) factLines.push(organizationGraphCheck.summary);
 
         // Same defect class as the deletion fact-lines above, found by searching for it
         // elsewhere per CLAUDE.md's "find one instance, search the whole class" rule:
@@ -2002,7 +2056,19 @@ serve(async (req) => {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount } });
+        // An organization graph check is one where the ENTIRE point of the turn is the
+        // real query result — there is no legitimate content the model should be adding
+        // beyond it. Prepending (like every other fact-line above) isn't enough here:
+        // live-tested, the model's own prose contradicted a correct "clean, no issues
+        // found" fact-line by inventing "critical issues" from stale conversation
+        // history rather than the actual fresh result. Full replacement removes that
+        // failure mode by construction instead of relying on the model reliably
+        // following "don't also describe hypothetical problems yourself."
+        if (organizationGraphCheck) {
+          result.summary = organizationGraphCheck.report;
+        }
+
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {

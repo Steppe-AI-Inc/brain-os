@@ -3059,6 +3059,10 @@ export type Database = {
         }
         Returns: string
       }
+      validate_organization_graph: {
+        Args: { p_company_id?: string }
+        Returns: Json
+      }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
         Returns: {
