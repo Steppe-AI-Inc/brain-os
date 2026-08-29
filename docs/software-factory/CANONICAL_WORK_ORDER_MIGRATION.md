@@ -149,27 +149,107 @@ rollback is correspondingly simple and low-risk:
   they're scheduled, will need their own rollback plan addressing exactly these
   scenarios, since those steps do involve coordinated app deploys.
 
-## 7. Item 8 — Independent review
+## 7. Item 8 — Independent review (both real, both dispatched as genuinely separate
+`claude --agent ... --bg` top-level processes, never in-app subagents)
 
-Dispatched as genuinely separate `claude --agent ... --bg` processes (never in-app
-subagents of this session), per the project's established independent-verification
-discipline:
+**Pass 1 — `brain-os-db-security-engineer`** (real dispatch, provider run id `50e0371c`,
+~5m33s). Independently confirmed item 1 (old-code compatibility) solid and independently
+reproducible. Found one real, genuine defect: `agent_runs_insert_scope`'s `company_id is
+null or has_company_access(company_id)` branch let any authenticated session insert an
+`agent_runs` row with `company_id` left null and an arbitrary **spoofed**
+`created_by_profile_id` — including a fabricated `verification_status = 'live_verified'`.
+The migration's own comment claiming "only the trusted service-role Runner inserts here"
+was true about *intent*, not an RLS-enforced guarantee. Also found a real process gap:
+this project's own migration-then-mirror-into-`schema-v0.7-production-core.sql`
+convention had been skipped.
 
-- `brain-os-db-security-engineer` — independent inspection of the final migration file,
-  with no access to this document's own reasoning, asked to find real problems rather
-  than confirm this analysis.
-- `brain-os-verifier` — regression pass after the DB engineer's review, per the same
-  truth-verification methodology already proven this session.
+**Both fixed** (commit `6a8310e`): `agent_runs_insert_scope` now additionally requires
+`created_by_profile_id is null or created_by_profile_id = current_profile_id()` — the
+service-role Runner is unaffected (bypasses RLS entirely); an ordinary authenticated
+session can only attribute a row to itself or leave it unattributed, never spoof someone
+else's identity. Re-verified via a real rollback-tested adversarial insert attempt as the
+exact exploited persona (an ordinary authenticated employee, `company_id = null`,
+`created_by_profile_id` set to a different real profile) — the insert now genuinely fails
+with `insufficient_privilege`, caught and asserted inside a `DO` block that would itself
+raise `SECURITY REGRESSION` if the spoofed insert had NOT been blocked. The full
+old-code-compatibility/new-chain/regression suite (§3-4) was re-run against the fixed
+migration and still passes in full. The migration was also mirrored into
+`supabase/schema-v0.7-production-core.sql` (appended after the file's existing end, using
+`ALTER TABLE ADD COLUMN` for the two new columns rather than folding them into the
+original `CREATE TABLE tasks`/`work_orders` statements — that file runs top-to-bottom on
+a fresh project, so `canonical_work_orders` must exist before anything can reference it,
+the same reason the real migration itself uses `ALTER TABLE` there).
 
-Results recorded in §8 once both complete.
+**Pass 2 — `brain-os-verifier`** (real dispatch, provider run id `7d3318ed`, ~23m,
+re-dispatched once after a shell-quoting mishap on the first attempt risked corrupting
+its prompt — confirmed the corrupted session's actual received prompt before trusting
+the clean redispatch). Did not simply trust Pass 1's fix — independently re-derived and
+re-confirmed the spoofing defect is genuinely blocked, then went further: **26/26
+adversarial RLS assertions** across 7 personas (founder, company manager, plain member,
+outsider, cross-company member, investor_viewer, former member), covering cross-company
+isolation in both directions, `investor_viewer` exclusion, select-scope precedent
+matching, update-with-check company-reassignment blocking, and delete-scope tier
+differences between the two new tables — all correct. Found 16 scenarios beyond the
+already-known defect, all passing. Confirmed FK on-delete semantics (`goal_id`,
+`canonical_work_order_id` on both `tasks` and `work_orders` — all `SET NULL`, never
+blocking or cascading unexpectedly). Re-ran the 4 existing named regressions
+(SC-070/SC-103/SC-093/approval-deletion) in the same rolled-back transaction as the
+migration — all `all_pass: true`.
 
-## 8. Independent review results
+Self-disclosed one real finding about its own process: its first draft of one adversarial
+test (its own "TEST 18") reported a false FAIL — root-caused via an isolated debug
+transaction to a bug in the test itself (reading the "was it blocked" outcome through the
+same denied actor's own RLS-blind `SELECT`, which correctly can't see the row either way
+regardless of whether the write was actually blocked) — not a real product defect. Fixed
+the test, reran, confirmed. Documented as a general methodology lesson in
+`qa/KNOWN_FAILURE_MODES.md` #22 (verification-methodology entry, not a new product
+defect).
 
-*(filled in after dispatch — see chat for the live update)*
+Confirmed production untouched before/during/after all of this testing (`canonical_work_
+orders`/`agent_runs` absent from `information_schema.tables`, zero leftover synthetic
+rows anywhere, zero `profiles.role` drift on the reused real employee profile used for
+persona testing).
 
-## 9. Decision gate
+**New permanent regression test added**: `qa/scenarios-runner/
+canonical_work_order_model_adversarial.sql` (26 assertions) — committed locally
+(`c2b6a0c`, `brain-os-verifier`'s own commit; not pushed to the remote — the session's own
+auto-mode classifier correctly blocked `git push origin master` outright, and the
+verifier did not attempt to work around it, per this project's standing rule that pushing
+requires explicit authorization).
 
-Pending §8's independent results. Current self-assessed status based on the evidence
-above: **ZERO-DOWNTIME COMPATIBILITY VERIFIED** for Deployment A specifically (not for
-the deferred rename cutover in Deployment C, which remains a distinct, not-yet-designed,
-future decision point requiring its own review when scheduled).
+## 8. Decision gate
+
+**ZERO-DOWNTIME COMPATIBILITY VERIFIED** for Deployment A, with evidence:
+
+1. Old-code compatibility — real, rollback-tested, independently reproduced by both
+   reviewers (§3, §7).
+2. Zero-downtime deployment model — no application-tier deploy is coupled to this
+   migration at all (§5); T0-T4 correctness reduces to "T1 changes nothing observable to
+   old code," proven directly rather than by timing.
+3. Expand/migrate/contract — this migration is Deployment A only; Deployment B/C
+   (the actual rename cutover) are explicitly deferred, not designed in detail here (§5).
+4. Dependency inventory — complete (functions/RPCs, RLS, generated types, Edge
+   Functions, web queries, `model_usage`/`ai_reply_log`, docs/QA, views, triggers, cron —
+   none of the latter three exist referencing `work_orders`).
+5. Existing-data proof — 3 real pre-existing rows byte-identical pre/post migration;
+   `work_orders` has exactly 14 columns (13 original + 1 new nullable) post-migration.
+6. New-model proof — real FK traversal `Company -> Goal -> canonical_work_orders ->
+   Task -> agent_runs` confirmed; `work_orders.canonical_work_order_id` optional-link
+   confirmed settable without forcing every chat command to create one.
+7. Rollback strategy — trivial and low-risk for Deployment A specifically (pure
+   `DROP`/`ALTER ... DROP COLUMN`, nothing live depends on the new objects); Deployment
+   B/C will need their own rollback plan when scheduled, since those steps do involve
+   coordinated app deploys.
+8. Independent review — two full passes, one real defect found and fixed and
+   re-verified by both reviewers independently, 26/26 adversarial RLS assertions pass,
+   all 4 existing regressions still pass, production confirmed untouched throughout.
+
+**Two things need your explicit go-ahead, separately** (per this project's standing
+rule — neither was done autonomously):
+- `git push origin master` — pushes 3 new local commits (`df8e41d` the expand-only
+  redesign, `c2b6a0c` the verifier's new adversarial regression test, `6a8310e` the
+  security fix + schema mirror). Safe, reversible, no production database impact by
+  itself — these are source-controlled files only.
+- `supabase db push` for `202608290002_canonical_work_order_model.sql` — the actual
+  production schema change. Per all the evidence above, both independent reviewers'
+  conclusion, and this document's own analysis: safe to push.
