@@ -247,10 +247,26 @@ begin
       'conflictingTaskId',v_cross_company_task.id);
   end if;
 
+  -- Proactive hardening (third review pass flagged this as a code-inspection-only,
+  -- unconfirmed note, not a live-reproduced defect - no `status = v_status` re-check meant
+  -- two genuinely concurrent calls for the same Work Order could both pass every check
+  -- above before either commits, and the second's unconditional UPDATE would silently
+  -- overwrite completed_at with a later timestamp while wrongly reporting changed:true).
+  -- The WHERE clause now re-validates status hasn't moved since it was read; if a
+  -- concurrent caller won the race, this call falls back to the same idempotent shape the
+  -- already-done branch above uses, never double-writing completed_at.
   perform set_config('app.work_order_completion_rpc', 'true', true);
   update public.canonical_work_orders
     set status = 'done', previous_status = v_status, completed_at = now(), updated_at = now()
-    where id = p_work_order_id;
+    where id = p_work_order_id and status = v_status;
+  if not found then
+    perform set_config('app.work_order_completion_rpc', 'false', true);
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,
+      'currentStatus',(select status from public.canonical_work_orders where id = p_work_order_id),
+      'completedAt',(select completed_at from public.canonical_work_orders where id = p_work_order_id),
+      'reason','concurrent_completion');
+  end if;
   perform set_config('app.work_order_completion_rpc', 'false', true);
 
   return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,

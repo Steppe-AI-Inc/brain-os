@@ -4019,7 +4019,15 @@ begin
   perform set_config('app.work_order_completion_rpc', 'true', true);
   update public.canonical_work_orders
     set status = 'done', previous_status = v_status, completed_at = now(), updated_at = now()
-    where id = p_work_order_id;
+    where id = p_work_order_id and status = v_status;
+  if not found then
+    perform set_config('app.work_order_completion_rpc', 'false', true);
+    return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
+      'changed',false,'authorized',true,
+      'currentStatus',(select status from public.canonical_work_orders where id = p_work_order_id),
+      'completedAt',(select completed_at from public.canonical_work_orders where id = p_work_order_id),
+      'reason','concurrent_completion');
+  end if;
   perform set_config('app.work_order_completion_rpc', 'false', true);
 
   return jsonb_build_object('operation','work_order.complete','workOrderId',p_work_order_id,
