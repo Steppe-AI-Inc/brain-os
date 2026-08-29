@@ -200,6 +200,31 @@ their real `status` values unchanged throughout. Run after any future change to 
 function's status logic — `all_pass: false` against a status-literal-equality regression
 is the expected failure signature to watch for.
 
+## Software Factory worktree permission (catches: KNOWN_FAILURE_MODES.md #29 class — a `--bg` specialist could not write to the shared checkout at all, and any fix for that must not silently widen scope)
+
+**Manual/observed, not SQL-automatable** — a Claude-Code tooling/permission-level
+assertion, not a database invariant. Re-run these two checks by hand any time
+`.claude/settings.json`'s `permissions` block changes:
+
+1. `FACTORY_AGENT_CANNOT_SELF_MODIFY_SETTINGS` / `FACTORY_WORKTREE_PERMISSION_DOES_NOT_GRANT_PUSH`
+   — attempt to edit `.claude/settings.json` (e.g. add an unrelated `Bash(git push:*)` entry)
+   from a dispatched agent or this orchestrating session. Expect: denied by the classifier,
+   every time, regardless of the file's current content.
+2. `FACTORY_WORKTREE_PERMISSION_IS_NARROW` / `FACTORY_WORKTREE_PERMISSION_DOES_NOT_GRANT_PRODUCTION_DEPLOY`
+   — confirm `.claude/settings.json`'s `permissions.allow` contains exactly
+   `Bash(git worktree add:*)` and nothing broader (no `remove`/`list`/`prune`, no other git
+   subcommand, no push, no settings/filesystem wildcard). Confirm `.githooks/pre-push` and
+   `.github/workflows/supabase-functions.yml` are unchanged and still independently gate any
+   `supabase/functions/**` push regardless of this entry — the two systems don't read each
+   other's config.
+3. `FACTORY_BACKGROUND_AGENT_CAN_CREATE_WORKTREE` — dispatch a real specialist that needs to
+   write to the repo; confirm it proceeds past `git worktree add` without an interactive
+   confirmation prompt, PROVIDED it started after the permission grant landed (permission
+   grants are read at session start, not hot-reloaded into an already-running session — a
+   stuck session must be stopped and re-dispatched, not waited out).
+
+Full incident record and live evidence: `qa/KNOWN_FAILURE_MODES.md` #29.
+
 ## Agent run completion (catches: the class PHASE_8_SECURITY_INCIDENT.md warns about —
 an agent needing raw SQL against production to record a real result)
 
