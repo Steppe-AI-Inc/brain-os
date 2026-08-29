@@ -189,3 +189,77 @@ a live production test (curl against real `brain.open-spot.ai`, real RLS imperso
 or a real browser session) or a read of the actual deployed source
 (`pg_get_functiondef`/`pg_get_expr` against the live database, not the migration file)
 — none are assumed from intent alone.
+
+## PR A — Chat pagination/scroll/history correctness (Workstream 6a-6d, 2026-08-29)
+
+Root cause and DB-observable half (ordering + channel-scoping) are fixed and
+live-verified — see `qa/scenarios-runner/chat_history_ordering.sql` and its
+`qa/REGRESSION_CATALOG.md` entry (`all_pass: true`, live, fixtures rolled back). The
+chat/UI-level regressions below have no environment with a live browser available in this
+implementation session (`web/CLAUDE.md`: "No live browser in a Claude Code session here"
+— `npm run build`/`npx tsc --noEmit`/`npx eslint` are clean, confirmed) — each is `⬜`
+until actually walked through against a real deployed `/chat` page, by a human or a
+browser-automation agent (e.g. `mcp__claude-in-chrome__*`). Steps below are written to be
+followed literally, one channel/message at a time, so no interpretation is needed.
+
+1. **CHAT_HISTORY_FULL_HISTORY_PAGEABLE** ⬜
+   - Open a chat channel with more than 30 turns (or send enough test messages to exceed
+     30 in a scratch channel — each send is one turn).
+   - Confirm a "Load older messages" control appears above the message list.
+   - Click it once. Confirm older turns appear prepended above the previously-oldest
+     visible message, in correct chronological order (oldest of the newly-loaded batch at
+     the very top), and no message flashes/disappears.
+   - Keep clicking until the control disappears. Confirm the very first turn ever sent in
+     that channel is now visible at the top — full history is reachable, not capped at 30.
+2. **CHAT_HISTORY_PAGINATION_MERGES** ⬜
+   - In the same long channel, after loading one "older" page, send a brand-new message.
+   - Confirm the new message appears once at the bottom (not duplicated), and every
+     previously-loaded older message is still present (not silently dropped by the new
+     send) — this is the merge-by-`workOrderId`/dedupe behavior, not a replace.
+   - Optional stronger check: open browser devtools → Application → Session Storage, and
+     confirm no `brainos.chat.*` key was ever wiped by this sequence.
+3. **CHAT_HISTORY_STALE_REQUEST_CANNOT_TRUNCATE** ⬜
+   - Send a message, then immediately navigate away (e.g. click "Tasks" in the nav) before
+     it finishes generating, then navigate back to the same chat channel within a few
+     seconds (while the reconnect poll would still be running).
+   - Confirm the in-flight message is still shown (as "thinking…" or its final result, not
+     missing), and confirm no other, already-loaded message in that channel vanished
+     during the several seconds the poll was ticking.
+   - Repeat once sending two messages back-to-back in different channels to confirm one
+     channel's poll never truncates a different channel's just-sent message.
+4. **CHAT_HISTORY_UI_LIMIT_SEPARATE_FROM_AI_CONTEXT** ⬜ (code-reading check, no browser
+   needed — confirms the two mechanisms never got accidentally unified)
+   - Read `web/lib/data/chat-history.ts`'s `getChatHistory` default `limit = 30` and
+     `supabase/functions/sem-ai-command/index.ts`'s `conversationHistoryQuery` `.limit(8)`.
+   - Confirm these remain two independent numbers in two independent files/queries — the
+     UI history page size must never be read from or written to influence the AI's
+     short-term-continuity window, and vice versa.
+5. **CHAT_SCROLL_RESTORES_PER_CHANNEL** ⬜
+   - Open a long channel, scroll up to roughly the middle of the history (not the very
+     bottom), wait ~1 second (past the debounce window) for the position to persist.
+   - Navigate to a different page (e.g. "Approvals"), then back to `/chat` on the same
+     channel. Confirm the view restores to approximately the same scrolled position, not
+     jumped back to the bottom or the top.
+   - Switch to a *different* chat channel, scroll it to a different position, then switch
+     back to the first channel. Confirm each channel independently restores its own last
+     scroll position (not the other channel's).
+6. **CHAT_SCROLL_STATE_SESSION_SCOPED** ⬜
+   - Repeat step 5's scroll-and-navigate-away/back check, then close the browser tab
+     entirely and open a genuinely new tab (new session) to the same chat channel.
+     Confirm the view does NOT restore the previous tab's scroll position (falls back to
+     the bottom, the default for a fresh session) — scroll position is `sessionStorage`,
+     same as `ACTIVE_CHANNEL_KEY`, not `localStorage`.
+   - Separately confirm a genuinely new send still scrolls to the bottom even if the
+     reader had scrolled up to read older history first (send a message after scrolling
+     up in step 5 above; confirm the view jumps to the bottom to show it).
+7. **CHAT_HISTORY_NEWEST_SURVIVES_NAVIGATION — UI-wiring half** ⬜ (the ordering-query half
+   is already SQL-verified live; this confirms the real page actually calls the fixed
+   query end-to-end)
+   - In a channel with more than 30 turns, send one more new message so the total newest
+     turn is fresh. Navigate away and back (or hard-reload). Confirm the newest message
+     (the one you just sent) is visible at the bottom — not silently missing because an
+     old ascending-order bug re-truncated it to the oldest 30 again.
+
+Every ⬜ above should flip to ✅/❌ with a real timestamp and evidence (screenshot or
+console/network trace) the first time this page is actually exercised in a browser —
+per CLAUDE.md §2, a passing `npm run build` is not itself proof any of this works.

@@ -52,6 +52,14 @@ type ProviderRow = {
 };
 
 type Message = {
+  // null for an optimistic message that hasn't round-tripped through
+  // create_pending_work_order yet (see the `work_order` SSE-event handler in send()) or
+  // for a message replayed from history before the ordering/pagination fix (defensively
+  // tolerated, never assumed present). Real identity for dedupe/merge across reloads,
+  // pagination, and the reconnect poll — the whole reason none of that was possible
+  // before (Message had no id at all).
+  workOrderId: string | null;
+  createdAt: string | null;
   command: string;
   status: "streaming" | "done" | "error";
   usage: Usage | null;
@@ -89,12 +97,21 @@ function historyToMessage(h: ChatHistoryMessage): Message {
     h.inputTokens || h.outputTokens ? { input_tokens: h.inputTokens, output_tokens: h.outputTokens } : null;
 
   if (h.status === "rejected") {
-    return { command: h.command, status: "error", usage, error: h.output?.error || "Command failed." };
+    return {
+      workOrderId: h.workOrderId,
+      createdAt: h.createdAt,
+      command: h.command,
+      status: "error",
+      usage,
+      error: h.output?.error || "Command failed.",
+    };
   }
   if (h.status !== "done") {
-    return { command: h.command, status: "streaming", usage };
+    return { workOrderId: h.workOrderId, createdAt: h.createdAt, command: h.command, status: "streaming", usage };
   }
   return {
+    workOrderId: h.workOrderId,
+    createdAt: h.createdAt,
     command: h.command,
     status: "done",
     usage,
@@ -271,6 +288,19 @@ const ZERO: TokenCost = { tokens: 0, costUsd: 0 };
 // a fresh session, matching "new session -> blank chat" by default.
 const ACTIVE_CHANNEL_KEY = "brainos.chat.activeChannelId";
 
+// Same sessionStorage pattern as ACTIVE_CHANNEL_KEY above, deliberately — per-channel,
+// per-tab-session, not persisted across a real new login/session. Value is the scrolled
+// container's scrollTop in px at the time of the last debounced write for that channel.
+const SCROLL_POSITION_KEY_PREFIX = "brainos.chat.scrollTop.";
+
+// How many older turns a single "Load older messages" click fetches — matches the page's
+// initial-history page size (web/app/(app)/chat/page.tsx), so a short return means there
+// is genuinely nothing further back, not just an arbitrary smaller batch.
+const HISTORY_PAGE_SIZE = 30;
+// Debounce window for persisting scroll position — frequent enough to feel responsive on
+// return, infrequent enough not to hammer sessionStorage on every scroll frame.
+const SCROLL_PERSIST_DEBOUNCE_MS = 300;
+
 export function ChatClient({
   providers,
   usageSummary,
@@ -293,6 +323,24 @@ export function ChatClient({
   const [messages, setMessages] = useState<Message[]>(() => history.map(historyToMessage));
   const [isStreaming, setIsStreaming] = useState(false);
 
+  // 6b: "load older messages" pagination state. A full page (exactly the page size) means
+  // there could be more before it; anything short of that means this channel's entire
+  // history is already loaded — recomputed on every channel switch below since a short
+  // page for channel A says nothing about channel B.
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(() => history.length >= HISTORY_PAGE_SIZE);
+
+  // 6c: scroll-position persistence. The container ref is read from directly (not via
+  // state) so persisting/restoring never itself triggers a re-render.
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set true for the one render right after send() optimistically appends a message —
+  // consumed by the very next messages-changed effect to force-scroll to bottom, then
+  // cleared, so it never fires again for later patches (usage ticks, the final `done`
+  // patch) to that same message, and never fires for a channel switch or the reconnect
+  // poll (see their own effects below).
+  const forceScrollToBottomRef = useRef(false);
+
   // Switching channels (or landing on a fresh blank chat) re-runs the page.tsx Server
   // Component with a new `history` prop (same client component instance, App Router
   // doesn't remount on a search-param-only navigation) — derive-during-render, not
@@ -301,6 +349,7 @@ export function ChatClient({
   if (activeChannelId !== syncedChannelId) {
     setSyncedChannelId(activeChannelId);
     setMessages(history.map(historyToMessage));
+    setHasMoreOlder(history.length >= HISTORY_PAGE_SIZE);
   }
   // Session = cumulative since this tab loaded. Request = only the current/most recent
   // send. Today/30d = real DB aggregates (getUsageSummary()), refreshed after each reply
@@ -416,6 +465,94 @@ export function ChatClient({
     );
   }
 
+  // 6c: restore scroll position after messages for this channel have actually rendered —
+  // runs post-commit (useEffect, not during render), and `syncedChannelId` only changes in
+  // the same commit that `messages` is replaced for a channel switch (derive-during-render
+  // above), so by the time this runs the DOM already reflects the new message list, never
+  // the stale one. Also covers first mount (effects run once after the initial commit too).
+  // No stored position (first visit to a channel this session, or a blank chat) falls back
+  // to the bottom, which is the sensible default for a newest-at-bottom chat log.
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    let stored: string | null = null;
+    if (syncedChannelId) {
+      try {
+        stored = sessionStorage.getItem(SCROLL_POSITION_KEY_PREFIX + syncedChannelId);
+      } catch {
+        stored = null;
+      }
+    }
+    const parsed = stored !== null ? Number(stored) : NaN;
+    container.scrollTop = Number.isFinite(parsed) ? parsed : container.scrollHeight;
+    // A restored/defaulted position is not a "genuinely new send" — make sure a stale
+    // pending flag from before this channel switch can't also force a bottom-scroll.
+    forceScrollToBottomRef.current = false;
+  }, [syncedChannelId]);
+
+  // Force-scroll-to-bottom exactly once per genuinely new send (see send() below setting
+  // the ref), never on a channel switch (handled above) and never on later patches to the
+  // same message (usage ticks, the final `done` patch) or the reconnect poll's merge.
+  useEffect(() => {
+    if (!forceScrollToBottomRef.current) return;
+    forceScrollToBottomRef.current = false;
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [messages]);
+
+  function handleMessagesScroll(e: React.UIEvent<HTMLDivElement>) {
+    const channelKey = syncedChannelId;
+    if (!channelKey) return; // nothing to persist for a blank, channel-less chat
+    const top = e.currentTarget.scrollTop;
+    if (scrollDebounceRef.current) clearTimeout(scrollDebounceRef.current);
+    scrollDebounceRef.current = setTimeout(() => {
+      try {
+        sessionStorage.setItem(SCROLL_POSITION_KEY_PREFIX + channelKey, String(top));
+      } catch {
+        // per-tab convenience only — fine if it doesn't persist
+      }
+    }, SCROLL_PERSIST_DEBOUNCE_MS);
+  }
+
+  // 6b: real "load older messages" pagination — cursors on the oldest currently-loaded
+  // turn's createdAt (chronological order means that's always messages[0]), merges by
+  // workOrderId (dedupe) and prepends, rather than ever replacing what's already loaded.
+  async function loadOlderMessages() {
+    if (isLoadingOlder || !hasMoreOlder) return;
+    const cursor = messages[0]?.createdAt;
+    if (!cursor) {
+      setHasMoreOlder(false);
+      return;
+    }
+    setIsLoadingOlder(true);
+    const container = messagesContainerRef.current;
+    const prevScrollHeight = container?.scrollHeight ?? 0;
+    const prevScrollTop = container?.scrollTop ?? 0;
+    try {
+      const older = await getChatHistory(HISTORY_PAGE_SIZE, toDbChannelId(activeChannelId), cursor);
+      if (older.length === 0) {
+        setHasMoreOlder(false);
+        return;
+      }
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.workOrderId).filter((id): id is string => !!id));
+        const olderNotAlreadyLoaded = older.filter((h) => !seen.has(h.workOrderId)).map(historyToMessage);
+        return [...olderNotAlreadyLoaded, ...prev];
+      });
+      if (older.length < HISTORY_PAGE_SIZE) setHasMoreOlder(false);
+      // Prepending shifts every existing row down — without this the view visually jumps
+      // because scrollTop stays the same absolute pixel offset while content above it grew.
+      // Restore the same *visual* position by offsetting by exactly how much taller the
+      // container got, once the DOM has actually reflowed for the prepended rows.
+      requestAnimationFrame(() => {
+        const c = messagesContainerRef.current;
+        if (c) c.scrollTop = prevScrollTop + (c.scrollHeight - prevScrollHeight);
+      });
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }
+
   // If the newest message was still generating when this tab loaded (reconnecting after
   // navigating away mid-stream, not a message we're actively streaming ourselves right
   // now), poll history until it resolves. Depends only on the initial `history` prop —
@@ -426,9 +563,24 @@ export function ChatClient({
 
     let cancelled = false;
     const interval = setInterval(async () => {
-      const fresh = await getChatHistory(30, toDbChannelId(activeChannelId));
+      const fresh = await getChatHistory(HISTORY_PAGE_SIZE, toDbChannelId(activeChannelId));
       if (cancelled) return;
-      setMessages(fresh.map(historyToMessage));
+      // 6d race #2: an unconditional replace here could stomp a message this tab sent
+      // itself in the meantime that hasn't reached the server's own history query yet
+      // (create_pending_work_order persists before generation starts, but a fast poll
+      // tick can still land just before that commit is visible to a fresh SELECT). Never
+      // drop a local message that (a) isn't in this fresh snapshot yet — by workOrderId,
+      // or has no workOrderId at all because the `work_order` SSE event hasn't arrived
+      // either — and (b) hasn't reached a terminal 'done' state; merge those in after the
+      // fresh snapshot instead of replacing wholesale.
+      const freshWorkOrderIds = new Set(fresh.map((f) => f.workOrderId));
+      setMessages((prev) => {
+        const freshMessages = fresh.map(historyToMessage);
+        const localOnlyInFlight = prev.filter(
+          (m) => m.status !== "done" && (!m.workOrderId || !freshWorkOrderIds.has(m.workOrderId))
+        );
+        return [...freshMessages, ...localOnlyInFlight];
+      });
       const latest = fresh[fresh.length - 1];
       if (latest && latest.status !== "queued") {
         clearInterval(interval);
@@ -467,9 +619,23 @@ export function ChatClient({
     }
 
     let index = -1;
+    // A genuinely new send — force-scroll to bottom once the appended message actually
+    // renders (see the `[messages]` effect above), regardless of where the reader had
+    // scrolled to reading older history.
+    forceScrollToBottomRef.current = true;
     setMessages((prev) => {
       index = prev.length;
-      return [...prev, { command: trimmed, status: "streaming", usage: null, imagePreviewUrl: image?.previewUrl }];
+      return [
+        ...prev,
+        {
+          workOrderId: null,
+          createdAt: null,
+          command: trimmed,
+          status: "streaming",
+          usage: null,
+          imagePreviewUrl: image?.previewUrl,
+        },
+      ];
     });
 
     let finalSummary: string | null = null;
@@ -477,7 +643,14 @@ export function ChatClient({
     await consumeChatStream(
       trimmed,
       (evt) => {
-        if (evt.type === "usage") {
+        if (evt.type === "work_order") {
+          // 6d race #1: create_pending_work_order already persisted a real row server-side
+          // before generation even starts — backfill the optimistic message's id the
+          // moment this arrives so a navigate-away-and-back during the remaining
+          // generation window picks this exact message back up from getChatHistory
+          // (merge-by-workOrderId, 6b) instead of losing it or duplicating it.
+          patchMessage(index, { workOrderId: evt.id });
+        } else if (evt.type === "usage") {
           const input = evt.input_tokens ?? 0;
           const output = evt.output_tokens ?? 0;
           setRequestUsage({ tokens: input + output, costUsd: estimateCost(activeModel, input, output) });
@@ -546,9 +719,20 @@ export function ChatClient({
         <ChannelSidebar channels={channels} activeChannelId={activeChannelId} defaultCollapsedOnMobile />
         <div className="flex flex-1 flex-col gap-3 overflow-hidden">
           <ChannelMemoryStrip memories={channelMemories} />
-          <div className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4">
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+            className="flex flex-1 flex-col gap-3 overflow-auto rounded-xl bg-muted/30 p-4"
+          >
+            {!isBlank && messages.length > 0 && hasMoreOlder && (
+              <div className="flex justify-center pb-1">
+                <Button type="button" variant="outline" size="sm" onClick={loadOlderMessages} disabled={isLoadingOlder}>
+                  {isLoadingOlder ? "Loading…" : "Load older messages"}
+                </Button>
+              </div>
+            )}
             {messages.map((m, i) => (
-              <div key={i} className="flex flex-col gap-2">
+              <div key={m.workOrderId ?? `local-${i}`} className="flex flex-col gap-2">
                 <div className="ml-auto flex max-w-lg flex-col items-end gap-1.5">
                   {m.imagePreviewUrl && (
                     // eslint-disable-next-line @next/next/no-img-element -- a local data: URL, not a remote asset Next's optimizer can handle
