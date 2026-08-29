@@ -143,11 +143,76 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
   return { ok: true, message: `Invited ${person.full_name} at ${person.email}.` };
 }
 
-export async function deletePerson(id: string) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Replaces the old deletePerson() — that was a literal hard `DELETE FROM people`,
+// cascading away compensation history (salary_private), KPI history (kpi_records),
+// person_ai_policy, and the entire employment audit trail (person_assignments), for what
+// is ordinarily just "this employee no longer works here." end_person_employment()
+// (supabase/migrations/202608290008_person_lifecycle_end_employment_and_delete.sql) is
+// the real, correct primary action: soft, historicizes person_assignments, marks
+// people.active=false, never touches the person identity row or its history. Same
+// RPC-result-shape convention as archiveCompany()/restoreCompany() above.
+export async function endPersonEmployment(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid person id.";
   const supabase = await createClient();
-  const { data, error } = await supabase.from("people").delete().eq("id", id).select("id");
+  const { data, error } = await supabase.rpc("end_person_employment", { p_person_id: id });
   if (error) return error.message;
-  if (!data || data.length === 0) return "Nothing was deleted — this person may no longer exist or you may not have access to them.";
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "End employment failed — no result returned.";
+  if (result.reason === "not_found") return "This person no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to end this person's employment.";
+  revalidatePath("/people");
+  return null;
+}
+
+export async function restorePersonEmployment(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid person id.";
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_person_employment", { p_person_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Restore failed — no result returned.";
+  if (result.reason === "not_found") return "This person no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to restore this person's employment.";
+  revalidatePath("/people");
+  return null;
+}
+
+// The tightly-controlled real hard delete — mirrors permanentlyDeleteCompany()'s
+// founder/admin gate in spirit, but the dependency pre-check itself lives server-side in
+// delete_person() (the RPC pre-checks every owner_person_id/manager_person_id-referencing
+// table before attempting the delete), not duplicated here client-side. Not reachable
+// from AI chat at all — this is the one UI-only escape hatch, deliberately asymmetric
+// with endPersonEmployment/restorePersonEmployment.
+export async function permanentlyDeletePerson(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid person id.";
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Not signed in.";
+  const { data: actingProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!actingProfile || !["founder", "holding_admin"].includes(actingProfile.role)) {
+    return "Only the founder or an admin can permanently delete a person.";
+  }
+
+  const { data, error } = await supabase.rpc("delete_person", { p_person_id: id });
+  if (error) return error.message;
+  const result = data as
+    | { changed: boolean; authorized: boolean; reason: string; dependents?: { table: string; count: number }[] }
+    | null;
+  if (!result) return "Delete failed — no result returned.";
+  if (result.reason === "not_found") return "This person no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to permanently delete this person.";
+  if (result.reason === "has_dependents") {
+    const parts = (result.dependents ?? []).map((d) => `${d.count} ${d.table}`);
+    return `Can't permanently delete — this person is still referenced by: ${parts.join(", ")}. Reassign those first, or use "End employment" instead (keeps their record and history).`;
+  }
   revalidatePath("/people");
   return null;
 }

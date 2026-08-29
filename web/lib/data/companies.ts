@@ -18,14 +18,16 @@ export async function getCompanies() {
 
 // Stricter than getCompanies() — for any "attach new work to a company" dropdown
 // (task/project/document/lead creation). closed and archived are both excluded: neither
-// is a company you'd assign new work to.
+// is a company you'd assign new work to. Beyond the row's own status, this also excludes
+// a company that sits under an archived ancestor even while its own status still reads
+// active/planning/paused — see supabase/migrations/202608290009_org_effective_active.sql
+// (Bug 6: "archived business unit still shows as a normal current employer") and its
+// correction in 202608300001_fix_effective_active_status_check.sql (a merely
+// non-'active' status like planning/paused, with no archived ancestor, must NOT be
+// excluded — only a real archived ancestor should be).
 export async function getCompaniesForSelection() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("companies")
-    .select("id, name, status")
-    .in("status", ["active", "planning", "paused"])
-    .order("name", { ascending: true });
+  const { data, error } = await supabase.rpc("get_effectively_active_companies");
   if (error) throw error;
   return data;
 }

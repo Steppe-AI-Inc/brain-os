@@ -104,6 +104,8 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, string> = {
   goal: 'archiveGoalIds',
   channel: 'deleteChannelIds',
   approval: 'deleteApprovalIds',
+  person: 'endEmploymentPersonIds',
+  employee: 'endEmploymentPersonIds',
 };
 
 // Broader than the bulk_confirmation isShortAffirmative check below (an exact
@@ -395,6 +397,20 @@ Rules:
   words; only archiveCompanyIds/restoreCompanyIds actually attempting the action makes it
   real. If you cannot resolve which company the user means, say so and ask — do not put
   anything in these arrays and do not claim an action happened.
+- "End employment"/"[person] no longer works here"/"remove [person] from the team"/
+  "delete employee [person]" (ordinary language — NOT "delete [person]'s record" or
+  anything that names their salary/KPI/performance history specifically) — put their real
+  "id" from context.people into endEmploymentPersonIds. This ends their current work
+  assignment(s) and marks them inactive; it does NOT delete their person record, salary
+  history, or KPI history — there is no way to permanently delete a person from chat at
+  all, that is a founder/admin-only action in the People page UI, never a chat capability.
+  "Bring back [person]"/"restore [person]"/"re-hire [person]" works the same way via
+  restoreEmploymentPersonIds. Never invent or guess an id — if you cannot resolve exactly
+  one real person from context.people, use pendingAction (single_entity_clarification for
+  one plausible candidate, disambiguation for more than one) instead of guessing. The real
+  outcome (ended / restored / denied / already in that state / not found) is reported back
+  to you after this call actually runs and REPLACES whatever you say here, same grounding
+  discipline as archiveCompanyIds/restoreCompanyIds.
 - You may create real projects and goals the same way — check context.projects /
   context.goals first, never duplicate. Every project and goal requires a company: use a
   real companyId from context.companies, or companyIndex into this response's own
@@ -540,6 +556,14 @@ Rules:
   the container ("CLIX GPS business_unit_of SEM LLC" — companyId=CLIX GPS,
   relatedCompanyId=SEM LLC). Get this backwards and the hierarchy inverts silently — always
   read the relationshipType name as the literal English sentence connecting the two ids.
+- Every entry in context.companies and context.people carries a real "effectivelyActive"
+  boolean — false means that company (or, for a person, their current employer) sits
+  under an archived ancestor company, even if its own "status" field still reads
+  active/planning/paused. Never treat effectivelyActive:false as a valid current employer
+  or a normal operating company for "who works at X"/"is X still operating"/"where does
+  [person] work" questions — say it's under an archived parent instead. A merely
+  non-"active" status (planning, paused) with effectivelyActive:true is completely normal
+  and not archived — do not conflate the two.
 - Matching a name the founder types to a real record (context.companies[].name,
   context.people[].full_name, context.tasks[].title, context.goals[].title, etc.) is
   case-insensitive and quote-agnostic — "sem llc", "SEM LLC", and a quoted "SEM LLC" all
@@ -626,6 +650,8 @@ Output schema:
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
   ],
+  "endEmploymentPersonIds": [string],
+  "restoreEmploymentPersonIds": [string],
   "createProjects": [
     {"title": string, "companyId": string|null, "companyIndex": number|null, "goal": string|null, "deadline": string|null, "blockers": string|null}
   ],
@@ -1296,7 +1322,41 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     };
   });
 
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
+  // Workstream 2c: annotate companies/people with effectivelyActive — mirrors
+  // is_company_effectively_active() (supabase/migrations/202608290009_org_effective_active.sql,
+  // corrected by 202608300001_fix_effective_active_status_check.sql) as a small in-memory
+  // walk over the already-fetched companies/companyRelationships arrays (both already in
+  // hand above — no new round-trip). Same two-direction DIRECTION MATTERS rule: for
+  // 'parent_of', company_id is the parent and related_company_id is the child, so walking
+  // "up" from a company follows related_company_id === self -> company_id; for the other
+  // four relationship types, company_id is the subordinate, so walking up follows
+  // company_id === self -> related_company_id. "Effectively active" means neither the
+  // company itself nor any ancestor found in this array has status 'archived' — a merely
+  // non-'active' status like 'planning'/'paused' is NOT disqualifying (KNOWN_FAILURE_MODES.md
+  // #28: the live DB function originally got this wrong too, requiring literal 'active').
+  // Best-effort like every other capped array in this pack: companyRelationships is capped
+  // at 20 rows overall, so a chain longer than what's already fetched here may not be
+  // fully walkable — same honest limitation as the 12-row companies cap itself.
+  const companyStatusById = new Map((companies.data || []).map((c: any) => [c.id, c.status]));
+  const relationshipRows = companyRelationships.data || [];
+  function isCompanyEffectivelyActiveInMemory(companyId: string | null | undefined, depth = 0): boolean {
+    if (!companyId) return true;
+    const ownStatus = companyStatusById.get(companyId);
+    if (ownStatus === 'archived') return false;
+    if (depth > 10) return true; // cycle guard — real cycles are already rejected elsewhere, this is defensive only
+    for (const r of relationshipRows as any[]) {
+      if (r.state !== 'current') continue;
+      let parentId: string | null = null;
+      if (r.relationship_type === 'parent_of' && r.related_company_id === companyId) parentId = r.company_id;
+      else if (r.relationship_type !== 'parent_of' && r.company_id === companyId) parentId = r.related_company_id;
+      if (parentId && !isCompanyEffectivelyActiveInMemory(parentId, depth + 1)) return false;
+    }
+    return true;
+  }
+  const packCompanies = (companies.data || []).map((c: any) => ({ ...c, effectivelyActive: isCompanyEffectivelyActiveInMemory(c.id) }));
+  const packPeople = (people.data || []).map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
+
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
   return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
@@ -1773,6 +1833,53 @@ serve(async (req) => {
         // defect being closed.
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
           && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+
+        // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
+        // restore_person_employment() (supabase/migrations/
+        // 202608290008_person_lifecycle_end_employment_and_delete.sql) — soft, historicizes
+        // person_assignments and marks people.active=false, never touches the person
+        // record/salary/KPI history. deletePersonIds deliberately does NOT exist as a chat
+        // field anywhere in this file's schema — hard-delete stays a founder/admin-only UI
+        // action (web/app/(app)/people/people-table.tsx), never an AI capability, since a
+        // wrong id here would be unrecoverable.
+        const requestedEndEmploymentIds = Array.isArray(result.endEmploymentPersonIds) ? result.endEmploymentPersonIds as unknown[] : [];
+        const endEmploymentPersonIds = [...new Set(requestedEndEmploymentIds.filter((id): id is string => typeof id === 'string' && contextPersonIds.has(id)))];
+        const requestedRestoreEmploymentIds = Array.isArray(result.restoreEmploymentPersonIds) ? result.restoreEmploymentPersonIds as unknown[] : [];
+        const restoreEmploymentPersonIds = [...new Set(requestedRestoreEmploymentIds.filter((id): id is string => typeof id === 'string' && contextPersonIds.has(id)))];
+        const personNameById = new Map((contextPack?.people || []).map((p: any) => [p.id, p.full_name]));
+        const personLifecycleLines: string[] = [];
+        const personReasonText: Record<string, string> = {
+          employment_ended: 'employment ended', restored: 'restored',
+          already_inactive: 'already inactive', already_active: 'already active',
+          denied: 'you do not have permission to end/restore this person’s employment',
+          not_found: 'could not be found',
+        };
+        for (const id of endEmploymentPersonIds) {
+          const { data, error } = await supabase.rpc('end_person_employment', { p_person_id: id });
+          const name = personNameById.get(id) || id;
+          if (error || !data) { personLifecycleLines.push(`${name}: end-employment failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        for (const id of restoreEmploymentPersonIds) {
+          const { data, error } = await supabase.rpc('restore_person_employment', { p_person_id: id });
+          const name = personNameById.get(id) || id;
+          if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        const personLifecycleReport = personLifecycleLines.length > 0 ? personLifecycleLines.join(' ') : null;
+
+        // The missing "person" variant of claimsCompanyDeleted/claimsTaskDeleted — the
+        // direct fix for the original misrouting defect (Bug 4): "delete QA-VERIFY-EMPLOYEE"
+        // used to produce "No company was actually archived..." because the model, having
+        // no person-lifecycle vocabulary at all, reached for the nearest lifecycle language
+        // it did have rules for (company archive) and tripped claimsCompanyDeleted instead.
+        // Now that endEmploymentPersonIds exists as a real field with its own prompt
+        // guidance, the model has the correct vocabulary to reach for, and this catches the
+        // residual "claimed but nothing happened" case the same way the other correctors do.
+        const claimsPersonDeleted = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?)\b[^.]{0,40}\b(employe(e|d)|person|staff)\b|\b(employe(e|d)|person|staff)\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?)\b/i.test(String(result.summary || ''));
 
         // Organization graph audit — real database query, not a guess. Runs immediately
         // (like company updates above) since it's read-only and doesn't belong in the
@@ -2728,11 +2835,12 @@ serve(async (req) => {
         // factoryWorkOrderReport (Workstream 5) joins the same combine array for the
         // identical reason: a real Work Order creation is the entire point of the turn,
         // so it fully replaces the model's own prose rather than merely prepending to it.
-        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport].filter((r): r is string => !!r);
+        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport].filter((r): r is string => !!r);
         const lifecycleMismatchCorrections: string[] = [];
         if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.');
         if (claimsTaskDeleted) lifecycleMismatchCorrections.push('No task was actually archived, restored, or deleted this turn — tell me exactly which task, using its title as it appears in the Tasks list.');
         if (claimsGoalDeleted) lifecycleMismatchCorrections.push('No goal was actually archived or restored this turn — tell me exactly which goal, using its title as it appears in the Goals list.');
+        if (claimsPersonDeleted) lifecycleMismatchCorrections.push('No employee’s employment was actually ended or restored this turn — tell me exactly which person, using their name as it appears in the People list.');
         if (lifecycleReports.length > 0) {
           result.summary = lifecycleReports.join(' ');
         } else if (lifecycleMismatchCorrections.length > 0) {
@@ -2759,7 +2867,7 @@ serve(async (req) => {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, createdFactoryWorkOrders, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {

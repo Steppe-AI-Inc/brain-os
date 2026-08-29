@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, UserPlus, CheckCircle2 } from "lucide-react";
+import { GraduationCap, UserPlus, CheckCircle2, RotateCcw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { updatePerson, deletePerson, invitePerson, type PersonInput } from "@/lib/data/people";
+import { updatePerson, endPersonEmployment, restorePersonEmployment, invitePerson, type PersonInput } from "@/lib/data/people";
 import { generateOnboardingPlan } from "@/lib/data/onboarding";
 
 type PersonRow = {
@@ -30,6 +30,7 @@ type PersonRow = {
   email: string | null;
   role_title: string | null;
   company_id: string | null;
+  active: boolean | null;
   profile_id: string | null;
   companies: { name: string } | null;
 };
@@ -51,7 +52,23 @@ export function PeopleTable({
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteConfirm, setInviteConfirm] = useState<PersonRow | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function restore(p: PersonRow) {
+    setRestoringId(p.id);
+    setRestoreMessage(null);
+    startTransition(async () => {
+      const result = await restorePersonEmployment(p.id);
+      setRestoringId(null);
+      if (result) {
+        setRestoreMessage(`${p.full_name}: ${result}`);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function openEdit(p: PersonRow) {
     setValues({
@@ -107,8 +124,15 @@ export function PeopleTable({
           </TableHeader>
           <TableBody>
             {people.map((p) => (
-              <TableRow key={p.id} className="group/row">
-                <TableCell className="font-medium">{p.full_name}</TableCell>
+              <TableRow key={p.id} className={`group/row ${p.active === false ? "opacity-60" : ""}`}>
+                <TableCell className="font-medium">
+                  {p.full_name}
+                  {p.active === false && (
+                    <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
+                      Employment ended
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>{p.role_title ?? "—"}</TableCell>
                 <TableCell>{p.companies?.name ?? "—"}</TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
@@ -140,11 +164,26 @@ export function PeopleTable({
                     >
                       <GraduationCap className="h-3.5 w-3.5" />
                     </Button>
+                    {p.active === false && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Restore employment"
+                        disabled={isPending && restoringId === p.id}
+                        className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
+                        onClick={() => restore(p)}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <RowActionsMenu
                       itemLabel="person"
                       className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                       onEdit={() => openEdit(p)}
-                      onDelete={() => deletePerson(p.id)}
+                      onDelete={() => endPersonEmployment(p.id)}
+                      deleteLabel="End employment"
+                      deletingLabel="Ending…"
+                      deleteDescription="Ends their current work assignment and marks them inactive. Their record, compensation history, and KPI history are kept — this does not delete anything. You can restore employment later."
                     />
                   </div>
                 </TableCell>
@@ -161,6 +200,7 @@ export function PeopleTable({
         </Table>
         {genMessage && <p className="border-t p-3 text-sm text-muted-foreground">{genMessage}</p>}
         {inviteMessage && <p className="border-t p-3 text-sm text-muted-foreground">{inviteMessage}</p>}
+        {restoreMessage && <p className="border-t p-3 text-sm text-muted-foreground">{restoreMessage}</p>}
       </Card>
 
       <AlertDialog open={!!inviteConfirm} onOpenChange={(open) => !open && setInviteConfirm(null)}>
