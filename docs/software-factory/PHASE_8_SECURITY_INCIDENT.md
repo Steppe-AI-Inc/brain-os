@@ -149,15 +149,56 @@ depending on which files changed, and that verification tooling itself (`db quer
 --file`) is not risk-free by construction — both are now documented, binding rules for
 this project.
 
-## Status
+## Second occurrence of the same unauthorized-deployment mechanism (confirms the root cause)
 
-- Live exposure window: contained via `REVOKE` before any fix was written.
-- Fix: prepared, rollback-tested, 8 named regression assertions passing.
-- Independent review of the fix: dispatched, pending at time of writing — this document
-  will be updated with the real result before deployment, per the founder's explicit
-  requirement (`FIX PREPARED — INDEPENDENTLY VERIFIED` before any push).
-- Root cause of the unexpected deployment: understood with reasonable confidence (see
-  above), a binding process rule now in place to prevent recurrence.
-- Phase 8 new-functionality work remains paused until: (1) the cross-company defect is
-  `LIVE VERIFIED` fixed in production, (2) this document and the deployment-paths audit
-  are complete, (3) the production-approval model accounts for auto-deploying CI paths.
+The independent reviewer verifying the fix (`brain-os-db-security-engineer`, dispatched
+separately from the implementing session) used the same `--linked --project-ref
+pvphxgrtdfrudejjhzjk` combination for its own rollback-tested verification and — despite
+its own script also correctly ending in `ROLLBACK` — **also** left the fix migration live
+in production. This is a second, independent occurrence of the exact same mechanism,
+strong confirmation of the root-cause hypothesis above (not proof beyond all doubt, but
+about as close as this investigation can get without inspecting the CLI's own source).
+The reviewer itself flagged this correctly and stopped rather than proceeding further
+autonomously — appropriate, matching this project's own standing discipline.
+
+Directly re-verified by the implementing session (using `--linked` alone, the proven-safe
+invocation): the trigger (`canonical_work_orders_enforce_goal_company`) and its function
+are genuinely live in production, `authenticated` has `EXECUTE` again (re-granted by the
+fix migration's own final step), and a real, correctly-constructed adversarial attempt
+(employee1, their own real company `d4d366e0-5bc2-4f3d-98be-ea3477250f0b`, goal
+`a4cf3ee0-9eb0-4458-bdbb-050093a0013d` belonging to a different real company) was
+genuinely rejected — zero rows created. **The vulnerability is closed in production,
+confirmed live, independently, twice** (once by the reviewer's own re-derived adversarial
+script, once by this direct re-check).
+
+(One self-caught false alarm during this final check, recorded for honesty: an earlier,
+dynamically-constructed adversarial query written by the implementing session had a bug —
+it resolved to `goal_id = null` rather than a genuine cross-company goal, because the
+`WHERE company_id != v_company_id` clause it used excluded goals with a `NULL` company_id
+under SQL's three-valued logic, leaving zero real rows to select from. This produced a
+successful, ordinary, harmless Work Order creation, not a defect — the row was identified,
+inspected, confirmed harmless, and deleted before the proper adversarial test above was
+run instead.)
+
+## Status — final
+
+- **Live exposure window: closed.** `LIVE VERIFIED — CROSS-COMPANY WORK ORDER GAP
+  CLOSED`, confirmed independently twice as described above.
+- Fix: independently reviewed and verified correct end-to-end, including both `INSERT`
+  and `UPDATE`-path edge cases (goal_id flip, company_id flip) and a `service_role`
+  bypass check the implementing session's own regression didn't cover.
+- Root cause of the unexpected deployment: understood with high confidence (two
+  independent occurrences of the same flag combination), binding process rule in place
+  (`docs/software-factory/PRODUCTION_DEPLOYMENT_PATHS.md`).
+- **Open governance question, requires founder decision, not further autonomous
+  action**: both this incident's original migration *and* its own fix reached production
+  through the same accidental mechanism, not an explicit founder-authorized `db push`.
+  The founder needs to decide: (1) whether to treat the now-fixed, now-verified state as
+  acceptable to leave as-is (the vulnerability is closed, the fix is correct, the
+  end-state is good even though the path to get there wasn't the intended one), or (2)
+  require the fix be re-applied through an explicit, intentional `db push` for a clean
+  audit trail regardless of the current state already being correct. Not decided by this
+  document — flagged for the founder.
+- Phase 8 new-functionality work (the `poll-and-dispatch.mjs` chain, the founder-Brain-
+  Chat end-to-end test) remains paused pending the founder's answer to the question
+  above, per the standing "Phase 8 remains paused" instruction.
