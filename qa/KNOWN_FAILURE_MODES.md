@@ -750,6 +750,41 @@ test case.
 channels from the live chat tests above) — no residue left in the founder's real
 channel list.
 
+## 20. Resource-support audit — creator/workspace-manager/founder/archive/restore, only companies actually have all five (AUDIT, not a defect — deferred scope, 2026-08-29)
+
+**Why this exists:** the `archive_company`/`restore_company` fix (#19's sibling, same
+day — see `supabase/migrations/202608280013_frictionless_company_delete.sql`) explicitly
+scoped itself to companies only, with a note that the same ownership/archive pattern
+should extend to other resource types "as next work, not bundled here." This entry is
+that promised audit — grep-verified against the live RLS policies and each
+`web/lib/data/*.ts` file, not written from memory — so the gap is tracked instead of
+silently forgotten. **Not a bug report; no fix is expected from this entry alone.**
+
+| Resource | Creator tier | Manager tier | Founder tier | Archive concept | Restore | Delete today |
+|---|---|---|---|---|---|---|
+| Companies (incl. business units — same table, `organization_type`) | ✅ creator + active membership, RLS + RPC re-derive both | ✅ `is_company_manager` | ✅ | ✅ `status` CHECK-constrained, DB-trigger-enforced single path (`companies_lifecycle_guard`) | ✅ `restore_company` | No destructive path from UI/chat — `permanentlyDeleteCompany` is a separate, rare, founder-only action |
+| Tasks | ❌ no `created_by` column at all; `owner_person_id`-linked profile may UPDATE, not DELETE | ✅ `tasks_delete_scope` | ✅ | Partial — `work_status` enum legally includes `'archived'`, but `updateTaskStatus` sets it as a plain value with **no lifecycle guard** (any status ↔ any status, unrestricted) | N/A — no dedicated restore, just another status write | Yes — `deleteTask`/`deleteTasks`/chat's `deleteTaskIds` are real hard `DELETE` |
+| Projects | ❌ no creator concept; all of write is `is_company_manager` only | ✅ | ✅ (`is_company_manager` includes `is_founder_or_admin()`) | None — `status` is unconstrained free text, no `'archived'` convention | N/A | Yes — `deleteProject` real hard `DELETE` |
+| Goals | ❌ no `created_by`; `owner_person_id`-linked profile may UPDATE, not DELETE | ✅ `goals_delete_manager` | ✅ | Partial — same shape as tasks: `'archived'` is a legal `status` value, settable via plain `updateGoal` with no guard | N/A | Yes — `deleteGoal` real hard `DELETE` |
+| Work orders | N/A — system-generated, not user-authored | N/A | Update-only (`created_by_profile_id` or founder) | None | N/A | **No DELETE policy exists at all** — correctly undeletable by anyone via RLS, append-only by design (this is the one row in the table that's arguably already right for what it is) |
+| Documents | ❌ no creator tier; all of write is `is_company_manager` only | ✅ | ✅ | None — only a `sensitivity` tier, unrelated to lifecycle | N/A | Yes — `deleteDocument`/`deleteDocuments` real hard `DELETE` |
+| Leads (`sales_leads`) | Partial — `sales_leads_update_own_or_manager` lets the lead's own `owner_person_id` UPDATE, not DELETE | ✅ `sales_leads_delete_manager` | ✅ | None — `status` unconstrained free text (`'new'` default) | N/A | Yes — `deleteLead` real hard `DELETE` |
+| Agents (`public.agents`) | ❌ no creator concept | ❌ **founder/admin only for all of write** — no manager tier at all (`agents_write_admin`) | ✅ | None | N/A | `web/lib/data/agents.ts` has only a read function (`getActiveAgents`) — no create/update/delete exists through the app at all today |
+
+**Reading this table:** companies are the only resource with the full creator +
+manager + founder + archive + restore model; everything else either has no creator
+concept (an ordinary employee who creates a task/project/goal/document/lead has no
+special standing over it once created — only the assigned owner-via-a-different-column,
+or a manager, or the founder, can touch it) or genuinely destructive delete with no
+archive/undo at all. Tasks and goals are the two closest to already having an "archived"
+lifecycle state in their enum, but it's unenforced — the exact "developer convention,
+not a DB guarantee" gap CLAUDE.md's new canonical-operation rule (`web/CLAUDE.md`,
+2026-08-29) exists to prevent, just not yet closed for these two.
+
+**Explicitly not done here:** no RLS, RPC, or `web/lib/data/*.ts` change. This is
+documentation of current state only, so the next pass that touches any one of these
+resources has a real starting point instead of having to re-derive it from scratch.
+
 ## 19. Organization graph — business units/ownership had no real mechanism, and nothing read it back anywhere (FIXED and VERIFIED LIVE, 2026-08-29)
 
 **Symptom (the founder's real report):** manually renamed companies; asked Brain AI to
