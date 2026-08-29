@@ -1,71 +1,58 @@
 {
-  "campaign_id": "verify-2026-08-29-canonical-work-order-migration",
-  "base_commit": "df8e41da42e48254e1c56a373027897b586e1550",
+  "campaign_id": "verify-2026-08-29-phase5-software-factory-bootstrap",
+  "base_commit": "f27997b8c34ff645dc4b65fc05347ec19b31d533",
   "project_ref": "pvphxgrtdfrudejjhzjk",
-  "started_at": "2026-08-29T00:00:00Z",
-  "last_checkpoint_at": "2026-08-29T12:00:00Z",
+  "started_at": "2026-08-29T19:55:00Z",
+  "last_checkpoint_at": "2026-08-29T20:10:00Z",
   "status": "COMPLETE",
-  "scope": "Read-only regression/security verification of NOT-YET-PUSHED migration supabase/migrations/202608290002_canonical_work_order_model.sql (adds public.canonical_work_orders, public.agent_runs, nullable FK columns tasks.canonical_work_order_id / work_orders.canonical_work_order_id). Independent adversarial RLS check, rollback-tested apply, regression scenario re-run, and confirmation production untouched.",
-  "browser_ai_chat_tools_available": "not needed for this scope - DB migration verification only, no UI/AI surface changed",
-  "prior_campaign_note": "Previous campaign verify-2026-08-29-task-goal-archive-restore (status COMPLETE) is superseded by this file for the current scope; its findings/leftovers remain valid and unaffected.",
+  "scope": "Independent verification of a specific narrow claim: Software Factory dispatched a real detached Claude Code background agent (persona brain-os-implementation-engineer) to execute a real Task (68468064-13df-4c91-a6af-9908a017c9bd) under a real canonical Work Order (91f6ac74-f738-4fb5-9d46-01c426a31e12) linked to a real Goal (a4cf3ee0-9eb0-4458-bdbb-050093a0013d); the agent wrote and committed real code (commit f27997b8c34ff645dc4b65fc05347ec19b31d533 on master, docs/software-factory/BOOTSTRAP_ARTIFACT.md); execution evidence persisted (agent_runs row 8edcdf3e-7027-4a20-843d-81603ba72dac); no temp worktree/branch left behind. Not a full CRUD lifecycle campaign.",
+  "browser_ai_chat_tools_available": "not loaded - scope was git plus DB verification only, no UI/AI chat surface part of the claim",
+  "prior_campaign_note": "Previous campaign verify-2026-08-29-canonical-work-order-migration (status COMPLETE, base_commit df8e41d) is superseded by this file for the current scope; its pending_db_pushes entry (migration recommended SAFE TO PUSH) remains valid and unaffected, and is not re-verified here - out of scope for this specific bootstrap-chain check.",
   "synthetic_entities": {
-    "note": "All entities created by this verifier were inside a single begin/rollback SQL transaction and were never committed - nothing to clean up. Confirmed via a dedicated post-run leftover-check query (zero rows for every synthetic CWO-Adv id/name and zero profile.role drift)."
+    "note": "No new synthetic QA-VERIFY entities were created by this verifier. Every checked entity (Goal, canonical_work_orders row, task, agent_runs row, the commit itself) was a pre-existing real artifact of the claim under test. The only write performed was the in-scope UPDATE of agent_runs.verification_status on the single existing row 8edcdf3e-7027-4a20-843d-81603ba72dac from null to e2e_verified, confirmed afterward to be the only row in the table and the only row changed."
   },
   "scenarios": {
-    "1_additive_only_code_inspection": {"status": "PASS", "evidence": "CODE INSPECTED", "method": "git diff of local working-copy schema-v0.7-production-core.sql (which already has the migration DDL appended for reference) against git HEAD shows a pure append after line 3056 - zero removed/modified lines above it. create_pending_work_order, mark_work_order_failed, sem_execute_ai_command and the existing work_orders/tasks table definitions all occur before line 3056, provably untouched. No ALTER RENAME, no DROP, no CREATE OR REPLACE FUNCTION touching an existing function name anywhere in the migration file itself."},
-    "2_rollback_tested_apply": {"status": "PASS", "evidence": "LIVE VERIFIED", "method": "Standalone BEGIN, migration DDL with trailing commit replaced with rollback, ROLLBACK - run via supabase db query --linked against project pvphxgrtdfrudejjhzjk. Applied cleanly, no errors. Re-confirmed information_schema.tables has zero canonical_work_orders/agent_runs rows immediately after."},
-    "3_adversarial_rls_canonical_work_order_model_adversarial_sql_26_assertions": {
-      "status": "PASS", "evidence": "LIVE VERIFIED", "all_pass": true,
-      "covers": ["founder insert any company", "manager insert own company", "plain active member insert allowed (broader than manager-only by design)", "outsider insert blocked", "member-of-different-company insert blocked (has_company_access scoped per specific company_id)", "investor_viewer insert blocked", "created_by_profile_id spoof prevented by force_canonical_work_order_creator trigger", "plain same-company member select blocked, manager select allowed (matches tasks_select_scope precedent)", "former creator update blocked", "update with-check blocks cross-company reassignment", "creator-only delete blocked, founder delete allowed", "agent_runs_insert_scope spoof re-confirmed blocked (independently re-derived, not re-trusting the prior review)", "agent_runs unattributed and self-attributed inserts still allowed (positive controls)", "agent_runs wrong-company insert blocked, legit-company insert allowed", "agent_runs plain-member select blocked, manager select allowed", "agent_runs cross-company manager update blocked", "agent_runs delete is founder/admin-only, even the right company manager is denied", "FK on-delete: goal delete sets goal_id null, canonical_work_order delete sets tasks/work_orders FK null (not blocked/cascaded)"],
-      "note": "TEST 18 initially reported a false-positive FAIL due to a test-construction bug (read outcome back through the denied actor own RLS-blind view). Root-caused via an isolated debug transaction, fixed by reading the outcome from a privileged context after reset role, rerun and confirmed all_pass true. See qa/KNOWN_FAILURE_MODES.md entry 22 for the full writeup."
-    },
-    "4_existing_regression_rerun_in_same_transaction": {
+    "1_commit_exists_locally_and_on_origin_master": {
       "status": "PASS", "evidence": "LIVE VERIFIED",
-      "sc070_audit_log_leak": {"all_pass": true},
-      "sc103_audit_integrity": {"all_pass": true},
-      "sc093_security_definer_audit": {"all_pass": true},
-      "approval_deletion_audit_trail": {"all_pass": true},
-      "note": "Fixture UUID/namespace collision check performed first (none found) except one real duplicate company_membership insert shared by sc070 and sc093 for the same company/profile pair - handled with ON CONFLICT DO NOTHING in the combined-run copy only, source files left untouched."
+      "method": "git rev-parse HEAD at session start equals the claimed SHA f27997b8c34ff645dc4b65fc05347ec19b31d533 exactly, 40 hex chars, byte-for-byte match. git fetch origin master; git rev-parse origin/master equals same SHA; git merge-base --is-ancestor confirms it. git log -1 confirms real author, commit message, timestamp."
     },
-    "5_production_untouched_after_all_testing": {"status": "PASS", "evidence": "LIVE VERIFIED", "canonical_work_orders_exists": false, "agent_runs_exists": false, "checked_before_during_after": true}
+    "2_artifact_file_content": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Read docs/software-factory/BOOTSTRAP_ARTIFACT.md directly - contains the real canonical Work Order id 91f6ac74-f738-4fb5-9d46-01c426a31e12 and Task id 68468064-13df-4c91-a6af-9908a017c9bd verbatim, matching the DB rows queried in scenario 4."
+    },
+    "3_diff_scope": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "git show --stat on the commit shows exactly one file changed: docs/software-factory/BOOTSTRAP_ARTIFACT.md, 17 insertions, 0 deletions. No other file touched by this commit."
+    },
+    "4_db_fk_chain_real_join": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Read-only SELECTs via npx supabase db query --linked against production project pvphxgrtdfrudejjhzjk. agent_runs id 8edcdf3e-7027-4a20-843d-81603ba72dac has status done, branch master, head_commit f27997b8c34ff645dc4b65fc05347ec19b31d533 exact match to the real commit, task_id 68468064.... canonical_work_orders id 91f6ac74... has goal_id a4cf3ee0..., company_id 4e4a0553-4069-4367-960e-d671e0025fcd, status qa_review. tasks id 68468064... has canonical_work_order_id 91f6ac74..., company_id matches. goals id a4cf3ee0... has status active, company_id matches. A single real four-way JOIN query across goals, canonical_work_orders, tasks, agent_runs plus a left join to agents filtered on all four claimed IDs simultaneously returned exactly one row with every field consistent, not four isolated per-row checks."
+    },
+    "5_no_stray_worktree_or_branch": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "git worktree list shows only two legitimate pre-existing worktrees: C colon slash Users slash Dell slash dev slash brain-os on master, and a separate long-lived worktree on codex/sem-brain-v1 unrelated to this task. git branch -a shows no factory/phase5-bootstrap-artifact or similar temp branch anywhere, local or remote. Directly confirmed the claimed temp worktree path no longer exists on disk. Cross-checked against the real background agent own session transcript, session dbf0e5ed, state done, which explicitly narrates creating that exact temp worktree and branch, fast-forward merging it into master with no merge commit, then deleting both - matches the observed clean state exactly."
+    },
+    "6_agent_and_dispatch_mechanism_are_real": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "Registered agent persona file dot claude slash agents slash brain-os-implementation-engineer dot md exists and matches the agent_runs.agent_id row, agents.id 7703cae0-2a4f-4f11-b79f-f1bff1904820, name brain-os-implementation-engineer, role implementation_engineer, via a direct DB query. Dispatch tooling genuinely shells out to the real claude CLI background agent flag, not a simulation. Running claude agents as json live in this session showed session id dbf0e5ed as a REAL background-kind process, pid 30428, cwd matching the repo root, state done - this is the exact provider_run_id stored in agent_runs.provider_run_id. Reading claude logs for that session id showed the real non-fabricated transcript: the agent creating the worktree, writing the file, committing, fast-forward merging, cleaning up, and reporting the exact real git rev-parse HEAD output matching the claimed commit."
+    },
+    "7_persist_verification_result": {
+      "status": "PASS", "evidence": "LIVE VERIFIED",
+      "method": "UPDATE public.agent_runs SET verification_status to e2e_verified WHERE id equals 8edcdf3e-7027-4a20-843d-81603ba72dac, run live against production via npx supabase db query --linked, RETURNING confirmed the new value. Re-confirmed via a separate independent fresh SELECT, not the UPDATE own RETURNING clause: agent_runs has exactly 1 total row and exactly 1 row with verification_status equal e2e_verified - the write landed on the correct single row and touched nothing else."
+    }
   },
   "global_integrity": {
-    "orphan_task_cwo_refs": 0,
-    "orphan_workorder_cwo_refs": 0,
-    "orphan_agentrun_task_refs": 0,
-    "orphan_agentrun_cwo_refs": 0,
-    "orphan_cwo_company_refs": 0,
-    "canonical_work_orders_rowsecurity_enabled": true,
-    "agent_runs_rowsecurity_enabled": true,
-    "canonical_work_orders_policy_count": 4,
-    "agent_runs_policy_count": 4,
-    "ai_false_execution_claims": "not applicable - no AI/UI surface touched by this migration (schema-only, expand stage)",
-    "ui_db_contradictions": "not applicable - same reason",
-    "ai_db_contradictions": "not applicable - same reason"
+    "scope_note": "Full global_integrity sweep across all canonical tables is out of scope for this narrow bootstrap-chain check and was already covered by the prior campaign for the schema this depends on. Within this run scope specifically: agent_runs row count is 1, canonical_work_orders row referenced by that agent_run task resolves cleanly, task to canonical work order to goal chain has zero broken links, zero orphan or dangling references found anywhere in the four-way join."
   },
-  "pending_db_pushes": [
-    {
-      "migration": "supabase/migrations/202608290002_canonical_work_order_model.sql",
-      "what_it_adds": "public.canonical_work_orders, public.agent_runs, tasks.canonical_work_order_id, work_orders.canonical_work_order_id (all additive/nullable)",
-      "rollback_test_evidence": "Applied cleanly standalone in a BEGIN/ROLLBACK transaction against production; also applied cleanly as the first statement block of a larger combined transaction containing 26 new adversarial RLS assertions (all_pass true) and 4 pre-existing regression scripts (all all_pass true), then rolled back. Global integrity sweep post-apply: zero orphans, RLS enabled, exactly 4 policies per new table.",
-      "recommendation": "SAFE TO PUSH per this independent verification pass - no defect found beyond the one already found and fixed by the prior security review (agent_runs_insert_scope spoofing), which this pass independently re-confirmed as fixed.",
-      "founder_action_required": "supabase db push (or equivalent) - this verifier will not run it."
-    }
-  ],
+  "pending_db_pushes": [],
   "prepared_fixes": [],
-  "live_verified_fixes": [
-    {
-      "what": "Fixed a false-positive test-construction bug in this new adversarial script (TEST 18: cross-company manager update-blocked assertion read the outcome through the denied actor own RLS-blind SELECT view, producing a NULL-derived false FAIL even though the RLS policy correctly blocked the update).",
-      "file": "qa/scenarios-runner/canonical_work_order_model_adversarial.sql",
-      "fix": "Moved reset role to immediately after the blocked UPDATE, before the confirming read, so the outcome is checked from a privileged context.",
-      "reverified": "Rerun live in the full combined transaction - all_pass true, including t18."
-    }
-  ],
+  "live_verified_fixes": [],
   "defects_found": [
     {
-      "note": "No NEW product defect found by this pass. The one real defect in scope (agent_runs_insert_scope spoofing) was already found and fixed by a prior independent brain-os-db-security-engineer review before this pass started; this pass independently re-derived and re-confirmed the same attack is now blocked, per CLAUDE.md rule against trusting a prior report secondhand.",
-      "classification": "ALREADY FIXED, INDEPENDENTLY RE-VERIFIED"
+      "note": "No defect found. Every claimed ID, the commit, the diff scope, the DB FK chain verified as one real join rather than isolated per-row checks, the worktree and branch cleanup, and the underlying dispatch mechanism, a real background CLI process independently found completed in this session own live agent listing output, were all independently reproduced and confirmed true, not merely asserted by the prior session report.",
+      "classification": "N/A clean E2E VERIFIED result"
     }
   ],
-  "remaining_scenarios": []
+  "remaining_scenarios": [],
+  "browser_ui_ai_chat_coverage_gap": "This specific claim under test, Task and Work Order dispatch to a real coding agent to a real commit, has no UI or AI-chat surface to check - it is a backend git DB chain only. No coverage gap for this scope. Browser and AI-chat tools were not loaded this run because they were not needed for the claim being verified; that is a scoping decision, not a dropped check."
 }
