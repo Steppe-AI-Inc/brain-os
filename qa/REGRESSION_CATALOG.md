@@ -138,6 +138,28 @@ latter was a real, live-found bug — the hook silently no-op'd for every new br
 fixed 2026-08-29), and that a functions-free new branch is never false-positive-blocked.
 Re-run after any change to `.githooks/pre-push` itself.
 
+## Chat history ordering + channel isolation (catches: PR A / Workstream 6a-6d class — "chat history silently loses recent messages on navigation")
+
+`getChatHistory()` (`web/lib/data/chat-history.ts`) and the AI-context
+`conversationHistoryQuery` (`supabase/functions/sem-ai-command/index.ts`) both used to
+order `created_at` ascending then `.limit(N)` — PostgREST/Postgres apply `LIMIT` after
+`ORDER BY`, so this fetched the **oldest** N turns, not the newest, for any channel with
+more than N turns. Fixed by ordering descending then reversing in the caller. Run after
+touching either query, or any other place a chat/turn-history query is added:
+
+```bash
+npx supabase db query --linked --file qa/scenarios-runner/chat_history_ordering.sql
+```
+
+Expect `all_pass: true` — proves both the ordering fix (newest turn present, oldest
+excluded, reversed result is chronological) and channel-scoping (no cross-channel leakage,
+a short channel's history isn't truncated). Verified live 2026-08-29, fixtures rolled
+back (0 leftover rows confirmed by a separate follow-up query).
+
+The chat/UI-level halves of the same workstream (pagination merge, scroll persistence,
+the optimistic-send and reconnect-poll races) have no DB-observable invariant to assert in
+SQL — see the manual checklist entries in `qa/ACCEPTANCE_TESTS.md` instead.
+
 ## Approval double-decision (verified once, 2026-08-27)
 
 `decideApproval()` is a plain `UPDATE ... WHERE id = $1`, not an insert — confirmed via a

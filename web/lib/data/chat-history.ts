@@ -28,6 +28,7 @@ export type ChatHistoryCounts = {
 
 export type ChatHistoryMessage = {
   workOrderId: string;
+  createdAt: string;
   command: string;
   status: string; // 'queued' | 'done' | 'rejected' | ...
   output: { summary?: string; error?: string } | null;
@@ -41,21 +42,43 @@ export type ChatHistoryMessage = {
 // channelId: undefined fetches everything (not used by the chat page itself, kept for
 // completeness); null scopes to "General" (channel_id is null); a real id scopes to
 // that channel only. The chat page always passes one of the latter two explicitly.
-export async function getChatHistory(limit = 30, channelId?: string | null): Promise<ChatHistoryMessage[]> {
+//
+// beforeCreatedAt: optional cursor for "load older messages" pagination — when set, only
+// turns strictly older than this timestamp are considered. Combined with the
+// order-desc-then-limit-then-reverse shape below, this makes repeated calls page backward
+// through real history instead of ever re-fetching (or, before this fix, silently
+// dropping) the newest turns.
+//
+// ORDERING FIX (qa/KNOWN_FAILURE_MODES.md — "chat history silently loses recent messages
+// on navigation"): PostgREST applies LIMIT after ORDER BY, so ordering `created_at`
+// ascending then limiting fetched the OLDEST `limit` turns for any channel with more than
+// `limit` turns — the exact opposite of "recent chat history." Order descending (newest
+// first) so LIMIT keeps the newest N, then reverse in JS back to chronological order for
+// display. See qa/scenarios-runner/chat_history_ordering.sql for the permanent regression
+// proving `order by created_at desc limit N` returns the N most recent rows.
+export async function getChatHistory(
+  limit = 30,
+  channelId?: string | null,
+  beforeCreatedAt?: string
+): Promise<ChatHistoryMessage[]> {
   const supabase = await createClient();
 
   let query = supabase
     .from("work_orders")
     .select("id, command, status, output, created_at, model_usage(model_name, input_tokens, output_tokens, estimated_cost_usd)")
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(limit);
   if (channelId === null) query = query.is("channel_id", null);
   else if (channelId) query = query.eq("channel_id", channelId);
+  if (beforeCreatedAt) query = query.lt("created_at", beforeCreatedAt);
 
-  const { data: workOrders, error } = await query;
+  const { data: workOrdersDesc, error } = await query;
   if (error) throw error;
+  // Reverse back to chronological (oldest-of-the-kept-window first) for display — the
+  // fetch itself must stay newest-first so LIMIT keeps the right rows (see comment above).
+  const workOrders = [...(workOrdersDesc ?? [])].reverse();
 
-  const ids = (workOrders ?? []).map((w) => w.id);
+  const ids = workOrders.map((w) => w.id);
   const { data: auditRows } = ids.length
     ? await supabase
         .from("audit_logs")
@@ -66,12 +89,13 @@ export async function getChatHistory(limit = 30, channelId?: string | null): Pro
 
   const auditByWorkOrder = new Map((auditRows ?? []).map((a) => [a.entity_id, a.metadata as Record<string, number>]));
 
-  return (workOrders ?? []).map((w) => {
+  return workOrders.map((w) => {
     const usageRow = Array.isArray(w.model_usage) ? w.model_usage[0] : w.model_usage;
     const metadata = auditByWorkOrder.get(w.id);
     const output = w.output as { summary?: string; error?: string } | null;
     return {
       workOrderId: w.id,
+      createdAt: w.created_at ?? "",
       command: w.command,
       status: w.status ?? "queued",
       output,

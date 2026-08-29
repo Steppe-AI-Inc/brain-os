@@ -962,8 +962,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(20);
   // Short-term continuity: the last few turns in this same channel, chronological.
   // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
+  // Same ordering defect as web/lib/data/chat-history.ts (fixed alongside this one, see
+  // its comment for the full explanation): PostgREST applies LIMIT after ORDER BY, so
+  // ascending+limit(8) fetched the OLDEST 8 turns, not the most recent 8, for any channel
+  // with more than 8 turns of history — the model was reasoning from stale
+  // early-conversation context instead of what was actually just said. Fetch newest-first
+  // so LIMIT keeps the newest 8; reversed back to chronological order right below, where
+  // the rows are actually consumed, so `conversationHistory` and `lastTurnOutput` (which
+  // depends on the true last turn being last) keep their existing chronological-order
+  // semantics unchanged.
   const conversationHistoryQuery = channelId
-    ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
+    ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
@@ -1067,7 +1076,10 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // need no equivalent: context.goals already carries no status filter.
     supabase.from('tasks').select('id,company_id,title').eq('status','archived').order('updated_at',{ascending:false}).limit(15),
   ]);
-  const conversationHistory = (conversationRows.data || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
+  // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
+  // fetch above deliberately went newest-first so LIMIT kept the right 8 rows.
+  const conversationRowsChronological = conversationRows.data ? [...conversationRows.data].reverse() : conversationRows.data;
+  const conversationHistory = (conversationRowsChronological || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
   const counts = {
     tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
     approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
@@ -1088,7 +1100,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // turn executes (or the founder moves on), the newest output has no pendingConfirmation
   // and this naturally reads as null again — that's the whole idempotency mechanism, see
   // the deterministic short-circuit in serve() below.
-  const lastTurnOutput = conversationRows.data?.[conversationRows.data.length - 1]?.output as { pendingConfirmation?: unknown } | undefined;
+  const lastTurnOutput = conversationRowsChronological?.[conversationRowsChronological.length - 1]?.output as { pendingConfirmation?: unknown } | undefined;
   const pendingConfirmation = lastTurnOutput?.pendingConfirmation ?? null;
   // Compact real summary, not the full row shape - enough for "what happened with that
   // work?" to be answerable from real state (title/status/task+run counts/last run
