@@ -186,12 +186,17 @@ create index agent_runs_task_idx on public.agent_runs (task_id);
 create index agent_runs_canonical_work_order_idx on public.agent_runs (canonical_work_order_id);
 create index agent_runs_provider_run_idx on public.agent_runs (provider_run_id);
 
--- No force-creator trigger here, deliberately: agent_runs' only real insert path is the
+-- No force-creator trigger here, deliberately: the intended real insert path is the
 -- trusted Runner process (service role, bypasses RLS already) — not a user-facing form —
--- so the spoofing-prevention rationale behind force_task_creator/force_goal_creator
--- doesn't apply the same way. created_by_profile_id is left for the Runner to set
--- explicitly (e.g. to whoever's chat command originated the Work Order, if known) or
--- leave null for an unattributed background bootstrap run.
+-- so an unconditional BEFORE INSERT override (force_task_creator's pattern) would fight
+-- the Runner's own explicit attribution instead of helping. That intent is NOT, on its
+-- own, an RLS-enforced guarantee — an earlier version of agent_runs_insert_scope let any
+-- authenticated session insert with company_id left null and a spoofed
+-- created_by_profile_id (real defect, caught by independent review, fixed below: the
+-- policy now requires created_by_profile_id to be null or the caller's own profile).
+-- created_by_profile_id is left for the Runner to set explicitly (e.g. to whoever's chat
+-- command originated the Work Order, if known) or leave null for an unattributed
+-- background bootstrap run.
 
 alter table public.agent_runs enable row level security;
 
@@ -201,8 +206,20 @@ create policy "agent_runs_select_scope" on public.agent_runs for select using (
   or created_by_profile_id = public.current_profile_id()
 );
 
+-- Independent DB/Security Engineer review (2026-08-29) found a real defect in an
+-- earlier version of this policy: `company_id is null or has_company_access(company_id)`
+-- alone let ANY authenticated session insert an agent_runs row with company_id left
+-- null and an arbitrary spoofed created_by_profile_id (including a fabricated
+-- verification_status = 'live_verified') — the "only the trusted service-role Runner
+-- inserts here" rationale in this file's header comment was correct about the INTENDED
+-- path but did not actually hold as an RLS-enforced guarantee. Fixed by additionally
+-- requiring created_by_profile_id to be null or the caller's own profile — the trusted
+-- Runner (service role) bypasses RLS entirely and is unaffected; an ordinary
+-- authenticated session can now only attribute a row to itself or leave it unattributed,
+-- never spoof someone else's identity.
 create policy "agent_runs_insert_scope" on public.agent_runs for insert with check (
-  public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id)
+  (public.is_founder_or_admin() or company_id is null or public.has_company_access(company_id))
+  and (created_by_profile_id is null or created_by_profile_id = public.current_profile_id())
 );
 
 create policy "agent_runs_update_scope" on public.agent_runs for update using (
