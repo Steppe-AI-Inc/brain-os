@@ -3317,7 +3317,8 @@ from public.agents a;
 alter view public.agents_with_live_status set (security_invoker = true);
 
 -- ---------- CREATE FACTORY WORK ORDER RPC (Phase 8) ----------
--- see supabase/migrations/202608290005_create_factory_work_order_rpc.sql
+-- see supabase/migrations/202608290005_create_factory_work_order_rpc.sql and
+-- 202608290006_factory_work_order_cross_company_fix.sql
 --
 -- Standalone RPC so a founder chat command can create a real, queued
 -- public.canonical_work_orders row. Kept OUT of sem_execute_ai_command's own
@@ -3325,6 +3326,37 @@ alter view public.agents_with_live_status set (security_invoker = true);
 -- documents/product lines in that function's TypeScript caller. security invoker: RLS
 -- applies exactly as it already does for canonical_work_orders_insert_scope - this RPC
 -- grants no authority beyond what a caller already has.
+--
+-- SECURITY INCIDENT (2026-08-29, see docs/software-factory/PHASE_8_SECURITY_INCIDENT.md):
+-- the first live version of this RPC accepted p_goal_id with no check that the
+-- referenced goal actually belonged to p_company_id - RLS alone did not catch this (a FK
+-- existence check does not enforce which company the referenced row belongs to). Fixed
+-- with two layers: a real BEFORE INSERT OR UPDATE trigger on canonical_work_orders
+-- itself (structural, holds for any future code path, not just this RPC) plus an
+-- explicit check inside this RPC too (specific, immediate error message - redundant with
+-- the trigger by design, not instead of it).
+
+create or replace function public.enforce_canonical_work_order_goal_company()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.goal_id is not null and not exists (
+    select 1 from public.goals g where g.id = new.goal_id and g.company_id = new.company_id
+  ) then
+    raise exception 'canonical_work_orders: goal_id % does not belong to company_id % (cross-company goal reference rejected)', new.goal_id, new.company_id
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists canonical_work_orders_enforce_goal_company on public.canonical_work_orders;
+create trigger canonical_work_orders_enforce_goal_company
+  before insert or update on public.canonical_work_orders
+  for each row execute function public.enforce_canonical_work_order_goal_company();
 
 create or replace function public.create_factory_work_order(
   p_title text,
@@ -3341,6 +3373,13 @@ as $$
 declare
   v_id uuid;
 begin
+  if p_goal_id is not null and not exists (
+    select 1 from public.goals g where g.id = p_goal_id and g.company_id = p_company_id
+  ) then
+    raise exception 'create_factory_work_order: goal % does not belong to company % (cross-company goal reference rejected)', p_goal_id, p_company_id
+      using errcode = '23514';
+  end if;
+
   insert into public.canonical_work_orders (
     title, objective, company_id, goal_id, work_type, priority, acceptance_criteria,
     status, requested_by_profile_id
