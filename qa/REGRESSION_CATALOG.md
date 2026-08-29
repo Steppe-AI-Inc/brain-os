@@ -121,6 +121,45 @@ approval, not `general`). If a future run ever shows the model complying with an
 override framing, or the created approval landing in the wrong (unprotected) domain,
 that's a real regression, not a fluke.
 
+## Person/employment lifecycle (catches: quiet-wiggling-biscuit plan Bug 5 class)
+
+`qa/scenarios-runner/person_lifecycle_ai_routing.sql` — `end_person_employment()`/
+`restore_person_employment()`/`delete_person()` (migration
+`202608290008_person_lifecycle_end_employment_and_delete.sql`, gated, **not yet pushed**
+as of this writing). Run after any change to `people`/`person_assignments` writers: proves
+manager/founder/former-manager/unrelated-user authorization tiers, idempotency,
+`people_lifecycle_guard` blocks a direct bypass, `delete_person`'s dependency pre-check
++ real cascade `destroyedCounts`, and that neither RPC ever touches `companies.status`
+(PERSON_DELETE_DOES_NOT_ROUTE_TO_COMPANY_ARCHIVE, PERSON_MUTATION_REQUIRES_REAL_EXECUTION
+— SQL half only; the manual/corrector-regex half is Workstream 1c's sem-ai-command change,
+not yet built).
+
+## Org effective-active propagation (catches: quiet-wiggling-biscuit plan Bug 6 class)
+
+`qa/scenarios-runner/org_effective_active.sql` — `is_company_effectively_active()`/
+`get_effectively_active_companies()`/`validate_organization_graph()`'s new
+`archivedAncestorActive` check (migration `202608290009_org_effective_active.sql`, gated,
+**not yet pushed** as of this writing). Run after any change to `company_relationships`
+or the archive/restore path: proves archiving a top-level company propagates down through
+both `business_unit_of`/`department_of` AND the reverse-direction `parent_of` chains, that
+a descendant's own `companies.status` column is never touched by the propagation, that
+`get_effectively_active_companies()` excludes a still-'active'-status descendant of an
+archived ancestor, and that a person's raw `people.company_id` employer reads as not
+effectively active without ever being rewritten (ARCHIVED_ORG_NOT_ACTIVE_EMPLOYER,
+ARCHIVED_ORG_EXCLUDED_FROM_ACTIVE_SELECTORS).
+
+## Agent run completion (catches: the class PHASE_8_SECURITY_INCIDENT.md warns about —
+an agent needing raw SQL against production to record a real result)
+
+`qa/scenarios-runner/complete_agent_run_lifecycle.sql` — `complete_agent_run()` (migration
+`202608290010_agent_run_completion.sql`, gated, **not yet pushed** as of this writing; not
+in the quiet-wiggling-biscuit plan file — found during independent verification of Phase 8
+Work Order `3b28e447-4a9c-4f79-9419-80638a39e457`). Run after any change to `agent_runs`/
+`tasks` status writers: proves founder-only authorization (deliberately narrower than
+`agent_runs_update_scope` RLS, which also allows a company manager), idempotent
+re-completion, a linked task's status flips to match, a null `task_id` never errors, and an
+unknown `verification_status` is rejected with a clear message.
+
 ## Approval double-decision (verified once, 2026-08-27)
 
 `decideApproval()` is a plain `UPDATE ... WHERE id = $1`, not an insert — confirmed via a

@@ -2319,12 +2319,60 @@ $$;
 
 grant execute on function public.set_company_relationship(uuid, uuid, public.company_relationship_type, numeric, text) to authenticated;
 
+-- Org effective-active propagation (Bug 6) - see
+-- 202608290009_org_effective_active.sql for the full incident and live-schema
+-- verification notes. Archiving a parent company/business-unit does not touch any
+-- child row's status - "effectively active" means the child itself is active AND every
+-- ancestor is active. Reuses the recursive-ancestor-walk shape already proven twice
+-- (check_company_relationship_integrity, validate_organization_graph's own cycle CTE
+-- just below). No separate view - a view would duplicate the recursion logic for no
+-- benefit when every consumer wants a single boolean or a filtered row set.
+create or replace function public.is_company_effectively_active(p_company_id uuid)
+returns boolean language plpgsql stable security definer set search_path = '' as $$
+declare v_result boolean;
+begin
+  -- parent_of reverses direction relative to business_unit_of/brand_of/subsidiary_of/
+  -- department_of (same DIRECTION MATTERS rule documented in the sem-ai-command system
+  -- prompt): for parent_of, company_id is the PARENT and related_company_id is the
+  -- child; for the other four, company_id is the SUBORDINATE and related_company_id is
+  -- the container.
+  with recursive up(id) as (
+    select p_company_id
+    union
+    select case when r.relationship_type = 'parent_of' then r.company_id else r.related_company_id end
+    from public.company_relationships r
+    join up on (
+      (r.relationship_type = 'parent_of' and r.related_company_id = up.id)
+      or (r.relationship_type in ('business_unit_of','brand_of','subsidiary_of','department_of') and r.company_id = up.id)
+    )
+    where r.state = 'current'
+  )
+  select coalesce(bool_and(c.status = 'active'), true) into v_result
+  from public.companies c where c.id in (select id from up);
+  return v_result;
+end; $$;
+
+create or replace function public.get_effectively_active_companies()
+returns table(id uuid, name text, status text)
+language sql stable security invoker set search_path = '' as $$
+  select c.id, c.name, c.status from public.companies c
+  where c.status in ('active','planning','paused') and public.is_company_effectively_active(c.id)
+  order by c.name;
+$$;
+
+revoke all on function public.is_company_effectively_active(uuid) from public, anon;
+revoke all on function public.get_effectively_active_companies() from public, anon;
+grant execute on function public.is_company_effectively_active(uuid) to authenticated;
+grant execute on function public.get_effectively_active_companies() to authenticated;
+
 -- Master-prompt spec §19-20: a reusable validateOrganizationGraph() the founder can
 -- invoke by name ("check SEM LLC structure and fix inconsistent company references").
 -- Read-only, founder/admin gated. The write-time trigger (above) already blocks NEW
 -- cycles/over-ownership going forward; this audits committed state for the same
 -- invariants plus classes the trigger can't see (duplicate names, business units with no
--- parent edge, people with no company, relationships left 'planned' too long).
+-- parent edge, people with no company, relationships left 'planned' too long, and - added
+-- by 202608290009_org_effective_active.sql - a company whose own status reads
+-- active-ish but sits under an archived ancestor).
 create or replace function public.validate_organization_graph(p_company_id uuid default null)
 returns jsonb
 language plpgsql
@@ -2407,6 +2455,13 @@ begin
     'peopleWithNoCompany', (
       select coalesce(jsonb_agg(jsonb_build_object('id', id, 'fullName', full_name)), '[]'::jsonb)
       from public.people where company_id is null
+    ),
+    'archivedAncestorActive', (
+      select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'name', c.name, 'status', c.status)), '[]'::jsonb)
+      from public.companies c
+      where c.status in ('active','planning','paused')
+        and (p_company_id is null or c.id = p_company_id)
+        and not public.is_company_effectively_active(c.id)
     )
   ) into v_result;
 
@@ -2418,6 +2473,7 @@ begin
       and jsonb_array_length(v_result->'businessUnitsWithoutParentEdge') = 0
       and jsonb_array_length(v_result->'stalePlannedRelationships') = 0
       and jsonb_array_length(v_result->'peopleWithNoCompany') = 0
+      and jsonb_array_length(v_result->'archivedAncestorActive') = 0
   );
 
   return v_result;
@@ -2461,6 +2517,15 @@ begin
   end if;
   if p_state not in ('current', 'planned', 'historical') then
     raise exception 'Unknown state %', p_state;
+  end if;
+  -- Redundant explicit check (see person_assignments_enforce_department_company trigger
+  -- below, added by 202608290008_person_lifecycle_end_employment_and_delete.sql) -
+  -- specific, immediate error message, not instead of the trigger.
+  if p_department_id is not null and not exists (
+    select 1 from public.departments d where d.id = p_department_id and d.company_id = p_operating_company_id
+  ) then
+    raise exception 'set_person_assignment: department % does not belong to company % (cross-company department reference rejected)', p_department_id, p_operating_company_id
+      using errcode = '23514';
   end if;
 
   if p_state = 'current' and p_is_primary then
@@ -2508,6 +2573,246 @@ end;
 $$;
 
 grant execute on function public.set_person_assignment(uuid, uuid, uuid, uuid, text, uuid, text, numeric, text, boolean, text) to authenticated;
+
+-- Two-layer defense-in-depth for a real gap: nothing checked a person_assignments row's
+-- department_id belongs to its operating_company_id. Same shape as
+-- enforce_canonical_work_order_goal_company. See
+-- 202608290008_person_lifecycle_end_employment_and_delete.sql.
+create or replace function public.enforce_person_assignment_department_company()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.department_id is not null and not exists (
+    select 1 from public.departments d where d.id = new.department_id and d.company_id = new.operating_company_id
+  ) then
+    raise exception 'person_assignments: department_id % does not belong to operating_company_id % (cross-company department reference rejected)', new.department_id, new.operating_company_id
+      using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists person_assignments_enforce_department_company on public.person_assignments;
+create trigger person_assignments_enforce_department_company
+  before insert or update on public.person_assignments
+  for each row execute function public.enforce_person_assignment_department_company();
+
+-- Person/Employment lifecycle (Bug 5) - see
+-- 202608290008_person_lifecycle_end_employment_and_delete.sql for the full incident and
+-- live-schema verification notes. Same three-piece shape as archive_company/
+-- restore_company below: SECURITY DEFINER, search_path = '', authorization re-derived
+-- inside the function, session-local GUC-flag lifecycle guard (set true immediately
+-- before the RPC's own UPDATE, reset to false immediately after), structured jsonb
+-- return. Only two authorization tiers - founder/admin, company manager - matching
+-- set_person_assignment's own check exactly (no creator-tier concept for person
+-- employment).
+create or replace function public.end_person_employment(p_person_id uuid, p_end_date date default current_date)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_company_id uuid;
+  v_active boolean;
+  v_authorized boolean;
+  v_historicized int;
+begin
+  select company_id, active into v_company_id, v_active from public.people where id = p_person_id;
+  if not found then
+    return jsonb_build_object('operation','person.endEmployment','personId',p_person_id,
+      'changed',false,'authorized',false,'assignmentsHistoricized',0,
+      'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_authorized := public.is_founder_or_admin()
+    or (v_company_id is not null and public.is_company_manager(v_company_id));
+
+  if not v_authorized then
+    return jsonb_build_object('operation','person.endEmployment','personId',p_person_id,
+      'changed',false,'authorized',false,'assignmentsHistoricized',0,
+      'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if coalesce(v_active, true) = false then
+    return jsonb_build_object('operation','person.endEmployment','personId',p_person_id,
+      'changed',false,'authorized',true,'assignmentsHistoricized',0,
+      'postconditionPassed',true,'reason','already_inactive');
+  end if;
+
+  update public.person_assignments
+    set state = 'historical', end_date = coalesce(p_end_date, current_date), updated_at = now()
+    where person_id = p_person_id and state = 'current';
+  get diagnostics v_historicized = row_count;
+
+  perform set_config('app.person_lifecycle_rpc', 'true', true);
+  update public.people set active = false, updated_at = now() where id = p_person_id;
+  perform set_config('app.person_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','person.endEmployment','personId',p_person_id,
+    'changed',true,'authorized',true,'assignmentsHistoricized',v_historicized,
+    'postconditionPassed',(select active = false from public.people where id = p_person_id),
+    'reason','employment_ended');
+end;
+$$;
+
+create or replace function public.restore_person_employment(p_person_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_company_id uuid;
+  v_active boolean;
+  v_authorized boolean;
+begin
+  select company_id, active into v_company_id, v_active from public.people where id = p_person_id;
+  if not found then
+    return jsonb_build_object('operation','person.restoreEmployment','personId',p_person_id,
+      'changed',false,'authorized',false,'assignmentsHistoricized',0,
+      'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_authorized := public.is_founder_or_admin()
+    or (v_company_id is not null and public.is_company_manager(v_company_id));
+
+  if not v_authorized then
+    return jsonb_build_object('operation','person.restoreEmployment','personId',p_person_id,
+      'changed',false,'authorized',false,'assignmentsHistoricized',0,
+      'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if coalesce(v_active, true) = true then
+    return jsonb_build_object('operation','person.restoreEmployment','personId',p_person_id,
+      'changed',false,'authorized',true,'assignmentsHistoricized',0,
+      'postconditionPassed',true,'reason','already_active');
+  end if;
+
+  perform set_config('app.person_lifecycle_rpc', 'true', true);
+  update public.people set active = true, updated_at = now() where id = p_person_id;
+  perform set_config('app.person_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','person.restoreEmployment','personId',p_person_id,
+    'changed',true,'authorized',true,'assignmentsHistoricized',0,
+    'postconditionPassed',(select active = true from public.people where id = p_person_id),
+    'reason','restored');
+end;
+$$;
+
+revoke all on function public.end_person_employment(uuid, date) from public, anon;
+revoke all on function public.restore_person_employment(uuid) from public, anon;
+grant execute on function public.end_person_employment(uuid, date) to authenticated;
+grant execute on function public.restore_person_employment(uuid) to authenticated;
+
+create or replace function public.enforce_person_lifecycle_via_rpc()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (new.active = false and coalesce(old.active, true) is distinct from false)
+     or (coalesce(old.active, true) = false and new.active is distinct from false)
+  then
+    if coalesce(current_setting('app.person_lifecycle_rpc', true), 'false') <> 'true' then
+      raise exception 'Person employment end/restore must go through end_person_employment()/restore_person_employment() - direct active writes are blocked';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists people_lifecycle_guard on public.people;
+create trigger people_lifecycle_guard
+  before update on public.people
+  for each row execute function public.enforce_person_lifecycle_via_rpc();
+
+-- delete_person - the tightly-controlled real hard delete. Founder/admin only, not
+-- reachable from AI chat at all (UI-only, same asymmetry the org already has for
+-- permanentlyDeleteCompany). Pre-checks every owner_person_id/manager_person_id-
+-- referencing table with no ON DELETE clause and returns reason:'has_dependents' instead
+-- of a raw FK error; only if clear, hard-deletes and returns destroyedCounts.
+create or replace function public.delete_person(p_person_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_exists boolean;
+  v_authorized boolean;
+  v_manager_count int;
+  v_projects_count int;
+  v_tasks_count int;
+  v_leads_count int;
+  v_goals_count int;
+  v_cwo_count int;
+  v_dependents jsonb;
+  v_salary_count int;
+  v_kpi_count int;
+  v_policy_count int;
+  v_assignments_count int;
+  v_destroyed jsonb;
+begin
+  select exists(select 1 from public.people where id = p_person_id) into v_exists;
+  if not v_exists then
+    return jsonb_build_object('operation','person.delete','personId',p_person_id,
+      'changed',false,'authorized',false,'reason','not_found');
+  end if;
+
+  v_authorized := public.is_founder_or_admin();
+  if not v_authorized then
+    return jsonb_build_object('operation','person.delete','personId',p_person_id,
+      'changed',false,'authorized',false,'reason','denied');
+  end if;
+
+  select count(*) into v_manager_count from public.people where manager_person_id = p_person_id;
+  select count(*) into v_projects_count from public.projects where owner_person_id = p_person_id;
+  select count(*) into v_tasks_count from public.tasks where owner_person_id = p_person_id;
+  select count(*) into v_leads_count from public.sales_leads where owner_person_id = p_person_id;
+  select count(*) into v_goals_count from public.goals where owner_person_id = p_person_id;
+  select count(*) into v_cwo_count from public.canonical_work_orders where owner_person_id = p_person_id;
+
+  select coalesce(jsonb_agg(x), '[]'::jsonb) into v_dependents from (
+    select 'people.manager_person_id' as "table", v_manager_count as count where v_manager_count > 0
+    union all select 'projects.owner_person_id', v_projects_count where v_projects_count > 0
+    union all select 'tasks.owner_person_id', v_tasks_count where v_tasks_count > 0
+    union all select 'sales_leads.owner_person_id', v_leads_count where v_leads_count > 0
+    union all select 'goals.owner_person_id', v_goals_count where v_goals_count > 0
+    union all select 'canonical_work_orders.owner_person_id', v_cwo_count where v_cwo_count > 0
+  ) x;
+
+  if jsonb_array_length(v_dependents) > 0 then
+    return jsonb_build_object('operation','person.delete','personId',p_person_id,
+      'changed',false,'authorized',true,'reason','has_dependents','dependents',v_dependents);
+  end if;
+
+  select count(*) into v_salary_count from public.salary_private where person_id = p_person_id;
+  select count(*) into v_kpi_count from public.kpi_records where person_id = p_person_id;
+  select count(*) into v_policy_count from public.person_ai_policy where person_id = p_person_id;
+  select count(*) into v_assignments_count from public.person_assignments where person_id = p_person_id;
+
+  delete from public.people where id = p_person_id;
+
+  v_destroyed := jsonb_build_object(
+    'people', 1,
+    'salary_private', v_salary_count,
+    'kpi_records', v_kpi_count,
+    'person_ai_policy', v_policy_count,
+    'person_assignments', v_assignments_count
+  );
+
+  return jsonb_build_object('operation','person.delete','personId',p_person_id,
+    'changed',true,'authorized',true,'reason','deleted','destroyedCounts',v_destroyed);
+end;
+$$;
+
+revoke all on function public.delete_person(uuid) from public, anon;
+grant execute on function public.delete_person(uuid) to authenticated;
 
 -- See 202608280013_frictionless_company_delete.sql for the full incident: the founder
 -- asked Brain AI to delete a company, it claimed success with zero mechanism, then the
@@ -3469,3 +3774,92 @@ $$;
 
 revoke all on function public.create_factory_task(uuid, text, text, uuid, jsonb) from public, anon;
 grant execute on function public.create_factory_task(uuid, text, text, uuid, jsonb) to authenticated;
+
+-- ---------- COMPLETE AGENT RUN RPC ----------
+-- see supabase/migrations/202608290010_agent_run_completion.sql
+--
+-- Closes a real gap found during independent verification of Phase 8 Work Order
+-- 3b28e447-4a9c-4f79-9419-80638a39e457 (docs/software-factory/PHASE_8_SECURITY_INCIDENT.md):
+-- today, nothing completes an agent_runs row except raw SQL run directly against
+-- production. This is the one narrow, auditable, founder/admin-gated path to record a
+-- background specialist agent's independently-verified real completion instead.
+-- agent_runs.status and tasks.status are the exact same public.work_status enum
+-- (verified live) so propagating p_status onto a linked task needs no cast/mapping.
+create or replace function public.complete_agent_run(
+  p_agent_run_id uuid,
+  p_status public.work_status,
+  p_head_commit text default null,
+  p_verification_status text default null,
+  p_summary text default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status public.work_status;
+  v_previous_head_commit text;
+  v_previous_verification_status text;
+  v_task_id uuid;
+  v_authorized boolean;
+  v_previous_task_status public.work_status;
+  v_task_updated boolean := false;
+begin
+  select status, head_commit, verification_status, task_id
+    into v_previous_status, v_previous_head_commit, v_previous_verification_status, v_task_id
+    from public.agent_runs where id = p_agent_run_id;
+  if not found then
+    return jsonb_build_object('operation','agent_run.complete','agentRunId',p_agent_run_id,
+      'changed',false,'authorized',false,'taskUpdated',false,'reason','not_found');
+  end if;
+
+  v_authorized := public.is_founder_or_admin();
+  if not v_authorized then
+    return jsonb_build_object('operation','agent_run.complete','agentRunId',p_agent_run_id,
+      'changed',false,'authorized',false,'taskUpdated',false,'reason','denied');
+  end if;
+
+  if p_verification_status is not null
+     and p_verification_status not in ('pending','live_verified','e2e_verified','failed','blocked')
+  then
+    raise exception 'complete_agent_run: unknown verification_status % (must be pending/live_verified/e2e_verified/failed/blocked)', p_verification_status;
+  end if;
+
+  if v_previous_status = p_status
+     and v_previous_head_commit is not distinct from p_head_commit
+     and v_previous_verification_status is not distinct from p_verification_status
+  then
+    return jsonb_build_object('operation','agent_run.complete','agentRunId',p_agent_run_id,
+      'changed',false,'authorized',true,'taskUpdated',false,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,
+      'reason','already_recorded');
+  end if;
+
+  update public.agent_runs
+    set status = p_status,
+        head_commit = coalesce(p_head_commit, head_commit),
+        verification_status = coalesce(p_verification_status, verification_status),
+        summary = coalesce(p_summary, summary),
+        finished_at = now(),
+        updated_at = now()
+    where id = p_agent_run_id;
+
+  if v_task_id is not null then
+    select status into v_previous_task_status from public.tasks where id = v_task_id;
+    if v_previous_task_status is not null and v_previous_task_status is distinct from p_status then
+      perform set_config('app.task_lifecycle_rpc', 'true', true);
+      update public.tasks set status = p_status, updated_at = now() where id = v_task_id;
+      perform set_config('app.task_lifecycle_rpc', 'false', true);
+      v_task_updated := true;
+    end if;
+  end if;
+
+  return jsonb_build_object('operation','agent_run.complete','agentRunId',p_agent_run_id,
+    'changed',true,'authorized',true,'taskUpdated',v_task_updated,
+    'previousStatus',v_previous_status,'newStatus',p_status,
+    'reason','completed');
+end;
+$$;
+
+revoke all on function public.complete_agent_run(uuid, public.work_status, text, text, text) from public, anon;
+grant execute on function public.complete_agent_run(uuid, public.work_status, text, text, text) to authenticated;
