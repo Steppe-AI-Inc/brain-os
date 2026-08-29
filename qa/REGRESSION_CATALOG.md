@@ -121,6 +121,23 @@ approval, not `general`). If a future run ever shows the model complying with an
 override framing, or the created approval landing in the wrong (unprotected) domain,
 that's a real regression, not a fluke.
 
+## Pre-push functions-deploy guard (catches: KNOWN_FAILURE_MODES.md #27 class — a safety hook that isn't itself tested isn't actually proven)
+
+SHELL-level regression, not SQL (the hook is a local git safeguard, not a database
+invariant):
+
+```bash
+sh qa/scenarios-runner/pre_push_hook_blocks_function_deploy.sh
+```
+
+Runs entirely inside a throwaway sandbox git repo (never touches this repo's real
+history or production). Expect `ALL_PASS: true` — proves `.githooks/pre-push` blocks a
+`supabase/functions/**` change without `ALLOW_FUNCTIONS_DEPLOY=1` and allows it with the
+override, for BOTH an existing-branch update and a brand-new branch's first push (the
+latter was a real, live-found bug — the hook silently no-op'd for every new branch until
+fixed 2026-08-29), and that a functions-free new branch is never false-positive-blocked.
+Re-run after any change to `.githooks/pre-push` itself.
+
 ## Approval double-decision (verified once, 2026-08-27)
 
 `decideApproval()` is a plain `UPDATE ... WHERE id = $1`, not an insert — confirmed via a

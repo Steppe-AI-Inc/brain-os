@@ -68,6 +68,7 @@ multi-line statements preserved). Inline strings are fine only for a single one-
 | `sc118_resource_operations_matrix.sql` | SC-118 | SELECT/INSERT/UPDATE/DELETE tested separately per table for employee vs manager | 2026-08-27 |
 | `sc119_security_fields.sql` | SC-119 | unauthorized mutation attempts on security columns are denied | 2026-08-27 |
 | `_policy_drift_signature.sql` | REGRESSION_RULE | signature-diff of live policies vs schema file (the #8/#11 drift-class guard) | 2026-08-27 |
+| `pre_push_hook_blocks_function_deploy.sh` | (new fix, no SC-#) | SHELL, not SQL (see `qa/REGRESSION_CATALOG.md`) — KNOWN_FAILURE_MODES.md #27: `.githooks/pre-push` blocks a `supabase/functions/**` push without `ALLOW_FUNCTIONS_DEPLOY=1` for both an existing-branch update and a brand-new branch's first push (the latter was a real live-found bug, fixed same day); a functions-free new branch is never false-positive-blocked. Runs in a throwaway sandbox repo, never touches this repo's history | 2026-08-29 |
 
 Results are recorded in each scenario doc's `AUTOMATION STATUS` / `LAST VERIFIED DATE`
 and summarized in `qa/scenarios/RESULTS.md`.

@@ -12,13 +12,35 @@ remote="$1"
 url="$2"
 
 z40=0000000000000000000000000000000000000000
+# The canonical empty-tree object hash (same in every git repo) - used below as the diff
+# base only when a brand-new ref shares no history at all with the remote's default
+# branch, so "everything in this ref" is the correct file set to check in that edge case.
+empty_tree=4b825dc642cb6eb9a060e54bf8d69288fbee4904
 
 while read local_ref local_sha remote_ref remote_sha; do
   if [ "$local_sha" = "$z40" ]; then
     continue # deleting a ref, nothing to check
   fi
   if [ "$remote_sha" = "$z40" ]; then
-    range="$local_sha" # new branch, check the whole thing
+    # Brand-new branch/ref - what a first-ever `git push -u origin <branch>` looks like.
+    # REAL BUG, confirmed live 2026-08-29: `range="$local_sha"` here previously fed a
+    # single commit (no ".." range) to `git diff --name-only`, which diffs that commit
+    # against the *working tree*, not against its own parent history - since the working
+    # tree matches $local_sha exactly right after a commit, this always produced an EMPTY
+    # changed-file list, silently letting every brand-new branch's first push skip the
+    # functions/** check entirely regardless of what it actually touched. Reproduced live:
+    # pushing a real branch that changed supabase/functions/sem-ai-command/index.ts with
+    # no ALLOW_FUNCTIONS_DEPLOY set exited 0 instead of blocking (see
+    # qa/scenarios-runner/pre_push_hook_blocks_function_deploy.sh for the permanent
+    # regression covering this exact case). Diff against where this ref's history actually
+    # forked from the remote's default branch instead - falling back to the empty-tree
+    # hash (i.e. "diff the whole ref") only if there's truly no shared history at all (a
+    # genuinely disjoint first-ever push).
+    base=$(git merge-base "$local_sha" "$remote/master" 2>/dev/null || true)
+    if [ -z "$base" ]; then
+      base="$empty_tree"
+    fi
+    range="$base..$local_sha"
   else
     range="$remote_sha..$local_sha"
   fi

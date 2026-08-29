@@ -4,6 +4,68 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 27. `.githooks/pre-push`'s own safeguard silently didn't apply to any brand-new branch's first push — found live while pushing an unrelated chat-history PR (FOUND LIVE, FIXED, and REGRESSION-TESTED, 2026-08-29)
+
+**Why this matters even though no production deploy actually resulted:** #25 built this
+exact hook as "a real structural safeguard" specifically because a documented rule alone
+("remember to check before pushing supabase/functions/**") had already failed once. This
+entry is the hook itself failing silently on its very first real-world exercise — the
+same underlying lesson (a safety mechanism that isn't actually tested isn't actually
+proven), just one layer deeper. #25's own "Not yet built" note even predicted needing a
+follow-up mechanism; this is that follow-up mechanism turning out to have a real gap of
+its own.
+
+**Symptom, found live:** implementing an unrelated PR (chat history pagination/scroll
+fixes, Workstream 6) required one legitimate one-line fix inside
+`supabase/functions/sem-ai-command/index.ts`. Pushing that work as a normal new feature
+branch (`git push -u origin pr-a-chat-history-pagination`, the completely ordinary first
+push of a new branch) with `ALLOW_FUNCTIONS_DEPLOY` deliberately unset succeeded —
+`git push` exited 0, no warning, no block — even though the pushed commit genuinely
+touched `supabase/functions/sem-ai-command/index.ts`.
+
+**Root cause:** the hook's new-ref branch (`remote_sha` all-zero, i.e. "this ref doesn't
+exist on the remote yet") computed `range="$local_sha"` — a single commit reference with
+no `..`. `git diff --name-only <single-ref>` diffs that commit **against the current
+working tree**, not against its own parent/history — and immediately after a real commit
+the working tree always exactly matches that commit, so this comparison always produced
+an empty changed-file list. The check silently no-opped for every brand-new branch's
+first push, regardless of what it actually touched. The existing-branch-update path
+(`range="$remote_sha..$local_sha"`, a real two-dot diff) was and is correct — only the
+new-ref case was broken, which is exactly why #25's own manual pre-push testing at the
+time (necessarily against branches/refs that already existed) never caught it.
+
+**Real-world blast radius, assessed honestly:** contained but real. The auto-deploy CI
+workflow (`supabase-functions.yml`) only triggers on push to `master` specifically, and a
+brand-new `master` ref essentially never recurs (it already exists on `origin`) — so
+*this specific incident* did not itself trigger a production deploy. But the gap made the
+hook a no-op for the single most common real-world case there is: the first push of any
+new feature branch that happens to touch `supabase/functions/**`, which is precisely how
+this was found. A rebase-and-force-push workflow, or a repo reorganization that changes
+the default branch name, could plausibly turn this into a genuine live-deploy bypass —
+not exercised here, but not ruled out either.
+
+**Fixed same day:** brand-new-ref case now diffs against `git merge-base "$local_sha"
+"$remote/master"` (falling back to the empty-tree hash only if there's truly no shared
+history at all) instead of the single bare ref — the standard idiom for "what does this
+new ref actually add relative to where it forked."
+
+**Regression-tested, not just fixed:** `qa/scenarios-runner/pre_push_hook_blocks_function_deploy.sh`
+— a self-contained shell script (throwaway sandbox git repo + a local bare "origin", no
+network, no touch to this repo's real history) that independently confirmed: (1) the fix
+closes the exact reproduced gap (a brand-new branch touching `supabase/functions/**` is
+now blocked without the override and allowed with it), (2) the existing-branch-update
+path still works exactly as before (no regression introduced by the fix), and (3) a
+brand-new branch that does NOT touch `supabase/functions/**` is still allowed through
+cleanly (no new false positive). Also confirmed the test itself is a real regression, not
+just a passing script: running the identical test against a saved copy of the **pre-fix**
+hook correctly fails on exactly the new-branch case (`expected exit 1, got 0`) and passes
+on the fixed hook — proving the test would have caught this bug had it existed before the
+incident, not just after.
+
+This is a SHELL-level regression per Workstream 7's own classification (the hook is a
+local git safeguard, not a database invariant) — see `qa/REGRESSION_CATALOG.md` for the
+one-line pointer, distinct from the SQL-based `qa/scenarios-runner/*.sql` convention.
+
 ## 26. Independent verification of Work Order 3b28e447 (Phase 8 verification artifact, commit aae7dad; ANSI-parsing fix, commit 47cd870) — both real, fix genuinely correct; commit's own "regression-verified" claim was overstated, closed with a real committed test in this pass (E2E VERIFIED, 2026-08-29)
 
 **Why this entry exists even with the underlying fix being correct:** same rationale as
