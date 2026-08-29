@@ -1449,7 +1449,7 @@ verification here means "attempt the specific action and observe the classifier'
 behavior," as done above. Re-verify manually (repeat the two settings-edit attempts) any
 time `.claude/settings.json`'s `permissions` block is touched again.
 
-## 30. `complete_work_order` — three real defects found across two independent review passes before push (FOUND + FIXED pre-production, 2026-08-30); one adjacent gap deferred as a fast-follow, not yet fixed
+## 30. `complete_work_order` — four real defects found across three independent review passes before push, plus one proactive hardening (FOUND + FIXED pre-production, 2026-08-30); one adjacent gap deferred as a fast-follow, not yet fixed
 
 **Real incident**: `complete_work_order()` (migration `202608300002_complete_work_order.sql`)
 was written to close the last known factory-state gap — `complete_agent_run()` never
@@ -1509,6 +1509,42 @@ reviewer also independently re-confirmed the schema mirror
 the fix does not break the real legitimate pattern (`complete_agent_run`'s own signature
 supports setting `head_commit` and `verification_status` together on one call against one
 row — same-row binding matches actual usage, not just the test fixtures).
+
+**A third, fresh independent review session** (again per the prior reviewer's own
+"resubmit for review" instruction, again with no memory of the earlier passes — only the
+committed diff) confirmed all three earlier defects genuinely fixed via its own independent
+re-derivation (not by trusting the commit messages), byte-diffed the schema mirror against
+the migration's executable SQL and confirmed an exact match, then live-reproduced a
+**fourth** real defect via its own extended adversarial testing:
+
+4. **Vacuous completion**: a Work Order with zero linked tasks and zero linked
+   `agent_runs` at all could still reach `done`, because every prior check only rejected
+   an **incomplete** task/run — none required at least one to actually exist. Reproduced
+   two ways: a trivially empty Work Order, and the more realistic exploit chain (a task
+   force-completed some other way outside the real agent-dispatch pipeline, via a
+   separate, pre-existing gap in `tasks_update_scope` RLS unrelated to this migration,
+   with zero `agent_runs` ever created). Fixed by requiring at least one task and at
+   least one `agent_run` to exist before any of the "is everything done/verified" checks
+   are reached, returning `reason:'no_tasks_to_complete'` or
+   `reason:'no_agent_runs_recorded'` otherwise.
+
+Added as regression #14 (`FACTORY_WORK_ORDER_REJECTS_VACUOUS_COMPLETION`, covering both
+reproductions), committed as `617c3dc`. Re-run against production (`--linked` alone, rolled
+back): all 14 named regressions pass, function/trigger/fixture data confirmed absent
+afterward.
+
+The same reviewer also flagged, explicitly marked as **code-inspection only, not
+live-reproduced, lower confidence** — a real defect was not claimed, only a plausible gap:
+the final `UPDATE` had no `status = v_status` re-check, so two genuinely concurrent calls
+for the same Work Order could both pass every check before either commits, and the
+second's unconditional `UPDATE` would silently overwrite `completed_at` with a later
+timestamp while wrongly reporting `changed:true`. Applied as a proactive hardening
+(committed `c034636`) rather than dispatching a fourth full review round chasing an
+unconfirmed, low-likelihood race on a founder-only administrative RPC — the `WHERE` clause
+now re-validates `status` hasn't moved since it was read; a losing concurrent caller now
+gets the same idempotent `changed:false` shape instead of double-writing `completed_at`.
+Re-ran the full 14-regression suite afterward to confirm nothing broke (`all_pass: true`),
+and re-confirmed the schema mirror byte-identical to the migration's executable SQL.
 
 **Deferred fast-follow, not yet fixed**: while probing defect 1's exploitability, the
 reviewer also confirmed (live, rolled back) a **pre-existing, adjacent** gap that predates
