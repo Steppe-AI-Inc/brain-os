@@ -355,8 +355,8 @@ Rules:
   lastRunSummary, lastRunHeadCommit) for the founder's real recent Work Orders,
   regardless of whether this is a fresh conversation with no memory of creating it.
   This is real, current truth from the database, not something you need
-  conversationHistory for. Report exactly what it says — `lastRunStatus: "done"` with
-  no `lastRunVerificationStatus` means the agent finished but independent verification
+  conversationHistory for. Report exactly what it says — \`lastRunStatus: "done"\` with
+  no \`lastRunVerificationStatus\` means the agent finished but independent verification
   hasn't confirmed it yet; never round that up to "done and verified" or invent a
   status/commit/outcome that isn't literally present in context.factoryWorkOrders. If
   the founder asks about a Work Order that isn't in this list at all (it may be older
