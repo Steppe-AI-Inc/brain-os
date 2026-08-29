@@ -34,9 +34,17 @@ repo**: before pushing any commit that touches `supabase/functions/**`, treat it
 the same deployment-safety rigor as a DB migration — prepare, verify locally as much as
 possible, get independent review for anything non-trivial, and flag to the founder
 explicitly that the push is itself the production deploy (not a separate, later step)
-before pushing. Do not rely on remembering this — check `git status`/`git diff --stat`
-for any `supabase/functions/` path before every push in this repo, going forward,
-without exception.
+before pushing.
+
+**Not left as a "remember to check" rule** — a purely-documented rule already failed
+once (this session *knew* the workflow existed and still pushed without checking, the
+exact failure mode `PHASE_8_SECURITY_INCIDENT.md` records). A real, structural
+safeguard now exists instead: `.githooks/pre-push` blocks any push whose diff touches
+`supabase/functions/**` unless `ALLOW_FUNCTIONS_DEPLOY=1` is explicitly set, and is
+active for this working directory (`git config core.hooksPath .githooks`, already run).
+**One-time setup required in any other clone/worktree of this repo**: run
+`git config core.hooksPath .githooks` once — hooks are not tracked/activated by `git
+clone` alone.
 
 **Binding rule for `db query --file` against `--linked` production, going forward**:
 use `--linked` alone, never combined with `--project-ref <ref>` in the same invocation

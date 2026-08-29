@@ -1,0 +1,52 @@
+#!/bin/sh
+# Real structural safeguard for the exact gap this incident exposed: git push to files
+# under supabase/functions/** auto-deploys to production (see
+# docs/software-factory/PRODUCTION_DEPLOYMENT_PATHS.md). A purely-documented "remember to
+# check" rule already failed once (this session knew the workflow existed and still
+# pushed without checking) - this hook makes the check happen whether or not anyone
+# remembers to run it.
+#
+# One-time setup per clone/worktree: `git config core.hooksPath .githooks`
+
+remote="$1"
+url="$2"
+
+z40=0000000000000000000000000000000000000000
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" = "$z40" ]; then
+    continue # deleting a ref, nothing to check
+  fi
+  if [ "$remote_sha" = "$z40" ]; then
+    range="$local_sha" # new branch, check the whole thing
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  changed=$(git diff --name-only "$range" -- 2>/dev/null)
+  fn_changed=$(printf '%s\n' "$changed" | grep '^supabase/functions/' || true)
+
+  if [ -n "$fn_changed" ]; then
+    echo ""
+    echo "============================================================"
+    echo "  BLOCKED: this push touches supabase/functions/** paths:"
+    echo ""
+    printf '%s\n' "$fn_changed" | sed 's/^/    /'
+    echo ""
+    echo "  git push to master auto-deploys ALL Edge Functions to production"
+    echo "  (supabase-functions.yml, live since 2026-08-28). This is a real"
+    echo "  production deployment, not just source control - treat it with"
+    echo "  the same rigor as a DB migration: independent review + explicit"
+    echo "  founder awareness that THIS push is the deploy."
+    echo ""
+    echo "  If this is genuinely intended right now, override with:"
+    echo "    ALLOW_FUNCTIONS_DEPLOY=1 git push ..."
+    echo "============================================================"
+    echo ""
+    if [ -z "$ALLOW_FUNCTIONS_DEPLOY" ]; then
+      exit 1
+    fi
+  fi
+done
+
+exit 0

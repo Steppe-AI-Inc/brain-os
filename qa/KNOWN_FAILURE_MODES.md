@@ -1140,8 +1140,16 @@ the full record.
 found two more dormant (not currently exploitable — no live capability exposes them as
 settable parameters yet) instances — `canonical_work_orders.owner_person_id` (people are
 company-scoped, no check exists) and `tasks.canonical_work_order_id` vs `tasks.company_id`
-consistency. Neither fixed yet (nothing reachable today), both flagged for a follow-up
-migration before any future capability exposes them.
+consistency. Neither fixed yet (nothing reachable today, so not an emergency migration).
+
+**PRE-EXPOSURE BLOCKER (binding, not forgotten technical debt)**: no feature may expose
+either `canonical_work_orders.owner_person_id` or `tasks.canonical_work_order_id` as a
+caller-settable mutation path until that specific company-consistency invariant is
+enforced (mirroring `202608290006`'s two-layer pattern — a table-level trigger plus an
+explicit RPC-level check) **and** independently regression-tested. This includes: any
+future `create_factory_task`-style RPC that lets a caller set `canonical_work_order_id`
+on a task must enforce `task.company_id == work_order.company_id` before it ships, not
+after. Check this note before building that RPC, not just when this entry is next read.
 
 **Permanent regression:** `qa/scenarios-runner/create_factory_work_order_adversarial.sql`
 — 8 named assertions (founder same-company OK, cross-company goal rejected via both the
