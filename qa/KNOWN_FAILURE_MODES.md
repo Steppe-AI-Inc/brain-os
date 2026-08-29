@@ -1448,3 +1448,56 @@ tooling/environment-level assertions with no automatable SQL or shell regression
 verification here means "attempt the specific action and observe the classifier's real
 behavior," as done above. Re-verify manually (repeat the two settings-edit attempts) any
 time `.claude/settings.json`'s `permissions` block is touched again.
+
+## 30. `complete_work_order` — two real defects found by independent review before push (FOUND + FIXED pre-production, 2026-08-30); one adjacent gap deferred as a fast-follow, not yet fixed
+
+**Real incident**: `complete_work_order()` (migration `202608300002_complete_work_order.sql`)
+was written to close the last known factory-state gap — `complete_agent_run()` never
+propagated a completion result to the parent `canonical_work_orders` row, so a Work Order's
+own `status` never reached a terminal `done` state. Per the standing "do not self-certify"
+rule, this was sent to `brain-os-db-security-engineer` as a genuinely separate top-level
+background review (session `c582293c`) **before** any founder authorization was requested,
+while the migration existed only as a local, unpushed commit (`e46ea89`). The review
+independently live-reproduced (rolled back, all fixture data confirmed absent afterward) two
+real defects — not hypothetical, not code-quality nitpicks:
+
+1. **Verification-gaming**: the "a run has a commit" check and "a run is verified" check
+   were two independent `EXISTS` queries with no row binding between them. A completely
+   unrelated verified run (no commit of its own — e.g. a background/bootstrap run) could
+   satisfy the verification requirement for an entirely different, never-actually-verified
+   commit under the same Work Order. Fixed by requiring `head_commit is not null`,
+   `status='done'`, and a passing `verification_status` all on the **same** `agent_runs` row.
+2. **Direct-insert bypass**: the completion guard trigger was registered `before update`
+   only. `canonical_work_orders_insert_scope` allows any user with `has_company_access`
+   (not just founder/admin) to `INSERT` — so a fresh row could be created with
+   `status='done'` from the very first write, skipping the RPC and the guard entirely. Fixed
+   by registering the trigger for `before insert or update` (the guard function's own logic
+   was already insert-safe via `coalesce(old.status,'draft')` — only the trigger's event
+   list needed the fix).
+
+Both exploits were added as new permanent regressions
+(`FACTORY_WORK_ORDER_REJECTS_UNRELATED_RUN_VERIFICATION_GAMING`,
+`FACTORY_WORK_ORDER_COMPLETION_GUARD_BLOCKS_DIRECT_INSERT`, #11 and #12) in
+`qa/scenarios-runner/complete_work_order_lifecycle.sql`, committed as `a780364`. Re-run
+against production (`--linked` alone, rolled back): all 12 named regressions pass, and the
+function/trigger/fixture data are all confirmed absent from production afterward, both
+before and after the fix.
+
+**Deferred fast-follow, not yet fixed**: while probing defect 1's exploitability, the
+reviewer also confirmed (live, rolled back) a **pre-existing, adjacent** gap that predates
+this migration entirely (from `202608290002`/`202608290004`): `agent_runs_update_scope` RLS
+allows a non-founder company-manager-tier account to directly `UPDATE`
+`agent_runs.verification_status` and `head_commit` on their own company's row via plain
+RLS-permitted SQL — there is no lifecycle-guard trigger on `agent_runs` at all, unlike the
+one this migration adds for `canonical_work_orders`. This was purely informational before
+`complete_work_order` existed; it becomes authorization-relevant now, because a company
+manager could self-declare their own run `live_verified` directly, bypassing
+`complete_agent_run()`'s founder-only gate entirely — meaning a founder calling
+`complete_work_order()` and trusting a "verified" run could be trusting a record a company
+manager fabricated, not one that ever went through the real, controlled completion path.
+The reviewer explicitly assessed this as **not a blocker for the `complete_work_order`
+migration itself** (defect 1's same-row-binding fix is still correct and necessary
+regardless), but as **incomplete protection** until closed. Recommended fix, not yet
+scheduled: the same GUC-flag guard-trigger pattern applied to `agent_runs.status`/
+`verification_status`, making `complete_agent_run()` the single path — analogous to what
+this migration did for `canonical_work_orders`. Tracked here rather than silently deferred.

@@ -266,3 +266,26 @@ One code-level spot check worth re-running directly: `grep -n "pendingConfirmati
 supabase/functions/sem-ai-command/index.ts` should only ever match the deliberate
 back-compat read path in `buildContext()` — any other match means a future edit
 reintroduced the old, narrower mechanism instead of extending `pendingAction`.
+
+## Work Order completion (catches: the final factory-state gap — a Work Order's own status
+never reached a terminal `done` state; added 2026-08-30)
+
+`qa/scenarios-runner/complete_work_order_lifecycle.sql` — `complete_work_order()` (migration
+`202608300002_complete_work_order.sql`) and its `canonical_work_orders_completion_guard`
+trigger. Run after any change to `canonical_work_orders`/`tasks`/`agent_runs` status
+writers. Twelve named regressions: completes only after every linked task and agent_run is
+`done`; rejects a running task, a failed/rejected run, a real commit with no passing
+verification anywhere, and a real commit whose only verification attempt failed; idempotent
+re-completion with a stable `completed_at`; the lifecycle-guard trigger blocks both a `done`
+row regressing away and a fresh row being directly written to `done` (insert or update,
+outside the RPC); a cross-company task-to-Work-Order reference is structurally impossible
+(`enforce_task_work_order_company`, checked defensively anyway). Regressions #11/#12
+(`FACTORY_WORK_ORDER_REJECTS_UNRELATED_RUN_VERIFICATION_GAMING`,
+`FACTORY_WORK_ORDER_COMPLETION_GUARD_BLOCKS_DIRECT_INSERT`) were added after independent
+review (`brain-os-db-security-engineer`) live-reproduced both as real, exploitable defects
+in an earlier version of this migration before it was ever pushed — verification credit
+must come from the *same* `agent_runs` row that carries the commit, and the guard trigger
+must cover `INSERT`, not just `UPDATE`.
+
+Full incident record and the deferred `agent_runs` lifecycle-guard fast-follow:
+`qa/KNOWN_FAILURE_MODES.md` #30.
