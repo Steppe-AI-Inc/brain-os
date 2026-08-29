@@ -130,3 +130,23 @@ regardless of how many times or how fast it's called; the last write simply wins
 same row. This class of bug is structurally impossible here as currently built — no
 separate regression check needed unless `decideApproval()` is ever changed to an insert-
 based or multi-step flow.
+
+## Multi-turn conversation state loss + duplicated/leaky chat response (catches: master
+plan Bugs 1-3, 7, 18-19 class — added 2026-08-29, PR B)
+
+Added alongside the `pendingConfirmation` → `pendingAction` generalization
+(`supabase/functions/sem-ai-command/index.ts`). Not a SQL check — this defect class only
+shows up across multiple chat turns and in the model's own generated prose, so the real
+regression script is the manual, step-by-step "Manual regression checklist —
+conversation state machine + entity resolution + response formatting" section of
+`qa/ACCEPTANCE_TESTS.md` (CHAT_PENDING_ACTION_SURVIVES_CLARIFICATION,
+CHAT_CONFIRMATION_RESOLVES_PREVIOUS_ENTITY,
+CHAT_COMPOUND_COMMAND_PRESERVES_RESOLVED_COMPANY,
+CHAT_SHORT_REPLY_DOES_NOT_TRIGGER_GENERIC_FALLBACK, CHAT_NATURAL_ENTITY_REFERENCE_RESOLVES,
+BRAIN_CHAT_RESPONSE_NO_DUPLICATE_RESULT, BRAIN_CHAT_RESPONSE_HIDES_INTERNAL_IDS,
+BRAIN_CHAT_RESPONSE_HIDES_INTERNAL_EXECUTION_NOISE) — run that checklist after any future
+change to `pendingAction`/entity-name-matching/factory-work-order response formatting.
+One code-level spot check worth re-running directly: `grep -n "pendingConfirmation"
+supabase/functions/sem-ai-command/index.ts` should only ever match the deliberate
+back-compat read path in `buildContext()` — any other match means a future edit
+reintroduced the old, narrower mechanism instead of extending `pendingAction`.
