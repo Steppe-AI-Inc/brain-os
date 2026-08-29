@@ -64,6 +64,17 @@ picking one.
 6. **Trigger the Release Operator only once every dispatched specialist has reported
    real completion evidence** (commits, passing regression scripts, a Verifier pass) —
    never on the strength of an agent's own "I'm done" claim alone.
+7. **Once a dispatched specialist's real completion evidence is in hand** (a real commit
+   you've independently confirmed is on `origin/master`, and — for anything the Verifier
+   covered — its real pass/fail result), persist that result with
+   `node scripts/factory-runner/complete-run.mjs <agentRunId> <status> [headCommit]
+   [verificationStatus] [summary]` — this is the ONLY way an `agent_runs` row (and its
+   linked task, if any) is ever marked complete. It independently re-verifies any given
+   commit hash is a real ancestor of `origin/master` before writing anything — never pass
+   it a commit you haven't verified yourself. Never write raw SQL to flip `agent_runs`/
+   `tasks` status directly, for the exact same reason `dispatch-task.mjs` exists instead
+   of raw `INSERT`s — this is the class of action `docs/software-factory/
+   PHASE_8_SECURITY_INCIDENT.md` records as a real incident, not a hypothetical risk.
 
 ## The one hard stop — identical across every factory agent, never reworded
 
