@@ -66,9 +66,16 @@ begin
 end;
 $$;
 
+-- Independent review (brain-os-db-security-engineer, live-reproduced, rolled back) found
+-- this registered as BEFORE UPDATE only, missing BEFORE INSERT — canonical_work_orders_
+-- insert_scope allows any user with has_company_access(company_id) (not just founder/
+-- admin), so a fresh row could be INSERTed with status='done' from the start, bypassing
+-- this trigger and the RPC entirely. The guard function's own logic (coalesce(old.status,
+-- 'draft')) already treats a null OLD row as 'draft' correctly for an INSERT — only the
+-- trigger's event list needed fixing.
 drop trigger if exists canonical_work_orders_completion_guard on public.canonical_work_orders;
 create trigger canonical_work_orders_completion_guard
-  before update on public.canonical_work_orders
+  before insert or update on public.canonical_work_orders
   for each row execute function public.enforce_work_order_completion_via_rpc();
 
 -- ============================================================================
@@ -163,13 +170,18 @@ begin
   end if;
 
   -- Point 6/7/8c: if real code was mutated (any linked run carries a real head_commit),
-  -- independent verification is required - at least one linked run must show
-  -- verification_status from the real, already-persisted agent_runs row (never
-  -- caller-supplied - this RPC takes no verification_status parameter at all, closing that
-  -- exact trust-boundary requirement by construction) equal to live_verified or
-  -- e2e_verified, with that same run's own status also done (full coherence, not just the
-  -- one field). If no run carries a commit, this Work Order made no code change and
-  -- verification was never applicable - matches "when verification is required" exactly.
+  -- independent verification is required for THAT SPECIFIC commit. Independent review
+  -- (brain-os-db-security-engineer, live-reproduced, rolled back) found the original form
+  -- of this check split "has a commit" and "has a passing verification" across two
+  -- independent EXISTS queries with no row binding between them — an unrelated verified
+  -- run (e.g. a background/bootstrap run with no commit of its own) could vouch for a
+  -- completely different, never-actually-verified commit under the same Work Order. Fixed
+  -- by requiring head_commit, status='done', and a passing verification_status on the SAME
+  -- row: the run that made the commit is the run that must carry its own verification
+  -- result — matching how complete_agent_run's own signature already supports setting
+  -- head_commit and verification_status together in one call against one row. If no run
+  -- carries a commit at all, this Work Order made no code change and verification was
+  -- never applicable - matches "when verification is required" exactly.
   select exists(
     select 1 from public.agent_runs where canonical_work_order_id = p_work_order_id and head_commit is not null
   ) into v_has_commit;
@@ -177,6 +189,7 @@ begin
     select id into v_verified_run_id
       from public.agent_runs
       where canonical_work_order_id = p_work_order_id
+        and head_commit is not null
         and status = 'done'
         and verification_status in ('live_verified','e2e_verified')
       limit 1;

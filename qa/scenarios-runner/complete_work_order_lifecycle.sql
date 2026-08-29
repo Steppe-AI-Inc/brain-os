@@ -35,6 +35,20 @@
 --      founder cannot set status='done' directly via a raw UPDATE, on a fresh Work Order
 --      that never went through complete_work_order() at all — the lifecycle-guard trigger
 --      blocks the write regardless of how far along the real requirements are.
+--
+-- Plus two regressions added after independent review (brain-os-db-security-engineer,
+-- live-reproduced both exploits against an earlier version of this migration, rolled back):
+--  11. FACTORY_WORK_ORDER_REJECTS_UNRELATED_RUN_VERIFICATION_GAMING — a real, unverified
+--      commit on one run cannot be "vouched for" by a passing verification_status on a
+--      SEPARATE, unrelated run under the same Work Order. The original check split "any
+--      run has a commit" and "any run is verified" across two independent queries with no
+--      row binding — fixed by requiring head_commit + status='done' + a passing
+--      verification_status on the SAME row.
+--  12. FACTORY_WORK_ORDER_COMPLETION_GUARD_BLOCKS_DIRECT_INSERT — a fresh
+--      canonical_work_orders row cannot be INSERTed with status='done' from the start,
+--      bypassing the RPC entirely. The guard trigger was originally BEFORE UPDATE only;
+--      canonical_work_orders_insert_scope allows any user with has_company_access (not
+--      just founder/admin) to INSERT, so this was a real bypass, not merely theoretical.
 
 begin;
 
@@ -94,6 +108,17 @@ insert into public.agent_runs (id, canonical_work_order_id, company_id, executio
 -- WO6: fresh, no tasks/runs at all — used only for the direct-write-blocked test (#10).
 insert into public.canonical_work_orders (id, company_id, title, status) values
   ('cccc2002-0000-0000-0000-000000000006','cccc2001-0000-0000-0000-000000000001','CWO Fresh','in_progress');
+
+-- WO7: the exact verification-gaming shape independent review confirmed exploitable
+-- against the earlier version of this migration — a real, unverified commit (Run7a) sits
+-- alongside a completely unrelated, verified, commit-less run (Run7b) under the same WO.
+insert into public.canonical_work_orders (id, company_id, title, status) values
+  ('cccc2002-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','CWO Verification Gaming','in_progress');
+insert into public.tasks (id, company_id, title, status, canonical_work_order_id) values
+  ('cccc2003-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','CWO Task 7a','done','cccc2002-0000-0000-0000-000000000007');
+insert into public.agent_runs (id, canonical_work_order_id, company_id, execution_provider, provider_run_id, status, head_commit, verification_status, started_at) values
+  ('cccc2004-0000-0000-0000-000000000007','cccc2002-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-7a-unverified-commit','done'::work_status,'exploitcommit1',null,now()),
+  ('cccc2004-0000-0000-0000-000000000008','cccc2002-0000-0000-0000-000000000007','cccc2001-0000-0000-0000-000000000001','claude_code_background','cwo-run-7b-unrelated-verified','done'::work_status,null,'live_verified',now());
 
 -- ================== TESTS ==================
 
@@ -163,6 +188,22 @@ begin
 end $$;
 select set_config('cwo.wo6_status_after_direct_attempt', (select status::text from public.canonical_work_orders where id='cccc2002-0000-0000-0000-000000000006'), true);
 
+-- TEST 11 (regression #11): unrelated-run verification gaming is rejected.
+select set_config('cwo.complete_wo7',
+  (public.complete_work_order('cccc2002-0000-0000-0000-000000000007'::uuid))::text, true);
+
+-- TEST 12 (regression #12): a fresh row cannot be INSERTed directly as status='done'.
+do $$
+begin
+  begin
+    insert into public.canonical_work_orders (id, company_id, title, status) values
+      ('cccc2002-0000-0000-0000-000000000099','cccc2001-0000-0000-0000-000000000001','CWO Direct Insert Done','done');
+    perform set_config('cwo.direct_insert_done_blocked', 'false', true);
+  exception when others then
+    perform set_config('cwo.direct_insert_done_blocked', 'true', true);
+  end;
+end $$;
+
 reset role;
 
 select json_build_object(
@@ -181,6 +222,8 @@ select json_build_object(
   'cross_company_task_blocked', current_setting('cwo.cross_company_task_blocked', true) = 'true',
   'direct_done_blocked', current_setting('cwo.direct_done_blocked', true) = 'true',
   'wo6_status_after_direct_attempt', current_setting('cwo.wo6_status_after_direct_attempt', true),
+  'complete_wo7', current_setting('cwo.complete_wo7', true)::jsonb,
+  'direct_insert_done_blocked', current_setting('cwo.direct_insert_done_blocked', true) = 'true',
   'all_pass', (
         (current_setting('cwo.complete_wo1', true)::jsonb->>'changed') = 'true'
     and (current_setting('cwo.complete_wo1', true)::jsonb->>'authorized') = 'true'
@@ -208,6 +251,9 @@ select json_build_object(
     and current_setting('cwo.cross_company_task_blocked', true) = 'true'
     and current_setting('cwo.direct_done_blocked', true) = 'true'
     and current_setting('cwo.wo6_status_after_direct_attempt', true) = 'in_progress'
+    and (current_setting('cwo.complete_wo7', true)::jsonb->>'changed') = 'false'
+    and (current_setting('cwo.complete_wo7', true)::jsonb->>'reason') = 'verification_required_not_found'
+    and current_setting('cwo.direct_insert_done_blocked', true) = 'true'
   )
 ) as verdict;
 

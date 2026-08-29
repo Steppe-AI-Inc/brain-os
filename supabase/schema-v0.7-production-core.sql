@@ -3895,7 +3895,7 @@ $$;
 
 drop trigger if exists canonical_work_orders_completion_guard on public.canonical_work_orders;
 create trigger canonical_work_orders_completion_guard
-  before update on public.canonical_work_orders
+  before insert or update on public.canonical_work_orders
   for each row execute function public.enforce_work_order_completion_via_rpc();
 
 create or replace function public.complete_work_order(p_work_order_id uuid, p_summary text default null)
@@ -3974,6 +3974,7 @@ begin
     select id into v_verified_run_id
       from public.agent_runs
       where canonical_work_order_id = p_work_order_id
+        and head_commit is not null
         and status = 'done'
         and verification_status in ('live_verified','e2e_verified')
       limit 1;
