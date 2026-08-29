@@ -2347,7 +2347,16 @@ begin
     )
     where r.state = 'current'
   )
-  select coalesce(bool_and(c.status = 'active'), true) into v_result
+  -- FIXED by 202608300001_fix_effective_active_status_check.sql: this originally
+  -- required bool_and(c.status = 'active'), which flagged any 'planning'/'paused'
+  -- company (even a standalone one with zero ancestors) as "not effectively active" -
+  -- confirmed live to produce false positives on 2 real production companies with no
+  -- archived ancestor at all. "Effectively active" for this feature's actual purpose
+  -- (Bug 6 - an ARCHIVED ancestor propagating down) only requires that neither the
+  -- company itself nor any ancestor is 'archived' - 'planning'/'paused' are legitimate
+  -- non-archived statuses, same as get_effectively_active_companies()'s own
+  -- (active,planning,paused) selectability filter already treats them.
+  select coalesce(bool_and(c.status <> 'archived'), true) into v_result
   from public.companies c where c.id in (select id from up);
   return v_result;
 end; $$;

@@ -1326,3 +1326,48 @@ any rollback-tested verification against production.
 paths against known auto-deploy trigger paths before a push happens, rather than relying
 on the agent's own judgment each time. Tracked as real, deferred scope — the manual rule
 above is the interim mitigation.
+
+## 28. `is_company_effectively_active()` flagged any non-'active' status, not just an archived ancestor — real bug in the fix itself, and a false report to the founder (FOUND LIVE, FIXED and VERIFIED LIVE, 2026-08-30)
+
+**Correction to the record**: during the master bug-fix campaign, migration
+`202608290009_org_effective_active.sql` was pushed to production and immediately
+reported (in-session, to the founder, not in any committed file) as having surfaced "2
+real production companies with a genuine org-structure inconsistency" — Trade-book.ai
+(`a7f63716-da1b-498e-9663-0adb318f4c4c`) and NexPass LLC/FuelMetrix
+(`646c7e8f-ee37-47c0-802a-bfe79b613a92`). **That report was wrong.** Mandatory
+post-deploy verification (checking the real relationship rows behind the flag, not just
+trusting the flag) found NexPass has **zero `company_relationships` rows at all** — no
+parent, no ancestor, fully standalone — and was flagged purely because its own `status`
+is `'planning'`. Trade-book.ai's real parent (SEM LLC) is `status: active`, not archived.
+
+**Root cause**: `is_company_effectively_active()`'s final check was
+`bool_and(c.status = 'active')` across the company itself and every ancestor — requiring
+the *literal string* `'active'`, not "not archived." Bug 6's actual scope (and this
+feature's own name) is specifically about an ARCHIVED ancestor propagating inactive
+status down to children — `'planning'`/`'paused'` are legitimate, non-archived statuses
+already treated as normal/selectable elsewhere in this exact codebase (e.g.
+`get_effectively_active_companies()`'s own `status in ('active','planning','paused')`
+selectability filter). Any standalone or normally-operating company not in the literal
+`'active'` state was a guaranteed false positive.
+
+**No production data was ever touched** by either the original bug or its discovery —
+this was a read-only verification finding both times; Trade-book.ai and NexPass's real
+`status` values were never written to.
+
+**Real, live impact avoided**: this had not yet caused an application-level regression
+— Workstream 2b/2c (wiring `is_company_effectively_active()`/
+`get_effectively_active_companies()` into `getCompaniesForSelection()`/
+`buildContext()`) had deliberately not been done yet. Had that wiring landed before this
+was caught, every company legitimately in `'planning'`/`'paused'` status would have
+silently disappeared from the employer-selection dropdown and the AI's company context.
+
+**Fixed 2026-08-30** by `202608300001_fix_effective_active_status_check.sql`: changed the
+check to `bool_and(c.status <> 'archived')`. Independently rollback-tested against real
+production before and after the fix — `qa/scenarios-runner/
+org_effective_active_status_check_fix.sql` (`PLANNING_STATUS_IS_NOT_ARCHIVED`,
+`PAUSED_STATUS_IS_NOT_ARCHIVED`, `STANDALONE_NON_ARCHIVED_COMPANY_NOT_FALSE_POSITIVE`,
+`ARCHIVED_ANCESTOR_MAKES_CHILD_EFFECTIVELY_INACTIVE`) confirmed `all_pass: false` against
+the live pre-fix function (proving the test is real, not vacuous) and `all_pass: true`
+against the live post-fix function, including a genuine 3-level synthetic
+archived-ancestor case still correctly caught, and Trade-book.ai/NexPass confirmed no
+longer flagged — while their real `status` values were confirmed unchanged throughout.

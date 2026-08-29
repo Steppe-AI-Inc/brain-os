@@ -187,6 +187,19 @@ archived ancestor, and that a person's raw `people.company_id` employer reads as
 effectively active without ever being rewritten (ARCHIVED_ORG_NOT_ACTIVE_EMPLOYER,
 ARCHIVED_ORG_EXCLUDED_FROM_ACTIVE_SELECTORS).
 
+## Effective-active status-check fix (catches: KNOWN_FAILURE_MODES.md #28 class — "not literally active" is not the same defect as "archived")
+
+`qa/scenarios-runner/org_effective_active_status_check_fix.sql` — proves
+`is_company_effectively_active()` (migration `202608300001_fix_effective_active_status_check.sql`)
+correctly distinguishes an archived ancestor (must exclude) from a merely non-'active'
+but legitimate status like 'planning'/'paused' (must NOT exclude), including a standalone
+company with zero relationships, a company under an active parent, and a 3-level
+synthetic archived-grandparent chain — plus confirms the two real production companies
+this bug false-flagged (Trade-book.ai, NexPass LLC/FuelMetrix) read correctly now, with
+their real `status` values unchanged throughout. Run after any future change to this
+function's status logic — `all_pass: false` against a status-literal-equality regression
+is the expected failure signature to watch for.
+
 ## Agent run completion (catches: the class PHASE_8_SECURITY_INCIDENT.md warns about —
 an agent needing raw SQL against production to record a real result)
 
