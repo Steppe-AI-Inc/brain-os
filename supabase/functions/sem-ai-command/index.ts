@@ -348,6 +348,20 @@ Rules:
   (e.g. "make it better" with no specifics), ask a clarifying question instead of
   creating a vague Work Order — acceptanceCriteria should be concrete enough that an
   engineer could tell when it's done.
+- When the founder asks about the status of a Work Order you or a prior turn created
+  (e.g. "what happened with that work?", "did the dashboard get built?", "is it done
+  yet?") — answer from context.factoryWorkOrders, which holds real, persisted state
+  (status, taskCount, runCount, lastRunStatus, lastRunVerificationStatus,
+  lastRunSummary, lastRunHeadCommit) for the founder's real recent Work Orders,
+  regardless of whether this is a fresh conversation with no memory of creating it.
+  This is real, current truth from the database, not something you need
+  conversationHistory for. Report exactly what it says — `lastRunStatus: "done"` with
+  no `lastRunVerificationStatus` means the agent finished but independent verification
+  hasn't confirmed it yet; never round that up to "done and verified" or invent a
+  status/commit/outcome that isn't literally present in context.factoryWorkOrders. If
+  the founder asks about a Work Order that isn't in this list at all (it may be older
+  than the 10 most recent, or belong to a company you can't see), say you don't have it
+  in view rather than guessing.
 - Proposals are different: you may create a bare draft (title + company only, no pricing)
   via createProposals, and update only title/paymentTerms via updateProposals — never
   propose or infer subtotal/discount/total/status. Real proposal pricing runs a risk-
@@ -952,7 +966,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: true }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, channels,
+  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks] = await Promise.all([
@@ -981,6 +995,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // repeat them.
     supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary').order('created_at', { ascending: false }).limit(20),
     conversationHistoryQuery,
+    // Phase 8: real, persisted Software Factory state - so a fresh chat context can
+    // answer "what happened with that work?" from actual canonical_work_orders/tasks/
+    // agent_runs, never from conversation memory or invented status. RLS-scoped exactly
+    // like every other query above (canonical_work_orders_select_scope) - no special
+    // casing. Deliberately a compact summary (title/status/task+run counts/last run
+    // outcome), not the full detail the /software-factory UI shows - this is chat
+    // context, not a dashboard dump.
+    supabase.from('canonical_work_orders')
+      .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)')
+      .order('created_at', { ascending: false })
+      .limit(10),
     // Brain OS's own chat_channels — so the model knows these are internal conversation
     // threads it can be asked to delete, not an external platform (Slack/Teams/Discord)
     // it has no access to.
@@ -1065,8 +1090,34 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // the deterministic short-circuit in serve() below.
   const lastTurnOutput = conversationRows.data?.[conversationRows.data.length - 1]?.output as { pendingConfirmation?: unknown } | undefined;
   const pendingConfirmation = lastTurnOutput?.pendingConfirmation ?? null;
-  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingConfirmation, counts };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  // Compact real summary, not the full row shape - enough for "what happened with that
+  // work?" to be answerable from real state (title/status/task+run counts/last run
+  // outcome/real commit), not a dashboard-sized dump. Every field here is real,
+  // persisted data returned by the query above (already RLS-scoped) - never invented.
+  const factoryWorkOrders = (factoryWorkOrdersRaw.data || []).map((w: any) => {
+    const runs = Array.isArray(w.agent_runs) ? w.agent_runs : [];
+    const lastRun = runs.length
+      ? runs.reduce((a: any, b: any) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
+      : null;
+    return {
+      id: w.id,
+      title: w.title,
+      objective: w.objective,
+      status: w.status,
+      workType: w.work_type,
+      companyId: w.company_id,
+      goalId: w.goal_id,
+      taskCount: Array.isArray(w.tasks) ? w.tasks.length : 0,
+      runCount: runs.length,
+      lastRunStatus: lastRun?.status ?? null,
+      lastRunVerificationStatus: lastRun?.verification_status ?? null,
+      lastRunSummary: lastRun?.summary ?? null,
+      lastRunHeadCommit: lastRun?.head_commit ?? null,
+    };
+  });
+
+  const pack = { command, companies:companies.data||[], projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:people.data||[], goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingConfirmation, counts };
+  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
