@@ -1,11 +1,11 @@
 import { ListChecks } from "lucide-react";
 import { getTasks, getCurrentPersonId } from "@/lib/data/tasks";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
 import { TasksBoard } from "./tasks-board";
 
 export default async function TasksPage() {
-  const [tasks, companies, currentPersonId] = await Promise.all([getTasks(), getCompanies(), getCurrentPersonId()]);
+  const [tasks, companies, currentPersonId] = await Promise.all([getTasks(), getCompaniesForSelection(), getCurrentPersonId()]);
 
   return (
     <div className="flex flex-col gap-6">

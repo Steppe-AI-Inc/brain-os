@@ -82,7 +82,13 @@ create table if not exists public.companies (
   name text not null,
   country text,
   legal_entity_name text,
-  status text default 'active',
+  -- See 202608280013_frictionless_company_delete.sql: "delete" = archive (status ->
+  -- 'archived'). Constrained below; the companies_lifecycle_guard trigger (also that
+  -- migration) additionally blocks any status write into/out of 'archived' that didn't
+  -- go through archive_company()/restore_company() - this column alone doesn't tell the
+  -- whole story, the trigger is the real enforcement.
+  status text default 'active'
+    check (status in ('active','planning','paused','closed','archived')),
   description text,
   strategic_priority int default 5,
   risk_score int default 0,
@@ -92,9 +98,35 @@ create table if not exists public.companies (
   -- Without this, "CLIX GPS is a business unit, not a company" had nowhere to go.
   organization_type text not null default 'legal_entity'
     check (organization_type in ('legal_entity','holding_company','subsidiary','business_unit','brand','department','country_operation')),
+  -- Unconditionally server-set by the companies_force_creator trigger (same migration) -
+  -- never trust a client-supplied value. Nullable, never backfilled for legacy rows:
+  -- every company created before this column existed was created by an account that was
+  -- always founder/admin anyway, so is_founder_or_admin() already covers them without
+  -- fabricating provenance.
+  created_by_profile_id uuid references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- A `default` clause alone doesn't stop a client from explicitly supplying the column in
+-- an INSERT, so this trigger unconditionally overwrites it regardless of what was
+-- supplied - cannot be bypassed by any INSERT shape, present or future.
+create or replace function public.force_company_creator()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  new.created_by_profile_id := public.current_profile_id();
+  return new;
+end;
+$$;
+
+drop trigger if exists companies_force_creator on public.companies;
+create trigger companies_force_creator
+  before insert on public.companies
+  for each row execute function public.force_company_creator();
 
 -- Sensitive ownership/cash is separated because RLS is row-level, not column-level.
 create table if not exists public.company_sensitive (
@@ -1173,29 +1205,62 @@ begin
       else nullif(v_assignment->>'operatingCompanyId','')::uuid
     end;
 
+    v_new_assignment_id := null;
     if v_new_person_id is not null then
-      insert into public.person_assignments (
-        person_id, legal_employer_company_id, operating_company_id, department_id,
-        job_title, manager_person_id, employment_type, allocation_pct,
-        start_date, end_date, is_primary, responsibilities, state, created_by_profile_id
-      ) values (
-        v_new_person_id,
-        v_entry_company_id,
-        v_entry_related_company_id,
-        nullif(v_assignment->>'departmentId','')::uuid,
-        nullif(v_assignment->>'jobTitle',''),
-        v_entry_manager_id,
-        coalesce((v_assignment->>'employmentType')::employment_type,'full_time'::employment_type),
-        coalesce(nullif(v_assignment->>'allocationPct','')::numeric, 100),
-        nullif(v_assignment->>'startDate','')::date,
-        nullif(v_assignment->>'endDate','')::date,
-        coalesce((v_assignment->>'isPrimary')::boolean, true),
-        nullif(v_assignment->>'responsibilities',''),
-        coalesce((v_assignment->>'state')::assignment_state,'current'::assignment_state),
-        v_profile_id
-      )
-      returning id into v_new_assignment_id;
+      -- A 'current' + primary assignment (the default, and the shape of a real "move X
+      -- to Y" command) goes through the idempotent RPC (202608280011) - same rationale
+      -- as company_relationships: repeating the same move must be a no-op, not a
+      -- duplicate, and this is also what keeps people.company_id (what every other page
+      -- actually reads) in sync. Non-primary/planned/historical rows keep the raw insert
+      -- (a genuine secondary assignment, or explicitly-not-yet-real intent). Wrapped so a
+      -- bad entry skips just this one assignment, never the whole chat command.
+      begin
+        if v_entry_related_company_id is not null
+           and coalesce((v_assignment->>'state')::assignment_state,'current'::assignment_state) = 'current'::assignment_state
+           and coalesce((v_assignment->>'isPrimary')::boolean, true)
+        then
+          v_new_assignment_id := public.set_person_assignment(
+            v_new_person_id,
+            v_entry_related_company_id,
+            v_entry_company_id,
+            nullif(v_assignment->>'departmentId','')::uuid,
+            nullif(v_assignment->>'jobTitle',''),
+            v_entry_manager_id,
+            coalesce(v_assignment->>'employmentType','full_time'),
+            coalesce(nullif(v_assignment->>'allocationPct','')::numeric, 100),
+            nullif(v_assignment->>'responsibilities',''),
+            true,
+            'current'
+          );
+        else
+          insert into public.person_assignments (
+            person_id, legal_employer_company_id, operating_company_id, department_id,
+            job_title, manager_person_id, employment_type, allocation_pct,
+            start_date, end_date, is_primary, responsibilities, state, created_by_profile_id
+          ) values (
+            v_new_person_id,
+            v_entry_company_id,
+            v_entry_related_company_id,
+            nullif(v_assignment->>'departmentId','')::uuid,
+            nullif(v_assignment->>'jobTitle',''),
+            v_entry_manager_id,
+            coalesce((v_assignment->>'employmentType')::employment_type,'full_time'::employment_type),
+            coalesce(nullif(v_assignment->>'allocationPct','')::numeric, 100),
+            nullif(v_assignment->>'startDate','')::date,
+            nullif(v_assignment->>'endDate','')::date,
+            coalesce((v_assignment->>'isPrimary')::boolean, true),
+            nullif(v_assignment->>'responsibilities',''),
+            coalesce((v_assignment->>'state')::assignment_state,'current'::assignment_state),
+            v_profile_id
+          )
+          returning id into v_new_assignment_id;
+        end if;
+      exception when others then
+        v_new_assignment_id := null;
+      end;
+    end if;
 
+    if v_new_assignment_id is not null then
       v_created_assignments := v_created_assignments || jsonb_build_object('id', v_new_assignment_id);
     end if;
   end loop;
@@ -1353,8 +1418,40 @@ create policy "profiles_insert_admin" on public.profiles for insert with check (
 -- Companies visible if member or admin. Sensitive fields are not in this table.
 drop policy if exists "companies_select_member" on public.companies;
 create policy "companies_select_member" on public.companies for select using (public.has_company_access(id) or public.is_investor_viewer_of(id));
+-- See 202608280013_frictionless_company_delete.sql: RLS matches archive_company/
+-- restore_company's authorization exactly (including the membership-expiry rule for
+-- creators) so there is no surface where direct-write behavior differs from the RPCs.
+-- INSERT is split out separately: "creator has active membership on this company" can
+-- never be satisfied for a brand-new row (nobody can be a member of a company before it
+-- exists), so that clause only applies to UPDATE/DELETE of an existing row - creating a
+-- new top-level company stays founder/admin-only, unchanged from original behavior.
 drop policy if exists "companies_write_admin" on public.companies;
-create policy "companies_write_admin" on public.companies for all using (public.is_founder_or_admin()) with check (public.is_founder_or_admin());
+drop policy if exists "companies_write_scope" on public.companies;
+drop policy if exists "companies_insert_admin" on public.companies;
+drop policy if exists "companies_update_delete_scope" on public.companies;
+create policy "companies_insert_admin" on public.companies for insert with check (public.is_founder_or_admin());
+create policy "companies_update_delete_scope" on public.companies for update using (
+  public.is_founder_or_admin()
+  or public.is_company_manager(id)
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = companies.id and m.profile_id = public.current_profile_id() and m.active = true
+    )
+  )
+) with check (
+  public.is_founder_or_admin()
+  or public.is_company_manager(id)
+  or (
+    created_by_profile_id = public.current_profile_id()
+    and exists (
+      select 1 from public.company_memberships m
+      where m.company_id = companies.id and m.profile_id = public.current_profile_id() and m.active = true
+    )
+  )
+);
+create policy "companies_delete_admin" on public.companies for delete using (public.is_founder_or_admin());
 
 -- Company sensitive: founder/holding_admin only. HR/finance can be granted separately later through a view.
 drop policy if exists "company_sensitive_select_founder" on public.company_sensitive;
@@ -2091,7 +2188,7 @@ create or replace function public.set_company_relationship(
 ) returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_id uuid;
@@ -2116,7 +2213,7 @@ begin
   end if;
 
   insert into public.company_relationships (company_id, related_company_id, relationship_type, ownership_pct, state, created_by_profile_id)
-  values (p_company_id, p_related_company_id, p_relationship_type, p_ownership_pct, p_state::relationship_state, public.current_profile_id())
+  values (p_company_id, p_related_company_id, p_relationship_type, p_ownership_pct, p_state::public.relationship_state, public.current_profile_id())
   on conflict (company_id, related_company_id, relationship_type) where state = 'current' and related_company_id is not null
   do update set ownership_pct = coalesce(excluded.ownership_pct, public.company_relationships.ownership_pct)
   returning id into v_id;
@@ -2137,7 +2234,7 @@ create or replace function public.validate_organization_graph(p_company_id uuid 
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_result jsonb;
@@ -2233,6 +2330,228 @@ end;
 $$;
 
 grant execute on function public.validate_organization_graph(uuid) to authenticated;
+
+-- Master-prompt spec §25-26, §43: batch employee moves must be idempotent, and every
+-- module a person's company shows up in must reflect the current truth. Two real gaps,
+-- same class as KNOWN_FAILURE_MODES.md #19 just in the employee-move capability instead
+-- of company-reclassification: person_assignments had no unique constraint (repeating a
+-- move would insert a duplicate every time), and nothing synced people.company_id (what
+-- the People page and everything else actually reads) when an assignment was created.
+create unique index if not exists person_assignments_current_primary_unique
+  on public.person_assignments (person_id)
+  where state = 'current' and is_primary = true;
+
+create or replace function public.set_person_assignment(
+  p_person_id uuid,
+  p_operating_company_id uuid,
+  p_legal_employer_company_id uuid default null,
+  p_department_id uuid default null,
+  p_job_title text default null,
+  p_manager_person_id uuid default null,
+  p_employment_type text default 'full_time',
+  p_allocation_pct numeric default 100,
+  p_responsibilities text default null,
+  p_is_primary boolean default true,
+  p_state text default 'current'
+) returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  if not (public.is_founder_or_admin() or public.is_company_manager(p_operating_company_id)) then
+    raise exception 'Only the founder, an admin, or a manager of the target company can assign this person';
+  end if;
+  if p_state not in ('current', 'planned', 'historical') then
+    raise exception 'Unknown state %', p_state;
+  end if;
+
+  if p_state = 'current' and p_is_primary then
+    select id into v_id from public.person_assignments
+      where person_id = p_person_id and state = 'current' and is_primary = true
+        and operating_company_id = p_operating_company_id
+      limit 1;
+    if v_id is not null then
+      update public.person_assignments
+        set legal_employer_company_id = coalesce(p_legal_employer_company_id, legal_employer_company_id),
+            department_id = coalesce(p_department_id, department_id),
+            job_title = coalesce(p_job_title, job_title),
+            manager_person_id = coalesce(p_manager_person_id, manager_person_id),
+            employment_type = coalesce(p_employment_type::public.employment_type, employment_type),
+            allocation_pct = coalesce(p_allocation_pct, allocation_pct),
+            responsibilities = coalesce(p_responsibilities, responsibilities),
+            updated_at = now()
+        where id = v_id;
+      update public.people set company_id = p_operating_company_id, updated_at = now() where id = p_person_id;
+      return v_id;
+    end if;
+
+    update public.person_assignments
+      set state = 'historical', end_date = coalesce(end_date, current_date), updated_at = now()
+      where person_id = p_person_id and state = 'current' and is_primary = true;
+  end if;
+
+  insert into public.person_assignments (
+    person_id, operating_company_id, legal_employer_company_id, department_id,
+    job_title, manager_person_id, employment_type, allocation_pct, responsibilities,
+    is_primary, state, created_by_profile_id
+  ) values (
+    p_person_id, p_operating_company_id, p_legal_employer_company_id, p_department_id,
+    p_job_title, p_manager_person_id, coalesce(p_employment_type, 'full_time')::public.employment_type,
+    p_allocation_pct, p_responsibilities, p_is_primary, p_state::public.assignment_state, public.current_profile_id()
+  )
+  returning id into v_id;
+
+  if p_state = 'current' and p_is_primary then
+    update public.people set company_id = p_operating_company_id, updated_at = now() where id = p_person_id;
+  end if;
+
+  return v_id;
+end;
+$$;
+
+grant execute on function public.set_person_assignment(uuid, uuid, uuid, uuid, text, uuid, text, numeric, text, boolean, text) to authenticated;
+
+-- See 202608280013_frictionless_company_delete.sql for the full incident: the founder
+-- asked Brain AI to delete a company, it claimed success with zero mechanism, then the
+-- real Delete button hit a raw dependency-blocking error. Fix: "delete" = archive
+-- (nothing destroyed/reassigned, so no dependency check needed - that's what makes it
+-- fast and unconditional for an authorized actor). One shared RPC is the ONLY path for
+-- chat and the UI, enforced by the companies_lifecycle_guard trigger below, not
+-- developer convention.
+create or replace function public.archive_company(p_company_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status text;
+  v_is_creator_with_membership boolean;
+  v_authorized boolean;
+begin
+  select status into v_previous_status from public.companies where id = p_company_id;
+  if v_previous_status is null then
+    return jsonb_build_object('operation','company.archive','companyId',p_company_id,
+      'previousStatus',null,'newStatus',null,'changed',false,'authorized',false,
+      'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_with_membership := exists (
+    select 1 from public.companies c
+    join public.company_memberships m on m.company_id = c.id
+      and m.profile_id = public.current_profile_id() and m.active = true
+    where c.id = p_company_id and c.created_by_profile_id = public.current_profile_id()
+  );
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(p_company_id)
+    or v_is_creator_with_membership;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','company.archive','companyId',p_company_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_previous_status = 'archived' then
+    return jsonb_build_object('operation','company.archive','companyId',p_company_id,
+      'previousStatus','archived','newStatus','archived','changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_archived');
+  end if;
+
+  perform set_config('app.company_lifecycle_rpc', 'true', true);
+  update public.companies set status = 'archived', updated_at = now() where id = p_company_id;
+  perform set_config('app.company_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','company.archive','companyId',p_company_id,
+    'previousStatus',v_previous_status,'newStatus','archived','changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = 'archived' from public.companies where id = p_company_id),
+    'reason','archived');
+end;
+$$;
+
+create or replace function public.restore_company(p_company_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_previous_status text;
+  v_is_creator_with_membership boolean;
+  v_authorized boolean;
+begin
+  select status into v_previous_status from public.companies where id = p_company_id;
+  if v_previous_status is null then
+    return jsonb_build_object('operation','company.restore','companyId',p_company_id,
+      'previousStatus',null,'newStatus',null,'changed',false,'authorized',false,
+      'postconditionPassed',false,'reason','not_found');
+  end if;
+
+  v_is_creator_with_membership := exists (
+    select 1 from public.companies c
+    join public.company_memberships m on m.company_id = c.id
+      and m.profile_id = public.current_profile_id() and m.active = true
+    where c.id = p_company_id and c.created_by_profile_id = public.current_profile_id()
+  );
+  v_authorized := public.is_founder_or_admin()
+    or public.is_company_manager(p_company_id)
+    or v_is_creator_with_membership;
+
+  if not v_authorized then
+    return jsonb_build_object('operation','company.restore','companyId',p_company_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',false,'postconditionPassed',false,'reason','denied');
+  end if;
+
+  if v_previous_status <> 'archived' then
+    return jsonb_build_object('operation','company.restore','companyId',p_company_id,
+      'previousStatus',v_previous_status,'newStatus',v_previous_status,'changed',false,
+      'authorized',true,'postconditionPassed',true,'reason','already_active');
+  end if;
+
+  perform set_config('app.company_lifecycle_rpc', 'true', true);
+  update public.companies set status = 'active', updated_at = now() where id = p_company_id;
+  perform set_config('app.company_lifecycle_rpc', 'false', true);
+
+  return jsonb_build_object('operation','company.restore','companyId',p_company_id,
+    'previousStatus','archived','newStatus','active','changed',true,
+    'authorized',true,
+    'postconditionPassed',(select status = 'active' from public.companies where id = p_company_id),
+    'reason','restored');
+end;
+$$;
+
+revoke all on function public.archive_company(uuid) from public, anon;
+revoke all on function public.restore_company(uuid) from public, anon;
+grant execute on function public.archive_company(uuid) to authenticated;
+grant execute on function public.restore_company(uuid) to authenticated;
+
+create or replace function public.enforce_company_lifecycle_via_rpc()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (new.status = 'archived' and old.status is distinct from 'archived')
+     or (old.status = 'archived' and new.status is distinct from 'archived')
+  then
+    if coalesce(current_setting('app.company_lifecycle_rpc', true), 'false') <> 'true' then
+      raise exception 'Company archive/restore must go through archive_company()/restore_company() - direct status writes into or out of archived are blocked';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists companies_lifecycle_guard on public.companies;
+create trigger companies_lifecycle_guard
+  before update on public.companies
+  for each row execute function public.enforce_company_lifecycle_via_rpc();
 
 alter table public.person_assignments enable row level security;
 drop policy if exists "person_assignments_select_scope" on public.person_assignments;

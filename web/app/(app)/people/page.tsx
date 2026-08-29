@@ -1,13 +1,13 @@
 import { Users } from "lucide-react";
 import { getPeople } from "@/lib/data/people";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
 import { PersonCreateForm } from "./person-create-form";
 import { PeopleTable } from "./people-table";
 import { KnowledgePackButton } from "./knowledge-pack-button";
 
 export default async function PeoplePage() {
-  const [people, companies] = await Promise.all([getPeople(), getCompanies()]);
+  const [people, companies] = await Promise.all([getPeople(), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">

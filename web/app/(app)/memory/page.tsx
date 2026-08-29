@@ -1,6 +1,6 @@
 import { BrainCircuit } from "lucide-react";
 import { getMemories } from "@/lib/data/memory";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -21,7 +21,7 @@ const SENSITIVITY_VARIANT: Record<string, "default" | "secondary" | "destructive
 };
 
 export default async function MemoryPage() {
-  const [memories, companies] = await Promise.all([getMemories(), getCompanies()]);
+  const [memories, companies] = await Promise.all([getMemories(), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">

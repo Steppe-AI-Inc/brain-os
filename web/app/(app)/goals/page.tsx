@@ -1,6 +1,6 @@
 import { Target } from "lucide-react";
 import { getGoals } from "@/lib/data/goals";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getDepartments } from "@/lib/data/departments";
 import { PageHeader } from "@/components/page-header";
 import { GoalComposer } from "./goal-composer";
@@ -9,7 +9,7 @@ import { GoalList } from "./goal-list";
 export default async function GoalsPage() {
   const [goals, companies, departments] = await Promise.all([
     getGoals(),
-    getCompanies(),
+    getCompaniesForSelection(),
     getDepartments(),
   ]);
 

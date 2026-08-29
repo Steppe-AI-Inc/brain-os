@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
-import { updateCompany, deleteCompany, type CompanyInput } from "@/lib/data/companies";
+import { updateCompany, archiveCompany, type CompanyInput } from "@/lib/data/companies";
 
 type CompanyRow = {
   id: string;
@@ -86,7 +86,9 @@ export function CompaniesTable({ companies }: { companies: CompanyRow[] }) {
                     itemLabel="company"
                     className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                     onEdit={() => openEdit(c)}
-                    onDelete={() => deleteCompany(c.id)}
+                    onDelete={() => archiveCompany(c.id)}
+                    deletingLabel="Archiving…"
+                    deleteDescription="The company is archived, not destroyed — nothing attached to it (tasks, projects, documents, org relationships) is touched, and you can restore it from Companies → Archived at any time."
                   />
                 </TableCell>
               </TableRow>

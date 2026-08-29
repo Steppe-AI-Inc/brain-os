@@ -1,12 +1,12 @@
 import { Landmark } from "lucide-react";
 import { getDepartments } from "@/lib/data/departments";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
 import { DepartmentCreateForm } from "./department-create-form";
 import { DepartmentsTable } from "./departments-table";
 
 export default async function DepartmentsPage() {
-  const [departments, companies] = await Promise.all([getDepartments(), getCompanies()]);
+  const [departments, companies] = await Promise.all([getDepartments(), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">

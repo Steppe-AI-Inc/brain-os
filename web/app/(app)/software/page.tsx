@@ -1,6 +1,6 @@
 import { Code2 } from "lucide-react";
 import { getProductSpecs, getSoftwareTickets } from "@/lib/data/software";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -11,7 +11,7 @@ export default async function SoftwarePage() {
   const [specs, tickets, companies] = await Promise.all([
     getProductSpecs(),
     getSoftwareTickets(),
-    getCompanies(),
+    getCompaniesForSelection(),
   ]);
 
   return (

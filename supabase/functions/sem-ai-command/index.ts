@@ -236,13 +236,33 @@ Rules:
   only flag an approval if the request also involves something from the high-risk list
   above, e.g. a change of legal ownership or control.
 - A direct, unambiguous instruction to change an EXISTING company's own record (rename it,
-  correct its country, update its legal entity name, change its status) is an
-  updateCompanies call, not a task. Use the real "id" from context.companies — never a
-  name-based guess. Do not decompose this into steps ("find company", "rename company",
-  "verify company") as separate tasks; the update either succeeds now (you'll see the real
-  result in this same turn) or it doesn't, and a task describing work that isn't actually
-  going to happen is worse than no task. Only fall back to a task when the company genuinely
-  isn't in context.companies and can't be resolved.
+  correct its country, update its legal entity name) is an updateCompanies call, not a
+  task. Use the real "id" from context.companies — never a name-based guess. Do not
+  decompose this into steps ("find company", "rename company", "verify company") as
+  separate tasks; the update either succeeds now (you'll see the real result in this same
+  turn) or it doesn't, and a task describing work that isn't actually going to happen is
+  worse than no task. Only fall back to a task when the company genuinely isn't in
+  context.companies and can't be resolved. updateCompanies.status may be set to any
+  ordinary business status ("active"/"planning"/"paused"/"closed") but never "archived" —
+  the database rejects that transition outright if it isn't set through the dedicated
+  action below, so never put "archived" in updateCompanies.status.
+- "Delete [company]" / "archive [company]" / "remove [company]" — put its real "id" from
+  context.companies into archiveCompanyIds. This is the ONLY way a company is ever
+  actually deleted; there is no separate hard-delete path from chat. It executes
+  immediately (not a task, not an approval) and is safe to reverse — nothing referencing
+  the company (its tasks, projects, documents, org relationships, memories) is touched or
+  destroyed, the company just stops appearing as an active company until restored.
+  "Restore [company]" / "un-delete [company]" / "bring back [company]" works the same way
+  via restoreCompanyIds, and can target a company that is only resolvable from
+  context.memories or conversation history (an archived company is not necessarily still
+  in context.companies, since that list is the active-company view) — resolve it by name
+  from whatever context you have rather than refusing. Never invent or guess an id for
+  either field. The real outcome (archived / restored / denied / already in that state /
+  not found) is reported back to you after this call actually runs and REPLACES whatever
+  you say here — do not independently declare a company deleted or restored in your own
+  words; only archiveCompanyIds/restoreCompanyIds actually attempting the action makes it
+  real. If you cannot resolve which company the user means, say so and ask — do not put
+  anything in these arrays and do not claim an action happened.
 - You may create real projects and goals the same way — check context.projects /
   context.goals first, never duplicate. Every project and goal requires a company: use a
   real companyId from context.companies, or companyIndex into this response's own
@@ -387,6 +407,8 @@ Output schema:
   "updateCompanies": [
     {"id": string, "name": string|null, "country": string|null, "legalEntityName": string|null, "status": string|null, "organizationType": "legal_entity"|"holding_company"|"subsidiary"|"business_unit"|"brand"|"department"|"country_operation"|null}
   ],
+  "archiveCompanyIds": [string],
+  "restoreCompanyIds": [string],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
   ],
@@ -1251,6 +1273,25 @@ serve(async (req) => {
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
         const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+        // context.companies has no status filter (archived companies must stay resolvable
+        // for "restore X" / historical questions), so new-work creation against an
+        // archived company has to be blocked here explicitly rather than by omission from
+        // context — see archiveCompanyIds/restoreCompanyIds handling below.
+        const archivedCompanyIds = new Set((contextPack?.companies || []).filter((c: any) => c.status === 'archived').map((c: any) => c.id));
+        let archivedCompanyBlockedCount = 0;
+        // Drops any create whose resolved companyId targets an archived company
+        // (companyIndex is untouched — it always points at a company created this same
+        // turn, which is never archived) and counts it for the fact-line below, instead of
+        // silently letting it through with a null company or silently succeeding against a
+        // company the founder just deleted.
+        const dropArchivedCompanyTarget = <T extends { companyId: string | null; companyIndex: number | null }>(items: T[]): T[] =>
+          items.filter((item) => {
+            if (item.companyId && archivedCompanyIds.has(item.companyId)) {
+              archivedCompanyBlockedCount++;
+              return false;
+            }
+            return true;
+          });
         const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
         const VALID_ORGANIZATION_TYPES = new Set(['legal_entity', 'holding_company', 'subsidiary', 'business_unit', 'brand', 'department', 'country_operation']);
         const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
@@ -1287,12 +1328,66 @@ serve(async (req) => {
           if (c.name) patch.name = c.name;
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
-          if (c.status) patch.status = c.status;
+          // 'archived' is dropped here rather than sent through, matching the prompt
+          // guidance above — the DB trigger would reject the whole update (all fields,
+          // not just status) if a client-issued UPDATE tried to transition into/out of
+          // 'archived' outside archive_company()/restore_company(), so letting it through
+          // would silently fail a rename/etc. bundled in the same call.
+          if (c.status && c.status !== 'archived') patch.status = c.status;
           if (c.organizationType) patch.organization_type = c.organizationType;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
           if (data && data.length > 0) updatedCompanyCount++;
         }
+
+        // Archive/restore: the ONLY real deletion mechanism for a company (there is no
+        // separate hard-delete path from chat) — archive_company/restore_company are the
+        // same shared RPC the UI's Delete/Restore buttons call, DB-trigger-enforced as the
+        // sole path in/out of 'archived' (see 202608280013_frictionless_company_delete.sql).
+        // Never invented: only ids present in context.companies are honored (that list
+        // carries no status filter, so archived companies are already resolvable there for
+        // restore too).
+        const requestedArchiveIds = Array.isArray(result.archiveCompanyIds) ? result.archiveCompanyIds as unknown[] : [];
+        const archiveCompanyIds = [...new Set(requestedArchiveIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
+        const requestedRestoreIds = Array.isArray(result.restoreCompanyIds) ? result.restoreCompanyIds as unknown[] : [];
+        const restoreCompanyIds = [...new Set(requestedRestoreIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
+        const companyNameById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name]));
+        const archiveRestoreLines: string[] = [];
+        const reasonText: Record<string, string> = {
+          archived: 'archived', restored: 'restored',
+          already_archived: 'was already archived', already_active: 'was already active',
+          denied: 'you do not have permission to archive/restore this company',
+          not_found: 'could not be found',
+        };
+        for (const id of archiveCompanyIds) {
+          const { data, error } = await supabase.rpc('archive_company', { p_company_id: id });
+          const name = companyNameById.get(id) || id;
+          if (error || !data) { archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        for (const id of restoreCompanyIds) {
+          const { data, error } = await supabase.rpc('restore_company', { p_company_id: id });
+          const name = companyNameById.get(id) || id;
+          if (error || !data) { archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
+          const r = data as Record<string, unknown>;
+          archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
+        }
+        // Same reasoning as organizationGraphCheck below: when a real archive/restore was
+        // attempted, the real outcome is the entire point of the turn and fully replaces
+        // the model's own prose rather than being prepended to it — live-tested elsewhere
+        // in this file, prepending still let the model's own text contradict a correct
+        // result.
+        const archiveRestoreReport = archiveRestoreLines.length > 0 ? archiveRestoreLines.join(' ') : null;
+
+        // The original reported defect: the model narrating "Company deleted
+        // successfully" with zero actual mechanism behind it. This is the one case the
+        // grounding above can't catch by construction — nothing was attempted, so there is
+        // no RPC result to ground against. Scoped narrowly to delete/archive-claiming
+        // language specifically (not a generic claim-detector) since that is the exact
+        // defect being closed.
+        const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
 
         // Organization graph audit — real database query, not a guess. Runs immediately
         // (like company updates above) since it's read-only and doesn't belong in the
@@ -1363,6 +1458,7 @@ serve(async (req) => {
             deadline: typeof p.deadline === 'string' ? p.deadline : null,
             blockers: typeof p.blockers === 'string' ? p.blockers : null,
           }));
+        const createProjectsFiltered = dropArchivedCompanyTarget(createProjects);
 
         const requestedGoals = Array.isArray(result.createGoals) ? result.createGoals as unknown[] : [];
         const createGoals = requestedGoals
@@ -1376,6 +1472,7 @@ serve(async (req) => {
             status: typeof g.status === 'string' ? g.status : null,
             dueAt: typeof g.dueAt === 'string' ? g.dueAt : null,
           }));
+        const createGoalsFiltered = dropArchivedCompanyTarget(createGoals);
 
         // Departments/leads/documents: same low-risk, immediate-execution treatment as
         // companies/people/projects/goals above — not on the high-risk list, so no
@@ -1398,6 +1495,7 @@ serve(async (req) => {
             companyId: typeof d.companyId === 'string' && contextCompanyIds.has(d.companyId) ? d.companyId : null,
             companyIndex: typeof d.companyIndex === 'number' ? d.companyIndex : null,
           }));
+        const createDepartmentsReqFiltered = dropArchivedCompanyTarget(createDepartmentsReq);
         const requestedDepartmentUpdates = Array.isArray(result.updateDepartments) ? result.updateDepartments as unknown[] : [];
         const updateDepartmentsReq = requestedDepartmentUpdates
           .filter((d): d is Record<string, unknown> => !!d && typeof d === 'object' && typeof (d as any).id === 'string' && contextDepartmentIds.has((d as any).id))
@@ -1420,6 +1518,7 @@ serve(async (req) => {
             stage: typeof l.stage === 'string' ? l.stage : null,
             valueEstimate: typeof l.valueEstimate === 'number' ? l.valueEstimate : null,
           }));
+        const createLeadsReqFiltered = dropArchivedCompanyTarget(createLeadsReq);
         const requestedLeadUpdates = Array.isArray(result.updateLeads) ? result.updateLeads as unknown[] : [];
         const updateLeadsReq = requestedLeadUpdates
           .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object' && typeof (l as any).id === 'string' && contextLeadIds.has((l as any).id))
@@ -1616,6 +1715,18 @@ serve(async (req) => {
             responsibilities: typeof a.responsibilities === 'string' ? a.responsibilities : null,
             state: typeof a.state === 'string' && VALID_ASSIGNMENT_STATES.has(a.state) ? a.state : 'current',
           }));
+        // operatingCompanyId is "where this person actually works" - assigning someone to
+        // an archived company is new-work creation against a deleted company, same class
+        // as createProjects/createGoals above. legalEmployerCompanyId is left unfiltered:
+        // it can legitimately be a dormant legal entity kept for payroll/compliance
+        // history, not necessarily where the work happens.
+        const createPersonAssignmentsFiltered = createPersonAssignments.filter((a) => {
+          if (a.operatingCompanyId && archivedCompanyIds.has(a.operatingCompanyId)) {
+            archivedCompanyBlockedCount++;
+            return false;
+          }
+          return true;
+        });
 
         // Memory candidates: cap at 8 (one embeddings call, bounded cost/latency),
         // require a real fact string, default entityType/entityId to this
@@ -1766,10 +1877,10 @@ serve(async (req) => {
           p_deleted_task_ids: deleteTaskIds,
           p_companies: createCompanies,
           p_people: createPeople,
-          p_projects: createProjects,
-          p_goals: createGoals,
+          p_projects: createProjectsFiltered,
+          p_goals: createGoalsFiltered,
           p_company_relationships: createCompanyRelationships,
-          p_person_assignments: createPersonAssignments,
+          p_person_assignments: createPersonAssignmentsFiltered,
           p_work_order_id: workOrderId,
           p_memory_candidates: createMemoryCandidates
         });
@@ -1803,7 +1914,7 @@ serve(async (req) => {
           companyId || (typeof companyIndex === 'number' ? (createdCompanies[companyIndex]?.id ?? null) : null);
 
         const createdDepartments: { id: string }[] = [];
-        for (const d of createDepartmentsReq) {
+        for (const d of createDepartmentsReqFiltered) {
           const companyId = resolveCompanyId(d.companyId, d.companyIndex);
           if (!companyId) continue;
           const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -1828,12 +1939,12 @@ serve(async (req) => {
         // for the manual path. Only resolved if createLeadsReq is non-empty (skip the
         // query entirely on requests that don't need it).
         let callerPersonId: string | null = null;
-        if (createLeadsReq.length > 0) {
+        if (createLeadsReqFiltered.length > 0) {
           const { data: callerPerson } = await supabase.from('people').select('id').eq('profile_id', profile.id).maybeSingle();
           callerPersonId = callerPerson?.id ?? null;
         }
         const createdLeads: { id: string }[] = [];
-        for (const l of createLeadsReq) {
+        for (const l of createLeadsReqFiltered) {
           const companyId = resolveCompanyId(l.companyId, l.companyIndex);
           if (!companyId) continue;
           const { data, error } = await supabase.from('sales_leads').insert({
@@ -2028,8 +2139,24 @@ serve(async (req) => {
         // quiet — this is a gap notice, not a routine status line.
         if (requestedProjects.length > createdProjects.length) factLines.push(`${requestedProjects.length - createdProjects.length} of ${requestedProjects.length} requested project(s) could not be created — missing a valid company reference.`);
         if (requestedGoals.length > createdGoals.length) factLines.push(`${requestedGoals.length - createdGoals.length} of ${requestedGoals.length} requested goal(s) could not be created — missing a valid company reference.`);
-        if (requestedRelationships.length > createdCompanyRelationships.length) factLines.push(`${requestedRelationships.length - createdCompanyRelationships.length} of ${requestedRelationships.length} requested company relationship(s) could not be created — missing a valid company reference or invalid owner/related-company combination.`);
-        if (requestedAssignments.length > createdPersonAssignments.length) factLines.push(`${requestedAssignments.length - createdPersonAssignments.length} of ${requestedAssignments.length} requested person assignment(s) could not be created — missing a valid person reference.`);
+        if (archivedCompanyBlockedCount > 0) factLines.push(`${archivedCompanyBlockedCount} item(s) were not created because the target company is archived — restore it first.`);
+
+        // Master-prompt spec §42: a batch (>1 item) request gets a structured
+        // requested/succeeded/failed contract every time, not only when something went
+        // wrong — "Requested: 8. Succeeded: 8. Failed: 0." is itself the confirmation a
+        // founder needs for a multi-item command, not just a gap notice. A single-item
+        // request keeps the quieter gap-only style (unchanged from before) so the common
+        // case doesn't get noisier.
+        function batchLine(noun: string, requested: number, succeeded: number, failReason: string): void {
+          if (requested === 0) return;
+          if (requested === 1) {
+            if (succeeded < requested) factLines.push(`${requested - succeeded} of ${requested} requested ${noun} could not be created — ${failReason}.`);
+            return;
+          }
+          factLines.push(`${noun[0].toUpperCase()}${noun.slice(1)} batch — Requested: ${requested}. Succeeded: ${succeeded}. Failed: ${requested - succeeded}.`);
+        }
+        batchLine('company relationship(s)', requestedRelationships.length, createdCompanyRelationships.length, 'missing a valid company reference or invalid owner/related-company combination');
+        batchLine('person assignment(s)', requestedAssignments.length, createdPersonAssignments.length, 'missing a valid person reference');
         if (createDepartmentsReq.length > createdDepartments.length) factLines.push(`${createDepartmentsReq.length - createdDepartments.length} of ${createDepartmentsReq.length} requested department(s) could not be created — missing a valid company reference.`);
         if (updateDepartmentsReq.length > updatedDepartmentCount) factLines.push(`${updateDepartmentsReq.length - updatedDepartmentCount} of ${updateDepartmentsReq.length} requested department update(s) did not apply — no matching department or no access.`);
         if (createLeadsReq.length > createdLeads.length) factLines.push(`${createLeadsReq.length - createdLeads.length} of ${createLeadsReq.length} requested lead(s) could not be created — missing a valid company reference.`);
@@ -2050,7 +2177,7 @@ serve(async (req) => {
         if (createProposalsReq.length > createdProposals.length) factLines.push(`${createProposalsReq.length - createdProposals.length} of ${createProposalsReq.length} requested proposal(s) could not be created — missing a valid company reference.`);
         if (updateProposalsReq.length > updatedProposalCount) factLines.push(`${updateProposalsReq.length - updatedProposalCount} of ${updateProposalsReq.length} requested proposal update(s) did not apply — no matching proposal or no access.`);
         if (deleteProposalIds.length > 0) factLines.push(`Deleted ${deletedProposalCount} of ${deleteProposalIds.length} requested proposal(s).`);
-        if (updateCompaniesReq.length > updatedCompanyCount) factLines.push(`${updateCompaniesReq.length - updatedCompanyCount} of ${updateCompaniesReq.length} requested company update(s) did not apply — no matching company or no access.`);
+        batchLine('company update(s)', updateCompaniesReq.length, updatedCompanyCount, 'no matching company or no access');
 
         if (factLines.length > 0) {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
@@ -2068,7 +2195,31 @@ serve(async (req) => {
           result.summary = organizationGraphCheck.report;
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        // Same full-replacement treatment as the organization graph check above, for the
+        // exact defect this migration exists to close: a real archive/restore attempt's
+        // outcome is not negotiable prose, it is what actually happened in the database.
+        if (archiveRestoreReport) {
+          result.summary = archiveRestoreReport;
+        } else if (claimsCompanyDeleted) {
+          result.summary = 'No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.';
+        }
+
+        // Real, systemic gap found live: work_orders.output was written once, as
+        // p_output, INSIDE the sem_execute_ai_command call above — necessarily before
+        // any of the factLines/organizationGraphCheck grounding logic runs, since that
+        // logic depends on the RPC's own return values (createdCompanyRelationships etc).
+        // That means every fact-line this session has ever built — deletion counts,
+        // "N of M could not be created" gap notices, the organization graph check
+        // override — was visible only in the live SSE stream and reverted to the raw,
+        // ungrounded model text on any page reload or channel revisit (confirmed live:
+        // getChatHistory in web/lib/data/chat-history.ts reads work_orders.output
+        // directly). Persisting the corrected summary here is what makes every one of
+        // those fixes actually durable instead of a one-time-per-request illusion.
+        if (factLines.length > 0 || organizationGraphCheck || archiveRestoreReport || claimsCompanyDeleted) {
+          await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
+        }
+
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {

@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react";
 import { getDocuments } from "@/lib/data/documents";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getDepartments } from "@/lib/data/departments";
 import { getProjects } from "@/lib/data/projects";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +13,7 @@ export const maxDuration = 30;
 export default async function DocumentsPage() {
   const [documents, companies, departments, projects] = await Promise.all([
     getDocuments(),
-    getCompanies(),
+    getCompaniesForSelection(),
     getDepartments(),
     getProjects(),
   ]);

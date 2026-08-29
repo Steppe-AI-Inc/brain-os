@@ -1,7 +1,7 @@
 import { Wallet } from "lucide-react";
 import { getBillingOverview, getAiEconomicsSummary, getPricingSettings } from "@/lib/data/billing";
 import { getCurrentProfile } from "@/lib/data/profile";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { DepositForm } from "./deposit-form";
@@ -19,7 +19,7 @@ export default async function BillingPage() {
     getBillingOverview(),
     getAiEconomicsSummary(),
     getPricingSettings(),
-    getCompanies(),
+    getCompaniesForSelection(),
     getCurrentProfile(),
   ]);
   const canManage = profile?.role === "founder" || profile?.role === "holding_admin" || profile?.role === "hr_finance";

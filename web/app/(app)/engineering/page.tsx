@@ -1,6 +1,6 @@
 import { Ruler } from "lucide-react";
 import { getEngineeringDrawings } from "@/lib/data/engineering";
-import { getCompanies } from "@/lib/data/companies";
+import { getCompaniesForSelection } from "@/lib/data/companies";
 import { PageHeader } from "@/components/page-header";
 import { DrawingGeneratorForm } from "./drawing-generator-form";
 import { DrawingList } from "./drawing-list";
@@ -13,7 +13,7 @@ import { DrawingList } from "./drawing-list";
 export const maxDuration = 120;
 
 export default async function EngineeringPage() {
-  const [drawings, companies] = await Promise.all([getEngineeringDrawings(), getCompanies()]);
+  const [drawings, companies] = await Promise.all([getEngineeringDrawings(), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">

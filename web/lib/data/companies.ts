@@ -3,12 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+// Three distinct filtering concepts, one canonical function each — not a single blanket
+// status check. See supabase/migrations/202608280013_frictionless_company_delete.sql.
 export async function getCompanies() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
     .select("id, name, country, legal_entity_name, status, organization_type, strategic_priority, risk_score")
+    .neq("status", "archived")
     .order("strategic_priority", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// Stricter than getCompanies() — for any "attach new work to a company" dropdown
+// (task/project/document/lead creation). closed and archived are both excluded: neither
+// is a company you'd assign new work to.
+export async function getCompaniesForSelection() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("id, name, status")
+    .in("status", ["active", "planning", "paused"])
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function getArchivedCompanies() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .select("id, name, country, legal_entity_name, status, organization_type, updated_at")
+    .eq("status", "archived")
+    .order("updated_at", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -61,6 +89,12 @@ export type CompanyInput = {
 // rather than erroring. Same defect class as qa/KNOWN_FAILURE_MODES.md #17/#18.
 export async function updateCompany(id: string, input: CompanyInput) {
   if (!input.name.trim()) return "Company name is required.";
+  // 'archived' is never a settable value here — archiving/restoring goes through
+  // archiveCompany()/restoreCompany() below, the only path the DB trigger allows into or
+  // out of that status. Silently drop it to the pre-existing status rather than send an
+  // update the trigger would reject outright (which would also block name/country in the
+  // same call).
+  const status = input.status && input.status !== "archived" ? input.status : "active";
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
@@ -68,13 +102,42 @@ export async function updateCompany(id: string, input: CompanyInput) {
       name: input.name.trim(),
       country: input.country.trim() || null,
       legal_entity_name: input.legalEntityName.trim() || null,
-      status: input.status || "active",
+      status,
       organization_type: input.organizationType || "legal_entity",
     })
     .eq("id", id)
     .select("id");
   if (error) return error.message;
   if (!data || data.length === 0) return "Nothing changed — this company may no longer exist or you may not have access to it.";
+  revalidatePath("/companies");
+  return null;
+}
+
+// The only real deletion mechanism from the UI (matches AI chat exactly — both call this
+// same RPC, DB-trigger-enforced as the sole path into/out of 'archived'). Fast by design:
+// archiving doesn't destroy or reassign anything, so there is nothing to check first.
+export async function archiveCompany(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid company id.";
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("archive_company", { p_company_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Archive failed — no result returned.";
+  if (result.reason === "not_found") return "This company no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to archive this company.";
+  revalidatePath("/companies");
+  return null;
+}
+
+export async function restoreCompany(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid company id.";
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("restore_company", { p_company_id: id });
+  if (error) return error.message;
+  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
+  if (!result) return "Restore failed — no result returned.";
+  if (result.reason === "not_found") return "This company no longer exists.";
+  if (result.reason === "denied") return "You do not have permission to restore this company.";
   revalidatePath("/companies");
   return null;
 }
@@ -106,9 +169,27 @@ const ORPHAN_WARN_TABLES = [
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function deleteCompany(id: string) {
+// A genuinely separate, rare operation from archiveCompany() above — actually destroys
+// cascade-dependent data (see CASCADE_DEPENDENCY_TABLES), not the ordinary Delete button.
+// Founder/admin-gated in the action itself (RLS on companies already blocks this for
+// everyone else via companies_delete_admin, but that alone would only produce a generic
+// RLS error rather than this dependency-aware explanation, and the gate belongs at the
+// action boundary regardless of what RLS separately enforces).
+export async function permanentlyDeleteCompany(id: string) {
   if (!UUID_RE.test(id)) return "Invalid company id.";
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "Not signed in.";
+  const { data: actingProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (!actingProfile || !["founder", "holding_admin"].includes(actingProfile.role)) {
+    return "Only the founder or an admin can permanently delete a company.";
+  }
 
   const dependents: string[] = [];
   for (const { table, label } of CASCADE_DEPENDENCY_TABLES) {
@@ -124,7 +205,7 @@ export async function deleteCompany(id: string) {
     .or(`company_id.eq.${id},related_company_id.eq.${id}`);
   if (relCount && relCount > 0) dependents.push(`${relCount} organization relationship(s) (ownership/business-unit links)`);
   if (dependents.length > 0) {
-    return `Can't delete — this would also permanently delete: ${dependents.join(", ")}. Archive the company instead (set status to "closed"), or reassign these records first.`;
+    return `Can't permanently delete — this would also permanently delete: ${dependents.join(", ")}. Use the ordinary Delete action instead (archives the company without destroying anything), or reassign these records first.`;
   }
   const orphaned: string[] = [];
   for (const { table, label } of ORPHAN_WARN_TABLES) {
@@ -132,7 +213,7 @@ export async function deleteCompany(id: string) {
     if (count && count > 0) orphaned.push(`${count} ${label}`);
   }
   if (orphaned.length > 0) {
-    return `Can't delete — ${orphaned.join(" and ")}. Reassign them to another company first, or archive this company instead of deleting it.`;
+    return `Can't permanently delete — ${orphaned.join(" and ")}. Reassign them to another company first, or use the ordinary Delete action instead.`;
   }
 
   const { data, error } = await supabase.from("companies").delete().eq("id", id).select("id");

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -600,6 +600,7 @@ export type Database = {
           aliases: string[]
           country: string | null
           created_at: string
+          created_by_profile_id: string | null
           description: string | null
           id: string
           is_seed_data: boolean | null
@@ -615,6 +616,7 @@ export type Database = {
           aliases?: string[]
           country?: string | null
           created_at?: string
+          created_by_profile_id?: string | null
           description?: string | null
           id?: string
           is_seed_data?: boolean | null
@@ -630,6 +632,7 @@ export type Database = {
           aliases?: string[]
           country?: string | null
           created_at?: string
+          created_by_profile_id?: string | null
           description?: string | null
           id?: string
           is_seed_data?: boolean | null
@@ -641,7 +644,15 @@ export type Database = {
           strategic_priority?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_memberships: {
         Row: {
@@ -2958,6 +2969,7 @@ export type Database = {
       }
     }
     Functions: {
+      archive_company: { Args: { p_company_id: string }; Returns: Json }
       can_manage_board_item: {
         Args: { p_board_id: string; p_task_id: string }
         Returns: boolean
@@ -3015,6 +3027,7 @@ export type Database = {
       is_company_manager: { Args: { cid: string }; Returns: boolean }
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_hr_finance: { Args: never; Returns: boolean }
+      is_investor_viewer_of: { Args: { cid: string }; Returns: boolean }
       mark_work_order_failed: {
         Args: { p_error: string; p_work_order_id: string }
         Returns: undefined
@@ -3049,20 +3062,7 @@ export type Database = {
         }
         Returns: string
       }
-      set_company_relationship: {
-        Args: {
-          p_company_id: string
-          p_ownership_pct?: number
-          p_related_company_id: string
-          p_relationship_type: Database["public"]["Enums"]["company_relationship_type"]
-          p_state?: string
-        }
-        Returns: string
-      }
-      validate_organization_graph: {
-        Args: { p_company_id?: string }
-        Returns: Json
-      }
+      restore_company: { Args: { p_company_id: string }; Returns: Json }
       search_artifacts: {
         Args: { p_company_id?: string; p_limit?: number; p_query: string }
         Returns: {
@@ -3113,7 +3113,37 @@ export type Database = {
         Args: { p_channel_id: string; p_company_id: string }
         Returns: undefined
       }
+      set_company_relationship: {
+        Args: {
+          p_company_id: string
+          p_ownership_pct?: number
+          p_related_company_id: string
+          p_relationship_type: Database["public"]["Enums"]["company_relationship_type"]
+          p_state?: string
+        }
+        Returns: string
+      }
+      set_person_assignment: {
+        Args: {
+          p_allocation_pct?: number
+          p_department_id?: string
+          p_employment_type?: string
+          p_is_primary?: boolean
+          p_job_title?: string
+          p_legal_employer_company_id?: string
+          p_manager_person_id?: string
+          p_operating_company_id: string
+          p_person_id: string
+          p_responsibilities?: string
+          p_state?: string
+        }
+        Returns: string
+      }
       try_uuid: { Args: { t: string }; Returns: string }
+      validate_organization_graph: {
+        Args: { p_company_id?: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
@@ -3140,7 +3170,13 @@ export type Database = {
         | "changes_requested"
         | "cancelled"
       assignment_state: "current" | "planned" | "historical"
-      company_relationship_type: "parent_of" | "owned_by_percentage" | "business_unit_of" | "brand_of" | "subsidiary_of" | "department_of"
+      company_relationship_type:
+        | "parent_of"
+        | "owned_by_percentage"
+        | "business_unit_of"
+        | "brand_of"
+        | "subsidiary_of"
+        | "department_of"
       employment_type: "full_time" | "part_time" | "contractor" | "advisor"
       financial_health_status: "healthy" | "watch" | "at_risk" | "unknown"
       goal_kind: "ephemeral" | "standing" | "routine" | "decision"
@@ -3323,7 +3359,14 @@ export const Constants = {
         "cancelled",
       ],
       assignment_state: ["current", "planned", "historical"],
-      company_relationship_type: ["parent_of", "owned_by_percentage", "business_unit_of", "brand_of", "subsidiary_of", "department_of"],
+      company_relationship_type: [
+        "parent_of",
+        "owned_by_percentage",
+        "business_unit_of",
+        "brand_of",
+        "subsidiary_of",
+        "department_of",
+      ],
       employment_type: ["full_time", "part_time", "contractor", "advisor"],
       financial_health_status: ["healthy", "watch", "at_risk", "unknown"],
       goal_kind: ["ephemeral", "standing", "routine", "decision"],

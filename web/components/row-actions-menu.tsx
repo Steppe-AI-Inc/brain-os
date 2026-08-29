@@ -26,11 +26,17 @@ export function RowActionsMenu({
   itemLabel,
   onEdit,
   onDelete,
+  deleteLabel = "Delete",
+  deletingLabel = "Deleting…",
+  deleteDescription = "This can't be undone.",
   className = "",
 }: {
   itemLabel: string;
   onEdit: () => void;
   onDelete: () => Promise<string | null>;
+  deleteLabel?: string;
+  deletingLabel?: string;
+  deleteDescription?: string;
   className?: string;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -59,7 +65,7 @@ export function RowActionsMenu({
             <Pencil className="h-3.5 w-3.5" /> Edit
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
-            <Trash2 className="h-3.5 w-3.5" /> Delete
+            <Trash2 className="h-3.5 w-3.5" /> {deleteLabel}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -67,14 +73,14 @@ export function RowActionsMenu({
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this {itemLabel}?</AlertDialogTitle>
-            <AlertDialogDescription>This can&apos;t be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{deleteLabel} this {itemLabel}?</AlertDialogTitle>
+            <AlertDialogDescription>{deleteDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" disabled={deleting} onClick={confirmDelete}>
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? deletingLabel : deleteLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
