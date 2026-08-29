@@ -4,6 +4,105 @@ Every entry is a real, reproduced defect (not a theoretical risk) with root caus
 fix status. Update this file whenever a new bug class is found — per CLAUDE.md §12,
 finding one instance of a pattern means searching for the whole class before closing it.
 
+## 22. Independent verification of the NOT-YET-PUSHED canonical Work Order model migration (202608290002_canonical_work_order_model.sql) - one already-fixed defect independently re-confirmed, zero new defects, one test-construction bug found and fixed in this pass own new regression script (FIX PREPARED - migration is rollback-tested, not yet pushed to production, 2026-08-29)
+
+**Why this entry exists even with no new product bug:** same rationale as #21 - a clean
+independent verification pass of a still-unpushed migration is itself worth recording,
+especially the one real finding below, which was a bug in the verifiers own new test,
+not the product. Distinguishing that clearly matters: an over-eager "found a defect!"
+report here would have been wrong.
+
+**Scope:** supabase/migrations/202608290002_canonical_work_order_model.sql - new tables
+public.canonical_work_orders and public.agent_runs, plus nullable
+tasks.canonical_work_order_id / work_orders.canonical_work_order_id FK columns. Pure
+"expand" stage of an expand-then-migrate-then-contract plan; does not rename, drop, or
+alter any existing table/function/RLS policy the live app depends on (confirmed by
+diffing supabase/schema-v0.7-production-core.sql local working copy against git HEAD -
+the diff is a pure append after line 3056, zero removed lines above it, so
+create_pending_work_order/mark_work_order_failed/sem_execute_ai_command/the existing
+work_orders table definition are provably untouched).
+
+**Independently re-confirmed (not re-trusting the prior reviews own claim):** a real
+brain-os-db-security-engineer review (same day) found and fixed a genuine defect in an
+earlier draft of agent_runs_insert_scope - "company_id is null or
+has_company_access(company_id)" alone let ANY authenticated session insert an
+agent_runs row with company_id left null and an arbitrary spoofed
+created_by_profile_id. This pass re-derived the same attack independently (adversarial
+TEST 12 in the new regression script below, run against the migration applied fresh in
+its own rolled-back transaction) and confirmed the deployed fix (created_by_profile_id
+is null or created_by_profile_id = current_profile_id()) genuinely blocks it, while
+TEST 13/14 confirm the two legitimate paths (unattributed bootstrap row, self-attributed
+row) still work.
+
+**22 further adversarial RLS checks run beyond the one already-known defect** (new
+permanent script qa/scenarios-runner/canonical_work_order_model_adversarial.sql, run
+inside the SAME rolled-back transaction as the migration DDL itself so every assertion
+exercises the actual proposed policies, not a hand-transcribed copy): founder can
+insert/delete across any company; a company manager can insert/update/delete within
+their own company; a plain active member (non-manager) can still insert (insert_scope
+is deliberately has_company_access, broader than manager-only) but cannot delete;
+an outsider with zero membership is denied; a member of a different company is denied
+(proves has_company_access is scoped per specific company_id, not "any active
+membership anywhere"); investor_viewer is explicitly excluded from insert per
+has_company_access's own exclusion; force_canonical_work_order_creator's
+unconditional BEFORE INSERT trigger overwrites a spoofed created_by_profile_id, same
+class as force_task_creator/force_goal_creator; canonical_work_orders_select_scope
+correctly hides a row from a plain same-company member who is neither creator nor
+manager nor owner_person_id (matches tasks_select_scope's existing precedent exactly
+- not a new gap); update_scope's with-check blocks reassigning a work order's
+company_id into a company the caller doesn't manage; a former creator (membership
+deactivated) cannot update; agent_runs_delete_scope is founder/admin-only, deliberately
+narrower than canonical_work_orders_delete_scope (even the right company's manager
+cannot delete an agent_runs row); FK on-delete semantics behave as documented -
+deleting a goal sets canonical_work_orders.goal_id null (not blocked), deleting a
+canonical work order sets tasks.canonical_work_order_id /
+work_orders.canonical_work_order_id null (not blocked/cascaded). All 26 assertions
+all_pass: true, live against production inside a rolled-back transaction. The 4
+existing regression scripts named in the launch scope
+(sc070_audit_log_leak.sql/sc103_audit_integrity.sql/
+sc093_security_definer_audit.sql/approval_deletion_audit_trail.sql) were also re-run
+in that SAME transaction (fixture UUIDs/namespaces cross-checked for collisions first -
+none) and all still pass with the migration applied. A read-only global-integrity sweep
+(orphan canonical_work_order_id/task_id references on both new tables, orphan
+company_id references, RLS actually enabled, exactly 4 policies on each new table)
+returned all zeros/expected-true.
+
+**One real methodology trap hit and fixed while building the new test, worth recording
+as its own small lesson (the actual "finding" of this pass):** the first draft of TEST 18
+(a manager of a different company must not be able to update an agent_runs row
+belonging to a company they don't manage) read the outcome back - "did summary
+actually change?" - using the SAME unprivileged persona (emp2) that had just been
+denied. But agent_runs_select_scope ALSO hides that row from emp2 (neither creator
+nor manager of the row's company), so the confirming read was itself a zero-row scalar
+subquery -> SQL NULL -> a non-'true' string once round-tripped through
+set_config/current_setting -> a false-positive FAIL, even though the actual UPDATE
+was correctly blocked the whole time. Root-caused with an isolated debug transaction
+(direct is_company_manager() calls plus a superuser-context read) before concluding
+which side was wrong - confirmed the RLS policy was correct and the test was not. Fixed
+by moving the reset role; to immediately after the blocked UPDATE, before the
+confirming read, so the outcome is checked from a privileged, RLS-bypassing context -
+the same pattern already used correctly elsewhere in this script (TEST 11's founder
+delete-confirmation) and in the developer's own task_goal_archive_ownership.sql. The
+general lesson, worth checking on any future adversarial-negative test in this codebase:
+when asserting "the mutation was blocked," don't read the post-state back through the
+same denied actor's own RLS view - that actor may be denied SELECT on the very row you
+are trying to confirm is unchanged. Use a founder/superuser context (or the resource
+owner/manager) to read back the ground truth instead.
+
+**Production confirmed untouched throughout and after this pass:**
+information_schema.tables re-queried for canonical_work_orders/agent_runs before,
+during (inside the rolled-back transaction only), and after - zero rows outside the
+transaction at every check. No synthetic CWO-Adv companies/memberships/tasks/goals/
+work_orders, no profiles.role drift on the reused real employee2 profile, and no rows
+in the 4 existing scripts' own fixture ids survive outside their rolled-back
+transactions - all confirmed by a dedicated read-only leftover-check query after the
+full combined run.
+
+**BLOCKED - DB PUSH, by design, not an oversight:** this verification pass never ran
+supabase db push and never will on its own authority - that decision belongs to the
+founder. Every check above is real rollback-tested evidence for that decision, not a
+substitute for it.
+
 ## 21. Independent verification of task/goal archive-restore (migration 202608290001, commits ecf3ab0/f764e58) — no defect found, coverage gaps closed with a permanent regression script (VERIFIED, 2026-08-29)
 
 **Why this entry exists even with no bug:** per CLAUDE.md's evidence-based-reporting rule,
