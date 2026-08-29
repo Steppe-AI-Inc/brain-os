@@ -79,8 +79,62 @@ export async function updateCompany(id: string, input: CompanyInput) {
   return null;
 }
 
+// company_id is ON DELETE CASCADE on all of these (schema-v0.7-production-core.sql) —
+// deleting a company with any of this attached would silently wipe it too, with no
+// warning beyond a generic "can't be undone" dialog. Master-prompt spec §28: "Hard
+// deletion of a referenced organization should normally be prohibited... prefer
+// archived." people/tasks are ON DELETE SET NULL instead (orphaned, not deleted), but
+// still worth surfacing — losing every employee's company link silently is its own harm.
+const CASCADE_DEPENDENCY_TABLES = [
+  { table: "projects", label: "project(s)" },
+  { table: "financial_reports", label: "financial report(s)" },
+  { table: "product_lines", label: "product line(s)" },
+  { table: "inventory_items", label: "inventory item(s)" },
+  { table: "sales_leads", label: "sales lead(s)" },
+  { table: "proposals", label: "proposal(s)" },
+  { table: "kpi_records", label: "KPI record(s)" },
+  { table: "salary_rules", label: "salary rule(s)" },
+  { table: "billing_accounts", label: "billing account(s)" },
+  { table: "departments", label: "department(s)" },
+  { table: "goals", label: "goal(s)" },
+  { table: "company_memberships", label: "team member access grant(s)" },
+] as const;
+const ORPHAN_WARN_TABLES = [
+  { table: "people", label: "people record(s) would lose their company link" },
+  { table: "tasks", label: "task(s) would lose their company link" },
+] as const;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function deleteCompany(id: string) {
+  if (!UUID_RE.test(id)) return "Invalid company id.";
   const supabase = await createClient();
+
+  const dependents: string[] = [];
+  for (const { table, label } of CASCADE_DEPENDENCY_TABLES) {
+    const { count } = await supabase.from(table).select("id", { count: "exact", head: true }).eq("company_id", id);
+    if (count && count > 0) dependents.push(`${count} ${label}`);
+  }
+  // company_relationships has two FK columns to companies (company_id AND
+  // related_company_id, both ON DELETE CASCADE) — a company can be the parent OR the
+  // child side of a link, either way deleting it would silently sever/delete that row.
+  const { count: relCount } = await supabase
+    .from("company_relationships")
+    .select("id", { count: "exact", head: true })
+    .or(`company_id.eq.${id},related_company_id.eq.${id}`);
+  if (relCount && relCount > 0) dependents.push(`${relCount} organization relationship(s) (ownership/business-unit links)`);
+  if (dependents.length > 0) {
+    return `Can't delete — this would also permanently delete: ${dependents.join(", ")}. Archive the company instead (set status to "closed"), or reassign these records first.`;
+  }
+  const orphaned: string[] = [];
+  for (const { table, label } of ORPHAN_WARN_TABLES) {
+    const { count } = await supabase.from(table).select("id", { count: "exact", head: true }).eq("company_id", id);
+    if (count && count > 0) orphaned.push(`${count} ${label}`);
+  }
+  if (orphaned.length > 0) {
+    return `Can't delete — ${orphaned.join(" and ")}. Reassign them to another company first, or archive this company instead of deleting it.`;
+  }
+
   const { data, error } = await supabase.from("companies").delete().eq("id", id).select("id");
   if (error) return error.message;
   if (!data || data.length === 0) return "Nothing was deleted — this company may no longer exist or you may not have access to it.";
