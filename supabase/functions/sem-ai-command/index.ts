@@ -188,7 +188,22 @@ const COMMON_COMMAND_STOPWORDS = new Set([
   'company','companies','employee','employees','person','people','status','currently',
   'active','archived','restore','delete','archive','create','update','all','data',
   'related','permanently','please','tell','check','give','list','ceo','the',
+  // Expanded 2026-08-30 after a real "Token preflight hard stop" incident: ordinary
+  // sentences (not just status-query phrasing) are full of generic verbs/adjectives that
+  // this list didn't cover, each one running its own broad ilike match.
+  'new','just','existing','assign','assigned','assigning','move','moved','moving',
+  'entirely','need','needs','needed','dont','don','instead','again','also','only',
+  'still','already','yet','now','then','there','here','who','whom','which','into',
+  'onto','from','over','under','both','either','neither','same','different','other',
+  'another','some','any','every','each','more','most','less','least','than','not',
+  'never','always','once','twice','ever','done','make','made','making','set','put',
+  'get','got','getting','want','wants','wanted','need','like','right','okay','sure',
 ]);
+// Real incident (2026-08-30): the guaranteed bound regardless of how generic the extracted
+// tokens turn out to be - a small cap on how many extra rows a single targeted lookup can
+// ever contribute to context, keeping worst-case token cost bounded even for a broad,
+// generic-word-heavy command in a workspace with many similarly-named fixtures.
+const NAMED_LOOKUP_ROW_CAP = 5;
 const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
 const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
 function commandContradictsActionType(command: string, actionType: string | undefined): boolean {
@@ -1725,14 +1740,30 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // actually typed this turn is always resolvable in context, independent of the general
   // cap - directly closes the structural gap a prompt-only "don't guess" instruction could
   // not (tried and confirmed insufficient on retest).
+  // Real incident (2026-08-30, live-caught immediately after deploying the goals lookup
+  // below): "no, don't create a new task - just assign the existing QA-MULTI-TASK to
+  // them" hit a hard "Token preflight hard stop" with ZERO response at all. Root cause:
+  // token extraction was permissive (any 3+ char word) with a narrow, status-query-shaped
+  // stopword list that didn't generalize to ordinary sentences full of generic verbs/
+  // adjectives ("create", "just", "assign", "existing", "new") - each one ran an unbounded
+  // ilike '%token%' OR-match against every company/person/goal name, and in a workspace
+  // that has accumulated many similarly-named test fixtures over this campaign, the
+  // combined match set pushed the context pack over the token budget. Two independent
+  // bounds added: minimum token length raised 3->4 (cheap, real fixture names in this
+  // convention are already 4+ chars: "test4"... wait, "test4" IS 5 - "test3"/"test4" etc.
+  // are 5 chars, safe), and - the real, guaranteed fix regardless of how generic the
+  // extracted tokens turn out to be - each lookup query itself is now capped
+  // (.limit(NAMED_LOOKUP_ROW_CAP)), bounding worst-case contribution to context size no
+  // matter how many rows a broad/generic token set happens to match.
   const commandNameTokens = [...new Set(
-    (command.match(/[A-Za-z][A-Za-z0-9'&.-]{2,}/g) || [])
+    (command.match(/[A-Za-z][A-Za-z0-9'&.-]{3,}/g) || [])
       .map((t) => t.toLowerCase())
       .filter((t) => !COMMON_COMMAND_STOPWORDS.has(t)),
   )].slice(0, 8);
   const namedCompanyLookupQuery = commandNameTokens.length > 0
     ? supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score')
         .or(commandNameTokens.map((t) => `name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
     : Promise.resolve({ data: [] as any[] });
   // Same fix, same root cause, same defect class (found by the independent verifier
   // auditing 15e868a): context.people is ALSO capped (.limit(30), no explicit order)
@@ -1744,6 +1775,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const namedPersonLookupQuery = commandNameTokens.length > 0
     ? supabase.from('people').select('id,full_name,email,role_title,company_id,active')
         .or(commandNameTokens.map((t) => `full_name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
     : Promise.resolve({ data: [] as any[] });
   // Bug 12 (2026-08-30 campaign, same root cause/fix shape as the two above): a goal
   // named directly in a multi-entity status question ("status of X, Y goal, and Z") could
@@ -1751,6 +1783,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const namedGoalLookupQuery = commandNameTokens.length > 0
     ? supabase.from('goals').select('id,company_id,title,status,kind')
         .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
     : Promise.resolve({ data: [] as any[] });
   const queryEmbedding = await embedText(command, openaiKey);
   // Real semantic retrieval when embeddings are available (match_memories, migration
