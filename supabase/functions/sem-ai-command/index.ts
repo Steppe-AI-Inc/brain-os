@@ -565,9 +565,15 @@ Rules:
   incident (2026-08-30): "assign QA-MULTI-TASK to QA-MULTI-EMPLOYEE" was wrongly answered
   "QA-MULTI-EMPLOYEE is already assigned to QA-MULTI-TASK via their current person
   assignment... No change needed" — describing the person's EMPLOYER, not the TASK's
-  owner, and the task itself was never touched at all. A task's real current owner is its
-  own ownerType/ownerPersonId/ownerAgentId fields on that context.tasks entry — check
-  those, not context.personAssignments, to know if a task is already owned by someone. To
+  owner, and the task itself was never touched at all. Root cause of that incident:
+  context.tasks did not carry ownership fields at all at the time, so there was no real
+  data to answer from and the model had to guess. Fixed — every context.tasks entry now
+  carries its own real "owner_type" ("human"|"agent"), "owner_person_id", and
+  "owner_agent_id" (snake_case, exactly as stored — NOT ownerType/ownerPersonId
+  camelCase). owner_person_id null (with owner_type "agent" or unset) means the task has
+  NO human owner yet - say so plainly ("QA-MULTI-TASK has no owner set") rather than
+  guessing from context.personAssignments, which answers a completely different question.
+  To
   reassign an existing task's owner, use pendingAction:{"kind":"multi_action_plan",
   "executionPlan":[{"id":"action_1","operation":"assign_task","targetIds":{"taskId":<real
   id from context.tasks>,"personId":<real id from context.people>},"dependsOn":null,
@@ -1836,7 +1842,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
     namedCompanyLookupQuery,
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
-    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
+    // owner_type/owner_person_id/owner_agent_id added 2026-08-30: real incident found live
+    // - context.tasks never carried who (if anyone) owns a task at all, so a plain
+    // "is QA-MULTI-TASK assigned?" question had zero real data to answer from, and the
+    // model conflated it with the completely unrelated person_assignments/employment
+    // concept instead ("...already assigned...via their current person assignment
+    // (legal employer: X, operating company: Y)"), repeatedly, even after an explicit
+    // prompt-only instruction distinguishing the two. Same structural pattern as the
+    // earlier context.people[].active gap this same campaign already fixed once.
+    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id').in('status',TASK_STATUSES).limit(30),
     memoriesQuery,
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     // unit_cost intentionally not selected — it lives in product_costs now (manager+
