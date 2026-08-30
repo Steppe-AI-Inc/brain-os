@@ -549,3 +549,30 @@ dispatched, real concurrent `claude --bg` processes, the dependent task still `q
 once after both are completed via `complete-run.mjs` (expect the dependent task to dispatch
 immediately). Confirm via `claude logs <provider_run_id>`, not just the DB row, that each
 real dispatched session actually received its task.
+
+## Realtime subscription truth matches ordinary RLS truth (catches:
+FACTORY_REALTIME_CHANNEL_DOES_NOT_LEAK_UNAUTHORIZED_DATA — added 2026-08-31,
+`qa/KNOWN_FAILURE_MODES.md` #40)
+
+Run `qa/scenarios-runner/factory_realtime_rls_truth.sql` (rolled-back transaction) after
+any RLS policy change on `agent_runs`/`canonical_work_orders`/`tasks`/
+`founder_notifications`, or any change to which tables are in the `supabase_realtime`
+publication. It proves cross-company isolation and founder-only notification access at the
+SQL level — the same policies Realtime's Postgres Changes authorization consults, so this
+is a direct proof, not an approximation. Two real setup traps to remember when extending
+this file: (1) impersonation must set `auth.users.id` = the JWT `sub` AND rely on the real
+`on_auth_user_created` trigger to create the matching `profiles` row — never hand-insert a
+`profiles` row with a fabricated `auth_user_id`, and never assume `profiles.id ==
+auth_user_id`; (2) `is_company_manager()` checks `profiles.auth_user_id = auth.uid()`, not
+`profiles.id`.
+
+## Migration version already-applied means content changes don't auto-apply (catches: the
+push failure in KNOWN_FAILURE_MODES.md #40)
+
+If a migration file is edited AFTER its version has already been recorded as applied in
+`supabase_migrations.schema_migrations` (e.g. a bundled fix added in a later commit before
+the original push), `supabase db push` reports `upToDate: true` and does **nothing** — the
+new content never runs. Before trusting a push, independently re-query the live schema for
+whatever the migration was supposed to change (a view definition, a publication's table
+list, a column) — never trust the push command's own exit status as proof of the intended
+end state.

@@ -2936,3 +2936,46 @@ passes clean, and the dev server starts and serves the route (confirmed via dire
 unauthenticated request per this app's own `proxy.ts` gate). **Actual authenticated
 rendering, the notification panel's live update, and the realtime auto-refresh were NOT
 visually verified in a browser** — genuinely blocked by tooling, not skipped.
+
+## 40. Migration `202608300007` push failure + real cross-company RLS/Realtime truth proof (2026-08-31)
+
+**Real live push failure, found and fixed**: `202608300007_factory_realtime_publication.sql`
+originally used `create or replace view` for `agents_with_live_status`'s STALE-derivation
+update. Failed live: `ERROR: cannot change name of view column ... to "capabilities"` —
+`select a.*` now expands to include `agents.capabilities` (added by `202608300004`, after
+this view was first created in `202608290003`), shifting every computed column's position;
+`CREATE OR REPLACE VIEW` only permits appending columns, never reordering them. Fixed via
+`DROP VIEW` + `CREATE VIEW` (checked `pg_depend` first — zero dependents, safe), applied
+live, migration file corrected to match. **Real publication-membership part of the same
+migration DID apply cleanly** on the first `db push` — the `upToDate: true` result that
+followed the actual push (this session's recurring pattern: `db push` reports "up to date"
+once a migration VERSION is recorded as applied, even if a later git commit changed that
+same file's content — content changes to an already-applied migration version require a
+direct, manual re-application of the delta, never assumed to happen automatically).
+
+**Real cross-company RLS/Realtime truth proof**
+(`qa/scenarios-runner/factory_realtime_rls_truth.sql`, rolled-back transaction,
+`all_pass: true`): Supabase Realtime's Postgres Changes feature authorizes each subscribed
+row against the exact same RLS policies as an ordinary `SELECT` (confirmed via
+`pg_policies`: `agent_runs_select_scope`/`canonical_work_orders_select_scope`/
+`tasks_select_scope`/`founder_notifications_founder_only`) — proving these policies
+correctly isolate companies at the SQL level is therefore a direct, valid proof that a
+Realtime subscription cannot leak what an ordinary query already couldn't, not a
+separate/weaker mechanism. Proved live: a real company-A manager sees their own company's
+Work Order/Task/Agent Run but **cannot see any of company B's**, sees **zero**
+`founder_notifications` rows (founder-only, unconditionally), while founder/admin sees
+everything — 10/10 assertions pass.
+
+**Two real bugs self-caught while building this test, before any false pass could occur**:
+(1) `is_company_manager()`/`current_profile_id()` resolve via
+`profiles.auth_user_id = auth.uid()`, **not** `profiles.id` directly — a first draft using
+a synthetic `profiles.id` with no matching `auth_user_id` silently returned "sees nothing,"
+which would have looked like a passing negative test for entirely the wrong reason
+(false-comfort risk, not a false failure — caught only because the *positive* "sees own
+company" assertions also failed and forced investigation). (2) `on_auth_user_created` (a
+real trigger on `auth.users`) auto-inserts the matching `public.profiles` row with a
+trigger-generated `id` — an explicit `INSERT ... public.profiles` right after collided
+(duplicate `auth_user_id`); fixed by `UPDATE`-ing the trigger-created row and looking up
+its generated `id` for the `company_memberships` FK rather than assuming it equals
+`auth_user_id`. Zero residue confirmed by direct re-query after rollback, both before and
+after the fix.
