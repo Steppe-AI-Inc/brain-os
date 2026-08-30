@@ -361,5 +361,19 @@ present-tense state claim ("X is archived"/"X is active") in the model's own sum
 matches that company's real `status`, overriding with the true fact when it doesn't. The
 latter closes a distinct failure mode from false-success (Bug 1): a false CURRENT-STATE claim
 used to justify taking no action, with zero mutation ever attempted — caught live when "test3
-is already archived" was said while `test3` was actually `status='active'`. 35 assertions
-total now, up from 29.
+is already archived" was said while `test3` was actually `status='active'`.
+
+`findCompanyStateClaimContradiction()` was then generalized into `findEntityStateClaimContradiction()`
+(same file, added 2026-08-30) — a resource-agnostic version parameterized by a per-type
+word→predicate vocabulary (`COMPANY_STATE_CLAIM_VOCAB`, `PERSON_STATE_CLAIM_VOCAB`), after the
+identical underlying mechanism gap was found live in the OPPOSITE direction for a different
+resource type: a truthful "test3 employee is currently employed" answer got falsely denied by
+`claimsPersonDeleted`, because that fixture's own name contains the literal noun ("employee")
+the word-proximity regex scans for. The generic function now also drives a symmetric
+suppression fix in both `claimsCompanyLifecycleChange`/`claimsPersonLifecycleChange`: a
+confirmed-TRUE grounded claim about a named entity suppresses the blunter corrector for that
+turn, while a genuinely contradicted claim still lets a real verb-based completion claim fire
+normally (regression-tested explicitly so suppression can never become a blanket bypass). Also
+fixed in the same pass: `context.people` never carried an `active` column at all, so the model
+had zero fresh data to answer any employment-status question from — added to the select and
+documented in the system prompt. 41 assertions total now, up from 29.

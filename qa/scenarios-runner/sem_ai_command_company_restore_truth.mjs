@@ -63,30 +63,71 @@ function claimsLifecycleClaim(summary, verbAlternation, nounAlternation) {
   const stateDescriptionPattern = /\b(is|are)\s+(currently\s+|already\s+)?(delet(ed)|archiv(ed)|remov(ed)|restor(ed)|end(ed))\b/i;
   return claimPattern.test(summary) && !stateDescriptionPattern.test(summary);
 }
-function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompanyIds) {
-  return archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-    && claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
-}
-
-// ---- byte-for-byte copy: findCompanyStateClaimContradiction (2026-08-30, "test3 is
-// already archived" incident - real status was 'active', zero archiveCompanyIds attempted) ----
-function findCompanyStateClaimContradiction(summary, companies) {
-  for (const c of companies) {
-    if (!c || typeof c.name !== 'string' || !c.name.trim() || typeof c.status !== 'string') continue;
-    const escapedName = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(
-      `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?(archived|active)\\b`,
-      'i',
-    );
-    const match = pattern.exec(summary);
-    if (!match) continue;
-    const claimedStatus = match[1].toLowerCase();
-    const realStatus = c.status.toLowerCase();
-    const contradicts = (claimedStatus === 'archived' && realStatus !== 'archived')
-      || (claimedStatus === 'active' && realStatus === 'archived');
-    if (contradicts) return { name: c.name.trim(), claimedStatus, realStatus };
+// ---- byte-for-byte copy: findEntityStateClaimContradiction, the GENERIC canonical-state
+// grounding layer (2026-08-30). See supabase/functions/sem-ai-command/index.ts for the
+// full incident 1 (company, false negative) / incident 2 (person, false positive) record -
+// this single, resource-agnostic function replaces the earlier company-only
+// findCompanyStateClaimContradiction, parameterized by a per-resource-type vocabulary. ----
+function findEntityStateClaimContradiction(summary, entities, vocabulary) {
+  for (const e of entities) {
+    if (!e || typeof e.name !== 'string' || !e.name.trim()) continue;
+    const escapedName = e.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const word of Object.keys(vocabulary)) {
+      const pattern = new RegExp(
+        `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?${word}\\b`,
+        'i',
+      );
+      if (!pattern.test(summary)) continue;
+      const matches = vocabulary[word](e.state);
+      return { name: e.name.trim(), claimedWord: word, realState: e.state, contradicted: !matches };
+    }
   }
   return null;
+}
+const COMPANY_STATE_CLAIM_VOCAB = {
+  archived: (s) => s === 'archived',
+  active: (s) => s !== 'archived',
+};
+const PERSON_STATE_CLAIM_VOCAB = {
+  employed: (active) => active === true,
+  active: (active) => active === true,
+  inactive: (active) => active === false,
+};
+// Thin wrapper matching the old test names/shape used below, for minimal test-file churn.
+function findCompanyStateClaimContradiction(summary, companies) {
+  const r = findEntityStateClaimContradiction(
+    summary,
+    companies.map((c) => ({ name: c.name, state: c.status })),
+    COMPANY_STATE_CLAIM_VOCAB,
+  );
+  return r && r.contradicted ? { name: r.name, claimedStatus: r.claimedWord, realStatus: String(r.realState) } : null;
+}
+
+// ---- byte-for-byte copy: claimsCompanyLifecycleChange/claimsPersonLifecycleChange, now
+// suppression-aware (incident 2's fix): a grounded, confirmed-TRUE state claim about the
+// named entity suppresses the blunter word-proximity corrector for this turn, since the
+// entity's own name can trivially contain the generic noun the corrector scans for (e.g.
+// "test3 employee" contains "employee") - see the real, live-reproduced false positive on
+// "is test3 employee currently employed?" documented in the file header comment. ----
+function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompanyIds, companies = []) {
+  if (archiveCompanyIds.length > 0 || restoreCompanyIds.length > 0) return false;
+  const stateClaim = findEntityStateClaimContradiction(
+    summary,
+    companies.map((c) => ({ name: c.name, state: c.status })),
+    COMPANY_STATE_CLAIM_VOCAB,
+  );
+  if (stateClaim && !stateClaim.contradicted) return false;
+  return claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
+}
+function claimsPersonLifecycleChange(summary, endEmploymentPersonIds, restoreEmploymentPersonIds, people = []) {
+  if (endEmploymentPersonIds.length > 0 || restoreEmploymentPersonIds.length > 0) return false;
+  const stateClaim = findEntityStateClaimContradiction(
+    summary,
+    people.map((p) => ({ name: p.full_name, state: p.active })),
+    PERSON_STATE_CLAIM_VOCAB,
+  );
+  if (stateClaim && !stateClaim.contradicted) return false;
+  return claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing)', 'employe(e|d)|person|staff');
 }
 
 // ---- byte-for-byte copy: the updateCompanies lifecycle-transition-skip logic ----
@@ -303,6 +344,72 @@ function assert(cond, name, detail) {
 // claimsCompanyLifecycleChange's own guard) - covered at the call site
 // (archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0), not inside the
 // function itself, so this documents that the call-site guard is the actual gate.
+
+// ============ INCIDENT 2: person false-positive over-correction, found live while
+// verifying incident 1's fix ============
+// Real, live-reproduced case: after two REAL, successful person-lifecycle mutations in the
+// same channel (end employment, then restore employment), a plain read question ("is test3
+// employee currently employed?") got a false "Couldn't confirm that..." denial, because the
+// fixture's own name ("test3 employee") contains the literal noun "employee" the old,
+// unguarded claimsPersonDeleted regex scanned for - so ANY truthful sentence mentioning
+// this person by name (including a truthful past-tense reference to the real restore that
+// happened two turns earlier) tripped it.
+{
+  const people = [{ id: 'f5ca8d22-637c-472e-b368-7d93f6d30f0e', full_name: 'test3 employee', active: true }];
+  const fired = claimsPersonLifecycleChange(
+    'test3 employee is currently employed. Their employment was restored earlier in this conversation.',
+    [], [], people,
+  );
+  assert(fired === false, 'CRITICAL: truthful "is currently employed" answer (naturally phrased in direct response to the read question) is suppressed, not falsely denied (the real incident 2 case)', fired);
+}
+// The state-claim grounding itself must correctly find this as a NON-contradiction (the
+// claim is true) - this is what drives the suppression above.
+{
+  const people = [{ id: 'x', full_name: 'test3 employee', active: true }];
+  const r = findEntityStateClaimContradiction('test3 employee is currently employed.', people.map((p) => ({ name: p.full_name, state: p.active })), PERSON_STATE_CLAIM_VOCAB);
+  assert(!!r && r.contradicted === false, 'grounded "is currently employed" claim against real active=true is confirmed true, not contradicted');
+}
+// Symmetric: a FALSE "is currently employed" claim against a real active=false must still
+// be caught as a genuine contradiction (suppression must not become a blanket bypass).
+{
+  const people = [{ id: 'x', full_name: 'test3 employee', active: false }];
+  const r = findEntityStateClaimContradiction('test3 employee is currently employed.', people.map((p) => ({ name: p.full_name, state: p.active })), PERSON_STATE_CLAIM_VOCAB);
+  assert(!!r && r.contradicted === true, 'false "is currently employed" claim against real active=false is still caught as a contradiction');
+}
+// And the suppression must not swallow a GENUINE false claim about the same named person -
+// if the grounded claim is actually FALSE (contradicted), claimsPersonLifecycleChange must
+// still fire (suppression only applies to a CONFIRMED-TRUE grounded claim).
+// Note: a BARE false "is employed" claim (no delete/archive/remove/end/restore verb) is
+// not this corrector's job to catch at all - same documented, deliberate gap as the
+// company "bare active claim" boundary above; the CONTRADICTION path (asserted immediately
+// above) is what catches and overrides a bare false state claim. What must NOT happen is
+// suppression swallowing a genuine VERB-based completion claim just because a state claim
+// elsewhere in the same sentence happens to be contradicted - not confirmed-true.
+{
+  const people = [{ id: 'x', full_name: 'test3 employee', active: false }];
+  const fired = claimsPersonLifecycleChange('test3 employee was restored and is currently employed.', [], [], people);
+  assert(fired === true, 'a genuine verb-based completion claim ("was restored") still fires claimsPersonLifecycleChange when the paired state claim is contradicted (real active=false), not confirmed-true - suppression does not become a blanket bypass');
+}
+// A real mutation attempted this turn must still short-circuit claimsPersonLifecycleChange
+// exactly as before (unaffected by the new grounding parameter).
+{
+  const people = [{ id: 'x', full_name: 'test3 employee', active: true }];
+  const fired = claimsPersonLifecycleChange('test3 employee: restored.', [], ['f5ca8d22-637c-472e-b368-7d93f6d30f0e'], people);
+  assert(fired === false, 'corrector does not fire when a real restore was actually attempted (unaffected by grounding)');
+}
+// Backward-compatibility: calling claimsCompanyLifecycleChange without the new 4th
+// (companies) argument must behave exactly as before this refactor (default []).
+{
+  const fired = claimsCompanyLifecycleChange('The company was restored successfully.', [], []);
+  assert(fired === true, 'claimsCompanyLifecycleChange without a companies argument still behaves as before (no regression from the generic refactor)');
+}
+// The SAME structural risk applies to a company literally named with "Company"/"Business"
+// in it - suppression must work symmetrically for companies, not just people.
+{
+  const companies = [{ id: 'x', name: 'Test Business Company', status: 'active' }];
+  const fired = claimsCompanyLifecycleChange('Test Business Company is currently active. It was restored earlier in this conversation.', [], [], companies);
+  assert(fired === false, 'symmetric case: a truthful "is currently active" claim about a company whose own name contains "Company" is suppressed too');
+}
 
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);

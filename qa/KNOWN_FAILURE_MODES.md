@@ -1979,5 +1979,62 @@ real status (`planning`) still correctly caught as "not archived", and a no-clai
 confirmed to never false-positive.
 
 Deployed via `ALLOW_FUNCTIONS_DEPLOY=1 git push origin master` (same established path).
-Live-verification and independent re-review of this specific fix are tracked as the immediate
-next step — not yet complete as of this entry.
+Live-verified against real `test3`: DB confirmed `active`, "archive test3" produced a real
+archive (`test3: archived.`, DB confirmed), a second "archive test3" produced a truthful
+"test3 is already archived." (not flagged — real status matched), "restore test3" produced a
+real restore (`test3: restored.`, DB confirmed `active`), Companies UI/company list matched
+DB before and after a hard reload, and a fresh Brain conversation's "what is test3's status
+right now?" matched DB — no raw UUIDs, RPC names, or internal field names exposed in any
+response.
+
+**A second, real, live-reproduced defect found while running the required same-defect sweep**
+for employee/task/goal state claims (2026-08-30, same session): after two genuine,
+successful person-lifecycle mutations in one channel (`end test3 employee's employment` →
+`restore test3 employee's employment`, both confirmed real via `work_orders.output`), a plain
+read question — `is test3 employee currently employed?` — got **"Couldn't confirm that. No
+employee's employment was actually ended or restored this turn."**, a false denial of a
+truthful answer (confirmed via `work_orders.output`: `end_ids: []`, `restore_ids: []` for that
+turn — a correct, zero-mutation read, but the summary was wrongly overridden anyway). Root
+cause: `claimsPersonDeleted`'s word-proximity regex scans for the generic noun
+`employe(e|d)|person|staff` near a lifecycle verb — and the fixture's own name, "test3
+**employee**", trivially contains that noun, so ANY sentence mentioning this person by name
+(including a truthful reference to the real restore that happened two turns earlier,
+naturally phrased with "was restored") tripped it. This is the same underlying mechanism gap
+as the first defect above (Bug 1's original scope), but manifesting in the **opposite
+direction** — a false POSITIVE/over-correction instead of a false NEGATIVE/under-correction —
+which is exactly the signal that the fix belongs in one shared, generic layer rather than a
+third resource-specific regex patch (per explicit founder direction: "prefer one generic
+canonical-state grounding layer rather than accumulating resource-specific regex patches").
+
+A second, structural root cause was found underneath this: `context.people` never carried an
+`active` field at all (`supabase.from('people').select('id,full_name,email,role_title,
+company_id')` — no `active` column selected), so the model had **no fresh data whatsoever**
+to answer any employment-status question from — only stale `conversationHistory`, a forced,
+structural instance of the Bug 4 pattern for a read question instead of a write claim.
+
+**Fix**: (1) added `active` to the people context select, threaded through to
+`context.people[].active` with a new system-prompt bullet documenting it as the real, fresh,
+current employment status, separate from company `effectivelyActive`; (2) generalized the
+company-only `findCompanyStateClaimContradiction` into `findEntityStateClaimContradiction` — a
+resource-agnostic function parameterized by a small word→predicate vocabulary
+(`COMPANY_STATE_CLAIM_VOCAB`: archived/active against `companies.status`;
+`PERSON_STATE_CLAIM_VOCAB`: employed/active/inactive against `people.active`); (3) wired the
+same function into the person path (contradicted → override with the real fact, same as
+companies) and, symmetrically for both companies and people, used a confirmed-TRUE grounded
+claim to **suppress** the blunter `claims*Deleted` word-proximity corrector for that turn —
+directly closing the over-correction class this incident is an instance of, without weakening
+the corrector's ability to still catch a genuine false verb-based completion claim paired with
+a genuinely contradicted state claim (regression-tested explicitly).
+
+Regression-tested (`qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs`, now 41
+assertions, up from 35): the real incident 2 phrasing suppressed correctly, the grounding
+function's true/false confirmation tested directly both ways, suppression confirmed to never
+become a blanket bypass (a genuine verb-based completion claim paired with a *contradicted*
+state claim still fires), backward-compatibility of the refactored company function without
+its new parameter, and the identical structural risk demonstrated symmetrically for a company
+literally named with "Company" in it.
+
+Deployed via `ALLOW_FUNCTIONS_DEPLOY=1 git push origin master`. Live-verification of this
+second fix (retest `is test3 employee currently employed?`, plus a no-regression pass on the
+`test3` company scenarios above) and independent re-review are tracked as the immediate next
+step — not yet complete as of this entry.

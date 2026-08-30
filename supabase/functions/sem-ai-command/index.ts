@@ -210,45 +210,88 @@ function claimsLifecycleClaim(summary: string, verbAlternation: string, nounAlte
   return claimPattern.test(summary) && !stateDescriptionPattern.test(summary);
 }
 
-// Grounds a per-company present-tense STATE CLAIM against real, fresh company.status —
-// the exact gap claimsLifecycleClaim's own state-description exclusion (above) leaves open
-// by design: "test3 is archived" is deliberately let through as a truthful state
-// description, but nothing checked whether it actually IS truthful.
+// GENERIC canonical-state grounding layer (2026-08-30). Grounds a present-tense STATE
+// CLAIM the model makes about a specific, real, named entity against that entity's real,
+// fresh state - resource-agnostic, parameterized by a small word->predicate vocabulary
+// per resource type, rather than one regex patch per resource (see the two real incidents
+// below - the same underlying mechanism gap, manifesting in OPPOSITE directions for two
+// different resource types, is exactly the signal that a shared layer belongs here
+// instead of a third one-off patch).
 //
-// Real incident (2026-08-30, immediately after the disambiguation-hijack fix bb1363f):
-// "archive test3" fell through to a genuine LLM call (correctly - the hijack guard did its
-// job) and the LLM itself replied "test3 is already archived. No action taken." with zero
-// archiveCompanyIds attempted this turn (confirmed via direct work_orders.output query -
-// archive_ids: []), while the real companies.status row for test3 was 'active' the entire
-// time (confirmed via direct DB query). Not a false SUCCESS claim (Bug 1's original scope)
-// - a false CURRENT-STATE claim, functioning as a false justification for taking no action.
+// Incident 1 (company, false NEGATIVE / under-correction): immediately after the
+// disambiguation-hijack fix (bb1363f), "archive test3" fell through to a genuine LLM call
+// (correctly) and the LLM replied "test3 is already archived. No action taken." with zero
+// archiveCompanyIds attempted (work_orders.output confirmed archive_ids: []), while the
+// real companies.status row for test3 was 'active' the entire time. claimsLifecycleClaim's
+// own state-description exclusion (above) deliberately lets a present-tense "is archived"
+// claim through untouched - it was never designed to check whether that claim is actually
+// TRUE, only whether it's shaped like a state description rather than a completion claim.
 //
-// Deliberately narrow to avoid the exact overreach the archiveRestoreReport comment above
-// already rejected for a bare "active" claim: this only fires when the summary names a
-// REAL company from context.companies by its own literal name immediately followed by an
-// archived/active state claim, cross-checked against that same company's own real status -
-// never a generic word-proximity heuristic across unrelated prose.
-function findCompanyStateClaimContradiction(
+// Incident 2 (person, false POSITIVE / over-correction, found while verifying incident 1's
+// fix): after two REAL, successful person-lifecycle mutations in the same channel (end
+// employment, then restore employment - both grounded, both confirmed via
+// work_orders.output), a plain read question ("is test3 employee currently employed?")
+// was answered with "Couldn't confirm that. No employee's employment was actually ended or
+// restored this turn." - a false DENIAL of a truthful answer. Root cause: the person
+// fixture's own name ("test3 employee") contains the literal word "employee", so
+// claimsPersonDeleted's word-proximity check (verb near "employe(e|d)|person|staff") fires
+// on ANY sentence mentioning this person by name, including a truthful past-tense
+// reference to the real restore that happened two turns earlier in the same conversation
+// (deliberately not tense-excluded, since past-tense phrasing is also the natural shape of
+// a genuine completion claim - see the state-description-exclusion comment above). The
+// same structural risk exists for a company literally named with "Company"/"Business" in
+// it, even though it hasn't been observed there yet - this is a real, general risk in the
+// word-proximity mechanism itself, not a one-off person quirk.
+//
+// This layer directly closes both: contradicted -> override with the real fact (fixes
+// incident 1's class); confirmed-true -> the caller uses this to SUPPRESS the blunter
+// claims*Deleted corrector for this turn (fixes incident 2's class), since a specific,
+// grounded, true claim about a named entity is strictly more trustworthy than a generic
+// word-proximity guess about the same sentence.
+//
+// Deliberately narrow: only fires when the summary names a REAL entity from context by its
+// own literal name, immediately followed by an "is/are (currently/already) WORD" claim
+// from the given vocabulary - never a generic word-proximity heuristic across unrelated
+// prose (the exact overreach already rejected elsewhere in this file for a bare "active"
+// claim with no named entity attached).
+type StateClaimVocabulary = Record<string, (realState: unknown) => boolean>;
+type StateClaimResult = { name: string; claimedWord: string; realState: unknown; contradicted: boolean };
+function findEntityStateClaimContradiction(
   summary: string,
-  companies: Array<{ id?: unknown; name?: unknown; status?: unknown }>,
-): { name: string; claimedStatus: string; realStatus: string } | null {
-  for (const c of companies) {
-    if (!c || typeof c.name !== 'string' || !c.name.trim() || typeof c.status !== 'string') continue;
-    const escapedName = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(
-      `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?(archived|active)\\b`,
-      'i',
-    );
-    const match = pattern.exec(summary);
-    if (!match) continue;
-    const claimedStatus = match[1].toLowerCase();
-    const realStatus = c.status.toLowerCase();
-    const contradicts = (claimedStatus === 'archived' && realStatus !== 'archived')
-      || (claimedStatus === 'active' && realStatus === 'archived');
-    if (contradicts) return { name: c.name.trim(), claimedStatus, realStatus };
+  entities: Array<{ name?: unknown; state?: unknown }>,
+  vocabulary: StateClaimVocabulary,
+): StateClaimResult | null {
+  for (const e of entities) {
+    if (!e || typeof e.name !== 'string' || !e.name.trim()) continue;
+    const escapedName = e.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    for (const word of Object.keys(vocabulary)) {
+      const pattern = new RegExp(
+        `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?${word}\\b`,
+        'i',
+      );
+      if (!pattern.test(summary)) continue;
+      const matches = vocabulary[word](e.state);
+      return { name: e.name.trim(), claimedWord: word, realState: e.state, contradicted: !matches };
+    }
   }
   return null;
 }
+// company: 'archived' claim true only when status really is 'archived'; 'active' claim
+// true for any non-archived status (planning/paused legitimately read as "not archived" -
+// matches the effectivelyActive bullet's own "non-active status is not archived" rule).
+const COMPANY_STATE_CLAIM_VOCAB: StateClaimVocabulary = {
+  archived: (s) => s === 'archived',
+  active: (s) => s !== 'archived',
+};
+// person: deliberately only the two unambiguous single-word affirmative claims - a
+// negation shape ("no longer employed") does not fit the "is/are WORD" pattern this layer
+// matches and is intentionally not chased here (narrow by construction, same discipline as
+// the company vocabulary above).
+const PERSON_STATE_CLAIM_VOCAB: StateClaimVocabulary = {
+  employed: (active) => active === true,
+  active: (active) => active === true,
+  inactive: (active) => active === false,
+};
 
 const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
@@ -690,6 +733,16 @@ Rules:
   [person] work" questions — say it's under an archived parent instead. A merely
   non-"active" status (planning, paused) with effectivelyActive:true is completely normal
   and not archived — do not conflate the two.
+- context.people[].active (2026-08-30, added after a real incident: this field did not
+  exist in context at all before, so any employment-status question could only be answered
+  from stale conversationHistory) is the real, fresh, current employment status for that
+  specific person — true means currently employed, false means their employment has
+  ended. This is separate from effectivelyActive (which is about their EMPLOYER company,
+  not them personally). Always answer "is [person] currently employed?" or "does [person]
+  still work here?" from this field, never from what a prior turn's own prose said —
+  conversationHistory proves only what was asked or said before, not current truth (same
+  rule as the CRITICAL LIMIT above, restated here because this is exactly where it was
+  violated live).
 - Matching a name the founder types to a real record (context.companies[].name,
   context.people[].full_name, context.tasks[].title, context.goals[].title, etc.) is
   case-insensitive and quote-agnostic — "sem llc", "SEM LLC", and a quoted "SEM LLC" all
@@ -1308,7 +1361,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active').eq('active', true).limit(20),
     supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
     supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
-    supabase.from('people').select('id,full_name,email,role_title,company_id').limit(30),
+    // active added 2026-08-30: this was the ONLY employment-status field missing from
+    // context entirely - the model had no fresh data to answer "is X still employed?"
+    // from at all, only conversationHistory (a structural, forced instance of the Bug 4
+    // pattern, discovered live via "is test3 employee currently employed?").
+    supabase.from('people').select('id,full_name,email,role_title,company_id,active').limit(30),
     supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
@@ -2086,16 +2143,27 @@ serve(async (req) => {
         // routing restore clarifications to restoreCompanyIds instead of
         // archiveCompanyIds, and updateCompanies never attempting a raw status write
         // across the archived boundary) is what actually closes that path, not this regex.
-        const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
-
-        // See findCompanyStateClaimContradiction above (2026-08-30 "test3 already archived"
-        // incident): a false present-tense STATE claim, not a false completion claim, so it
-        // is checked separately from claimsCompanyDeleted (which claimsLifecycleClaim's own
-        // exclusion pattern deliberately does not flag).
-        const companyStateClaimContradiction = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-          ? findCompanyStateClaimContradiction(String(result.summary || ''), contextPack?.companies || [])
+        // See findEntityStateClaimContradiction above (2026-08-30, incidents 1 and 2): a
+        // grounded, named-entity state claim is checked separately from claimsCompanyDeleted
+        // (which claimsLifecycleClaim's own exclusion pattern deliberately does not flag for
+        // present-tense state descriptions) - contradicted -> overrides with the real fact;
+        // confirmed-true -> suppresses claimsCompanyDeleted below for this turn, since a
+        // company literally named with "Company"/"Business" in it carries the exact same
+        // word-proximity over-correction risk incident 2 found for a person.
+        const companyStateClaimResult = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
+          ? findEntityStateClaimContradiction(
+              String(result.summary || ''),
+              (contextPack?.companies || []).map((c: any) => ({ name: c.name, state: c.status })),
+              COMPANY_STATE_CLAIM_VOCAB,
+            )
           : null;
+        const companyStateClaimContradiction = companyStateClaimResult && companyStateClaimResult.contradicted
+          ? { name: companyStateClaimResult.name, realStatus: String(companyStateClaimResult.realState) }
+          : null;
+
+        const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
+          && !(companyStateClaimResult && !companyStateClaimResult.contradicted)
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 
         // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
         // restore_person_employment() (supabase/migrations/
@@ -2142,7 +2210,31 @@ serve(async (req) => {
         // guidance, the model has the correct vocabulary to reach for, and this catches the
         // residual "claimed but nothing happened" case the same way the other correctors do.
         // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
+        //
+        // Incident 2 (see findEntityStateClaimContradiction above): this exact corrector,
+        // real-incident-reproduced, false-fired on "is test3 employee currently employed?"
+        // - a plain read question, zero ids attempted (correctly), answered TRUTHFULLY by
+        // the model referencing a real, prior-turn restore ("...was restored... currently
+        // employed"), because the person's own name ("test3 employee") contains the literal
+        // noun "employee" this regex scans for. personStateClaimResult grounds any specific,
+        // named "test3 employee is/are (currently) employed/active/inactive" claim against
+        // the real, fresh context.people[].active column (added 2026-08-30, see the system
+        // prompt bullet - this field did not exist in context at all before this fix) - a
+        // confirmed-true claim suppresses this corrector for this turn instead of trusting a
+        // blunt word-proximity match that a person's own name can trivially satisfy.
+        const personStateClaimResult = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
+          ? findEntityStateClaimContradiction(
+              String(result.summary || ''),
+              (contextPack?.people || []).map((p: any) => ({ name: p.full_name, state: p.active })),
+              PERSON_STATE_CLAIM_VOCAB,
+            )
+          : null;
+        const personStateClaimContradiction = personStateClaimResult && personStateClaimResult.contradicted
+          ? { name: personStateClaimResult.name, realActive: personStateClaimResult.realState === true }
+          : null;
+
         const claimsPersonDeleted = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
+          && !(personStateClaimResult && !personStateClaimResult.contradicted)
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing)', 'employe(e|d)|person|staff');
 
         // Organization graph audit — real database query, not a guess. Runs immediately
@@ -3140,12 +3232,20 @@ serve(async (req) => {
         // and more useful than the generic "couldn't confirm that" mismatch message, so it
         // takes priority over lifecycleMismatchCorrections when both would otherwise fire.
         const companyStateLabel: Record<string, string> = { active: 'active', archived: 'archived', planning: 'in planning', paused: 'paused' };
-        if (lifecycleReports.length > 0) {
-          result.summary = lifecycleReports.join(' ');
-        } else if (companyStateClaimContradiction) {
+        const stateClaimCorrections: string[] = [];
+        if (companyStateClaimContradiction) {
           const { name, realStatus } = companyStateClaimContradiction;
           const label = companyStateLabel[realStatus] || realStatus;
-          result.summary = `Actually, ${name} is ${label}${realStatus === 'archived' ? '.' : ', not archived.'}`;
+          stateClaimCorrections.push(`Actually, ${name} is ${label}${realStatus === 'archived' ? '.' : ', not archived.'}`);
+        }
+        if (personStateClaimContradiction) {
+          const { name, realActive } = personStateClaimContradiction;
+          stateClaimCorrections.push(`Actually, ${name} is ${realActive ? 'currently employed.' : 'no longer employed.'}`);
+        }
+        if (lifecycleReports.length > 0) {
+          result.summary = lifecycleReports.join(' ');
+        } else if (stateClaimCorrections.length > 0) {
+          result.summary = stateClaimCorrections.join(' ');
         } else if (lifecycleMismatchCorrections.length > 0) {
           result.summary = lifecycleMismatchCorrections.join(' ');
         }
@@ -3166,7 +3266,7 @@ serve(async (req) => {
         // rather than result.summary, so without this they'd be visible only in this
         // request's own SSE `done` event, not to the next turn's buildContext() read of
         // work_orders.output (recentlyResolvedEntities) or a future reload.
-        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || companyStateClaimContradiction || hasResolvedEntities || hasExecutionEvidence) {
+        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
