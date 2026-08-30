@@ -351,3 +351,15 @@ regex).
 Full incident record, including the fourth fix (conversation history can no longer be
 treated as execution proof) and the investigated-and-found-already-correct items (stale
 context, menu/page source divergence): `qa/KNOWN_FAILURE_MODES.md` #32.
+
+Also in the same file (added 2026-08-30, same incident thread): the
+`commandContradictsActionType()` verb-contradiction guard (a stale pending disambiguation/
+clarification can no longer be hijacked into the opposite action by an unrelated new command
+that happens to reference one of its option labels), and
+`findCompanyStateClaimContradiction()` — a real, fresh-DB-grounded check that a company-named
+present-tense state claim ("X is archived"/"X is active") in the model's own summary actually
+matches that company's real `status`, overriding with the true fact when it doesn't. The
+latter closes a distinct failure mode from false-success (Bug 1): a false CURRENT-STATE claim
+used to justify taking no action, with zero mutation ever attempted — caught live when "test3
+is already archived" was said while `test3` was actually `status='active'`. 35 assertions
+total now, up from 29.

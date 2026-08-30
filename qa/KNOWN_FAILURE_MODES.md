@@ -1921,3 +1921,63 @@ incident precisely) plus the symmetric case, three ordinary-affirmative non-cont
 cases, and two genuinely-agreeing-reply non-contradiction cases — see
 `qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs` (29 assertions total now, up
 from 22).
+
+**A second, genuinely new, real defect found live while verifying the fix above**
+(2026-08-30, same session, same `test3`): immediately after confirming the
+disambiguation-hijack fix worked correctly (a real multi-way disambiguation was triggered via
+"restore the archived company" with three archived companies including `test3` NOT among the
+option labels this time, then "archive test3" was sent, correctly did NOT hijack into a
+restore), the chat response itself was **"test3 is already archived. No action taken."** — a
+direct, false claim. An independent DB query run immediately after
+(`select id, name, status from public.companies where name in ('test','test unit',
+'QA-VERIFY-BU','test3')`) showed `test3` was actually `status='active'` at that exact moment.
+A follow-up query against `work_orders.output` for that turn confirmed `archive_ids: []` —
+zero `archiveCompanyIds` were ever attempted, meaning the "already archived" claim was pure,
+ungrounded model prose, not backed by any RPC call.
+
+This is a **different failure mode than Bug 1** (false SUCCESS after a failed mutation) — no
+success was ever claimed, and no mutation was ever attempted. It is instead a **false
+CURRENT-STATE claim** used as a justification for taking no action, and it exposed a real gap
+in the corrector added earlier this campaign: `claimsLifecycleClaim`'s state-description
+exclusion (added specifically to stop a truthful "test3 is archived" from being destroyed by
+the corrector) can tell a state description apart from a completion claim by TEXT SHAPE, but
+has no way to know from text alone whether that state description is actually TRUE. It was
+never designed to — it assumes present-tense "is archived" is truthful by construction, an
+assumption this incident disproves. Root cause of the LLM's own false belief was not
+conclusively isolated (leading, unconfirmed hypothesis: bias from an earlier "archive test3"
+→ "test3: archived" turn much earlier in the same channel's `conversationHistory`, predating
+a later real restore, effectively a Bug-4-shaped defect recurring for a READ/state-description
+answer instead of a WRITE/completion answer) — but rather than chase full reliability out of
+an LLM's own prompt-adherence (never guaranteed to be 100%, and this project's own established
+doctrine throughout has been structural grounding over prompt-only fixes wherever a structural
+option exists), a new, narrow, structural grounding check was added instead, matching the
+established pattern of `archiveRestoreReport`/`organizationGraphCheck`: real, fresh DB fact
+overrides model prose, not the other way around.
+
+**Fix**: `findCompanyStateClaimContradiction(summary, companies)` — deliberately narrow,
+avoiding the exact overreach already rejected in an existing code comment for a bare "active"
+claim (a generic word-proximity heuristic across unrelated prose has real false-positive
+risk). Instead it requires the summary to name a REAL company from `context.companies` by its
+own literal name, immediately followed by an explicit "is/are (currently/already) archived"
+or "is/are (currently/already) active" claim, and only fires when that specific claim
+contradicts that specific company's own real, fresh `status` column. Wired in only when
+`archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0` (same guard as
+`claimsCompanyDeleted`, so it never second-guesses a turn that actually attempted a real
+mutation), and given priority over the generic `lifecycleMismatchCorrections` message when
+both would otherwise apply, since a specific "X is actually archived, not active" fact is more
+useful to the founder than a generic "couldn't confirm that." Folded into the existing
+full-replacement `result.summary` override and the existing `work_orders.output` persistence
+condition, so the correction survives reload exactly like every other grounded corrector in
+this file.
+
+Regression-tested (`qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs`, now 35
+assertions total, up from 29): the exact real incident text reproduced and caught (`"test3 is
+already archived. No action taken."` against real `status='active'`), the symmetric false
+"is active" case, two TRUE state-description cases confirmed to never be flagged (the exact
+protection the earlier fix in this same file exists to preserve), a non-archived/non-active
+real status (`planning`) still correctly caught as "not archived", and a no-claim-at-all case
+confirmed to never false-positive.
+
+Deployed via `ALLOW_FUNCTIONS_DEPLOY=1 git push origin master` (same established path).
+Live-verification and independent re-review of this specific fix are tracked as the immediate
+next step — not yet complete as of this entry.

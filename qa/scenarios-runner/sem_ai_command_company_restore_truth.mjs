@@ -68,6 +68,27 @@ function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompany
     && claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 }
 
+// ---- byte-for-byte copy: findCompanyStateClaimContradiction (2026-08-30, "test3 is
+// already archived" incident - real status was 'active', zero archiveCompanyIds attempted) ----
+function findCompanyStateClaimContradiction(summary, companies) {
+  for (const c of companies) {
+    if (!c || typeof c.name !== 'string' || !c.name.trim() || typeof c.status !== 'string') continue;
+    const escapedName = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?(archived|active)\\b`,
+      'i',
+    );
+    const match = pattern.exec(summary);
+    if (!match) continue;
+    const claimedStatus = match[1].toLowerCase();
+    const realStatus = c.status.toLowerCase();
+    const contradicts = (claimedStatus === 'archived' && realStatus !== 'archived')
+      || (claimedStatus === 'active' && realStatus === 'archived');
+    if (contradicts) return { name: c.name.trim(), claimedStatus, realStatus };
+  }
+  return null;
+}
+
 // ---- byte-for-byte copy: the updateCompanies lifecycle-transition-skip logic ----
 function statusChangeIsLifecycleTransition(requestedStatus, currentStatus) {
   return !!requestedStatus && (requestedStatus === 'archived' || currentStatus === 'archived');
@@ -234,6 +255,54 @@ function assert(cond, name, detail) {
   assert(commandContradictsActionType('yes, restore test3', 'restore') === false, 'an agreeing reply ("restore test3" when actionType is restore) does not contradict');
   assert(commandContradictsActionType('archive it please', 'archive') === false, 'an agreeing reply ("archive" when actionType is archive) does not contradict');
 }
+
+// findCompanyStateClaimContradiction: the real, live incident this corrector exists to
+// close. "test3 is already archived" said with zero real archiveCompanyIds attempted while
+// test3's real, fresh status was 'active'.
+{
+  const companies = [{ id: '93073272-c9c6-485c-b0ad-459df37ce6f5', name: 'test3', status: 'active' }];
+  const contradiction = findCompanyStateClaimContradiction('test3 is already archived. No action taken.', companies);
+  assert(!!contradiction, 'CRITICAL: false "test3 is already archived" claim is caught against real status=active', contradiction);
+  assert(contradiction && contradiction.realStatus === 'active', 'contradiction carries the real, fresh status (active), not the false claim');
+}
+// Symmetric direction: a false "is active" claim about a genuinely archived company.
+{
+  const companies = [{ id: 'x', name: 'test', status: 'archived' }];
+  const contradiction = findCompanyStateClaimContradiction('test is currently active and healthy.', companies);
+  assert(!!contradiction, 'symmetric case: false "is active" claim caught against real status=archived');
+}
+// A TRUE state description must never be flagged - this is the exact case the earlier fix
+// (state-description exclusion in claimsLifecycleClaim) protects, now double-checked here
+// against real ground truth instead of only against text shape.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'archived' }];
+  const contradiction = findCompanyStateClaimContradiction('test3 is archived. Should I restore it?', companies);
+  assert(contradiction === null, 'a TRUE "is archived" state description (real status matches) is never flagged');
+}
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const contradiction = findCompanyStateClaimContradiction('test3 is active. Everything looks normal.', companies);
+  assert(contradiction === null, 'a TRUE "is active" state description (real status matches) is never flagged');
+}
+// Non-archived/active statuses (planning/paused) never trigger a false "not archived"
+// correction just because the claim says "archived" and the real value differs - only the
+// two specific claim words (archived/active) are checked, and only against real ground truth.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'planning' }];
+  const contradiction = findCompanyStateClaimContradiction('test3 is archived and unavailable.', companies);
+  assert(!!contradiction && contradiction.realStatus === 'planning', 'false "archived" claim against a real status of planning is still caught (not archived is not archived)');
+}
+// Must not false-positive on ordinary unrelated prose that never pairs a real company name
+// with an archived/active claim.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const contradiction = findCompanyStateClaimContradiction('You have 12 companies total across the workspace.', companies);
+  assert(contradiction === null, 'no contradiction when the summary never claims a specific state for the company');
+}
+// Must not fire when a real mutation was actually attempted this turn (mirrors
+// claimsCompanyLifecycleChange's own guard) - covered at the call site
+// (archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0), not inside the
+// function itself, so this documents that the call-site guard is the actual gate.
 
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);

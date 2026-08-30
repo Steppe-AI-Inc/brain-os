@@ -210,6 +210,46 @@ function claimsLifecycleClaim(summary: string, verbAlternation: string, nounAlte
   return claimPattern.test(summary) && !stateDescriptionPattern.test(summary);
 }
 
+// Grounds a per-company present-tense STATE CLAIM against real, fresh company.status —
+// the exact gap claimsLifecycleClaim's own state-description exclusion (above) leaves open
+// by design: "test3 is archived" is deliberately let through as a truthful state
+// description, but nothing checked whether it actually IS truthful.
+//
+// Real incident (2026-08-30, immediately after the disambiguation-hijack fix bb1363f):
+// "archive test3" fell through to a genuine LLM call (correctly - the hijack guard did its
+// job) and the LLM itself replied "test3 is already archived. No action taken." with zero
+// archiveCompanyIds attempted this turn (confirmed via direct work_orders.output query -
+// archive_ids: []), while the real companies.status row for test3 was 'active' the entire
+// time (confirmed via direct DB query). Not a false SUCCESS claim (Bug 1's original scope)
+// - a false CURRENT-STATE claim, functioning as a false justification for taking no action.
+//
+// Deliberately narrow to avoid the exact overreach the archiveRestoreReport comment above
+// already rejected for a bare "active" claim: this only fires when the summary names a
+// REAL company from context.companies by its own literal name immediately followed by an
+// archived/active state claim, cross-checked against that same company's own real status -
+// never a generic word-proximity heuristic across unrelated prose.
+function findCompanyStateClaimContradiction(
+  summary: string,
+  companies: Array<{ id?: unknown; name?: unknown; status?: unknown }>,
+): { name: string; claimedStatus: string; realStatus: string } | null {
+  for (const c of companies) {
+    if (!c || typeof c.name !== 'string' || !c.name.trim() || typeof c.status !== 'string') continue;
+    const escapedName = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `\\b${escapedName}\\b(?:'s status)?\\s+(?:is|are)\\s+(?:currently\\s+|already\\s+)?(archived|active)\\b`,
+      'i',
+    );
+    const match = pattern.exec(summary);
+    if (!match) continue;
+    const claimedStatus = match[1].toLowerCase();
+    const realStatus = c.status.toLowerCase();
+    const contradicts = (claimedStatus === 'archived' && realStatus !== 'archived')
+      || (claimedStatus === 'active' && realStatus === 'archived');
+    if (contradicts) return { name: c.name.trim(), claimedStatus, realStatus };
+  }
+  return null;
+}
+
 const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
 Refer to yourself as "Brain OS" if you need to name yourself in a reply, never "SEM Brain".
@@ -2049,6 +2089,14 @@ serve(async (req) => {
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 
+        // See findCompanyStateClaimContradiction above (2026-08-30 "test3 already archived"
+        // incident): a false present-tense STATE claim, not a false completion claim, so it
+        // is checked separately from claimsCompanyDeleted (which claimsLifecycleClaim's own
+        // exclusion pattern deliberately does not flag).
+        const companyStateClaimContradiction = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
+          ? findCompanyStateClaimContradiction(String(result.summary || ''), contextPack?.companies || [])
+          : null;
+
         // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
         // restore_person_employment() (supabase/migrations/
         // 202608290008_person_lifecycle_end_employment_and_delete.sql) — soft, historicizes
@@ -3086,8 +3134,18 @@ serve(async (req) => {
         if (claimsTaskDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No task was actually archived, restored, or deleted this turn.');
         if (claimsGoalDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No goal was actually archived or restored this turn.');
         if (claimsPersonDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No employee’s employment was actually ended or restored this turn.');
+        // Priority: a real archive/restore attempt this turn (lifecycleReports) is always
+        // the most authoritative thing that happened. Absent that, a grounded state-claim
+        // contradiction (a specific, provable "X is actually Y, not Z" fact) is stronger
+        // and more useful than the generic "couldn't confirm that" mismatch message, so it
+        // takes priority over lifecycleMismatchCorrections when both would otherwise fire.
+        const companyStateLabel: Record<string, string> = { active: 'active', archived: 'archived', planning: 'in planning', paused: 'paused' };
         if (lifecycleReports.length > 0) {
           result.summary = lifecycleReports.join(' ');
+        } else if (companyStateClaimContradiction) {
+          const { name, realStatus } = companyStateClaimContradiction;
+          const label = companyStateLabel[realStatus] || realStatus;
+          result.summary = `Actually, ${name} is ${label}${realStatus === 'archived' ? '.' : ', not archived.'}`;
         } else if (lifecycleMismatchCorrections.length > 0) {
           result.summary = lifecycleMismatchCorrections.join(' ');
         }
@@ -3108,7 +3166,7 @@ serve(async (req) => {
         // rather than result.summary, so without this they'd be visible only in this
         // request's own SSE `done` event, not to the next turn's buildContext() read of
         // work_orders.output (recentlyResolvedEntities) or a future reload.
-        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence) {
+        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || companyStateClaimContradiction || hasResolvedEntities || hasExecutionEvidence) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
