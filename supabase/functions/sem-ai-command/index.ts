@@ -130,6 +130,29 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> 
   employee: { archive: 'endEmploymentPersonIds', restore: 'restoreEmploymentPersonIds' },
 };
 
+// Real, live-reproduced defect found by an independent verifier certifying the fix above
+// (2026-08-30, "disambiguation-stale-actionType-hijack" — see qa/KNOWN_FAILURE_MODES.md
+// #32): matchDisambiguationOption() matches a new command against a pending
+// disambiguation's option LABELS only, with no check that the new command's own words
+// actually agree with that option's actionType. Live-reproduced in real production data:
+// command literally "archive test3" while a stale disambiguation ("Which archived company
+// should I restore?", every option carrying actionType:"restore") was still pending —
+// "test3" matched the label substring and the code executed a RESTORE, the exact opposite
+// of the new command's own literal verb. A direct side effect of actionType itself — the
+// very field this fix pass introduced to disambiguation options — since previously every
+// option shared one implicit action and this class of contradiction couldn't arise.
+// Deliberately narrow: only rejects when the command contains an EXPLICIT verb from the
+// OPPOSITE family with none from the matching family — an ordinary affirmative ("yes",
+// "that one", "do it") contains neither and is correctly left unaffected.
+const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
+const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
+function commandContradictsActionType(command: string, actionType: string | undefined): boolean {
+  const resolvedActionType = actionType || 'archive';
+  if (resolvedActionType === 'archive' && RESTORE_VERB_PATTERN.test(command) && !ARCHIVE_VERB_PATTERN.test(command)) return true;
+  if (resolvedActionType === 'restore' && ARCHIVE_VERB_PATTERN.test(command) && !RESTORE_VERB_PATTERN.test(command)) return true;
+  return false;
+}
+
 // Broader than the bulk_confirmation isShortAffirmative check below (an exact
 // whole-string match) — a clarification reply is realistically phrased with trailing
 // content ("yes, delete that employee") or a referent phrase ("that one", "correct")
@@ -1618,13 +1641,16 @@ serve(async (req) => {
             fields: pendingAction.action,
             tag: 'deterministic-confirmation',
           };
-        } else if (pendingAction && pendingAction.kind === 'single_entity_clarification' && Array.isArray(pendingAction.candidateIds) && pendingAction.candidateIds.length > 0 && isClarificationAffirmative(command)) {
+        } else if (pendingAction && pendingAction.kind === 'single_entity_clarification' && Array.isArray(pendingAction.candidateIds) && pendingAction.candidateIds.length > 0 && isClarificationAffirmative(command) && !commandContradictsActionType(command, pendingAction.actionType)) {
           // actionType defaults to 'archive' when absent - every clarification proposed
           // before this fix (and every archive/delete-style clarification since) never set
           // it, so this default keeps that behavior byte-identical. A restore clarification
           // MUST set actionType:'restore' (system prompt requirement below) to reach
           // restoreCompanyIds/restoreTaskIds/restoreGoalIds/restoreEmploymentPersonIds
           // instead of silently landing on the archive field for the same entityType.
+          // The !commandContradictsActionType guard is defense-in-depth here (an ordinary
+          // affirmative already can't contain a contradicting verb) - the real exploited
+          // path was the disambiguation branch below, not this one.
           const field = CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || '']?.[pendingAction.actionType || 'archive'];
           if (field) {
             deterministic = {
@@ -1635,8 +1661,18 @@ serve(async (req) => {
           }
         } else if (pendingAction && pendingAction.kind === 'disambiguation' && Array.isArray(pendingAction.options) && pendingAction.options.length > 0) {
           const matchedOption = matchDisambiguationOption(command, pendingAction.options);
-          const field = matchedOption ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType]?.[matchedOption.actionType || 'archive'] : undefined;
-          if (matchedOption && field) {
+          // The actual exploited path (2026-08-30, disambiguation-stale-actionType-hijack):
+          // matchDisambiguationOption() only ever checked the reply's text against option
+          // LABELS, with no requirement that the reply even look like an answer to the
+          // pending question at all - a genuinely new, unrelated command ("archive test3")
+          // that happened to mention a pending option's label got silently absorbed as a
+          // confirmation of that option's stale actionType (a restore), the exact opposite
+          // of the new command's own literal verb. If the new command's own words clearly
+          // state the opposite action, this is a fresh command, not a stale confirmation -
+          // fall through to the ordinary LLM call instead of resolving deterministically.
+          const contradicted = !!matchedOption && commandContradictsActionType(command, matchedOption.actionType);
+          const field = matchedOption && !contradicted ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType]?.[matchedOption.actionType || 'archive'] : undefined;
+          if (matchedOption && !contradicted && field) {
             deterministic = {
               summary: `Confirmed — ${matchedOption.label}.`,
               fields: { [field]: [matchedOption.id] },

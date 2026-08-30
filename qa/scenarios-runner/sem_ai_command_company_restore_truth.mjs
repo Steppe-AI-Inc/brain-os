@@ -73,6 +73,24 @@ function statusChangeIsLifecycleTransition(requestedStatus, currentStatus) {
   return !!requestedStatus && (requestedStatus === 'archived' || currentStatus === 'archived');
 }
 
+// ---- byte-for-byte copy: the verb-contradiction guard (disambiguation-stale-actionType-hijack) ----
+// A SEVENTH real defect, independently rediscovered by the final verifier certifying the
+// fixes above (2026-08-30): matchDisambiguationOption() matched a new command against a
+// pending disambiguation's option LABELS only, with no check that the new command's own
+// words agreed with that option's actionType. Live-reproduced in real production data:
+// command literally "archive test3" while a stale disambiguation ("Which archived company
+// should I restore?", every option actionType:"restore") was still pending - "test3"
+// matched the label substring and the code executed a RESTORE, the opposite of the new
+// command's own literal verb.
+const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
+const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
+function commandContradictsActionType(command, actionType) {
+  const resolvedActionType = actionType || 'archive';
+  if (resolvedActionType === 'archive' && RESTORE_VERB_PATTERN.test(command) && !ARCHIVE_VERB_PATTERN.test(command)) return true;
+  if (resolvedActionType === 'restore' && ARCHIVE_VERB_PATTERN.test(command) && !RESTORE_VERB_PATTERN.test(command)) return true;
+  return false;
+}
+
 let failed = false;
 function assert(cond, name, detail) {
   if (!cond) { failed = true; console.error(`FAIL ${name}${detail ? ' — ' + detail : ''}`); }
@@ -194,6 +212,27 @@ function assert(cond, name, detail) {
 {
   assert(statusChangeIsLifecycleTransition('planning', 'active') === false, 'active -> planning on a non-archived company is NOT a lifecycle transition, allowed');
   assert(statusChangeIsLifecycleTransition('paused', 'planning') === false, 'planning -> paused on a non-archived company is NOT a lifecycle transition, allowed');
+}
+
+// ============ Defect 7: disambiguation-stale-actionType-hijack ============
+// The EXACT real production case: "archive test3" while a stale disambiguation with
+// actionType:"restore" is pending must be recognized as a contradiction, not silently
+// executed as a restore.
+{
+  assert(commandContradictsActionType('archive test3', 'restore') === true, 'CRITICAL: "archive test3" contradicts a pending actionType:restore (the real incident)');
+  assert(commandContradictsActionType('restore test3', 'archive') === true, 'symmetric case: "restore test3" contradicts a pending actionType:archive');
+}
+// Ordinary affirmatives (the overwhelmingly common real case) must be completely unaffected -
+// they contain neither verb family, so they can never "contradict".
+{
+  assert(commandContradictsActionType('yes', 'restore') === false, 'bare "yes" never contradicts (no verb at all)');
+  assert(commandContradictsActionType('that one', 'archive') === false, '"that one" never contradicts (no verb at all)');
+  assert(commandContradictsActionType('do it', 'restore') === false, '"do it" never contradicts (no verb at all)');
+}
+// A reply that genuinely agrees with the pending action must still resolve normally.
+{
+  assert(commandContradictsActionType('yes, restore test3', 'restore') === false, 'an agreeing reply ("restore test3" when actionType is restore) does not contradict');
+  assert(commandContradictsActionType('archive it please', 'archive') === false, 'an agreeing reply ("archive" when actionType is archive) does not contradict');
 }
 
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');

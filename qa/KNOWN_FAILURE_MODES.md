@@ -1899,3 +1899,25 @@ Target status: **`E2E VERIFIED — COMPANY RESTORE TRUTH + CHANNEL CONFIRMATION 
 SUCCESS`** for the certified core claim. The disambiguation-hijack defect is tracked as a
 separate, real, non-blocking follow-up — see the fix record appended after this entry once
 it lands.
+
+**Fix for the disambiguation-stale-`actionType`-hijack follow-up** (implemented by a
+different pass than the one that certified the core claim above, matching the verifier's
+own recommended separation-of-duties): a `commandContradictsActionType()` guard now checks
+whether the new command's own words contain an EXPLICIT verb from the OPPOSITE family
+("archive"/"delete"/"remove"/"end" vs "restore"/"un-archive"/"bring back"/"reactivate")
+from the pending action's `actionType`, with none from the matching family. Applied to both
+the actually-exploited `disambiguation` branch (`matchDisambiguationOption` resolution) and,
+as defense-in-depth, the `single_entity_clarification` branch. Deliberately narrow: an
+ordinary affirmative ("yes", "that one", "do it") contains neither verb family and is
+completely unaffected; a reply that genuinely agrees with the pending action ("restore
+test3" when `actionType` is already `restore`) still resolves normally. When a
+contradiction is detected, the deterministic fast-path is skipped entirely and the message
+falls through to the ordinary LLM call — correctly treating it as a fresh, unrelated
+command rather than either a stale confirmation or a silent no-op.
+
+Reproduced the exact real production case locally before touching anything live
+(`commandContradictsActionType('archive test3', 'restore')` → `true`, matching the real
+incident precisely) plus the symmetric case, three ordinary-affirmative non-contradiction
+cases, and two genuinely-agreeing-reply non-contradiction cases — see
+`qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs` (29 assertions total now, up
+from 22).
