@@ -2568,3 +2568,113 @@ Deploy status: pending — full live E2E acceptance script (real `QA-MULTI-CO`/
 archive/end-employment + reload/fresh-context sequence from the founder's own spec) and
 independent verifier dispatch are the required next steps before any completion claim for
 this final piece of the 12-bug campaign.
+
+**UPDATE — real live acceptance testing of #35 surfaced four further genuine defects, one
+of them a critical production availability bug. All four found, root-caused, and fixed in
+this same pass.**
+
+**Defect A — a real regression in `buildExecutionPlanReport` itself, self-caught before any
+live testing**: writing this fix's own regression suite immediately surfaced that
+`assign_task`'s per-action naming picked `personId` before `taskId` when `targetIds`
+legitimately carries both (true only for this one operation) — "Assign task
+(QA-MULTI-EMPLOYEE): done." instead of "Assign task (QA-MULTI-TASK): done." Fixed by
+making the naming operation-aware. (Already folded into #35's own commit before deploy —
+noted here only because the remaining three defects below build directly on this pass.)
+
+**Defect B — real terminology collision, live-caught**: "assign QA-MULTI-TASK to
+QA-MULTI-EMPLOYEE" was wrongly answered "QA-MULTI-EMPLOYEE is already assigned to
+QA-MULTI-TASK via their current person assignment (legal employer: QA-MULTI-CO, operating
+company: CLIX GPS). No change needed." — conflating TASK OWNERSHIP with EMPLOYMENT
+(`person_assignments`/legal employer vs. operating company), a completely different axis,
+purely because both concepts use the word "assign". A first fix attempt (an explicit
+prompt-only disambiguation bullet) did **not** survive live retest — the identical wrong
+answer reproduced. The real root cause, found on deeper investigation: `context.tasks`
+never selected `owner_type`/`owner_person_id`/`owner_agent_id` at all — the model had zero
+real data to answer a task-ownership question from, so it fell back to the nearest concept
+it did have data for, regardless of how explicit the prompt's disambiguation instruction
+was (the prompt even referenced these exact field names already — they just didn't exist
+in the data, and were cased wrong: camelCase in the prompt vs. real snake_case columns).
+Fixed by adding the three real owner columns to the tasks select and correcting the
+prompt's field casing. Same structural pattern as the earlier `context.people[].active`
+gap this campaign already fixed once — a missing data field, not prompt wording, was the
+actual cause both times.
+
+**Defect C — a third false-completion shape, live-caught**: immediately after fixing
+Defect B, "assign QA-MULTI-TASK to QA-MULTI-EMPLOYEE" (retried) got "QA-MULTI-TASK...has no
+owner set yet...I'll assign the task to them now." with `pendingAction === null` in the
+real, persisted `work_orders.output` — no `multi_action_plan` proposed, no confirmation
+requested, zero grounded outcome. A bare future-tense promise with genuinely nothing behind
+it, not even a pending confirmation — the exact Bug 1 pattern in a shape none of the
+existing `claims*Deleted` correctors catch (they scan for archive/restore/delete verbs
+specifically). Fixed with a new `claimsFutureActionWithNoPlan` gate: fires only when
+NOTHING structured happened this turn at all (`!pendingAction && !groundedOutcomeThisTurn`)
+and the summary contains "I'll/I will/going to &lt;action verb&gt;" — a real
+`bulk_confirmation`/`multi_action_plan` proposal using similar phrasing is completely
+unaffected, since its own `pendingAction` is real and non-null.
+
+**Defect D — critical production availability bug, live-caught**: "no, don't create a new
+task - just assign the existing QA-MULTI-TASK to them" hit `{"error":"Token preflight hard
+stop","tokenEstimate":12187,"hardMax":12000}` — **zero response returned at all**. First
+hypothesis (the new named-lookup queries from #33/#35 were too broad) was disproven: capping
+each lookup at 5 rows and expanding the stopword list barely moved the number (12187→12089).
+**Reproduced identically in a brand-new chat channel with zero conversation history**,
+proving the bloat was in the BASE context pack itself, not chat history or the
+command-specific lookups. Real, SQL-based diagnostic measurement of `buildContext()`'s own
+field selections against the live production workspace (17 companies, 15 people, 36 tasks,
+8 goals, 52 memories — a normal, not unusually large workspace) found the base context pack
+was already **~13,000–14,000 estimated tokens** before any command-specific data — already
+over the hard cap by itself. Top contributors: `memories` (2,839 tokens for 20 rows,
+uncapped ILIKE fallback), `canonical_work_orders`/factory Work Orders (2,207 tokens for just
+7 rows even in its already-"compact" mapped form, driven by a nested `tasks()`/`agent_runs()`
+join pulling full commit-hash/summary text for every Work Order unconditionally on every
+turn regardless of relevance), and `tasks` (2,085 tokens for 21 rows).
+
+The founder explicitly declined raising `SEM_AI_MAX_TOKENS` as a fix ("Do not use a larger
+production secret to hide a context-construction defect") and required the real
+architecture fix: a two-stage retrieval process (lightweight intent/entity extraction →
+targeted canonical retrieval → bounded final context), with explicit collection
+categorization (always-load tiny metadata; targeted-load by canonical id/name; bounded
+recent/relevant-load; summary-only unless explicitly requested; on-demand fetch only when
+asked) and memories specifically relevance-retrieved, not dumped.
+
+Fixed, matching that architecture, reusing the SAME lightweight regex-based intent
+extraction already proven for companies/people/goals (`commandNameTokens` +
+`COMMON_COMMAND_STOPWORDS`) rather than a second LLM call:
+1. **Factory Work Orders → summary-only by default, detail on-demand.** A new
+   `FACTORY_INTENT_PATTERN` (work order/factory/agent run/verification/deploy/commit)
+   gates which query runs: matched → the full nested detail query (unchanged); not matched
+   → a genuinely lightweight query (`id,title,status,work_type,company_id,goal_id`, no
+   nested join, no free-text fields at all). A real, adjacent bug this surfaced and closed
+   in the same pass: without a discriminator, every entry's run/task detail fields would
+   silently read as 0/null whenever the lightweight query ran — indistinguishable from a
+   genuinely empty Work Order. Added a `detailLoaded` boolean to every
+   `context.factoryWorkOrders` entry and explicit prompt guidance: `detailLoaded: false`
+   means "not fetched this turn", never "confirmed zero" — the model must not state
+   task/run counts as real values when it's false.
+2. **Memories** — fallback (no-embedding) cap reduced 20→8, matching the semantic-search
+   path's own `match_count: 8` exactly, so memories are consistently relevance-scoped
+   regardless of which retrieval path is active.
+3. **Tasks and channels** — base caps reduced (tasks 30→15, channels 30→15), each
+   backstopped by the same targeted, uncapped named-lookup mechanism already proven for
+   companies/people/goals (`namedTaskLookupQuery`, new) so a specifically-named task/company/
+   person/goal remains always-resolvable regardless of the smaller general cap — the exact
+   "targeted retrieval, not a blanket dump" pattern the founder's spec required.
+
+Net effect, independently re-measured via the same real, SQL-based diagnostic against the
+live production workspace: base context pack estimated at **8,791 tokens** (down from
+~13,000–14,000), leaving over 3,000 tokens of real headroom below the unchanged 12,000
+hard cap — comfortably under the 10,000 safe-budget threshold the new regression test
+enforces.
+
+Regression-tested: `qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` (now 34
+assertions, up from 25, covering Defect C's gate) and a new
+`qa/scenarios-runner/sem_ai_command_context_budget.sql` (SQL, read-only, re-derives the
+real per-section byte counts against the live workspace and asserts the total stays under
+the safe budget — `BRAIN_CHAT_FRESH_CHANNEL_BASE_CONTEXT_BELOW_SAFE_BUDGET`).
+
+**Explicitly not yet done**: full re-verification of the original `#35` E2E acceptance
+script end-to-end after all four fixes (in progress), and independent verifier dispatch.
+`SEM_AI_MAX_TOKENS` was deliberately left unchanged at 12000 throughout this remediation,
+per explicit founder instruction — if a legitimate case remains for raising it after this
+architecture fix, that requires a fresh measurement (typical/p95/worst-case real prompt
+sizes and remaining headroom) presented on its own merits, not as a workaround.

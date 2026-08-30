@@ -428,3 +428,32 @@ bug where `assign_task`'s per-action naming picked the wrong target id when both
 `personId` were present).
 
 Full incident record: `qa/KNOWN_FAILURE_MODES.md` #35.
+
+## Context budget: base context pack stays under a safe token threshold (catches: a real
+"Token preflight hard stop" that reproduced with zero response even in a brand-new chat
+channel with no history — added 2026-08-30)
+
+`qa/scenarios-runner/sem_ai_command_context_budget.sql` — SQL, read-only, run with `npx
+supabase db query --linked -f qa/scenarios-runner/sem_ai_command_context_budget.sql`.
+Re-derives the real per-section byte counts `buildContext()` (supabase/functions/
+sem-ai-command/index.ts) would produce for the live production workspace (companies,
+tasks, memories, people, goals, relationships, assignments, financial reports, channels,
+projects, approvals, inventory, products, departments, leads, documents, proposals,
+product specs, drawings, AI providers, MCP connectors, and the factory Work Orders
+summary) and asserts the combined base total (excluding conversation history and
+command-specific data) stays under a 10,000-token safe budget, well below the unchanged
+12,000 hard cap — `BRAIN_CHAT_FRESH_CHANNEL_BASE_CONTEXT_BELOW_SAFE_BUDGET`. The exact
+select field lists/caps must be kept in sync with `index.ts` manually if either changes,
+same convention as every other file in this directory.
+
+Also added in the same pass: `qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs`
+gained a `claimsFutureActionWithNoPlan` gate (34 assertions total, up from 25) catching a
+third false-completion shape — a bare "I'll do X now" future-tense promise with
+`pendingAction === null` and zero grounded outcome, not even a pending confirmation.
+
+Full incident record, including the real terminology-collision defect (task ownership vs.
+person-company employment assignment, root-caused to a missing `context.tasks` owner
+field rather than prompt wording) and the two-stage context-retrieval architecture fix
+(factory Work Orders summary-only by default with a `detailLoaded` discriminator, memories
+capped consistently at 8 regardless of retrieval path, tasks/channels caps reduced and
+backstopped by targeted named-lookup): `qa/KNOWN_FAILURE_MODES.md` #36.

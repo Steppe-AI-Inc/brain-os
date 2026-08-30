@@ -974,7 +974,18 @@ Rules:
   lastRunVerificationStatus, lastRunSummary, lastRunHeadCommit) for the founder's real
   recent Work Orders, regardless of whether this is a fresh conversation with no memory of
   creating it. This is real, current truth from the database, not something you need
-  conversationHistory for. Translate the real status into plain founder-facing language —
+  conversationHistory for. CRITICAL: every entry also carries "detailLoaded" — false means
+  the run/task detail fields (taskCount/runCount/lastRunStatus/commitBearingRunCount/
+  allCommitsVerified/lastRunVerificationStatus/lastRunSummary/lastRunHeadCommit) were NOT
+  fetched this turn (a deliberate cost-saving default for commands with no factory intent)
+  and read as 0/null regardless of the real, actual values — this does NOT mean the Work
+  Order genuinely has zero tasks/runs. When detailLoaded is false and the founder is
+  asking about run/verification detail specifically, say you need to check the Software
+  Factory detail and either ask them to mention it explicitly (e.g. "check the work
+  order") or note you'll look it up — never state taskCount/runCount/lastRunStatus/etc.
+  as if they were confirmed real values when detailLoaded is false. Only "id", "title",
+  "status", "workType", "companyId", "goalId" are always real regardless of detailLoaded.
+  Translate the real status into plain founder-facing language —
   NEVER repeat a raw database enum value like \`e2e_verified\` or \`in_progress\` in your
   own prose. Use exactly this vocabulary: "Created" (the record exists but no Work Order
   yet), "Queued" (status queued, no run started yet), "Running" (a run is in progress),
@@ -1811,15 +1822,53 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
         .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
         .limit(NAMED_LOOKUP_ROW_CAP)
     : Promise.resolve({ data: [] as any[] });
+  // Same pattern for tasks (Bug 12 same-defect-class extension, 2026-08-30): a task named
+  // directly ("assign QA-MULTI-TASK...") must be resolvable regardless of the general cap.
+  const namedTaskLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id')
+        .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
+    : Promise.resolve({ data: [] as any[] });
+
+  // Real diagnostic finding (2026-08-30, in response to a real "Token preflight hard stop"
+  // that reproduced even in a brand-new channel with zero history): a fresh workspace's
+  // BASE context pack, before any command-specific data, measured ~14,272 estimated
+  // tokens - already over the 12,000 hard cap - driven overwhelmingly by sections that are
+  // fetched unconditionally on EVERY turn regardless of whether the command has anything
+  // to do with them. canonical_work_orders (factory Work Orders) was the single largest
+  // real contributor even in its already-compacted summary form (~2,200 tokens for just 7
+  // rows, driven by free-text objective/summary fields) - a genuinely niche feature most
+  // ordinary company/person/task commands have no relationship to at all. Fixed via the
+  // two-stage retrieval the founder's own architecture spec requires: SUMMARY-ONLY by
+  // default (a cheap, no-nested-join id/title/status/verification_status list, no
+  // objective/commit/summary text), with the full detailed version only fetched when the
+  // command's own text actually suggests factory/work-order intent - the same lightweight,
+  // regex-based intent signal already used for company/person/goal/task name extraction
+  // above, not a second LLM call.
+  const FACTORY_INTENT_PATTERN = /\b(work\s*order|factory|agent\s*run|verification|verified|deploy(ed|ment)?|commit)\b/i;
+  const wantsFactoryDetail = FACTORY_INTENT_PATTERN.test(command);
+  const factoryWorkOrdersQuery = wantsFactoryDetail
+    ? supabase.from('canonical_work_orders')
+        .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)')
+        .order('created_at', { ascending: false })
+        .limit(10)
+    : supabase.from('canonical_work_orders')
+        .select('id,title,status,work_type,company_id,goal_id')
+        .order('created_at', { ascending: false })
+        .limit(10);
   const queryEmbedding = await embedText(command, openaiKey);
   // Real semantic retrieval when embeddings are available (match_memories, migration
   // 202608260008); degrades to the original ILIKE substring match otherwise — company
   // knowledge lookup must never be the reason a chat command fails.
   // pgvector RPC params round-trip as text over PostgREST — "[0.1,0.2,...]", not a raw
   // JS array.
+  // Fallback cap reduced 20->8 (2026-08-30, context-budget pass) to match the semantic
+  // path's own match_count exactly - memories are meant to be relevance-retrieved either
+  // way, not a bigger, less-targeted dump just because embeddings happened to be
+  // unavailable this request.
   const memoriesQuery = queryEmbedding
     ? supabase.rpc('match_memories', { query_embedding: `[${queryEmbedding.join(',')}]`, match_count: 8 })
-    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(20);
+    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(8);
   // Short-term continuity: the last few turns in this same channel, chronological.
   // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
   // Same ordering defect as web/lib/data/chat-history.ts (fixed alongside this one, see
@@ -1835,7 +1884,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks] = await Promise.all([
@@ -1850,7 +1899,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // (legal employer: X, operating company: Y)"), repeatedly, even after an explicit
     // prompt-only instruction distinguishing the two. Same structural pattern as the
     // earlier context.people[].active gap this same campaign already fixed once.
-    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id').in('status',TASK_STATUSES).limit(30),
+    // Cap reduced 30->15 (2026-08-30, same context-budget pass): a specifically-named task
+    // is now always resolvable via namedTaskLookupQuery below regardless of this general
+    // cap, the same "targeted retrieval backstops a smaller default list" pattern already
+    // proven for companies/people/goals - a smaller default recent-set is safe.
+    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id').in('status',TASK_STATUSES).limit(15),
+    namedTaskLookupQuery,
     memoriesQuery,
     supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     // unit_cost intentionally not selected — it lives in product_costs now (manager+
@@ -1886,17 +1940,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // casing. Deliberately a compact summary (title/status/task+run counts/last run
     // outcome), not the full detail the /software-factory UI shows - this is chat
     // context, not a dashboard dump.
-    supabase.from('canonical_work_orders')
-      .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)')
-      .order('created_at', { ascending: false })
-      .limit(10),
+    factoryWorkOrdersQuery,
     // Brain OS's own chat_channels — so the model knows these are internal conversation
     // threads it can be asked to delete, not an external platform (Slack/Teams/Discord)
     // it has no access to.
     // company_id included so a primary-company can be derived for KNOWN_FAILURE_MODES #7
     // (company_id backfill on work_orders/chat_channels/audit_logs) — see
     // derivePrimaryCompanyId() below.
-    supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(30),
+    // Cap reduced 30->15 (2026-08-30, context-budget pass) - channels were a real,
+    // measurable contributor (987 est. tokens for 30 rows) to a base context pack that
+    // measured over the hard token cap even in a brand-new channel with zero history.
+    supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(15),
     // Low-risk, chat-creatable/editable entities (createDepartments/updateDepartments,
     // createLeads/updateLeads, createDocuments) — same "check context first, never
     // duplicate" and id-provenance discipline as every other entity above. Documents:
@@ -2054,6 +2108,14 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       workType: w.work_type,
       companyId: w.company_id,
       goalId: w.goal_id,
+      // detailLoaded (2026-08-30, context-budget fix): the run/task detail fields below
+      // are only ever fetched when the command's own text suggests factory intent
+      // (wantsFactoryDetail) - real incident risk this closes: without this flag, a
+      // command that never mentions factory/work-order language would see EVERY field
+      // below as 0/null (Array.isArray(undefined) on the un-fetched nested join is
+      // false), indistinguishable from a genuinely empty/untouched Work Order. false
+      // means "not fetched this turn", never "confirmed zero".
+      detailLoaded: wantsFactoryDetail,
       taskCount: Array.isArray(w.tasks) ? w.tasks.length : 0,
       runCount: runs.length,
       lastRunStatus: lastRun?.status ?? null,
@@ -2123,6 +2185,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     const extra = (namedGoalLookup.data || []).filter((g: any) => !seen.has(g.id));
     return [...(goals.data || []), ...extra];
   })();
+  // Same merge for tasks (cap reduced 30->15 above; this backstops it).
+  const mergedTasksData = (() => {
+    const seen = new Set((tasks.data || []).map((t: any) => t.id));
+    const extra = (namedTaskLookup.data || []).filter((t: any) => !seen.has(t.id));
+    return [...(tasks.data || []), ...extra];
+  })();
 
   // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
   // deletion, the very next "what is [company]'s status?" answered "is archived" purely
@@ -2163,8 +2231,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       : null,
   }));
 
-  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
