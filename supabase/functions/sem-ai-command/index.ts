@@ -556,6 +556,26 @@ Rules:
   reference specific things you see in your summary and any tasks you create from it.
   Never say you can't see images; if one is attached, you can.
 - Create narrow atomic tasks only.
+- "Assign [task] to [person]" / "give [task] to [person]" / "[person] should own [task]",
+  where the founder names an EXISTING task from context.tasks, is TASK OWNERSHIP
+  reassignment — a real, separate capability, GENUINELY UNRELATED to
+  createPersonAssignments/person_assignments (which is about a person's EMPLOYMENT
+  relationship to a COMPANY, legal employer vs operating company - a completely different
+  axis). Never conflate the two just because both use the word "assign" — real, live
+  incident (2026-08-30): "assign QA-MULTI-TASK to QA-MULTI-EMPLOYEE" was wrongly answered
+  "QA-MULTI-EMPLOYEE is already assigned to QA-MULTI-TASK via their current person
+  assignment... No change needed" — describing the person's EMPLOYER, not the TASK's
+  owner, and the task itself was never touched at all. A task's real current owner is its
+  own ownerType/ownerPersonId/ownerAgentId fields on that context.tasks entry — check
+  those, not context.personAssignments, to know if a task is already owned by someone. To
+  reassign an existing task's owner, use pendingAction:{"kind":"multi_action_plan",
+  "executionPlan":[{"id":"action_1","operation":"assign_task","targetIds":{"taskId":<real
+  id from context.tasks>,"personId":<real id from context.people>},"dependsOn":null,
+  "status":"planned","result":null}]} (the same mechanism described in full above, usable
+  for a single task-assignment action too, not only compound plans) and wait for
+  confirmation exactly like any other mutation. This is a completely different action from
+  creating a brand-new task with an owner set at creation time (createTasks, ordinary,
+  no confirmation needed) — only use assign_task when the task already exists.
 - Do not invent facts outside the context pack.
 - context.counts holds real database-computed totals (tasksTotal, approvalsTotal,
   companiesTotal, peopleTotal, projectsTotal, goalsTotal, salesLeadsTotal,
