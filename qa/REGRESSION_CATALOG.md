@@ -377,3 +377,23 @@ normally (regression-tested explicitly so suppression can never become a blanket
 fixed in the same pass: `context.people` never carried an `active` column at all, so the model
 had zero fresh data to answer any employment-status question from — added to the select and
 documented in the system prompt. 41 assertions total now, up from 29.
+
+## Confirmation truth: AUTHORIZED is not COMPLETED (catches: "Confirmed — Permanently delete
+test4..." with zero real mutation behind it — added 2026-08-30)
+
+`qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` — 22 assertions, run with `node
+qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs`. Covers the new
+`shouldReplaceUngroundedConfirmation()` safety net (a deterministic `bulk_confirmation`
+resolution with no grounded outcome this turn gets its unconditional "Confirmed — X" text
+replaced with an honest "I don't have a way to do that yet", while a genuinely grounded
+confirmation and every ordinary non-confirmation turn are completely unaffected — the other
+two deterministic paths, clarification/disambiguation, are explicitly out of scope since they
+always resolve to an already-wired field), the new
+`permanently_delete_fixture_company_graph()` RPC's result→message mapping (every refusal
+reason produces an explicit non-success line, never a partial-success-shaped one; a real
+deletion with/without attached fixture people produces a clean, specific success line), and
+`claimsCompanyDeleted`'s guard extended to never false-positive on a real
+`permanentDeleteFixtureCompanyIds` attempt.
+
+Full incident record, including the still-open bugs (7, 9, 11, 12, 13/14) explicitly deferred
+to a follow-up pass: `qa/KNOWN_FAILURE_MODES.md` #33.

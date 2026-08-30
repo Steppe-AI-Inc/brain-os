@@ -327,6 +327,17 @@ the founder actually ask for this level of detail, or am I including it because 
 sitting in context and feels informative? If the latter, cut it.
 
 Rules:
+- Every mutation field in your response (archiveCompanyIds, endEmploymentPersonIds,
+  createPersonAssignments, etc.) executes SYNCHRONOUSLY before the founder ever sees your
+  summary — there is no background job, no queue, nothing still in flight by the time your
+  words are read. Never narrate an action in future tense ("I'll update it now", "I'm going
+  to archive that", "will update their assignment") — by the time the founder reads that
+  sentence, the real outcome (success, failure, or refusal) already exists and REPLACES
+  whatever you say about company/task/goal/person lifecycle changes anyway (see the
+  grounding rules below), so future-tense phrasing is not just ambiguous, it's describing
+  something that has either already happened or already failed. Describe what a mutation
+  field WILL do only inside a pendingAction confirmation question (where nothing has
+  executed yet by design) — never in the same summary as the mutation field itself.
 - If an image is attached to this message, it is a real photo/screenshot the user is
   showing you (e.g. a site photo, a device, a screenshot) — actually look at it and
   reference specific things you see in your summary and any tasks you create from it.
@@ -546,13 +557,12 @@ Rules:
   the database rejects that transition outright if it isn't set through the dedicated
   action below, so never put "archived" in updateCompanies.status.
 - "Delete [company]" / "archive [company]" / "remove [company]" — put its real "id" from
-  context.companies into archiveCompanyIds. This is the ONLY way a company is ever
-  actually deleted; there is no separate hard-delete path from chat. It executes
-  immediately (not a task, not an approval) and is safe to reverse — nothing referencing
-  the company (its tasks, projects, documents, org relationships, memories) is touched or
-  destroyed, the company just stops appearing as an active company until restored.
-  "Restore [company]" / "un-delete [company]" / "bring back [company]" works the same way
-  via restoreCompanyIds, and can target a company that is only resolvable from
+  context.companies into archiveCompanyIds. This is the ORDINARY way a company is ever
+  deleted, safe and reversible — nothing referencing the company (its tasks, projects,
+  documents, org relationships, memories) is touched or destroyed, the company just stops
+  appearing as an active company until restored. It executes immediately (not a task, not
+  an approval). "Restore [company]" / "un-delete [company]" / "bring back [company]" works
+  the same way via restoreCompanyIds, and can target a company that is only resolvable from
   context.memories or conversation history (an archived company is not necessarily still
   in context.companies, since that list is the active-company view) — resolve it by name
   from whatever context you have rather than refusing. Never invent or guess an id for
@@ -562,13 +572,37 @@ Rules:
   words; only archiveCompanyIds/restoreCompanyIds actually attempting the action makes it
   real. If you cannot resolve which company the user means, say so and ask — do not put
   anything in these arrays and do not claim an action happened.
+- "Permanently delete [company] and all its data" / "wipe [company] completely" — a
+  genuinely SEPARATE, narrower, MUCH more destructive action from ordinary
+  archiveCompanyIds above, real hard deletion with no undo. Only reachable when the
+  company's own name matches this project's disposable-fixture naming convention
+  ("test..." or "QA-..." — case-insensitive prefix). For anything else, say plainly that
+  permanent deletion of a real company isn't available from chat — direct the founder to
+  the Companies page's admin-only permanent-delete action instead — and do NOT put
+  anything in archiveCompanyIds as a substitute; an ordinary archive is a different action
+  the founder did not ask for. When the target genuinely is a fixture: this is
+  bulk_confirmation-required, always — first turn sets pendingAction with kind
+  "bulk_confirmation", a summary describing exactly what will be checked/removed (the
+  company, and any of its people whose names ALSO match the fixture convention — never
+  claim a specific person or resource WILL be removed if you are not certain their name
+  matches; the real check happens after confirmation and will refuse rather than guess),
+  and action:{"permanentDeleteFixtureCompanyIds":[<that id>]} — never any other field
+  alongside it. Only after the founder's confirmation deterministically re-executes that
+  exact stored action (never re-resolved from names, never recomputed) does
+  permanentDeleteFixtureCompanyIds actually run. The real, structured result (deleted /
+  refused because a non-fixture person or resource is attached / refused because a
+  specific fixture person could not be safely removed) is reported back to you and
+  REPLACES whatever you say — a refusal is not a partial success, and you must never
+  describe a refused deletion as having removed anything.
 - "End employment"/"[person] no longer works here"/"remove [person] from the team"/
   "delete employee [person]" (ordinary language — NOT "delete [person]'s record" or
   anything that names their salary/KPI/performance history specifically) — put their real
   "id" from context.people into endEmploymentPersonIds. This ends their current work
   assignment(s) and marks them inactive; it does NOT delete their person record, salary
-  history, or KPI history — there is no way to permanently delete a person from chat at
-  all, that is a founder/admin-only action in the People page UI, never a chat capability.
+  history, or KPI history — a person can never be independently, directly hard-deleted
+  from chat (that stays a founder/admin-only People-page action); the ONE exception is as
+  an inseparable part of a fixture company's own permanentDeleteFixtureCompanyIds cascade
+  above, and only when that person's own name also matches the fixture convention.
   "Bring back [person]"/"restore [person]"/"re-hire [person]" works the same way via
   restoreEmploymentPersonIds. Never invent or guess an id — if you cannot resolve exactly
   one real person from context.people, use pendingAction (single_entity_clarification for
@@ -726,13 +760,24 @@ Rules:
   relatedCompanyId=SEM LLC). Get this backwards and the hierarchy inverts silently — always
   read the relationshipType name as the literal English sentence connecting the two ids.
 - Every entry in context.companies and context.people carries a real "effectivelyActive"
-  boolean — false means that company (or, for a person, their current employer) sits
-  under an archived ancestor company, even if its own "status" field still reads
-  active/planning/paused. Never treat effectivelyActive:false as a valid current employer
-  or a normal operating company for "who works at X"/"is X still operating"/"where does
-  [person] work" questions — say it's under an archived parent instead. A merely
-  non-"active" status (planning, paused) with effectivelyActive:true is completely normal
-  and not archived — do not conflate the two.
+  boolean — false means that company is itself archived, OR (for a person) their current
+  employer company is itself archived, OR either sits under an archived ancestor company,
+  even if the company's own "status" field still reads active/planning/paused (this
+  bullet's own wording used to describe only the ancestor case, which is exactly the kind
+  of stale internal documentation this file explicitly warns against elsewhere — corrected
+  2026-08-30 after a real incident: "test4 employee: active and currently employed by test4
+  company, but test4 company itself is archived" was a directly self-contradictory answer).
+  Never treat effectivelyActive:false as a valid current employer or a normal operating
+  company for "who works at X"/"is X still operating"/"where does [person] work"/"is
+  [person] currently employed" questions — an archived employer, direct or ancestor, means
+  the person's employment is NOT current, full stop, regardless of their own
+  context.people[].active flag (which only tracks whether THEIR OWN employment record was
+  ended, a separate axis from whether their employer still operates). Phrase this plainly
+  and without contradiction — e.g. "test4 employee's employment record is retained, but
+  their employer (test4 company) is archived, so this is not a current active employment" —
+  never "active and currently employed by [an archived company]" in the same sentence. A
+  merely non-"active" status (planning, paused) with effectivelyActive:true is completely
+  normal and not archived — do not conflate the two.
 - context.people[].active (2026-08-30, added after a real incident: this field did not
   exist in context at all before, so any employment-status question could only be answered
   from stale conversationHistory) is the real, fresh, current employment status for that
@@ -800,6 +845,16 @@ Rules:
   one" refers to. Only the immediately preceding turn counts; once something exists (or
   is back to its normal state) it also shows up in context.companies/context.people/
   context.goals directly, which take priority for anything older than one turn back.
+  CRITICAL, opposite direction (2026-08-30, real incident: "switch test4 employee to test4
+  company" got answered "To switch them to CLIX GPS..." — CLIX GPS was never mentioned in
+  this command at all, only pulled in from stale conversational focus a few turns back): an
+  entity NAME EXPLICITLY TYPED in the founder's current message always outranks
+  recentlyResolvedEntities, conversationHistory, or any other prior-turn focus — never
+  substitute a different, merely-recently-discussed company/person for the one the founder
+  just typed by name. recentlyResolvedEntities/conversationHistory exist to resolve
+  PRONOUNS and OMITTED references ("it", "them", "that one", a compound follow-up that
+  names no company at all) — never to override a company or person the founder named
+  explicitly and unambiguously in this exact message.
 - context.memories holds durable company facts retrieved from every past conversation
   (semantic search, not limited to this channel or this session) — treat these as
   already-known, verified context. Do not propose a memoryCandidate that restates one
@@ -847,6 +902,7 @@ Output schema:
   ],
   "archiveCompanyIds": [string],
   "restoreCompanyIds": [string],
+  "permanentDeleteFixtureCompanyIds": [string],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
   ],
@@ -2153,6 +2209,52 @@ serve(async (req) => {
         // result.
         const archiveRestoreReport = archiveRestoreLines.length > 0 ? archiveRestoreLines.join(' ') : null;
 
+        // Permanent fixture-company cascade delete (Bugs 1/2/3/4/5/15, 2026-08-30 campaign):
+        // the real, structured RPC result is the ONLY source of truth for this report -
+        // never the model's own "Confirmed —" prose, which is exactly the defect this
+        // whole capability exists to close. A refusal (not_a_fixture / has dependents /
+        // person blocked) is reported as a refusal, never softened into a partial success -
+        // permanently_delete_fixture_company_graph() is itself fully transactional (see the
+        // migration), so there is no partial-completion state to represent here at all: it
+        // either fully succeeded or fully did not happen.
+        const requestedPermanentDeleteFixtureCompanyIds = Array.isArray(result.permanentDeleteFixtureCompanyIds)
+          ? result.permanentDeleteFixtureCompanyIds as unknown[] : [];
+        const permanentDeleteFixtureCompanyIds = [...new Set(requestedPermanentDeleteFixtureCompanyIds.filter(
+          (id): id is string => typeof id === 'string' && contextCompanyIds.has(id),
+        ))];
+        const permanentDeleteLines: string[] = [];
+        for (const id of permanentDeleteFixtureCompanyIds) {
+          const name = companyNameById.get(id) || id;
+          const { data, error } = await supabase.rpc('permanently_delete_fixture_company_graph', { p_company_id: id });
+          if (error || !data) { permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — ${error?.message || 'no result returned'}.`); continue; }
+          const r = data as Record<string, unknown>;
+          if (r.reason === 'not_found') { permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — it no longer exists.`); continue; }
+          if (r.reason === 'denied') { permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — you do not have permission for this action.`); continue; }
+          if (r.reason === 'not_a_fixture') { permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — this only works for disposable test/QA fixtures. Use the Companies page's admin delete action for a real company.`); continue; }
+          if (r.reason === 'non_fixture_people_attached') {
+            const blockerNames = (r.blockers as Array<Record<string, unknown>> | undefined)?.map((b) => b.name).join(', ') || 'other people';
+            permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — it has people attached whose names don't match the fixture convention (${blockerNames}), so nothing was removed.`);
+            continue;
+          }
+          if (r.reason === 'has_non_fixture_dependents') {
+            const blockerTables = (r.blockers as Array<Record<string, unknown>> | undefined)?.map((b) => b.table).join(', ') || 'other records';
+            permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — it still has related records (${blockerTables}) this action won't touch, so nothing was removed.`);
+            continue;
+          }
+          if (r.reason === 'person_delete_blocked') {
+            const blockedNames = (r.peopleBlocked as Array<Record<string, unknown>> | undefined)?.map((b) => b.name).join(', ') || 'a person';
+            permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — ${blockedNames} can't be safely removed (other records still reference them), so nothing was removed.`);
+            continue;
+          }
+          if (r.reason === 'deleted') {
+            const deletedPeople = (r.peopleDeleted as Array<Record<string, unknown>> | undefined)?.map((p) => p.name).join(', ');
+            permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`);
+            continue;
+          }
+          permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — unexpected result.`);
+        }
+        const permanentDeleteReport = permanentDeleteLines.length > 0 ? permanentDeleteLines.join(' ') : null;
+
         // The original reported defect: the model narrating "Company deleted
         // successfully" with zero actual mechanism behind it. This is the one case the
         // grounding above can't catch by construction — nothing was attempted, so there is
@@ -2196,6 +2298,7 @@ serve(async (req) => {
         // own result.summary destroyed into a false "Couldn't confirm that" correction.
         // See the full incident record there.
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
+          && permanentDeleteFixtureCompanyIds.length === 0
           && !(companyStateClaimResult && !companyStateClaimResult.contradicted)
           && !modelProposedPendingAction
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
@@ -3262,7 +3365,7 @@ serve(async (req) => {
         // factoryWorkOrderReport (Workstream 5) joins the same combine array for the
         // identical reason: a real Work Order creation is the entire point of the turn,
         // so it fully replaces the model's own prose rather than merely prepending to it.
-        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport].filter((r): r is string => !!r);
+        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport, permanentDeleteReport].filter((r): r is string => !!r);
         // Wording deliberately does not presume "you named it ambiguously" (2026-08-30,
         // "test3 restore" incident: the founder named test3 exactly right - the real
         // failure was a mechanism bug, not a naming problem, so a message insisting they
@@ -3298,6 +3401,22 @@ serve(async (req) => {
         } else if (lifecycleMismatchCorrections.length > 0) {
           result.summary = lifecycleMismatchCorrections.join(' ');
         }
+        const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
+          || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence;
+
+        // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
+        // deterministically to a pendingAction.action payload (see the resolution
+        // precedence above) always emits "Confirmed — {summary}" unconditionally — correct
+        // as far as it goes (the founder DID authorize it), but if that payload doesn't map
+        // to any capability this file actually executes, NOTHING above ever grounds or
+        // overrides it, and "Confirmed — Permanently delete X..." survives untouched with
+        // zero real mutation behind it (the exact real incident: a pendingAction.action for
+        // a not-yet-existing "permanent delete + cascade" capability). AUTHORIZED is not
+        // COMPLETED — a confirmation this file cannot actually execute must say so, never
+        // silently stand as if it succeeded.
+        if (model === 'deterministic-confirmation' && !groundedOutcomeThisTurn) {
+          result.summary = 'I understood and you confirmed that, but I don’t have a way to actually carry it out yet — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute (archive/restore a company, end/restore someone’s employment, etc.).';
+        }
 
         // Real, systemic gap found live: work_orders.output was written once, as
         // p_output, INSIDE the sem_execute_ai_command call above — necessarily before
@@ -3315,11 +3434,11 @@ serve(async (req) => {
         // rather than result.summary, so without this they'd be visible only in this
         // request's own SSE `done` event, not to the next turn's buildContext() read of
         // work_orders.output (recentlyResolvedEntities) or a future reload.
-        if (factLines.length > 0 || organizationGraphCheck || lifecycleReports.length > 0 || lifecycleMismatchCorrections.length > 0 || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence) {
+        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation') {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
-        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
+        await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, companiesPermanentFixtureDeleteAttempted:permanentDeleteFixtureCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
         send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, createdFactoryWorkOrders, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {

@@ -2160,3 +2160,102 @@ word-proximity correctors should require a stronger completion-claim signal (e.g
 person past-tense adjacent to a real entity name from context) rather than firing on ANY
 lifecycle-verb-shaped word within 40 characters of a generic noun anywhere in a
 multi-sentence summary. Left as a genuinely open, real, non-blocking gap for the next pass.
+
+## 33. Multi-entity execution, confirmation truth, and cascade/postcondition consistency — real founder session, 12 named bugs, PARTIALLY FIXED this pass (2026-08-30)
+
+**Real incident**: a founder session working through `test4` company/employee exposed
+several real, live defects beyond the already-closed #32: a stale-context substitution
+(explicitly typing "test4 company" got answered "To switch them to CLIX GPS..." — a company
+never mentioned in that message), an "active and currently employed by test4 company, but
+test4 company itself is archived" self-contradiction, and most severely — asking Brain to
+"delete all data related to test4 company", confirming a preview, and getting "Confirmed —
+Permanently delete test4 company, test4 employee, their assignments, and related company
+relationships" with **zero real mutation behind it** (a later status check showed test4
+company only archived and test4 employee still active).
+
+**Root cause of the confirmation defect**: no AI-reachable permanent-delete-with-cascade
+capability existed at all. The deterministic `bulk_confirmation` resolution path (see #32's
+Workstream 3) always emitted `"Confirmed — {summary}"` unconditionally the moment a short
+affirmative matched a pending `bulk_confirmation` — correct as a record that the founder
+*authorized* the action, but nothing checked whether the confirmed `action` payload actually
+mapped to a capability this file executes before letting that text stand as the final
+answer. AUTHORIZED was being treated as COMPLETED.
+
+**Fixed this pass** (`supabase/functions/sem-ai-command/index.ts` +
+`supabase/migrations/202608300003_permanent_fixture_company_cleanup.sql`, migration
+rollback-tested clean, not yet pushed — pending founder authorization per the standing DB
+migration rule):
+
+1. **CONFIRMATION_DOES_NOT_EQUAL_EXECUTION** — a new safety net: if a turn resolved via the
+   `deterministic-confirmation` path and nothing grounded actually happened this turn (no
+   `factLines`/`organizationGraphCheck`/`lifecycleReports`/`stateClaimCorrections`/resolved
+   entities/execution evidence), the unconditional "Confirmed — X" text is replaced with an
+   honest "I don't have a way to actually carry that out yet — nothing was changed."
+   Genuinely grounded confirmations (archive/restore/end-employment, which already flow
+   through the existing `lifecycleReports` full-replacement mechanism) are completely
+   unaffected — regression-tested explicitly both ways.
+2. **DESTRUCTIVE_CONFIRMATION_EXECUTES_IMMUTABLE_PAYLOAD /
+   MULTI_ENTITY_DELETE_NEVER_REPORTS_COMPLETE_ON_PARTIAL_FAILURE** — a new, genuinely
+   separate capability, `permanentDeleteFixtureCompanyIds`, calling a new, fully
+   transactional RPC `permanently_delete_fixture_company_graph()`. Hard-gated on this
+   project's own `test*`/`QA-*` fixture naming convention for BOTH the company and every
+   attached person — a real production company or employee can never be hard-deleted
+   through this path. Every other resource class (goals, departments, tasks, projects,
+   financial reports, product lines, inventory, sales leads, proposals, KPI records, salary
+   rules, billing accounts, team access grants) is deliberately never auto-deleted — if any
+   exist, the function refuses and reports them as explicit blockers, matching the existing
+   UI-only `permanentlyDeleteCompany()`'s own "block, don't guess" policy for resource types
+   with no reliable fixture-detection. Transactional by construction: a dry-run pass checks
+   every fixture person's `delete_person()` dependents *before* any DELETE statement runs
+   (extracted into a new shared `check_person_delete_dependents()` helper, refactoring
+   `delete_person()` itself to use it too, so the two checks can never drift), and any
+   unexpected failure past that point raises and rolls back the whole call atomically —
+   never company-archived-but-employee-survives.
+3. **ARCHIVED_EMPLOYER_CANNOT_HAVE_CURRENT_ACTIVE_EMPLOYMENT_TRUTH** — found the prompt's
+   own `effectivelyActive` documentation was itself stale/inaccurate: it described
+   `effectivelyActive:false` as only meaning "under an archived *ancestor*", when the real
+   code (`isCompanyEffectivelyActiveInMemory`) already correctly flags a *directly* archived
+   company too. This inaccurate internal documentation is a real, credible root-cause
+   candidate for the self-contradictory "active and currently employed by test4 company,
+   but test4 company itself is archived" answer — corrected, with explicit phrasing
+   guidance (retained-historically vs. current-active are different axes) added alongside.
+4. **EXPLICIT_CURRENT_TURN_ENTITY_OVERRIDES_STALE_FOCUS** — explicit prompt rule: an entity
+   name typed in the founder's *current* message always outranks
+   `recentlyResolvedEntities`/`conversationHistory`, which exist only to resolve pronouns
+   and omitted references, never to override an explicitly-named company/person.
+5. Prompt rule against future-tense mutation narration ("I'll update it now") — every
+   mutation field executes synchronously before the summary is ever shown, so by the time
+   the founder reads it the real outcome already exists (and already overrides the prose
+   via the grounding mechanisms above) — future tense describes something already decided
+   one way or the other.
+
+Regression-tested: `qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` (new, 22
+assertions) — the exact real "Confirmed — Permanently delete test4..." shape caught, a
+genuinely grounded confirmation never touched, every refusal reason from the new RPC
+produces an explicit non-success message (never a partial-success-shaped one), and the
+`claimsCompanyDeleted` corrector's guard extended to never false-positive on a real
+permanent-delete attempt.
+
+**Explicitly NOT yet fixed this pass** (real, named, deferred — not silently dropped):
+Bug 7 (operating-company-vs-legal-employer confirmation must ask about both canonical
+relationship ids explicitly and execute the exact confirmed delta), Bug 9
+(`ASSIGNMENT_CONFIRMATION_EXECUTES_CANONICAL_RELATIONSHIP_IDS` — assignment mutations must
+thread person/legal-employer/operating canonical ids through confirmation, not re-resolve
+from "them"/"there"/"both"), Bug 11 (`MULTI_ACTION_COMMAND_PRESERVES_ALL_TARGET_IDS` — a
+real multi-step execution-plan structure for genuinely compound commands like "archive X and
+delete its test employees"), Bug 12
+(`MULTI_ENTITY_STATUS_QUERY_READS_EACH_ENTITY_CANONICALLY` — a status query naming several
+entities must resolve and read each independently, never let one entity's answer bleed from
+conversation memory while another comes from fresh DB), Bug 13/14
+(`DESTRUCTIVE_MUTATION_INVALIDATES_CHANNEL_ENTITY_CACHE` — extending
+`recentlyResolvedEntities`/`resolvedEntities` to mark an entity as removed, not just
+created/archived/restored, so a subsequent turn never treats a permanently-deleted entity as
+still live). These require more architectural design (an execution-plan shape, canonical
+relationship-id threading through the confirmation payload) than the fixes above and are
+tracked as the explicit next step, not abandoned.
+
+Deploy status: Edge Function changes above deployed via
+`ALLOW_FUNCTIONS_DEPLOY=1 git push origin master`. The new migration is rollback-tested
+clean against production but **not pushed** — awaiting explicit founder authorization per
+the standing rule. Live verification (real `test4`-shaped fixture, the full acceptance
+script) and independent re-review are the required next steps before any completion claim.
