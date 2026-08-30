@@ -35,14 +35,18 @@ const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 // MCP is installed and load-tested per docs/software-factory/THIRD_PARTY_COMPONENTS.md,
 // but not yet wired into brain-os-verifier's own body - recorded honestly as "available,
 // not yet used" rather than claimed as an active capability).
+// capabilities: real routing metadata for Phase 2's scheduler (selectAgentForTask in
+// scheduler.mjs) - matched against a task's required_capabilities, never inferred from
+// display name or prose. Deliberately scoped to what each agent's own real definition
+// file actually equips it to do, not aspirational.
 export const ALLOWLIST = [
-  { name: 'brain-os-factory-director', displayName: 'Factory Director', category: 'SOFTWARE_FACTORY' },
-  { name: 'brain-os-product-architect', displayName: 'Product Architect', category: 'SOFTWARE_FACTORY' },
-  { name: 'brain-os-implementation-engineer', displayName: 'Implementation Engineer', category: 'SOFTWARE_FACTORY' },
-  { name: 'brain-os-db-security-engineer', displayName: 'DB/Security Engineer', category: 'SECURITY' },
-  { name: 'brain-os-integration-engineer', displayName: 'Integration Engineer', category: 'INTEGRATION' },
-  { name: 'brain-os-verifier', displayName: 'Verifier', category: 'VERIFICATION' },
-  { name: 'brain-os-release-operator', displayName: 'Release Operator', category: 'RELEASE' },
+  { name: 'brain-os-factory-director', displayName: 'Factory Director', category: 'SOFTWARE_FACTORY', capabilities: ['orchestration', 'task_decomposition', 'dag_planning'] },
+  { name: 'brain-os-product-architect', displayName: 'Product Architect', category: 'SOFTWARE_FACTORY', capabilities: ['architecture', 'requirements', 'acceptance_criteria', 'domain_modeling'] },
+  { name: 'brain-os-implementation-engineer', displayName: 'Implementation Engineer', category: 'SOFTWARE_FACTORY', capabilities: ['implementation', 'frontend', 'backend', 'cross_cutting'] },
+  { name: 'brain-os-db-security-engineer', displayName: 'DB/Security Engineer', category: 'SECURITY', capabilities: ['postgres', 'supabase', 'rls', 'migrations', 'security', 'multi_tenancy'] },
+  { name: 'brain-os-integration-engineer', displayName: 'Integration Engineer', category: 'INTEGRATION', capabilities: ['apis', 'webhooks', 'mcp', 'messaging', 'external_services'] },
+  { name: 'brain-os-verifier', displayName: 'Verifier', category: 'VERIFICATION', capabilities: ['db_truth', 'rls_testing', 'fresh_context_verification', 'regression_generation', 'browser_verification'] },
+  { name: 'brain-os-release-operator', displayName: 'Release Operator', category: 'RELEASE', capabilities: ['release_gate', 'deployment', 'smoke_validation'] },
 ];
 
 function parseFrontmatter(content) {
@@ -60,6 +64,10 @@ function parseFrontmatter(content) {
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
   return `'${String(s).replace(/'/g, "''")}'`;
+}
+
+function sqlTextArray(arr) {
+  return `array[${(arr ?? []).map(sqlEscape).join(',')}]::text[]`;
 }
 
 async function runSql(sql) {
@@ -100,18 +108,20 @@ export function buildAgentRow(entry) {
     permissionMode: fm.permissionMode || null,
     executionProvider: hasProductionAuthority ? 'claude_code_background' : null,
     hasProductionAuthority,
+    capabilities: entry.capabilities ?? [],
     provenance: { source: 'brain_os_custom' },
   };
 }
 
 export async function syncOne(row) {
   const sql = `
-insert into public.agents (name, role, description, allowed_tools, active, display_name, category, definition_path, definition_hash, execution_provider, permission_mode, has_production_authority, provenance)
+insert into public.agents (name, role, description, allowed_tools, active, display_name, category, definition_path, definition_hash, execution_provider, permission_mode, has_production_authority, capabilities, provenance)
 values (
   ${sqlEscape(row.name)}, ${sqlEscape(row.role)}, ${sqlEscape(row.description)},
   ${sqlEscape(JSON.stringify(row.allowedTools))}::jsonb, true,
   ${sqlEscape(row.displayName)}, ${sqlEscape(row.category)}, ${sqlEscape(row.definitionPath)}, ${sqlEscape(row.definitionHash)},
   ${sqlEscape(row.executionProvider)}, ${sqlEscape(row.permissionMode)}, ${row.hasProductionAuthority},
+  ${sqlTextArray(row.capabilities)},
   ${sqlEscape(JSON.stringify(row.provenance))}::jsonb
 )
 on conflict (name) do update set
@@ -126,6 +136,7 @@ on conflict (name) do update set
   execution_provider = excluded.execution_provider,
   permission_mode = excluded.permission_mode,
   has_production_authority = excluded.has_production_authority,
+  capabilities = excluded.capabilities,
   provenance = excluded.provenance,
   updated_at = now()
 returning id, name, definition_hash;

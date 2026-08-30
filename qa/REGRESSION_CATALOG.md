@@ -531,3 +531,21 @@ must use `fileURLToPath(import.meta.url) === resolve(process.argv[1])`, never a 
 unconditional call (fires as a side effect the moment anything else imports the file). Test
 directly: `node -e "import('./scripts/factory-runner/<file>.mjs').then(()=>console.log('OK'))"`
 must print only `OK`, nothing else, before any other file is allowed to import it.
+
+## Capability-based DAG scheduler (catches: FACTORY_CAPABILITY_ROUTER_SELECTS_RELEVANT_AGENT,
+FACTORY_INDEPENDENT_TASKS_EXECUTE_IN_PARALLEL, FACTORY_DEPENDENT_TASK_WAITS_FOR_PREREQUISITE —
+added 2026-08-30, `qa/KNOWN_FAILURE_MODES.md` #38)
+
+`node --test scripts/factory-runner/scheduler.regression.test.mjs` (16 pure assertions, no
+DB/network) after any change to `scheduler.mjs`'s `isTaskReady`/`selectAgentForTask`/
+`selectTasksToDispatch`. Critically, `selectTasksToDispatch`'s input MUST be every task in
+the Work Order (any status), never pre-filtered to only non-terminal ones — a real live bug
+(#38) came from exactly that filtering, invisible to unit tests until run against real
+production data where a dependency had actually reached `done`. Live re-verification: create
+a real 3-task DAG (2 independent + 1 depending on both, real distinct
+`required_capabilities`) under a synthetic Work Order, run `node scheduler.mjs <workOrderId>`
+twice — once before either dependency finishes (expect only the 2 independent tasks
+dispatched, real concurrent `claude --bg` processes, the dependent task still `queued`) and
+once after both are completed via `complete-run.mjs` (expect the dependent task to dispatch
+immediately). Confirm via `claude logs <provider_run_id>`, not just the DB row, that each
+real dispatched session actually received its task.

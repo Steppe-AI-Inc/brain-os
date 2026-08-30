@@ -2847,3 +2847,54 @@ in the `supabase_realtime` publication (schema-level proof a subscribed client *
 receive its INSERT events) and one real row was written successfully — but actual
 WebSocket delivery to a live subscribed browser client was **not** verified this pass (no
 browser automation tool available, same disclosed gap class as #36's Bug 12 UI check).
+
+## 38. Software Factory Phase 2 — capability-based scheduler / parallel DAG execution: real live proof, one self-caught bug, and one disclosed `complete_work_order()` design question found via unrelated cleanup (2026-08-30)
+
+**Real, live, disclosed end-to-end proof performed** (`scripts/factory-runner/scheduler.mjs`,
+new): created a real synthetic Work Order (`SCHEDULER-PROOF`, id `48964d42-...`) with 3 real
+tasks — two independent (`required_capabilities: ['implementation']` and `['postgres','rls']`)
+and one depending on both (`required_capabilities: ['db_truth']`). First scheduler run
+correctly dispatched the DB task to `brain-os-db-security-engineer` and, in the SAME finding,
+correctly **refused** to dispatch the architecture-capability task at all
+(`no_matching_capability_agent`) — `brain-os-product-architect` has no `execution_provider`
+(deliberately design-only per its own agent definition), and the router correctly never
+matches by display name as a fallback. Retargeted that task to `implementation` and re-ran:
+both tasks dispatched and ran **genuinely concurrently** as two real `claude --bg` processes,
+while the dependent VERIFY task stayed `queued` the entire time (confirmed via direct SQL, not
+narration). Both real dispatches replied exactly as instructed (`DB-DONE`/`ARCH-DONE`, found
+via `claude logs <id>`'s own `●`-marked reply line) and were completed via
+`complete-run.mjs`/`complete_agent_run()`.
+
+**Self-caught bug, found before it reached a permanent state**: the first attempt to dispatch
+VERIFY after both dependencies finished returned `no_ready_tasks` — `dispatchReadyTasks`'s SQL
+originally queried only non-terminal tasks (`status not in ('archived','done','rejected')`),
+so `isTaskReady`'s dependency-status lookup could never see that ARCH/DB had reached `'done'`
+(they'd been filtered out of the very array `selectTasksToDispatch` builds its status map
+from — `taskStatusById.get(depId)` returned `undefined`, never `'done'`). Fixed by querying
+**every** task in the Work Order for the status map, while still only treating `'queued'` rows
+as dispatch candidates. Re-ran live: VERIFY dispatched immediately once the fix was live,
+replied `VERIFY-DONE`, completed. Permanent regression added
+(`scheduler.regression.test.mjs`, 16/16 pass) reproducing the exact bug shape.
+
+**Unrelated finding, surfaced by the scheduler's own heartbeat-refresh logic and reconciled,
+not left dangling**: `refreshHeartbeats()` found one real pre-existing `agent_runs` row
+(`855dcd3c...`, `status='in_progress'` since 2026-08-29, `task_id` null) whose underlying
+`claude` session no longer existed at all (`claude logs` — "job not found"). Investigated
+rather than blindly marked done (per the founder's own Phase 10 rule): its parent Work Order
+(`e35219b8-...`, "Create POST_DEPLOY_VERIFICATION_ARTIFACT.md") genuinely completed
+historically via a *different*, later, successful task ("...worktree-fix resume", commit
+`bcaa0fc`, real and on `origin/master`) — the orphaned run was one of two superseded/duplicate
+earlier attempts that never produced a commit. Reconciled honestly, all via canonical RPCs:
+the orphaned agent_run closed as `done` referencing the real successful commit; the two
+superseded tasks archived (`archive_task()`); their own two failed agent_runs closed as
+`rejected` (not `done` — they never produced real work).
+
+**Real, disclosed, NOT worked around**: after this reconciliation, `complete_work_order()`
+still refuses to close `e35219b8-...` — `incomplete_or_failed_run`, because a `rejected`
+agent_run remains linked to the Work Order even though its own task was properly archived.
+This may be entirely correct, intentional design (a Work Order with ANY rejected run in its
+history arguably should require explicit human/founder review before closing, not an
+automatic pass-through once the failed task is merely archived) — or it may be a real gap
+worth fixing in a future pass. Left honestly at `status='in_progress'`, an accurate reflection
+of its real history, rather than forced closed. Flagged for Phase 10 proper, not solved here
+as a side effect of an unrelated scheduler test.
