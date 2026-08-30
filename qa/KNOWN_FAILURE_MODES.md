@@ -2478,3 +2478,93 @@ respected per this project's own standing rule about not bypassing safety mechan
 Wrapping test SQL in the same `begin; ... rollback;` convention already used throughout
 `qa/scenarios-runner/*.sql` was NOT blocked and produced the real, live, rolled-back
 evidence cited above.
+
+## 35. Bugs 11/12 — real typed execution plans for compound multi-action commands, and independent multi-entity canonical reads (2026-08-30)
+
+The last two architectural gaps from campaign #33, closing the full 12-bug multi-entity
+execution/confirmation-truth campaign.
+
+**Bug 11 (`MULTI_ACTION_COMMAND_CREATES_TYPED_EXECUTION_PLAN` and siblings)**: a genuinely
+compound command ("restore employee X, move them to company Y, and assign them task Z")
+previously had no structured decomposition — it either flattened into one prose promise, or
+relied on several ad-hoc mutation fields firing together with zero cross-action dependency
+awareness (an action whose real dependency failed could still run, or the founder had no
+way to see exactly which of several steps succeeded or failed).
+
+Fixed via a new, genuinely separate execution-plan engine in
+`supabase/functions/sem-ai-command/index.ts`:
+- A new `ExecutionPlanAction` type — `{id, operation, targetIds, dependsOn, status,
+  result}` — a closed, small set of ten supported operations (restore/end employment,
+  reassign person, assign task, archive/restore company/task/goal), never open-ended, so
+  every operation a plan can express is one this file actually knows how to execute and
+  verify a postcondition for.
+- `PendingAction` gained a new `multi_action_plan` kind (proposal-only, same as
+  `bulk_confirmation` — nothing executes until confirmed) and `open_question` gained an
+  optional `partialExecutionPlan` field (the already-resolved actions of a plan blocked on
+  one missing piece of information, preserved verbatim rather than discarded — the next
+  turn's answer resumes and completes the SAME plan, never restarts it).
+- `executeActionPlan()` — a real, genuinely separate sequential executor (deliberately not
+  threaded through the many existing ad-hoc mutation-field loops, to keep dependency
+  ordering simple and auditable without risking those already-proven loops): processes
+  actions in dependency order via a real topological pass; an action whose `dependsOn`
+  includes another action that did not complete is marked `blocked` and is **never
+  attempted at all** — not silently skipped, not silently run anyway; independent actions
+  with no unmet dependency still each run and each get their own real, individually
+  reported outcome even when an unrelated action in the same plan failed (partial
+  execution is acceptable, per the founder's own spec, but every action's real result must
+  be visible). A defensive circular-dependency guard fails every unresolved action rather
+  than looping forever (should never occur from a well-formed model response).
+- `buildExecutionPlanReport()` — the only source of the final summary for a plan-execution
+  turn, full-replacement (a real, explicit guard was added so none of the existing
+  `claims*Deleted` word-proximity correctors can override a correct plan report just
+  because the plan's own execution path never touched the ad-hoc mutation-field arrays
+  those correctors gate on). Headline is exactly one of "All steps completed." /
+  "Partially completed." / "Failed — nothing completed." — never a flattened single
+  success sentence, always a per-action account.
+- Confirmation binds to the exact immutable stored plan: "yes"/"confirm"/"do all of it" on
+  a pending `multi_action_plan` re-validates every `targetIds` value is still a real,
+  currently-resolvable id (local id-provenance sets built directly from context, same
+  discipline as every other mutation field in this file) and then executes that EXACT
+  plan — never re-resolved from names, never recomputed.
+- New capability: `assign_task` (a task's owner was previously only ever set at creation
+  time — no way to reassign an existing task's owner from chat at all). Uses the existing
+  `tasks_update_scope` RLS policy directly, no new migration needed.
+
+**A real, live-caught bug in this fix's own first draft**: `buildExecutionPlanReport`'s
+per-action naming picked `personId` before `taskId` when both are present in `targetIds` —
+true for every operation except `assign_task`, whose payload legitimately carries both (the
+task being assigned, and the person it's assigned to). This produced "Assign task
+(QA-MULTI-EMPLOYEE): done." instead of "Assign task (QA-MULTI-TASK): done." — caught by the
+regression suite's own construction (writing a test for the multi-action success report
+immediately surfaced it, before any live testing), fixed by making the naming
+operation-aware.
+
+**Bug 12 (`MULTI_ENTITY_QUERY_RESOLVES_EACH_ENTITY_CANONICALLY` and siblings)**: "status of
+X company, Y employee, and Z task" must never answer one entity from fresh DB while another
+bleeds from conversation memory. Substantially already closed structurally by the
+uncapped-named-lookup fix from campaign #33/#34 (companies and people); this pass extends
+the identical fix to **goals** (`namedGoalLookupQuery`, merged into `context.goals` the same
+way), and adds explicit system-prompt guidance requiring each of several named entities to
+be resolved and read independently, normalized by its OWN correct lifecycle axis (a
+company's `status`/`effectivelyActive`, a person's `active` employment flag AND their
+employer's `effectivelyActive` — explicitly never phrased as simultaneously "active and
+currently employed" under an archived employer — a task's own work_status, a goal's own
+goal_status, a factory Work Order's own execution/verification state), never borrowing one
+entity's status word for another. Ambiguity in exactly one of several named entities
+clarifies only that one (existing `disambiguation`/`single_entity_clarification`
+mechanisms, scoped to the ambiguous entity) while the other, already-resolvable entities
+are still answered in the same response — never discarding the whole multi-entity question.
+
+Regression-tested: `qa/scenarios-runner/sem_ai_command_execution_plan_truth.mjs` (new, 20
+assertions) — the exact dependency-blocking scenario from the spec (restore employment
+fails → reassignment never runs, reported "blocked"), independent-action partial execution,
+a three-action transitive dependency chain (only the failing root action's executor is ever
+actually called — proven via a call counter), a defensive circular-dependency case, and the
+report-formatting cases including the real self-caught `assign_task` naming bug. Both
+existing regression suites re-run clean, no regressions.
+
+Deploy status: pending — full live E2E acceptance script (real `QA-MULTI-CO`/
+`QA-MULTI-EMPLOYEE`/`QA-MULTI-TASK` fixtures, the exact multi-action + multi-entity-status +
+archive/end-employment + reload/fresh-context sequence from the founder's own spec) and
+independent verifier dispatch are the required next steps before any completion claim for
+this final piece of the 12-bug campaign.

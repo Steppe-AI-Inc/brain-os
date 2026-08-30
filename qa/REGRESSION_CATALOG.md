@@ -409,3 +409,22 @@ longer exists" vs. "still exists, was just touched") and the root-cause fabricat
 (an uncapped, targeted company-name lookup merged into `context.companies` every turn) are
 prompt/context-shape changes without a standalone pure-function regression file — covered by
 live acceptance evidence in `qa/KNOWN_FAILURE_MODES.md` #33 instead.
+
+## Multi-action execution plans: real dependency blocking + per-action truth (catches: a
+compound command flattened into one prose promise, or a dependent action silently running
+even though its own dependency failed — added 2026-08-30)
+
+`qa/scenarios-runner/sem_ai_command_execution_plan_truth.mjs` — 20 assertions, run with `node
+qa/scenarios-runner/sem_ai_command_execution_plan_truth.mjs`. Covers the real dependency-
+resolution algorithm behind `executeActionPlan()` (parameterized by an injectable executor so
+the orchestration logic — topological order, dependency blocking, partial-failure
+classification — is tested deterministically without a real database): the exact spec
+scenario (restore employment fails → a dependent reassignment is blocked, never attempted at
+all), independent actions still completing despite an unrelated failure in the same plan, a
+three-action transitive dependency chain proving only the failing root action's executor is
+ever actually called, a defensive circular-dependency case, and `buildExecutionPlanReport()`'s
+formatting (never a success headline unless every action completed; a real, live self-caught
+bug where `assign_task`'s per-action naming picked the wrong target id when both `taskId` and
+`personId` were present).
+
+Full incident record: `qa/KNOWN_FAILURE_MODES.md` #35.

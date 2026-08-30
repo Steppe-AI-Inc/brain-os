@@ -83,11 +83,34 @@ type AiTask = {
 // pre-existing archive/delete-only clarification stays behaviorally identical without
 // needing to set it.
 type PendingActionOption = { label: string; id: string; entityType: string; actionType?: string };
+
+// Bug 11 (2026-08-30 campaign): a real, typed, persisted plan for a genuinely compound
+// multi-action command ("restore employee X, move them to company Y, and assign them task
+// Z") - replaces treating a multi-action request as one flattened prose promise. Each
+// action is independently addressable (dependsOn references other actions' own "id"
+// within THIS plan, never a database id) so the executor (executeActionPlan below) can
+// enforce real dependency blocking: an action whose dependency did not complete never
+// runs, and is reported as "blocked", never silently skipped or falsely claimed done.
+// operation is a closed, small set (see OPERATION_HANDLERS) - deliberately not
+// open-ended/free-form, so every operation this plan can express is one this file
+// actually knows how to execute and verify a postcondition for.
+type ExecutionPlanAction = {
+  id: string;
+  operation: 'restore_employment' | 'end_employment' | 'reassign_person' | 'assign_task'
+    | 'archive_company' | 'restore_company' | 'archive_task' | 'restore_task'
+    | 'archive_goal' | 'restore_goal';
+  targetIds: Record<string, string>;
+  dependsOn: string[] | null;
+  status: 'planned' | 'blocked' | 'completed' | 'failed';
+  result: Record<string, unknown> | null;
+};
+
 type PendingAction =
   | { kind: 'bulk_confirmation'; summary?: string; action?: Record<string, unknown> }
   | { kind: 'single_entity_clarification'; question?: string; candidateIds?: string[]; entityType?: string; actionType?: string }
   | { kind: 'disambiguation'; question?: string; options?: PendingActionOption[] }
-  | { kind: 'open_question'; question?: string };
+  | { kind: 'open_question'; question?: string; partialExecutionPlan?: ExecutionPlanAction[] }
+  | { kind: 'multi_action_plan'; summary?: string; executionPlan?: ExecutionPlanAction[] };
 
 // Workstream 3c: real id+name of anything createCompanies/createPeople/createGoals
 // actually created last turn (reused straight from the sem_execute_ai_command RPC's own
@@ -173,6 +196,159 @@ function commandContradictsActionType(command: string, actionType: string | unde
   if (resolvedActionType === 'archive' && RESTORE_VERB_PATTERN.test(command) && !ARCHIVE_VERB_PATTERN.test(command)) return true;
   if (resolvedActionType === 'restore' && ARCHIVE_VERB_PATTERN.test(command) && !RESTORE_VERB_PATTERN.test(command)) return true;
   return false;
+}
+
+// Bug 11 (2026-08-30 campaign) execution-plan engine. Real dependency semantics: an action
+// only runs once every action it dependsOn has been attempted; if any dependency did not
+// genuinely complete, the dependent action is marked "blocked" and never attempted at all
+// (never silently skipped without a status, never run anyway). Independent actions with no
+// unmet dependency still proceed even if an unrelated action in the same plan failed -
+// partial execution is acceptable, but every action's real outcome is reported, never
+// flattened into one success/failure sentence. This is a genuinely separate execution path
+// from the ad-hoc mutation-field loops elsewhere in this file (archiveCompanyIds etc.) -
+// deliberately so, to keep real cross-action dependency ordering simple and auditable
+// without threading blocking logic through every existing, already-proven loop.
+async function executeOneAction(supabase: any, action: ExecutionPlanAction): Promise<{ success: boolean; detail: string; raw: unknown }> {
+  const t = action.targetIds || {};
+  switch (action.operation) {
+    case 'restore_employment': {
+      const { data, error } = await supabase.rpc('restore_person_employment', { p_person_id: t.personId });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      const r = data as Record<string, unknown>;
+      return { success: r.changed === true || r.reason === 'already_active', detail: String(r.reason || ''), raw: r };
+    }
+    case 'end_employment': {
+      const { data, error } = await supabase.rpc('end_person_employment', { p_person_id: t.personId });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      const r = data as Record<string, unknown>;
+      return { success: r.changed === true || r.reason === 'already_inactive', detail: String(r.reason || ''), raw: r };
+    }
+    case 'reassign_person': {
+      const { data, error } = await supabase.rpc('set_person_assignment', {
+        p_person_id: t.personId,
+        p_operating_company_id: t.operatingCompanyId,
+        p_legal_employer_company_id: t.legalEmployerCompanyId || null,
+      });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      return { success: true, detail: 'reassigned', raw: { assignmentId: data } };
+    }
+    case 'assign_task': {
+      const { data, error } = await supabase.from('tasks')
+        .update({ owner_type: 'human', owner_person_id: t.personId, owner_agent_id: null })
+        .eq('id', t.taskId)
+        .select('id');
+      if (error) return { success: false, detail: error.message, raw: null };
+      if (!data || data.length === 0) return { success: false, detail: 'no matching task or no access', raw: null };
+      return { success: true, detail: 'assigned', raw: { taskId: data[0].id } };
+    }
+    case 'archive_company': case 'restore_company': {
+      const rpc = action.operation === 'archive_company' ? 'archive_company' : 'restore_company';
+      const { data, error } = await supabase.rpc(rpc, { p_company_id: t.companyId });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      const r = data as Record<string, unknown>;
+      return { success: r.changed === true || String(r.reason || '').startsWith('already_'), detail: String(r.reason || ''), raw: r };
+    }
+    case 'archive_task': case 'restore_task': {
+      const rpc = action.operation === 'archive_task' ? 'archive_task' : 'restore_task';
+      const { data, error } = await supabase.rpc(rpc, { p_task_id: t.taskId });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      const r = data as Record<string, unknown>;
+      return { success: r.changed === true, detail: String(r.reason || ''), raw: r };
+    }
+    case 'archive_goal': case 'restore_goal': {
+      const rpc = action.operation === 'archive_goal' ? 'archive_goal' : 'restore_goal';
+      const { data, error } = await supabase.rpc(rpc, { p_goal_id: t.goalId });
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      const r = data as Record<string, unknown>;
+      return { success: r.changed === true, detail: String(r.reason || ''), raw: r };
+    }
+    default:
+      return { success: false, detail: 'unsupported operation', raw: null };
+  }
+}
+
+// Processes a whole plan to completion, respecting dependsOn. Returns the same array,
+// mutated in place with real status/result per action, plus an overall classification -
+// 'completed' only when every action completed, 'partial' when at least one did but not
+// all, 'failed' when none did. A circular dependency (should never happen from a
+// well-formed model response, defensive only) fails every action still unresolved rather
+// than looping forever.
+async function executeActionPlan(supabase: any, plan: ExecutionPlanAction[]): Promise<{ plan: ExecutionPlanAction[]; overallStatus: 'completed' | 'partial' | 'failed' }> {
+  const byId = new Map(plan.map((a) => [a.id, a]));
+  const pending = new Set(plan.map((a) => a.id));
+  let guard = 0;
+  while (pending.size > 0 && guard < plan.length + 5) {
+    guard++;
+    let progressed = false;
+    for (const id of [...pending]) {
+      const action = byId.get(id);
+      if (!action) { pending.delete(id); continue; }
+      const deps = action.dependsOn || [];
+      if (!deps.every((d) => !pending.has(d))) continue; // a dependency hasn't been attempted yet
+      const depsFailed = deps.some((d) => byId.get(d)?.status === 'failed' || byId.get(d)?.status === 'blocked');
+      if (depsFailed) {
+        action.status = 'blocked';
+        action.result = { reason: 'dependency_failed', dependsOn: deps };
+      } else {
+        const outcome = await executeOneAction(supabase, action);
+        action.status = outcome.success ? 'completed' : 'failed';
+        action.result = { success: outcome.success, detail: outcome.detail };
+      }
+      pending.delete(id);
+      progressed = true;
+    }
+    if (!progressed) {
+      for (const id of pending) {
+        const action = byId.get(id);
+        if (action) { action.status = 'failed'; action.result = { reason: 'circular_dependency' }; }
+      }
+      break;
+    }
+  }
+  const completedCount = plan.filter((a) => a.status === 'completed').length;
+  const overallStatus: 'completed' | 'partial' | 'failed' =
+    completedCount === plan.length ? 'completed' : completedCount === 0 ? 'failed' : 'partial';
+  return { plan, overallStatus };
+}
+
+// Human-readable, fully-grounded report of a completed plan run - real per-action outcome,
+// never a single flattened success sentence. Names resolved from context where available.
+function buildExecutionPlanReport(
+  plan: ExecutionPlanAction[],
+  overallStatus: 'completed' | 'partial' | 'failed',
+  names: { personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown> },
+): string {
+  const OPERATION_LABEL: Record<string, string> = {
+    restore_employment: 'Restore employment', end_employment: 'End employment',
+    reassign_person: 'Reassign', assign_task: 'Assign task',
+    archive_company: 'Archive company', restore_company: 'Restore company',
+    archive_task: 'Archive task', restore_task: 'Restore task',
+    archive_goal: 'Archive goal', restore_goal: 'Restore goal',
+  };
+  // Operation-aware: assign_task's targetIds carries BOTH taskId and personId, but the
+  // task is what identifies THIS action - a naive "personId first" priority order (live
+  // self-caught bug while writing this fix's own regression test) produced "Assign task
+  // (QA-MULTI-EMPLOYEE): done." instead of "Assign task (QA-MULTI-TASK): done.".
+  const nameFor = (action: ExecutionPlanAction): string => {
+    const t = action.targetIds || {};
+    if (action.operation === 'assign_task') return String(names.taskTitleById.get(t.taskId) || t.taskId);
+    if (t.personId) return String(names.personNameById.get(t.personId) || t.personId);
+    if (t.taskId) return String(names.taskTitleById.get(t.taskId) || t.taskId);
+    if (t.companyId) return String(names.companyNameById.get(t.companyId) || t.companyId);
+    if (t.goalId) return String(names.goalTitleById.get(t.goalId) || t.goalId);
+    return 'target';
+  };
+  const lines = plan.map((a) => {
+    const label = OPERATION_LABEL[a.operation] || a.operation;
+    const name = nameFor(a);
+    if (a.status === 'completed') return `${label} (${name}): done.`;
+    if (a.status === 'blocked') return `${label} (${name}): blocked — a required earlier step did not complete.`;
+    return `${label} (${name}): failed${a.result && typeof a.result === 'object' && 'detail' in a.result && a.result.detail ? ` — ${a.result.detail}` : ''}.`;
+  });
+  const headline = overallStatus === 'completed' ? '**All steps completed.**'
+    : overallStatus === 'partial' ? '**Partially completed.**'
+    : '**Failed — nothing completed.**';
+  return `${headline} ${lines.join(' ')}`;
 }
 
 // Broader than the bulk_confirmation isShortAffirmative check below (an exact
@@ -405,6 +581,33 @@ Rules:
   specific person) — "not_found" means that person no longer exists (permanently
   deleted), "active"/"inactive" is their real current employment status, and this always
   overrides whatever the memory's own free-text wording claims.
+- context.goals carries the same guarantee as companies/people above (same cap, same
+  uncapped targeted lookup against this turn's command text) — a goal named directly is
+  never invisible purely from being outside the general cap; if still absent, say so
+  plainly rather than inventing a status for it.
+- Bug 12 (2026-08-30 campaign): a question naming SEVERAL entities in one turn ("status of
+  X company, Y employee, and Z task") must resolve and read EACH one INDEPENDENTLY from
+  its own real, fresh context entry (context.companies/context.people/context.tasks/
+  context.goals, each entity matched by its own name) — never let one entity's real state
+  influence, blend into, or substitute for another's, and never answer entity #2 or #3
+  from conversationHistory/memory while entity #1 alone comes from fresh context data.
+  Each entity gets its own independently-derived line in your answer. Normalize each by
+  its OWN correct lifecycle axis — these are genuinely different questions, never conflate
+  them: a COMPANY's status is its own companies.status/effectivelyActive; a PERSON's
+  employment status is context.people[].active AND whether their employer is
+  effectivelyActive (an employee cannot be "active and currently employed" under an
+  archived employer — say "employment record retained; not currently active" instead,
+  never phrase these as simultaneously true); a TASK's status is its own lifecycle
+  (queued/in_progress/blocked/needs_approval/done/archived/etc); a GOAL's status is its
+  own (draft/active/paused/achieved/archived); a factory Work Order's status is its own
+  execution/verification state (see the factory status rules elsewhere in this prompt) —
+  never borrow one entity's status word for another just because they were asked about
+  together. If exactly ONE of the several named entities is genuinely ambiguous (more than
+  one real candidate, or a name that doesn't clearly match anything), clarify ONLY that
+  one entity (pendingAction disambiguation/single_entity_clarification scoped to it) while
+  still answering the other, already-resolvable entities in the same response — never
+  discard or refuse the whole multi-entity question just because one part of it needs a
+  follow-up.
 - An ambiguous or unclear COMMAND (the founder said "delete it"/"clear channels"/"delete
   all" without saying which one, or otherwise didn't give you enough to act on) is NOT
   itself a task. Never create a task or approval just to ask a clarifying question — that
@@ -805,6 +1008,45 @@ Rules:
   place).
   A "current" company-to-company relationship is idempotent server-side — repeating the
   same "move X under Y" command is safe and will not create a duplicate.
+- GENUINELY COMPOUND commands — the founder describes MORE THAN ONE distinct action
+  across different capabilities in one message ("restore employee X, move them to company
+  Y, and assign them task Z"; "restore employment and reassign them"; "archive X and end
+  Y's employment") — must NEVER be flattened into a single mutation field or a single
+  prose sentence claiming everything happened. Build a real, typed
+  pendingAction:{"kind":"multi_action_plan","summary":<one sentence describing the whole
+  plan>,"executionPlan":[...]} instead, where each entry in executionPlan is
+  {"id": "action_1" (your own short label, unique within this plan), "operation": one of
+  restore_employment/end_employment/reassign_person/assign_task/archive_company/
+  restore_company/archive_task/restore_task/archive_goal/restore_goal, "targetIds": {the
+  real, already-resolved canonical ids this action needs - e.g. {"personId":...} for
+  restore_employment/end_employment, {"personId":...,"legalEmployerCompanyId":...,
+  "operatingCompanyId":...} for reassign_person, {"taskId":...,"personId":...} for
+  assign_task, {"companyId":...}/{"taskId":...}/{"goalId":...} for the archive/restore
+  operations}, "dependsOn": [other actions' own "id" within this SAME plan that must
+  complete first, or null] , "status": "planned", "result": null}. Never invent an id -
+  every targetIds value must be a real id already resolvable from context, exactly the
+  same provenance discipline as every other mutation field in this file. This turn does
+  NOT execute anything yet - it only proposes the plan and waits for confirmation, exactly
+  like bulk_confirmation above. Only when the founder replies with a short affirmative
+  ("yes"/"confirm"/"do it"/"do all of it") does the EXACT stored plan execute
+  deterministically, action by action, in real dependency order - never re-resolved from
+  names, never recomputed, never re-asking. Genuine dependency semantics: if action B's
+  "dependsOn" includes action A's id, B only ever runs if A actually completed - if A
+  failed, B is reported "blocked", never silently run anyway and never silently dropped.
+  Independent actions with no dependency on each other still each run and each get their
+  own real, individually-reported outcome even if a different, unrelated action in the
+  same plan failed - a compound plan's result is never one flattened success/failure
+  sentence, always a per-action account. If some part of the plan is missing information
+  needed to build a real action (e.g. which company for a brand-new hire's assignment),
+  set pendingAction:{"kind":"open_question","question":<only about the missing part>,
+  "partialExecutionPlan":[the actions you WERE able to fully resolve, kept exactly as
+  they are]} - never discard already-resolved actions just because one part needs a
+  follow-up question; the founder's next answer resumes and completes the SAME plan,
+  never restarts it. A command describing only ONE action, even if that action happens to
+  touch multiple fields (e.g. a single reassign_person touching both legal employer and
+  operating company, per the bullet above), is not "compound" - use the ordinary
+  bulk_confirmation/direct-mutation-field path for that, not a plan; reserve
+  multi_action_plan for genuinely distinct, separately-typed actions.
 - Companies carry an "organizationType": legal_entity (default — a real registered
   company), holding_company, subsidiary, business_unit, brand, department, or
   country_operation. "X is not a company, it's a business unit of Y" / "remove X from the
@@ -963,7 +1205,7 @@ Output schema:
 {
   "strategicGoal": string,
   "summary": string,
-  "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "actionType": "archive"|"restore"|null, "options": [{"label": string, "id": string, "entityType": string, "actionType": "archive"|"restore"|null}]|null}|null,
+  "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question"|"multi_action_plan", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "actionType": "archive"|"restore"|null, "options": [{"label": string, "id": string, "entityType": string, "actionType": "archive"|"restore"|null}]|null, "executionPlan": [{"id": string, "operation": "restore_employment"|"end_employment"|"reassign_person"|"assign_task"|"archive_company"|"restore_company"|"archive_task"|"restore_task"|"archive_goal"|"restore_goal", "targetIds": object, "dependsOn": [string]|null, "status": "planned", "result": null}]|null, "partialExecutionPlan": [/* same shape as executionPlan */]|null}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
     {
@@ -1503,6 +1745,13 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('people').select('id,full_name,email,role_title,company_id,active')
         .or(commandNameTokens.map((t) => `full_name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
     : Promise.resolve({ data: [] as any[] });
+  // Bug 12 (2026-08-30 campaign, same root cause/fix shape as the two above): a goal
+  // named directly in a multi-entity status question ("status of X, Y goal, and Z") could
+  // also fall outside context.goals' own cap with zero real data to ground an answer.
+  const namedGoalLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('goals').select('id,company_id,title,status,kind')
+        .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+    : Promise.resolve({ data: [] as any[] });
   const queryEmbedding = await embedText(command, openaiKey);
   // Real semantic retrieval when embeddings are available (match_memories, migration
   // 202608260008); degrades to the original ILIKE substring match otherwise — company
@@ -1527,7 +1776,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks] = await Promise.all([
@@ -1550,6 +1799,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     supabase.from('people').select('id,full_name,email,role_title,company_id,active').limit(30),
     namedPersonLookupQuery,
     supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
+    namedGoalLookupQuery,
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state').limit(20),
@@ -1798,6 +2048,14 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     return [...(people.data || []), ...extra];
   })();
   const packPeople = mergedPeopleData.map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
+  // Bug 12: same merge, same reason, for goals - a goal named directly in a multi-entity
+  // status question must never be structurally invisible for falling outside the capped
+  // top-20 goals list.
+  const mergedGoalsData = (() => {
+    const seen = new Set((goals.data || []).map((g: any) => g.id));
+    const extra = (namedGoalLookup.data || []).filter((g: any) => !seen.has(g.id));
+    return [...(goals.data || []), ...extra];
+  })();
 
   // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
   // deletion, the very next "what is [company]'s status?" answered "is archived" purely
@@ -1838,8 +2096,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       : null,
   }));
 
-  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -2019,7 +2277,56 @@ serve(async (req) => {
           }
         }
 
-        if (deterministic) {
+        // Bug 11 (2026-08-30 campaign): "yes"/"confirm" on a pending multi_action_plan
+        // executes the EXACT stored plan - never re-resolved from names, never
+        // recomputed. Handled separately from the deterministic.fields merge above
+        // because a plan's execution is real, immediate, awaited RPC/DB work with its own
+        // per-action postconditions (executeActionPlan), not a set of fields deferred to
+        // the ordinary downstream mutation loops. Local id-provenance sets built directly
+        // from contextPack here (the shared contextCompanyIds/contextPersonIds/etc. sets
+        // are built later in this function, after this resolution block runs) - same
+        // "only ids actually present in context are honored" discipline as everywhere
+        // else in this file, never trusting a stored id blindly just because it was
+        // stored.
+        let planExecutionResultText: string | null = null;
+        if (pendingAction && pendingAction.kind === 'multi_action_plan' && isShortAffirmative && Array.isArray(pendingAction.executionPlan) && pendingAction.executionPlan.length > 0) {
+          const planCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+          const planPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
+          const planTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
+          const planGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+          const isRealId = (v: unknown, set: Set<unknown>): v is string => typeof v === 'string' && set.has(v);
+          const validPlan = pendingAction.executionPlan.every((a) => {
+            if (!a || typeof a !== 'object' || typeof a.id !== 'string' || typeof a.operation !== 'string' || !a.targetIds || typeof a.targetIds !== 'object') return false;
+            const t = a.targetIds as Record<string, unknown>;
+            if (t.companyId !== undefined && !isRealId(t.companyId, planCompanyIds)) return false;
+            if (t.legalEmployerCompanyId !== undefined && t.legalEmployerCompanyId !== null && !isRealId(t.legalEmployerCompanyId, planCompanyIds)) return false;
+            if (t.operatingCompanyId !== undefined && !isRealId(t.operatingCompanyId, planCompanyIds)) return false;
+            if (t.personId !== undefined && !isRealId(t.personId, planPersonIds)) return false;
+            if (t.taskId !== undefined && !isRealId(t.taskId, planTaskIds)) return false;
+            if (t.goalId !== undefined && !isRealId(t.goalId, planGoalIds)) return false;
+            return true;
+          });
+          if (validPlan) {
+            const planNameById = new Map((contextPack?.people || []).map((p: any) => [p.id, p.full_name]));
+            const planCompanyNameById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name]));
+            const planTaskTitleById = new Map((contextPack?.tasks || []).map((t: any) => [t.id, t.title]));
+            const planGoalTitleById = new Map((contextPack?.goals || []).map((g: any) => [g.id, g.title]));
+            const { plan: executedPlan, overallStatus } = await executeActionPlan(supabase, pendingAction.executionPlan as ExecutionPlanAction[]);
+            const report = buildExecutionPlanReport(executedPlan, overallStatus, {
+              personNameById: planNameById, companyNameById: planCompanyNameById,
+              taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
+            });
+            planExecutionResultText = JSON.stringify({ summary: report, executionPlan: executedPlan });
+          } else {
+            planExecutionResultText = JSON.stringify({ summary: 'Couldn’t execute that plan — one or more of its stored targets no longer resolves to a real record. Please ask again.' });
+          }
+        }
+
+        if (planExecutionResultText) {
+          resultText = planExecutionResultText;
+          model = 'deterministic-plan-execution';
+          send({ type: 'delta', text: JSON.parse(planExecutionResultText).summary });
+        } else if (deterministic) {
           resultText = JSON.stringify({ summary: deterministic.summary, ...deterministic.fields });
           model = deterministic.tag;
           send({ type: 'delta', text: deterministic.summary });
@@ -3636,7 +3943,16 @@ serve(async (req) => {
           const { name, realActive } = personStateClaimContradiction;
           stateClaimCorrections.push(`Actually, ${name} is ${realActive ? 'currently employed.' : 'no longer employed.'}`);
         }
-        if (lifecycleReports.length > 0) {
+        // Bug 11: a deterministic-plan-execution turn's summary is ALREADY the final,
+        // authoritative, fully-grounded report (buildExecutionPlanReport) built from real
+        // per-action postconditions - none of the ad-hoc mutation-field arrays above
+        // (archiveCompanyIds etc.) were ever populated for a plan turn (it uses its own,
+        // separate execution path), so every claims*Deleted corrector below would
+        // otherwise see "zero ids attempted" and wrongly overwrite a correct plan report
+        // with a generic "Couldn't confirm that" - guarded out entirely for this turn kind.
+        if (model === 'deterministic-plan-execution') {
+          // result.summary already set at plan-execution time - never touched here.
+        } else if (lifecycleReports.length > 0) {
           result.summary = lifecycleReports.join(' ');
         } else if (stateClaimCorrections.length > 0) {
           result.summary = stateClaimCorrections.join(' ');
@@ -3644,7 +3960,8 @@ serve(async (req) => {
           result.summary = lifecycleMismatchCorrections.join(' ');
         }
         const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
-          || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence;
+          || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
+          || model === 'deterministic-plan-execution';
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution
