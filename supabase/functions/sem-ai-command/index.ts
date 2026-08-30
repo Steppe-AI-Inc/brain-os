@@ -159,6 +159,34 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   return matches.length === 1 ? matches[0] : null;
 }
 
+// Shared by claimsCompanyDeleted/claimsTaskDeleted/claimsGoalDeleted/claimsPersonDeleted
+// below: true when the model's own summary text CLAIMS a lifecycle action happened near
+// the given noun, with no real id ever attempted (checked by the caller) - the exact
+// defect class this exists to catch (2026-08-30, "test3 restore" incident: "test3 is now
+// active" said with zero real mutation behind it).
+//
+// CRITICAL, live-reproduced false positive found and fixed in the SAME pass that added
+// restor(ed|ing) to the verb list: a plain, correct, truthful read-only answer — "test3 is
+// archived. Should I restore it?" — matched archiv(ed) near "company" and had its own
+// accurate response destroyed and replaced with a false "Couldn't confirm that" correction.
+// "test3 IS archived" is a present-tense STATE DESCRIPTION (accurate, should never be
+// touched), not a completion CLAIM ("I just archived it", the real defect class).
+// PRESENT-tense copula only ("is"/"are", optionally with "currently"/"already") is
+// excluded — deliberately NOT "was"/"were": a second real test case caught during the same
+// fix ("The company was restored successfully.") showed past-tense passive voice is the
+// MORE common way a genuine completion claim gets phrased in normal chat UX ("Done! The
+// company was restored."), not a historical-fact statement — excluding "was"/"were" would
+// have reopened exactly the defect this corrector exists to catch. -ing forms are also not
+// excluded - "test3 is archiving" is not a grammatical state description in this domain.
+function claimsLifecycleClaim(summary: string, verbAlternation: string, nounAlternation: string): boolean {
+  const claimPattern = new RegExp(
+    `\\b(${verbAlternation})\\b[^.]{0,40}\\b(${nounAlternation})\\b|\\b(${nounAlternation})\\b[^.]{0,40}\\b(${verbAlternation})\\b`,
+    'i',
+  );
+  const stateDescriptionPattern = /\b(is|are)\s+(currently\s+|already\s+)?(delet(ed)|archiv(ed)|remov(ed)|restor(ed)|end(ed))\b/i;
+  return claimPattern.test(summary) && !stateDescriptionPattern.test(summary);
+}
+
 const SYSTEM_PROMPT = `You are Brain OS v0.7 Production Core — the company brain.
 You are the AI-native operating brain for a founder-led multi-company holding system.
 Refer to yourself as "Brain OS" if you need to name yourself in a reply, never "SEM Brain".
@@ -1750,7 +1778,7 @@ serve(async (req) => {
         // restoreTaskIds attempted slipped through uncorrected the same way a false
         // "active" claim did for companies.
         const claimsTaskDeleted = archiveTaskIds.length === 0 && restoreTaskIds.length === 0 && deleteTaskIds.length === 0 && pendingDeleteTaskIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\btask\b|\btask\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'task');
 
         // Channel deletion: same cross-check discipline as task deletion above, but this
         // isn't part of the sem_execute_ai_command RPC's transaction — chat_channels has
@@ -1974,7 +2002,7 @@ serve(async (req) => {
         // archiveCompanyIds, and updateCompanies never attempting a raw status write
         // across the archived boundary) is what actually closes that path, not this regex.
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 
         // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
         // restore_person_employment() (supabase/migrations/
@@ -2022,7 +2050,7 @@ serve(async (req) => {
         // residual "claimed but nothing happened" case the same way the other correctors do.
         // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
         const claimsPersonDeleted = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing))\b[^.]{0,40}\b(employe(e|d)|person|staff)\b|\b(employe(e|d)|person|staff)\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing))\b/i.test(String(result.summary || ''));
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing)', 'employe(e|d)|person|staff');
 
         // Organization graph audit — real database query, not a guess. Runs immediately
         // (like company updates above) since it's read-only and doesn't belong in the
@@ -2094,7 +2122,7 @@ serve(async (req) => {
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
         // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
         const claimsGoalDeleted = archiveGoalIds.length === 0 && restoreGoalIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\bgoal\b|\bgoal\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'goal');
 
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
         const createPeople = requestedPeople

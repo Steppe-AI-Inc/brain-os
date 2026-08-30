@@ -43,10 +43,29 @@ function resolveClarificationField(pendingAction) {
   return CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || '']?.[pendingAction.actionType || 'archive'];
 }
 
-// ---- byte-for-byte copy: the broadened claimsCompanyDeleted (and siblings) regex ----
+// ---- byte-for-byte copy: the shared claimsLifecycleClaim() helper ----
+// A SECOND real, live-reproduced false positive was found and fixed in the same pass
+// (2026-08-30): a plain, correct, truthful read-only answer to "can't find company
+// test3" - "test3 is archived. Should I restore it?" - matched archiv(ed) near "company"
+// under the FIRST version of the broadened regex and had its own accurate response
+// destroyed and replaced with a false "Couldn't confirm that" correction. "test3 IS
+// archived" is a present-tense STATE DESCRIPTION (accurate, must never be touched), not a
+// completion CLAIM. The state-description exclusion is PRESENT tense only ("is"/"are") -
+// a THIRD test case caught during the same fix ("The company was restored successfully.")
+// showed past-tense passive voice is the MORE common way a genuine completion claim gets
+// phrased ("Done! The company was restored."), not a historical-fact statement -
+// "was"/"were" are deliberately NOT excluded.
+function claimsLifecycleClaim(summary, verbAlternation, nounAlternation) {
+  const claimPattern = new RegExp(
+    `\\b(${verbAlternation})\\b[^.]{0,40}\\b(${nounAlternation})\\b|\\b(${nounAlternation})\\b[^.]{0,40}\\b(${verbAlternation})\\b`,
+    'i',
+  );
+  const stateDescriptionPattern = /\b(is|are)\s+(currently\s+|already\s+)?(delet(ed)|archiv(ed)|remov(ed)|restor(ed)|end(ed))\b/i;
+  return claimPattern.test(summary) && !stateDescriptionPattern.test(summary);
+}
 function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompanyIds) {
   return archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-    && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(summary);
+    && claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 }
 
 // ---- byte-for-byte copy: the updateCompanies lifecycle-transition-skip logic ----
@@ -127,6 +146,33 @@ function assert(cond, name, detail) {
 {
   const fired = claimsCompanyLifecycleChange('You have 12 companies. SEM LLC is your largest by headcount.', [], []);
   assert(!fired, 'corrector does not false-positive on ordinary unrelated company text');
+}
+// CRITICAL, live-reproduced (2026-08-30): the exact real question that triggered a real
+// false positive in production against the first version of this fix - a plain, correct,
+// truthful answer to "can't find company test3" must NOT be corrupted into a false
+// "Couldn't confirm that" message. This is the state-description exclusion's own reason
+// for existing.
+{
+  const fired = claimsCompanyLifecycleChange('test3 is archived. Should I restore it, or leave it archived?', [], []);
+  assert(fired === false, 'CRITICAL: a truthful "test3 is archived" state description is never corrupted into a false correction');
+}
+// Same state-description exclusion, other verbs/tenses, to prove it's general not
+// company-specific luck.
+{
+  assert(claimsLifecycleClaim('The task is archived.', 'archiv(ed|ing)', 'task') === false, 'task: "is archived" state description not caught');
+  assert(claimsLifecycleClaim('This goal is already restored.', 'restor(ed|ing)', 'goal') === false, 'goal: present-tense "is already restored" state description not caught');
+  // "was" is intentionally NOT excluded (see the helper's own comment) - accepted
+  // trade-off: an occasional genuine historical mention in past tense gets caught too,
+  // preferred over missing a real completion claim (the much more common and much more
+  // severe failure mode "was X-ed" phrasing is actually used for in practice).
+  assert(claimsLifecycleClaim('This goal was already restored last month.', 'restor(ed|ing)', 'goal') === true, 'goal: past-tense "was" is intentionally NOT excluded (documented trade-off)');
+  assert(claimsLifecycleClaim('That employee is currently ended.', 'end(ed|ing)?', 'employe(e|d)|person|staff') === false, 'person: "is currently ended" state description not caught');
+}
+// A genuine completion CLAIM must still be caught even with a nearby, unrelated copula
+// elsewhere in the sentence - the exclusion must be narrow (verb-adjacent), not blanket.
+{
+  const fired = claimsCompanyLifecycleChange('Done - I archived the company just now, and it is fully processed.', [], []);
+  assert(fired === true, 'a real completion claim ("I archived...") is still caught even with an unrelated "is" elsewhere in the sentence');
 }
 
 // ============ COMPANY_RESTORE_USES_CANONICAL_LIFECYCLE_PATH ============
