@@ -3116,10 +3116,22 @@ serve(async (req) => {
         // request array is only safe to assume when every entry succeeded - deliberately
         // narrow: falls back to the existing generic batchLine on any partial failure
         // rather than guessing which specific entry corresponds to which result.
-        const personAssignmentReport = (createPersonAssignmentsFiltered.length > 0
+        //
+        // Real, live-caught regression in the SAME pass that added this (2026-08-30): a
+        // brand-new hire ("add employee X to company Y") also flows through
+        // createPersonAssignments, but with personId null (the person only exists via
+        // personIndex into this same turn's createPeople - there's nothing to "reassign",
+        // they're being hired for the first time). The first version of this report fired
+        // unconditionally on any full-success batch and produced an ugly, wrong "**that
+        // person reassigned to the specified company.**" for an ordinary new hire. Scoped
+        // to real-personId entries only (a genuinely pre-existing person, i.e. an actual
+        // reassignment) - a same-turn new hire is silently left to the pre-existing
+        // batchLine + model prose, completely unaffected, exactly as before this fix.
+        const reassignmentEntries = createPersonAssignmentsFiltered.filter((a) => a.personId !== null);
+        const personAssignmentReport = (reassignmentEntries.length > 0
           && createdPersonAssignments.length === createPersonAssignmentsFiltered.length)
-          ? createPersonAssignmentsFiltered.map((a) => {
-              const personName = a.personId ? (personNameById.get(a.personId) || a.personId) : 'that person';
+          ? reassignmentEntries.map((a) => {
+              const personName = personNameById.get(a.personId as string) || a.personId;
               const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
               const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
               if (legalName && operatingName && legalName !== operatingName) {

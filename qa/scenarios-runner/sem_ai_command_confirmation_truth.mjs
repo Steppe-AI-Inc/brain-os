@@ -144,7 +144,7 @@ function assert(cond, name, detail) {
 // index.ts), reporting real canonical legal-employer/operating-company names, never
 // re-derived from prose. ----
 function buildPersonAssignmentLine(a, personNameById, companyNameById) {
-  const personName = a.personId ? (personNameById.get(a.personId) || a.personId) : 'that person';
+  const personName = personNameById.get(a.personId) || a.personId;
   const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
   const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
   if (legalName && operatingName && legalName !== operatingName) {
@@ -152,6 +152,16 @@ function buildPersonAssignmentLine(a, personNameById, companyNameById) {
   }
   if (legalName && operatingName) return `**${personName} reassigned to ${operatingName}** (legal employer and operating company).`;
   return `**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`;
+}
+// ---- byte-for-byte copy: the caller's filtering logic (index.ts) - real, live-caught
+// regression fixed in the same pass: a brand-new hire (personId null, only resolvable via
+// personIndex into this same turn's createPeople - nothing to "reassign") produced an
+// ugly, wrong "**that person reassigned to the specified company.**" before this filter was
+// added. Scoped to real-personId entries (a genuinely pre-existing person) only. ----
+function buildPersonAssignmentReport(createPersonAssignmentsFiltered, createdCount, personNameById, companyNameById) {
+  const reassignmentEntries = createPersonAssignmentsFiltered.filter((a) => a.personId !== null);
+  if (reassignmentEntries.length === 0 || createdCount !== createPersonAssignmentsFiltered.length) return null;
+  return reassignmentEntries.map((a) => buildPersonAssignmentLine(a, personNameById, companyNameById)).join(' ');
 }
 
 // ============ ASSIGNMENT_CONFIRMATION_EXECUTES_CANONICAL_RELATIONSHIP_IDS ============
@@ -171,10 +181,47 @@ function buildPersonAssignmentLine(a, personNameById, companyNameById) {
   const line = buildPersonAssignmentLine({ personId: 'p1', legalEmployerCompanyId: 'c1', operatingCompanyId: 'c2' }, personNameById, companyNameById);
   assert(line === '**test4 employee reassigned.** Legal employer: test4 company. Operating company: CLIX GPS.', 'differing legal employer vs operating company are both named explicitly, never merged into one vague sentence', line);
 }
-// Unknown ids fall back gracefully rather than throwing or emitting "undefined".
+// Unknown company id falls back gracefully rather than throwing or emitting "undefined".
 {
-  const line = buildPersonAssignmentLine({ personId: null, legalEmployerCompanyId: null, operatingCompanyId: 'c9' }, new Map(), new Map());
-  assert(line === '**that person reassigned to c9.**', 'missing personId/legalEmployerCompanyId falls back gracefully, never "undefined"', line);
+  const line = buildPersonAssignmentLine({ personId: 'p1', legalEmployerCompanyId: null, operatingCompanyId: 'c9' }, new Map([['p1', 'test4 employee']]), new Map());
+  assert(line === '**test4 employee reassigned to c9.**', 'unknown operatingCompanyId falls back to the raw id gracefully, never "undefined"', line);
+}
+// CRITICAL, real live-caught regression: a brand-new hire (personId null - only resolvable
+// via personIndex into this same turn's createPeople, nothing to "reassign") must NEVER
+// produce this report at all - the pre-existing generic batchLine + model prose stays
+// completely unaffected for an ordinary new hire.
+{
+  const personNameById = new Map();
+  const companyNameById = new Map([['c1', 'test8'], ['c2', 'test9']]);
+  const newHireEntry = { personId: null, legalEmployerCompanyId: 'c1', operatingCompanyId: 'c2' };
+  const report = buildPersonAssignmentReport([newHireEntry], 1, personNameById, companyNameById);
+  assert(report === null, 'CRITICAL: a brand-new hire (personId null) never produces the reassignment report (the real "that person reassigned to the specified company" incident)', report);
+}
+// A genuine reassignment (real personId) alongside an unrelated new hire in the same batch
+// only reports on the real reassignment, not the new hire.
+{
+  const personNameById = new Map([['p1', 'test4 employee']]);
+  const companyNameById = new Map([['c1', 'test8']]);
+  const entries = [
+    { personId: 'p1', legalEmployerCompanyId: 'c1', operatingCompanyId: 'c1' },
+    { personId: null, legalEmployerCompanyId: 'c1', operatingCompanyId: 'c1' },
+  ];
+  const report = buildPersonAssignmentReport(entries, 2, personNameById, companyNameById);
+  assert(report === '**test4 employee reassigned to test8** (legal employer and operating company).', 'a real reassignment mixed with a new hire in the same batch reports only the real reassignment', report);
+}
+// All-new-hire batch (no real personId anywhere) never produces this report.
+{
+  const report = buildPersonAssignmentReport([{ personId: null, legalEmployerCompanyId: 'c1', operatingCompanyId: 'c1' }], 1, new Map(), new Map());
+  assert(report === null, 'an all-new-hire batch (no real personId at all) never produces the reassignment report');
+}
+// Partial failure across the whole batch still suppresses the report even when the
+// reassignment entry itself would have qualified, per the documented positional-safety
+// scope limitation.
+{
+  const personNameById = new Map([['p1', 'test4 employee']]);
+  const entries = [{ personId: 'p1', legalEmployerCompanyId: 'c1', operatingCompanyId: 'c1' }];
+  const report = buildPersonAssignmentReport(entries, 0, personNameById, new Map());
+  assert(report === null, 'a partial-failure batch (createdCount !== requested length) suppresses the report entirely, even for a qualifying reassignment entry');
 }
 
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
