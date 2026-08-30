@@ -1839,5 +1839,22 @@ Bug 7 is NOT a real problem in practice (the route is genuinely dynamically rend
 per-request). Turn 5 (hard reload) — PASS, still `active`. Turn 6 (fresh conversation,
 "what is test3 status?") — PASS, consistent state. Turn 7 ("archive test3") — PASS, real
 `archive_company()` call, DB confirmed `status='archived'`. Turn 8 ("restore it") — FAILED
-on first attempt (defect 6 above, found live), PASSED after the fix and redeploy
-(confirmed next).
+on first attempt (defect 6 above, found live: a three-way disambiguation across every
+archived company instead of resolving to the one just archived), **PASSED** after defect
+6's fix and a third redeploy — re-run in a genuinely fresh conversation ("archive test3"
+then, next turn, "restore it"): resolved directly to `test3: restored.` with no ambiguity,
+DB confirmed `status='active'`.
+
+**Required failure-path test** — PASS: `restore ZZZNONEXISTENT9999` (a real, genuinely
+non-existent name) got an honest "ZZZNONEXISTENT9999 doesn't exist in the system — no
+company, goal, task, or other entity matches that name. Did you mean to restore one of the
+archived companies (test, test unit, or QA-VERIFY-BU) or a different entity?" — no false
+success anywhere, correctly offers real alternatives instead of guessing.
+
+**Same-defect sweep, live-confirmed for a second entity type** (not just unit-tested) —
+PASS: real person "test3 employee" (`f5ca8d22-637c-472e-b368-7d93f6d30f0e`), "end
+employment for test3 employee" → `test3 employee: employment ended.` (DB confirmed
+`active=false`), then in the same conversation "restore it" → `test3 employee: restored.`
+resolved directly via the same channel-focus fix, DB confirmed `active=true`. Proves both
+fixes 1 (actionType routing) and 6 (channel-focus continuity) generalize correctly beyond
+companies, not just in the unit-test copies but in real production behavior.
