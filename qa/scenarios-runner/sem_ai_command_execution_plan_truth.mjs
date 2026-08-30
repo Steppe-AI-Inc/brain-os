@@ -199,6 +199,75 @@ async function run() {
     assert(!report.startsWith('**All steps completed.**'), 'a partial plan never uses the full-success headline');
   }
 
+  // ============ MULTI_ACTION_CONFIRMATION_EXECUTES_IMMUTABLE_PLAN (proposal-summary
+  // override) ============
+  // Real, live-caught incident: the model correctly built a well-formed multi_action_plan
+  // proposal (real ids, correct operation, every action genuinely "planned") but its OWN
+  // summary prose falsely read as already completed ("QA-MULTI-TASK is now assigned to
+  // QA-MULTI-EMPLOYEE.") - confirmed via direct DB query the task's real owner_person_id
+  // was still null. A genuine plan proposal must always override the model's own prose
+  // with an unambiguous confirmation question.
+  // ---- byte-for-byte copy: the proposedPlan detection + summary-override logic (index.ts) ----
+  function buildPlanProposalSummary(pendingAction, names) {
+    const isValidProposal = pendingAction && typeof pendingAction === 'object'
+      && pendingAction.kind === 'multi_action_plan'
+      && Array.isArray(pendingAction.executionPlan)
+      && pendingAction.executionPlan.length > 0
+      && pendingAction.executionPlan.every((a) => a && a.status === 'planned');
+    if (!isValidProposal) return null;
+    const OPERATION_LABEL = {
+      restore_employment: 'Restore employment', end_employment: 'End employment',
+      reassign_person: 'Reassign', assign_task: 'Assign task',
+      archive_company: 'Archive company', restore_company: 'Restore company',
+      archive_task: 'Archive task', restore_task: 'Restore task',
+      archive_goal: 'Archive goal', restore_goal: 'Restore goal',
+    };
+    const nameFor = (a) => {
+      const t = a.targetIds || {};
+      if (a.operation === 'assign_task') return String(names.taskTitleById.get(t.taskId) || t.taskId);
+      if (t.personId) return String(names.personNameById.get(t.personId) || t.personId);
+      if (t.taskId) return String(names.taskTitleById.get(t.taskId) || t.taskId);
+      if (t.companyId) return String(names.companyNameById.get(t.companyId) || t.companyId);
+      if (t.goalId) return String(names.goalTitleById.get(t.goalId) || t.goalId);
+      return 'target';
+    };
+    const steps = pendingAction.executionPlan.map((a) => `${OPERATION_LABEL[a.operation] || a.operation} (${nameFor(a)})`).join('; ');
+    return `**Confirm this plan?** ${steps}. Nothing has been done yet — reply "yes" to execute.`;
+  }
+  {
+    const names = { personNameById: new Map([['p1', 'QA-MULTI-EMPLOYEE']]), companyNameById: new Map(), taskTitleById: new Map([['t1', 'QA-MULTI-TASK']]), goalTitleById: new Map() };
+    const pendingAction = {
+      kind: 'multi_action_plan',
+      executionPlan: [{ id: 'action_1', operation: 'assign_task', targetIds: { taskId: 't1', personId: 'p1' }, dependsOn: null, status: 'planned', result: null }],
+    };
+    const summary = buildPlanProposalSummary(pendingAction, names);
+    assert(summary === '**Confirm this plan?** Assign task (QA-MULTI-TASK). Nothing has been done yet — reply "yes" to execute.', 'CRITICAL: a real, valid plan proposal always produces an unambiguous confirmation question, never a completion-sounding sentence', summary);
+    assert(!/is now assigned|has been assigned|is assigned/i.test(summary), 'the overridden proposal summary never contains completion-sounding language (the real incident text)', summary);
+  }
+  // A plan where any action's status is NOT "planned" (already executed, e.g. the
+  // deterministic-plan-execution path) is not treated as a fresh proposal - this override
+  // is scoped only to genuinely not-yet-executed proposals.
+  {
+    const names = { personNameById: new Map([['p1', 'QA-MULTI-EMPLOYEE']]), companyNameById: new Map(), taskTitleById: new Map([['t1', 'QA-MULTI-TASK']]), goalTitleById: new Map() };
+    const pendingAction = {
+      kind: 'multi_action_plan',
+      executionPlan: [{ id: 'action_1', operation: 'assign_task', targetIds: { taskId: 't1', personId: 'p1' }, dependsOn: null, status: 'completed', result: { success: true } }],
+    };
+    const summary = buildPlanProposalSummary(pendingAction, names);
+    assert(summary === null, 'a plan with an already-executed (non-"planned") action is not treated as a fresh proposal, letting the real execution report stand instead');
+  }
+  // A non-multi_action_plan pendingAction (bulk_confirmation, disambiguation, etc.) is
+  // completely unaffected by this override.
+  {
+    const summary = buildPlanProposalSummary({ kind: 'bulk_confirmation', summary: 'x', action: {} }, { personNameById: new Map(), companyNameById: new Map(), taskTitleById: new Map(), goalTitleById: new Map() });
+    assert(summary === null, 'a bulk_confirmation pendingAction is completely unaffected by the multi_action_plan proposal override');
+  }
+  // No pendingAction at all is unaffected.
+  {
+    const summary = buildPlanProposalSummary(null, { personNameById: new Map(), companyNameById: new Map(), taskTitleById: new Map(), goalTitleById: new Map() });
+    assert(summary === null, 'no pendingAction at all is completely unaffected by this override');
+  }
+
   console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
   process.exit(failed ? 1 : 0);
 }

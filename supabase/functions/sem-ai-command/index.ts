@@ -4085,7 +4085,51 @@ serve(async (req) => {
         // separate execution path), so every claims*Deleted corrector below would
         // otherwise see "zero ids attempted" and wrongly overwrite a correct plan report
         // with a generic "Couldn't confirm that" - guarded out entirely for this turn kind.
-        if (model === 'deterministic-plan-execution') {
+        // Bug 11, a real live-caught gap: the model correctly built a well-formed
+        // multi_action_plan proposal (real ids, correct operation, every action genuinely
+        // "planned" - not yet executed) but its OWN summary prose falsely read as already
+        // completed ("QA-MULTI-TASK is now assigned to QA-MULTI-EMPLOYEE.") instead of a
+        // confirmation question - confirmed via direct DB query (the task's real
+        // owner_person_id was still null) and the raw work_orders.output
+        // (executionPlan[0].status: "planned", nothing executed). A genuine plan proposal
+        // this turn always overrides the model's own prose with an unambiguous
+        // confirmation question built from the plan itself - same "structured signal
+        // always wins over free-form narrative" discipline as every other grounded report
+        // in this file - so a proposal can never be phrased as if it already happened,
+        // regardless of how the model worded its own summary.
+        const proposedPlan = result.pendingAction && typeof result.pendingAction === 'object'
+          && (result.pendingAction as any).kind === 'multi_action_plan'
+          && Array.isArray((result.pendingAction as any).executionPlan)
+          && (result.pendingAction as any).executionPlan.length > 0
+          && (result.pendingAction as any).executionPlan.every((a: any) => a && a.status === 'planned')
+          ? (result.pendingAction as any).executionPlan as ExecutionPlanAction[]
+          : null;
+        if (proposedPlan) {
+          const planNames = {
+            personNameById: new Map((contextPack?.people || []).map((p: any) => [p.id, p.full_name])),
+            companyNameById: new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name])),
+            taskTitleById: new Map((contextPack?.tasks || []).map((t: any) => [t.id, t.title])),
+            goalTitleById: new Map((contextPack?.goals || []).map((g: any) => [g.id, g.title])),
+          };
+          const OPERATION_LABEL: Record<string, string> = {
+            restore_employment: 'Restore employment', end_employment: 'End employment',
+            reassign_person: 'Reassign', assign_task: 'Assign task',
+            archive_company: 'Archive company', restore_company: 'Restore company',
+            archive_task: 'Archive task', restore_task: 'Restore task',
+            archive_goal: 'Archive goal', restore_goal: 'Restore goal',
+          };
+          const nameFor = (a: ExecutionPlanAction): string => {
+            const t = a.targetIds || {};
+            if (a.operation === 'assign_task') return String(planNames.taskTitleById.get(t.taskId) || t.taskId);
+            if (t.personId) return String(planNames.personNameById.get(t.personId) || t.personId);
+            if (t.taskId) return String(planNames.taskTitleById.get(t.taskId) || t.taskId);
+            if (t.companyId) return String(planNames.companyNameById.get(t.companyId) || t.companyId);
+            if (t.goalId) return String(planNames.goalTitleById.get(t.goalId) || t.goalId);
+            return 'target';
+          };
+          const steps = proposedPlan.map((a) => `${OPERATION_LABEL[a.operation] || a.operation} (${nameFor(a)})`).join('; ');
+          result.summary = `**Confirm this plan?** ${steps}. Nothing has been done yet — reply "yes" to execute.`;
+        } else if (model === 'deterministic-plan-execution') {
           // result.summary already set at plan-execution time - never touched here.
         } else if (lifecycleReports.length > 0) {
           result.summary = lifecycleReports.join(' ');
@@ -4096,7 +4140,7 @@ serve(async (req) => {
         }
         const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
           || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
-          || model === 'deterministic-plan-execution';
+          || model === 'deterministic-plan-execution' || !!proposedPlan;
 
         // Bug 1/10, a THIRD shape (2026-08-30, real live incident, found immediately after
         // deploying the multi_action_plan mechanism): "assign QA-MULTI-TASK to
