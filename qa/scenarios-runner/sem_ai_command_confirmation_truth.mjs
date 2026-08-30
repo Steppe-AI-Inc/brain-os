@@ -138,5 +138,44 @@ function assert(cond, name, detail) {
   assert(claimsCompanyDeletedGuardPasses(['id'], [], []) === false, 'guard still blocks on a real archive attempt (unaffected, pre-existing behavior)');
 }
 
+// ---- byte-for-byte copy: personAssignmentReport's per-entry formatting logic (index.ts,
+// Bugs 7/9) - only builds when every requested assignment succeeded (positional
+// correspondence with the RPC result is unsafe on partial failure, see the comment in
+// index.ts), reporting real canonical legal-employer/operating-company names, never
+// re-derived from prose. ----
+function buildPersonAssignmentLine(a, personNameById, companyNameById) {
+  const personName = a.personId ? (personNameById.get(a.personId) || a.personId) : 'that person';
+  const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
+  const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
+  if (legalName && operatingName && legalName !== operatingName) {
+    return `**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`;
+  }
+  if (legalName && operatingName) return `**${personName} reassigned to ${operatingName}** (legal employer and operating company).`;
+  return `**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`;
+}
+
+// ============ ASSIGNMENT_CONFIRMATION_EXECUTES_CANONICAL_RELATIONSHIP_IDS ============
+// The real transcript case: "reassign test4 employee to test4 company" when legal employer
+// and operating company differ - both dimensions named explicitly, by real company name.
+{
+  const personNameById = new Map([['p1', 'test4 employee']]);
+  const companyNameById = new Map([['c1', 'test4 company'], ['c2', 'CLIX GPS']]);
+  const line = buildPersonAssignmentLine({ personId: 'p1', legalEmployerCompanyId: 'c1', operatingCompanyId: 'c1' }, personNameById, companyNameById);
+  assert(line === '**test4 employee reassigned to test4 company** (legal employer and operating company).', 'both dimensions moving to the same company produces one clean, specific line', line);
+}
+// The "move entirely" case where legal and operating differ before the change - both must
+// be named explicitly, never a vague "switch them to X" that leaves one dimension unstated.
+{
+  const personNameById = new Map([['p1', 'test4 employee']]);
+  const companyNameById = new Map([['c1', 'test4 company'], ['c2', 'CLIX GPS']]);
+  const line = buildPersonAssignmentLine({ personId: 'p1', legalEmployerCompanyId: 'c1', operatingCompanyId: 'c2' }, personNameById, companyNameById);
+  assert(line === '**test4 employee reassigned.** Legal employer: test4 company. Operating company: CLIX GPS.', 'differing legal employer vs operating company are both named explicitly, never merged into one vague sentence', line);
+}
+// Unknown ids fall back gracefully rather than throwing or emitting "undefined".
+{
+  const line = buildPersonAssignmentLine({ personId: null, legalEmployerCompanyId: null, operatingCompanyId: 'c9' }, new Map(), new Map());
+  assert(line === '**that person reassigned to c9.**', 'missing personId/legalEmployerCompanyId falls back gracefully, never "undefined"', line);
+}
+
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);

@@ -397,3 +397,15 @@ deletion with/without attached fixture people produces a clean, specific success
 
 Full incident record, including the still-open bugs (7, 9, 11, 12, 13/14) explicitly deferred
 to a follow-up pass: `qa/KNOWN_FAILURE_MODES.md` #33.
+
+Also added to the same file (2026-08-30, same thread, after full live acceptance): the
+`personAssignmentReport` full-replacement formatter for Bugs 7/9 (a real `createPersonAssignments`
+mutation reports the real canonical legal-employer and operating-company names, both named
+explicitly when they differ — "Legal employer: X. Operating company: Y." — never one vague
+sentence; deliberately only builds on full success, since the underlying RPC silently drops a
+failed entry with no positional placeholder). 33 assertions total now, up from 22. Bugs 13/14
+(`recentlyDeletedEntities`, a field genuinely separate from `recentlyResolvedEntities` — "no
+longer exists" vs. "still exists, was just touched") and the root-cause fabricated-status fix
+(an uncapped, targeted company-name lookup merged into `context.companies` every turn) are
+prompt/context-shape changes without a standalone pure-function regression file — covered by
+live acceptance evidence in `qa/KNOWN_FAILURE_MODES.md` #33 instead.

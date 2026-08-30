@@ -2259,3 +2259,94 @@ Deploy status: Edge Function changes above deployed via
 clean against production but **not pushed** — awaiting explicit founder authorization per
 the standing rule. Live verification (real `test4`-shaped fixture, the full acceptance
 script) and independent re-review are the required next steps before any completion claim.
+
+**UPDATE (2026-08-30, same day): migration authorized and applied, full live acceptance
+run, three further real defects found and fixed, independent verification dispatched.**
+
+Migration `202608300003` applied to production via `supabase db push --linked`; confirmed
+live via `pg_proc` (both `permanently_delete_fixture_company_graph` and
+`check_person_delete_dependents` exist, `security_definer`, correct `authenticated`-only
+grants, no `anon` access).
+
+**Full live replay of the exact original defect, real `test4` fixture**: "delete all data
+related to test4 company" produced a real `bulk_confirmation` with the immutable payload
+`{permanentDeleteFixtureCompanyIds:["<test4's real id>"]}` (confirmed via direct
+`work_orders.output` query before confirming — not re-resolved from names); "confirm"
+executed deterministically at **$0.00/0 tokens** (proving no LLM call, pure grounded
+execution) and returned "test4 permanently deleted. Also removed: test4 employee."; a
+direct DB query immediately after confirmed company, person, assignment, and relationship
+rows were **all genuinely gone** — zero rows returned for all four. Founder-only gating
+independently confirmed via a direct unauthenticated SQL RPC call (`reason:'denied'`
+without a real session, same limitation the earlier verifier also found and respected).
+Non-fixture-person-attached refusal independently confirmed with a second real fixture
+(`test7` company + a person named "Alice Johnson", deliberately not fixture-named):
+permanent deletion correctly refused ("Couldn't permanently delete test7 — it has people
+attached whose names don't match the fixture convention (Alice Johnson)"), and a direct DB
+query confirmed **neither** test7 nor Alice Johnson was touched — proving fixture-name-alone
+on the company is never sufficient to authorize a person hard-delete. Declining a
+`bulk_confirmation` for test7 independently confirmed to leave it untouched (archived, not
+deleted). Companies UI independently confirmed to show zero trace of `test4` post-deletion.
+
+**A genuinely new, real defect found live** while running the required post-deletion
+cross-layer consistency check (not in the original 12-bug list — surfaced by the "fresh DB
+read, People UI, Companies UI, and fresh Brain Chat all agree afterward" requirement
+itself): immediately after the real `test4` permanent deletion above, "show me the status of
+test4 company and test4 employee" answered **"test4 is archived (a QA fixture company)"** —
+a fabricated claim, not grounded in any real field. Two sequential fix attempts (a
+prompt-only caution about `context.memories` going stale, then a structural
+`companyCurrentStatus` annotation added to each memory) were each deployed and **each failed
+on live retest** — the exact same wrong answer reproduced both times. Direct inspection of
+the real `memories` table proved neither theory was even the right root cause: neither
+memory row referencing test4 contained the word "archived" at all. The actual root cause:
+the ordinary `context.companies` query is capped (`.limit(12)`, no explicit order) — a
+company named directly by the founder can fall entirely outside that window, and with zero
+real data for it, the model produced a plausible-sounding but entirely fabricated guess.
+Third fix: `buildContext()` now runs a real, uncapped, targeted lookup for company names
+matching tokens extracted from the command text itself, merged into `context.companies`
+every turn (feeding the same `effectivelyActive` computation) — this one **survived
+redeploy-retest**, confirmed live: "I don't see a company named test4 in the active
+companies list right now... its current status field shows 'not_found' — meaning it no
+longer exists in the database (permanently deleted, not merely archived)."
+
+**Three of the six previously-deferred bugs also fixed this pass** (Bug 7, Bug 9, Bug
+13/14 — Bugs 11 and 12 remain open, see below):
+- **Bug 7/9** (`ASSIGNMENT_CONFIRMATION_EXECUTES_CANONICAL_RELATIONSHIP_IDS`): a new,
+  full-replacement `personAssignmentReport`, matching the archive/restore grounding
+  pattern, reports a real `createPersonAssignments` mutation by the REAL canonical
+  legal-employer and operating-company names, naming both dimensions explicitly whenever
+  they differ ("Legal employer: X. Operating company: Y.") rather than one vague sentence —
+  deliberately narrow: only builds when every requested assignment succeeded (the
+  underlying RPC's own `v_created_assignments` silently drops a failed entry with no null
+  placeholder, so positional correspondence with the request array is only safe to assume
+  on full success; falls back to the pre-existing generic batchLine count on any partial
+  failure rather than guessing which entry failed). System prompt gained an explicit
+  "reassign X to Y" bullet requiring both legal-employer and operating-company dimensions
+  to be named in the confirmation question when they differ, with real canonical ids
+  already resolved into the `bulk_confirmation`'s immutable `action` payload.
+- **Bug 13/14** (`DESTRUCTIVE_MUTATION_INVALIDATES_CHANNEL_ENTITY_CACHE`): a new, genuinely
+  separate `context.recentlyDeletedEntities` field (never merged into the existing
+  `recentlyResolvedEntities`, which means the opposite thing — "still exists, was just
+  touched" vs. "no longer exists at all") threaded the same last-turn-only way, populated
+  from `permanently_delete_fixture_company_graph`'s own real, structured result. System
+  prompt requires the model to resolve a pronoun reference from this field for
+  identification only, never attempt any further mutation on it, and say plainly it no
+  longer exists.
+
+Regression-tested: `qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs`, now 33
+assertions (up from 22) — added coverage for the assignment-report formatting (both
+dimensions named when legal/operating differ, graceful fallback on missing ids).
+
+**Independent verification dispatched**: a genuinely separate `brain-os-verifier` session
+(`468815a6`) is independently re-deriving all of the above from scratch (its own fresh
+fixture, its own DB queries, its own live chat turns, its own re-run of the regression
+suite) rather than trusting this report. Result to be appended once complete.
+
+**Still explicitly open, not yet attempted** (Bugs 11 and 12 — do not treat the overall
+12-bug campaign as complete until these land too): `MULTI_ACTION_COMMAND_PRESERVES_ALL_TARGET_IDS`
+(a real execution-plan structure for genuinely compound multi-action commands like "archive
+X and delete its test employees") and `MULTI_ENTITY_STATUS_QUERY_READS_EACH_ENTITY_CANONICALLY`
+(a status query naming several entities must resolve and read each independently, never let
+one entity's answer bleed from conversation memory while another comes from fresh DB — note
+this is closely related to, but not fully covered by, the uuncapped-named-lookup fix above,
+which fixes company existence specifically but not the general N-entity independent-read
+guarantee).

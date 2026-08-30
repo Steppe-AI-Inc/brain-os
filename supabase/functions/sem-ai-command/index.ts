@@ -100,6 +100,17 @@ type ResolvedEntities = {
   goals: { id: string; name: string }[];
 };
 
+// Bug 13/14 (2026-08-30 campaign): deliberately separate from ResolvedEntities above -
+// that type means "exists, was just touched (created/archived/restored)"; this one means
+// "does NOT exist any more, was just permanently removed". Threaded the same way
+// (context.recentlyDeletedEntities, last-turn-only) but never merged into the same array,
+// so a follow-up pronoun reference can be resolved to the correct real id AND told the
+// entity is genuinely gone, not silently treated as still-live.
+type DeletedEntities = {
+  companies: { id: string; name: string }[];
+  people: { id: string; name: string }[];
+};
+
 // Maps a single_entity_clarification/disambiguation entityType + actionType to the real
 // mutation field it resolves to when the founder confirms deterministically (no LLM
 // call) — deliberately only fields that already exist in this file's own JSON schema.
@@ -757,6 +768,28 @@ Rules:
   ownershipPct stays null unless the user states an actual number. For person assignments,
   personId/personIndex works like companyId/companyIndex (personIndex points at
   createPeople in this same response); leave any field null rather than guessing.
+- "Reassign/move/switch [person] to [company]" for someone who ALREADY has a current
+  assignment (check context.personAssignments for their existing current row) needs its
+  own explicit confirmation whenever their real legal_employer_company_id and
+  operating_company_id are not both already the target company — these are two separate,
+  independently-tracked canonical relationships, and a single ambiguous "switch to X" could
+  mean either one alone or both. Ask a bulk_confirmation naming BOTH dimensions
+  explicitly and their real before/after values by name, e.g. "Move [person] entirely to
+  [company]? Legal employer: [old] → [company]. Operating company: [old] → [company]." —
+  never a vague "switch them to X" that leaves which relationship(s) change unstated. The
+  confirmation's own action payload must be createPersonAssignments with the REAL
+  personId and REAL legalEmployerCompanyId/operatingCompanyId already resolved to their
+  canonical ids at proposal time (never company names/indexes) — on "yes"/"do both" this
+  exact payload executes deterministically, with no re-resolution from "them"/"there"/
+  "both" against context a second time. If the founder answers with only one dimension
+  ("just the operating company") or corrects you, adjust the ids accordingly before this
+  turn's own bulk_confirmation is set, never leave the unconfirmed dimension in the
+  payload. This is exactly the shape of the real 2026-08-30 incident: "switch test4
+  employee to test4 company" was answered "To switch them to CLIX GPS..." — CLIX GPS was
+  never mentioned in that message at all, only pulled from stale focus (see the
+  EXPLICIT_CURRENT_TURN_ENTITY_OVERRIDES_STALE_FOCUS rule above, which this confirmation
+  shape depends on to correctly identify the target as test4, not CLIX GPS, in the first
+  place).
   A "current" company-to-company relationship is idempotent server-side — repeating the
   same "move X under Y" command is safe and will not create a duplicate.
 - Companies carry an "organizationType": legal_entity (default — a real registered
@@ -880,6 +913,15 @@ Rules:
   PRONOUNS and OMITTED references ("it", "them", "that one", a compound follow-up that
   names no company at all) — never to override a company or person the founder named
   explicitly and unambiguously in this exact message.
+- context.recentlyDeletedEntities (present only immediately after a turn that actually
+  permanently deleted something via permanentDeleteFixtureCompanyIds) is a GENUINELY
+  SEPARATE field from recentlyResolvedEntities above — it means the opposite thing. Where
+  recentlyResolvedEntities says "this real id still exists, was just touched",
+  recentlyDeletedEntities says "this real id no longer exists at all, was just permanently
+  removed". If the founder's next message references "it"/"them"/"that company" right
+  after a permanent deletion, resolve the id from here for identification purposes only —
+  never treat the entity as still-live, never attempt any further mutation on it (archive/
+  restore/reassign/anything), and say plainly it no longer exists rather than acting on it.
 - context.memories holds durable company facts retrieved from every past conversation
   (semantic search, not limited to this channel or this session) — treat these as
   already-known context for QUALITATIVE facts (why something was created, a decision, a
@@ -1616,6 +1658,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // id straight through instead of the model re-deriving it from its own prior prose.
   // Same "only the last turn counts" scoping as pendingAction above.
   const recentlyResolvedEntities: ResolvedEntities | null = lastTurnOutput?.resolvedEntities ?? null;
+  // Bug 13/14: same last-turn-only scoping, but for permanent removals - see DeletedEntities.
+  const recentlyDeletedEntities: DeletedEntities | null = lastTurnOutput?.deletedEntities ?? null;
   // Compact real summary, not the full row shape - enough for "what happened with that
   // work?" to be answerable from real state (title/status/task+run counts/last run
   // outcome/real commit), not a dashboard-sized dump. Every field here is real,
@@ -1744,7 +1788,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     companyCurrentStatus: m.company_id ? (memoryCompanyStatusById.get(m.company_id) ?? 'not_found') : null,
   }));
 
-  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
   return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
@@ -2314,6 +2358,14 @@ serve(async (req) => {
           (id): id is string => typeof id === 'string' && contextCompanyIds.has(id),
         ))];
         const permanentDeleteLines: string[] = [];
+        // Bug 13/14 (2026-08-30 campaign): a permanently-deleted entity must never be
+        // treated as still-live by a follow-up turn's pronoun/compound-reference
+        // resolution the way an ordinary create/archive/restore is - tracked separately
+        // from resolvedEntities below (deletedEntities), never merged into it, so
+        // "recentlyResolvedEntities" keeps meaning "exists, was just touched" and the new
+        // field alone means "no longer exists at all, was just permanently removed".
+        const deletedCompanyEntities: { id: string; name: string }[] = [];
+        const deletedPersonEntities: { id: string; name: string }[] = [];
         for (const id of permanentDeleteFixtureCompanyIds) {
           const name = companyNameById.get(id) || id;
           const { data, error } = await supabase.rpc('permanently_delete_fixture_company_graph', { p_company_id: id });
@@ -2338,8 +2390,11 @@ serve(async (req) => {
             continue;
           }
           if (r.reason === 'deleted') {
-            const deletedPeople = (r.peopleDeleted as Array<Record<string, unknown>> | undefined)?.map((p) => p.name).join(', ');
+            const peopleDeletedRaw = (r.peopleDeleted as Array<Record<string, unknown>> | undefined) || [];
+            const deletedPeople = peopleDeletedRaw.map((p) => p.name).join(', ');
             permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`);
+            deletedCompanyEntities.push({ id, name: String(name) });
+            for (const p of peopleDeletedRaw) deletedPersonEntities.push({ id: String(p.id), name: String(p.name) });
             continue;
           }
           permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — unexpected result.`);
@@ -3050,6 +3105,31 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
+        // Bugs 7/9 (2026-08-30 campaign): a person-assignment change touching BOTH the
+        // legal employer and operating company (a real "reassign X entirely to Y"
+        // confirmation) deserves the same full-replacement grounding as archive/restore,
+        // not just the generic "N of M person assignment(s) created" batchLine below -
+        // the founder needs to see exactly which canonical relationship(s) actually
+        // changed, by name, not trust the model's own retelling. sem_execute_ai_command's
+        // v_created_assignments only ever returns {id} for a SUCCEEDED entry and silently
+        // DROPS a failed one (no null placeholder), so positional correspondence with the
+        // request array is only safe to assume when every entry succeeded - deliberately
+        // narrow: falls back to the existing generic batchLine on any partial failure
+        // rather than guessing which specific entry corresponds to which result.
+        const personAssignmentReport = (createPersonAssignmentsFiltered.length > 0
+          && createdPersonAssignments.length === createPersonAssignmentsFiltered.length)
+          ? createPersonAssignmentsFiltered.map((a) => {
+              const personName = a.personId ? (personNameById.get(a.personId) || a.personId) : 'that person';
+              const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
+              const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
+              if (legalName && operatingName && legalName !== operatingName) {
+                return `**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`;
+              }
+              if (legalName && operatingName) return `**${personName} reassigned to ${operatingName}** (legal employer and operating company).`;
+              return `**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`;
+            }).join(' ')
+          : null;
+
         // Workstream 3c: thread real ids for anything created OR lifecycle-mutated
         // (archived/restored) this turn into the NEXT turn's context
         // (contextPack.recentlyResolvedEntities, built in buildContext() from the
@@ -3083,6 +3163,15 @@ serve(async (req) => {
         const hasResolvedEntities = resolvedEntities.companies.length > 0 || resolvedEntities.people.length > 0 || resolvedEntities.goals.length > 0;
         if (hasResolvedEntities) {
           result.resolvedEntities = resolvedEntities;
+        }
+        // Bug 13/14: kept in a genuinely separate field from resolvedEntities above (see
+        // DeletedEntities) - real ids come from permanently_delete_fixture_company_graph's
+        // own structured result (deletedCompanyEntities/deletedPersonEntities, built in the
+        // execution loop above), not re-derived here.
+        const deletedEntities: DeletedEntities = { companies: deletedCompanyEntities, people: deletedPersonEntities };
+        const hasDeletedEntities = deletedEntities.companies.length > 0 || deletedEntities.people.length > 0;
+        if (hasDeletedEntities) {
+          result.deletedEntities = deletedEntities;
         }
 
         // Departments/leads/documents: executed here, outside the RPC's transaction —
@@ -3456,7 +3545,7 @@ serve(async (req) => {
         // factoryWorkOrderReport (Workstream 5) joins the same combine array for the
         // identical reason: a real Work Order creation is the entire point of the turn,
         // so it fully replaces the model's own prose rather than merely prepending to it.
-        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport, permanentDeleteReport].filter((r): r is string => !!r);
+        const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport, permanentDeleteReport, personAssignmentReport].filter((r): r is string => !!r);
         // Wording deliberately does not presume "you named it ambiguously" (2026-08-30,
         // "test3 restore" incident: the founder named test3 exactly right - the real
         // failure was a mechanism bug, not a naming problem, so a message insisting they
