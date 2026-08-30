@@ -456,4 +456,26 @@ person-company employment assignment, root-caused to a missing `context.tasks` o
 field rather than prompt wording) and the two-stage context-retrieval architecture fix
 (factory Work Orders summary-only by default with a `detailLoaded` discriminator, memories
 capped consistently at 8 regardless of retrieval path, tasks/channels caps reduced and
-backstopped by targeted named-lookup): `qa/KNOWN_FAILURE_MODES.md` #36.
+backstopped by targeted named-lookup): `qa/KNOWN_FAILURE_MODES.md` #35 (the Defect A-D
+"UPDATE" section within it — corrected here from a stray "#36" reference that predated any
+actual #36 entry; #36 is now a distinct, later entry — independent verification of this
+same commit thread, plus one further real defect it found and fixed: the
+`claimsFutureActionWithNoPlan` gate's own corrected summary was never actually persisted
+to `work_orders.output`).
+
+## Persist condition covers every corrector that mutates the founder-facing summary, not
+just some of them (catches: a corrected/safe summary reverting to the original,
+false-completion-shaped, occasionally UUID-leaking raw model text on any reload or the next
+turn's own conversation-history context — added 2026-08-30, independent verification pass)
+
+`qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` — 2 new assertions, byte-for-byte
+mirror of the fixed `work_orders.output` persist condition in
+`supabase/functions/sem-ai-command/index.ts`. `claimsFutureActionWithNoPlan` (added earlier
+the same day) corrected `result.summary` in memory but was never added to the persist
+condition a few lines below — the corrected text lived only in that one request's SSE
+stream; the database kept the original raw text forever, including a real historical case
+where that raw text carried two raw entity UUIDs directly in founder-facing prose. Fixed by
+adding `|| claimsFutureActionWithNoPlan` to the persist condition. Every other
+`result.summary`-mutating site in the file was audited for the same gap; none found.
+
+Full incident record: `qa/KNOWN_FAILURE_MODES.md` #36.

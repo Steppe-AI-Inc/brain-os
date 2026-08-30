@@ -265,5 +265,37 @@ function claimsFutureActionWithNoPlan(model, pendingAction, groundedOutcomeThisT
   assert(fired === false, 'an ordinary read-only answer with no future-tense commitment language is never flagged');
 }
 
+// ============ Real, live-caught defect (2026-08-30, independent verifier re-auditing the
+// #35 commit thread): claimsFutureActionWithNoPlan's corrected, safe summary was NEVER
+// added to the work_orders.output persist condition when it was introduced. By its own
+// definition it only fires when groundedOutcomeThisTurn is false and model isn't
+// deterministic-confirmation, so it could never satisfy any pre-existing branch of that
+// condition. Practical effect: the corrected text lived only in that one request's SSE
+// stream; work_orders.output (and every future reload/conversationHistory read of it) kept
+// the ORIGINAL, uncorrected, false-completion-shaped raw model text forever. Confirmed live
+// against a real, historical production row from the incident that motivated this exact
+// gate: its stored (never-corrected) text carried two raw entity UUIDs directly in
+// founder-facing prose - the exact "no raw UUIDs" invariant this whole campaign otherwise
+// holds. Fixed by adding `|| claimsFutureActionWithNoPlan` to the persist condition
+// (index.ts, immediately after the work_orders.output persist comment). ----
+// byte-for-byte copy of the FIXED persist condition (index.ts) ----
+function shouldPersistCorrectedOutput(groundedOutcomeThisTurn, lifecycleMismatchCorrectionsLength, model, claimsFutureActionWithNoPlanFired) {
+  return groundedOutcomeThisTurn || lifecycleMismatchCorrectionsLength > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlanFired;
+}
+{
+  // The exact real incident shape: nothing grounded, ordinary LLM turn, the gate fires.
+  const fired = claimsFutureActionWithNoPlan('claude-sonnet-4-5', null, false, "QA-MULTI-TASK (id: 3182f784-...) has no owner set yet. I'll assign the task to them now.");
+  const persisted = shouldPersistCorrectedOutput(false, 0, 'claude-sonnet-4-5', fired);
+  assert(fired === true && persisted === true, 'CRITICAL: when claimsFutureActionWithNoPlan fires, the corrected (safe, UUID-free) summary IS persisted to work_orders.output — not left visible only in that one request\'s SSE stream', { fired, persisted });
+}
+{
+  // Sanity: when the gate does NOT fire (nothing to correct), this flag alone must not
+  // force a persist that wasn't otherwise warranted - matches the pre-existing behavior for
+  // every other flag in this condition (an ordinary, ungrounded, non-flagged turn is simply
+  // never persisted here, exactly as before this fix).
+  const persisted = shouldPersistCorrectedOutput(false, 0, 'claude-sonnet-4-5', false);
+  assert(persisted === false, 'an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix)');
+}
+
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);

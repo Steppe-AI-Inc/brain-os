@@ -4195,7 +4195,22 @@ serve(async (req) => {
         // rather than result.summary, so without this they'd be visible only in this
         // request's own SSE `done` event, not to the next turn's buildContext() read of
         // work_orders.output (recentlyResolvedEntities) or a future reload.
-        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation') {
+        //
+        // Real gap in this exact class, found live by an independent verifier
+        // (2026-08-30, re-auditing the #35 commit thread): claimsFutureActionWithNoPlan
+        // (the Defect C gate, just above) was never added to this persist condition when
+        // it was introduced — by definition it only fires when groundedOutcomeThisTurn is
+        // false and model isn't deterministic-confirmation, so it could NEVER have
+        // satisfied any existing branch here. The safe, corrected summary was visible only
+        // in that one request's own SSE stream; work_orders.output kept the ORIGINAL,
+        // uncorrected, false-completion-shaped raw model text forever - reachable again on
+        // any reload/channel revisit AND fed back into the next turn's own
+        // conversationHistory/lastTurnOutput context. Confirmed live: a real, historical,
+        // pre-this-fix production row (QA-MULTI-TASK "I'll assign the task to them now")
+        // even carried two raw entity UUIDs directly in that never-corrected stored text -
+        // the exact "no raw UUIDs in founder-facing text" invariant this campaign
+        // otherwise holds elsewhere. Same fix shape as the rest of this comment.
+        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 

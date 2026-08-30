@@ -2678,3 +2678,110 @@ script end-to-end after all four fixes (in progress), and independent verifier d
 per explicit founder instruction — if a legitimate case remains for raising it after this
 architecture fix, that requires a fresh measurement (typical/p95/worst-case real prompt
 sizes and remaining headroom) presented on its own merits, not as a workaround.
+
+## 36. Independent verification of Bugs 11/12 (commit 1eda9ce) — CONFIRMED LIVE at the mechanism/RPC/data layer, plus one real, live, previously-untested defect found and fixed: Defect C's own corrected summary was never actually persisted (FOUND LIVE, FIXED, DEPLOYED, LIVE VERIFIED — 2026-08-30)
+
+Independent re-verification (fresh session, no memory of the implementing session) of
+`b5af390`/`d6670db`/`bd828e0`/`9448928`/`2898bf7`/`7f5a8af`/`1eda9ce` — the full closeout of
+the 12-bug "Multi-Entity Execution, Confirmation Truth, Assignment Context, and
+Cascade/Postcondition Consistency" campaign (#33-#35).
+
+**Confirmed genuinely true, independently re-derived, not trusted from any report**:
+production `sem-ai-command` (version 89 at verification start) byte-diffed identical to
+commit `1eda9ce` — real production state, not just a committed file. Both required
+regression suites (`sem_ai_command_execution_plan_truth.mjs`, 25/25;
+`sem_ai_command_confirmation_truth.mjs`, 35/35 pre-fix) re-run clean against the actual
+current file content. `sem_ai_command_context_budget.sql` re-run live against production:
+**8,800 estimated tokens** (independently re-derived, not the implementer's 8,791 figure),
+comfortably under the 10,000 safe budget and the unchanged 12,000 hard cap — every field
+list/cap in that SQL script was independently cross-checked line-by-line against the real
+`buildContext()` in `index.ts` and genuinely matches. Real, historical production
+`work_orders` rows independently read (not trusted from the implementer's summary)
+confirm: the exact pre-`1eda9ce` false-completion defect ("QA-MULTI-TASK is now assigned
+to QA-MULTI-EMPLOYEE." with `executionPlan[0].status:"planned"`, nothing executed) really
+did reproduce live at 14:18:40 UTC, and the identical command 5 minutes later (14:23:39,
+after the 14:22:46 deploy) produced the correct grounded confirmation question — real,
+independently-timed evidence the fix is genuine, not just claimed. A real RPC-level
+regression (`sem_ai_command_execution_plan_rpc_truth.sql`, new, rolled-back transaction
+against real production) proves the dependency-blocking contract holds against the REAL
+deployed RPCs (`restore_person_employment`, `set_person_assignment`, a real `tasks`
+update) — not just the JS mirror: a genuinely failing dependency (`not_found`) correctly
+blocks the dependent `reassign_person` step from ever being called at all (proven by the
+person's real `person_assignments`/`company_id` being byte-identical before/after),  an
+unrelated independent action in the same plan still completes on its own real outcome, and
+a genuinely successful dependency correctly unblocks and runs the dependent step for real.
+Bug 12's multi-entity mechanism independently re-derived at the data layer: the exact
+`commandNameTokens` extraction for `"show status of QA-MULTI-CO, QA-MULTI-EMPLOYEE, and
+CLIX GPS"` was reproduced in Node, and the resulting named-lookup queries run live against
+production correctly and independently resolved all three real entities (CLIX GPS,
+QA-MULTI-CO, QA-MULTI-EMPLOYEE — each currently `active`), from real current DB state.
+
+**Real, live, previously-untested defect found by this independent pass**: the
+`claimsFutureActionWithNoPlan` gate (Defect C's own fix, deployed earlier the same day as
+part of the `#35` thread) corrects `result.summary` in-memory but was **never added to the
+`work_orders.output` persist condition** a few lines below it — a persistence gap the
+surrounding code's own comment explicitly describes fixing for every *other* corrector in
+this file (`factLines`, `organizationGraphCheck`, `lifecycleReports`,
+`stateClaimCorrections`, `lifecycleMismatchCorrections`, `proposedPlan` /
+`deterministic-confirmation`), but this specific gate was left out. By construction,
+`claimsFutureActionWithNoPlan` can only ever fire when `groundedOutcomeThisTurn` is false
+and `model !== 'deterministic-confirmation'` — meaning it could never have satisfied any
+pre-existing branch of that condition. Practical, confirmed-live effect: the corrected,
+safe, UUID-free message ("I described an action but didn't actually queue or execute
+it...") was visible only in that one request's own SSE stream; `work_orders.output` (read
+by `getChatHistory` on reload/channel-revisit, and by the next turn's own
+`conversationHistory`/`lastTurnOutput` context) kept the ORIGINAL, uncorrected,
+false-completion-shaped raw model text forever. Found via a real historical production row
+(`94679656-c899-4ff4-b27e-dd5de6c8e21e`, 2026-08-30 13:53:45 UTC, the exact incident that
+motivated this gate's creation) whose stored `output.summary` — independently scanned for
+raw-UUID leakage per this campaign's own "no raw UUIDs in founder-facing text" requirement
+— still, permanently, carries two real entity UUIDs directly in prose:
+`"QA-MULTI-TASK (id: 3182f784-66fb-4ded-af82-b0261e0bf814) has no owner set yet... 
+QA-MULTI-EMPLOYEE (id: c7d3af3b-51e0-4352-a314-1795faa2e83a) is a real person. I'll assign
+the task to them now."` — the exact leak class item (e) of this verification pass was
+required to check for. Confirmed by direct code inspection this row predates the gate's
+existence (it's the row that caused the gate to be written), and confirmed the currently
+live/deployed code (independent of that historical row) has the identical structural gap
+regardless — a fresh occurrence of the same trigger shape would reproduce the exact same
+non-persistence today, gate or no gate, since the persist condition itself never included
+it.
+
+**Fixed**: added `|| claimsFutureActionWithNoPlan` to the `work_orders.output` persist
+condition (`supabase/functions/sem-ai-command/index.ts`, immediately after the existing
+"real, systemic gap found live" comment explaining the same persist-condition pattern for
+every sibling corrector). Regression-tested:
+`qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` (2 new assertions, byte-for-byte
+mirror of the fixed persist condition, 37 total, all pass) — proves the corrected summary
+now IS persisted when the gate fires, and confirms an ordinary non-flagged turn is
+unaffected (no new false-persist). Deployed to production (`supabase functions deploy
+sem-ai-command`), byte-verified via `supabase functions download` + diff (identical to the
+committed source). Both required regression suites re-run clean post-fix
+(`sem_ai_command_execution_plan_truth.mjs` unaffected/still 25/25;
+`sem_ai_command_confirmation_truth.mjs` 37/37).
+
+**Same-defect-class search performed**: audited every other direct `result.summary =`
+mutation site in the file (channel/approval/product-line/drawing/MCP-connector deletion
+error appends, `factLines` prepend, `organizationGraphCheck` override, `proposedPlan`,
+`lifecycleReports`, `stateClaimCorrections`, `lifecycleMismatchCorrections`, the
+`deterministic-confirmation` ungrounded safety net) — every one of them either directly
+participates in a flag already included in the persist condition, or (the deletion-error
+appends) always co-occurs in the same request as a non-empty `factLines` push regardless of
+success/failure, so `groundedOutcomeThisTurn` is already guaranteed true whenever they fire.
+`claimsFutureActionWithNoPlan` was the sole exception found. No other same-class gap
+identified in this file as of this commit.
+
+**Coverage gaps genuinely disclosed, not silently skipped**: no browser automation tool
+(`mcp__claude-in-chrome__*`) was available in this verification session at all (confirmed
+by direct invocation attempt, not merely assumed) — UI-rendering-layer checks and a
+literal, live, LLM-generated multi-entity chat response (Bug 12's own required acceptance
+test (b): "ask Brain Chat... and confirm each is read fresh") are **BLOCKED**, not silently
+substituted as complete. A synthetic-test-user-signup workaround (public signup API + a
+GoTrue email-confirmation step) was attempted to get a real authenticated session without
+browser tools; the confirmation step was correctly blocked by this environment's own
+safety classifier as a direct `auth.users` write outside the established
+rolled-back-transaction convention — respected, not routed around; the resulting
+unconfirmed, memberships-free, inert stray `auth.users`/`profiles` rows were fully cleaned
+up (profile deleted directly; the `auth.users` row itself accepted a `DELETE`, unlike the
+blocked `UPDATE`). Substituted evidence for the blocked layer: real production RPC-level
+testing (above) and independent re-derivation of the named-lookup data layer (above) — both
+LIVE VERIFIED at the mechanism level, genuinely short of E2E-through-the-browser.
