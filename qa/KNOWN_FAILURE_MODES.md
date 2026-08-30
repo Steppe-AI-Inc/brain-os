@@ -2370,3 +2370,111 @@ report format itself was correct and grounded; the model simply matched the wron
 already-existing person to a highly similar new name. Left open as an honest, non-blocking,
 separately-scoped observation given it required a deliberately adversarial one-character
 name difference to surface, rather than expanding scope mid-campaign.
+
+Independent verification result, appended by the dispatched brain-os-verifier session
+referenced above, genuinely re-derived from scratch (fresh session, no memory of the
+implementing session), not trusted secondhand.
+
+**Correction, independent verifier, 2026-08-30 (see #34):** the note directly above ("not
+pushed — awaiting explicit founder authorization") is now stale. Migration
+`202608300003_permanent_fixture_company_cleanup.sql` was in fact applied to production at
+some point after this entry was written — independently confirmed live via `pg_proc`
+(`permanently_delete_fixture_company_graph` and `check_person_delete_dependents` both
+exist, `security definer`) and via real production `work_orders.output` rows showing the
+capability actually executing (`**test4 permanently deleted.** Also removed: test4
+employee.`). Left here rather than silently edited, per this file's own discipline of
+recording what actually happened rather than only the cleaned-up final state — the lesson
+generalizes: a KNOWN_FAILURE_MODES entry's own "deploy status" line can itself go stale
+exactly like any other claim in this codebase, and needs the same independent
+re-confirmation before being trusted.
+
+## 34. Independent verification of #33's four-commit fix thread (4f359a2/b5515c9/f3ad8af/15e868a) — CONFIRMED LIVE, plus one same-defect-class gap found and fixed (people-context cap) (2026-08-30)
+
+**Scope verified independently** (fresh session, no memory of the implementing session,
+per `brain-os-truth-verification`): the full #33 fix thread, ending at `15e868a`.
+
+**Confirmed LIVE and correct, via real production evidence (not just code inspection):**
+- `permanently_delete_fixture_company_graph()` / `check_person_delete_dependents()` are
+  live in production `pg_proc` (migration `202608300003` is actually applied, despite
+  #33's own stale note — see correction above).
+- Real production `work_orders` rows (not synthetic) show: the exact original defect
+  shape reproduced pre-fix (`"delete all data related to test4 compan"` →
+  `deleteCompanyIds`/`deletePersonIds` pendingAction → confirm → `"Confirmed —
+  Permanently delete test4 company..."` with zero real capability behind it, 08:34 UTC);
+  the fix working post-deploy (`"delete all data related to test4 company"` →
+  `permanentDeleteFixtureCompanyIds` pendingAction → confirm → `"**test4 permanently
+  deleted.** Also removed: test4 employee."`, 09:07 UTC) with the company and person rows
+  actually gone from the database; a real non-fixture-person refusal
+  (`"permanently delete all data related to test7 company"` → confirmed → `"Couldn't
+  permanently delete test7 — it has people attached whose names don't match the fixture
+  convention (Alice Johnson), so nothing was removed"`, 09:19 UTC, test7/Alice Johnson
+  independently confirmed untouched in the database); and — critically — b5515c9 and
+  f3ad8af's own commit messages claiming they did NOT survive retest are independently
+  corroborated by real production timestamps (wrong "test4 is archived" answers at 09:07,
+  09:10, and 09:13 UTC, i.e. strictly after each of those two commits' own deploy times),
+  while `15e868a`'s fix is independently confirmed to hold from 09:17 UTC onward with no
+  recurrence in any later real turn observed. No raw UUIDs, RPC names, or internal field
+  names appeared in any founder-facing summary text across dozens of real turns inspected.
+- Independently reproduced via a new permanent rolled-back-transaction regression,
+  `qa/scenarios-runner/permanent_fixture_company_cleanup.sql` (9 scenarios: happy-path
+  cascade delete, idempotent re-delete, non-fixture person attached, non-fixture company
+  name, non-fixture company-level dependent (goal), same-company task dependent (also
+  company-level), genuinely person-level blocked dependent via `manager_person_id` (proves
+  `check_person_delete_dependents()` is real and not merely shadowed by the company-level
+  blockers list), denied for a non-founder, not-found) — all 9 pass live against
+  production, transaction rolled back, zero residue confirmed by direct re-query.
+  `qa/scenarios-runner/sem_ai_command_confirmation_truth.mjs` and
+  `sem_ai_command_company_restore_truth.mjs` both re-run and pass in full (73 assertions
+  combined) against the actual current file content (not merely re-trusted from a prior
+  run) — each safety-net/corrector function's real `index.ts` counterpart was located and
+  spot-checked to confirm the test file's "byte-for-byte copy" claim actually holds at
+  this commit.
+
+**New defect found by this independent pass, same class as 15e868a, not yet covered:**
+`context.people` (the ordinary people query in `buildContext()`) had the *exact same*
+structural defect 15e868a fixed for `context.companies` — capped at `.limit(30)` with no
+explicit order and no targeted named lookup. A person named directly in the founder's
+command (e.g. "is test4 employee still active?") could fall entirely outside that window
+with zero real data to ground an answer, risking the identical "fabricate a plausible
+status" failure mode 15e868a closed for companies, just not yet generalized to people.
+Also found: `context.memories` had `companyCurrentStatus` grounding (f3ad8af) but no
+equivalent for a memory about a specific *person* (`entity_type='person'`) — and unlike
+`company_id` (a real FK, auto-nulled on cascade delete), `entity_id` is a deliberately
+polymorphic column with no FK, so it is never auto-cleared when the person it names is
+later permanently deleted, making this gap strictly more durable/dangerous than the
+company case was before f3ad8af.
+
+**Fixed same pass**: `namedPersonLookupQuery` mirrors `namedCompanyLookupQuery` exactly
+(same `commandNameTokens` extraction, reused as-is; same `ilike`-based query against
+`people.full_name`; same dedup-by-id merge into the base capped list before any
+`effectivelyActive` computation) — `mergedPeopleData`/`packPeople`. A `personCurrentStatus`
+field (`'active'` / `'inactive'` / `'not_found'` / `null` if not person-tagged) is now
+annotated onto every memory the same way `companyCurrentStatus` already was, sourced from
+a real, unlimited, DB-verified lookup of every distinct `entity_id` any retrieved
+person-tagged memory references. System prompt updated with the symmetric guidance
+already given for companies. Not yet observed live in real production traffic (no real
+founder command has exercised a person named outside the top-30 window since this fix
+shipped) — this is `CODE INSPECTED` + `UNIT VERIFIED`
+(`qa/scenarios-runner/sem_ai_command_named_person_lookup_truth.mjs`, 11 assertions,
+functions spot-checked against the real deployed `index.ts`), not yet `LIVE VERIFIED` in
+the same real-production-traffic sense as the company fix was — flagged honestly rather
+than claimed with evidence it doesn't have.
+
+**Systemic note**: this is the second time in this exact fix thread that a structural
+fix shipped for one entity type (companies) without the same pass checking sibling entity
+types (people) for the identical defect shape, even though `buildContext()` builds both
+in the same function with obviously parallel query patterns. Any future "context X is
+capped, add a targeted lookup" fix in this file should default to checking `companies`,
+`people`, `tasks`, `goals`, and `projects` together, not one at a time as each is
+individually reported.
+
+**Tooling gap disclosed, not silently worked around**: no browser automation tool
+(`mcp__claude-in-chrome__*`) was available in this verification session — all UI-level
+and live-chat-driven-by-this-session checks are `BLOCKED`, not silently skipped. Minting a
+real user session (`auth.admin.generateLink`) and direct multi-statement production writes
+via ad-hoc `db query --linked` scripts (outside the `begin;...rollback;` convention) were
+both correctly blocked by the sandbox's auto-mode classifier and were not worked around —
+respected per this project's own standing rule about not bypassing safety mechanisms.
+Wrapping test SQL in the same `begin; ... rollback;` convention already used throughout
+`qa/scenarios-runner/*.sql` was NOT blocked and produced the real, live, rolled-back
+evidence cited above.

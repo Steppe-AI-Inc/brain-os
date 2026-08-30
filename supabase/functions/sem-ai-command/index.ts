@@ -392,6 +392,19 @@ Rules:
   does not appear in context.companies, no matter how familiar the name sounds from
   context.memories or conversationHistory — a memory or a past mention proves only that
   the name was discussed before, never its current state.
+- context.people carries the exact same guarantee for the same reason (it is also
+  normally capped, and ALSO always includes any person whose name was specifically
+  matched against words in THIS turn's own command text via the same uncapped, targeted
+  lookup) — a person you are directly asked about (their status, employment, role) is
+  never invisible purely from being outside the general cap. Same rule applies
+  symmetrically: if a person the founder names is STILL absent from context.people, say
+  so plainly ("I don't see a person by that name right now") rather than inventing an
+  employment/active status for them — and never treat a context.memories fact mentioning
+  a person's name as proof they currently exist or are currently employed; check
+  context.memories[].personCurrentStatus (present whenever a memory is tagged to a
+  specific person) — "not_found" means that person no longer exists (permanently
+  deleted), "active"/"inactive" is their real current employment status, and this always
+  overrides whatever the memory's own free-text wording claims.
 - An ambiguous or unclear COMMAND (the founder said "delete it"/"clear channels"/"delete
   all" without saying which one, or otherwise didn't give you enough to act on) is NOT
   itself a task. Never create a task or approval just to ask a clarifying question — that
@@ -1479,6 +1492,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score')
         .or(commandNameTokens.map((t) => `name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
     : Promise.resolve({ data: [] as any[] });
+  // Same fix, same root cause, same defect class (found by the independent verifier
+  // auditing 15e868a): context.people is ALSO capped (.limit(30), no explicit order)
+  // with no analogous targeted lookup — a person named directly in the founder's command
+  // ("is test4 employee still active?") could fall entirely outside that window exactly
+  // like test4 company did before this fix, and the model would have zero real data to
+  // ground an employment/status answer for them. Mirrors namedCompanyLookupQuery exactly,
+  // reusing the same commandNameTokens extraction.
+  const namedPersonLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('people').select('id,full_name,email,role_title,company_id,active')
+        .or(commandNameTokens.map((t) => `full_name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+    : Promise.resolve({ data: [] as any[] });
   const queryEmbedding = await embedText(command, openaiKey);
   // Real semantic retrieval when embeddings are available (match_memories, migration
   // 202608260008); degrades to the original ILIKE substring match otherwise — company
@@ -1503,7 +1527,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks] = await Promise.all([
@@ -1524,6 +1548,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // from at all, only conversationHistory (a structural, forced instance of the Bug 4
     // pattern, discovered live via "is test3 employee currently employed?").
     supabase.from('people').select('id,full_name,email,role_title,company_id,active').limit(30),
+    namedPersonLookupQuery,
     supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
@@ -1764,7 +1789,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     return true;
   }
   const packCompanies = mergedCompaniesData.map((c: any) => ({ ...c, effectivelyActive: isCompanyEffectivelyActiveInMemory(c.id) }));
-  const packPeople = (people.data || []).map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
+  // Same merge as mergedCompaniesData above, same reason: a person named directly in this
+  // turn's command must never be structurally invisible just for falling outside the
+  // capped top-30 people list.
+  const mergedPeopleData = (() => {
+    const seen = new Set((people.data || []).map((p: any) => p.id));
+    const extra = (namedPersonLookup.data || []).filter((p: any) => !seen.has(p.id));
+    return [...(people.data || []), ...extra];
+  })();
+  const packPeople = mergedPeopleData.map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
 
   // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
   // deletion, the very next "what is [company]'s status?" answered "is archived" purely
@@ -1783,13 +1816,30 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? await supabase.from('companies').select('id,status').in('id', memoryCompanyIds)
     : { data: [] as any[] };
   const memoryCompanyStatusById = new Map((memoryCompanyStatusRows.data || []).map((c: any) => [c.id, c.status]));
+  // Same defect class, same fix, for a memory ABOUT a specific person (entity_type =
+  // 'person', entity_id = that person's id) — entity_id is deliberately polymorphic with
+  // no foreign key (it can point at a company or a person), so unlike company_id above it
+  // is never auto-nulled by a cascade when the person it names is later permanently
+  // deleted. Same guarantee as companyCurrentStatus: a real, unlimited, DB-verified lookup
+  // annotated directly on the memory row, never left to the model's own free-text
+  // inference.
+  const memoryPersonIds = [...new Set(
+    (memories.data || []).filter((m: any) => m.entity_type === 'person' && typeof m.entity_id === 'string').map((m: any) => m.entity_id),
+  )];
+  const memoryPersonStatusRows = memoryPersonIds.length > 0
+    ? await supabase.from('people').select('id,active').in('id', memoryPersonIds)
+    : { data: [] as any[] };
+  const memoryPersonActiveById = new Map((memoryPersonStatusRows.data || []).map((p: any) => [p.id, p.active]));
   const packMemories = (memories.data || []).map((m: any) => ({
     ...m,
     companyCurrentStatus: m.company_id ? (memoryCompanyStatusById.get(m.company_id) ?? 'not_found') : null,
+    personCurrentStatus: (m.entity_type === 'person' && typeof m.entity_id === 'string')
+      ? (memoryPersonActiveById.has(m.entity_id) ? (memoryPersonActiveById.get(m.entity_id) ? 'active' : 'inactive') : 'not_found')
+      : null,
   }));
 
   const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
