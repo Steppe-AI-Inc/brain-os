@@ -4016,6 +4016,29 @@ serve(async (req) => {
           || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
           || model === 'deterministic-plan-execution';
 
+        // Bug 1/10, a THIRD shape (2026-08-30, real live incident, found immediately after
+        // deploying the multi_action_plan mechanism): "assign QA-MULTI-TASK to
+        // QA-MULTI-EMPLOYEE" was answered "...I'll assign the task to them now." with
+        // result.pendingAction === null (no multi_action_plan proposed, no confirmation
+        // requested) AND zero grounded outcome - a bare future-tense promise with
+        // genuinely NOTHING behind it, not even a pending confirmation. None of the
+        // existing claims*Deleted correctors catch this shape (they scan for
+        // archive/restore/delete verbs, not general future-tense commitment language),
+        // and it is not a deterministic-confirmation turn either (that safety net only
+        // fires for an already-pending confirmation, not an ordinary LLM turn that
+        // invented a promise instead of using a real mechanism). Deliberately narrow:
+        // only fires when NOTHING structured happened this turn at all (no pendingAction,
+        // no grounded outcome) - a legitimate bulk_confirmation/multi_action_plan proposal
+        // that says "I'll do X, confirm?" is completely unaffected, since that turn's own
+        // pendingAction is real and non-null.
+        const FUTURE_PROMISE_PATTERN = /\b(i'?ll|i will|i'?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+        const claimsFutureActionWithNoPlan = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+          && !result.pendingAction && !groundedOutcomeThisTurn
+          && FUTURE_PROMISE_PATTERN.test(String(result.summary || ''));
+        if (claimsFutureActionWithNoPlan) {
+          result.summary = 'I described an action but didn’t actually queue or execute it — nothing happened yet. Please ask again and I’ll either do it immediately or ask for confirmation first.';
+        }
+
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution
         // precedence above) always emits "Confirmed — {summary}" unconditionally — correct

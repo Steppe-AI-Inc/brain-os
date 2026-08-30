@@ -224,5 +224,46 @@ function buildPersonAssignmentReport(createPersonAssignmentsFiltered, createdCou
   assert(report === null, 'a partial-failure batch (createdCount !== requested length) suppresses the report entirely, even for a qualifying reassignment entry');
 }
 
+// ============ A THIRD false-completion shape: a bare future-tense promise with
+// pendingAction===null and zero grounded outcome (the real "I'll assign the task to them
+// now" incident — nothing was queued or executed at all) ============
+// ---- byte-for-byte copy: the FUTURE_PROMISE_PATTERN + claimsFutureActionWithNoPlan gate (index.ts) ----
+const FUTURE_PROMISE_PATTERN = /\b(i'?ll|i will|i'?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+function claimsFutureActionWithNoPlan(model, pendingAction, groundedOutcomeThisTurn, summary) {
+  return model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+    && !pendingAction && !groundedOutcomeThisTurn
+    && FUTURE_PROMISE_PATTERN.test(summary || '');
+}
+{
+  const fired = claimsFutureActionWithNoPlan('claude-sonnet-4-5', null, false, "QA-MULTI-TASK has no owner set yet. I'll assign the task to them now.");
+  assert(fired === true, 'CRITICAL: the real incident text ("I\'ll assign the task to them now", pendingAction null, nothing grounded) is caught', fired);
+}
+// A legitimate bulk_confirmation/multi_action_plan proposal (real pendingAction set) using
+// similar phrasing ("I'll do X, confirm?") must be completely unaffected.
+{
+  const fired = claimsFutureActionWithNoPlan('claude-sonnet-4-5', { kind: 'multi_action_plan', executionPlan: [{ id: 'a1' }] }, false, "I'll restore their employment and reassign them. Confirm?");
+  assert(fired === false, 'a real pendingAction proposal using similar future-tense phrasing is never flagged (a genuine confirmation question, not an empty promise)');
+}
+// A turn where something genuinely grounded DID happen (groundedOutcomeThisTurn true) is
+// never flagged even if the summary happens to also contain future-tense language about a
+// SEPARATE, not-yet-done part.
+{
+  const fired = claimsFutureActionWithNoPlan('claude-sonnet-4-5', null, true, "test4 employee: restored. I'll also update their assignment.");
+  assert(fired === false, 'a turn with a real grounded outcome this turn is never flagged, even if it also mentions a future step');
+}
+// The deterministic tags themselves (confirmation/plan-execution/clarification/
+// disambiguation) are always out of scope for this specific gate, regardless of phrasing -
+// they have their own dedicated grounding mechanisms already.
+{
+  assert(claimsFutureActionWithNoPlan('deterministic-confirmation', null, false, "I'll do it now.") === false, 'deterministic-confirmation is out of scope for this gate');
+  assert(claimsFutureActionWithNoPlan('deterministic-plan-execution', null, false, "I'll do it now.") === false, 'deterministic-plan-execution is out of scope for this gate');
+}
+// Ordinary prose with no future-tense action commitment at all (a plain read answer) is
+// never flagged.
+{
+  const fired = claimsFutureActionWithNoPlan('claude-sonnet-4-5', null, false, 'test4 is archived. test4 employee is currently employed elsewhere.');
+  assert(fired === false, 'an ordinary read-only answer with no future-tense commitment language is never flagged');
+}
+
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);
