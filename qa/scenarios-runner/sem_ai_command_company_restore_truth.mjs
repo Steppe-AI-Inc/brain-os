@@ -108,9 +108,27 @@ function findCompanyStateClaimContradiction(summary, companies) {
 // named entity suppresses the blunter word-proximity corrector for this turn, since the
 // entity's own name can trivially contain the generic noun the corrector scans for (e.g.
 // "test3 employee" contains "employee") - see the real, live-reproduced false positive on
-// "is test3 employee currently employed?" documented in the file header comment. ----
-function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompanyIds, companies = []) {
+// "is test3 employee currently employed?" documented in the file header comment.
+//
+// pendingAction param added (2026-08-30, incident 3, found live by an independent
+// verifier session in real production work_orders.output during this campaign's own
+// verification, NOT synthesized): a real founder turn ("delete company test3 and clear
+// all of its data") produced a genuinely correct pendingAction (bulk_confirmation,
+// question "Delete test3 company and end employment for test3 employee?") while
+// result.summary was simultaneously destroyed into a false "Couldn't confirm that"
+// correction - claimsLifecycleClaim's state-description exclusion only recognizes a
+// PRESENT-TENSE "is/are ... verb-ed" shape, not a pending/future confirmation-question
+// shape. The model's own JSON schema already carries an unambiguous structural signal for
+// exactly this case: a non-null pendingAction this turn means the model is asking a
+// question, never claiming a completed (or definitively absent) mutation - so any of
+// these correctors firing while pendingAction is set is definitionally wrong. Also fixed
+// in the same pass: the person verb alternation's bare, suffix-less 'end' (the old
+// 'end(ed|ing)?' made the suffix OPTIONAL) matched an ordinary "end employment for X?"
+// question just as readily as a genuine completion claim - tightened to 'end(ed|ing)'
+// (suffix now required, matching only "ended"/"ending"). ----
+function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompanyIds, companies = [], pendingAction = null) {
   if (archiveCompanyIds.length > 0 || restoreCompanyIds.length > 0) return false;
+  if (pendingAction && typeof pendingAction === 'object') return false;
   const stateClaim = findEntityStateClaimContradiction(
     summary,
     companies.map((c) => ({ name: c.name, state: c.status })),
@@ -119,15 +137,16 @@ function claimsCompanyLifecycleChange(summary, archiveCompanyIds, restoreCompany
   if (stateClaim && !stateClaim.contradicted) return false;
   return claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 }
-function claimsPersonLifecycleChange(summary, endEmploymentPersonIds, restoreEmploymentPersonIds, people = []) {
+function claimsPersonLifecycleChange(summary, endEmploymentPersonIds, restoreEmploymentPersonIds, people = [], pendingAction = null) {
   if (endEmploymentPersonIds.length > 0 || restoreEmploymentPersonIds.length > 0) return false;
+  if (pendingAction && typeof pendingAction === 'object') return false;
   const stateClaim = findEntityStateClaimContradiction(
     summary,
     people.map((p) => ({ name: p.full_name, state: p.active })),
     PERSON_STATE_CLAIM_VOCAB,
   );
   if (stateClaim && !stateClaim.contradicted) return false;
-  return claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing)', 'employe(e|d)|person|staff');
+  return claimsLifecycleClaim(summary, 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)|restor(ed|ing)', 'employe(e|d)|person|staff');
 }
 
 // ---- byte-for-byte copy: the updateCompanies lifecycle-transition-skip logic ----
@@ -409,6 +428,71 @@ function assert(cond, name, detail) {
   const companies = [{ id: 'x', name: 'Test Business Company', status: 'active' }];
   const fired = claimsCompanyLifecycleChange('Test Business Company is currently active. It was restored earlier in this conversation.', [], [], companies);
   assert(fired === false, 'symmetric case: a truthful "is currently active" claim about a company whose own name contains "Company" is suppressed too');
+}
+
+// ---- Incident 3 (2026-08-30): pending-confirmation-question over-correction ----
+// Real, live-reproduced in production work_orders.output during this campaign's own
+// independent verification (not synthesized): "delete company test3 and clear all of its
+// data" produced a real, correct pendingAction (bulk_confirmation, question "Delete test3
+// company and end employment for test3 employee?") while result.summary was
+// simultaneously destroyed into a false "Couldn't confirm that..." correction. The exact
+// real pendingAction object and a plausible pre-correction summary are reproduced here.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const people = [{ id: 'y', full_name: 'test3 employee', active: true }];
+  const pendingAction = {
+    kind: 'bulk_confirmation',
+    action: { archiveCompanyIds: ['93073272-c9c6-485c-b0ad-459df37ce6f5'], endEmploymentPersonIds: ['f5ca8d22-637c-472e-b368-7d93f6d30f0e'] },
+    question: 'Delete test3 company and end employment for test3 employee?',
+    summary: 'archive test3 company and end employment for 1 person (test3 employee)',
+  };
+  const summary = 'Confirming: archiving test3 company and ending employment for test3 employee — should I proceed?';
+  const companyFired = claimsCompanyLifecycleChange(summary, [], [], companies, pendingAction);
+  const personFired = claimsPersonLifecycleChange(summary, [], [], people, pendingAction);
+  assert(companyFired === false, 'CRITICAL: real incident 3 - a genuine confirmation QUESTION with a real pendingAction set is never treated as a false company completion claim');
+  assert(personFired === false, 'CRITICAL: real incident 3 - the same confirmation QUESTION is never treated as a false person completion claim');
+}
+// Without the pendingAction guard, the exact same gerund-form summary text WOULD have
+// fired (proves the assertion above is testing the real mechanism, not a vacuous no-op).
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const summary = 'Confirming: archiving test3 company — should I proceed?';
+  const fired = claimsCompanyLifecycleChange(summary, [], [], companies, null);
+  assert(fired === true, 'sanity check: the same gerund-form confirmation text DOES fire when pendingAction is absent - proves the guard above is doing real work, not masking an already-passing case');
+}
+// A genuine completion claim with zero real ids attempted must still be caught when there
+// is NO pendingAction this turn - the new guard must not become a blanket bypass.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const fired = claimsCompanyLifecycleChange('test3 company was archived successfully.', [], [], companies, null);
+  assert(fired === true, 'a genuine false completion claim with no pendingAction this turn is still caught (pendingAction guard is not a blanket bypass)');
+}
+// Bare "end" fix: "end employment for X?" (infinitive/imperative, no -ed/-ing suffix) must
+// no longer match the person verb alternation at all, independent of the pendingAction
+// guard (defense in depth - a caller that forgets to pass pendingAction must still be safe).
+{
+  const people = [{ id: 'y', full_name: 'test3 employee', active: true }];
+  const fired = claimsPersonLifecycleChange('Should I end employment for test3 employee?', [], [], people, null);
+  assert(fired === false, 'bare "end" (no -ed/-ing suffix) no longer matches the person verb alternation - a real question phrasing gap independent of the pendingAction guard');
+}
+// The tightened verb alternation must still catch genuine "ended"/"ending" completion
+// claims - the suffix requirement narrows a false-positive-prone bare form, it does not
+// remove real coverage.
+{
+  const people = [{ id: 'y', full_name: 'test3 employee', active: true }];
+  const endedFired = claimsPersonLifecycleChange('test3 employee\'s employment was ended.', [], [], people, null);
+  const endingFired = claimsPersonLifecycleChange('Ending employment for test3 employee now.', [], [], people, null);
+  assert(endedFired === true, '"ended" (real suffix) still fires the person corrector after the bare-"end" tightening');
+  assert(endingFired === true, '"ending" (real suffix) still fires the person corrector after the bare-"end" tightening');
+}
+// A disambiguation/open_question pendingAction must suppress just as much as
+// bulk_confirmation/single_entity_clarification - the guard checks "is this turn asking a
+// question at all", not one specific kind.
+{
+  const companies = [{ id: 'x', name: 'test3', status: 'active' }];
+  const pendingAction = { kind: 'open_question', question: 'Did you mean to archive test3 or test unit?' };
+  const fired = claimsCompanyLifecycleChange('Archiving test3 - did you mean this one or test unit?', [], [], companies, pendingAction);
+  assert(fired === false, 'an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design)');
 }
 
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');

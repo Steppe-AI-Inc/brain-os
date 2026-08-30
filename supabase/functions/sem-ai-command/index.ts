@@ -1914,12 +1914,40 @@ serve(async (req) => {
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const taskArchiveRestoreReport = taskArchiveRestoreLines.length > 0 ? taskArchiveRestoreLines.join(' ') : null;
+        // A THIRD real, live-reproduced defect found independently by a verifier session
+        // (2026-08-30, same day as the two state-claim-contradiction incidents above),
+        // caught in real production work_orders.output during this exact campaign's own
+        // verification, not synthesized: a founder's own live session asked "delete
+        // company test3 and clear all of its data" and got back a real, correct
+        // pendingAction ("bulk_confirmation", question "Delete test3 company and end
+        // employment for test3 employee?" — exactly the right thing to ask) while
+        // result.summary was simultaneously overwritten to "Couldn't confirm that. No
+        // company was actually archived or restored this turn. Couldn't confirm that. No
+        // employee's employment was actually ended or restored this turn." — a false
+        // correction destroying a legitimate confirmation QUESTION, not a completion
+        // claim. Root cause: claimsLifecycleClaim's state-description exclusion only
+        // recognizes a PRESENT-TENSE "is/are ... verb-ed" shape; it has no concept of a
+        // PENDING/FUTURE question shape ("archiving X company... confirm?", "end
+        // employment for X?") — and the model's own JSON schema already carries an
+        // unambiguous, structural signal for exactly this case: result.pendingAction is
+        // non-null precisely when, and only when, the model is asking a clarifying/
+        // confirmation/disambiguation/open question rather than claiming a completed (or
+        // definitively absent) mutation — see the "pendingAction" schema field (~line 817)
+        // and its five-branch system-prompt contract. A turn that sets its own
+        // pendingAction can never simultaneously be making the kind of bare completion
+        // claim these correctors exist to catch, so suppressing all four of them whenever
+        // this turn's own result.pendingAction is set is a structural fix, not another
+        // regex patch — matching this file's own established preference (see the
+        // findEntityStateClaimContradiction comments above) for grounding over prompt/
+        // regex-only fixes wherever a real structural signal already exists.
+        const modelProposedPendingAction = !!(result && typeof result.pendingAction === 'object' && result.pendingAction !== null);
         // restor(ed|ing) added (2026-08-30, "test3 restore" incident, applied here too as
         // the same-defect sweep the incident required): the original word list only
         // caught delete/archive/remove claims — a false "restored" claim with zero real
         // restoreTaskIds attempted slipped through uncorrected the same way a false
         // "active" claim did for companies.
         const claimsTaskDeleted = archiveTaskIds.length === 0 && restoreTaskIds.length === 0 && deleteTaskIds.length === 0 && pendingDeleteTaskIds.length === 0
+          && !modelProposedPendingAction
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'task');
 
         // Channel deletion: same cross-check discipline as task deletion above, but this
@@ -2161,8 +2189,15 @@ serve(async (req) => {
           ? { name: companyStateClaimResult.name, realStatus: String(companyStateClaimResult.realState) }
           : null;
 
+        // modelProposedPendingAction (defined above, near claimsTaskDeleted): a real,
+        // live-reproduced defect found in production work_orders.output during this
+        // campaign's own verification — a legitimate confirmation question ("Delete test3
+        // company and end employment for test3 employee?", real pendingAction set) had its
+        // own result.summary destroyed into a false "Couldn't confirm that" correction.
+        // See the full incident record there.
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
           && !(companyStateClaimResult && !companyStateClaimResult.contradicted)
+          && !modelProposedPendingAction
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
 
         // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
@@ -2233,9 +2268,20 @@ serve(async (req) => {
           ? { name: personStateClaimResult.name, realActive: personStateClaimResult.realState === true }
           : null;
 
+        // Two real fixes together close the live-reproduced "delete company test3 and
+        // clear all of its data" incident (see modelProposedPendingAction above for the
+        // full record): (1) 'end(ed|ing)?' had a bare, suffix-less 'end' alternative (the
+        // trailing '?' made 'ed'/'ing' OPTIONAL) — this matched an ordinary infinitive/
+        // imperative phrase like "end employment for test3 employee?" (a real confirmation
+        // QUESTION, not a completion claim) just as readily as a genuine past-tense claim.
+        // Tightened to 'end(ed|ing)' (suffix now required) since the only real completion-
+        // claim shapes are "ended"/"ending" — this was never intentionally scoped to bare
+        // "end" the way -ing forms were deliberately kept in claimsLifecycleClaim's own doc
+        // comment; (2) modelProposedPendingAction below closes the rest structurally.
         const claimsPersonDeleted = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
           && !(personStateClaimResult && !personStateClaimResult.contradicted)
-          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing)', 'employe(e|d)|person|staff');
+          && !modelProposedPendingAction
+          && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)|restor(ed|ing)', 'employe(e|d)|person|staff');
 
         // Organization graph audit — real database query, not a guess. Runs immediately
         // (like company updates above) since it's read-only and doesn't belong in the
@@ -2306,7 +2352,10 @@ serve(async (req) => {
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
         // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
+        // modelProposedPendingAction added (2026-08-30, pending-confirmation-question
+        // over-correction incident, see the full record near claimsTaskDeleted above).
         const claimsGoalDeleted = archiveGoalIds.length === 0 && restoreGoalIds.length === 0
+          && !modelProposedPendingAction
           && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'goal');
 
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
