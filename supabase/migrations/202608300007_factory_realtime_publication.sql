@@ -32,9 +32,21 @@ exception when duplicate_object then null; end $$;
 -- awareness, so a genuinely dead agent still displayed RUNNING on the Software Factory
 -- page even after Phase 2's agent_runs_with_live_status view already solved this exact
 -- problem at the run level. Same STALE_THRESHOLD (10 minutes) and same "never a
--- stored/fakeable flag" design as that view - purely additive `create or replace view`,
--- no data change, no RLS change (security_invoker already carries through).
-create or replace view public.agents_with_live_status as
+-- stored/fakeable flag" design as that view.
+--
+-- Real live push failure caught and fixed 2026-08-30: this originally used
+-- `create or replace view`, which failed live with "cannot change name of view column
+-- ... to capabilities" - `select a.*` expands to include agents.capabilities (added by
+-- 202608300004, AFTER this view was first created), shifting every subsequent computed
+-- column's position; Postgres only allows CREATE OR REPLACE to APPEND columns, never
+-- shift existing ones. No dependents existed (checked via pg_depend before dropping),
+-- so DROP + CREATE is safe here - but this is now a standing gap: any future
+-- `alter table agents add column` before `live_status` in select order will break a
+-- naive `create or replace view` on this view again. A `select a.id, a.name, ...`
+-- explicit column list would be immune to this class of break; left as `a.*` here only
+-- to stay a minimal diff from the pre-existing view - worth revisiting if this recurs.
+drop view public.agents_with_live_status;
+create view public.agents_with_live_status as
 select
   a.*,
   case
