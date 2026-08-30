@@ -1,3 +1,4 @@
+// complete_work_order() (supabase/migrations/202608300002_complete_work_order.sql) now exists as the Work-Order-level completion counterpart to complete_agent_run(), and is now live in production.
 // Phase 8 — the ONE command brain-os-factory-director needs to decompose a Work Order
 // into real Tasks and dispatch real specialist agents. Deliberately narrow: wraps
 // create_factory_task (RPC, company-consistency enforced server-side) and
