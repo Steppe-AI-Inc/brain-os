@@ -1,3 +1,4 @@
+// complete_work_order() (supabase/migrations/202608300002_complete_work_order.sql) now exists as the Work-Order-level completion counterpart to complete_agent_run(), and is now live in production.
 // Phase 8 — Brain Chat -> Factory Director. Real, minimal dispatch loop: finds real
 // public.canonical_work_orders rows with status='queued' and no existing agent_runs yet,
 // dispatches EACH to the sole top-level orchestrator (brain-os-factory-director) via the
