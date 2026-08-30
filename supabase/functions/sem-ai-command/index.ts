@@ -70,10 +70,22 @@ type AiTask = {
 // context.pendingAction system-prompt block below for the full behavioral spec, and the
 // resolution-precedence comment in serve() for how each kind is (or isn't) resolved
 // deterministically without an LLM call.
-type PendingActionOption = { label: string; id: string; entityType: string };
+// actionType added to fix a real, live-reproduced defect (2026-08-30, "test3 restore"
+// incident — see qa/KNOWN_FAILURE_MODES.md): CLARIFICATION_ENTITY_ACTION_FIELD used to be
+// keyed by entityType ALONE, so ANY single_entity_clarification about a company — whether
+// proposing to archive it OR restore it — deterministically resolved a "yes" reply to
+// archiveCompanyIds. Asking "test3 is archived. Should I restore it?" then getting "yes"
+// silently tried to ARCHIVE an already-archived company instead of restoring it, which
+// failed with a confusing "no matching company" result while the model's own prose still
+// claimed success. actionType lets the SAME entityType route to a different real mutation
+// field depending on which direction was actually proposed. Optional and defaults to
+// 'archive' downstream (see CLARIFICATION_ENTITY_ACTION_FIELD's own lookup) so every
+// pre-existing archive/delete-only clarification stays behaviorally identical without
+// needing to set it.
+type PendingActionOption = { label: string; id: string; entityType: string; actionType?: string };
 type PendingAction =
   | { kind: 'bulk_confirmation'; summary?: string; action?: Record<string, unknown> }
-  | { kind: 'single_entity_clarification'; question?: string; candidateIds?: string[]; entityType?: string }
+  | { kind: 'single_entity_clarification'; question?: string; candidateIds?: string[]; entityType?: string; actionType?: string }
   | { kind: 'disambiguation'; question?: string; options?: PendingActionOption[] }
   | { kind: 'open_question'; question?: string };
 
@@ -88,24 +100,34 @@ type ResolvedEntities = {
   goals: { id: string; name: string }[];
 };
 
-// Maps a single_entity_clarification/disambiguation entityType to the real mutation
-// field it resolves to when the founder confirms deterministically (no LLM call) —
-// deliberately only the ordinary-language, safe/reversible "delete this one thing"
-// fields that already exist in this file's own JSON schema (see the
-// archiveTaskIds/archiveCompanyIds/archiveGoalIds/deleteChannelIds/deleteApprovalIds
-// prompt rules above). This map only decides WHICH field — every id resolved through it
-// is still re-validated against the real context id sets downstream exactly like a
+// Maps a single_entity_clarification/disambiguation entityType + actionType to the real
+// mutation field it resolves to when the founder confirms deterministically (no LLM
+// call) — deliberately only fields that already exist in this file's own JSON schema.
+// This map only decides WHICH field — every id resolved through it is still
+// re-validated against the real context id sets downstream exactly like a
 // model-produced id would be (contextTaskIds/contextCompanyIds/etc.), so a stale or
 // hallucinated candidateId from an earlier turn can never bypass the existing
 // id-provenance trust boundary.
-const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, string> = {
-  task: 'archiveTaskIds',
-  company: 'archiveCompanyIds',
-  goal: 'archiveGoalIds',
-  channel: 'deleteChannelIds',
-  approval: 'deleteApprovalIds',
-  person: 'endEmploymentPersonIds',
-  employee: 'endEmploymentPersonIds',
+//
+// Nested by actionType (not a flat entityType->field map) to fix a real, live-reproduced
+// defect (2026-08-30, "test3 restore" incident): the old flat map only ever pointed
+// company/task/goal/person at their ARCHIVE field, so a "yes" reply confirming a
+// RESTORE clarification ("test3 is archived. Should I restore it?") silently resolved to
+// archiveCompanyIds instead of restoreCompanyIds — trying to archive an already-archived
+// company, which fails, while the model's own prose still claimed success. Every entry
+// keeps its pre-existing 'archive' mapping unchanged (default lookup key when
+// pendingAction.actionType is absent, so every already-shipped archive/delete
+// clarification behaves identically) and adds the missing 'restore' direction for every
+// entity type that actually has a real restore mechanism (channel/approval deletion has
+// no restore concept, so those two are 'archive'-only by design, not by omission).
+const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> = {
+  task: { archive: 'archiveTaskIds', restore: 'restoreTaskIds' },
+  company: { archive: 'archiveCompanyIds', restore: 'restoreCompanyIds' },
+  goal: { archive: 'archiveGoalIds', restore: 'restoreGoalIds' },
+  channel: { archive: 'deleteChannelIds' },
+  approval: { archive: 'deleteApprovalIds' },
+  person: { archive: 'endEmploymentPersonIds', restore: 'restoreEmploymentPersonIds' },
+  employee: { archive: 'endEmploymentPersonIds', restore: 'restoreEmploymentPersonIds' },
 };
 
 // Broader than the bulk_confirmation isShortAffirmative check below (an exact
@@ -249,10 +271,17 @@ Rules:
     turn. Set "pendingAction": {"kind": "single_entity_clarification", "question": <your
     actual clarifying question, e.g. "Did you mean John Doe at QA TEST CO?">,
     "candidateIds": [<the one real id you're proposing, from context, never guessed>],
-    "entityType": "task"|"company"|"goal"|"channel"|"approval"}, and ask exactly that
-    question in "summary" — nothing else. A short confirming reply next turn ("yes",
-    "yes, delete that employee", "that one", "correct") resolves this deterministically
-    against candidateIds without you needing to re-derive anything.
+    "entityType": "task"|"company"|"goal"|"channel"|"approval", "actionType":
+    "archive"|"restore"}, and ask exactly that question in "summary" — nothing else. A
+    short confirming reply next turn ("yes", "yes, delete that employee", "that one",
+    "correct") resolves this deterministically against candidateIds without you needing to
+    re-derive anything. actionType MUST match the real direction you're proposing —
+    "archive" for delete/archive/end-employment language, "restore" whenever you are
+    asking to bring something back (e.g. "X is archived. Should I restore it?",
+    "un-archive", "make it active again"). Getting this wrong silently resolves the
+    founder's "yes" to the OPPOSITE action (e.g. re-archiving an already-archived company
+    instead of restoring it) — this is a real defect this field exists to close (see
+    qa/KNOWN_FAILURE_MODES.md, the "test3 restore" incident), not a cosmetic label.
   - "disambiguation" — when MULTIPLE real, genuinely different entities could plausibly
     be what the founder means (two companies with similar names, two tasks that could
     both be "the deploy task") and you cannot tell which: do NOT guess and do NOT
@@ -260,11 +289,13 @@ Rules:
     "disambiguation", "question": <your question>, "options": [{"label": <short
     human-readable name so the founder can recognize it, e.g. the real company name>,
     "id": <its real id from context>, "entityType":
-    "task"|"company"|"goal"|"channel"|"approval"}, ...]}, and name the real options by
-    their real names in "summary" (e.g. "Did you mean SEM LLC or SEM Global Robotics
-    Technologies?"). A reply naming one option by its label next turn (e.g. "the SEM LLC
-    one") resolves this deterministically without you needing to re-derive which id that
-    was.
+    "task"|"company"|"goal"|"channel"|"approval", "actionType": "archive"|"restore"},
+    ...]}, and name the real options by their real names in "summary" (e.g. "Did you mean
+    SEM LLC or SEM Global Robotics Technologies?"). A reply naming one option by its label
+    next turn (e.g. "the SEM LLC one") resolves this deterministically without you needing
+    to re-derive which id that was. Same actionType rule as single_entity_clarification
+    above — set it per-option to whichever real direction (archive vs restore) you're
+    actually proposing for that specific option.
   - "open_question" — the catch-all: whenever your "summary" ends in a question mark and
     this turn populates no mutation fields (nothing created/updated/deleted/archived/
     restored), you MUST set "pendingAction": {"kind": "open_question", "question": <the
@@ -591,8 +622,20 @@ Rules:
   the founder act on the real findings next turn, don't guess-fix in the same breath as
   auditing.
 - If context.conversationHistory is present, this command continues an existing topic —
-  treat it as a real ongoing conversation: do not repeat an action you already took
-  earlier in this history, and refer back to it naturally when relevant.
+  treat it as a real ongoing conversation, and refer back to it naturally when relevant.
+  CRITICAL LIMIT (2026-08-30, real incident: a founder was told "the conversation history
+  confirms you asked me to restore it, I did" about a company that was never actually
+  restored — a real, live-reproduced defect, not a hypothetical): conversationHistory
+  proves only what was ASKED or DISCUSSED in a prior turn, never that a mutation actually
+  succeeded. A prior turn's own summary text is exactly that — text a prior turn wrote,
+  not a database record. Before ever claiming something "already happened" or "was
+  already restored/archived/updated," you MUST re-check the CURRENT, fresh data in this
+  turn's own context (e.g. the real status field on the matching context.companies/tasks/
+  goals/people entry, or this turn's own archiveRestoreReport-equivalent result) — never
+  infer a successful mutation purely from your own or a prior turn's earlier prose.
+  "Do not repeat an action you already took" still applies for genuinely idempotent,
+  already-confirmed-via-fresh-data cases (e.g. the real current status already matches
+  what was requested) — it does not mean trusting old prose as proof by itself.
 - context.recentlyResolvedEntities (present only immediately after a turn that actually
   created something) holds the real id+name of every company/person/goal created in the
   PREVIOUS turn — {"companies": [{"id","name"}], "people": [{"id","name"}], "goals":
@@ -618,7 +661,7 @@ Output schema:
 {
   "strategicGoal": string,
   "summary": string,
-  "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "options": [{"label": string, "id": string, "entityType": string}]|null}|null,
+  "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "actionType": "archive"|"restore"|null, "options": [{"label": string, "id": string, "entityType": string, "actionType": "archive"|"restore"|null}]|null}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
     {
@@ -1539,7 +1582,13 @@ serve(async (req) => {
             tag: 'deterministic-confirmation',
           };
         } else if (pendingAction && pendingAction.kind === 'single_entity_clarification' && Array.isArray(pendingAction.candidateIds) && pendingAction.candidateIds.length > 0 && isClarificationAffirmative(command)) {
-          const field = CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || ''];
+          // actionType defaults to 'archive' when absent - every clarification proposed
+          // before this fix (and every archive/delete-style clarification since) never set
+          // it, so this default keeps that behavior byte-identical. A restore clarification
+          // MUST set actionType:'restore' (system prompt requirement below) to reach
+          // restoreCompanyIds/restoreTaskIds/restoreGoalIds/restoreEmploymentPersonIds
+          // instead of silently landing on the archive field for the same entityType.
+          const field = CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || '']?.[pendingAction.actionType || 'archive'];
           if (field) {
             deterministic = {
               summary: pendingAction.question ? `Confirmed — ${pendingAction.question.replace(/\?+\s*$/, '')}.` : 'Confirmed.',
@@ -1549,7 +1598,7 @@ serve(async (req) => {
           }
         } else if (pendingAction && pendingAction.kind === 'disambiguation' && Array.isArray(pendingAction.options) && pendingAction.options.length > 0) {
           const matchedOption = matchDisambiguationOption(command, pendingAction.options);
-          const field = matchedOption ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType] : undefined;
+          const field = matchedOption ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType]?.[matchedOption.actionType || 'archive'] : undefined;
           if (matchedOption && field) {
             deterministic = {
               summary: `Confirmed — ${matchedOption.label}.`,
@@ -1695,8 +1744,13 @@ serve(async (req) => {
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const taskArchiveRestoreReport = taskArchiveRestoreLines.length > 0 ? taskArchiveRestoreLines.join(' ') : null;
+        // restor(ed|ing) added (2026-08-30, "test3 restore" incident, applied here too as
+        // the same-defect sweep the incident required): the original word list only
+        // caught delete/archive/remove claims — a false "restored" claim with zero real
+        // restoreTaskIds attempted slipped through uncorrected the same way a false
+        // "active" claim did for companies.
         const claimsTaskDeleted = archiveTaskIds.length === 0 && restoreTaskIds.length === 0 && deleteTaskIds.length === 0 && pendingDeleteTaskIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\btask\b|\btask\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\btask\b|\btask\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
 
         // Channel deletion: same cross-check discipline as task deletion above, but this
         // isn't part of the sem_execute_ai_command RPC's transaction — chat_channels has
@@ -1808,18 +1862,39 @@ serve(async (req) => {
             status: typeof c.status === 'string' ? c.status : null,
             organizationType: typeof c.organizationType === 'string' && VALID_ORGANIZATION_TYPES.has(c.organizationType) ? c.organizationType : null,
           }));
+        // Real, live-reproduced defect (2026-08-30, "test3 restore" incident): dropping
+        // only the literal target value 'archived' isn't enough — a company that is
+        // CURRENTLY archived and gets a status patch of 'active' (the model's own
+        // "should I change test3's status to active?" workaround, taken because it had no
+        // correct restore path available at the time) hits the exact same
+        // companies_lifecycle_guard trigger from the OTHER direction (leaving 'archived'
+        // via a raw UPDATE, not just entering it) and throws, silently failing the whole
+        // patch and producing the misleading "no matching company or no access" result.
+        // archive_company()/restore_company() are the one, sole, authoritative lifecycle
+        // path (Bug 3's own explicit requirement) - this table is never used for anything
+        // BUT that decision, so a lookup that includes it doesn't cost anything extra.
+        const companyStatusById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.status]));
         let updatedCompanyCount = 0;
+        let companyLifecycleEditsSkipped = 0;
         for (const c of updateCompaniesReq) {
           const patch: Record<string, unknown> = {};
           if (c.name) patch.name = c.name;
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
-          // 'archived' is dropped here rather than sent through, matching the prompt
-          // guidance above — the DB trigger would reject the whole update (all fields,
-          // not just status) if a client-issued UPDATE tried to transition into/out of
-          // 'archived' outside archive_company()/restore_company(), so letting it through
-          // would silently fail a rename/etc. bundled in the same call.
-          if (c.status && c.status !== 'archived') patch.status = c.status;
+          const currentStatus = companyStatusById.get(c.id);
+          const statusChangeIsLifecycleTransition = c.status && (c.status === 'archived' || currentStatus === 'archived');
+          if (statusChangeIsLifecycleTransition) {
+            // Never attempted, on purpose - archiveCompanyIds/restoreCompanyIds
+            // (archive_company()/restore_company()) are the only path in/out of
+            // 'archived'. A raw UPDATE would either be silently blocked by the DB trigger
+            // (if it actually reached the trigger) or, worse, misreport as a generic
+            // "could not be created/update did not apply" failure that has nothing to do
+            // with the real reason - counted separately so the founder gets an honest,
+            // specific explanation instead.
+            companyLifecycleEditsSkipped++;
+          } else if (c.status) {
+            patch.status = c.status;
+          }
           if (c.organizationType) patch.organization_type = c.organizationType;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
@@ -1850,6 +1925,16 @@ serve(async (req) => {
           const name = companyNameById.get(id) || id;
           if (error || !data) { archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          // archive_company()/restore_company() (schema-v0.7-production-core.sql) already
+          // re-read the row after the UPDATE and return a real postconditionPassed
+          // boolean, not an assumed echo of the write - Bug 8's own explicit requirement
+          // ("do not trust the RPC return alone if the lifecycle requires verification")
+          // is satisfied at the DB layer already, but this still defensively cross-checks
+          // it rather than only ever reading `reason`, in case the two ever disagree.
+          if (r.changed === true && r.postconditionPassed !== true) {
+            archiveRestoreLines.push(`${name}: archive attempted, but the persisted status did not confirm it afterward — treat as not archived.`);
+            continue;
+          }
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreCompanyIds) {
@@ -1857,6 +1942,10 @@ serve(async (req) => {
           const name = companyNameById.get(id) || id;
           if (error || !data) { archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          if (r.changed === true && r.postconditionPassed !== true) {
+            archiveRestoreLines.push(`${name}: restore attempted, but the persisted status did not confirm it afterward — treat as not restored.`);
+            continue;
+          }
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         // Same reasoning as organizationGraphCheck below: when a real archive/restore was
@@ -1872,8 +1961,20 @@ serve(async (req) => {
         // no RPC result to ground against. Scoped narrowly to delete/archive-claiming
         // language specifically (not a generic claim-detector) since that is the exact
         // defect being closed.
+        // restor(ed|ing) added (2026-08-30, real incident: "test3 is now active. It
+        // should appear in your companies menu." was said with zero real
+        // archiveCompanyIds/restoreCompanyIds attempted — the RPC-grounded corrector
+        // below exists exactly to catch this, but the word list didn't include the
+        // restore direction at all, only delete/archive/remove). A bare "active" claim is
+        // deliberately NOT added here — this file legitimately reports real companies as
+        // "active" constantly in ordinary read-only answers, and word-proximity regex
+        // can't reliably tell that apart from a false completion claim without a real
+        // false-positive risk; the structural fix (CLARIFICATION_ENTITY_ACTION_FIELD now
+        // routing restore clarifications to restoreCompanyIds instead of
+        // archiveCompanyIds, and updateCompanies never attempting a raw status write
+        // across the archived boundary) is what actually closes that path, not this regex.
         const claimsCompanyDeleted = archiveCompanyIds.length === 0 && restoreCompanyIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\bcompany\b|\bcompany\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
 
         // Person/employment lifecycle (Workstream 1c, Bug 5): end_person_employment()/
         // restore_person_employment() (supabase/migrations/
@@ -1919,8 +2020,9 @@ serve(async (req) => {
         // Now that endEmploymentPersonIds exists as a real field with its own prompt
         // guidance, the model has the correct vocabulary to reach for, and this catches the
         // residual "claimed but nothing happened" case the same way the other correctors do.
+        // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
         const claimsPersonDeleted = endEmploymentPersonIds.length === 0 && restoreEmploymentPersonIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?)\b[^.]{0,40}\b(employe(e|d)|person|staff)\b|\b(employe(e|d)|person|staff)\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?)\b/i.test(String(result.summary || ''));
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing))\b[^.]{0,40}\b(employe(e|d)|person|staff)\b|\b(employe(e|d)|person|staff)\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)?|restor(ed|ing))\b/i.test(String(result.summary || ''));
 
         // Organization graph audit — real database query, not a guess. Runs immediately
         // (like company updates above) since it's read-only and doesn't belong in the
@@ -1990,8 +2092,9 @@ serve(async (req) => {
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
+        // restor(ed|ing) added (2026-08-30, "test3 restore" incident, same-defect sweep).
         const claimsGoalDeleted = archiveGoalIds.length === 0 && restoreGoalIds.length === 0
-          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b[^.]{0,40}\bgoal\b|\bgoal\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing))\b/i.test(String(result.summary || ''));
+          && /\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b[^.]{0,40}\bgoal\b|\bgoal\b[^.]{0,40}\b(delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing))\b/i.test(String(result.summary || ''));
 
         const requestedPeople = Array.isArray(result.createPeople) ? result.createPeople as unknown[] : [];
         const createPeople = requestedPeople
@@ -2849,7 +2952,12 @@ serve(async (req) => {
         if (createProposalsReq.length > createdProposals.length) factLines.push(`${createProposalsReq.length - createdProposals.length} of ${createProposalsReq.length} requested proposal(s) could not be created — missing a valid company reference.`);
         if (updateProposalsReq.length > updatedProposalCount) factLines.push(`${updateProposalsReq.length - updatedProposalCount} of ${updateProposalsReq.length} requested proposal update(s) did not apply — no matching proposal or no access.`);
         if (deleteProposalIds.length > 0) factLines.push(`Deleted ${deletedProposalCount} of ${deleteProposalIds.length} requested proposal(s).`);
-        batchLine('company update(s)', updateCompaniesReq.length, updatedCompanyCount, 'no matching company or no access');
+        batchLine(
+          'company update(s)', updateCompaniesReq.length, updatedCompanyCount,
+          companyLifecycleEditsSkipped > 0
+            ? 'archived/active status can only change via archive or restore, not a field update — use restoreCompanyIds/archiveCompanyIds instead'
+            : 'no matching company or no access',
+        );
 
         if (factLines.length > 0) {
           result.summary = `${factLines.join(' ')}\n\n${result.summary || ''}`.trim();
@@ -2877,11 +2985,18 @@ serve(async (req) => {
         // identical reason: a real Work Order creation is the entire point of the turn,
         // so it fully replaces the model's own prose rather than merely prepending to it.
         const lifecycleReports = [archiveRestoreReport, taskArchiveRestoreReport, goalArchiveRestoreReport, factoryWorkOrderReport, personLifecycleReport].filter((r): r is string => !!r);
+        // Wording deliberately does not presume "you named it ambiguously" (2026-08-30,
+        // "test3 restore" incident: the founder named test3 exactly right - the real
+        // failure was a mechanism bug, not a naming problem, so a message insisting they
+        // "tell me exactly which company" would have been actively misleading in that
+        // exact case). Stays honest and general: something was claimed, nothing was
+        // actually attempted or completed, full stop - true regardless of whether the
+        // underlying cause is genuine ambiguity or a different mechanism failure.
         const lifecycleMismatchCorrections: string[] = [];
-        if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('No company was actually archived or restored this turn — tell me exactly which company to delete/archive, using its name as it appears in the Companies list.');
-        if (claimsTaskDeleted) lifecycleMismatchCorrections.push('No task was actually archived, restored, or deleted this turn — tell me exactly which task, using its title as it appears in the Tasks list.');
-        if (claimsGoalDeleted) lifecycleMismatchCorrections.push('No goal was actually archived or restored this turn — tell me exactly which goal, using its title as it appears in the Goals list.');
-        if (claimsPersonDeleted) lifecycleMismatchCorrections.push('No employee’s employment was actually ended or restored this turn — tell me exactly which person, using their name as it appears in the People list.');
+        if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No company was actually archived or restored this turn.');
+        if (claimsTaskDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No task was actually archived, restored, or deleted this turn.');
+        if (claimsGoalDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No goal was actually archived or restored this turn.');
+        if (claimsPersonDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No employee’s employment was actually ended or restored this turn.');
         if (lifecycleReports.length > 0) {
           result.summary = lifecycleReports.join(' ');
         } else if (lifecycleMismatchCorrections.length > 0) {

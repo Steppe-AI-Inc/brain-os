@@ -323,3 +323,31 @@ fresh Brain Chat conversation after a real deploy) — see the post-deploy verif
 in `qa/KNOWN_FAILURE_MODES.md` #31.
 
 Full incident record: `qa/KNOWN_FAILURE_MODES.md` #31.
+
+## Company/task/goal/person restore-clarification truth + no false success (catches: the
+real "test3 restore" incident — a founder's genuine restore request silently mis-resolved
+to archive, then produced a false success claim — added 2026-08-30)
+
+`qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs` — a JS/TS aggregation-logic
+regression, not SQL (run with `node
+qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs`). Covers three independent
+root causes in `supabase/functions/sem-ai-command/index.ts`: (1)
+`CLARIFICATION_ENTITY_ACTION_FIELD` now routes a restore clarification's "yes" to the real
+restore field (`restoreCompanyIds`/`restoreTaskIds`/`restoreGoalIds`/
+`restoreEmploymentPersonIds`) instead of silently landing on the archive field for the same
+entity type — proven for every restore-capable entity type (company/task/goal/person/
+employee), with absent `actionType` still defaulting to archive so no pre-existing
+archive/delete clarification changes behavior; (2) the generic `updateCompanies` path never
+attempts a raw status write across the archived boundary in either direction (a currently-
+archived company, or a requested `'archived'` target), while ordinary non-lifecycle status
+edits on a non-archived company are unaffected; (3) the false-success correctors
+(`claimsCompanyDeleted` and its task/goal/person siblings) now also catch a false
+"restored" claim with zero real ids attempted, not just delete/archive/remove claims — with
+an explicit, passing assertion documenting the one honestly-scoped gap this regex does NOT
+close (a bare "active" claim with no form of the word "restore" in it — the real incident's
+exact literal phrasing — which is closed structurally by root causes 1 and 2, not by this
+regex).
+
+Full incident record, including the fourth fix (conversation history can no longer be
+treated as execution proof) and the investigated-and-found-already-correct items (stale
+context, menu/page source divergence): `qa/KNOWN_FAILURE_MODES.md` #32.

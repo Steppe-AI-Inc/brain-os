@@ -1668,3 +1668,127 @@ session. Net: every layer up to and including "what the Edge Function would retu
 model" is proven live and correct; the last hop (does the model's prose obey the updated
 system-prompt vocabulary rule) rests on the transcripts reported by the implementing
 session, not on this session's own eyes.
+
+## 32. `test3` company restore — false success, wrong-mechanism mutation, and stale-history-as-execution-proof, all in one real founder session (FOUND LIVE, FIXED pre-deploy — 2026-08-30)
+
+**Real incident**: a founder tried to restore an archived company (`test3`,
+`93073272-c9c6-485c-b0ad-459df37ce6f5`) via Brain Chat and hit three compounding real
+defects across several turns:
+1. Told "test3 is already active and restored... The conversation history confirms you
+   asked me to restore it, I did..." — **false**. `test3` was never actually restored;
+   confirmed directly against production before touching anything: `status='archived'`
+   the entire time.
+2. Asked to restore it explicitly, got "1 of 1 requested company update(s) could not be
+   created — no matching company or no access" — despite `test3` being a real, resolvable
+   company Brain could already read.
+3. Asked again, got the SAME failure message, immediately followed by "test3 is now
+   active. It should appear in your companies menu." — a flat contradiction between a
+   structured failure result and the model's own success narrative in the same turn.
+
+**Three real, independent root causes found** (all in
+`supabase/functions/sem-ai-command/index.ts`), not one bug wearing three faces:
+
+1. **`CLARIFICATION_ENTITY_ACTION_FIELD` had no restore direction at all.** It mapped
+   `company`/`task`/`goal`/`person` `single_entity_clarification`s to their ARCHIVE field
+   only, regardless of what was actually proposed. So when Brain asked "test3 is archived.
+   Should I restore it?" and the founder said "yes," the deterministic resolver — which
+   exists specifically to skip an LLM call and act immediately — silently populated
+   `archiveCompanyIds`, not `restoreCompanyIds`, trying to re-archive an already-archived
+   company. **Fixed**: `PendingAction`'s `single_entity_clarification`/`disambiguation`
+   shapes gained an `actionType: "archive"|"restore"` field; the map became
+   `{entityType: {archive: field, restore: field}}`; the resolver now looks up
+   `[entityType]?.[actionType || 'archive']` (default preserves every pre-existing
+   archive/delete clarification's exact behavior). Fixed for company/task/goal/person
+   alike — this was a systemic gap across every restore-capable entity type, not a
+   company-specific defect (channel/approval deletion has no restore concept and stays
+   archive-only by design).
+2. **The generic `updateCompanies` path could still attempt a raw status write across the
+   archived boundary.** The code only ever stripped the literal target value `'archived'`
+   from a patch — a currently-archived company receiving a requested status of `'active'`
+   (exactly what the model reached for once the RIGHT restore path failed to make sense to
+   it) still got sent through a plain `.update({status:'active'})`, which the
+   `companies_lifecycle_guard` DB trigger correctly rejects (it blocks transitions INTO
+   *or out of* `'archived'` via any path but `archive_company()`/`restore_company()`) —
+   producing the exact misleading "no matching company or no access" result, since the
+   thrown exception was never surfaced as a specific reason. **Fixed**: a
+   `companyStatusById` lookup (from the same context data already fetched) now skips
+   `patch.status` entirely — never even attempts the write — whenever the requested status
+   is `'archived'` OR the company's real current status already is `'archived'`, replacing
+   the confusing generic failure with an accurate, specific one
+   ("archived/active status can only change via archive or restore, not a field update").
+   Ordinary non-lifecycle status edits (`active`⇄`planning`⇄`paused` on a non-archived
+   company) are unaffected — only the archived boundary is blocked.
+3. **The false-success corrector only watched for delete/archive/remove language.**
+   `claimsCompanyDeleted` (and its task/goal/person siblings) already existed specifically
+   to catch a model claiming a lifecycle change happened with zero real ids attempted, and
+   already fully replaces `result.summary` when it fires (not merely prepends) — but its
+   word list never included `restor(ed|ing)`, so a false "restored" claim sailed through
+   uncorrected. **Fixed**: added to all four correctors. **Honestly scoped, not
+   oversold**: the real incident's exact literal text ("test3 is now active... companies
+   menu.") contains no form of the word "restore" at all — a bare "active" trigger was
+   deliberately NOT added, since this file legitimately describes real companies as
+   "active" in ordinary read-only answers constantly, and a word-proximity regex cannot
+   reliably tell that apart from a false claim without real false-positive risk. That
+   exact phrasing is closed by root causes 1 and 2 above removing the confusing-failure
+   mechanism that produced it, not by this regex — see
+   `qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs` for this boundary
+   documented as an explicit, passing assertion, not a silent gap.
+
+**A fourth, related defect fixed in the same pass**: the system prompt's own
+`conversationHistory` guidance ("do not repeat an action you already took earlier in this
+history") was, read literally, exactly the instruction that produced "the conversation
+history confirms you asked me to restore it, I did" — treating a PRIOR TURN'S OWN PROSE as
+proof of execution. **Fixed**: added an explicit, hard limit — conversation history proves
+only what was asked or discussed, never that a mutation succeeded; any "already
+happened"/"already restored" claim must be grounded in this turn's own fresh context data
+(the real current status field, or this turn's own archive/restore RPC result), never in
+earlier prose.
+
+**Also hardened, directly addressing the spec's explicit postcondition requirement**:
+`archive_company()`/`restore_company()` (`supabase/schema-v0.7-production-core.sql`)
+already re-read the row after the `UPDATE` and return a real `postconditionPassed` boolean
+computed from that fresh read, not an assumed echo of the write — this was already correct
+at the DB layer, confirmed by reading the real function bodies rather than assumed. The
+Edge Function was not using that field at all; it now cross-checks it defensively
+(`r.changed === true && r.postconditionPassed !== true` → reports a specific "attempted but
+not confirmed" outcome instead of trusting `reason` alone).
+
+**Investigated, found already correct, no fix needed**:
+- **Stale AI context across turns**: `buildContext()` is called fresh on every single
+  request with zero caching layer anywhere in this Edge Function (confirmed by reading the
+  full request path) — a mutation in one turn is structurally guaranteed to be visible to
+  the very next turn's context query. Not the mechanism behind this incident.
+- **Companies menu vs Companies page using different sources**: there is only ONE real
+  company-listing data path (`web/lib/data/companies.ts`'s `getCompanies()`, used by
+  `web/app/(app)/companies/page.tsx`) — the sidebar "Companies" entry is a plain nav link
+  to `/companies`, not a second, independent query. There is no menu/page divergence to
+  fix because there was never a second source to diverge from.
+- **UI cache invalidation**: the UI's OWN restore button (`web/lib/data/companies.ts`'s
+  `restoreCompany()` server action) already calls `revalidatePath("/companies")`. A
+  genuine, open question this incident could not settle by static reading alone: a
+  restore performed via Brain Chat calls `archive_company`/`restore_company` directly from
+  the Edge Function, an entirely separate process with no way to trigger a Next.js
+  `revalidatePath` call — whether this matters in practice depends on whether
+  `/companies` is dynamically rendered per-request regardless (likely, given it reads
+  RLS-scoped/cookie-dependent data), which the post-deploy live acceptance test (Turns 4/5
+  below) settles empirically rather than by inference.
+
+**Same-defect sweep requested and performed**: every entity type with a real archive AND
+restore mechanism (`task`, `company`, `goal`, `person`/`employee`) had the identical
+`CLARIFICATION_ENTITY_ACTION_FIELD` gap and the identical missing-`restor(ed|ing)`
+corrector gap — both fixed identically across all four, not just companies. The
+`updateCompanies`-specific raw-status-write defect (root cause 2) is company-specific by
+construction (only `companies.status` has this exact archived-boundary trigger guard
+reachable through a generic chat-facing update field) — no equivalent generic
+status-passthrough field was found for task/goal/person's own update paths during this
+pass.
+
+**Permanent regressions** (see
+`qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs`, run with `node
+qa/scenarios-runner/sem_ai_command_company_restore_truth.mjs`): restore clarification
+resolves to the real restore field for company/task/goal/person/employee (not archive);
+absent `actionType` defaults to archive (backward-compatible); channel has no restore
+field; false "restored" claims with zero real ids are caught; a real attempted restore is
+never overridden; ordinary unrelated company text never false-positives; the documented
+bare-"active" scope boundary; archived-boundary status writes are blocked in both
+directions; ordinary non-lifecycle status edits on a non-archived company are unaffected.
