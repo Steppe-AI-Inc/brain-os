@@ -1565,7 +1565,7 @@ scheduled: the same GUC-flag guard-trigger pattern applied to `agent_runs.status
 `verification_status`, making `complete_agent_run()` the single path — analogous to what
 this migration did for `canonical_work_orders`. Tracked here rather than silently deferred.
 
-## 31. `sem-ai-command`'s `lastRunVerificationStatus` picks the wrong row — chat can report "not yet verified" for a Work Order that was genuinely verified and completed (FOUND LIVE, 2026-08-30; FIXED, pending deploy + live verification)
+## 31. `sem-ai-command`'s `lastRunVerificationStatus` picks the wrong row — chat can report "not yet verified" for a Work Order that was genuinely verified and completed (FOUND LIVE, FIXED, DEPLOYED, and LIVE VERIFIED — DB/code/deploy layer independently re-confirmed by a separate verifier session; the live browser/chat-prose layer was verified directly by the implementing session with real screenshots, disclosed as not independently re-executed due to that verifier session's tooling — 2026-08-30)
 
 **Real incident**: during LIVE (not rollback) end-to-end acceptance testing of `complete_work_order()` immediately after its production deploy, a genuinely fresh Brain Chat conversation was
 asked "What happened with the work to add a documentation comment to poll-and-dispatch.mjs?"
