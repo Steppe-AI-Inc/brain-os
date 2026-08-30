@@ -2350,3 +2350,23 @@ one entity's answer bleed from conversation memory while another comes from fres
 this is closely related to, but not fully covered by, the uuncapped-named-lookup fix above,
 which fixes company existence specifically but not the general N-entity independent-read
 guarantee).
+
+**Bugs 7/9 live-tested after deploy — caught and fixed one real regression in the fix
+itself, then a second, separate, genuinely new (not one of the 12) finding left
+undiagnosed by design.** "Add employee test8worker to test8 company, operating within
+test9" (an ordinary NEW HIRE, not a reassignment) produced "**that person reassigned to the
+specified company.**" — the new `personAssignmentReport` fired unconditionally on any
+fully-succeeded batch, but a new hire has `personId` null (only resolvable via
+`personIndex` into the same turn's `createPeople` — nothing to "reassign"). Fixed
+immediately (commit `2a4ac04`): scoped to real-`personId` entries only, live-retested with
+a correct, well-formatted "**test8worker reassigned. Legal employer: test8. Operating
+company: test9.**" for a genuine reassignment. A SEPARATE, real finding surfaced during
+that same retest, deliberately not chased further: asking to add a NEW employee named
+"test9worker" (one character different from the just-created "test8worker") instead
+silently reassigned the EXISTING test8worker — confirmed via direct DB query, no
+"test9worker" person was ever created. This is a model name-resolution/similarity-confusion
+issue, not caused by the fix above and not one of this campaign's 12 named bugs — the
+report format itself was correct and grounded; the model simply matched the wrong
+already-existing person to a highly similar new name. Left open as an honest, non-blocking,
+separately-scoped observation given it required a deliberately adversarial one-character
+name difference to surface, rather than expanding scope mid-campaign.
