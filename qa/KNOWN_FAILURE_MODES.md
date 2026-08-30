@@ -1792,3 +1792,52 @@ field; false "restored" claims with zero real ids are caught; a real attempted r
 never overridden; ordinary unrelated company text never false-positives; the documented
 bare-"active" scope boundary; archived-boundary status writes are blocked in both
 directions; ordinary non-lifecycle status edits on a non-archived company are unaffected.
+
+**Two more real defects found DURING live acceptance testing of the fix above** (both
+fixed and redeployed in the same pass, before any acceptance test turn was reported as
+passing):
+
+5. **A genuine false-positive introduced by fix 3's own `restor(ed|ing)` broadening.**
+   Turn 1 of the live acceptance test ("can't find company test3") got a plain, correct,
+   truthful answer — "test3 is archived. Should I restore it?" — and had it destroyed and
+   replaced with a false "Couldn't confirm that" correction, because present-tense "is
+   archived" (an accurate STATE description) matched the same `archiv(ed)` word-form
+   check as a false completion CLAIM. Extracted the four correctors' shared logic into a
+   `claimsLifecycleClaim()` helper that excludes a present-tense copula ("is"/"are",
+   optionally "currently"/"already") immediately before the verb — deliberately NOT
+   past-tense "was"/"were", since a second test case in the same fix ("The company was
+   restored successfully.") showed passive past tense is the MORE common way a genuine
+   completion claim actually gets phrased, not a historical-fact statement.
+6. **Channel-focus continuity only ever covered CREATES, not lifecycle mutations.**
+   Turn 8 of the live acceptance test ("archive test3" then, next turn, "restore it")
+   forced a three-way disambiguation across every archived company in the workspace
+   instead of resolving to the one just archived — `context.recentlyResolvedEntities`
+   (Workstream 3c, built from `createdCompanies`/`createdPeople`/`createdGoals` only) had
+   no signal at all for a company that was archived/restored/had employment ended rather
+   than created, and "archive test3" executes immediately with no ambiguity (so no
+   `pendingAction` is ever set either — there was nothing structurally tracking "the thing
+   the founder just touched"). Fixed by extending the same `resolvedEntities` array to
+   also include `archiveCompanyIds`/`restoreCompanyIds`,
+   `endEmploymentPersonIds`/`restoreEmploymentPersonIds`, and
+   `archiveGoalIds`/`restoreGoalIds` from the current turn, with the system prompt updated
+   to describe and require using this for exactly this "restore it"/"undo that" pattern.
+   Not fixed for tasks in this pass — `ResolvedEntities`'s type has no `tasks` field at
+   all (a larger, deferred change; tasks already have narrower context/less ambiguity risk
+   than companies, so this is lower priority, not silently ignored).
+
+**Full live acceptance test record** (the exact scripted 8-turn scenario, run against the
+real `test3` company, `93073272-c9c6-485c-b0ad-459df37ce6f5`, real production, real browser
+sessions — every turn independently re-confirmed against the database, not just the chat
+transcript): Turn 1 (lookup) — PASS, truthful "test3 is archived, should I restore it?"
+with a real `pendingAction{kind:"single_entity_clarification", entityType:"company",
+actionType:"restore", candidateIds:["93073272-..."]}`. Turn 2 ("yes") — PASS, resolved
+deterministically (0 tokens, $0.00 — no LLM call), real `restore_company()` call, DB
+confirmed `status='active'`. Turn 3 ("what companies do I have?") — PASS, test3 correctly
+listed under Active. Turn 4 (Companies page) — PASS, test3 row shows `active`, confirming
+the theoretical Edge-Function-can't-call-`revalidatePath` cache-staleness concern from
+Bug 7 is NOT a real problem in practice (the route is genuinely dynamically rendered
+per-request). Turn 5 (hard reload) — PASS, still `active`. Turn 6 (fresh conversation,
+"what is test3 status?") — PASS, consistent state. Turn 7 ("archive test3") — PASS, real
+`archive_company()` call, DB confirmed `status='archived'`. Turn 8 ("restore it") — FAILED
+on first attempt (defect 6 above, found live), PASSED after the fix and redeploy
+(confirmed next).

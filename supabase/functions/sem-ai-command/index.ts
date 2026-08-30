@@ -665,15 +665,24 @@ Rules:
   already-confirmed-via-fresh-data cases (e.g. the real current status already matches
   what was requested) — it does not mean trusting old prose as proof by itself.
 - context.recentlyResolvedEntities (present only immediately after a turn that actually
-  created something) holds the real id+name of every company/person/goal created in the
-  PREVIOUS turn — {"companies": [{"id","name"}], "people": [{"id","name"}], "goals":
-  [{"id","name"}]}. When the founder's very next message refers back to something you
-  just created in a compound follow-up ("create QA-CONTINUITY-CO and add a new employee
-  there", "add a goal for that company"), use the real id straight from
-  context.recentlyResolvedEntities — never re-derive it by matching names out of your own
-  prior prose, and never ask the founder to repeat a company/person/goal they just told
-  you to create in the same conversation. Only the immediately preceding turn counts;
-  once something exists it also shows up in context.companies/context.people/
+  created, archived, or restored something) holds the real id+name of every company/
+  person/goal created OR archived/restored in the PREVIOUS turn — {"companies":
+  [{"id","name"}], "people": [{"id","name"}], "goals": [{"id","name"}]}. When the
+  founder's very next message refers back to something you just touched — a compound
+  follow-up ("create QA-CONTINUITY-CO and add a new employee there", "add a goal for that
+  company"), OR a short pronoun reference to something you just archived/restored/ended
+  employment for ("archive test3" then, next turn, "restore it" / "undo that" / "bring it
+  back") — use the real id straight from context.recentlyResolvedEntities. This is a
+  channel-focus continuity guarantee, not just a create-time convenience: real incident
+  (2026-08-30, "test3 restore"), "archive test3" then "restore it" in the very next turn
+  wrongly re-searched every archived company in the workspace and forced a three-way
+  disambiguation instead of resolving to the one company you had JUST archived. Never
+  re-derive an id by matching names out of your own prior prose, never ask the founder to
+  repeat a company/person/goal they just told you to create/archive/restore in the same
+  conversation, and never fall back to a broader disambiguation across unrelated
+  candidates when context.recentlyResolvedEntities already names exactly what "it"/"that
+  one" refers to. Only the immediately preceding turn counts; once something exists (or
+  is back to its normal state) it also shows up in context.companies/context.people/
   context.goals directly, which take priority for anything older than one turn back.
 - context.memories holds durable company facts retrieved from every past conversation
   (semantic search, not limited to this channel or this session) — treat these as
@@ -2622,19 +2631,35 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
-        // Workstream 3c: thread real ids for anything created this turn into the NEXT
-        // turn's context (contextPack.recentlyResolvedEntities, built in buildContext()
-        // from the immediately-preceding turn's own work_orders.output) so a compound
-        // follow-up ("create QA-CONTINUITY-CO and add a new employee there") doesn't need
-        // the model to re-derive a just-created company's id from its own prior prose.
-        // Reuses the ids/names the RPC already returned above — no extra query, no new
-        // persistence mechanism beyond the existing work_orders.output column this same
-        // file already writes lifecycle/factLine corrections into. Direct fix for
-        // CHAT_COMPOUND_COMMAND_PRESERVES_RESOLVED_COMPANY.
+        // Workstream 3c: thread real ids for anything created OR lifecycle-mutated
+        // (archived/restored) this turn into the NEXT turn's context
+        // (contextPack.recentlyResolvedEntities, built in buildContext() from the
+        // immediately-preceding turn's own work_orders.output) so a compound follow-up
+        // ("create QA-CONTINUITY-CO and add a new employee there") or a same-conversation
+        // pronoun reference to something just mutated ("archive test3" then, next turn,
+        // "restore it") doesn't need the model to re-derive an id from its own prior prose.
+        // Direct fix for CHAT_COMPOUND_COMMAND_PRESERVES_RESOLVED_COMPANY and, as of
+        // 2026-08-30 ("test3 restore" incident), CHAT_CHANNEL_FOCUS_SURVIVES_LIFECYCLE_MUTATION
+        // — the original version of this array only ever included CREATES, so "archive
+        // test3" (a real, unambiguous, immediately-executed archive - no pendingAction
+        // ever gets set, since nothing was left unresolved) left the very next turn's
+        // "restore it" with no structured continuity signal at all, live-reproduced
+        // forcing a disambiguation across every other archived company in the workspace
+        // instead of resolving to the one just touched. Reuses ids/names already resolved
+        // above (companyNameById/personNameById/goalTitleById) - no extra query.
         const resolvedEntities: ResolvedEntities = {
-          companies: createdCompanies.map((c: any) => ({ id: c.id, name: c.name })),
-          people: createdPeople.map((p: any) => ({ id: p.id, name: p.full_name })),
-          goals: createdGoals.map((g: any) => ({ id: g.id, name: g.title })),
+          companies: [
+            ...createdCompanies.map((c: any) => ({ id: c.id, name: c.name })),
+            ...[...archiveCompanyIds, ...restoreCompanyIds].map((id) => ({ id, name: String(companyNameById.get(id) || id) })),
+          ],
+          people: [
+            ...createdPeople.map((p: any) => ({ id: p.id, name: p.full_name })),
+            ...[...endEmploymentPersonIds, ...restoreEmploymentPersonIds].map((id) => ({ id, name: String(personNameById.get(id) || id) })),
+          ],
+          goals: [
+            ...createdGoals.map((g: any) => ({ id: g.id, name: g.title })),
+            ...[...archiveGoalIds, ...restoreGoalIds].map((id) => ({ id, name: String(goalTitleById.get(id) || id) })),
+          ],
         };
         const hasResolvedEntities = resolvedEntities.companies.length > 0 || resolvedEntities.people.length > 0 || resolvedEntities.goals.length > 0;
         if (hasResolvedEntities) {
