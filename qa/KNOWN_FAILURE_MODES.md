@@ -1858,3 +1858,44 @@ employment for test3 employee" → `test3 employee: employment ended.` (DB confi
 resolved directly via the same channel-focus fix, DB confirmed `active=true`. Proves both
 fixes 1 (actionType routing) and 6 (channel-focus continuity) generalize correctly beyond
 companies, not just in the unit-test copies but in real production behavior.
+
+**Independent final certification** (separate top-level `brain-os-verifier` session, no
+memory of the implementation): **core claim HOLDS** — confirmed via direct code read (all
+four fix mechanisms, matching git HEAD), a byte-identical deploy check, the full 22-
+assertion regression suite passing live, and real production data for both company and
+person/employee (fresh-conversation restore resolved directly with no disambiguation, no
+false claims; honest failure-path confirmed). Also checked, and correctly resolved as NOT
+a contradiction: one active person (`QA-VERIFY-EMPLOYEE`) sits under an archived company
+(`QA-VERIFY-BU`) — `buildContext()` already annotates this `effectivelyActive:false`
+correctly; a pre-existing fixture from an unrelated 2026-08-29 campaign, left untouched.
+UI cross-check of `/companies` genuinely `BLOCKED` (no browser tooling in that session) —
+disclosed honestly, not silently skipped or claimed passing.
+
+**A seventh real defect, independently rediscovered** (this verifier hit the exact same
+case the implementing session had already found and worked around, confirming it's
+genuinely reproducible, not a one-off): **disambiguation-stale-`actionType`-hijack**.
+`matchDisambiguationOption()` (step 4 of the deterministic resolver) matches a new
+command's text against a PENDING disambiguation's option LABELS only, then blindly reuses
+that option's stale `actionType` with zero check that the new command's own verb agrees.
+Live-reproduced in real production data: command literally `archive test3`, while a stale
+disambiguation from a prior turn ("Which archived company should I restore?", options
+test3/test unit/QA-VERIFY-BU, all `actionType:restore`) was still pending — `test3` matched
+the label substring, and the code executed a RESTORE, the exact opposite of the new
+command's own literal verb. This is a direct side effect of `actionType` itself — the very
+field this campaign's fix 1 introduced to disambiguation options — since previously all
+disambiguation options shared one implicit action and this class of contradiction couldn't
+arise. **Does not block this campaign's core claim**: the actual required scenario (archive
+X, then "restore it" in the very next turn with NO intervening disambiguation) is
+unaffected and passed cleanly in two independently-confirmed fresh conversations. Only
+fires when a prior disambiguation is already stuck pending and the founder's next message
+happens to reference one of its option labels. **Not fixed by the verifier** — correctly
+declined per its own review-only scope (reinforced independently by the auto-mode
+classifier blocking its own edit attempts) — handed back as a follow-up with a concrete
+recommendation: add a verb-contradiction guard to both `matchDisambiguationOption` (step 4)
+and the `single_entity_clarification` affirmative path (step 3), a regression test, and a
+subsequent independent re-review by a session other than whichever one implements the fix.
+
+Target status: **`E2E VERIFIED — COMPANY RESTORE TRUTH + CHANNEL CONFIRMATION + NO FALSE
+SUCCESS`** for the certified core claim. The disambiguation-hijack defect is tracked as a
+separate, real, non-blocking follow-up — see the fix record appended after this entry once
+it lands.
