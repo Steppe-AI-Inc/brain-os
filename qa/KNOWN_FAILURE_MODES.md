@@ -1564,3 +1564,43 @@ regardless), but as **incomplete protection** until closed. Recommended fix, not
 scheduled: the same GUC-flag guard-trigger pattern applied to `agent_runs.status`/
 `verification_status`, making `complete_agent_run()` the single path — analogous to what
 this migration did for `canonical_work_orders`. Tracked here rather than silently deferred.
+
+## 31. `sem-ai-command`'s `lastRunVerificationStatus` picks the wrong row — chat can report "not yet verified" for a Work Order that was genuinely verified and completed (FOUND LIVE, 2026-08-30; not yet fixed — requires an Edge Function deploy, separately authorization-gated)
+
+**Real incident**: during LIVE (not rollback) end-to-end acceptance testing of `complete_work_order()` immediately after its production deploy, a genuinely fresh Brain Chat conversation was
+asked "What happened with the work to add a documentation comment to poll-and-dispatch.mjs?"
+for real Work Order `5c33d4f3-a7ba-4a56-a406-a1ad1c4ef389` — independently confirmed, at the
+database level, to be `status='done'` with its commit-bearing `agent_run`
+(`1255646b-97ba-4746-8bb1-273332cc88da`) carrying `head_commit='2116c71...'`,
+`status='done'`, and `verification_status='live_verified'` all on the same row (exactly what
+`complete_work_order()` requires and what let it succeed). Brain's real response correctly
+said `"Completed. The Work Order (5c33d4f3) finished with status 'done'..."` but then
+incorrectly added `"...but independent verification has not yet confirmed it
+(lastRunVerificationStatus is null)"` — false: verification WAS confirmed, and IS what made
+completion possible.
+
+**Root cause** (`supabase/functions/sem-ai-command/index.ts:1305-1321`): `lastRun` is
+computed as the agent_run with the latest `created_at` under the Work Order — a naive
+"newest row" heuristic. In this real case, the Verifier's own bootstrap-style agent_run
+(`655b5170`, dispatched and created *after* the Implementation Engineer's run) was picked as
+`lastRun`, and its own `verification_status` is (correctly) `null` — the Verifier's own run
+never needed a verification_status set on it; the verification record belongs on the
+commit-bearing run per `complete_work_order()`'s real, reviewed, same-row-binding semantics
+(migration `202608300002_complete_work_order.sql`, defects 1 and 3's fixes). This context-
+building logic was written before `complete_work_order()` existed and was never updated to
+match its actual completion semantics — a real, narrow inconsistency between two pieces of
+code that both look at `agent_runs.verification_status` but disagree on which row matters.
+
+**Not fixed in this pass**: this is a `supabase/functions/sem-ai-command/index.ts` change,
+which requires a production Edge Function deploy — a separate, explicitly authorization-
+gated production-effect category from the DB migration this campaign was pushing, and fixing
+it would mean starting new work beyond the explicit "close this gap, do not start another
+architecture round" instruction under which this was found. Recorded here transparently
+rather than silently patched or silently ignored.
+
+**Recommended fix, not yet scheduled**: when `canonical_work_orders.status = 'done'`, prefer
+reporting verification state from the same query complete_work_order() itself uses (any
+commit-bearing run with a passing verification_status) rather than "the single most-recently-
+created run" — or, more simply, once a Work Order is `done`, report verification as
+satisfied by construction (the RPC would not have let it complete otherwise) rather than
+re-deriving a separate, inconsistent verification signal for chat display.
