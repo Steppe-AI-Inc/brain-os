@@ -1565,7 +1565,7 @@ scheduled: the same GUC-flag guard-trigger pattern applied to `agent_runs.status
 `verification_status`, making `complete_agent_run()` the single path — analogous to what
 this migration did for `canonical_work_orders`. Tracked here rather than silently deferred.
 
-## 31. `sem-ai-command`'s `lastRunVerificationStatus` picks the wrong row — chat can report "not yet verified" for a Work Order that was genuinely verified and completed (FOUND LIVE, 2026-08-30; not yet fixed — requires an Edge Function deploy, separately authorization-gated)
+## 31. `sem-ai-command`'s `lastRunVerificationStatus` picks the wrong row — chat can report "not yet verified" for a Work Order that was genuinely verified and completed (FOUND LIVE, 2026-08-30; FIXED, pending deploy + live verification)
 
 **Real incident**: during LIVE (not rollback) end-to-end acceptance testing of `complete_work_order()` immediately after its production deploy, a genuinely fresh Brain Chat conversation was
 asked "What happened with the work to add a documentation comment to poll-and-dispatch.mjs?"
@@ -1591,16 +1591,42 @@ building logic was written before `complete_work_order()` existed and was never 
 match its actual completion semantics — a real, narrow inconsistency between two pieces of
 code that both look at `agent_runs.verification_status` but disagree on which row matters.
 
-**Not fixed in this pass**: this is a `supabase/functions/sem-ai-command/index.ts` change,
-which requires a production Edge Function deploy — a separate, explicitly authorization-
-gated production-effect category from the DB migration this campaign was pushing, and fixing
-it would mean starting new work beyond the explicit "close this gap, do not start another
-architecture round" instruction under which this was found. Recorded here transparently
-rather than silently patched or silently ignored.
+**Fixed** (`supabase/functions/sem-ai-command/index.ts`, the `factoryWorkOrders` mapping
+block): the founder explicitly authorized fixing and deploying this in a follow-up
+instruction. `lastRun` (plain "most-recently-created" row) is now used only for
+`lastRunStatus` (a genuinely different, still-useful "what's currently happening" signal).
+Verification truth is now computed the same way `complete_work_order()`'s own gate computes
+it: every commit-bearing (`head_commit is not null`) `agent_runs` row must independently
+carry `status='done'` and a passing `verification_status` on that same row
+(`allCommitsVerified`); if the Work Order's own `status` is already `'done'`, verification is
+trusted by construction (the RPC would not have allowed that transition otherwise) rather
+than re-derived — so a stale/incomplete `agent_runs` read can never contradict a Work Order
+the database has already certified complete. `lastRunVerificationStatus`/`lastRunHeadCommit`
+now prefer the latest *verified* commit-bearing run, falling back to the latest commit-bearing
+run, falling back to `lastRun` — so a genuine commit is never hidden behind a later,
+commit-less housekeeping row either (a second, compounding symptom of the same root cause,
+found while writing the fix: the original code also silently reported `lastRunHeadCommit:
+null` for this real, completed Work Order, hiding the real commit entirely).
 
-**Recommended fix, not yet scheduled**: when `canonical_work_orders.status = 'done'`, prefer
-reporting verification state from the same query complete_work_order() itself uses (any
-commit-bearing run with a passing verification_status) rather than "the single most-recently-
-created run" — or, more simply, once a Work Order is `done`, report verification as
-satisfied by construction (the RPC would not have let it complete otherwise) rather than
-re-deriving a separate, inconsistent verification signal for chat display.
+Reproduced locally against the real fixture data from Work Order `5c33d4f3` before touching
+anything live (old logic: `lastRunVerificationStatus: null`, `lastRunHeadCommit: null` —
+both wrong; new logic: `live_verified` and the real commit hash — both correct), plus
+multi-run partial/full-verification scenarios and a zero-run sanity case — see
+`qa/scenarios-runner/sem_ai_command_factory_verification_selection.mjs` (run with `node
+qa/scenarios-runner/sem_ai_command_factory_verification_selection.mjs`), covering named
+regressions `BRAIN_CHAT_COMPLETED_WORK_ORDER_REPORTS_VERIFIED`,
+`BRAIN_CHAT_VERIFICATION_SELECTS_CORRECT_AGENT_RUN`, and
+`BRAIN_CHAT_MULTI_RUN_WORK_ORDER_REPORTS_VERIFICATION_TRUTH`.
+`BRAIN_CHAT_UNRELATED_VERIFIER_ROW_CANNOT_OVERRIDE_WORK_ORDER_TRUTH` was confirmed
+empirically live: the underlying query is a PostgREST embedded-resource join scoped by
+`canonical_work_order_id`, and a direct query confirmed zero `agent_runs` rows are ever
+associated with more than one Work Order (checked across two real, different Work Orders'
+run sets — zero overlap). `BRAIN_CHAT_FRESH_CONTEXT_MATCHES_COMPLETE_WORK_ORDER_STATE`
+requires a real deploy and a real fresh Brain Chat conversation — see the post-deploy Test
+A/B/C/D record below once added.
+
+The system prompt's own status-vocabulary rule (same file, the "what happened with that
+work?" bullet) was updated to match: "Completed" is now defined directly by `status: "done"`
+alone (never re-derived from a separate verification signal that could disagree with it),
+and "Verifying" now reads `commitBearingRunCount > 0 && !allCommitsVerified` instead of the
+old, narrower `lastRunStatus`/`lastRunVerificationStatus` pairing.

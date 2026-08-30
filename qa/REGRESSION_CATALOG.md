@@ -298,3 +298,28 @@ code-inspection-only note) also closed a theoretical concurrent-call race on the
 
 Full incident record and the deferred `agent_runs` lifecycle-guard fast-follow:
 `qa/KNOWN_FAILURE_MODES.md` #30.
+
+## Brain Chat factory-status verification selection (catches: sem-ai-command reporting a
+real, completed, verified Work Order as "not yet verified" — added 2026-08-30)
+
+`qa/scenarios-runner/sem_ai_command_factory_verification_selection.mjs` — a JS/TS
+aggregation-logic regression, not SQL (run with `node
+qa/scenarios-runner/sem_ai_command_factory_verification_selection.mjs`). Covers
+`supabase/functions/sem-ai-command/index.ts`'s `factoryWorkOrders` context-builder: proves
+verification truth is derived from every commit-bearing `agent_runs` row independently
+(matching `complete_work_order()`'s own same-row-binding gate), not from "whichever run was
+created most recently" — a Verifier's own commit-less bootstrap run, dispatched after the
+real implementation commit, must never be able to make a genuinely verified, completed Work
+Order look unverified. Named regressions:
+`BRAIN_CHAT_COMPLETED_WORK_ORDER_REPORTS_VERIFIED`,
+`BRAIN_CHAT_VERIFICATION_SELECTS_CORRECT_AGENT_RUN`,
+`BRAIN_CHAT_MULTI_RUN_WORK_ORDER_REPORTS_VERIFICATION_TRUTH` (both the partial- and
+full-verification multi-run cases). `BRAIN_CHAT_UNRELATED_VERIFIER_ROW_CANNOT_OVERRIDE_
+WORK_ORDER_TRUTH` is a live DB structural check (the underlying query's PostgREST
+embedded-resource join is scoped by `canonical_work_order_id` — confirmed empirically that
+no `agent_runs` row is ever associated with more than one Work Order), not a unit test.
+`BRAIN_CHAT_FRESH_CONTEXT_MATCHES_COMPLETE_WORK_ORDER_STATE` is inherently live (a real
+fresh Brain Chat conversation after a real deploy) — see the post-deploy verification record
+in `qa/KNOWN_FAILURE_MODES.md` #31.
+
+Full incident record: `qa/KNOWN_FAILURE_MODES.md` #31.

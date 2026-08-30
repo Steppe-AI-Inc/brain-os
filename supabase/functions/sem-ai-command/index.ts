@@ -478,19 +478,23 @@ Rules:
 - When the founder asks about the status of a Work Order you or a prior turn created
   (e.g. "what happened with that work?", "did the dashboard get built?", "is it done
   yet?") — answer from context.factoryWorkOrders, which holds real, persisted state
-  (status, taskCount, runCount, lastRunStatus, lastRunVerificationStatus,
-  lastRunSummary, lastRunHeadCommit) for the founder's real recent Work Orders,
-  regardless of whether this is a fresh conversation with no memory of creating it.
-  This is real, current truth from the database, not something you need
+  (status, taskCount, runCount, lastRunStatus, commitBearingRunCount, allCommitsVerified,
+  lastRunVerificationStatus, lastRunSummary, lastRunHeadCommit) for the founder's real
+  recent Work Orders, regardless of whether this is a fresh conversation with no memory of
+  creating it. This is real, current truth from the database, not something you need
   conversationHistory for. Translate the real status into plain founder-facing language —
   NEVER repeat a raw database enum value like \`e2e_verified\` or \`in_progress\` in your
   own prose. Use exactly this vocabulary: "Created" (the record exists but no Work Order
   yet), "Queued" (status queued, no run started yet), "Running" (a run is in progress),
-  "Waiting for approval" (status needs_approval), "Verifying" (a run finished and
-  independent verification hasn't confirmed it yet — \`lastRunStatus: "done"\` with no
-  \`lastRunVerificationStatus\` set), "Completed" (\`lastRunStatus: "done"\` AND
-  lastRunVerificationStatus confirms it), "Failed" (status blocked/rejected, or the run
-  itself failed) — never round "Verifying" up to "done and verified", and never invent a
+  "Waiting for approval" (status needs_approval), "Verifying" (\`commitBearingRunCount > 0\`
+  but \`allCommitsVerified\` is false — real code changed but independent verification
+  hasn't confirmed all of it yet), "Completed" (\`status: "done"\` — a Work Order can only
+  ever reach this status once every commit it produced already passed independent
+  verification, so \`allCommitsVerified\` is always true here by construction; trust
+  \`status\` itself as the single source of truth for completion, never a separately
+  re-derived signal), "Failed" (status blocked/rejected, or the run itself failed) — never
+  round "Verifying" up to "done and verified", never say verification is missing or
+  unconfirmed for a Work Order whose \`status\` is already "done", and never invent a
   status/commit/outcome that isn't literally present in context.factoryWorkOrders. Point
   the founder at the real destination for full detail — Brain OS's Software Factory
   dashboard (the "Agent Control Center" entry in the sidebar) — never call it "the
@@ -1305,6 +1309,41 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     const lastRun = runs.length
       ? runs.reduce((a: any, b: any) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
       : null;
+    // complete_work_order() (202608300002_complete_work_order.sql) requires EVERY
+    // commit-bearing agent_runs row to carry status='done' AND a passing
+    // verification_status on that SAME row before a Work Order can reach status='done' -
+    // "the single most-recently-created run" is a different, unrelated signal and can be a
+    // run that never carried a commit at all (found live, 2026-08-30: a Verifier's own
+    // bootstrap run, dispatched and created AFTER the real implementation commit, was
+    // picked as lastRun; its own null verification_status was then wrongly reported for
+    // the whole Work Order even though the real commit WAS independently verified on its
+    // own row - see qa/KNOWN_FAILURE_MODES.md #31). agent_runs here is already scoped to
+    // THIS Work Order alone (PostgREST embedded-resource join on canonical_work_order_id,
+    // RLS-scoped like every other query in this function) - an unrelated run from a
+    // different Work Order can never appear in `runs`, so the fix below only has to get
+    // the SELECTION right within this Work Order's own real rows, not add new scoping.
+    const commitRuns = runs.filter((r: any) => r.head_commit);
+    const isVerifiedRun = (r: any) =>
+      r.status === 'done' && (r.verification_status === 'live_verified' || r.verification_status === 'e2e_verified');
+    // If the Work Order itself already reached status='done', every commit-bearing run was
+    // already required to pass this exact check before the RPC allowed that transition -
+    // trust the canonical, already-certified status over re-deriving it from a possibly
+    // stale/incomplete agent_runs read, so persisted truth can never be contradicted by a
+    // client-side recomputation of the same invariant the database already enforced.
+    const allCommitsVerified = w.status === 'done'
+      ? true
+      : commitRuns.length > 0 && commitRuns.every(isVerifiedRun);
+    // For the commit/summary the founder can ask to see, prefer the most recent VERIFIED
+    // commit-bearing run over the plain most-recent run, so "Completed" never ends up
+    // pointing at an unrelated, unverified row's summary or head_commit either.
+    const verifiedCommitRuns = commitRuns.filter(isVerifiedRun);
+    const latestVerifiedRun = verifiedCommitRuns.length
+      ? verifiedCommitRuns.reduce((a: any, b: any) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
+      : null;
+    const latestCommitRun = commitRuns.length
+      ? commitRuns.reduce((a: any, b: any) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
+      : null;
+    const verificationRun = latestVerifiedRun ?? latestCommitRun ?? lastRun;
     return {
       id: w.id,
       title: w.title,
@@ -1316,9 +1355,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       taskCount: Array.isArray(w.tasks) ? w.tasks.length : 0,
       runCount: runs.length,
       lastRunStatus: lastRun?.status ?? null,
-      lastRunVerificationStatus: lastRun?.verification_status ?? null,
-      lastRunSummary: lastRun?.summary ?? null,
-      lastRunHeadCommit: lastRun?.head_commit ?? null,
+      commitBearingRunCount: commitRuns.length,
+      allCommitsVerified,
+      lastRunVerificationStatus: verificationRun?.verification_status ?? null,
+      lastRunSummary: verificationRun?.summary ?? null,
+      lastRunHeadCommit: verificationRun?.head_commit ?? null,
     };
   });
 
