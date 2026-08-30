@@ -14,75 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_plugin_attachments: {
+        Row: {
+          agent_id: string
+          attached_at: string
+          attached_by_profile_id: string | null
+          detached_at: string | null
+          id: string
+          plugin_component_id: string
+        }
+        Insert: {
+          agent_id: string
+          attached_at?: string
+          attached_by_profile_id?: string | null
+          detached_at?: string | null
+          id?: string
+          plugin_component_id: string
+        }
+        Update: {
+          agent_id?: string
+          attached_at?: string
+          attached_by_profile_id?: string | null
+          detached_at?: string | null
+          id?: string
+          plugin_component_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_plugin_attachments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_plugin_attachments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_plugin_attachments_attached_by_profile_id_fkey"
+            columns: ["attached_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_plugin_attachments_plugin_component_id_fkey"
+            columns: ["plugin_component_id"]
+            isOneToOne: false
+            referencedRelation: "plugin_components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_runs: {
         Row: {
           agent_definition_hash: string | null
           agent_definition_path: string | null
           agent_id: string | null
+          attached_skills: Json
           base_commit: string | null
+          blocked_reason: string | null
           branch: string | null
           canonical_work_order_id: string | null
           company_id: string | null
           created_at: string
           created_by_profile_id: string | null
+          current_step: string | null
           error: string | null
+          estimated_cost_usd: number | null
           execution_provider: string
           finished_at: string | null
           head_commit: string | null
           id: string
+          last_event: string | null
+          last_heartbeat_at: string | null
           provider_run_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["work_status"]
           summary: string | null
           task_id: string | null
+          token_usage: Json | null
           updated_at: string
           verification_status: string | null
+          worker_id: string | null
+          worktree_path: string | null
         }
         Insert: {
           agent_definition_hash?: string | null
           agent_definition_path?: string | null
           agent_id?: string | null
+          attached_skills?: Json
           base_commit?: string | null
+          blocked_reason?: string | null
           branch?: string | null
           canonical_work_order_id?: string | null
           company_id?: string | null
           created_at?: string
           created_by_profile_id?: string | null
+          current_step?: string | null
           error?: string | null
+          estimated_cost_usd?: number | null
           execution_provider?: string
           finished_at?: string | null
           head_commit?: string | null
           id?: string
+          last_event?: string | null
+          last_heartbeat_at?: string | null
           provider_run_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["work_status"]
           summary?: string | null
           task_id?: string | null
+          token_usage?: Json | null
           updated_at?: string
           verification_status?: string | null
+          worker_id?: string | null
+          worktree_path?: string | null
         }
         Update: {
           agent_definition_hash?: string | null
           agent_definition_path?: string | null
           agent_id?: string | null
+          attached_skills?: Json
           base_commit?: string | null
+          blocked_reason?: string | null
           branch?: string | null
           canonical_work_order_id?: string | null
           company_id?: string | null
           created_at?: string
           created_by_profile_id?: string | null
+          current_step?: string | null
           error?: string | null
+          estimated_cost_usd?: number | null
           execution_provider?: string
           finished_at?: string | null
           head_commit?: string | null
           id?: string
+          last_event?: string | null
+          last_heartbeat_at?: string | null
           provider_run_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["work_status"]
           summary?: string | null
           task_id?: string | null
+          token_usage?: Json | null
           updated_at?: string
           verification_status?: string | null
+          worker_id?: string | null
+          worktree_path?: string | null
         }
         Relationships: [
           {
@@ -140,6 +223,7 @@ export type Database = {
         Row: {
           active: boolean | null
           allowed_tools: Json | null
+          capabilities: string[]
           category: string | null
           cost_limit_usd: number | null
           created_at: string | null
@@ -161,6 +245,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           allowed_tools?: Json | null
+          capabilities?: string[]
           category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
@@ -182,6 +267,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           allowed_tools?: Json | null
+          capabilities?: string[]
           category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
@@ -1443,6 +1529,64 @@ export type Database = {
           },
         ]
       }
+      founder_notifications: {
+        Row: {
+          agent_run_id: string | null
+          body: string | null
+          created_at: string
+          event_type: string
+          id: string
+          read_at: string | null
+          severity: string
+          title: string
+          work_order_id: string | null
+        }
+        Insert: {
+          agent_run_id?: string | null
+          body?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          read_at?: string | null
+          severity?: string
+          title: string
+          work_order_id?: string | null
+        }
+        Update: {
+          agent_run_id?: string | null
+          body?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          read_at?: string | null
+          severity?: string
+          title?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_notifications_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_notifications_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_notifications_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goal_context: {
         Row: {
           content_md: string
@@ -2264,6 +2408,155 @@ export type Database = {
           },
         ]
       }
+      plugin_components: {
+        Row: {
+          approved_at: string | null
+          approved_by_profile_id: string | null
+          capability_metadata: Json
+          component_type: string
+          created_at: string
+          definition_hash: string | null
+          definition_path: string | null
+          display_name: string | null
+          enabled: boolean
+          id: string
+          install_status: string
+          installed_version: string | null
+          last_health_check_at: string | null
+          last_health_status: string | null
+          manifest: Json
+          permission_profile: Json
+          requires_approval: boolean
+          slug: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_profile_id?: string | null
+          capability_metadata?: Json
+          component_type: string
+          created_at?: string
+          definition_hash?: string | null
+          definition_path?: string | null
+          display_name?: string | null
+          enabled?: boolean
+          id?: string
+          install_status?: string
+          installed_version?: string | null
+          last_health_check_at?: string | null
+          last_health_status?: string | null
+          manifest?: Json
+          permission_profile?: Json
+          requires_approval?: boolean
+          slug: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_profile_id?: string | null
+          capability_metadata?: Json
+          component_type?: string
+          created_at?: string
+          definition_hash?: string | null
+          definition_path?: string | null
+          display_name?: string | null
+          enabled?: boolean
+          id?: string
+          install_status?: string
+          installed_version?: string | null
+          last_health_check_at?: string | null
+          last_health_status?: string | null
+          manifest?: Json
+          permission_profile?: Json
+          requires_approval?: boolean
+          slug?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_components_approved_by_profile_id_fkey"
+            columns: ["approved_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_components_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "plugin_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plugin_sources: {
+        Row: {
+          created_at: string
+          created_by_profile_id: string | null
+          default_branch: string
+          github_owner: string
+          github_repo: string
+          id: string
+          last_checked_at: string | null
+          latest_upstream_sha: string | null
+          license: string | null
+          pinned_commit_sha: string | null
+          pinned_ref: string | null
+          repository_url: string
+          source_type: string
+          trust_status: string
+          update_available: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          default_branch?: string
+          github_owner: string
+          github_repo: string
+          id?: string
+          last_checked_at?: string | null
+          latest_upstream_sha?: string | null
+          license?: string | null
+          pinned_commit_sha?: string | null
+          pinned_ref?: string | null
+          repository_url: string
+          source_type?: string
+          trust_status?: string
+          update_available?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_profile_id?: string | null
+          default_branch?: string
+          github_owner?: string
+          github_repo?: string
+          id?: string
+          last_checked_at?: string | null
+          latest_upstream_sha?: string | null
+          license?: string | null
+          pinned_commit_sha?: string | null
+          pinned_ref?: string | null
+          repository_url?: string
+          source_type?: string
+          trust_status?: string
+          update_available?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_sources_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_costs: {
         Row: {
           product_line_id: string
@@ -2916,6 +3209,7 @@ export type Database = {
           created_at: string | null
           created_by_profile_id: string | null
           deadline: string | null
+          depends_on: string[]
           description: string | null
           expected_output: Json | null
           id: string
@@ -2923,11 +3217,13 @@ export type Database = {
           owner_agent_id: string | null
           owner_person_id: string | null
           owner_type: string
+          parallel_group: string | null
           parent_goal: string | null
           parent_task_id: string | null
           previous_status: Database["public"]["Enums"]["work_status"] | null
           priority: Database["public"]["Enums"]["priority_level"] | null
           project_id: string | null
+          required_capabilities: string[]
           risk_level: Database["public"]["Enums"]["risk_level"] | null
           source: string | null
           status: Database["public"]["Enums"]["work_status"] | null
@@ -2943,6 +3239,7 @@ export type Database = {
           created_at?: string | null
           created_by_profile_id?: string | null
           deadline?: string | null
+          depends_on?: string[]
           description?: string | null
           expected_output?: Json | null
           id?: string
@@ -2950,11 +3247,13 @@ export type Database = {
           owner_agent_id?: string | null
           owner_person_id?: string | null
           owner_type?: string
+          parallel_group?: string | null
           parent_goal?: string | null
           parent_task_id?: string | null
           previous_status?: Database["public"]["Enums"]["work_status"] | null
           priority?: Database["public"]["Enums"]["priority_level"] | null
           project_id?: string | null
+          required_capabilities?: string[]
           risk_level?: Database["public"]["Enums"]["risk_level"] | null
           source?: string | null
           status?: Database["public"]["Enums"]["work_status"] | null
@@ -2970,6 +3269,7 @@ export type Database = {
           created_at?: string | null
           created_by_profile_id?: string | null
           deadline?: string | null
+          depends_on?: string[]
           description?: string | null
           expected_output?: Json | null
           id?: string
@@ -2977,11 +3277,13 @@ export type Database = {
           owner_agent_id?: string | null
           owner_person_id?: string | null
           owner_type?: string
+          parallel_group?: string | null
           parent_goal?: string | null
           parent_task_id?: string | null
           previous_status?: Database["public"]["Enums"]["work_status"] | null
           priority?: Database["public"]["Enums"]["priority_level"] | null
           project_id?: string | null
+          required_capabilities?: string[]
           risk_level?: Database["public"]["Enums"]["risk_level"] | null
           source?: string | null
           status?: Database["public"]["Enums"]["work_status"] | null
@@ -3158,6 +3460,158 @@ export type Database = {
       }
     }
     Views: {
+      agent_runs_with_live_status: {
+        Row: {
+          agent_definition_hash: string | null
+          agent_definition_path: string | null
+          agent_id: string | null
+          attached_skills: Json | null
+          base_commit: string | null
+          blocked_reason: string | null
+          branch: string | null
+          canonical_work_order_id: string | null
+          company_id: string | null
+          created_at: string | null
+          created_by_profile_id: string | null
+          current_step: string | null
+          error: string | null
+          estimated_cost_usd: number | null
+          execution_provider: string | null
+          finished_at: string | null
+          head_commit: string | null
+          id: string | null
+          last_event: string | null
+          last_heartbeat_at: string | null
+          live_run_status: string | null
+          provider_run_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["work_status"] | null
+          summary: string | null
+          task_id: string | null
+          token_usage: Json | null
+          updated_at: string | null
+          verification_status: string | null
+          worker_id: string | null
+          worktree_path: string | null
+        }
+        Insert: {
+          agent_definition_hash?: string | null
+          agent_definition_path?: string | null
+          agent_id?: string | null
+          attached_skills?: Json | null
+          base_commit?: string | null
+          blocked_reason?: string | null
+          branch?: string | null
+          canonical_work_order_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          current_step?: string | null
+          error?: string | null
+          estimated_cost_usd?: number | null
+          execution_provider?: string | null
+          finished_at?: string | null
+          head_commit?: string | null
+          id?: string | null
+          last_event?: string | null
+          last_heartbeat_at?: string | null
+          live_run_status?: never
+          provider_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_status"] | null
+          summary?: string | null
+          task_id?: string | null
+          token_usage?: Json | null
+          updated_at?: string | null
+          verification_status?: string | null
+          worker_id?: string | null
+          worktree_path?: string | null
+        }
+        Update: {
+          agent_definition_hash?: string | null
+          agent_definition_path?: string | null
+          agent_id?: string | null
+          attached_skills?: Json | null
+          base_commit?: string | null
+          blocked_reason?: string | null
+          branch?: string | null
+          canonical_work_order_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by_profile_id?: string | null
+          current_step?: string | null
+          error?: string | null
+          estimated_cost_usd?: number | null
+          execution_provider?: string | null
+          finished_at?: string | null
+          head_commit?: string | null
+          id?: string | null
+          last_event?: string | null
+          last_heartbeat_at?: string | null
+          live_run_status?: never
+          provider_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["work_status"] | null
+          summary?: string | null
+          task_id?: string | null
+          token_usage?: Json | null
+          updated_at?: string | null
+          verification_status?: string | null
+          worker_id?: string | null
+          worktree_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_canonical_work_order_id_fkey"
+            columns: ["canonical_work_order_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_created_by_profile_id_fkey"
+            columns: ["created_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents_with_live_status: {
         Row: {
           active: boolean | null
@@ -3376,6 +3830,10 @@ export type Database = {
         Args: { p_board_id: string; p_task_id: string }
         Returns: boolean
       }
+      check_person_delete_dependents: {
+        Args: { p_person_id: string }
+        Returns: Json
+      }
       complete_agent_run: {
         Args: {
           p_agent_run_id: string
@@ -3384,6 +3842,10 @@ export type Database = {
           p_summary?: string
           p_verification_status?: string
         }
+        Returns: Json
+      }
+      complete_work_order: {
+        Args: { p_summary?: string; p_work_order_id: string }
         Returns: Json
       }
       create_board_task: {
@@ -3503,6 +3965,10 @@ export type Database = {
           p_target_column_id: string
         }
         Returns: undefined
+      }
+      permanently_delete_fixture_company_graph: {
+        Args: { p_company_id: string }
+        Returns: Json
       }
       propose_salary_change: {
         Args: {
