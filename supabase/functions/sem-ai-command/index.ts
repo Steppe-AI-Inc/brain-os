@@ -144,6 +144,17 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> 
 // Deliberately narrow: only rejects when the command contains an EXPLICIT verb from the
 // OPPOSITE family with none from the matching family — an ordinary affirmative ("yes",
 // "that one", "do it") contains neither and is correctly left unaffected.
+// Common words a founder's command is likely to contain that are useless as a company-name
+// search token (would match almost every row, or none meaningfully) - deliberately generic
+// rather than an exhaustive stopword list, since over-inclusion here only costs a slightly
+// larger context, never a wrong answer (unlike a false state claim).
+const COMMON_COMMAND_STOPWORDS = new Set([
+  'the','and','for','are','was','were','with','about','show','what','who','when','where',
+  'why','how','does','did','has','have','had','this','that','their','they','them',
+  'company','companies','employee','employees','person','people','status','currently',
+  'active','archived','restore','delete','archive','create','update','all','data',
+  'related','permanently','please','tell','check','give','list','ceo','the',
+]);
 const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
 const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
 function commandContradictsActionType(command: string, actionType: string | undefined): boolean {
@@ -356,6 +367,20 @@ Rules:
   or channelsShown < channelsTotal), say so explicitly, e.g.
   "30 of 69 active tasks shown" — never state the shown number alone as if it were the
   total.
+- context.companies is normally capped to a top slice, but ALSO always includes any
+  company whose name was specifically matched against words in THIS turn's own command
+  text (a separate, uncapped, targeted lookup) — so a company you are directly asked
+  about is never invisible purely from being outside the general cap. CRITICAL, real
+  incident (2026-08-30): "what is test4's status?" with test4 outside the general window
+  produced a plausible-sounding but entirely FABRICATED "is archived" guess, not grounded
+  in any real field at all. Given this guarantee, if a company the founder names is
+  STILL absent from context.companies, that is real signal it does not currently exist
+  under that name (permanently deleted, or never existed, or misspelled) — say so plainly
+  ("I don't see a company by that name right now") and ask if they mean something else.
+  NEVER invent a plausible-sounding status (archived/active/anything) for a company that
+  does not appear in context.companies, no matter how familiar the name sounds from
+  context.memories or conversationHistory — a memory or a past mention proves only that
+  the name was discussed before, never its current state.
 - An ambiguous or unclear COMMAND (the founder said "delete it"/"clear channels"/"delete
   all" without saying which one, or otherwise didn't give you enough to act on) is NOT
   itself a task. Never create a task or approval just to ask a clarifying question — that
@@ -1392,6 +1417,26 @@ function fallbackPlan(command:string, contextPack:any){
 async function buildContext(supabase:any, command:string, channelId: string | null, openaiKey: string | undefined){
   // Database-first, compact context. RLS applies because this client uses the caller JWT.
   const q = command.toLowerCase();
+  // Real incident (2026-08-30): the ordinary companies query below is capped (.limit(12),
+  // no explicit order) - a specific, recently-created, or alphabetically-late company the
+  // founder names directly in their command can fall entirely outside that window. When
+  // that happened here ("what is test4's status?" with test4 outside the cap), the model
+  // had NO real data for test4 at all and produced a plausible-sounding but entirely
+  // fabricated "is archived" guess - not sourced from any specific wrong field (checked:
+  // neither memory row referencing test4 said "archived"), just an unfounded inference.
+  // This targeted, UNCAPPED supplementary lookup guarantees any company name the founder
+  // actually typed this turn is always resolvable in context, independent of the general
+  // cap - directly closes the structural gap a prompt-only "don't guess" instruction could
+  // not (tried and confirmed insufficient on retest).
+  const commandNameTokens = [...new Set(
+    (command.match(/[A-Za-z][A-Za-z0-9'&.-]{2,}/g) || [])
+      .map((t) => t.toLowerCase())
+      .filter((t) => !COMMON_COMMAND_STOPWORDS.has(t)),
+  )].slice(0, 8);
+  const namedCompanyLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score')
+        .or(commandNameTokens.map((t) => `name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+    : Promise.resolve({ data: [] as any[] });
   const queryEmbedding = await embedText(command, openaiKey);
   // Real semantic retrieval when embeddings are available (match_memories, migration
   // 202608260008); degrades to the original ILIKE substring match otherwise — company
@@ -1416,11 +1461,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks] = await Promise.all([
     supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
+    namedCompanyLookupQuery,
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline').in('status',TASK_STATUSES).limit(30),
     memoriesQuery,
@@ -1648,7 +1694,16 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // Best-effort like every other capped array in this pack: companyRelationships is capped
   // at 20 rows overall, so a chain longer than what's already fetched here may not be
   // fully walkable — same honest limitation as the 12-row companies cap itself.
-  const companyStatusById = new Map((companies.data || []).map((c: any) => [c.id, c.status]));
+  // Merge the targeted named-company lookup (above) into the base capped list, deduped by
+  // id, BEFORE any status/effectivelyActive computation below - a company the founder
+  // named directly must be treated identically to one that happened to fall in the top-12,
+  // not as a second-class, differently-computed entry.
+  const mergedCompaniesData = (() => {
+    const seen = new Set((companies.data || []).map((c: any) => c.id));
+    const extra = (namedCompanyLookup.data || []).filter((c: any) => !seen.has(c.id));
+    return [...(companies.data || []), ...extra];
+  })();
+  const companyStatusById = new Map(mergedCompaniesData.map((c: any) => [c.id, c.status]));
   const relationshipRows = companyRelationships.data || [];
   function isCompanyEffectivelyActiveInMemory(companyId: string | null | undefined, depth = 0): boolean {
     if (!companyId) return true;
@@ -1664,7 +1719,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     }
     return true;
   }
-  const packCompanies = (companies.data || []).map((c: any) => ({ ...c, effectivelyActive: isCompanyEffectivelyActiveInMemory(c.id) }));
+  const packCompanies = mergedCompaniesData.map((c: any) => ({ ...c, effectivelyActive: isCompanyEffectivelyActiveInMemory(c.id) }));
   const packPeople = (people.data || []).map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
 
   // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
@@ -1690,7 +1745,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   }));
 
   const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
-  return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
