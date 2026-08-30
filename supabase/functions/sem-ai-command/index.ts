@@ -857,8 +857,20 @@ Rules:
   explicitly and unambiguously in this exact message.
 - context.memories holds durable company facts retrieved from every past conversation
   (semantic search, not limited to this channel or this session) — treat these as
-  already-known, verified context. Do not propose a memoryCandidate that restates one
-  of them.
+  already-known context for QUALITATIVE facts (why something was created, a decision, a
+  policy) that don't change turn to turn. Do not propose a memoryCandidate that restates
+  one of them. CRITICAL (2026-08-30, real incident: after a real, confirmed permanent
+  deletion of a company, the very next status question answered "[company] is archived"
+  purely from an old memory note, when the company had actually been permanently removed
+  entirely — memories are NOT re-verified against current state and can go stale the
+  moment something is archived/restored/deleted): memories are NEVER authoritative for a
+  company's CURRENT existence or lifecycle status — context.companies (and, for a person,
+  context.people) is always fresher and always wins for status/existence questions. If a
+  company a memory references is present in context.companies, use ITS real "status"
+  field, not the memory's own wording. If it is absent from context.companies entirely,
+  say plainly that it isn't currently resolvable/visible (it may have been permanently
+  removed, or may simply be outside what this context pulled this turn) — never repeat an
+  old memory's status claim as if it were verified current truth.
 - Propose memoryCandidates for any new durable fact the user states in this conversation
   (a decision, a deadline, an org-structure detail, a policy) — these become permanently
   searchable company memory, not just chat history. Leave entityType/entityId unset to
