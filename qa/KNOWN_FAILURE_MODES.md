@@ -2898,3 +2898,41 @@ automatic pass-through once the failed task is merely archived) — or it may be
 worth fixing in a future pass. Left honestly at `status='in_progress'`, an accurate reflection
 of its real history, rather than forced closed. Flagged for Phase 10 proper, not solved here
 as a side effect of an unrelated scheduler test.
+
+## 39. Software Factory Phase 3 — real-time Workflow Factory control center, first real Realtime wiring in this codebase (2026-08-30)
+
+`web/app/(app)/software-factory/realtime-refresher.tsx` (new) and
+`notification-panel.tsx` (new): confirmed live before writing any code that no
+`.channel(...postgres_changes...)` subscription existed anywhere in `web/` — this is
+genuinely the first real Supabase Realtime usage in the app, not a copy of an existing
+pattern. `FactoryRealtimeRefresher` subscribes to `agent_runs`/`canonical_work_orders`/
+`tasks` changes and calls `router.refresh()` (debounced 400ms) rather than duplicating
+every server query into client state — the simplest mechanism that keeps a
+Server-Component-driven page genuinely live. `NotificationPanel` seeds from the real
+server-fetched `founder_notifications` list, then subscribes separately for live INSERTs
+(needs the actual new row's content, not just a refresh signal).
+
+**Real prerequisite found and fixed before this could even compile against real data**:
+`web/types/database.ts` had zero references to any table/column/view added in
+`202608300004`-`202608300006` — genuinely stale relative to the live schema. Regenerated
+via `npx supabase gen types typescript --linked`; `npx tsc --noEmit` across the whole web
+app passes clean both before wiring in the new components (proving the regen itself broke
+nothing) and after.
+
+**A second, necessary migration authored, NOT pushed** (`202608300007_factory_realtime_publication.sql`,
+GATED, awaiting founder authorization — the earlier authorization was scoped to the three
+specific 202608300004-006 files, not a blanket allowance for any future migration):
+`agent_runs`/`canonical_work_orders`/`tasks` must be added to the `supabase_realtime`
+publication before `FactoryRealtimeRefresher`'s subscriptions can receive any real event
+(only `founder_notifications` was added, in `202608300006`). The component code is
+correct and ready; it will not receive live events until this migration is pushed.
+RLS still fully applies to Realtime — publication membership only controls which tables
+CAN be subscribed to, never who can read what.
+
+**Disclosed limitation, not silently claimed complete**: no browser automation tool was
+available this session (same class as #36/#37's gaps). TypeScript compiles clean, ESLint
+passes clean, and the dev server starts and serves the route (confirmed via direct
+`curl` — a `307` redirect to `/login`, the correct, expected behavior for an
+unauthenticated request per this app's own `proxy.ts` gate). **Actual authenticated
+rendering, the notification panel's live update, and the realtime auto-refresh were NOT
+visually verified in a browser** — genuinely blocked by tooling, not skipped.

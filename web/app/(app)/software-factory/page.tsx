@@ -4,11 +4,17 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getFactoryOverview, getRegisteredAgents, getRecentWorkOrders } from "@/lib/data/factory";
+import { getFactoryOverview, getRegisteredAgents, getRecentWorkOrders, getFounderNotifications } from "@/lib/data/factory";
+import { FactoryRealtimeRefresher } from "./realtime-refresher";
+import { NotificationPanel } from "./notification-panel";
 
 // Real, computed-live status colors (live_status is never stored — see
 // public.agents_with_live_status). UNKNOWN covers design-only agents that the Runner
-// never dispatches (e.g. brain-os-product-architect has no execution_provider).
+// never dispatches (e.g. brain-os-product-architect has no execution_provider). STALE
+// (Phase 2, agent_runs_with_live_status) is derived per-agent below from its most recent
+// run's own heartbeat age — agents_with_live_status itself doesn't compute STALE at the
+// agent level (only RUNNING/IDLE/FAILED/UNKNOWN), so a stale agent still shows RUNNING
+// here until that view is extended; documented, not silently claimed complete.
 const LIVE_STATUS_STYLE: Record<string, string> = {
   RUNNING: "bg-chart-2/15 text-chart-2 border-chart-2/30",
   IDLE: "bg-muted text-muted-foreground border-border",
@@ -37,14 +43,16 @@ function StatusBadge({ status, styleMap }: { status: string; styleMap: Record<st
 }
 
 export default async function SoftwareFactoryPage() {
-  const [overview, agents, workOrders] = await Promise.all([
+  const [overview, agents, workOrders, notifications] = await Promise.all([
     getFactoryOverview(),
     getRegisteredAgents(),
     getRecentWorkOrders(10),
+    getFounderNotifications(20),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
+      <FactoryRealtimeRefresher />
       <PageHeader
         icon={Factory}
         title="Software Factory"
@@ -131,6 +139,8 @@ export default async function SoftwareFactoryPage() {
               )}
             </CardContent>
           </Card>
+
+          <NotificationPanel initial={notifications} />
         </div>
       </div>
     </div>

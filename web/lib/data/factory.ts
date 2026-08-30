@@ -9,6 +9,43 @@ import { createClient } from "@/lib/supabase/server";
 // agent_runs rows at query time (see supabase/migrations/202608290003), so "Running
 // Agents" on the overview is never a stale/fakeable status.
 
+export type FounderNotification = {
+  id: string;
+  eventType: string;
+  severity: string;
+  title: string;
+  body: string | null;
+  workOrderId: string | null;
+  agentRunId: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+// founder_notifications (Phase 4 mechanism, surfaced here since Workflow Factory is the
+// first real consumer) - founder/admin-only RLS already restricts this to the right
+// audience; no company_id on this table by design, it's operator-level, not
+// per-company, matching mcp_connectors' own existing scope.
+export async function getFounderNotifications(limit = 20): Promise<FounderNotification[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("founder_notifications")
+    .select("id, event_type, severity, title, body, work_order_id, agent_run_id, read_at, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((n) => ({
+    id: n.id,
+    eventType: n.event_type,
+    severity: n.severity,
+    title: n.title,
+    body: n.body,
+    workOrderId: n.work_order_id,
+    agentRunId: n.agent_run_id,
+    readAt: n.read_at,
+    createdAt: n.created_at,
+  }));
+}
+
 export type FactoryOverviewCounts = {
   activeWorkOrders: number;
   runningAgents: number;
