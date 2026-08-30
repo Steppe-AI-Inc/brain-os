@@ -4,6 +4,13 @@
   "started_at": "2026-08-30T00:00:00Z",
   "last_checkpoint_at": "2026-08-30T00:00:00Z",
   "completed_at": "2026-08-30T00:00:00Z",
+  "final_commit": "aef616c",
+  "concurrent_development_incident": {
+    "what_happened": "While this campaign was in progress, a separate concurrent implementing session pushed 3 more commits to origin/master (8bc9cbb, 2a4ac04, c6b78a9, real timestamps 09:46-09:54 UTC, fixing Bugs 7/9/13/14 from the same #33 thread) and their CI auto-deployed sem-ai-command. This verifier's own first deploy (version 80, 09:58:09 UTC) was pushed from a LOCAL copy based on stale 15e868a HEAD (fetched/rebased AFTER, not before, that deploy) - which briefly overwrote their live deployment with a version missing the Bug 7/9/13/14 fixes.",
+    "real_impact": "Checked directly: zero real work_orders rows exist in the 09:58:09-10:19:44 UTC gap window - no real founder traffic was degraded by this.",
+    "resolution": "Rebased this verifier's commit onto origin/master (git rebase, 2 real conflicts in qa/KNOWN_FAILURE_MODES.md and the shared pack/errors lines in index.ts, both manually merged to preserve BOTH sets of changes), re-ran all 3 regression scripts + the SQL regression against the merged file (all pass), redeployed (version 81, 10:19:44 UTC) with the fully merged code, then pushed the merged commit (aef616c) to master.",
+    "lesson": "Always `git fetch && git rebase origin/master` (or at minimum `git log origin/master` to check for drift) immediately before any `supabase functions deploy` when working in a worktree/session that started from an older commit - a deploy is a real production action independent of git state, and can silently clobber concurrent work that already shipped."
+  },
   "prior_campaign": "verify-58a9742-state-claim-grounding (completed_at 2026-08-30T08:40:00Z, final_commit 86ce845) - superseded by 4 new commits (4f359a2, b5515c9, f3ad8af, 15e868a) landed after that campaign closed",
   "scope": "Independently verify: (1) 4f359a2 permanentDeleteFixtureCompanyIds capability + permanently_delete_fixture_company_graph() RPC + CONFIRMATION_DOES_NOT_EQUAL_EXECUTION safety net, migration 202608300003; (2) b5515c9 + f3ad8af, which per their own commit messages did NOT survive retest; (3) 15e868a, claimed real root-cause fix (uncapped targeted company-name lookup merged into context.companies)",
   "project_ref": "pvphxgrtdfrudejjhzjk",
@@ -45,7 +52,8 @@
   "live_verified_fixes": [
     "4f359a2 + migration 202608300003 - permanentDeleteFixtureCompanyIds / permanently_delete_fixture_company_graph() - LIVE VERIFIED via 9-scenario rolled-back-transaction regression against real production DB plus real founder production traffic corroboration",
     "15e868a - uncapped targeted company-name lookup - LIVE VERIFIED via real founder production traffic (holds from 09:17 UTC onward)",
-    "this-campaign fix - namedPersonLookupQuery + personCurrentStatus (same defect class, for people) - deployed to production (version 80), UNIT VERIFIED, not yet LIVE-traffic-verified (no real triggering command observed yet post-deploy)"
+    "this-campaign fix - namedPersonLookupQuery + personCurrentStatus (same defect class, for people) - deployed to production as part of the final merged version 81 (10:19:44 UTC), UNIT VERIFIED, not yet LIVE-traffic-verified (no real triggering command observed yet post-deploy)",
+    "8bc9cbb/2a4ac04/c6b78a9 (concurrent session's Bug 7/9/13/14 fixes) - re-verified present and passing in the final merged version 81 deploy after this campaign's rebase; not independently re-derived from scratch by this verifier (out of this campaign's original dispatch scope, only touched because of the concurrent-push conflict) - their own commit messages document their own live-test evidence"
   ],
   "not_fixed_disclosed_limitations": [
     "b5515c9 and f3ad8af are confirmed-dead-end attempts, superseded by 15e868a - no action needed, correctly superseded in the same codebase state",
