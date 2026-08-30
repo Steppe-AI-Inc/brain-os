@@ -16,6 +16,7 @@
 // Usage: node complete-run.mjs <agentRunId> <status> [headCommit] [verificationStatus] [summary]
 //   status: one of draft/queued/in_progress/blocked/needs_approval/qa_review/done/rejected/archived
 //   verificationStatus: one of pending/live_verified/e2e_verified/failed/blocked (optional)
+//   verificationStatus must always come from a real, independently-confirmed source - never accept a caller-supplied value as true without verifying it first.
 //
 // Uses --linked alone for its one real DB call - never --project-ref combined with
 // --linked (see docs/software-factory/PHASE_8_SECURITY_INCIDENT.md for why).
