@@ -859,18 +859,20 @@ Rules:
   (semantic search, not limited to this channel or this session) — treat these as
   already-known context for QUALITATIVE facts (why something was created, a decision, a
   policy) that don't change turn to turn. Do not propose a memoryCandidate that restates
-  one of them. CRITICAL (2026-08-30, real incident: after a real, confirmed permanent
-  deletion of a company, the very next status question answered "[company] is archived"
-  purely from an old memory note, when the company had actually been permanently removed
-  entirely — memories are NOT re-verified against current state and can go stale the
-  moment something is archived/restored/deleted): memories are NEVER authoritative for a
-  company's CURRENT existence or lifecycle status — context.companies (and, for a person,
-  context.people) is always fresher and always wins for status/existence questions. If a
-  company a memory references is present in context.companies, use ITS real "status"
-  field, not the memory's own wording. If it is absent from context.companies entirely,
-  say plainly that it isn't currently resolvable/visible (it may have been permanently
-  removed, or may simply be outside what this context pulled this turn) — never repeat an
-  old memory's status claim as if it were verified current truth.
+  one of them. CRITICAL, structurally enforced (2026-08-30, real incident: after a real,
+  confirmed permanent deletion of a company, the very next status question answered
+  "[company] is archived" purely from an old memory's own wording, when the company had
+  actually been permanently removed entirely): every entry in context.memories carries a
+  real, freshly-verified "companyCurrentStatus" field — the company's actual current
+  "status" column value if it still exists, or the literal string "not_found" if it no
+  longer exists in the database at all (permanently deleted, not merely archived), or null
+  if the memory isn't tied to a specific company. This field is looked up fresh every
+  turn, independent of and more reliable than context.companies' own capped list — ALWAYS
+  defer to it over the memory's own "fact" text for any status/existence question.
+  companyCurrentStatus:"not_found" means say plainly that company no longer exists /
+  was permanently removed — never restate an old memory fact's status wording ("is
+  archived", "is active") as if it were still true once companyCurrentStatus contradicts
+  it.
 - Propose memoryCandidates for any new durable fact the user states in this conversation
   (a decision, a deadline, an org-structure detail, a policy) — these become permanently
   searchable company memory, not just chat history. Leave entityType/entityId unset to
@@ -1665,7 +1667,29 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const packCompanies = (companies.data || []).map((c: any) => ({ ...c, effectivelyActive: isCompanyEffectivelyActiveInMemory(c.id) }));
   const packPeople = (people.data || []).map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
 
-  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:memories.data||[], agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
+  // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
+  // deletion, the very next "what is [company]'s status?" answered "is archived" purely
+  // from an old context.memories fact, not from context.companies (where the company no
+  // longer appears at all - it wasn't merely archived, it was permanently removed by the
+  // new permanentDeleteFixtureCompanyIds capability). A prompt-only instruction telling the
+  // model "memories can go stale, prefer context.companies" was tried first and did NOT
+  // reliably stop this - live-reproduced, the exact same stale claim survived the prompt
+  // fix. Structural fix instead: a real, unlimited, DB-verified lookup (not the capped
+  // top-12 context.companies list, which can't distinguish "truly gone" from "just outside
+  // this turn's window") for every distinct company_id any retrieved memory references,
+  // annotated directly onto each memory row so the model has unambiguous, structured
+  // ground truth right next to the fact it might otherwise repeat uncritically.
+  const memoryCompanyIds = [...new Set((memories.data || []).map((m: any) => m.company_id).filter((id: unknown): id is string => typeof id === 'string'))];
+  const memoryCompanyStatusRows = memoryCompanyIds.length > 0
+    ? await supabase.from('companies').select('id,status').in('id', memoryCompanyIds)
+    : { data: [] as any[] };
+  const memoryCompanyStatusById = new Map((memoryCompanyStatusRows.data || []).map((c: any) => [c.id, c.status]));
+  const packMemories = (memories.data || []).map((m: any) => ({
+    ...m,
+    companyCurrentStatus: m.company_id ? (memoryCompanyStatusById.get(m.company_id) ?? 'not_found') : null,
+  }));
+
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:tasks.data||[], memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:goals.data||[], companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, counts };
   return { pack, errors:[companies.error,projects.error,tasks.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,goals.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
