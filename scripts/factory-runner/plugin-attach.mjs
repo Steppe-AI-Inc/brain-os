@@ -18,7 +18,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFileSync, unlinkSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join } from 'node:path';
+import { join, isAbsolute } from 'node:path';
 import { tmpdir } from 'node:os';
 import { syncAttachedCapabilities } from './sync-agents.mjs';
 
@@ -51,7 +51,11 @@ async function runSql(sql) {
 // real definition_hash from the actual on-disk (or fetched) content — never a caller-
 // supplied hash, matching the same anti-drift discipline as agents.definition_hash.
 export async function registerComponent(sourceId, slug, componentType, definitionPath) {
-  const fullPath = join(REPO_ROOT, definitionPath);
+  // Externally-adopted skills (e.g. obra/superpowers) live outside REPO_ROOT, in the
+  // Claude Code plugin cache — an absolute definitionPath is stored and hashed as-is;
+  // a relative one (a Brain-OS-authored .claude/skills/... file) resolves against
+  // REPO_ROOT, matching sync-agents.mjs's own convention for agent definition files.
+  const fullPath = isAbsolute(definitionPath) ? definitionPath : join(REPO_ROOT, definitionPath);
   const content = readFileSync(fullPath, 'utf8');
   const definitionHash = createHash('sha256').update(content, 'utf8').digest('hex');
   const result = await runSql(`

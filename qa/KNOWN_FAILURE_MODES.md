@@ -2785,3 +2785,65 @@ up (profile deleted directly; the `auth.users` row itself accepted a `DELETE`, u
 blocked `UPDATE`). Substituted evidence for the blocked layer: real production RPC-level
 testing (above) and independent re-derivation of the named-lookup data layer (above) — both
 LIVE VERIFIED at the mechanism level, genuinely short of E2E-through-the-browser.
+
+## 37. Software Factory Phase 1 plugin registry — real skill-attachment-reaches-runtime proof, plus one self-caught concurrency bug (FOUND LIVE, FIXED — 2026-08-30)
+
+**Context**: first live push of the Software Factory commercial-platform plan's Phase 1
+(`202608300004_plugin_registry.sql`, `202608300005_task_dag_and_agent_telemetry.sql`,
+`202608300006_founder_notifications.sql`, founder-authorized). Required proving the core
+"not cosmetic" claim: attaching a plugin/skill to an agent must actually change what gets
+dispatched, with Agent Run evidence recording exactly which skill+hash was used.
+
+**Self-caught bug (found before it reached production data)**: `scripts/factory-runner/
+plugin-attach.mjs` imports `syncAttachedCapabilities` from `sync-agents.mjs`. That file's
+`main()` was deliberately left unconditional (an earlier commit's own comment explains the
+naive `import.meta.url === argv[1]` guard was found unreliable on Windows) — fine when the
+file only had one real consumer (its own CLI invocation), but a real live bug once
+`plugin-attach.mjs` became a second consumer: importing the module alone silently triggered
+a full 7-agent registry sync as an unwanted side effect, running CONCURRENTLY with
+`plugin-attach.mjs`'s own `main()`. Two overlapping `npx supabase db query --linked`
+processes fighting over the CLI's temp-role connection produced a live, confusing failure:
+`password authentication failed for user cli_login_postgres` — a connection-contention
+symptom, not a real credential problem, but exactly the kind of error that could be
+misdiagnosed as a security/credentials incident if not traced to its real cause. Fixed with
+the standard cross-platform entry-point guard (`fileURLToPath(import.meta.url) ===
+resolve(process.argv[1])`) instead of a raw string comparison — verified directly: a bare
+`import()` of the file now produces zero `main()` side effects, while running it directly
+still executes normally.
+
+**Real, live, end-to-end proof performed** (all against real production data, disclosed,
+cleaned up): registered the real, already-adopted `obra/superpowers`
+`verification-before-completion` skill (real absolute path into the actual Claude Code
+plugin cache, real SHA-256 `definition_hash` computed from its actual file content) →
+attached it to the real `brain-os-verifier` canonical agent → dispatched one real minimal
+Agent Run (`provider_run_id 0a73e352`) → **the dispatched session's own raw terminal
+transcript** (`claude logs 0a73e352`, captured directly, not narrated) shows the exact
+generated block verbatim: *"Attached skills for this run (invoke via the Skill tool before
+proceeding if relevant to the task): - verification-before-completion (from
+obra/superpowers)"* — unambiguous proof the mechanism reaches the real dispatch, not just
+the database. `agent_runs.attached_skills` recorded the real slug + `definition_hash`.
+Note: the dispatched agent's own summary reply slightly mischaracterized this ("was not
+named in my dispatch instructions") — apparently conflating the dynamically-injected block
+with its own static `.md`-defined skill list; the raw log evidence, not the model's own
+narration, is what was trusted here, consistent with this project's own established
+discipline. Then proved detach (`externalCapabilitiesNow: []` immediately after,
+confirmed live) and reattach (skill genuinely restored) — the full Phase 6 lifecycle
+sequence. The smoke-test Work Order/Task/Agent Run was completed through the real
+`complete-run.mjs`/`complete_work_order()` canonical path, not a raw status write.
+
+**Also live-verified this pass** (`qa/scenarios-runner/plugin_registry_and_agent_telemetry_truth.sql`,
+rolled-back transaction, `all_pass: true`): RLS genuinely blocks a real non-admin profile
+from writing `plugin_sources`; `agents.capabilities` and `agent_plugin_attachments` persist
+correctly against a real canonical agent id; `tasks.depends_on`/`parallel_group`/
+`required_capabilities` persist correctly against a real canonical Work Order (required
+discovering and satisfying the existing `enforce_task_work_order_company` trigger, which
+the first draft of the test missed — company_id must be set explicitly); the new
+`agent_runs_with_live_status` view correctly derives `RUNNING` for a fresh heartbeat and
+`STALE` (never `RUNNING`) for a 15-minutes-stale one, via a synthetic row, never touching
+the real live run.
+
+**Disclosed, not silently claimed complete**: `founder_notifications` is confirmed present
+in the `supabase_realtime` publication (schema-level proof a subscribed client *would*
+receive its INSERT events) and one real row was written successfully — but actual
+WebSocket delivery to a live subscribed browser client was **not** verified this pass (no
+browser automation tool available, same disclosed gap class as #36's Bug 12 UI check).

@@ -21,8 +21,9 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
@@ -199,13 +200,20 @@ async function main() {
   console.log(JSON.stringify({ synced: results, deactivated }, null, 2));
 }
 
-// Deliberately unconditional (no import.meta.url === argv[1] guard): that comparison is
-// unreliable on Windows (import.meta.url is file:///C:/... with three slashes; a naive
-// process.argv[1]-based reconstruction doesn't match) - confirmed live, this guard
-// silently skipped main() entirely (script exited 0, produced zero output, zero real
-// sync happened). This module's only real usage is as a directly-run script anyway,
-// matching provider.mjs/test-provider.mjs's own convention of no such guard.
-{
+// Real, Windows-safe entry-point guard (fixed 2026-08-30): the naive
+// `import.meta.url === argv[1]` string comparison this file used to skip on purpose is
+// indeed unreliable on Windows for the reason documented in the old comment - but
+// leaving main() fully unconditional turned into a real, live bug once this module
+// gained a second consumer: plugin-attach.mjs now imports syncAttachedCapabilities from
+// this file, and that import alone was triggering this file's own full 7-agent sync as
+// an unwanted side effect, running CONCURRENTLY with plugin-attach.mjs's own main() -
+// two overlapping `npx supabase db query --linked` processes fighting over the CLI's
+// temp-role connection, observed live to fail with
+// "password authentication failed for user cli_login_postgres" (a connection-contention
+// symptom, not a real credential problem). Fixed with the standard cross-platform
+// pattern: resolve both sides through fileURLToPath/resolve() instead of comparing raw
+// URL/argv strings directly.
+if (fileURLToPath(import.meta.url) === resolve(process.argv[1] ?? '')) {
   main().catch((e) => {
     console.error('SYNC FAILED:', e);
     process.exit(1);

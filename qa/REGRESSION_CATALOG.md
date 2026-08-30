@@ -494,3 +494,40 @@ Agent Run → `agent_runs.attached_skills` populated with slug + `definition_has
 `202608300004_plugin_registry.sql`/`202608300005_task_dag_and_agent_telemetry.sql` migrations
 to be pushed first — not yet run against production as of this entry; this is the deferred
 live half of the same acceptance test.
+
+**Update 2026-08-30 — live half now complete**: migrations pushed (founder-authorized).
+`qa/scenarios-runner/plugin_registry_and_agent_telemetry_truth.sql` (new, rolled-back
+transaction against real production) proves RLS blocks a real non-admin profile from writing
+`plugin_sources`; `agents.capabilities`/`agent_plugin_attachments` persist against a real
+agent id; `tasks.depends_on`/`parallel_group`/`required_capabilities` persist against a real
+canonical Work Order; `agent_runs_with_live_status` correctly derives RUNNING vs. STALE from
+heartbeat age. A real, disclosed, cleaned-up smoke test (register real
+`obra/superpowers:verification-before-completion` → attach to real `brain-os-verifier` →
+dispatch real Agent Run → raw `claude logs` transcript shows the exact injected skill block →
+detach (confirmed empty) → reattach (confirmed restored) → completed via
+`complete-run.mjs`/`complete_work_order()`) is the full live proof. One real bug was found and
+fixed in the process: `sync-agents.mjs`'s unconditional `main()` fired as a side effect of
+`plugin-attach.mjs` importing it, causing a connection-contention failure — fixed with a
+proper cross-platform entry-point guard. Full record: `qa/KNOWN_FAILURE_MODES.md` #37.
+
+## Skill/plugin attachment is real, never cosmetic (catches:
+FACTORY_ATTACHED_PLUGIN_IS_PRESENT_DURING_REAL_RUN, FACTORY_PLUGIN_CAN_BE_ATTACHED_TO_AGENT —
+added 2026-08-30)
+
+After changing `provider.mjs`'s `buildSkillInjectionPrompt`/`startRunByAgentId` or
+`sync-agents.mjs`'s `syncAttachedCapabilities`, re-run
+`node --test scripts/factory-runner/plugin-attach.regression.test.mjs` (pure, fast) AND repeat
+the live smoke test above at least once (attach → dispatch → `claude logs <provider_run_id>` —
+confirm the raw transcript, not just the DB row, actually contains the injected block).
+Trusting only the database write is not sufficient evidence for this invariant — the whole
+point is that it must reach the real dispatched process.
+
+## Module entry-point guards must survive a second importer (catches: the concurrency bug in
+KNOWN_FAILURE_MODES.md #37 class)
+
+Any `scripts/factory-runner/*.mjs` file with an unconditional `main()` call at module scope
+must use `fileURLToPath(import.meta.url) === resolve(process.argv[1])`, never a raw
+`import.meta.url === process.argv[1]` string comparison (fails on Windows) and never an
+unconditional call (fires as a side effect the moment anything else imports the file). Test
+directly: `node -e "import('./scripts/factory-runner/<file>.mjs').then(()=>console.log('OK'))"`
+must print only `OK`, nothing else, before any other file is allowed to import it.
