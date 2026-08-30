@@ -1630,3 +1630,41 @@ work?" bullet) was updated to match: "Completed" is now defined directly by `sta
 alone (never re-derived from a separate verification signal that could disagree with it),
 and "Verifying" now reads `commitBearingRunCount > 0 && !allCommitsVerified` instead of the
 old, narrower `lastRunStatus`/`lastRunVerificationStatus` pairing.
+
+**Independent post-deploy verification (2026-08-30, genuinely separate session, no memory
+of the implementation)**: confirmed **deploy is real and live** —
+`npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk` shows `sem-ai-command`
+`version:66`, `updated_at` epoch `1788065767986` = `2026-08-30T04:56:07.986Z`, matching the
+claimed deploy exactly; `supabase functions download --use-api` + diff (CRLF-normalized)
+against git HEAD (`88587e2`) is byte-identical — the deployed function IS this exact fix,
+not an older or drifted version. Confirmed **DB ground truth** directly against production
+(`npx supabase db query --linked`, never combined with `--project-ref` per this file's own
+prior guidance): `5c33d4f3-a7ba-4a56-a406-a1ad1c4ef389` is `status='done'`, `completed_at`
+set, with agent_run `1255646b` (`head_commit=2116c71...`, `status=done`,
+`verification_status=live_verified`) and agent_run `655b5170` (`head_commit=null`,
+`status=done`, `verification_status=null`, `created_at` 3 minutes AFTER `1255646b`) — the
+exact "later commit-less bootstrap run" shape the bug depended on.
+`53628c8c-6325-4d18-8747-fc2c7b19d995` is genuinely `status='queued'` (not `done`) with its
+sole agent_run (`0b6a8aa6`, `head_commit=88587e2`, `status=done`,
+`verification_status=null`) — a real, deliberately unverified fixture, exactly as claimed.
+A production-wide sweep (not just these two WOs) found **zero** Work Orders with
+`status='done'` and any commit-bearing `agent_runs` row failing the same verification check
+`complete_work_order()` itself enforces — the `w.status === 'done' → allCommitsVerified`
+trust-by-construction in the fixed code has zero live counterexamples anywhere in
+production. Confirmed `agent_runs.canonical_work_order_id` is a scalar `uuid` FK column
+(`information_schema.columns`), not a join table — Test C's "an agent_run is never
+associated with more than one Work Order" is structurally guaranteed by the schema itself,
+not merely empirically true today. Ran
+`node qa/scenarios-runner/sem_ai_command_factory_verification_selection.mjs` — all 7
+assertions pass. **Gap, disclosed not silently skipped**: this session's tool schema had no
+`mcp__claude-in-chrome__*` browser tools and `ToolSearch` itself was disabled entirely (not
+just deferred) — the actual live browser + fresh Brain Chat HTTP round-trip (Tests A/B/D)
+could **not** be independently re-executed this pass, and no test-persona password/JWT-
+minting path exists in this repo to substitute a curl-based auth call (`qa/TEST_PERSONAS.md`
+records real account IDs only, deliberately no passwords). This is marked `BLOCKED`, not
+"passed" — the DB+code+deploy chain is `LIVE VERIFIED` end-to-end, but the final
+UI-rendered/model-generated chat sentence itself was not independently re-observed by this
+session. Net: every layer up to and including "what the Edge Function would return to the
+model" is proven live and correct; the last hop (does the model's prose obey the updated
+system-prompt vocabulary rule) rests on the transcripts reported by the implementing
+session, not on this session's own eyes.
