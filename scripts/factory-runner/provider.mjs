@@ -195,7 +195,7 @@ export async function resolveAgentFromRegistry(agentId) {
   if (!/^[0-9a-f-]{36}$/i.test(agentId)) {
     throw new Error(`resolveAgentFromRegistry: "${agentId}" is not a well-formed UUID`);
   }
-  const sql = `select id, name, active, execution_provider, has_production_authority, definition_path, definition_hash
+  const sql = `select id, name, active, execution_provider, has_production_authority, definition_path, definition_hash, provenance
 from public.agents where id = '${agentId}'::uuid;`;
   const result = await runSqlSelect(sql);
   const row = result.rows?.[0];
@@ -208,7 +208,31 @@ from public.agents where id = '${agentId}'::uuid;`;
     hasProductionAuthority: row.has_production_authority,
     definitionPath: row.definition_path,
     definitionHash: row.definition_hash,
+    // Real, currently-attached external skills (see sync-agents.mjs's
+    // syncAttachedCapabilities) — [] for an agent with no plugin attachments, never
+    // undefined, so callers can always safely read .externalCapabilities.
+    externalCapabilities: row.provenance?.external_capabilities ?? [],
   };
+}
+
+/**
+ * Builds the real, non-cosmetic prompt block that makes an attached skill actually
+ * reach the execution runtime: an explicit directive naming each attached skill and its
+ * exact pinned origin, instructing the dispatched session to load it via the Skill tool
+ * before starting the task. Returns '' when the agent has no attachments — dispatch is
+ * unchanged for every agent that isn't using this feature yet.
+ * @param {Array<{skill:string, origin:string, pinned_ref:string|null}>} externalCapabilities
+ */
+export function buildSkillInjectionPrompt(externalCapabilities) {
+  if (!externalCapabilities?.length) return '';
+  const lines = externalCapabilities.map(
+    (c) => `- ${c.skill} (from ${c.origin}${c.pinned_ref ? ` @ ${c.pinned_ref}` : ''})`
+  );
+  return (
+    `\n\nAttached skills for this run (invoke via the Skill tool before proceeding if relevant to the task):\n` +
+    lines.join('\n') +
+    '\n'
+  );
 }
 
 /**
@@ -258,6 +282,13 @@ export async function startRunByAgentId(agentId, task) {
       `was registered; re-run sync-agents.mjs to confirm the change is intentional before dispatching.`
     );
   }
-  const result = await startRun(agent.name, task, REPO_ROOT);
-  return { ...result, agentId: agent.id, agentName: agent.name, definitionHash: agent.definitionHash };
+  const skillBlock = buildSkillInjectionPrompt(agent.externalCapabilities);
+  const result = await startRun(agent.name, task + skillBlock, REPO_ROOT);
+  return {
+    ...result,
+    agentId: agent.id,
+    agentName: agent.name,
+    definitionHash: agent.definitionHash,
+    attachedSkills: agent.externalCapabilities,
+  };
 }

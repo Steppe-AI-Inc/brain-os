@@ -479,3 +479,18 @@ adding `|| claimsFutureActionWithNoPlan` to the persist condition. Every other
 `result.summary`-mutating site in the file was audited for the same gap; none found.
 
 Full incident record: `qa/KNOWN_FAILURE_MODES.md` #36.
+
+## Attached plugin/skill actually reaches the execution runtime, not just dashboard
+metadata (catches: FACTORY_ATTACHED_PLUGIN_IS_PRESENT_DURING_REAL_RUN — added 2026-08-30,
+Software Factory commercial-platform Phase 1)
+
+`node --test scripts/factory-runner/plugin-attach.regression.test.mjs` — pure-function
+coverage of `buildSkillInjectionPrompt` (`scripts/factory-runner/provider.mjs`): confirms an
+agent with attachments gets a real, additional prompt block naming each skill + its pinned
+origin before `claude --agent ... --bg` is invoked (`startRunByAgentId`), and confirms an
+agent with zero attachments dispatches with byte-identical task text — this feature must never
+silently alter dispatch for an agent that isn't using it. Live end-to-end proof (attach → real
+Agent Run → `agent_runs.attached_skills` populated with slug + `definition_hash`) requires the
+`202608300004_plugin_registry.sql`/`202608300005_task_dag_and_agent_telemetry.sql` migrations
+to be pushed first — not yet run against production as of this entry; this is the deferred
+live half of the same acceptance test.

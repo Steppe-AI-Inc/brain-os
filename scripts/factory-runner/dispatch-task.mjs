@@ -76,16 +76,19 @@ async function main() {
   console.log(`Registry agent id: ${agentId}`);
 
   console.log(`Dispatching (registry-driven, no name/path passed to the underlying claude CLI directly)...`);
-  const { providerRunId } = await provider.startRunByAgentId(agentId, taskPrompt);
+  const { providerRunId, attachedSkills } = await provider.startRunByAgentId(agentId, taskPrompt);
   console.log(`Real provider_run_id: ${providerRunId}`);
+  if (attachedSkills?.length) {
+    console.log(`Attached skills injected into this run: ${attachedSkills.map((s) => s.skill).join(', ')}`);
+  }
 
   await runSql(`
-insert into public.agent_runs (agent_id, task_id, canonical_work_order_id, agent_definition_path, execution_provider, provider_run_id, status, started_at)
-select a.id, ${sqlEscape(taskId)}::uuid, ${sqlEscape(workOrderId)}::uuid, a.definition_path, 'claude_code_background', ${sqlEscape(providerRunId)}, 'in_progress'::work_status, now()
+insert into public.agent_runs (agent_id, task_id, canonical_work_order_id, agent_definition_path, execution_provider, provider_run_id, status, started_at, last_heartbeat_at, attached_skills)
+select a.id, ${sqlEscape(taskId)}::uuid, ${sqlEscape(workOrderId)}::uuid, a.definition_path, 'claude_code_background', ${sqlEscape(providerRunId)}, 'in_progress'::work_status, now(), now(), ${sqlEscape(JSON.stringify(attachedSkills ?? []))}::jsonb
 from public.agents a where a.id = ${sqlEscape(agentId)}::uuid;
 `);
 
-  console.log(JSON.stringify({ workOrderId, taskId, agentId, agentName, providerRunId }, null, 2));
+  console.log(JSON.stringify({ workOrderId, taskId, agentId, agentName, providerRunId, attachedSkills }, null, 2));
 }
 
 main().catch((e) => {

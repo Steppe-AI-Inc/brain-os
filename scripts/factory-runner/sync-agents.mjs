@@ -142,6 +142,43 @@ returning id, name;
   return runSql(sql);
 }
 
+// Real, non-cosmetic wiring for Phase 1's "attaching a skill must affect the actual
+// runtime" requirement. Reads every live (enabled, registered/enabled install_status,
+// not detached) agent_plugin_attachments row for a given agent and merges it into
+// provenance.external_capabilities — the exact shape 202608290003's own header comment
+// already designed. This is what dispatch-task.mjs reads at dispatch time to build the
+// real skill-injection prompt block and populate agent_runs.attached_skills.
+export async function resolveAttachedCapabilities(agentId) {
+  const result = await runSql(`
+select pc.slug, pc.definition_path, pc.definition_hash, ps.github_owner, ps.github_repo, pc.installed_version
+from public.agent_plugin_attachments apa
+join public.plugin_components pc on pc.id = apa.plugin_component_id
+join public.plugin_sources ps on ps.id = pc.source_id
+where apa.agent_id = ${sqlEscape(agentId)}::uuid
+  and apa.detached_at is null
+  and pc.enabled = true
+  and pc.install_status in ('registered','enabled')
+order by pc.slug;
+`);
+  return (result.rows ?? []).map((r) => ({
+    skill: r.slug,
+    origin: `${r.github_owner}/${r.github_repo}`,
+    pinned_ref: r.installed_version,
+    definition_path: r.definition_path,
+    definition_hash: r.definition_hash,
+  }));
+}
+
+export async function syncAttachedCapabilities(agentId, baseProvenance) {
+  const externalCapabilities = await resolveAttachedCapabilities(agentId);
+  const provenance = { ...baseProvenance, external_capabilities: externalCapabilities };
+  await runSql(`
+update public.agents set provenance = ${sqlEscape(JSON.stringify(provenance))}::jsonb, updated_at = now()
+where id = ${sqlEscape(agentId)}::uuid;
+`);
+  return externalCapabilities;
+}
+
 async function main() {
   const results = [];
   for (const entry of ALLOWLIST) {
@@ -151,7 +188,12 @@ async function main() {
       continue;
     }
     const r = await syncOne(row);
-    results.push({ name: entry.name, status: 'SYNCED', hash: row.definitionHash, dbResult: r });
+    const agentId = r.rows?.[0]?.id;
+    let externalCapabilities = [];
+    if (agentId) {
+      externalCapabilities = await syncAttachedCapabilities(agentId, row.provenance);
+    }
+    results.push({ name: entry.name, status: 'SYNCED', hash: row.definitionHash, externalCapabilities, dbResult: r });
   }
   const deactivated = await deactivateMissing();
   console.log(JSON.stringify({ synced: results, deactivated }, null, 2));
