@@ -25,4 +25,44 @@ do $$ begin
   alter publication supabase_realtime add table public.tasks;
 exception when duplicate_object then null; end $$;
 
+-- Bundled into this same pending migration rather than a separate authorization request
+-- (both are Phase 3 UI-truthfulness fixes, same review, same risk class): closes a real,
+-- disclosed gap from KNOWN_FAILURE_MODES.md #39's page.tsx comment - agents_with_live_status
+-- (202608290003) computes RUNNING purely from agent_runs.status, with no heartbeat-age
+-- awareness, so a genuinely dead agent still displayed RUNNING on the Software Factory
+-- page even after Phase 2's agent_runs_with_live_status view already solved this exact
+-- problem at the run level. Same STALE_THRESHOLD (10 minutes) and same "never a
+-- stored/fakeable flag" design as that view - purely additive `create or replace view`,
+-- no data change, no RLS change (security_invoker already carries through).
+create or replace view public.agents_with_live_status as
+select
+  a.*,
+  case
+    when a.execution_provider is null then 'UNKNOWN'
+    when exists (
+      select 1 from public.agent_runs ar
+      where ar.agent_id = a.id and ar.status in ('queued'::work_status,'in_progress'::work_status)
+        and (ar.last_heartbeat_at is null or ar.last_heartbeat_at >= now() - interval '10 minutes')
+    ) then 'RUNNING'
+    when exists (
+      select 1 from public.agent_runs ar
+      where ar.agent_id = a.id and ar.status = 'in_progress'::work_status
+        and ar.last_heartbeat_at < now() - interval '10 minutes'
+    ) then 'STALE'
+    when (
+      select ar.status from public.agent_runs ar
+      where ar.agent_id = a.id order by ar.created_at desc limit 1
+    ) = 'rejected'::work_status then 'FAILED'
+    else 'IDLE'
+  end as live_status,
+  (select ar.id from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_id,
+  (select ar.created_at from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_at,
+  (select ar.status from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_status,
+  (select ar.summary from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_summary,
+  (select ar.head_commit from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_head_commit,
+  (select ar.provider_run_id from public.agent_runs ar where ar.agent_id = a.id order by ar.created_at desc limit 1) as last_run_provider_run_id
+from public.agents a;
+
+alter view public.agents_with_live_status set (security_invoker = true);
+
 commit;

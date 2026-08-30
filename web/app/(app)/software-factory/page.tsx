@@ -11,12 +11,14 @@ import { NotificationPanel } from "./notification-panel";
 // Real, computed-live status colors (live_status is never stored — see
 // public.agents_with_live_status). UNKNOWN covers design-only agents that the Runner
 // never dispatches (e.g. brain-os-product-architect has no execution_provider). STALE
-// (Phase 2, agent_runs_with_live_status) is derived per-agent below from its most recent
-// run's own heartbeat age — agents_with_live_status itself doesn't compute STALE at the
-// agent level (only RUNNING/IDLE/FAILED/UNKNOWN), so a stale agent still shows RUNNING
-// here until that view is extended; documented, not silently claimed complete.
+// is derived by agents_with_live_status itself from heartbeat age (10-minute threshold,
+// same as agent_runs_with_live_status) — a run whose worker genuinely died no longer
+// shows RUNNING forever. This is wired into the view as of
+// 202608300007_factory_realtime_publication.sql (pending founder authorization to push
+// at the time this comment was written — check migration status if STALE never appears).
 const LIVE_STATUS_STYLE: Record<string, string> = {
   RUNNING: "bg-chart-2/15 text-chart-2 border-chart-2/30",
+  STALE: "bg-chart-3/15 text-chart-3 border-chart-3/30",
   IDLE: "bg-muted text-muted-foreground border-border",
   FAILED: "bg-destructive/15 text-destructive border-destructive/30",
   UNKNOWN: "bg-muted/60 text-muted-foreground/70 border-border",
