@@ -17,7 +17,9 @@ export type FounderNotification = {
   body: string | null;
   workOrderId: string | null;
   agentRunId: string | null;
-  readAt: string | null;
+  status: string;
+  actionRequired: boolean;
+  resolvedAt: string | null;
   createdAt: string;
 };
 
@@ -29,7 +31,7 @@ export async function getFounderNotifications(limit = 20): Promise<FounderNotifi
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("founder_notifications")
-    .select("id, event_type, severity, title, body, work_order_id, agent_run_id, read_at, created_at")
+    .select("id, event_type, severity, title, body, work_order_id, agent_run_id, status, action_required, resolved_at, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -41,9 +43,25 @@ export async function getFounderNotifications(limit = 20): Promise<FounderNotifi
     body: n.body,
     workOrderId: n.work_order_id,
     agentRunId: n.agent_run_id,
-    readAt: n.read_at,
+    status: n.status,
+    actionRequired: n.action_required,
+    resolvedAt: n.resolved_at,
     createdAt: n.created_at,
   }));
+}
+
+export async function resolveFounderNotification(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("resolve_founder_notification", { p_id: id });
+  if (error) throw error;
+  return data;
+}
+
+export async function markFounderNotificationRead(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_founder_notification_read", { p_id: id });
+  if (error) throw error;
+  return data;
 }
 
 export type FactoryOverviewCounts = {

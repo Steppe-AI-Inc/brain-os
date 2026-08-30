@@ -152,7 +152,40 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
       wentStale.push(run.id);
     }
   }
-  return { refreshed, wentStale };
+  const notified = await notifyStaleAgents();
+  return { refreshed, wentStale, notified };
+}
+
+// Real, canonical-state-driven notification path (never LLM-prose-driven): reads the
+// SAME computed agent_runs_with_live_status view the UI reads, and calls
+// create_founder_notification for every currently-STALE run. Safe to call every poll
+// cycle - the migration's own partial unique index on dedupe_key (while status !=
+// 'resolved') means only the FIRST call for a given run actually inserts a row; every
+// later call while still stale returns null (a suppressed duplicate), never a second
+// notification. Once a run recovers (heartbeat resumes) or is resolved by the founder,
+// a LATER genuine stale episode for the same run is free to notify again.
+export async function notifyStaleAgents() {
+  const result = await runSql(`
+select ls.id, ls.canonical_work_order_id, ls.agent_id, a.name as agent_name
+from public.agent_runs_with_live_status ls
+join public.agents a on a.id = ls.agent_id
+where ls.live_status = 'STALE';
+`);
+  const staleRuns = result.rows ?? [];
+  const notified = [];
+  for (const run of staleRuns) {
+    const insertResult = await runSql(`
+select public.create_founder_notification(
+  'FACTORY_AGENT_STALE', 'warning',
+  ${sqlEscape(`Agent stalled: ${run.agent_name}`)},
+  ${sqlEscape(`No heartbeat from agent run ${run.id} for over 10 minutes.`)},
+  ${sqlEscape(run.canonical_work_order_id)}::uuid, ${sqlEscape(run.id)}::uuid,
+  ${sqlEscape('agent_stale:' + run.id)}, true
+) as notification_id;
+`);
+    if (insertResult.rows?.[0]?.notification_id) notified.push(run.id);
+  }
+  return notified;
 }
 
 export async function dispatchReadyTasks(workOrderId, maxConcurrent = DEFAULT_MAX_CONCURRENT) {
@@ -220,7 +253,7 @@ async function main() {
     process.exit(1);
   }
   const heartbeats = await refreshHeartbeats();
-  console.log(`Heartbeats refreshed: ${heartbeats.refreshed.length}, went stale (no live session found): ${heartbeats.wentStale.length}`);
+  console.log(`Heartbeats refreshed: ${heartbeats.refreshed.length}, went stale (no live session found): ${heartbeats.wentStale.length}, new STALE notifications: ${heartbeats.notified.length}`);
   const dispatch = await dispatchReadyTasks(workOrderId, maxConcurrentArg ? Number(maxConcurrentArg) : undefined);
   console.log(JSON.stringify({ heartbeats, dispatch }, null, 2));
 }
