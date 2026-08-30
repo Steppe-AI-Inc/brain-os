@@ -1,3 +1,4 @@
+// complete_work_order() (supabase/migrations/202608300002_complete_work_order.sql) now exists as the Work-Order-level completion counterpart to complete_agent_run() below, and is live in production.
 // Phase 8 continuation — the ONE command that persists a real agent_runs completion
 // result back into Brain OS, closing the exact gap found during independent verification
 // of Work Order 3b28e447-4a9c-4f79-9419-80638a39e457: nothing except raw SQL could ever
