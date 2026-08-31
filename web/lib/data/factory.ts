@@ -83,6 +83,14 @@ export type PluginComponent = {
   license: string | null;
   attachedAgentNames: string[];
   lastRuntimeUseAt: string | null;
+  // Separate from installStatus on purpose — the founder's explicit requirement: never
+  // conflate lifecycle state (discovered/enabled/etc.) with runtime health. Computed,
+  // never stored: HEALTHY only once genuinely 'enabled' AND the last recorded sandbox
+  // test actually passed; DEGRADED when an update is available or a component that was
+  // enabled has since drifted to 'update_available'; DOWN on a failed lifecycle stage;
+  // UNKNOWN everywhere else (discovered/reviewing/quarantined/testing/installed but not
+  // yet enabled) — there is no "up" for something that was never turned on.
+  health: "HEALTHY" | "DEGRADED" | "DOWN" | "UNKNOWN";
 };
 
 // Phase 6 — the plugin/skill lifecycle registry, made genuinely useful (not a metadata
@@ -95,7 +103,7 @@ export async function getPluginComponents(): Promise<PluginComponent[]> {
   const { data: components, error } = await supabase
     .from("plugin_components")
     .select(
-      "id, slug, display_name, component_type, install_status, enabled, license_review_status, security_review_status, installed_version, definition_hash, plugin_sources(github_owner, github_repo, pinned_commit_sha, latest_upstream_sha, update_available, license)"
+      "id, slug, display_name, component_type, install_status, enabled, license_review_status, security_review_status, installed_version, definition_hash, manifest, plugin_sources(github_owner, github_repo, pinned_commit_sha, latest_upstream_sha, update_available, license)"
     )
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -166,8 +174,17 @@ export async function getPluginComponents(): Promise<PluginComponent[]> {
       license: source?.license ?? null,
       attachedAgentNames: attachedByComponent.get(c.id) ?? [],
       lastRuntimeUseAt: c.definition_hash ? (lastUseByHash.get(c.definition_hash) ?? null) : null,
+      health: computePluginHealth(c.install_status, c.manifest as Record<string, unknown> | null),
     };
   });
+}
+
+function computePluginHealth(installStatus: string, manifest: Record<string, unknown> | null): PluginComponent["health"] {
+  if (installStatus === "failed") return "DOWN";
+  if (installStatus === "update_available") return "DEGRADED";
+  if (installStatus !== "enabled") return "UNKNOWN";
+  const sandboxTest = manifest?.sandbox_test as { passed?: boolean } | undefined;
+  return sandboxTest?.passed ? "HEALTHY" : "UNKNOWN";
 }
 
 export type FactoryOverviewCounts = {
