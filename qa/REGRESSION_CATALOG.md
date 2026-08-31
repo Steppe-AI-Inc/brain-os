@@ -667,7 +667,7 @@ path still works) for whichever functions are actually in scope for the change b
 tested.
 
 ## Whole-schema privileged-RPC anon/PUBLIC grant sweep (catches: `qa/KNOWN_FAILURE_MODES.md`
-#45 — the dedicated 5-function security review)
+#46 — the dedicated 5-function security review)
 
 `qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql` (read-only, no
 transaction needed) generalizes the factory-scoped sweep above into a whole-`public`-schema
@@ -675,10 +675,45 @@ guard: any `SECURITY DEFINER`, non-trigger-return-type function outside the
 `is_/has_/current_` RLS-helper exclusion that holds an `anon` or bare `PUBLIC` EXECUTE
 grant is a violation, unless it's in the explicit, individually-justified
 `known_disclosed_exceptions` list inside the file itself (as of 2026-08-31, just
-`validate_organization_graph` — found during the #45 review, same shape, not yet given the
+`validate_organization_graph` — found during the #46 review, same shape, not yet given the
 full per-function review its siblings received). `all_pass` is true only once
 `unexpected_new_violations` is empty — a name appearing there that isn't in the allowlist
 means a function was just created (or re-created) with the same authoring mistake #41/#43/
-#45 keep independently rediscovering. Run this after adding or modifying ANY
+#46 keep independently rediscovering. Run this after adding or modifying ANY
 `SECURITY DEFINER` function anywhere in the schema, not just factory/notification code —
 that's the whole point of it being generic rather than feature-scoped.
+
+## Capability-routed beehive DAG execution (catches: `qa/KNOWN_FAILURE_MODES.md` #45,#47
+— Phase 5)
+
+`qa/scenarios-runner/factory_agent_registry_dispatchability_truth.sql` — re-run after
+registering any new agent or editing an existing one's frontmatter; flags any
+`SOFTWARE_FACTORY`-category agent with real capabilities but no `execution_provider`
+(caught two real instances: Product Architect, Release Operator). Live re-verification of
+the full DAG mechanism (do this, not just the SQL, before trusting a scheduler change):
+create a real 4-task Work Order (one prerequisite, two parallel successors sharing that
+one dependency, one fan-in dependent on both), run `node scheduler.mjs <workOrderId>`
+across each real transition, confirm via `claude logs <provider_run_id>` (not just the DB
+row) that each dispatch actually reached its process, and confirm real overlapping
+wall-clock timestamps for the two parallel tasks (`agent_runs.started_at`/`finished_at`,
+not narrated).
+
+**Adversarial coverage is mandatory, not optional** — a single happy-path DAG proves
+nothing about failure handling: (A) deliberately complete one branch of a fan-in as
+`rejected` and confirm the dependent task's status stays `queued` forever (never
+`in_progress`) after a fresh scheduler re-run; (B) create a task/agent_run with a
+backdated `last_heartbeat_at` (>10 min) and confirm the scheduler both flags it `STALE`
+(`notifyStaleAgents()`) AND never re-dispatches it, and that exactly one `agent_runs` row
+exists for that task before and after; (C) re-invoke `scheduler.mjs` as a genuinely fresh
+process against an already-fully-resolved Work Order and confirm the total `agent_runs`
+count for it is unchanged — the scheduler must be provably stateless across invocations
+(everything re-derived from the DB, nothing kept in memory) for this to hold.
+
+**Known, disclosed, not-yet-implemented gap** (do not assume otherwise until it's
+actually built and this entry is updated): `isTaskPermanentlyBlocked` exists in
+`scheduler.mjs` but is not wired into `dispatchReadyTasks` — a permanently-blocked task
+(a dependency `rejected`, not just still-running) is behaviorally correct (never
+dispatches) but is not distinguishable from "still legitimately waiting" via
+`tasks.status` alone. There is also no automatic retry/re-queue logic for a `STALE` run
+anywhere in this codebase — recovery today is manual, triggered by the founder acting on
+a `FACTORY_AGENT_STALE` notification.
