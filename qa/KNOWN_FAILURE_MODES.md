@@ -3047,3 +3047,87 @@ mechanism was exercised by calling `notifyStaleAgents()` directly from a Node RE
 CLI invocation — both are faithful to the real shipped function (same code path, same SQL),
 just not the exact end-to-end CLI/timing shape a fully autonomous 24-hour poll loop would
 use.
+
+## 42. Independent re-verification of Phase 3/4 (commit 08ae06e) — CONFIRMED LIVE overall, plus one CRITICAL unauthenticated privilege-escalation hole self-caught, one stale-regression-test defect self-caught (2026-08-31)
+
+A genuinely separate verifier (no memory of the #37-#41 implementation session) re-derived
+every claim in #39-#41 directly against live production rather than trusting the prior
+report, per this project's own standing distrust-of-self-certification rule. Confirmed
+independently and live: `agent_runs`/`canonical_work_orders`/`tasks`/`founder_notifications`
+are all genuinely in `supabase_realtime` (`pg_publication_tables`); `agents_with_live_status`
+(`pg_get_viewdef`) genuinely derives STALE from `last_heartbeat_at` age (10-minute
+threshold), never a stored flag; both `factory_realtime_rls_truth.sql` and
+`factory_notification_lifecycle_truth.sql` re-run independently, `all_pass: true`; the
+`ON CONFLICT` predicate on `create_founder_notification` exactly matches the partial
+unique index; both trigger functions correctly qualify `public.work_status`;
+`scheduler.mjs`'s `notifyStaleAgents()` correctly references `live_run_status`. A fresh,
+independently-authored live acceptance run (fixtures prefixed `facade00-...`, fully
+cleaned up, zero residue) reproduced the entire chain from scratch: real `blocked`
+transition → exactly one `FACTORY_WORK_ORDER_BLOCKED` notification → `mark_read` →
+`resolve` → real `complete_work_order()` → exactly one new `FACTORY_WORK_ORDER_COMPLETED`
+notification, original blocked notification correctly still `resolved` (not duplicated,
+not reverted); separately, a real backdated `agent_runs` row → the real, unmodified
+`notifyStaleAgents()` (imported directly from `scheduler.mjs`, not a SQL mirror) → exactly
+one `FACTORY_AGENT_STALE` notification → three immediate repeat calls → zero further
+notifications → heartbeat refresh → `live_run_status` genuinely flips back to `RUNNING` →
+resolved → closed via `complete_agent_run()`, no phantom `RUNNING` row left behind.
+
+**Real, live, CRITICAL security defect found and NOT YET FIXED (requires a production DB
+push — founder authorization required, not applied by this verifier per this project's own
+"no autonomous db push" rule):** #41's own fix for `create_founder_notification` revoked
+`EXECUTE` from `authenticated` and `public` after a live-caught vulnerability where a
+non-admin AUTHENTICATED user could call it directly — but Supabase's own default
+privileges (`pg_default_acl`, role `postgres`, schema `public`) grant `EXECUTE` on every
+newly created function to `anon`/`authenticated`/`service_role` automatically, and the
+fix never explicitly revoked from `anon`. Live-proven exploit (this verifier's own test,
+rolled back, zero residue): `begin; set local role anon; select
+public.create_founder_notification('FACTORY_APPROVAL_REQUIRED','critical',
+'ANON-ATTACKER-INJECTED', ...); rollback;` — **succeeded**, a real row was genuinely
+inserted, by a caller that never authenticated at all (the public `anon` key present in
+every client bundle — strictly worse than the already-fixed authenticated-only hole,
+since it requires no login, no valid JWT, nothing). An unauthenticated attacker could (a)
+spam fake critical founder notifications, or (b) permanently squat a real future
+`dedupe_key` (e.g. `agent_stale:<a-real-run-id>` or
+`work_order_blocked:<a-real-wo-id>:<updated_at>`) to silently suppress a genuine future
+founder notification via the same partial-unique-index mechanism the original fix relied
+on. Same-defect-class search performed live across every `SECURITY DEFINER` function in
+`public` (`anon` granted but `authenticated` not granted — the exact "meant to be locked
+down, one role slipped through" signature): `create_founder_notification` is the ONLY
+function in this database with this shape — not systemic, but real and currently live in
+production. **FIX PREPARED, not pushed**:
+`supabase/migrations/202608310002_create_founder_notification_revoke_anon.sql`
+(`revoke all on function public.create_founder_notification from anon;`), rollback-tested
+twice live (exploit correctly fails with `permission denied for function
+create_founder_notification` after the revoke; both structural triggers still fire
+correctly afterward — nested `SECURITY DEFINER` calls are unaffected by the caller's own
+grants, matching #41's own finding for the `authenticated` case). Permanent regression
+test added: `qa/scenarios-runner/founder_notification_no_anon_exploit.sql` — deliberately
+run BEFORE the fix to confirm it fails honestly (`all_pass: false`,
+`anon_call_correctly_denied: false`) rather than silently passing; will flip to
+`all_pass: true` once `202608310002` is authorized and pushed. **BLOCKED — DB PUSH. This
+is the single highest-priority founder-approval item from this verification pass.**
+
+**Second, lower-severity, self-inflicted defect found and FIXED live**: Phase 4
+(`202608310001`) renamed the `founder_notifications.event_type` vocabulary
+(`work_order_blocked` → `FACTORY_WORK_ORDER_BLOCKED`, etc.) but never updated
+`qa/scenarios-runner/factory_realtime_rls_truth.sql` (written in Phase 3, before the
+rename) — its one literal `'work_order_blocked'` fixture insert now violates
+`founder_notifications_event_type_check` and would have made this entire permanent
+regression test unrunnable going forward (confirmed live:
+`ERROR: new row for relation "founder_notifications" violates check constraint`). This is
+the same failure class as #36/#41's "stale test/stale persisted text" findings, generalized
+to regression-test fixtures themselves: a schema-vocabulary rename must sweep every
+`qa/scenarios-runner/*.sql` literal that references the old values, not just production
+call sites. Fixed by updating the literal to `'FACTORY_WORK_ORDER_BLOCKED'`; re-run live,
+`all_pass: true`, zero residue confirmed by direct re-query after rollback.
+
+**Disclosed limitation, not silently rounded up**: no browser automation tool
+(`mcp__claude-in-chrome__*` or any `ToolSearch`-loadable equivalent) was available in this
+verification session's tool registry at all — confirmed by direct attempt, not merely
+assumed absent. Actual authenticated rendering of `/software-factory`, the notification
+panel's live visual update, and the realtime auto-refresh were NOT visually verified in a
+browser this pass either — same disclosed gap as #39, still open. Code inspection of
+`realtime-refresher.tsx`/`notification-panel.tsx` confirms correct table/event targeting
+and correct real-RPC call sites (`resolve_founder_notification`/
+`mark_founder_notification_read` via `web/lib/data/factory.ts`), but this is
+CODE INSPECTED, not LIVE VERIFIED, for the UI layer specifically.

@@ -55,8 +55,13 @@ values
   ('bbbb9104-0000-0000-0000-000000000001', 'bbbb9101-0000-0000-0000-000000000001', 'bbbb9102-0000-0000-0000-000000000001', 'bbbb9103-0000-0000-0000-000000000001', 'in_progress'::work_status),
   ('bbbb9104-0000-0000-0000-000000000002', 'bbbb9101-0000-0000-0000-000000000002', 'bbbb9102-0000-0000-0000-000000000002', 'bbbb9103-0000-0000-0000-000000000002', 'in_progress'::work_status);
 
+-- NOTE: event_type vocabulary was renamed by Phase 4 (202608310001_factory_notification_event_model.sql,
+-- 'work_order_blocked' -> 'FACTORY_WORK_ORDER_BLOCKED') AFTER this file was first written in Phase 3
+-- (d9d8df6) - the original literal here silently violated founder_notifications_event_type_check and
+-- would have made this whole regression test permanently unrunnable (a real stale-regression-test defect
+-- caught live during Phase 3/4 independent verification, 2026-08-31). Fixed to the current canonical value.
 insert into public.founder_notifications (id, event_type, severity, title, work_order_id)
-values ('bbbb9105-0000-0000-0000-000000000001', 'work_order_blocked', 'warning', 'RT-TEST-NOTIFICATION (founder-only)', 'bbbb9102-0000-0000-0000-000000000001');
+values ('bbbb9105-0000-0000-0000-000000000001', 'FACTORY_WORK_ORDER_BLOCKED', 'warning', 'RT-TEST-NOTIFICATION (founder-only)', 'bbbb9102-0000-0000-0000-000000000001');
 
 -- ================== TEST: Company A's manager, impersonated exactly as Realtime would
 -- authorize their JWT ==================
