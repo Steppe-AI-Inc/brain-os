@@ -3788,5 +3788,23 @@ reliable mechanism, with the Skill tool offered only as a possible shortcut when
 happens to already be marketplace-registered. Two new permanent regression tests added
 (`plugin-attach.regression.test.mjs`): `FACTORY_SKILL_INJECTION_INCLUDES_DEFINITION_PATH`
 and a companion test confirming no `"Read this file directly: undefined"` artifact when
-`definition_path` is absent. Re-verified live after the fix: re-dispatching the same
-Task Observer proof — see the following entry once confirmed.
+`definition_path` is absent.
+
+**Re-verified live after the fix, twice, against two different vendored-only
+components**: (1) re-dispatching the identical Task Observer proof — the agent's own
+reply: *"was able to read the file directly, live-reconfirming the fix works for a
+non-marketplace-installed component"* — and produced a real Skill Improvement Candidate
+observation (about this very bug, applying `task-observer`'s own Issue → Improvement →
+Principle format to `KNOWN_FAILURE_MODES.md` #50 itself: a genuinely sharp meta-finding
+that the original systematic-debugging proof passed for the wrong reason — marketplace
+co-installation, not the code under test — and that verification strength should be set
+by the least-favorable instance, not the first one that happens to work). (2) A separate
+dispatch of `anthropics/claude-plugins-official`'s `claude-code-setup` skill (also
+vendored-only) against this repo — the agent's own reply: *"I read the skill file
+directly at vendor\plugins\anthropics-claude-code-setup\SKILL.md (path resolved
+successfully) — yes, I was able to read it"* — and produced a real, repo-specific
+recommendation (a `PreToolUse` hook blocking production-mutating Supabase CLI
+invocations, grounded in real, named, repeated incidents already in this same file —
+#16/#40/#41 — and CLAUDE.md §22's own disclosed open gap), entered into Brain OS as
+`agent_runs` evidence labeled `RECOMMENDED (not installed)`, never as an installed
+change.
