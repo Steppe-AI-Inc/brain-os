@@ -70,9 +70,57 @@ in full before designing anything new that needs a lifecycle. The shape:
    far) does anyone run `supabase db push` — and even then, it should be a human or an
    explicitly-authorized action, never this agent's own initiative.
 
+## Every new privileged RPC must explicitly declare its own privilege set — permanent standard (2026-08-31)
+
+Real incident: `create_founder_notification` (Phase 4, `202608310001`) was written
+without any explicit `GRANT`/`REVOKE` at all — Supabase's own default privileges then
+silently granted `EXECUTE` to `anon`, `authenticated`, AND `service_role` on the new
+function. A later fix explicitly revoked `authenticated`/`public` after a live-caught
+non-admin exploit, but the author still didn't think to check `anon` — leaving a fully
+UNAUTHENTICATED caller (the public anon key, present in every client bundle) able to
+insert attacker-controlled rows in production. Both gaps were only found by an
+independent verifier explicitly testing role-impersonated calls, not by reading the code
+(`qa/KNOWN_FAILURE_MODES.md` #41/#43/#44 — read the full incident before repeating any
+part of it).
+
+**For every new `SECURITY DEFINER` function that is not a pure RLS-policy predicate**
+(predicates — `is_founder_or_admin`, `is_company_manager`, `has_company_access`,
+`current_profile_id`, `current_role`, and anything else genuinely playing that role —
+are the one deliberate exception: they must stay broadly executable, including by
+`anon`, or RLS itself cannot evaluate for an unauthenticated query; do not apply this
+rule mechanically to that class), the migration that creates it must include, in the
+same file, immediately after the function body:
+
+```sql
+revoke all on function public.<name>(<args>) from public;
+revoke all on function public.<name>(<args>) from anon;
+revoke all on function public.<name>(<args>) from authenticated;
+-- then grant execute ONLY to the role(s) that genuinely need direct client-facing
+-- access. A function meant to be called only from inside another SECURITY DEFINER
+-- context (a trigger, another RPC) needs NO grant at all - nested calls inside a
+-- definer context are not subject to the original caller's own grants (verified live,
+-- #41).
+grant execute on function public.<name>(<args>) to authenticated; -- only if truly needed
+```
+
+Never rely on an internal `if not is_founder_or_admin() then ...` check alone as the
+security boundary — it is real and should still be there as defense-in-depth (belt AND
+suspenders, not either/or), but the grant itself is the first, structural line of
+defense and must be explicit, not inherited from Postgres/Supabase defaults.
+
+**Before reporting any such migration as `FIX PREPARED`**, run
+`qa/scenarios-runner/factory_rpc_privilege_sweep.sql` (rolled-back) against production
+and confirm your new function does not appear in `functions_still_holding_anon_grant`.
+This file is a permanent release/security gate for this exact class of bug — run it,
+don't just reason about whether you think you got the grants right.
+
 ## After a push (only if you're told the founder has authorized and applied it)
 
 Verify live: query the actual deployed function/policy text (`pg_get_functiondef`/
 `pg_get_expr`) against what you committed — a migration file existing is not proof it's
 what's actually running (`qa/KNOWN_FAILURE_MODES.md` #16, a real incident where the
-ledger said applied but production ran something else).
+ledger said applied but production ran something else). This project's `supabase db
+push` has also, more than once, reported `upToDate: true` while a migration's actual
+new content silently did not run (`qa/KNOWN_FAILURE_MODES.md` #40/#44) — never trust the
+push command's exit status alone; independently re-query the live schema/grants for
+whatever the migration was supposed to change.

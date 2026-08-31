@@ -3245,3 +3245,29 @@ than perpetually red over the separately-tracked, pre-existing five-function fin
 authorization before `supabase db push`, per the standing rule — presented as the next
 authorization boundary. Target phrase once pushed and independently re-verified:
 `LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
+
+**Pushed (founder-authorized), and — same recurring lesson as #40/#43 — `supabase db
+push` again reported `upToDate: true` with the two new statements silently not applied**:
+direct grant inspection after the push showed `create_founder_notification` correctly
+locked down but `resolve_founder_notification`/`mark_founder_notification_read` still
+holding `anon_granted: true`. Applied the two missed `revoke all ... from anon;`
+statements directly, then independently re-verified via direct grant inspection (not
+trusted from the push exit status): **all three now show `anon: false`,
+`public: false`; `create_founder_notification` also shows `authenticated: false`
+(fully private, callable only from the trigger context by design); `resolve_founder_
+notification`/`mark_founder_notification_read` correctly retain `authenticated: true`
+(the real, intended client-facing path, gated internally by `is_founder_or_admin()`)**.
+
+**Full privilege matrix empirically confirmed live** (not just grant-table inspection —
+real role-impersonated calls): `anon` → `create_founder_notification` denied
+(`insufficient_privilege`); a real non-admin `authenticated` persona → both
+`create_founder_notification` denied and `resolve_founder_notification`/
+`mark_founder_notification_read` return `{"authorized":false}`; founder/admin → the real
+canonical path (a genuine `blocked` state transition through the structural trigger)
+still creates a real notification, and `resolve_founder_notification` still succeeds for
+the founder. `qa/scenarios-runner/factory_rpc_privilege_sweep.sql` re-run against
+production: `all_pass: true`, `in_scope_functions_clean: true`, the six pre-existing
+out-of-scope functions still correctly listed (informational, not blocking, not silently
+dropped).
+
+**`LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.**
