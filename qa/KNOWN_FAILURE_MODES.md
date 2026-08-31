@@ -4113,3 +4113,52 @@ Permanent regression: `qa/scenarios-runner/dashboard_company_count_excludes_arch
 now use the byte-identical filter expression. Full `tsc --noEmit`/`eslint`/`next build`
 clean. Not an Edge Function change — not subject to the `pre-push` functions-deploy
 guard, pushed normally.
+
+## 55. BUG-001 (P2, Work-PC QA campaign C001) — departments/people of an ARCHIVED company render unmarked, contradicting the same page's own company picker; fixed on the 2 live-confirmed surfaces, 18 more disclosed as a real follow-up (FOUND BY WORK-PC QA, PARTIALLY FIXED, DEPLOYED — 2026-09-01)
+
+**Finding (`qa/bugs/BUG-001.md`)**: `/departments` listed a department whose parent
+company was archived as an ordinary row, no archived indication anywhere — while the
+same page's own company picker (`getCompaniesForSelection()` →
+`get_effectively_active_companies()`) correctly excluded that exact company. Root
+cause, verified in source: `getDepartments()` selected `companies(name)` only, never
+`status`, so the UI had nothing to render a badge from even if it wanted to. **Not a
+one-off**: a repo-wide grep confirmed **24 of 24** `web/lib/data/*.ts` queries joining
+`companies(name)` share the identical gap; live-reproduced on a **second**, independent
+surface (`/people`) — QA's own operational-actionability testing found the archived
+state IS correctly enforced everywhere it materially matters (no picker offers an
+archived company, chat correctly refuses new attachments to or moves into one) — this
+is specifically a **presentation-truth** defect (P2), not an authorization gap.
+
+**Fix, option (b) per QA's own recommendation** (surface the status rather than
+silently filter, so archived parents stay discoverable): built one shared, reusable
+component, `web/components/archived-company-badge.tsx`
+(`<ArchivedCompanyBadge status={...} />`), deliberately built once rather than as 24
+separate ad-hoc badges. Applied it to the two surfaces QA actually live-confirmed:
+`getDepartments()`/`departments-table.tsx` and `getPeople()`/`people-table.tsx` — both
+now select `companies(name, status)` and render the badge next to the company name.
+
+**Scope, disclosed honestly, not overstated**: the other **18 of 24** call sites
+(`access.ts`, `ai-assistants.ts`, `approvals.ts`, `engineering.ts`, `factory.ts`,
+`finance.ts`, `goals.ts`, `integrations.ts`, `inventory.ts`, `kpi.ts`, `memory.ts`,
+`onboarding.ts`, `products.ts`, `projects.ts`, `proposals.ts`, `sales.ts`,
+`software.ts`, `tasks.ts`) still have the identical gap — not silently claimed fixed.
+Tracked as a real canonical Work Order (`9016651a-b7c7-4dea-be33-06fbd621b8e0`) naming
+every remaining file and the exact same fix pattern to apply, so the class isn't lost
+to a vague TODO.
+
+**Not resolved by this pass, explicitly recorded as the founder's decision to make, not
+QA's or the implementer's**: QA's own report flags one real asymmetry — every UI picker
+blocks *selecting* an archived company, but chat still permits *editing* an existing
+descendant's own attributes (renamed a department under an archived parent
+successfully). Whether "archived structures are frozen" or "archived is soft and
+editable, editing existing descendants is fine" is the intended product rule remains
+open.
+
+Permanent regressions:
+`qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql` (adapted from the
+QA original, `all_pass: true`) and `qa/scenarios-runner/people_mark_archived_parent_company.sql`
+(new, parallel structure for the second surface, `all_pass: true`) — both real,
+self-cleaning, live-proven against a real `archive_company()` call, both with the exact
+precondition guard QA's own original already learned the hard way (an unimpersonated
+`archive_company()` call silently no-ops and would otherwise report a false pass). Full
+`tsc --noEmit`/`eslint`/`next build` clean. Not an Edge Function change.

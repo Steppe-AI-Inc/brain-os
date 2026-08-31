@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
+import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +33,7 @@ type PersonRow = {
   company_id: string | null;
   active: boolean | null;
   profile_id: string | null;
-  companies: { name: string } | null;
+  companies: { name: string; status: string | null } | null;
 };
 
 const EMPTY: PersonInput = { fullName: "", email: "", roleTitle: "", companyId: null };
@@ -134,7 +135,12 @@ export function PeopleTable({
                   )}
                 </TableCell>
                 <TableCell>{p.role_title ?? "—"}</TableCell>
-                <TableCell>{p.companies?.name ?? "—"}</TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-2">
+                    {p.companies?.name ?? "—"}
+                    <ArchivedCompanyBadge status={p.companies?.status} />
+                  </span>
+                </TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">

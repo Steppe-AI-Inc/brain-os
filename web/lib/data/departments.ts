@@ -3,12 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+// BUG-001 (Work-PC QA campaign C001): joins to companies(name) alone give the UI
+// nothing to render an archived-parent indicator from - a department whose company was
+// just archived rendered as an ordinary active row, contradicting the same page's own
+// company picker (which correctly excludes archived companies). Selecting `status` too
+// is the minimal real fix; the corresponding page renders <ArchivedCompanyBadge/>
+// (web/components/archived-company-badge.tsx) from it.
 export async function getDepartments() {
   const supabase = await createClient();
   const [{ data: departments, error }, { data: activeGoals }] = await Promise.all([
     supabase
       .from("departments")
-      .select("id, name, slug, company_id, created_at, companies(name)")
+      .select("id, name, slug, company_id, created_at, companies(name, status)")
       .order("created_at", { ascending: false }),
     supabase.from("goals").select("department_id").eq("status", "active"),
   ]);

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
+import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
 import { updateDepartment, deleteDepartment, type DepartmentInput } from "@/lib/data/departments";
 
 type DepartmentRow = {
@@ -17,7 +18,7 @@ type DepartmentRow = {
   name: string;
   company_id: string | null;
   active_goal_count: number;
-  companies: { name: string } | null;
+  companies: { name: string; status: string | null } | null;
 };
 
 export function DepartmentsTable({
@@ -52,7 +53,12 @@ export function DepartmentsTable({
             {departments.map((d) => (
               <TableRow key={d.id} className="group/row">
                 <TableCell className="font-medium">{d.name}</TableCell>
-                <TableCell className="text-muted-foreground">{d.companies?.name ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    {d.companies?.name ?? "—"}
+                    <ArchivedCompanyBadge status={d.companies?.status} />
+                  </span>
+                </TableCell>
                 <TableCell>
                   <Badge variant={d.active_goal_count > 0 ? "default" : "secondary"}>{d.active_goal_count}</Badge>
                 </TableCell>

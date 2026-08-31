@@ -4,11 +4,17 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+// BUG-001 (Work-PC QA campaign C001): live-confirmed on this exact surface - a person
+// whose company was archived rendered as an ordinary active row, no indication at all
+// (verbatim the QA charter's named priority failure pattern: "Business Unit archives
+// BUT employee still appears actively attached to it"). Selecting `status` too is the
+// minimal real fix; the corresponding page renders <ArchivedCompanyBadge/>
+// (web/components/archived-company-badge.tsx) from it.
 export async function getPeople() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("people")
-    .select("id, full_name, email, role_title, company_id, active, profile_id, companies(name)")
+    .select("id, full_name, email, role_title, company_id, active, profile_id, companies(name, status)")
     .order("full_name");
   if (error) throw error;
   return data;
