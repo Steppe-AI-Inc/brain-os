@@ -716,4 +716,37 @@ actually built and this entry is updated): `isTaskPermanentlyBlocked` exists in
 dispatches) but is not distinguishable from "still legitimately waiting" via
 `tasks.status` alone. There is also no automatic retry/re-queue logic for a `STALE` run
 anywhere in this codebase — recovery today is manual, triggered by the founder acting on
-a `FACTORY_AGENT_STALE` notification.
+a `FACTORY_AGENT_STALE` notification. Tracked as canonical Work Orders
+`0940d67a-990a-4572-bd0b-798f02e238ef` / `a4352dac-c51f-49cb-99d5-78526e0c2496`.
+
+## Plugin/skill runtime lifecycle actually changes execution (catches: `qa/KNOWN_FAILURE_MODES.md` #49 — six real bugs, all self-caught during Phase 6's own build-out)
+
+`node scripts/factory-runner/phase6-attach-runtime-proof.mjs <before|after-attach|after-detach>`
+dispatches a real, controlled Agent Run and inspects the RAW `claude logs` transcript (never
+`agent_plugin_attachments`/`agents.provenance` rows alone) for the injected skill block. Live
+sequence, re-runnable end to end against `brain-os-implementation-engineer` +
+`obra/superpowers`'s `systematic-debugging` skill: dispatch before attach → transcript has no
+skill block → attach → dispatch through `dispatch-task.mjs` (so a real `agent_runs` row is
+created) → transcript contains `systematic-debugging (from obra/superpowers @ <sha>)` AND
+`agent_runs.attached_skills` records the same component id/source/SHA/hash → detach → dispatch
+again → transcript genuinely has zero mentions of the skill, `attached_skills = []`.
+
+Update/rollback: `plugin-attach.mjs detect-update` → (review) → `apply-update` (snapshots the
+prior version into `plugin_component_versions` before swapping, never overwrites in place) →
+`enable` (the swap alone is deliberately NOT live — a fresh dispatch right after `apply-update`
+and before `enable` must show `agents.provenance.external_capabilities = []`) → new real Agent
+Run's transcript shows the NEW version's identity → `rollback <targetVersionId>` → `enable` →
+another real Agent Run's transcript shows the ORIGINAL version's identity again, zero mentions of
+the interim version. `list-versions` must show three real, distinct, non-overwritten rows
+(`initial_install`/`update`/`rollback`) throughout, never fewer.
+
+Security: `qa/scenarios-runner/factory_plugin_lifecycle_security.sql` — an ordinary employee
+persona mutates 0 rows of `plugin_components`, the founder persona mutates 1, in the same
+self-cleaning transaction, `all_pass: true`. Separately (not SQL-expressible without a DO-block
+exception handler): `node plugin-attach.mjs discover ... "C:\Windows\System32\..."` must be
+refused before any hash/registry write (`assertPathWithinAllowedRoots`, `plugin-attach.mjs`).
+
+**Known, disclosed, not-yet-done gap**: the 5 founder-named components (Task Observer, Claude
+Code Setup, Claude-Mem, Headroom, OmniRoute) have not yet been processed through this pipeline;
+the plugin registry UI has not yet been updated to surface the new lifecycle states; a separate
+`brain-os-verifier` dispatch has not yet independently re-confirmed any of the above.

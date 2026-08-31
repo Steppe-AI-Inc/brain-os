@@ -3642,3 +3642,102 @@ re-derived independently and confirmed true; the one new thing found (`definitio
 checkout-environment sensitivity) was a real but narrow latent fragility in the
 verification mechanism itself, not a live defect — fixed the same session via
 `.gitattributes`, no production DB change required, no `db push` involved.
+
+## 49. Phase 6 plugin/skill lifecycle build-out — six real bugs found and fixed live, all self-caught during the implementing session's own acceptance testing, not by a separate verifier (FOUND LIVE, FIXED, DEPLOYED, 2026-08-31)
+
+Building the real plugin/skill runtime lifecycle (discover → review → sandbox-test →
+install → enable → attach → detach → detect-update → apply-update → rollback,
+`plugin_components.install_status` extended via migration `202608310005`, real
+`plugin_component_versions` append-only history) surfaced six distinct real defects
+during the implementing session's own live acceptance testing against production —
+listed here per this file's own convention even though a separate `brain-os-verifier`
+dispatch had not yet independently re-confirmed them at the time of writing (see the
+"Independent verification" requirement in the master plan — that pass is still
+outstanding for this phase, tracked separately, not claimed here).
+
+**(a) Migration constraint violation on real pre-existing data.** `202608310005`
+originally just swapped `plugin_components_install_status_check`'s allowed values,
+retiring `'registered'`/`'smoke_tested'` — but the real production
+`verification-before-completion` row (`install_status='registered', enabled=true`,
+Phase 1's own proven attach) used exactly one of the retired values. First
+`supabase db push` attempt failed outright (`23514` check violation) — the whole
+migration is one transaction, so nothing was left partially applied. Fixed by adding a
+data migration (`UPDATE ... SET install_status = ...`) mapping `registered+enabled=true
+→ enabled`, `registered+enabled=false → installed`, `smoke_tested → testing`, run
+*before* the `ALTER TABLE ADD CONSTRAINT`, plus a backfill inserting one
+`initial_install` snapshot per pre-existing row into the new `plugin_component_versions`
+table (which would otherwise have started life with zero history for any component that
+predates it — the exact "provenance destroyed" failure mode the table exists to
+prevent).
+
+**(b) `enableComponent()` couldn't re-enable a disabled component.** The founder's own
+explicit smoke-test sequence, `ENABLED → DISABLED → ENABLED`, failed on the re-enable
+step: the guard only accepted `install_status in ('installed','enabled')`. Disabling a
+component never un-installs it — re-enabling from `'disabled'` is completely legitimate.
+Fixed by adding `'disabled'` to the accepted source states.
+
+**(c) `resolveAttachedCapabilities()` read the wrong column for `pinned_ref`.**
+(`sync-agents.mjs`) It read `plugin_components.installed_version` (null for every
+component registered so far) instead of the real pinned commit SHA
+(`plugin_sources.pinned_commit_sha`) — the real skill-injection prompt block
+(`buildSkillInjectionPrompt`, `provider.mjs`) silently lost its `@ <sha>` provenance
+suffix. Confirmed live: attaching `systematic-debugging` produced `pinned_ref:null`
+before the fix, the real pinned SHA after. Also dropped the now-dead `'registered'`
+branch from its `install_status` filter (retired by (a)'s migration; only `'enabled'`
+components were ever really attachable, so this branch was already unreachable, not a
+live bug on its own).
+
+**(d) Same function's filter excluded a component mid-update.** `detectUpdate()`
+deliberately leaves `plugin_components`' own `pinned_commit_sha`/`definition_path`/
+`definition_hash` untouched when flagging `update_available` — the required semantics are
+that runtime dispatch keeps serving the OLD version until `applyUpdate()` genuinely
+swaps it. But `resolveAttachedCapabilities()`'s filter only matched `install_status =
+'enabled'`, so the already-attached skill would have silently vanished from provenance
+the instant `detectUpdate()` ran — for a reason completely unrelated to any real detach.
+Fixed by allowing `install_status in ('enabled', 'update_available')`.
+
+**(e) The biggest gap: `agents.provenance.external_capabilities` (the stored JSONB blob
+`provider.mjs`'s `resolveAgentFromRegistry` actually reads at dispatch time — not a live
+join) was only ever refreshed by an explicit `attachSkill`/`detachSkill` call.**
+`applyUpdate()`, `rollbackComponent()`, `enableComponent()`, and `disableComponent()` all
+change `plugin_components`' own state but were not re-syncing provenance for agents
+already attached to that component. Without this fix, updating a component's content
+would never actually reach an already-attached agent's real dispatch until someone
+happened to call `attach`/`detach` again — directly threatening the central "new real
+Agent Run proves B is what's actually loaded at runtime" requirement. Fixed by adding
+`resyncAllAttachedAgents(componentId)` (queries every non-detached
+`agent_plugin_attachments` row for the component, re-syncs each agent) and wiring it into
+all four functions. Live-proven as an intended side effect: right after `applyUpdate()`
+(before the subsequent `enableComponent()`), a live query of `agents.provenance` showed
+`external_capabilities: []` — the new version is staged but genuinely not live yet,
+matching the founder's required "sandbox B before it's ever live" semantics exactly.
+
+**(f) No path validation on a component's `definitionPath` — a real, disclosed security
+gap, not yet exploited.** `discoverComponent()`/`applyUpdate()`/`rollbackComponent()`
+accepted any `definitionPath` string with zero validation that it lived under a source
+this pipeline actually controls. A component could point at, and have its content
+hashed and injected into a real agent's prompt from, any file on disk. Fixed by adding
+`assertPathWithinAllowedRoots()` (scoped to `REPO_ROOT` and the local Claude Code plugin
+cache only), wired through the shared `hashFile()` helper used by all three functions.
+Live-proven: `node plugin-attach.mjs discover ... "C:\Windows\System32\drivers\etc\hosts"`
+is now refused before any hash/registry write occurs.
+
+**Also live-proven this session, working correctly, no bug**: the full central
+acceptance test (attach → real Agent Run → raw transcript contains the skill block and
+its real pinned SHA → `agent_runs.attached_skills` records the exact component/source/
+SHA/hash → detach → real Agent Run → raw transcript genuinely absent) and the full
+update/rollback cycle (real `gh api compare` confirmed zero real upstream commits after
+the pinned SHA on `obra/superpowers` — so a controlled, honestly-labeled local test
+version `LOCAL-TEST-B` was used instead of a fabricated upstream claim — apply → real
+Agent Run transcript shows `@ LOCAL-TEST-B` → rollback → real Agent Run transcript shows
+the real SHA again, zero mentions of `LOCAL-TEST-B` — `plugin_component_versions` ends
+with three real, distinct, non-overwritten rows: `initial_install`/`update`/`rollback`).
+A permanent RLS regression (`qa/scenarios-runner/factory_plugin_lifecycle_security.sql`)
+confirms an ordinary employee persona cannot mutate `plugin_components` (0 rows) while
+the founder persona can (1 row), both in the same self-cleaning transaction.
+
+**Not yet done, disclosed**: the 5 founder-named components (Task Observer, Claude Code
+Setup, Claude-Mem, Headroom, OmniRoute) have not yet been processed through this
+pipeline; the plugin registry UI has not yet been updated to surface this new lifecycle;
+and a separate `brain-os-verifier` dispatch has not yet independently re-confirmed any of
+the above — this entry is the implementing session's own record, not a verified claim.
