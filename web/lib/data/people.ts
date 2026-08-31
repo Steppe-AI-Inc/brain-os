@@ -125,6 +125,18 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
     return { ok: false, message: `Invite sent to ${person.email}, but no profile was created — check the on_auth_user_created trigger.` };
   }
 
+  // BUG-004 follow-on regression, found live tonight: handle_new_auth_user()
+  // (202608310009) now creates every new signup inert (active=false) by design -
+  // correct for public self-signup, but this function is a DIFFERENT, already
+  // founder/admin-gated path (checked at the top of this function) that deserves real
+  // activation, same as accept_company_invitation() grants. Without this, using the
+  // existing "Invite" button on /people would produce a permanently-inert account that
+  // lands on /pending-activation forever despite a fully legitimate invite.
+  const { error: activateError } = await admin.from("profiles").update({ active: true }).eq("id", newProfile.id);
+  if (activateError) {
+    return { ok: false, message: `Invite sent to ${person.email}, but activation failed: ${activateError.message}. Activate manually.` };
+  }
+
   const { error: linkError, data: linkedRows } = await supabase
     .from("people")
     .update({ profile_id: newProfile.id })
