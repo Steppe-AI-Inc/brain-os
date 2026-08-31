@@ -3,34 +3,48 @@
   "target_environment": "production",
   "target_url": "https://brain.open-spot.ai",
   "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
-
-  "latest_implementation_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
-  "latest_implementation_sha_short": "256f183",
+  "latest_implementation_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+  "latest_implementation_sha_short": "266f86a",
   "latest_implementation_ref": "origin/master",
-  "latest_implementation_subject": "verify: independent Phase 5 beehive DAG verification - all claims re-derived live, one latent hash-drift fragility fixed",
-
-  "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
-  "deployed_product_sha_short": "256f183",
-  "deployment_id": "dpl_9eRgBvspSjcuH7h2NdatQ2pvTdyv",
-  "deployment_url": "https://brain-9xekx9tax-steppe-ai.vercel.app",
+  "latest_implementation_subject": "fix: enableComponent must allow re-enabling from 'disabled' (real live bug)",
+  "deployed_product_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+  "deployed_product_sha_short": "266f86a",
+  "deployment_id": "dpl_FSJ9bV5jMCP4Q6wvVnwur67GM4N1",
+  "deployment_url": null,
   "deployment_ref": "master",
   "deployment_status": "READY",
   "deployment_target": "production",
-  "deployment_created_at": "2026-08-31T08:18:39Z",
-
-  "qa_artifact_sha": null,
+  "deployment_created_at": "2026-08-31T09:19:40Z",
+  "qa_artifact_sha": "6d78062dc8cc092fbe7f0d6c0d6a94d264b8fcd0",
   "qa_artifact_branch": "qa/work-pc",
   "qa_artifact_base_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada",
   "_qa_artifact_base_note": "qa/work-pc was branched from local master b04cedb. qa_artifact_sha is populated on each QA artifact commit.",
-
   "verification_method": "Vercel REST API v13 GET /deployments/{id} -> meta.githubCommitSha, read with the Vercel CLI's own stored auth token. NOT inferred from origin/master HEAD, and NOT inferred from `vercel ls` ordering. The alias list on this deployment was independently confirmed to include brain.open-spot.ai, proving this specific deployment is what the QA target URL actually serves.",
-  "verified_at": "2026-08-31T09:03:20Z",
+  "verified_at": "2026-08-31T10:30:00Z",
   "verified_by": "fable-qa-director",
-
-  "sha_alignment_note": "As of this verification, deployed_product_sha == latest_implementation_sha (256f183). This is a VERIFIED coincidence at this moment in time, not a standing assumption: the deployment watcher must re-verify on every campaign start, because origin/master routinely moves ahead of the deployed build (the home PC pushes frequently, and Vercel deploys are asynchronous).",
-
+  "sha_alignment_note": "Re-verified 2026-08-31T10:30Z after production redeployed TWICE mid-campaign: 256f183 (08:18) -> 7df9656 (09:07) -> 266f86a (09:19). deployed==latest again at this instant, still a verified coincidence rather than an assumption. Campaign C001 evidence is attributed to 266f86a, and BUG-001 was independently re-reproduced against it rather than carried over from the 256f183 observation.",
   "notes": [
     "brain.open-spot.ai is bound at the Vercel PROJECT level (project: steppe-ai/brain-os), so it auto-follows the latest successful production deployment. Confirmed live via `vercel inspect` alias list.",
     "There is no separate staging environment. QA runs against production, which is exactly why the FIXTURE_REGISTRY gate + real-name synthetic digital-twin naming exist."
+  ],
+  "redeploy_log": [
+    {
+      "sha": "256f183",
+      "deployment_id": "dpl_9eRgBvspSjcuH7h2NdatQ2pvTdyv",
+      "created": "2026-08-31T08:18:39Z",
+      "note": "campaign C001 opened against this build"
+    },
+    {
+      "sha": "7df9656",
+      "deployment_id": "dpl_5Sz68GhVm5F7ZUVrjNHzLGowj6ex",
+      "created": "2026-08-31T09:07:43Z",
+      "note": "Phase 6 plugin/skill lifecycle - landed mid-campaign, making early C001 evidence ambiguous"
+    },
+    {
+      "sha": "266f86a",
+      "deployment_id": "dpl_FSJ9bV5jMCP4Q6wvVnwur67GM4N1",
+      "created": "2026-08-31T09:19:40Z",
+      "note": "current build under test; BUG-001 re-reproduced here. web/lib/data/departments.ts byte-identical across 256f183..266f86a (git diff empty), so the defect is build-independent across that range."
+    }
   ]
 }
