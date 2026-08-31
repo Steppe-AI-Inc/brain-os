@@ -1,19 +1,19 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-08-31T11:50:33Z",
+  "generated_at": "2026-08-31T11:55:16Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
-  "required_capabilities": 56,
-  "executed_capabilities": 25,
-  "coverage_percentage": 44.6,
+  "required_capabilities": 59,
+  "executed_capabilities": 28,
+  "coverage_percentage": 47.5,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 27,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 19,
-    "FAIL": 5,
+    "PASS": 20,
+    "FAIL": 7,
     "BLOCKED": 4,
     "FLAKY": 1
   },
@@ -121,8 +121,8 @@
       "NOT_TESTED": 2,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 0,
-      "FAIL": 0,
+      "PASS": 1,
+      "FAIL": 1,
       "BLOCKED": 0,
       "FLAKY": 0
     },
@@ -143,6 +143,15 @@
       "FAIL": 0,
       "BLOCKED": 1,
       "FLAKY": 0
+    },
+    "dashboard": {
+      "NOT_TESTED": 0,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 1,
+      "BLOCKED": 0,
+      "FLAKY": 0
     }
   },
   "by_surface": {
@@ -150,8 +159,8 @@
       "NOT_TESTED": 12,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 9,
-      "FAIL": 2,
+      "PASS": 10,
+      "FAIL": 4,
       "BLOCKED": 4,
       "FLAKY": 0
     },
@@ -221,6 +230,16 @@
       "capability_id": "CAP-PROJECT-RENAME-CHAT-ABSENT",
       "domain": "projects",
       "bug_id": "BUG-002"
+    },
+    {
+      "capability_id": "CAP-DASHBOARD-COMPANY-COUNT-AGGREGATION",
+      "domain": "dashboard",
+      "bug_id": "BUG-003"
+    },
+    {
+      "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-ACTIVE-DESCENDANTS",
+      "domain": "relationships",
+      "bug_id": "BUG-001"
     }
   ],
   "flaky_capabilities": [
@@ -232,5 +251,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 56 | PASS: 19 | FAIL: 5 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
+  "headline": "Required capabilities: 59 | PASS: 20 | FAIL: 7 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
 }

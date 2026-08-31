@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-08-31T11:50:33Z",
+  "generated_at": "2026-08-31T11:55:16Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1162,6 +1162,72 @@
       ],
       "status": "PASS",
       "evidence": "Chat declined - could not resolve a channel named General (DB confirms no such channel exists). Consistent with the narrowed trigger: unresolvable entity produces an honest decline. Not a capability-absence test since resolution failed first."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "8521b0e",
+      "scenario_ids": [
+        "C001-W1-cascade-attack"
+      ],
+      "capability_id": "CAP-DASHBOARD-COMPANY-COUNT-AGGREGATION",
+      "domain": "dashboard",
+      "resource": "companies",
+      "operation": "headline_count_accuracy",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "AGGREGATION",
+        "RELOAD"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-003",
+      "evidence": "Dashboard shows \"18 Companies\"; DB has 8 non-archived and 10 archived. /companies (authoritative list) shows 8. 125% overstatement. Root cause at dashboard/page.tsx:41 - count query omits the .neq(status,archived) filter that companies.ts:13 applies. Discovered because archiving a company did not decrement the count."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "8521b0e",
+      "scenario_ids": [
+        "C001-W1-cascade-attack"
+      ],
+      "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-ACTIVE-DESCENDANTS",
+      "domain": "relationships",
+      "resource": "company",
+      "operation": "archive_with_active_descendants",
+      "surface": "UI",
+      "required_truth_axes": [
+        "DB",
+        "UI",
+        "RELATIONSHIP",
+        "AGGREGATION"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-001",
+      "evidence": "Archived a company holding an ACTIVE person, a QUEUED task and a department. DB stayed coherent (all descendants preserved and linked, per the archive contract). But /people still lists the person as active under the archived company and /tasks still lists the queued task, both with NO archived marker - the charter target pattern, now reproduced on a controlled owned fixture rather than another campaign residue. Also surfaced BUG-003."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "8521b0e",
+      "scenario_ids": [
+        "C001-W1-cascade-attack"
+      ],
+      "capability_id": "CAP-CASCADE-RESTORE-COHERENCE",
+      "domain": "relationships",
+      "resource": "company",
+      "operation": "restore_after_cascade",
+      "surface": "UI",
+      "required_truth_axes": [
+        "DB",
+        "UI",
+        "RELATIONSHIP"
+      ],
+      "status": "PASS",
+      "evidence": "Restoring the parent after the cascade attack returned it to active with all three descendants still correctly attached; fixture tree left coherent. No orphaning, no duplicate, no lost linkage."
     }
   ]
 }

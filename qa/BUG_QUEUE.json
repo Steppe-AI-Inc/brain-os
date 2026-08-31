@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:50:33Z",
+  "last_updated": "2026-08-31T11:55:16Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 1,
-    "open_p2": 1,
+    "open_p2": 2,
     "open_p3": 0,
-    "total_open": 2,
+    "total_open": 3,
     "total_closed": 0
   },
   "bugs": [
@@ -159,6 +159,52 @@
       ],
       "class_sweep_result": "3 of 4 resolvable-but-unsupported operations fabricate. people is the sole correct refusal and its text is specific enough to indicate the system prompt documents that one case explicitly - which is why the fix must be structural (zero-operations-executed guard) rather than per-operation prose.",
       "affects_real_records": true
+    },
+    {
+      "bug_id": "BUG-003",
+      "title": "Dashboard \"Companies\" KPI counts archived companies - 18 shown vs 8 actually active (125% overstatement)",
+      "severity": "P2",
+      "status": "REGRESSION_CREATED",
+      "discovered_by": "fable-qa-director:C001:W1-org",
+      "discovered_at": "2026-08-31T11:40:00Z",
+      "campaign_id": "C001",
+      "commit_tested": "8521b0e",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai",
+      "resources": [
+        "companies",
+        "dashboard"
+      ],
+      "persona": "founder",
+      "expected": "Dashboard Companies KPI matches the authoritative active-company list (or is explicitly labelled as including archived).",
+      "actual": "Dashboard 18; DB 8 non-archived / 10 archived; /companies lists 8. Archiving a company does not decrement the figure.",
+      "truth_checks": {
+        "db": "PASS - underlying data correct",
+        "ui": "FAIL - dashboard contradicts /companies",
+        "aggregation": "FAIL - headline metric disagrees with its own authoritative list",
+        "reload": "FAIL - persists across reload",
+        "ai": "N/A",
+        "permission": "N/A"
+      },
+      "root_cause_evidence": "dashboard/page.tsx:41 uses supabase.from(\"companies\").select(\"id\",{count:\"exact\"}) with NO status filter, while companies.ts:13 applies .neq(\"status\",\"archived\"). A prior fix in that same block corrected a HEAD/Content-Range counting bug but never added the filter, moving the number from wrong-low to wrong-high. Scope is precise: goals/approvals/runs stats ARE correctly filtered; companies is the only unfiltered one.",
+      "discovered_via": "Relationship/cascade attack - archiving a company with active descendants did not change the dashboard count.",
+      "relationship_to_bug_001": "Related theme (archived leaking into active surfaces) but MATERIALLY DIFFERENT root cause and fix: BUG-001 is a join omitting companies.status; BUG-003 is an aggregate omitting a WHERE filter. Fixing one does not fix the other, so filed separately rather than folded in.",
+      "blast_radius": "No data loss/security/authorization impact. Founder headline metric materially wrong (10 of 18 counted companies are archived), and the error grows with every archive. CLAUDE.md 26: incorrect information is itself a production defect.",
+      "regression_path": "qa/scenarios-runner/dashboard_company_count_excludes_archived.sql",
+      "regression_state": "EXPECTED_FAIL",
+      "regression_last_result": {
+        "dashboard_current_expression_counts": 18,
+        "non_archived_companies": 8,
+        "archived_companies": 10,
+        "overstatement": 10,
+        "overstatement_pct": 125,
+        "all_pass": false
+      },
+      "evidence_paths": [
+        "qa/bugs/BUG-003.md"
+      ],
+      "implementation_recommendation": "Add .neq(\"status\",\"archived\") at dashboard/page.tsx:41. Then consolidate on ONE definition of active company (get_effectively_active_companies RPC already exists) instead of three hand-rolled variants that drift. Then audit remaining dashboard/report aggregates for the same missing-filter pattern.",
+      "_qa_boundary": "QA did NOT implement the fix."
     }
   ]
 }

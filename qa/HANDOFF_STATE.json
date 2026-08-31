@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:50:57Z",
+  "last_updated": "2026-08-31T11:55:42Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "8521b0e",
   "product_commit_tested_short": "8521b0e",
@@ -16,24 +16,25 @@
   "_campaign_state_note": "C001 checkpointed after 5 production redeploys during the campaign. Both findings verified build-independent across the full range, so no evidence is discarded and no campaign restart is required.",
   "open_p0": 0,
   "open_p1": 1,
-  "open_p2": 1,
+  "open_p2": 2,
   "open_p3": 0,
   "ready_for_implementation": [
     "BUG-002",
-    "BUG-001"
+    "BUG-001",
+    "BUG-003"
   ],
   "fix_pushed": [],
   "ready_for_retest": [],
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 56,
-    "pass": 19,
-    "fail": 5,
+    "required_capabilities": 59,
+    "pass": 20,
+    "fail": 7,
     "flaky": 1,
     "blocked": 4,
     "not_tested": 27,
-    "coverage_percentage": 44.6,
+    "coverage_percentage": 47.5,
     "release_state": "FAILED",
     "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
@@ -45,7 +46,7 @@
     "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
   ],
   "next_required_actor": "HOME_PC",
-  "next_action": "Home PC: BUG-002 is now confirmed PRODUCT-WIDE (approvals + departments + projects fabricate; people refuses correctly). Fix must be STRUCTURAL - a zero-operations-executed guard in the response pipeline - not per-operation prose. See the CLASS SWEEP table in qa/bugs/BUG-002.md.",
+  "next_action": "Home PC priority: BUG-002 (P1, product-wide fabrication class, needs STRUCTURAL zero-ops guard) -> BUG-003 (P2, one-line dashboard filter, cheapest real win) -> BUG-001 (P2, failure class across 24 join sites).",
   "home_pc_instructions": {
     "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
     "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",
