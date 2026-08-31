@@ -162,20 +162,30 @@ returning id, name;
 // real skill-injection prompt block and populate agent_runs.attached_skills.
 export async function resolveAttachedCapabilities(agentId) {
   const result = await runSql(`
-select pc.slug, pc.definition_path, pc.definition_hash, ps.github_owner, ps.github_repo, pc.installed_version
+select pc.slug, pc.definition_path, pc.definition_hash, ps.github_owner, ps.github_repo, ps.pinned_commit_sha
 from public.agent_plugin_attachments apa
 join public.plugin_components pc on pc.id = apa.plugin_component_id
 join public.plugin_sources ps on ps.id = pc.source_id
 where apa.agent_id = ${sqlEscape(agentId)}::uuid
   and apa.detached_at is null
   and pc.enabled = true
-  and pc.install_status in ('registered','enabled')
+  and pc.install_status = 'enabled'
 order by pc.slug;
 `);
+  // Real bug found and fixed during Phase 6's own live attach proof: this used to read
+  // pc.installed_version (a human-facing version label, null for every component so far)
+  // as pinned_ref, so the real skill-injection prompt block (buildSkillInjectionPrompt,
+  // provider.mjs) silently lost its "@ <sha>" provenance suffix the moment a component had
+  // no installed_version set. pinned_ref must be the actual pinned upstream commit SHA
+  // (plugin_sources.pinned_commit_sha) - that's the value the founder's own acceptance
+  // test checks for in the raw dispatched transcript. Also dropped 'registered' from the
+  // install_status filter - Phase 6's migration (202608310005) retired that value; only
+  // 'enabled' components are ever really attachable now (attachSkill's own guard already
+  // enforces this, so this was a stale, no-longer-reachable branch, not a live bug).
   return (result.rows ?? []).map((r) => ({
     skill: r.slug,
     origin: `${r.github_owner}/${r.github_repo}`,
-    pinned_ref: r.installed_version,
+    pinned_ref: r.pinned_commit_sha,
     definition_path: r.definition_path,
     definition_hash: r.definition_hash,
   }));

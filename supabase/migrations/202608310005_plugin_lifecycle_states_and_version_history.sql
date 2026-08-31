@@ -27,6 +27,21 @@
 
 begin;
 
+-- Data migration for pre-existing rows FIRST — the new constraint below retires
+-- 'smoke_tested' and 'registered' in favor of the real installed/enabled distinction, so
+-- any existing row using those values must be re-mapped or the ALTER TABLE ADD CONSTRAINT
+-- fails outright (found live: the real production 'verification-before-completion' row,
+-- install_status='registered', enabled=true, failed this exact constraint on first push
+-- attempt — the whole migration is one transaction, so nothing was left partially
+-- applied). A 'registered' component already enabled=true has demonstrably been used in
+-- real production dispatch (Phase 1's own attach proof) — that is real installed+enabled
+-- evidence, not just discovery, so it maps to 'enabled'; 'registered' with enabled=false
+-- maps to 'installed' (passed the old pipeline, just never flipped on); 'smoke_tested'
+-- (no live rows today, but future-proofed) maps to 'testing', its closest new analog.
+update public.plugin_components set install_status = 'enabled' where install_status = 'registered' and enabled = true;
+update public.plugin_components set install_status = 'installed' where install_status = 'registered' and enabled = false;
+update public.plugin_components set install_status = 'testing' where install_status = 'smoke_tested';
+
 alter table public.plugin_components drop constraint if exists plugin_components_install_status_check;
 alter table public.plugin_components add constraint plugin_components_install_status_check
   check (install_status in (
@@ -70,5 +85,15 @@ create policy "plugin_component_versions_founder_only" on public.plugin_componen
 ) with check (
   public.is_founder_or_admin()
 );
+
+-- Backfill: every pre-existing plugin_components row predates plugin_component_versions
+-- and would otherwise start life with zero history, which is exactly the "provenance
+-- destroyed" failure mode this table exists to prevent. One 'initial_install' snapshot per
+-- existing row, sourced from its current (now-migrated) real values — not synthetic.
+insert into public.plugin_component_versions
+  (plugin_component_id, pinned_commit_sha, definition_path, definition_hash, installed_version, install_status, recorded_reason)
+select pc.id, ps.pinned_commit_sha, pc.definition_path, pc.definition_hash, pc.installed_version, pc.install_status, 'initial_install'
+from public.plugin_components pc
+join public.plugin_sources ps on ps.id = pc.source_id;
 
 commit;
