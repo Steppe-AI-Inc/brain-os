@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T10:45:00Z",
+  "last_updated": "2026-08-31T11:12:53Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "product_commit_tested_short": "266f86a",
@@ -26,15 +26,15 @@
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 42,
-    "pass": 7,
+    "required_capabilities": 47,
+    "pass": 13,
     "fail": 2,
     "flaky": 0,
     "blocked": 4,
-    "not_tested": 29,
-    "coverage_percentage": 21.4,
+    "not_tested": 28,
+    "coverage_percentage": 31.9,
     "release_state": "FAILED",
-    "_source": "Computed by qa/runner/compute-coverage.mjs - never hand-typed."
+    "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
   "known_coverage_gaps": [
     "FAILURE CLASS OPEN: ARCHIVED_PARENT_NOT_SURFACED affects up to 24 data-layer join sites; 2 confirmed live (/departments, /people). Remaining ~22 surfaces NOT yet individually tested.",
@@ -43,7 +43,7 @@
     "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
   ],
   "next_required_actor": "HOME_PC",
-  "next_action": "Home PC: implement BUG-001 (see qa/IMPLEMENTATION_HANDOFF.md). Fix the FAILURE CLASS, not just /departments - 24/24 data-layer companies(...) joins omit status; /people already confirmed as a second live instance. Work PC continues Campaign C001 in parallel.",
+  "next_action": "Home PC: implement BUG-001 (failure class, not just /departments). Severity CONFIRMED P2 after operational-actionability testing - see qa/bugs/BUG-001.md severity reassessment. Work PC continuing C001.",
   "home_pc_instructions": {
     "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
     "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",

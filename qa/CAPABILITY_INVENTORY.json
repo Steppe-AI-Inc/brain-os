@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-08-31T10:45:00Z",
+  "generated_at": "2026-08-31T11:12:30Z",
   "product_commit_under_test": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "environment": "production",
   "status_values": [
@@ -426,9 +426,14 @@
         "UI",
         "RELOAD"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 4
+      "scenario_ids": [
+        "C001-W2-person-edit"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 4,
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "evidence": "Live Playwright vs 266f86a. Row menu -> Edit dialog (Full name/Role title/Email/Company). Changed all three text fields; DB-verified all persisted: full_name=QA-SWARM-PERSON-001-EDITED, role_title=QA Senior Fixture Engineer, email=qa.swarm.person001@example.invalid.",
+      "false_lead_recorded": "On CREATE I first saw email=null and nearly filed a silently-dropped-email defect. Root cause was MY OWN selector: input:not([type]) skipped the type=email field and matched company_id instead, so the email was typed into the wrong input. NOT a product defect. Recorded so no future session re-files it."
     },
     {
       "capability_id": "CAP-PERSON-END-EMPLOYMENT-UI",
@@ -867,6 +872,109 @@
       "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
       "evidence": "/people shows QA-LIFECYCLE-EMPLOYEE, QA-LIFECYCLE-EMPLOYEE2 (company QA-LIFECYCLE-BU) and QA-VERIFY-EMPLOYEE (company QA-VERIFY-BU) as active employees of ARCHIVED companies, with no archived marker. Second independent surface confirming the BUG-001 failure class; matches the charter-named pattern verbatim.",
       "failure_class": "ARCHIVED_PARENT_NOT_SURFACED — 24/24 data-layer companies(...) joins select only name, never status; only companies.ts guards archived state."
+    },
+    {
+      "capability_id": "CAP-PERSON-CREATE-UI",
+      "domain": "people",
+      "resource": "person",
+      "operation": "create",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "UI"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W2-person-edit"
+      ],
+      "evidence": "Live Playwright. Created QA-SWARM-PERSON-001 under the registered fixture company via /people Add person form; DB-confirmed id 37d03420-96c7-426a-811e-6edf0e14813f."
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-COMPANY-PICKER-EXCLUSION",
+      "domain": "companies",
+      "resource": "company",
+      "operation": "archived_excluded_from_pickers",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "UI",
+        "RELATIONSHIP"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W1-archived-operational-gating"
+      ],
+      "evidence": "Swept company pickers on /departments, /projects, /people, /sales, /products, /documents while the fixture company was archived. All 6 correctly EXCLUDED it. New work cannot be attached to an archived company through any UI picker."
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-PARENT-CHAT-CREATE-BLOCKED",
+      "domain": "brain-chat",
+      "resource": "department",
+      "operation": "create_under_archived_refused",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "AI",
+        "DB",
+        "RELATIONSHIP"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W1-archived-operational-gating"
+      ],
+      "evidence": "Chat correctly refused: \"QA-SWARM-TEST-CO-VIA-CHAT is archived (effectivelyActive: false), so I cannot create a department under it.\" Proves chat is archive-aware, not merely lucky."
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-PARENT-CHAT-REASSIGN-BLOCKED",
+      "domain": "employment",
+      "resource": "person",
+      "operation": "reassign_into_archived_refused",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "AI",
+        "DB",
+        "RELATIONSHIP"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W1-archived-operational-gating"
+      ],
+      "evidence": "Chat refused moving a person into archived QA-LIFECYCLE-BU. Refusal verified HONEST by DB check: person still under its original active company, no silent mutation. AI truth = PASS (not FALSE_FAILURE)."
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-PARENT-CHAT-EDIT-DESCENDANT",
+      "domain": "brain-chat",
+      "resource": "department",
+      "operation": "edit_descendant_of_archived",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W1-archived-operational-gating"
+      ],
+      "evidence": "Chat ALLOWED renaming a department whose parent company is archived; rename persisted (DB-verified). Deliberately NOT filed as a defect: archiving is explicitly soft/reversible and this creates no new obligation. Recorded as a documented ASYMMETRY (UI blocks selecting archived; chat permits editing existing descendants) - a product-design decision for the founder, not a QA determination.",
+      "notable": "This is the evidence that kept BUG-001 at P2 rather than escalating it: the only permitted archived-descendant operation is attribute editing."
     }
   ]
 }
