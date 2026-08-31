@@ -3971,3 +3971,111 @@ scope for this pass was independently re-derived and confirmed true; one new rea
 pass. See the verifier's own campaign file
 (`qa/verification/CURRENT_CAMPAIGN.json`, `verify-461ec6e-phase6-plugin-skill-lifecycle`)
 for full per-scenario evidence.
+
+## 52. BUG-004 (P1 security, Work-PC QA campaign C001) — `company_id IS NULL` blanket RLS bypass, closed on `memories` and swept across 7 more tables, plus a full invite-only signup redesign; five real bugs found and fixed live during the implementing session's own fix/verification work (FOUND BY WORK-PC QA, REPRODUCED, FIXED, SWEPT, REGRESSION-TESTED LIVE — 2026-08-31)
+
+**Original finding (Work-PC QA, `qa/bugs/BUG-004.md`, independently reproduced by this
+session before any fix)**: `memories_select_scope`/`memories_write_scope` treated
+`company_id IS NULL` as an unconditional bypass at every sensitivity tier, on both read
+and write. Combined with public self-signup granting a real active `role='employee'`
+profile with zero invitation/allow-list, any self-registered stranger could write
+arbitrary "facts" into the shared memory substrate — which `sem-ai-command` retrieves
+into Brain Chat's own AI context, making this an AI-context-poisoning vector, not just a
+data-integrity issue. Reproduced live pre-fix: `stranger_can_write_unscoped_memory:
+true`, `total_memories_visible_to_stranger: 6`. 0 confidential+`company_id IS NULL` rows
+existed, so no confidential data was actually exposed, but the read-side bypass was
+structurally present at every tier.
+
+**Fix 1 — `202608310008`**: removed the blanket `company_id IS NULL` branch from every
+tier of both `memories` policies. Global/company-agnostic memory now requires
+`is_founder_or_admin()`, the same explicit privileged authority every other
+cross-company operation in this schema already requires. Also hardened the related
+latent issue from the same QA report: `handle_new_auth_user()`'s
+`ON CONFLICT (email) DO UPDATE` previously rebound an **existing, already-claimed**
+profile's `auth_user_id` to a brand-new signup unconditionally — a real, reachable
+account-takeover path via Supabase Auth's SSO exception to its own email-uniqueness
+index (`users_email_partial_key ... WHERE is_sso_user = false` — a *second* real
+`auth.users` row can share an email with an existing non-SSO account via the "Continue
+with Google" path QA flagged as unverified). Live-proven both ways: an already-claimed
+profile is **not** rebound via the SSO-bypass mechanism; a genuinely pre-seeded,
+unclaimed profile (`auth_user_id IS NULL`, the legitimate "HR pre-provisions a hire
+before they sign up" case) still binds correctly.
+
+**Fix 2 — `202608310009`, founder decision**: Brain OS must not allow unrestricted
+public self-signup into an active workspace identity. Separated **AUTH ACCOUNT
+EXISTS ≠ PERSON EXISTS ≠ ACTIVE EMPLOYMENT ≠ WORKSPACE MEMBERSHIP ≠ COMPANY ACCESS**.
+New model: `handle_new_auth_user()` now creates every new signup **inert**
+(`active=false`, zero `company_memberships`) — real workspace access requires a real
+`company_invitations` row (tied to an exact company + email, single-use via a partial
+unique index, expiring in 7 days, revocable, role-scoped, auditable) redeemed through
+`accept_company_invitation(token)`, a `SECURITY DEFINER` RPC that takes **no**
+company_id/role parameter at all — it reads both exclusively from the stored invitation
+row, so client payload manipulation cannot change the outcome. No Supabase Auth service
+configuration was touched (an explicitly separate authorization boundary, not crossed
+here) — signup itself still reaches Postgres, it just produces a powerless account.
+
+**Two real bugs found live while pushing/verifying Fix 2**:
+- (a) `gen_random_bytes` is installed under the `extensions` schema on this project, not
+  `public` — the migration's unqualified calls failed with `function
+  gen_random_bytes(integer) does not exist` on first push. Fixed by schema-qualifying
+  (`extensions.gen_random_bytes(32)`).
+- (b) `accept_company_invitation(...) RETURNS TABLE (company_id uuid, role text)`
+  created a PL/pgSQL variable named `company_id` that collided with the real
+  `company_memberships.company_id` column inside the function's own
+  `ON CONFLICT (company_id, profile_id)` clause (which cannot be table-qualified) —
+  `"column reference company_id is ambiguous"`, caught by this session's own live
+  end-to-end test. Fixed by renaming the OUT columns (`out_company_id`/`out_role`).
+
+**A third, process-level finding, same class as prior `db push` unreliability entries
+but a NEW manifestation**: after fixing (a), `supabase db push` reported `"upToDate":
+true"` and did **not** actually apply the corrected function body — verified by reading
+`pg_get_functiondef` directly (not just checking object existence via `pg_proc` count,
+which itself falsely looked sufficient on the first check). This time the CLI silently
+skipped a legitimately-changed **re-push** of an already-recorded migration version, not
+just a first-time apply (the previously-documented failure mode). Worked around, and now
+the standard recovery pattern for this whole class: apply the migration file's SQL
+**directly** via `supabase db query --linked -f <file>`, bypassing the push/tracking
+mechanism entirely — safe because every statement in these migrations is written
+idempotently (`IF NOT EXISTS`/`OR REPLACE`/`DROP ... IF EXISTS`).
+
+**Fix 3 — `202608310010`, same-defect sweep (not mechanical)**: swept every public-schema
+RLS policy for the identical `company_id IS NULL` shape. Found 8 policies across 7
+tables. Classified each by real semantics before touching anything, per explicit
+instruction not to batch-fix blindly:
+- **Fixed (write-bypass, same severity as BUG-004 itself)**: `approvals_insert_scope`,
+  `integration_queue_insert_scope`, `product_specs_write_manager` (its `NULL` branch
+  bypassed `is_company_manager()` entirely, not just company scoping),
+  `tasks_insert_scope`.
+- **Fixed (read-exposure, same structural gap, lower severity)**:
+  `documents_select_scope`, `engineering_drawings_select`, `product_specs_select_scope`.
+- **Deliberately left untouched**: `tasks_update_scope` — its `company_id IS NULL`
+  branch has genuine nuance (a task's own creator may update a company-agnostic task
+  they made, without needing membership for a company that doesn't apply) that
+  interacts with whether `tasks_insert_scope` should even allow creating such a task
+  once fixed. Two `SECURITY DEFINER` RPCs, `archive_task`/`restore_task`, implement the
+  identical creator-owns-unscoped-task pattern and were left untouched for the same
+  reason — a real, disclosed, deliberately-deferred design question, not silently
+  ignored. A fresh whole-schema sweep after this fix confirmed `tasks_update_scope` is
+  the **only** remaining `IS NULL`-shaped policy anywhere in `public` — no unclassified
+  occurrence of this class remains. A parallel sweep of every `SECURITY DEFINER`
+  function's body for the same pattern found nothing else real: `archive_company`/
+  `restore_company`/`validate_organization_graph`/`permanently_delete_fixture_company_graph`/
+  `propose_salary_change` either don't contain the pattern at all (a few were fuzzy-match
+  false positives from a loose `ILIKE` sweep) or are already founder/admin-gated at
+  function entry with no bypass.
+
+**Live behavioral verification, both structural (policy text) and empirical (real
+persona-based read/write attempts), self-cleaning transaction, zero residue** — every
+one of: anon denied where applicable, a zero-membership authenticated stranger denied on
+all 4 write-fixed tables and seeing 0 rows on all 3 read-fixed tables (plus `memories`),
+founder/admin's global path still working (write succeeded, all 7 real documents still
+visible). Permanent regression:
+`qa/scenarios-runner/null_tenant_scope_bypass_class_closed.sql` — `all_pass: true`,
+`unclassified_null_scope_policies: []`.
+
+**Interim status, stated precisely, not overstated**: `LIVE VERIFIED — NULL-SCOPE
+TENANT BYPASS CLASS CLOSED FOR REVIEWED POLICIES`. This is the implementing session's
+own live verification, not yet an independent `brain-os-verifier` confirmation (dispatch
+in progress — see the campaign this entry is part of) and not yet a Work-PC human QA
+retest of the deployed fix. `tasks_update_scope`/`archive_task`/`restore_task`'s shared
+open design question remains explicitly open, not resolved by this entry.
