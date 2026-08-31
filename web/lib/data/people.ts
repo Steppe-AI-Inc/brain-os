@@ -10,12 +10,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // BUT employee still appears actively attached to it"). Selecting `status` too is the
 // minimal real fix; the corresponding page renders <ArchivedCompanyBadge/>
 // (web/components/archived-company-badge.tsx) from it.
-export async function getPeople() {
+// Overnight multi-org milestone: `activeOrganizationId` scopes People to the
+// currently-selected organization when set (real behavior change, not a decorative
+// dropdown — the founder's explicit requirement that the selector "must affect...
+// People"). RLS is unaffected either way — this is a query-shape filter on top of an
+// already-correctly-scoped result set, never a source of authority itself. Omit the
+// argument for the prior cross-company view (still used nowhere today, kept as an
+// explicit opt-out for a future "All Organizations" mode).
+export async function getPeople(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("people")
     .select("id, full_name, email, role_title, company_id, active, profile_id, companies(name, status)")
     .order("full_name");
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

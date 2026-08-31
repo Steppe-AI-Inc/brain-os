@@ -44,6 +44,8 @@ import { useT } from "@/lib/i18n/i18n-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { signOut } from "@/app/(app)/actions";
+import { OrganizationSwitcher } from "@/components/organization-switcher";
+import type { OrganizationContext } from "@/lib/data/organizations-types";
 
 const NAV_GROUPS: Array<{
   title: string;
@@ -161,8 +163,10 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 
 export function AppSidebar({
   profile,
+  organizations,
 }: {
   profile: { full_name: string; role: string } | null;
+  organizations: OrganizationContext;
 }) {
   const pathname = usePathname();
   const { locale, setLocale, t } = useT();
@@ -202,6 +206,8 @@ export function AppSidebar({
       Σ
     </div>
   );
+
+  const orgSwitcherBlock = <OrganizationSwitcher context={organizations} />;
 
   const profileBlock = profile && (
     <div className="mb-4 flex items-center gap-3 rounded-lg bg-sidebar-accent p-2.5">
@@ -289,6 +295,7 @@ export function AppSidebar({
               <div className="text-xs text-muted-foreground">Company Brain</div>
             </div>
           </div>
+          {orgSwitcherBlock}
           {profileBlock}
           <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
           {footer}
@@ -315,6 +322,7 @@ export function AppSidebar({
           )}
         </div>
 
+        {!collapsed && orgSwitcherBlock}
         {!collapsed && profileBlock}
 
         <SidebarNav collapsed={collapsed} />

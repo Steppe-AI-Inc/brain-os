@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/data/profile";
+import { getOrganizationContext } from "@/lib/data/organizations";
 import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -20,9 +21,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/pending-activation");
   }
 
+  // Overnight multi-org milestone: real organization selector context, fetched once
+  // per navigation here (same place the profile itself is fetched) so it's available
+  // to the sidebar switcher and, eventually, any page that wants to scope its own
+  // queries by the active organization.
+  const organizations = await getOrganizationContext();
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden md:h-screen md:flex-row">
-      <AppSidebar profile={profile} />
+      <AppSidebar profile={profile} organizations={organizations} />
       <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
     </div>
   );
