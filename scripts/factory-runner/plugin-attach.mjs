@@ -167,19 +167,45 @@ export async function enableComponent(componentId) {
   if (!['installed', 'enabled', 'disabled'].includes(row.install_status)) {
     throw new Error(`plugin-attach: cannot enable ${componentId} from install_status=${row.install_status} — must be 'installed' or 'disabled' first (discover -> review -> sandbox-test -> enable[/disable/enable])`);
   }
-  return runSql(`
+  const result = await runSql(`
 update public.plugin_components set enabled = true, install_status = 'enabled', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, enabled, install_status;
 `);
+  await resyncAllAttachedAgents(componentId);
+  return result;
 }
 
 export async function disableComponent(componentId) {
-  return runSql(`
+  const result = await runSql(`
 update public.plugin_components set enabled = false, install_status = 'disabled', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, enabled, install_status;
 `);
+  await resyncAllAttachedAgents(componentId);
+  return result;
+}
+
+// Real gap found and fixed live during Phase 6's own update/rollback proof: agents.
+// provenance.external_capabilities (what provider.mjs's resolveAgentFromRegistry actually
+// reads at dispatch time - a stored JSONB blob, not a live join) is ONLY refreshed by an
+// explicit attachSkill/detachSkill call. applyUpdate/rollbackComponent/disableComponent
+// change plugin_components' own state but were not re-syncing it - an agent that had
+// already been attached before an update would keep dispatching with the OLD stale
+// definition_path/hash forever, until someone happened to call attach/detach again.
+// Every mutation that changes what an ALREADY-attached component should serve at runtime
+// must re-sync provenance for every agent currently attached to it, not just the caller of
+// attach/detach.
+async function resyncAllAttachedAgents(componentId) {
+  const attached = await runSql(`
+select distinct agent_id from public.agent_plugin_attachments
+where plugin_component_id = ${sqlEscape(componentId)}::uuid and detached_at is null;
+`);
+  const agentIds = (attached.rows ?? []).map((r) => r.agent_id);
+  for (const agentId of agentIds) {
+    await syncAttachedCapabilities(agentId, { source: 'brain_os_custom' });
+  }
+  return agentIds;
 }
 
 // Snapshots the CURRENT plugin_components row's version-identifying fields into
@@ -239,7 +265,7 @@ export async function applyUpdate(componentId, newDefinitionPath, newPinnedCommi
   if (sourceId) {
     await runSql(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(newPinnedCommitSha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
   }
-  return runSql(`
+  const result = await runSql(`
 update public.plugin_components set
   definition_path = ${sqlEscape(newDefinitionPath)},
   definition_hash = ${sqlEscape(newHash)},
@@ -249,6 +275,8 @@ update public.plugin_components set
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, definition_path, definition_hash, installed_version, install_status;
 `);
+  await resyncAllAttachedAgents(componentId);
+  return result;
 }
 
 // Step 7: ROLLBACK. Restores a prior plugin_component_versions snapshot as the live row's
@@ -270,7 +298,7 @@ where id = ${sqlEscape(targetVersionId)}::uuid and plugin_component_id = ${sqlEs
   if (sourceId && row.pinned_commit_sha) {
     await runSql(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(row.pinned_commit_sha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
   }
-  return runSql(`
+  const result = await runSql(`
 update public.plugin_components set
   definition_path = ${sqlEscape(row.definition_path)},
   definition_hash = ${sqlEscape(restoredHash)},
@@ -280,6 +308,8 @@ update public.plugin_components set
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, definition_path, definition_hash, installed_version, install_status;
 `);
+  await resyncAllAttachedAgents(componentId);
+  return result;
 }
 
 export async function attachSkill(agentId, componentId) {

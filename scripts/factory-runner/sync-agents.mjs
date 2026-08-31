@@ -169,9 +169,18 @@ join public.plugin_sources ps on ps.id = pc.source_id
 where apa.agent_id = ${sqlEscape(agentId)}::uuid
   and apa.detached_at is null
   and pc.enabled = true
-  and pc.install_status = 'enabled'
+  and pc.install_status in ('enabled', 'update_available')
 order by pc.slug;
 `);
+  // Real second bug found and fixed live during the same Phase 6 update/rollback proof:
+  // 'update_available' means a newer version has been detected, NOT that the currently-
+  // attached component stopped being live - detectUpdate() deliberately leaves
+  // plugin_components' own pinned/hash fields untouched (see its own comment) so runtime
+  // dispatch keeps resolving the OLD version until applyUpdate() genuinely swaps it. This
+  // filter originally allowed only 'enabled', which would have silently dropped the
+  // already-attached skill the moment detectUpdate() ran - runtime evidence would have
+  // gone missing for a reason unrelated to any real detach.
+  //
   // Real bug found and fixed during Phase 6's own live attach proof: this used to read
   // pc.installed_version (a human-facing version label, null for every component so far)
   // as pinned_ref, so the real skill-injection prompt block (buildSkillInjectionPrompt,
