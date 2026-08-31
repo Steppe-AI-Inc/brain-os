@@ -13,27 +13,45 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getAttentionItems } from "@/lib/data/attention";
 import { getActiveAgents } from "@/lib/data/agents";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GOAL_STATUS_DOT } from "@/lib/goals/classify";
 
-async function getDashboardData() {
+// Overnight multi-org milestone: activeOrganizationId scopes the goal/approval/work-order
+// counts and the live-goals list to the currently selected organization when set, same
+// pattern as getPeople() in lib/data/people.ts — a query-shape filter only, RLS remains
+// the sole authorization boundary either way. "Active Companies" stays a global,
+// platform-wide figure regardless of active org — it counts real companies, not
+// something a single org's context could meaningfully re-scope.
+async function getDashboardData(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   const since14d = new Date(Date.now() - 14 * 86_400_000).toISOString();
 
+  let activeGoalsQuery = supabase.from("goals").select("id", { count: "exact", head: true }).eq("status", "active");
+  let pendingApprovalsQuery = supabase.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending");
+  let recentRunsQuery = supabase.from("work_orders").select("id", { count: "exact", head: true }).gte("created_at", since14d);
+  let liveGoalsQuery = supabase
+    .from("goals")
+    .select("id, title, status, kind, progress, companies(name)")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(6);
+  if (activeOrganizationId) {
+    activeGoalsQuery = activeGoalsQuery.eq("company_id", activeOrganizationId);
+    pendingApprovalsQuery = pendingApprovalsQuery.eq("company_id", activeOrganizationId);
+    recentRunsQuery = recentRunsQuery.eq("company_id", activeOrganizationId);
+    liveGoalsQuery = liveGoalsQuery.eq("company_id", activeOrganizationId);
+  }
+
   const [activeGoals, pendingApprovals, recentRuns, companies, liveGoals, attention, agents] =
     await Promise.all([
-      supabase.from("goals").select("id", { count: "exact", head: true }).eq("status", "active"),
-      supabase
-        .from("approvals")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending"),
-      supabase
-        .from("work_orders")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", since14d),
+      activeGoalsQuery,
+      pendingApprovalsQuery,
+      recentRunsQuery,
       // No `head: true` here (unlike the other counts above) — this one was
       // observed returning count: null with no error on production, the known
       // failure mode when a HEAD response's Content-Range header goes missing.
@@ -47,12 +65,7 @@ async function getDashboardData() {
       // archived - matched here for the same reason: a headline number must equal
       // its own authoritative list, not a different, undocumented definition of it.
       supabase.from("companies").select("id", { count: "exact" }).neq("status", "archived"),
-      supabase
-        .from("goals")
-        .select("id, title, status, kind, progress, companies(name)")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(6),
+      liveGoalsQuery,
       getAttentionItems(),
       getActiveAgents(),
     ]);
@@ -75,7 +88,12 @@ const ATTENTION_LABEL: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const stats = await getDashboardData();
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
+  const stats = await getDashboardData(scopeToActiveOrg);
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
 
@@ -84,7 +102,11 @@ export default async function DashboardPage() {
       <PageHeader
         icon={LayoutDashboard}
         title={`Good ${timeOfDay}.`}
-        description="What's moving, what needs you, and who's working on it — right now."
+        description={
+          organizations.activeOrganizationName && scopeToActiveOrg
+            ? `What's moving in ${organizations.activeOrganizationName} — right now.`
+            : "What's moving, what needs you, and who's working on it — right now."
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
