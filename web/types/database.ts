@@ -2420,6 +2420,60 @@ export type Database = {
           },
         ]
       }
+      plugin_component_versions: {
+        Row: {
+          definition_hash: string | null
+          definition_path: string | null
+          id: string
+          install_status: string | null
+          installed_version: string | null
+          pinned_commit_sha: string | null
+          plugin_component_id: string
+          recorded_at: string
+          recorded_by_profile_id: string | null
+          recorded_reason: string
+        }
+        Insert: {
+          definition_hash?: string | null
+          definition_path?: string | null
+          id?: string
+          install_status?: string | null
+          installed_version?: string | null
+          pinned_commit_sha?: string | null
+          plugin_component_id: string
+          recorded_at?: string
+          recorded_by_profile_id?: string | null
+          recorded_reason: string
+        }
+        Update: {
+          definition_hash?: string | null
+          definition_path?: string | null
+          id?: string
+          install_status?: string | null
+          installed_version?: string | null
+          pinned_commit_sha?: string | null
+          plugin_component_id?: string
+          recorded_at?: string
+          recorded_by_profile_id?: string | null
+          recorded_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_component_versions_plugin_component_id_fkey"
+            columns: ["plugin_component_id"]
+            isOneToOne: false
+            referencedRelation: "plugin_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_component_versions_recorded_by_profile_id_fkey"
+            columns: ["recorded_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plugin_components: {
         Row: {
           approved_at: string | null
@@ -2436,9 +2490,12 @@ export type Database = {
           installed_version: string | null
           last_health_check_at: string | null
           last_health_status: string | null
+          license_review_status: string
           manifest: Json
           permission_profile: Json
           requires_approval: boolean
+          security_review_notes: string | null
+          security_review_status: string
           slug: string
           source_id: string
           updated_at: string
@@ -2458,9 +2515,12 @@ export type Database = {
           installed_version?: string | null
           last_health_check_at?: string | null
           last_health_status?: string | null
+          license_review_status?: string
           manifest?: Json
           permission_profile?: Json
           requires_approval?: boolean
+          security_review_notes?: string | null
+          security_review_status?: string
           slug: string
           source_id: string
           updated_at?: string
@@ -2480,9 +2540,12 @@ export type Database = {
           installed_version?: string | null
           last_health_check_at?: string | null
           last_health_status?: string | null
+          license_review_status?: string
           manifest?: Json
           permission_profile?: Json
           requires_approval?: boolean
+          security_review_notes?: string | null
+          security_review_status?: string
           slug?: string
           source_id?: string
           updated_at?: string

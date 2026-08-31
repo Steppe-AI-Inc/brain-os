@@ -64,6 +64,112 @@ export async function markFounderNotificationRead(id: string) {
   return data;
 }
 
+export type PluginComponent = {
+  id: string;
+  slug: string;
+  displayName: string | null;
+  componentType: string;
+  installStatus: string;
+  enabled: boolean;
+  licenseReviewStatus: string;
+  securityReviewStatus: string;
+  installedVersion: string | null;
+  definitionHash: string | null;
+  sourceOwner: string;
+  sourceRepo: string;
+  pinnedCommitSha: string | null;
+  latestUpstreamSha: string | null;
+  updateAvailable: boolean;
+  license: string | null;
+  attachedAgentNames: string[];
+  lastRuntimeUseAt: string | null;
+};
+
+// Phase 6 — the plugin/skill lifecycle registry, made genuinely useful (not a metadata
+// table): real source/pin/hash/review/attachment state, and "last runtime use" derived
+// from a real agent_runs.attached_skills match (jsonb containment on the component's own
+// slug + definition_hash — never a hardcoded "Enabled" badge; a component that has never
+// actually been dispatched shows null here, not a fake recency).
+export async function getPluginComponents(): Promise<PluginComponent[]> {
+  const supabase = await createClient();
+  const { data: components, error } = await supabase
+    .from("plugin_components")
+    .select(
+      "id, slug, display_name, component_type, install_status, enabled, license_review_status, security_review_status, installed_version, definition_hash, plugin_sources(github_owner, github_repo, pinned_commit_sha, latest_upstream_sha, update_available, license)"
+    )
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const componentIds = (components ?? []).map((c) => c.id);
+  const [attachmentsResult, runsResult] = await Promise.all([
+    componentIds.length
+      ? supabase
+          .from("agent_plugin_attachments")
+          .select("plugin_component_id, agents(name, display_name)")
+          .in("plugin_component_id", componentIds)
+          .is("detached_at", null)
+      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("agent_runs")
+      .select("attached_skills, started_at")
+      .not("attached_skills", "eq", "[]")
+      .order("started_at", { ascending: false })
+      .limit(200),
+  ]);
+  if (attachmentsResult.error) throw attachmentsResult.error;
+  if (runsResult.error) throw runsResult.error;
+
+  const attachedByComponent = new Map<string, string[]>();
+  for (const row of attachmentsResult.data ?? []) {
+    const agent = row.agents as { name: string; display_name: string | null } | null;
+    if (!agent) continue;
+    const list = attachedByComponent.get(row.plugin_component_id) ?? [];
+    list.push(agent.display_name ?? agent.name);
+    attachedByComponent.set(row.plugin_component_id, list);
+  }
+
+  const lastUseByHash = new Map<string, string>();
+  for (const run of runsResult.data ?? []) {
+    const skills = (run.attached_skills as Array<{ definition_hash?: string }> | null) ?? [];
+    for (const s of skills) {
+      if (s.definition_hash && !lastUseByHash.has(s.definition_hash)) {
+        lastUseByHash.set(s.definition_hash, run.started_at as string);
+      }
+    }
+  }
+
+  return (components ?? []).map((c) => {
+    const source = c.plugin_sources as {
+      github_owner: string;
+      github_repo: string;
+      pinned_commit_sha: string | null;
+      latest_upstream_sha: string | null;
+      update_available: boolean;
+      license: string | null;
+    } | null;
+    return {
+      id: c.id,
+      slug: c.slug,
+      displayName: c.display_name,
+      componentType: c.component_type,
+      installStatus: c.install_status,
+      enabled: c.enabled,
+      licenseReviewStatus: c.license_review_status,
+      securityReviewStatus: c.security_review_status,
+      installedVersion: c.installed_version,
+      definitionHash: c.definition_hash,
+      sourceOwner: source?.github_owner ?? "—",
+      sourceRepo: source?.github_repo ?? "—",
+      pinnedCommitSha: source?.pinned_commit_sha ?? null,
+      latestUpstreamSha: source?.latest_upstream_sha ?? null,
+      updateAvailable: source?.update_available ?? false,
+      license: source?.license ?? null,
+      attachedAgentNames: attachedByComponent.get(c.id) ?? [],
+      lastRuntimeUseAt: c.definition_hash ? (lastUseByHash.get(c.definition_hash) ?? null) : null,
+    };
+  });
+}
+
 export type FactoryOverviewCounts = {
   activeWorkOrders: number;
   runningAgents: number;

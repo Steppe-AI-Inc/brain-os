@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Factory, Activity, ShieldAlert, ShieldCheck, PackageCheck, Ban, Bot, ArrowRight } from "lucide-react";
+import { Factory, Activity, ShieldAlert, ShieldCheck, PackageCheck, Ban, Bot, ArrowRight, PackageSearch } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { getFactoryOverview, getRegisteredAgents, getRecentWorkOrders, getFounderNotifications } from "@/lib/data/factory";
 import { FactoryRealtimeRefresher } from "./realtime-refresher";
 import { NotificationPanel } from "./notification-panel";
@@ -59,6 +60,12 @@ export default async function SoftwareFactoryPage() {
         icon={Factory}
         title="Software Factory"
         description="Real Work Orders, real registered agents, real runs — every number here reflects live canonical state, nothing simulated."
+        actions={
+          <Link href="/software-factory/plugins" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <PackageSearch className="h-4 w-4" />
+            Plugins
+          </Link>
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
