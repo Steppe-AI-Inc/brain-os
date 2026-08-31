@@ -11,7 +11,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { buildSkillInjectionPrompt } from './provider.mjs';
+import { hashFile, assertPathWithinAllowedRoots } from './plugin-attach.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 test('buildSkillInjectionPrompt: returns empty string for an agent with no attachments (no regression on the common case)', () => {
   assert.equal(buildSkillInjectionPrompt([]), '');
@@ -71,4 +77,48 @@ test('startRunByAgentId dispatch path: task text is only ever extended, never re
   const task = 'Implement the QA dashboard.';
   const noSkillBlock = buildSkillInjectionPrompt([]);
   assert.equal(task + noSkillBlock, task);
+});
+
+// Permanent regression for a real, live-reproduced defect found by the independent Phase 6
+// verifier (2026-08-31, not caught by the implementing session): applyUpdate()/
+// rollbackComponent() used to call the fallible, throwing operation (hashFile, which
+// re-validates the path against ALLOWED_DEFINITION_ROOTS and reads the file from disk)
+// AFTER the first real database write (snapshotVersion inserting a plugin_component_versions
+// row) - so a failure partway through (bad path, missing file, transient fs race) left a
+// real, permanent, orphaned "update"/"rollback" history row with no corresponding completed
+// transition. Reproduced live: a transient file-write race caused hashFile() to throw
+// ENOENT, and a real phantom snapshot row was left in production (cleaned up manually - see
+// qa/KNOWN_FAILURE_MODES.md). Fixed by reordering both functions so hashFile() always runs
+// BEFORE the first database write - these tests lock in both halves: (1) hashFile itself
+// really is fallible and throws synchronously (never silently proceeds with a bad path),
+// and (2) the source ordering fix is actually in place, not merely fixed once and liable to
+// regress on a future edit.
+test('hashFile: throws synchronously (no partial side effect possible) for a nonexistent file within an allowed root', () => {
+  assert.throws(
+    () => hashFile(join('C:\\Users\\Dell\\.claude\\plugins\\cache', 'definitely-does-not-exist-qa-verify', 'SKILL.md')),
+    /ENOENT/
+  );
+});
+
+test('assertPathWithinAllowedRoots: throws synchronously for a path outside every allowed root', () => {
+  assert.throws(
+    () => assertPathWithinAllowedRoots('C:\\Windows\\System32\\drivers\\etc\\hosts'),
+    /refusing to use definitionPath/
+  );
+});
+
+test('applyUpdate/rollbackComponent source order: hashFile( is called before the first snapshotVersion( call in each function body (prevents the phantom-history-row class regressing)', () => {
+  const source = readFileSync(join(__dirname, 'plugin-attach.mjs'), 'utf8');
+
+  const applyUpdateBody = source.slice(source.indexOf('export async function applyUpdate'), source.indexOf('export async function rollbackComponent'));
+  const applyHashIdx = applyUpdateBody.indexOf('hashFile(');
+  const applySnapshotIdx = applyUpdateBody.indexOf('snapshotVersion(');
+  assert.ok(applyHashIdx !== -1 && applySnapshotIdx !== -1, 'applyUpdate must call both hashFile( and snapshotVersion(');
+  assert.ok(applyHashIdx < applySnapshotIdx, 'applyUpdate: hashFile( must run before snapshotVersion( - a fallible operation must never run after the first real database write');
+
+  const rollbackBody = source.slice(source.indexOf('export async function rollbackComponent'), source.indexOf('export async function attachSkill'));
+  const rollbackHashIdx = rollbackBody.indexOf('hashFile(');
+  const rollbackSnapshotIdx = rollbackBody.indexOf('snapshotVersion(');
+  assert.ok(rollbackHashIdx !== -1 && rollbackSnapshotIdx !== -1, 'rollbackComponent must call both hashFile( and snapshotVersion(');
+  assert.ok(rollbackHashIdx < rollbackSnapshotIdx, 'rollbackComponent: hashFile( must run before snapshotVersion( - same ordering rule as applyUpdate');
 });

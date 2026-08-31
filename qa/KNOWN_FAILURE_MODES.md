@@ -3808,3 +3808,166 @@ invocations, grounded in real, named, repeated incidents already in this same fi
 #16/#40/#41 — and CLAUDE.md §22's own disclosed open gap), entered into Brain OS as
 `agent_runs` evidence labeled `RECOMMENDED (not installed)`, never as an installed
 change.
+
+## 51. Independent Phase 6 re-verification (concurrent with #50 above): one new real defect found and fixed (orphaned version-history row on partial failure), one real AI self-report unreliability disclosed, everything else in #49 independently re-derived and confirmed true (FOUND LIVE, FIXED, REGRESSION-TESTED, 2026-08-31)
+
+**Timing note, disclosed honestly**: this was a genuinely separate, parallel verifier
+session running concurrently with #50 above (different worktree, different branch,
+neither aware of the other's findings until this session's own `git fetch`/rebase at
+push time surfaced a numbering collision — both sessions independently claimed "## 50"
+for unrelated findings; this entry was renumbered to #51 on rebase, #50's own content is
+untouched). This session's own 5 real dispatches (below) all ran against the code as of
+base commit `461ec6e` — i.e. *before* #50's `buildSkillInjectionPrompt` fix ("invoke via
+the Skill tool" → "Read this file directly") landed on `origin/master`. That timing
+matters directly for finding (b) below.
+
+A genuinely separate verifier session (no memory of the #49 implementation) re-derived
+every claim in #49 from scratch against live production: direct `pg_constraint`/
+`information_schema` queries (not `db push` output) confirmed migration `202608310005`
+is genuinely live and `plugin_component_versions` has real backfilled history; `gh api`
+(this session's own auth) independently confirmed `obra/superpowers` is a real public MIT
+repo and `b36e0829c6d0140e93cfef2ca599b1b07d4a7797` is a real commit, currently identical
+to `main` tip; the RLS regression
+(`qa/scenarios-runner/factory_plugin_lifecycle_security.sql`) was re-run live
+(`all_pass=true`); three independent out-of-bounds `definitionPath` attempts (absolute
+path outside both allowed roots, a `..`-traversal escape, and a sibling-directory-prefix
+collision `cache-evil/`) were all correctly refused by `assertPathWithinAllowedRoots`
+before any hash/registry write, confirmed via a direct row-count query showing zero rows
+created. Five fresh, real `dispatch-task.mjs` Agent Runs (not re-reads of #49's own
+sessions) proved the attach/detach/update/rollback causality end-to-end via raw
+`claude logs` transcripts read directly by this verifier: baseline (attached, real SHA,
+transcript+DB agree) → detach (transcript shows `NO ATTACHED SKILLS`, DB
+`attached_skills=[]`) → re-attach (transcript+DB show the real SHA again) → apply-update
+to a genuinely new controlled test version this verifier constructed (`QA-VERIFY-PHASE6-
+SHA-9f2c71`, not a reuse of the implementer's `LOCAL-TEST-B`) → rollback (transcript+DB
+show the real SHA restored). `plugin_component_versions` ended with 5 real, distinct,
+non-overwritten rows across both cycles (the implementer's `LOCAL-TEST-B` history plus
+this verifier's own), confirming append-only accumulation holds across independent
+sessions, not just within one.
+
+**(a) Real defect found and fixed: `applyUpdate()`/`rollbackComponent()` were not
+crash-safe — a failure between the first database write and the fallible local
+`hashFile()` call left a permanent orphaned history row.** Both functions called
+`snapshotVersion()` (a real `plugin_component_versions` INSERT) *before* `hashFile()` (a
+real disk read + path-revalidation that can throw `ENOENT` or a path-validation
+rejection). Reproduced live, by accident, during this verifier's own apply-update proof: a
+transient file-write race meant the new definition file did not yet exist on the first
+`apply-update` attempt, `hashFile()` threw, the function aborted — but the
+`snapshotVersion()` INSERT immediately before it had already committed, leaving a real,
+permanent `plugin_component_versions` row (`recorded_reason='update'`) in production with
+no corresponding completed transition behind it. This is exactly the "ALL commit or NONE
+commit" violation CLAUDE.md §10 exists to catch, and exactly the class the
+`plugin_component_versions` table itself exists to prevent ("provenance destroyed").
+**Fixed** by reordering both functions so the fallible local operation (`hashFile`, which
+folds in `assertPathWithinAllowedRoots`) always runs *first*, before any database write —
+a failure now writes nothing at all. **Regression added**:
+`scripts/factory-runner/plugin-attach.regression.test.mjs` now exports and directly unit
+tests `hashFile`/`assertPathWithinAllowedRoots` fallibility, plus a structural source-order
+guard asserting `hashFile(` appears before `snapshotVersion(` in both function bodies —
+8/8 tests pass. The orphaned row this verifier caused
+(`5e86f7df-af8d-402b-9b87-80f37dff0720`) was deleted directly after confirming it was the
+phantom (chronologically first, from the failed attempt) and not the real snapshot from
+the eventually-successful retry. **Same-class search**: `sandboxTest()` has an analogous
+but distinct exposure — it performs 2-3 separate DB writes (including a conditional
+`snapshotVersion('initial_install')` as the *last* step) with no local fallible operation
+between them, so a process-level crash between the second and third write would leave a
+component `install_status='installed'` with **zero** version history rather than a
+phantom row — a related but different failure mode (missing row vs. extra row), not fixed
+in this pass; disclosed here rather than silently left. More broadly: every function in
+`plugin-attach.mjs` issues each SQL statement as a separate `npx supabase db query`
+subprocess (a fresh connection per statement, not one transaction per operation) — full
+crash-safety across a multi-statement operation is not achieved anywhere in this file; the
+fix above closes the two clearest, directly-reproduced instances (`applyUpdate`/
+`rollbackComponent`), not the underlying architectural exposure.
+
+**(b) Real, disclosed (not fixed — a model-behavior finding, not a plumbing defect): the
+dispatched agent's own free-text self-report of "what skills are attached to this run" is
+unreliable, even though the underlying delivery mechanism is 100% correct.** Across 5
+fresh real dispatches, the raw prompt (confirmed via direct `claude logs` transcript
+inspection) and `agent_runs.attached_skills` (DB) agreed with ground truth in all 5 cases,
+with zero exceptions. But when the task explicitly asked the agent to state, in its own
+words, what was in its "Attached skills for this run" section, it answered correctly
+twice (baseline-attached; after apply-update) and answered "NO ATTACHED SKILLS" — flatly
+contradicting a skill block plainly visible earlier in the same prompt it had just been
+given — twice (after re-attach; after rollback), both times when the live content was the
+*real* `systematic-debugging`/`b36e0829...` skill rather than this verifier's synthetic
+QA test version. No tool invocation, truncation, or prompt-injection was involved in
+either wrong answer (confirmed by reading the full raw transcript, not just a grep
+excerpt) — this looks like plain model unreliability at self-report, not a system defect.
+This is exactly why the central acceptance test's real bar (per #49's own design, and
+independently re-validated here) is the raw transcript's actual injected content and the
+DB's `attached_skills` column — never the dispatched agent's own summary of itself. No
+fix applies here (there is nothing in Brain OS's control to "fix" about a model's
+free-text answer accuracy); disclosed per CLAUDE.md §5/§28 rather than treated as
+resolved. Founder-facing or automated tooling that ever asks a dispatched agent to
+self-report its own attached capabilities (rather than reading `agent_runs.attached_skills`
+or the raw transcript) would inherit this exact unreliability — worth keeping in mind if
+such a feature is ever built.
+
+**Plausible shared root cause with #50, disclosed rather than assumed**: this session's
+prompt wording (the pre-fix `buildSkillInjectionPrompt`, "invoke via the Skill tool
+before proceeding if relevant to the task") is exactly what #50 (found concurrently, by a
+different session) proved is an unreliable instruction on its own — the Skill tool only
+resolves for a marketplace-co-installed component, and `systematic-debugging` genuinely
+was one, so it never hit #50's specific "Unknown skill" failure. But it remains plausible
+the model attempted (or considered attempting) a Skill-tool call in the two wrong runs,
+found it ambiguous or silently unreliable for reasons unrelated to #50's specific
+mechanism, and that uncertainty bled into an incorrect final summary. This is
+speculation, not proof — this verifier did not re-test against #50's fixed prompt wording
+("Read this file directly", landed on `origin/master` after this session's own 5
+dispatches had already run). Flagged as a good, cheap follow-up for whoever next touches
+this area: re-run the same "list your attached skills" probe a handful of times against
+the post-#50 prompt wording and see whether the self-report failure rate actually drops —
+neither this entry nor #50 currently proves that it does.
+
+**(c) `definition_hash` cross-checkout determinism for cache-resident plugin content
+(distinct from #48's `.claude/agents/*.md` case) — investigated and disclosed, not a live
+defect today.** The `systematic-debugging` `SKILL.md` file lives at
+`C:\Users\Dell\.claude\plugins\cache\superpowers-dev\superpowers\6.3.0\skills\
+systematic-debugging\SKILL.md` — entirely outside this repo's working tree, so this
+repo's own `.gitattributes` (including #48's own fix) has **zero** effect on it. Direct
+byte-level inspection (0 CRLF pairs, 283 bare LF, out of 9,465 bytes) confirms the live
+file is pure LF on this machine, *despite* this machine's `core.autocrlf=true` (both
+global and local) — proving whatever placed this content here did **not** apply this
+machine's local line-ending normalization the way a plain `git clone`/checkout of this
+repo would. Two consistent, mutually-reinforcing pieces of direct evidence explain why:
+(1) the extracted cache tree has no `.git` directory at all (implying archive/tarball
+extraction, which never applies `core.autocrlf`), and (2) the extracted tree includes
+upstream `obra/superpowers`' own committed `.gitattributes`, which itself declares `*.md
+text eol=lf` — an attribute that, even if some checkout-based mechanism *were* involved,
+takes precedence over local `core.autocrlf` per git's own attribute-precedence rules.
+Cross-checked against `~/.claude/plugins/installed_plugins.json`, which independently
+records `gitCommitSha: "b36e0829c6d0140e93cfef2ca599b1b07d4a7797"` for this exact
+install — matching both `plugin_sources.pinned_commit_sha` and the `gh api`-confirmed real
+upstream SHA from item 2, a third independent confirmation of the same provenance chain.
+**Conclusion**: today, on this machine, `definition_hash` for this file is genuinely
+deterministic and DB-matching — but the reason is entirely external to Brain OS's own
+repo (upstream's own `.gitattributes` discipline + Claude Code's install mechanism, not
+`core.autocrlf` and not anything this repo controls). **Disclosed, not fixed**: a future
+plugin source whose upstream repo lacks its own `eol=lf` `.gitattributes` entry would be
+exposed to exactly #48's original fragility, with **zero mitigation available** at the
+Brain OS repo level (we cannot add `.gitattributes` to someone else's GitHub repo, and the
+plugin cache isn't tracked by any of this repo's git metadata). A more robust long-term
+fix — normalizing line endings before hashing in `hashFile()` itself, so `definition_hash`
+is stable regardless of upstream `.gitattributes` discipline — is a real option but was
+deliberately **not** implemented in this pass: it would change already-stored hash values
+for every currently-registered component (a behavioral/data change, not a narrow bug fix)
+and deserves explicit sign-off rather than a unilateral change during verification.
+
+**Cleanup**: all synthetic entities (company `66660006-0000-0000-0000-000000000001`
+`QA-VERIFY-PHASE6-CO`, 1 canonical work order, 5 tasks, 5 real `agent_runs`/`claude --bg`
+dispatches, 2 scratch files under the plugin cache used only for the path-traversal/
+sibling-collision security probes) were real DELETEs/`rm -rf`, not left in place or merely
+rolled back — re-queried directly after cleanup and confirmed zero residue. The real,
+pre-existing `systematic-debugging` component/attachment (not synthetic — found already
+live at campaign start) was left in exactly the state it was found: attached to
+`brain-os-implementation-engineer`, `install_status='enabled'`, real pinned SHA
+`b36e0829c6d0140e93cfef2ca599b1b07d4a7797` restored.
+
+**Verdict**: `E2E VERIFIED — VERSIONED PLUGIN/SKILL RUNTIME LIFECYCLE`. Every #49 claim in
+scope for this pass was independently re-derived and confirmed true; one new real defect
+((a) above) was found, fixed, and regression-tested live; two additional findings ((b),
+(c)) were investigated and honestly disclosed as real but not Brain-OS-fixable in this
+pass. See the verifier's own campaign file
+(`qa/verification/CURRENT_CAMPAIGN.json`, `verify-461ec6e-phase6-plugin-skill-lifecycle`)
+for full per-scenario evidence.

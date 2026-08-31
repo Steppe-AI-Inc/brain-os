@@ -750,3 +750,23 @@ refused before any hash/registry write (`assertPathWithinAllowedRoots`, `plugin-
 Code Setup, Claude-Mem, Headroom, OmniRoute) have not yet been processed through this pipeline;
 the plugin registry UI has not yet been updated to surface the new lifecycle states; a separate
 `brain-os-verifier` dispatch has not yet independently re-confirmed any of the above.
+
+**Update (`qa/KNOWN_FAILURE_MODES.md` #51, 2026-08-31): independently re-verified by a genuinely
+separate session.** Every claim above was re-derived from scratch (own `gh api` calls, own fresh
+`dispatch-task.mjs` Agent Runs read via raw `claude logs`, own out-of-bounds `definitionPath`
+attempts, own new controlled update-test version, own migration-liveness queries against
+`pg_constraint`/`information_schema`) rather than trusted. One new real defect found and fixed:
+`applyUpdate()`/`rollbackComponent()` called the fallible `hashFile()` (disk read +
+`assertPathWithinAllowedRoots` revalidation) *after* the first database write
+(`snapshotVersion()`), so a mid-sequence failure left a permanent orphaned
+`plugin_component_versions` row with no completed transition behind it — reproduced live by
+accident, fixed by reordering both functions (fallible operation first, database write second),
+regression-tested via `plugin-attach.regression.test.mjs`'s new source-order + fallibility
+assertions (8/8 passing). Two more findings disclosed, not fixed (neither is a Brain-OS-fixable
+plumbing defect): the dispatched agent's own free-text self-report of its attached skills is
+unreliable in ~half of sampled runs even though the raw transcript/DB are 100% correct every
+time (reinforces why those two, not the agent's own summary, are the real acceptance bar); and
+`definition_hash` determinism for cache-resident plugin content depends entirely on the upstream
+source repo's own `.gitattributes` discipline plus Claude Code's install mechanism — neither of
+which this repo's own `.gitattributes` (including #48's fix) can reach or protect. Full evidence:
+`qa/verification/CURRENT_CAMPAIGN.json` (`verify-461ec6e-phase6-plugin-skill-lifecycle`).

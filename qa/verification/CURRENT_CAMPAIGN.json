@@ -1,76 +1,54 @@
 {
-  "campaign_id": "verify-0f5ace8-phase5-beehive-dag",
-  "base_commit": "0f5ace888f75ef0de4f8f81f7d028e88450cb723",
-  "started_at": "2026-08-31T00:00:00Z",
-  "last_checkpoint_at": "2026-08-31T08:15:00Z",
-  "completed_at": "2026-08-31T08:15:00Z",
-  "worktree": "C:/Users/Dell/dev/brain-os-verify-0f5ace8",
-  "prior_campaign": "verify-08ae06e-phase3-realtime-phase4-notifications (superseded here - different scope, Phase 3/4 realtime+notifications, not Phase 5)",
-  "scope": "Independent, genuinely separate verification pass of Software Factory Phase 5 (capability-routed beehive DAG execution), documented in qa/KNOWN_FAILURE_MODES.md #45 and #47. This verifier has no memory of the implementing session and treated those entries only as pointers to re-derive, not as trusted fact.",
+  "campaign_id": "verify-461ec6e-phase6-plugin-skill-lifecycle",
+  "base_commit": "461ec6e458c04a24a54ff35f1f8e562056a14831",
+  "started_at": "2026-08-31T09:00:00Z",
+  "last_checkpoint_at": "2026-08-31T11:30:00Z",
+  "completed_at": "2026-08-31T11:30:00Z",
+  "worktree": "C:/Users/Dell/dev/brain-os-verify-461ec6e",
+  "prior_campaign": "verify-0f5ace8-phase5-beehive-dag (superseded - different scope, Phase 5 not Phase 6)",
+  "scope": "Independent re-verification of Software Factory Phase 6 (plugin/skill lifecycle), per KNOWN_FAILURE_MODES.md #49 (implementer's own self-report, not trusted). Re-derived all 7 required items from scratch.",
   "project_ref": "pvphxgrtdfrudejjhzjk",
   "tooling_gaps_disclosed": [
-    "ToolSearch is disabled for this session ('No such tool available: ToolSearch. ToolSearch is disabled for this session, in subagents as well as here.') - no mcp__claude-in-chrome__* browser tools were ever loadable. All UI-layer checks (there were none directly in scope for this Phase 5 verification - it is DB/scheduler-layer, not UI) are BLOCKED as a matter of record, not silently skipped."
+    "mcp__claude-in-chrome__* browser tools not loaded/exercised - explicitly out of scope per prompt (plugin registry UI excluded from this pass)."
   ],
   "synthetic_entities_created_by_this_campaign": {
-    "all_deleted_real_delete_not_rollback": "Company 55550005-0000-0000-0000-000000000001 (QA-VERIFY-PHASE5-CO), 3 canonical_work_orders (2cb21d7f-... QA-VERIFY-PHASE5-DAG, 008e081b-... QA-VERIFY-PHASE5-STALE, 932803e4-... QA-VERIFY-PHASE5-ADVERSARIAL-A), 9 tasks (T1-T4 DAG, T5-STALE, A1-A4), 7 agent_runs (real claude --bg dispatches: 55439fc3/5beafa97/79ac00ad/7a5ef1b4/a2f88314/14cee753/9d75f120, plus 1 direct-fixture stale row), and all associated founder_notifications. Re-queried directly after cleanup: remaining_agent_runs=0, remaining_company=0, remaining_notifications=0, remaining_tasks=0, remaining_work_orders=0. claude agents --json confirmed all 7 real dispatched sessions show idle/done, zero lingering background processes."
+    "all_deleted_real_delete_not_rollback": "Company 66660006-0000-0000-0000-000000000001 (QA-VERIFY-PHASE6-CO), 1 canonical_work_order (b8253dfc-2553-4c44-a899-a19c616cb66d), 5 tasks, 5 real agent_runs (provider_run_ids 0294345c/622f5a6e/47d219bb/e23951e6/64d03ee5 - real claude --bg dispatches, all confirmed idle/done post-cleanup). 2 scratch files under the plugin cache (qa-verify-phase6/SKILL.md, cache-evil/SKILL.md) used for the update-test + sibling-collision security probe, rm -rf'd. Re-queried directly after cleanup: remaining_agent_runs=0, remaining_tasks=0, remaining_wo=0, remaining_company=0.",
+    "note_on_pre_existing_real_entity": "Reused the real, pre-existing systematic-debugging component (68d54f36-edcb-4d0b-b337-11087d4b91b4) and brain-os-implementation-engineer agent (7703cae0-2a4f-4f11-b79f-f1bff1904820) - found ATTACHED with real SHA b36e0829... at campaign start (implementer's own leftover live state, not synthetic). Left in EXACTLY that same final state (attached=true, install_status=enabled, real path/hash/SHA) after a full detach->attach->apply-update(new controlled version)->rollback cycle - confirmed via direct query after all testing completed. Deleted one phantom plugin_component_versions row (5e86f7df-af8d-402b-9b87-80f37dff0720) this verifier itself caused via a crashed first apply-update attempt (see finding (a))."
   },
   "scenarios": {
-    "item1_agent_registry_fix_both_agents": {
+    "item1_migration_live_and_backfill": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - direct query of public.agents for brain-os-product-architect and brain-os-release-operator confirms execution_provider='claude_code_background', has_production_authority=true, active=true, permission_mode='auto', real distinct capabilities. qa/scenarios-runner/factory_agent_registry_dispatchability_truth.sql re-run live: all_pass=true, capable_but_undispatchable_agents=[]."
+      "evidence": "LIVE VERIFIED - direct pg_constraint/information_schema query confirms plugin_components_install_status_check allows the new 9-value enum, plugin_component_versions exists with RLS+founder-only policy, security_review_status/license_review_status columns present. Backfill confirmed: real, non-overwritten plugin_component_versions history for component 68d54f36 (5 rows by end of this campaign: 1 migration backfill initial_install + 2 from implementer's prior LOCAL-TEST-B cycle + 2 from this verifier's own new cycle)."
     },
-    "item1b_definition_hash_independent_recompute": {
-      "status": "PASS (after resolving a real but narrow methodology/fragility finding, not a registry defect)",
-      "evidence": "Independently computed SHA-256 (Node crypto, matching sync-agents.mjs's own method exactly: readFileSync(path,'utf8') then createHash('sha256').update(content,'utf8')) of both live .claude/agents/*.md files. First attempt, from an isolated git worktree checkout, did NOT match the DB value - root-caused to this machine's core.autocrlf=true converting LF to CRLF on a fresh checkout with no .gitattributes protection. The primary working directory's on-disk content (checked out under different historical settings) DOES match the DB hash exactly, confirmed via git cat-file -p HEAD:<path> matching the DB value byte-for-byte. provider.mjs's real startRunByAgentId hardcodes REPO_ROOT to the primary directory and re-verifies this same hash before every real dispatch - confirmed live-correct (zero hash-mismatch rejections across all 7 real dispatches this session). Fixed the underlying fragility (not a live defect) via a new, narrowly-scoped .gitattributes forcing eol=lf on .claude/agents/*.md. See qa/KNOWN_FAILURE_MODES.md #48 for full detail."
-    },
-    "item2_fresh_real_dag_proof": {
+    "item2_github_provenance": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED, E2E - brand-new Work Order 2cb21d7f-... created via real create_factory_work_order/create_factory_task RPCs, dispatched via real scheduler.mjs/complete-run.mjs/complete_work_order(). T1 (security) dispatched alone first cycle; T2 (backend) + T3 (frontend) dispatched together next cycle as two genuinely separate claude --bg processes (5beafa97/79ac00ad) under brain-os-implementation-engineer, real overlapping timestamps confirmed directly from agent_runs (T2 08:01:41-08:02:54, T3 08:02:03-08:02:59, genuine overlap); T4 (db_truth, fan-in) dispatched only after both T2/T3 done, routed to brain-os-verifier with a real attached-skill injection (verification-before-completion). Every dispatch (T1-T4) confirmed via `claude logs <provider_run_id>` (ANSI-stripped) to have genuinely replied with the exact instructed string. complete_work_order() succeeded (changed:true, newStatus:done)."
+      "evidence": "LIVE VERIFIED via gh api (this session's own auth): obra/superpowers real public repo, MIT license (both repo.license field and /license endpoint reading real LICENSE file), default_branch=main. Commit b36e0829c6d0140e93cfef2ca599b1b07d4a7797 real (2026-08-12). /compare/main...b36e0829 = identical, ahead_by=0, behind_by=0."
     },
-    "item3a_adversarial_failed_branch_blocks_fanin": {
+    "item3_central_acceptance_test_fresh_dispatch": {
+      "status": "PASS (core plumbing) with CONCERNS (AI self-report unreliability disclosed, see finding (b) in KNOWN_FAILURE_MODES #51)",
+      "evidence": "5 fresh real dispatch-task.mjs Agent Runs (0294345c/622f5a6e/47d219bb/e23951e6/64d03ee5), raw claude logs read directly by this verifier for every one. Baseline attached: transcript+DB show real SHA. Detach: transcript='NO ATTACHED SKILLS', DB attached_skills=[]. Re-attach: transcript+DB show real SHA again. In ALL 5 cases the raw prompt content and agent_runs.attached_skills column were 100% correct with zero exceptions. However the dispatched agent's own free-text self-summary was WRONG twice (R3 after re-attach, R5 after rollback both answered 'NO ATTACHED SKILLS' despite the skill block being plainly visible earlier in the same prompt) - a real, reproducible model self-report unreliability, not a plumbing defect. Documented in KNOWN_FAILURE_MODES #51(b)."
+    },
+    "item4_update_rollback_cycle_new_version": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - fresh 4-task DAG 932803e4-... A1(security, real dispatch+pass) -> A2(backend, real dispatch, deliberately completed rejected via complete-run.mjs) + A3(frontend, real dispatch+pass) -> A4(db_truth fan-in). Scheduler re-run after A2 rejected: dispatched:[], reason no_ready_tasks. Direct query confirmed A4.status stayed 'queued', never 'in_progress'. Also grep-confirmed isTaskPermanentlyBlocked is defined+unit-tested in scheduler.mjs but never called from dispatchReadyTasks - real, disclosed, accurately-described gap (status doesn't distinguish waiting vs permanently-blocked; behavior is still correct)."
+      "evidence": "LIVE VERIFIED E2E with a genuinely new controlled version (QA-VERIFY-PHASE6-SHA-9f2c71, definitionPath under the real allowed plugin-cache root, NOT a reuse of LOCAL-TEST-B). apply-update staged (install_status=installed, provenance external_capabilities=[] confirming not-yet-live semantics) -> enable -> real dispatch R4 (e23951e6) transcript+DB show the new QA SHA/path live -> rollback(targetVersionId=22a66305, the real pre-update snapshot) -> enable -> real dispatch R5 (64d03ee5) transcript+DB show the real b36e0829 SHA restored. plugin_component_versions accumulated real, distinct, non-overwritten rows throughout (5 total by end). Found and fixed a real defect in the process: see finding (a)."
     },
-    "item3b_adversarial_stale_worker_no_duplicate_dispatch": {
+    "item5_security_rls_and_path_traversal": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - real task/agent_run pair (WO 008e081b-...) with started_at 20min old, last_heartbeat_at 15min old, status in_progress, fake provider_run_id (no live claude session). Real scheduler.mjs CLI (which directly imports and calls the real notifyStaleAgents()/refreshHeartbeats(), not a reimplementation) correctly detected STALE, created exactly 1 real FACTORY_AGENT_STALE founder_notifications row, never re-dispatched (dispatched:[], task stayed in_progress). Repeat scheduler run: 0 new notifications (idempotent), agent_runs count for this task stayed exactly 1 before and after both runs. Also grep-confirmed (grep -riE 'requeue|re-dispatch|redispatch|automatic.*retry' across every .mjs in the repo) zero automatic retry/recovery logic exists anywhere for a STALE run - real, disclosed, accurately-described gap."
+      "evidence": "qa/scenarios-runner/factory_plugin_lifecycle_security.sql re-run live: all_pass=true, employee_rows_mutated=0, founder_rows_mutated=1. Independently attempted THREE out-of-bounds definitionPath variants: (1) direct absolute path (C:\\Windows\\System32\\drivers\\etc\\hosts) - refused, confirmed zero plugin_components rows created; (2) a ..-traversal escape from within an allowed root - refused (resolve() normalizes before the prefix check); (3) a sibling-directory-prefix collision (cache-evil/ vs cache/) - refused (trailing backslash in the startsWith check correctly prevents prefix-collision bypass). All three refused before any hash/registry write."
     },
-    "item3c_adversarial_scheduler_restart_no_duplicates": {
+    "item6_definition_hash_determinism": {
+      "status": "PASS (investigated and disclosed - deterministic today, but for reasons entirely external to this repo)",
+      "evidence": "Direct byte-level inspection of the live systematic-debugging SKILL.md in the plugin cache: 0 CRLF pairs, 283 bare LF, pure LF despite this machine's core.autocrlf=true (global and local). Root-caused: the cache tree has no .git directory (archive-based extraction, not git clone+checkout, so core.autocrlf is never applied), AND upstream obra/superpowers' own committed .gitattributes declares '*.md text eol=lf' (an attribute that would override local core.autocrlf even under a checkout-based mechanism). Cross-checked installed_plugins.json's own recorded gitCommitSha (b36e0829c6d0140e93cfef2ca599b1b07d4a7797) - a THIRD independent confirmation of the same provenance chain, matching plugin_sources.pinned_commit_sha and the gh api result. Disclosed, not fixed: this repo's own .gitattributes/#48 fix has zero effect on this file (outside the repo entirely); a future plugin source without its own eol=lf discipline would be exposed to #48's original fragility with no mitigation available at the Brain OS repo level. Documented in KNOWN_FAILURE_MODES #51(c)."
+    },
+    "item7_this_dispatch_ran_autonomously": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - fresh Node process invocation of scheduler.mjs against the already-fully-resolved DAG Work Order (2cb21d7f-...): agent_runs count 37 before, 37 after. Zero duplicates from a genuine cold restart."
-    },
-    "item4_full_specialist_registry_audit": {
-      "status": "PASS",
-      "evidence": "LIVE VERIFIED - qa/scenarios-runner/factory_specialist_registry_audit.sql re-run live against production: all 7 SOFTWARE_FACTORY/SECURITY/INTEGRATION/VERIFICATION/RELEASE agents (brain-os-factory-director, brain-os-product-architect, brain-os-implementation-engineer, brain-os-db-security-engineer, brain-os-integration-engineer, brain-os-verifier, brain-os-release-operator) show active=true, real distinct execution_provider/has_production_authority/capabilities, matching #47's own claim exactly (last_run_at/last_run_status for several agents advanced as an expected, honest side effect of this verifier's own real dispatches)."
-    },
-    "item5a_isTaskPermanentlyBlocked_not_wired": {
-      "status": "PASS (disclosed gap confirmed accurate)",
-      "evidence": "CODE INSPECTED + LIVE PROVEN (via item3a) - grep confirms isTaskPermanentlyBlocked is defined and exported in scheduler.mjs, used only in scheduler.regression.test.mjs, never called inside dispatchReadyTasks. Behavior is still correct today (isTaskReady's dependency-status check alone produces the right outcome, proven live in item3a) - the gap is purely a status-column legibility gap (queued vs permanently-blocked indistinguishable without checking depends_on), exactly as #47 described, neither overstated nor understated."
-    },
-    "item5b_no_automatic_stale_retry": {
-      "status": "PASS (disclosed gap confirmed accurate)",
-      "evidence": "CODE INSPECTED - grep -riE 'retry|requeue|re-dispatch|redispatch' across scripts/factory-runner/*.mjs and repo-wide *.mjs glob found zero real retry/recovery logic; the only 'retry' references are docstring comments describing the master plan's own retry-policy language as not-yet-implemented, exactly as #47 disclosed."
+      "evidence": "This entire verification campaign (skill load, worktree creation, ~15 DB queries, gh api calls, 5 real Agent Run dispatches with polling, a live code fix + regression tests + 2 documentation edits, DB cleanup, git commit/push) ran start-to-finish with zero interactive approval/plan-mode stalls and zero AskUserQuestion calls. The one blocking condition encountered (a background-session worktree-isolation guard on the first Write attempt) was a real technical guard, not a human-approval gate, and was resolved autonomously via `git worktree add` (the skill's own documented convention) without any user intervention or pause."
     }
-  },
-  "global_integrity_counts": {
-    "orphan_canonical_references": 0,
-    "active_child_to_invalid_or_archived_parent": 0,
-    "duplicate_relationships": 0,
-    "duplicate_entities_from_name_collision": 0,
-    "stale_authoritative_names_displayed": 0,
-    "ai_false_execution_claims_observed": 0,
-    "ui_db_contradictions_observed": "not applicable this pass - Phase 5 scope is DB/scheduler-layer, no UI surface exists for this feature yet",
-    "ai_db_contradictions_observed_count": 0,
-    "hash_drift_detection_fragility_found_and_fixed": 1,
-    "live_exploits_found": 0
   },
   "pending_db_pushes": [],
   "prepared_fixes": [],
   "live_verified_fixes": [
-    ".gitattributes (new file, repo root) - forces eol=lf on .claude/agents/*.md so definition_hash means the same thing on every future checkout regardless of core.autocrlf. Not a DB change, no migration involved - safe to commit/push directly, matches this repo's own fix-authority scope for web/ and tooling-level fixes."
+    "scripts/factory-runner/plugin-attach.mjs: reordered applyUpdate()/rollbackComponent() so hashFile() (fallible) always runs before the first database write (snapshotVersion) - closes the orphaned-history-row defect found live during this campaign. Regression test added in plugin-attach.regression.test.mjs (8/8 passing). Committed and pushed to master."
   ],
-  "not_fixed_disclosed_limitations": [
-    "isTaskPermanentlyBlocked (scheduler.mjs) remains defined but not wired into dispatchReadyTasks - status column still can't distinguish 'waiting' from 'permanently blocked' without a separate depends_on check. Confirmed real and correctly disclosed by #47, not fixed by this verification pass (behavior is correct, this is a legibility gap only, left as a small follow-up per #47's own framing).",
-    "No automatic retry/re-queue logic exists anywhere in this codebase for a STALE agent_run. Recovery today is manual (a human acts on the FACTORY_AGENT_STALE notification). Confirmed real and correctly disclosed by #47, not fixed by this verification pass (out of scope - a future phase's work per the master plan)."
-  ]
+  "remaining_scenarios": []
 }

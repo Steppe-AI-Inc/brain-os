@@ -54,7 +54,7 @@ const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 // (e.g. a credentials file, another agent's private definition).
 const ALLOWED_DEFINITION_ROOTS = [REPO_ROOT, 'C:\\Users\\Dell\\.claude\\plugins\\cache'];
 
-function assertPathWithinAllowedRoots(definitionPath) {
+export function assertPathWithinAllowedRoots(definitionPath) {
   const fullPath = isAbsolute(definitionPath) ? resolve(definitionPath) : resolve(REPO_ROOT, definitionPath);
   const ok = ALLOWED_DEFINITION_ROOTS.some((root) => fullPath.toLowerCase().startsWith(resolve(root).toLowerCase() + '\\'));
   if (!ok) {
@@ -87,7 +87,7 @@ async function runSql(sql) {
   }
 }
 
-function hashFile(definitionPath) {
+export function hashFile(definitionPath) {
   // Externally-adopted skills (e.g. obra/superpowers) live outside REPO_ROOT, in the
   // Claude Code plugin cache — an absolute definitionPath is stored and hashed as-is;
   // a relative one (a Brain-OS-authored .claude/skills/... file) resolves against
@@ -278,9 +278,23 @@ returning id, slug, install_status;
 // Snapshots the CURRENT (about-to-be-superseded) version first, then applies the new
 // definitionPath/pinnedCommitSha/installedVersion, recomputing definition_hash from the
 // real new file content — never a caller-supplied hash.
+//
+// Real live bug found and fixed during this verifier's own independent apply-update proof
+// (2026-08-31, not caught by the implementing session): hashFile() (which reads the new
+// file from disk and re-validates it against ALLOWED_DEFINITION_ROOTS — a real, fallible
+// operation, can throw ENOENT or a path-validation rejection) used to run AFTER
+// snapshotVersion() had already committed a real plugin_component_versions row. A failure
+// in hashFile() aborted the function but left that snapshot permanently in place — a
+// phantom "update" history row with no corresponding completed transition, violating
+// CLAUDE.md's "ALL commit or NONE commit" transactional-integrity rule. Reproduced live:
+// a transient file-write race left the new definition file briefly missing, hashFile()
+// threw ENOENT, and a real orphaned snapshot row was left in production
+// plugin_component_versions (cleaned up manually - see qa/KNOWN_FAILURE_MODES.md). Fixed
+// by computing newHash FIRST, before any database write — the fallible local operation now
+// always runs before the first side effect, so a failure here writes nothing at all.
 export async function applyUpdate(componentId, newDefinitionPath, newPinnedCommitSha, newInstalledVersion) {
-  await snapshotVersion(componentId, 'update');
   const newHash = hashFile(newDefinitionPath);
+  await snapshotVersion(componentId, 'update');
   const sourceRow = await runSql(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const sourceId = sourceRow.rows?.[0]?.source_id;
   if (sourceId) {
@@ -312,8 +326,12 @@ where id = ${sqlEscape(targetVersionId)}::uuid and plugin_component_id = ${sqlEs
 `);
   const row = target.rows?.[0];
   if (!row) throw new Error(`plugin-attach: no plugin_component_versions row ${targetVersionId} for component ${componentId}`);
-  await snapshotVersion(componentId, 'rollback');
+  // Same ordering fix as applyUpdate() above, same root cause: hashFile() is fallible
+  // (ENOENT, path-validation rejection) and must run before the first database write, not
+  // after, or a failure here leaves a phantom 'rollback' snapshot row with no completed
+  // transition behind it.
   const restoredHash = hashFile(row.definition_path);
+  await snapshotVersion(componentId, 'rollback');
   const sourceRow = await runSql(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const sourceId = sourceRow.rows?.[0]?.source_id;
   if (sourceId && row.pinned_commit_sha) {
