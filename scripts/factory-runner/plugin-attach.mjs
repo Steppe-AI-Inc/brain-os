@@ -44,6 +44,26 @@ import { syncAttachedCapabilities } from './sync-agents.mjs';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
+// A real component's content may only ever come from this repo itself or the local
+// Claude Code plugin cache (where `claude plugin install` actually places fetched
+// GitHub content) - never an arbitrary path a caller supplies. Real security gap found
+// and closed during Phase 6's own security review: discoverComponent/applyUpdate/
+// rollbackComponent accepted any definitionPath string with zero validation that it
+// actually lived under a source this pipeline is supposed to control - a component
+// could otherwise point at, and have its content hashed/injected from, any file on disk
+// (e.g. a credentials file, another agent's private definition).
+const ALLOWED_DEFINITION_ROOTS = [REPO_ROOT, 'C:\\Users\\Dell\\.claude\\plugins\\cache'];
+
+function assertPathWithinAllowedRoots(definitionPath) {
+  const fullPath = isAbsolute(definitionPath) ? resolve(definitionPath) : resolve(REPO_ROOT, definitionPath);
+  const ok = ALLOWED_DEFINITION_ROOTS.some((root) => fullPath.toLowerCase().startsWith(resolve(root).toLowerCase() + '\\'));
+  if (!ok) {
+    throw new Error(
+      `plugin-attach: refusing to use definitionPath "${definitionPath}" (resolves to "${fullPath}") - must live under one of: ${ALLOWED_DEFINITION_ROOTS.join(', ')}. A plugin component may never point at an arbitrary filesystem path.`
+    );
+  }
+  return fullPath;
+}
 
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
@@ -72,7 +92,8 @@ function hashFile(definitionPath) {
   // Claude Code plugin cache — an absolute definitionPath is stored and hashed as-is;
   // a relative one (a Brain-OS-authored .claude/skills/... file) resolves against
   // REPO_ROOT, matching sync-agents.mjs's own convention for agent definition files.
-  const fullPath = isAbsolute(definitionPath) ? definitionPath : join(REPO_ROOT, definitionPath);
+  // Every path is validated against ALLOWED_DEFINITION_ROOTS first - see its own comment.
+  const fullPath = assertPathWithinAllowedRoots(definitionPath);
   const content = readFileSync(fullPath, 'utf8');
   return createHash('sha256').update(content, 'utf8').digest('hex');
 }
