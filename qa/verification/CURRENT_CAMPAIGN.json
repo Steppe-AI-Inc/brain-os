@@ -17,7 +17,7 @@
   "scenarios": {
     "item1_realtime_publication_membership": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_publication_tables query against real production confirms agent_runs/canonical_work_orders/tasks/founder_notifications all present in supabase_realtime." },
     "item2_agents_with_live_status_stale_derivation": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_get_viewdef('public.agents_with_live_status', true) shows STALE derived from a live EXISTS subquery against agent_runs.last_heartbeat_at < now() - interval '10 minutes', never a stored/fakeable column." },
-    "item3_factory_realtime_rls_truth_rerun": { "status": "PASS (after a self-caught and fixed regression-test defect)", "evidence": "First run FAILED with a real, live check-constraint violation - the test still used the pre-Phase-4 literal 'work_order_blocked', which Phase 4's 202608310001 migration renamed to 'FACTORY_WORK_ORDER_BLOCKED' without sweeping this test file. Fixed the test literal, re-ran live: all_pass=true (10/10 assertions), zero residue confirmed by direct re-query. New KNOWN_FAILURE_MODES.md #42 entry documents this." },
+    "item3_factory_realtime_rls_truth_rerun": { "status": "PASS (after a self-caught and fixed regression-test defect)", "evidence": "First run FAILED with a real, live check-constraint violation - the test still used the pre-Phase-4 literal 'work_order_blocked', which Phase 4's 202608310001 migration renamed to 'FACTORY_WORK_ORDER_BLOCKED' without sweeping this test file. Fixed the test literal, re-ran live: all_pass=true (10/10 assertions), zero residue confirmed by direct re-query. New KNOWN_FAILURE_MODES.md #43 entry documents this (renumbered from #42 during merge - #42 was independently taken by a concurrent org-graph fix pushed to master while this campaign was running)." },
     "item4_realtime_refresher_and_notification_panel_code_review": { "status": "CODE INSPECTED", "evidence": "realtime-refresher.tsx subscribes postgres_changes on agent_runs/canonical_work_orders/tasks (event: *), debounced router.refresh(). notification-panel.tsx subscribes INSERT+UPDATE on founder_notifications, seeded from server fetch. Both resolve/mark-read actions (web/lib/data/factory.ts) call the real RPCs resolve_founder_notification/mark_founder_notification_read via supabase.rpc(), confirmed by direct grep - not simulated. UI RENDERING ITSELF WAS NOT VISUALLY CONFIRMED - see tooling_gaps_disclosed." },
     "item5_factory_notification_lifecycle_truth_rerun": { "status": "PASS", "evidence": "LIVE VERIFIED - re-run independently against real production inside begin;...rollback;, all_pass=true (7/7 assertions: dedupe, resolve, re-notify-after-genuine-new-episode, completion-exactly-once, non-admin-resolve-blocked, non-admin-mark-read-blocked, healthy-heartbeat-not-stale). Zero residue confirmed by direct re-query." },
     "item6a_on_conflict_predicate_match": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_get_functiondef shows 'on conflict (dedupe_key) where status != 'resolved' and dedupe_key is not null', byte-matching the real partial unique index definition read via pg_indexes ('WHERE ((status <> 'resolved'::text) AND (dedupe_key IS NOT NULL))')." },
@@ -42,14 +42,14 @@
   },
   "pending_db_pushes": [
     {
-      "migration": "supabase/migrations/202608310002_create_founder_notification_revoke_anon.sql",
+      "migration": "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql",
       "fixes": "CRITICAL - anon (fully unauthenticated) role can currently call create_founder_notification and insert attacker-controlled founder_notifications rows, including squatting a dedupe_key to permanently suppress a real future notification.",
       "rollback_test_evidence": "Tested twice live inside begin;...rollback;: (1) exploit call as anon correctly fails with 'permission denied for function create_founder_notification' after the revoke, causing the whole test transaction to abort/rollback on its own; (2) separately, a real trigger-driven transition (blocked) still successfully creates a real notification after the revoke, proving nested SECURITY DEFINER calls remain unaffected.",
       "urgency": "HIGHEST PRIORITY founder-approval item from this entire verification pass - a live, currently-exploitable, zero-authentication security hole in production."
     }
   ],
   "prepared_fixes": [
-    "supabase/migrations/202608310002_create_founder_notification_revoke_anon.sql - FIX PREPARED, NOT PUSHED (see pending_db_pushes)"
+    "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql - FIX PREPARED, NOT PUSHED (see pending_db_pushes)"
   ],
   "live_verified_fixes": [
     "qa/scenarios-runner/factory_realtime_rls_truth.sql - fixed the stale pre-Phase-4 event_type literal ('work_order_blocked' -> 'FACTORY_WORK_ORDER_BLOCKED'), re-run live, all_pass=true, zero residue. This is a qa/ file only, no production DB change involved - fully live-verified and safe to have fixed directly."

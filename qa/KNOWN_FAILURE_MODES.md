@@ -2892,12 +2892,22 @@ superseded tasks archived (`archive_task()`); their own two failed agent_runs cl
 **Real, disclosed, NOT worked around**: after this reconciliation, `complete_work_order()`
 still refuses to close `e35219b8-...` — `incomplete_or_failed_run`, because a `rejected`
 agent_run remains linked to the Work Order even though its own task was properly archived.
-This may be entirely correct, intentional design (a Work Order with ANY rejected run in its
-history arguably should require explicit human/founder review before closing, not an
-automatic pass-through once the failed task is merely archived) — or it may be a real gap
-worth fixing in a future pass. Left honestly at `status='in_progress'`, an accurate reflection
-of its real history, rather than forced closed. Flagged for Phase 10 proper, not solved here
-as a side effect of an unrelated scheduler test.
+Left honestly at `status='in_progress'`, an accurate reflection of its real history, rather
+than forced closed. Flagged for Phase 10 proper, not solved here as a side effect of an
+unrelated scheduler test.
+
+**Resolved 2026-08-31, while waiting on the Phase 3/4 verifier**: read
+`202608300002_complete_work_order.sql`'s own check directly (line ~179-192) — this is
+**confirmed intentional design, not a bug**. Its own comment states the requirement
+explicitly: "every linked agent_run must be done - covers a still-running run (blocks
+premature completion) and a rejected run... equally." The check counts every `agent_runs`
+row linked by `canonical_work_order_id` regardless of its task's archive status, by design
+— a real historical failure should require explicit human/founder acknowledgment before a
+Work Order can be marked done, not get silently laundered away by archiving the failed
+task alone. `e35219b8-...` staying at `in_progress` is therefore the CORRECT state, not an
+open gap — it accurately reflects that a real failure happened in its history and hasn't
+been explicitly overridden. No code change made; this closes the open question from the
+Phase 2 entry above rather than leaving it unresolved.
 
 ## 39. Software Factory Phase 3 — real-time Workflow Factory control center, first real Realtime wiring in this codebase (2026-08-30)
 
@@ -3048,7 +3058,34 @@ CLI invocation — both are faithful to the real shipped function (same code pat
 just not the exact end-to-end CLI/timing shape a fully autonomous 24-hour poll loop would
 use.
 
-## 42. Independent re-verification of Phase 3/4 (commit 08ae06e) — CONFIRMED LIVE overall, plus one CRITICAL unauthenticated privilege-escalation hole self-caught, one stale-regression-test defect self-caught (2026-08-31)
+## 42. `validate_organization_graph()` never excludes archived companies from `businessUnitsWithoutParentEdge` — real false-positive found while reconciling a dormant fixture (2026-08-31)
+
+While waiting on the Phase 3/4 verifier, investigated the one dormant finding an earlier
+independent verifier flagged but left out of scope (#36's own report):
+`businessUnitsWithoutParentEdge=['QA-LIFECYCLE-BU']`. Confirmed it was genuine synthetic
+QA fixture debris (both linked `people` rows named `QA-LIFECYCLE-EMPLOYEE`/
+`QA-LIFECYCLE-EMPLOYEE2`, zero goals/tasks/Work Orders, zero relationships), archived it
+via the real `archive_company()` RPC (reversible, preserves history, per the founder's own
+Phase 10 rule to close things through canonical lifecycle operations, never a raw
+`UPDATE`).
+
+**Real gap found**: re-running `validate_organization_graph()` afterward still flagged it —
+the `businessUnitsWithoutParentEdge` sub-check (`202608280010_organization_graph_integrity_checker.sql`,
+last touched by `202608290009`) has **no status filter at all**, so it flags any
+non-`legal_entity` company with no parent relationship edge regardless of whether it has
+already been correctly archived. This is a real, generalizable false-positive: any
+archived business unit will show up in this check forever, indistinguishable from a
+genuinely live data-integrity problem, for as long as this gap exists — not specific to
+this one fixture.
+
+**Fix authored, NOT pushed** (`202608310002_org_graph_check_excludes_archived.sql`) — a
+minimal, surgical `create or replace function` adding `and c.status <> 'archived'` to
+only the one broken sub-check; every other sub-check in the function is left byte-for-byte
+identical, deliberately not a broader audit of the whole integrity checker. GATED per the
+standing rule; needs explicit founder authorization before push, same as every other
+schema change this session.
+
+## 43. Independent re-verification of Phase 3/4 (commit 08ae06e) — CONFIRMED LIVE overall, plus one CRITICAL unauthenticated privilege-escalation hole self-caught, one stale-regression-test defect self-caught (2026-08-31)
 
 A genuinely separate verifier (no memory of the #37-#41 implementation session) re-derived
 every claim in #39-#41 directly against live production rather than trusting the prior
@@ -3095,7 +3132,7 @@ on. Same-defect-class search performed live across every `SECURITY DEFINER` func
 down, one role slipped through" signature): `create_founder_notification` is the ONLY
 function in this database with this shape — not systemic, but real and currently live in
 production. **FIX PREPARED, not pushed**:
-`supabase/migrations/202608310002_create_founder_notification_revoke_anon.sql`
+`supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql`
 (`revoke all on function public.create_founder_notification from anon;`), rollback-tested
 twice live (exploit correctly fails with `permission denied for function
 create_founder_notification` after the revoke; both structural triggers still fire
