@@ -38,7 +38,15 @@ async function getDashboardData() {
       // observed returning count: null with no error on production, the known
       // failure mode when a HEAD response's Content-Range header goes missing.
       // Fetching actual id rows sidesteps that; .length is the real source of truth.
-      supabase.from("companies").select("id", { count: "exact" }),
+      //
+      // BUG-003 (Work-PC QA campaign C001): this count had no status filter at all,
+      // so it counted archived companies too - 18 shown when only 8 were actually
+      // active, overstating by 125%, and the figure didn't move when a company was
+      // archived. getCompanies() (web/lib/data/companies.ts), the authoritative
+      // /companies list this KPI is supposed to summarize, already excludes
+      // archived - matched here for the same reason: a headline number must equal
+      // its own authoritative list, not a different, undocumented definition of it.
+      supabase.from("companies").select("id", { count: "exact" }).neq("status", "archived"),
       supabase
         .from("goals")
         .select("id, title, status, kind, progress, companies(name)")
@@ -88,7 +96,7 @@ export default async function DashboardPage() {
           accent="rose"
         />
         <StatCard icon={Activity} label="Runs (14d)" value={stats.recentRuns} accent="cyan" />
-        <StatCard icon={Building2} label="Companies" value={stats.companies} accent="violet" />
+        <StatCard icon={Building2} label="Active Companies" value={stats.companies} accent="violet" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

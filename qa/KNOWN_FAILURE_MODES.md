@@ -4079,3 +4079,37 @@ own live verification, not yet an independent `brain-os-verifier` confirmation (
 in progress — see the campaign this entry is part of) and not yet a Work-PC human QA
 retest of the deployed fix. `tasks_update_scope`/`archive_task`/`restore_task`'s shared
 open design question remains explicitly open, not resolved by this entry.
+## 53. BUG-003 (P2, Work-PC QA campaign C001) — dashboard "Companies" KPI counted archived companies, overstating by 125% (FOUND BY WORK-PC QA, FIXED, DEPLOYED — 2026-09-01)
+
+**Note on numbering**: entry #53 was reserved for BUG-002 (chat completion-claim
+fabrication) in the implementing session's original commit order, but that fix's
+commit was deliberately held back locally (real, gated Edge Function deploy awaiting
+founder authorization while the founder was asleep — see `qa/KNOWN_FAILURE_MODES.md`'s
+own future entry once it lands) so it wouldn't block THIS unrelated, already-safe
+web-only fix from reaching `origin`. BUG-002's own entry will be appended as a later
+numbered entry once its commit is authorized and rejoined, not renumbered into this
+slot retroactively.
+
+**Finding (`qa/bugs/BUG-003.md`)**: `/dashboard` showed "18 Companies" while
+`/companies` (the authoritative list) showed 8 — production has 8 active + 10 archived.
+Confirmed live at fix time: identical 18/8/10 split. Root cause, verified in source:
+`web/app/(app)/dashboard/page.tsx`'s companies count had no status filter at all, unlike
+`getCompanies()` (`web/lib/data/companies.ts`), which already correctly excludes
+archived — the only one of the dashboard's four stats missing its filter (goals/
+approvals/runs were all already correctly scoped).
+
+**Fix**: added the identical `.neq("status", "archived")` `getCompanies()` already uses
+— a headline number must equal its own authoritative list, not a silently different
+definition of it. Relabeled the KPI "Active Companies" (was bare "Companies") per the
+founder's explicit preference for a stated semantic over an ambiguous one. Deliberately
+did **not** switch to the stricter `get_effectively_active_companies()` RPC (which also
+excludes companies with an archived *ancestor*, the separate BUG-001 class) — doing so
+here would risk a NEW mismatch against `/companies`' own simpler non-archived count,
+which is what this fix is required to match exactly per QA's own spec. Left as a
+disclosed follow-up recommendation (QA's own #2), not silently adopted.
+
+Permanent regression: `qa/scenarios-runner/dashboard_company_count_excludes_archived.sql`
+— confirms the live count (8) and that both the dashboard and `getCompanies()` source
+now use the byte-identical filter expression. Full `tsc --noEmit`/`eslint`/`next build`
+clean. Not an Edge Function change — not subject to the `pre-push` functions-deploy
+guard, pushed normally.
