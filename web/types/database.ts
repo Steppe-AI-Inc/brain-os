@@ -1531,35 +1531,47 @@ export type Database = {
       }
       founder_notifications: {
         Row: {
+          action_required: boolean
           agent_run_id: string | null
           body: string | null
           created_at: string
+          dedupe_key: string | null
           event_type: string
           id: string
           read_at: string | null
+          resolved_at: string | null
           severity: string
+          status: string
           title: string
           work_order_id: string | null
         }
         Insert: {
+          action_required?: boolean
           agent_run_id?: string | null
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           event_type: string
           id?: string
           read_at?: string | null
+          resolved_at?: string | null
           severity?: string
+          status?: string
           title: string
           work_order_id?: string | null
         }
         Update: {
+          action_required?: boolean
           agent_run_id?: string | null
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           event_type?: string
           id?: string
           read_at?: string | null
+          resolved_at?: string | null
           severity?: string
+          status?: string
           title?: string
           work_order_id?: string | null
         }
@@ -3616,6 +3628,7 @@ export type Database = {
         Row: {
           active: boolean | null
           allowed_tools: Json | null
+          capabilities: string[] | null
           category: string | null
           cost_limit_usd: number | null
           created_at: string | null
@@ -3644,6 +3657,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           allowed_tools?: Json | null
+          capabilities?: string[] | null
           category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
@@ -3672,6 +3686,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           allowed_tools?: Json | null
+          capabilities?: string[] | null
           category?: string | null
           cost_limit_usd?: number | null
           created_at?: string | null
@@ -3886,6 +3901,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_founder_notification: {
+        Args: {
+          p_action_required?: boolean
+          p_agent_run_id: string
+          p_body: string
+          p_dedupe_key: string
+          p_event_type: string
+          p_severity: string
+          p_title: string
+          p_work_order_id: string
+        }
+        Returns: string
+      }
       create_mcp_connector_secret: {
         Args: { p_name: string; p_secret: string }
         Returns: string
@@ -3941,6 +3969,7 @@ export type Database = {
       is_founder_or_admin: { Args: never; Returns: boolean }
       is_hr_finance: { Args: never; Returns: boolean }
       is_investor_viewer_of: { Args: { cid: string }; Returns: boolean }
+      mark_founder_notification_read: { Args: { p_id: string }; Returns: Json }
       mark_work_order_failed: {
         Args: { p_error: string; p_work_order_id: string }
         Returns: undefined
@@ -3979,6 +4008,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_founder_notification: { Args: { p_id: string }; Returns: Json }
       restore_company: { Args: { p_company_id: string }; Returns: Json }
       restore_goal: { Args: { p_goal_id: string }; Returns: Json }
       restore_person_employment: {
