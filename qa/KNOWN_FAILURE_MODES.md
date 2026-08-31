@@ -3245,3 +3245,105 @@ than perpetually red over the separately-tracked, pre-existing five-function fin
 authorization before `supabase db push`, per the standing rule — presented as the next
 authorization boundary. Target phrase once pushed and independently re-verified:
 `LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
+
+**Resolution, 2026-08-31 (office machine, founder-authorized)**: `202608310002` and
+`202608310003` were both independently re-verified LIVE VERIFIED before this session even
+ran `supabase db push` — a real `pg_get_functiondef`/`has_function_privilege` query against
+production showed both fixes' actual DDL effects already present (org-graph archived-status
+filter live in `validate_organization_graph`'s body; `anon`/`authenticated` both correctly
+denied on all three Phase 4 functions), consistent with this codebase's own repeated lesson
+not to trust `supabase migration list`/`db push --dry-run` bookkeeping alone (#40). The
+subsequent real `db push` correctly reported `upToDate: true` (no-op). Full 3-persona live
+proof for `202608310003` (anon denied, non-admin `authenticated` denied internally, real
+founder path reaches its intended logic) re-run and passed —
+`LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
+`qa/verification/CURRENT_CAMPAIGN.json` has been corrected to stop presenting this as an
+open `pending_db_push`.
+
+## 45. Dedicated security review of the 5 pre-existing anon/PUBLIC-granted functions #43-#44 disclosed but did not fix (2026-08-31)
+
+Founder explicitly ordered this review rather than accepting "confirmed NOT currently
+exploitable" (#44's own phrasing) as sufficient — per instruction, "not exploitable today"
+is not the same claim as "safe."
+
+**Per-function live evidence** (each read directly via `pg_get_functiondef`/
+`has_function_privilege`, then live-tested as `anon`, a real non-admin `authenticated`
+profile, and — for the two org-graph functions — the real founder profile, all inside
+`begin;...rollback;`, zero residue):
+
+- **`create_mcp_connector_secret(text,text)`**, **`delete_mcp_connector_secret(uuid)`**,
+  **`get_mcp_connector_token(uuid)`** — all three `SECURITY DEFINER`; `anon` +
+  `authenticated` both individually granted (no bare `PUBLIC` grant). All three gate on
+  `if not is_founder_or_admin() then raise exception` as literally the first statement,
+  before any `vault.secrets`/`vault.decrypted_secrets` access — live-tested as `anon`:
+  all three raise `not authorized` immediately, zero side effect (no secret created,
+  nothing deleted, nothing decrypted/returned). Intended callers confirmed real: all three
+  are called from `web/lib/data/mcp-connectors.ts` via the logged-in user's own
+  session-scoped `createClient()` — `authenticated` is a genuine, needed grant; `anon` is
+  not. No RLS bypass concern (they touch `vault.secrets`, not an RLS-governed `public`
+  table). **`get_mcp_connector_token` is the highest-value target of the five** — its
+  return value is a live, decrypted third-party bearer token, not merely an authorization
+  boundary, so a future gate regression here is a direct secret-disclosure bug, not just a
+  permission bug.
+- **`set_company_relationship(...)`**, **`set_person_assignment(...)`** — both
+  `SECURITY DEFINER`; `anon` + `authenticated` + a bare **`PUBLIC`** grant (broader than
+  the MCP three — `PUBLIC` is inherited automatically by any future role, not just today's
+  three). Both gate first, before any read/write (`set_person_assignment`'s gate is
+  `is_founder_or_admin() OR is_company_manager(target company)` — verified
+  `is_company_manager()` is null-safe: an `EXISTS(...)` predicate, never evaluates to
+  `NULL` for an anon/no-profile caller, so it can't be bypassed via a null-comparison
+  quirk). Live-tested as `anon` and as a real non-manager `authenticated` employee: both
+  denied, zero side effect. Live-tested as the real founder profile with deliberately
+  nonexistent test ids: both correctly **passed the authorization gate and failed only on
+  a genuine FK-constraint violation** (`company_relationships_company_id_fkey`/
+  `person_assignments_person_id_fkey`) — proof the intended path is real production logic,
+  not a stubbed-out `true`. Intended callers confirmed real: `set_person_assignment` is
+  called from `supabase/functions/sem-ai-command/index.ts`'s caller-JWT-scoped client
+  (the AI chat's `reassign_person` task); `authenticated` is genuinely needed on both.
+
+**A sixth function with the identical shape, not one of the five named, found during this
+review's own broader sweep**: `validate_organization_graph` — also `SECURITY DEFINER`,
+also `anon`+`authenticated`+`PUBLIC` granted, also gates first
+(`if not is_founder_or_admin()`). Deliberately **not** given the same full live-tested
+depth as the five above and **not** bundled into this review's migration — tracked as a
+disclosed, separately-owned follow-up (see the new generic regression's
+`known_disclosed_exceptions`, below) rather than silently fixed alongside a review that
+didn't actually cover it to the same rigor.
+
+**Also checked and ruled out as a real attack surface**: the broader sweep initially
+flagged ~13 more `SECURITY DEFINER` functions with the same `anon`/`PUBLIC` grant shape
+(`enforce_*`, `force_*`, `notify_*`, `handle_new_auth_user`) — confirmed live (sampled,
+not assumed) that these are all `RETURNS TRIGGER` functions. Postgres itself refuses a
+direct call to a trigger function outside actual trigger firing
+("trigger functions can only be called as triggers"), independent of any EXECUTE grant —
+so these inheriting the default `anon`/`PUBLIC` grant is real hygiene debt but not a live
+or plausible attacker path, and is excluded from this review's fix and from the new
+regression's `all_pass` scope (see the regression file's own exclusion comment).
+
+**Classification, all five**: **OVERPRIVILEGED — DEFENSE-IN-DEPTH FIX REQUIRED.** None are
+`LIVE EXPLOITABLE` today; all fail closed via an unconditional, first-statement internal
+gate under live testing. The fix is prepared, not applied — see
+`supabase/migrations/202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql`,
+gated on founder authorization for `supabase db push` like every other production DB
+change in this project. The actual reason this is still worth fixing despite "not
+exploitable today": every one of #41, #43/#44, and this entry found the *exact* same root
+cause (Supabase's own default per-function grants, never explicitly revoked) independently,
+on different functions, at different times — the gate-gets-refactored-and-the-grant-was-
+the-only-real-backstop failure mode is a real, recurring authoring mistake in this
+codebase, not a one-off.
+
+**Permanent regression added**: `qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql`
+— a whole-schema generalization of `factory_rpc_privilege_sweep.sql`'s Part A (not scoped
+to factory/notification functions specifically), with an explicit, individually-justified
+`known_disclosed_exceptions` allowlist (currently just `validate_organization_graph`) so
+`all_pass` stays a truthful "did a NEW function just make this same mistake" signal rather
+than either perpetually red over already-disclosed items or silently green over them. Run
+live against production as of this writing: `all_pass: false`,
+`unexpected_new_violations` correctly lists all five functions from this review (expected —
+`202608310004` has not been pushed yet), `known_disclosed_exceptions_still_present:
+["validate_organization_graph"]`.
+
+**Gated, NOT pushed**: `202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql`
+requires explicit founder authorization before `supabase db push` — presented as the next
+authorization boundary. Target phrase once pushed and independently re-verified:
+`LIVE VERIFIED — LEGACY PRIVILEGED RPC ANON/PUBLIC ACCESS CLOSED`.

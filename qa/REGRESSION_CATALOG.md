@@ -665,3 +665,20 @@ same mistake — investigate immediately, don't assume it's safe. Part B is the 
 3-persona live behavioral proof (anon denied, non-admin denied, founder's real canonical
 path still works) for whichever functions are actually in scope for the change being
 tested.
+
+## Whole-schema privileged-RPC anon/PUBLIC grant sweep (catches: `qa/KNOWN_FAILURE_MODES.md`
+#45 — the dedicated 5-function security review)
+
+`qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql` (read-only, no
+transaction needed) generalizes the factory-scoped sweep above into a whole-`public`-schema
+guard: any `SECURITY DEFINER`, non-trigger-return-type function outside the
+`is_/has_/current_` RLS-helper exclusion that holds an `anon` or bare `PUBLIC` EXECUTE
+grant is a violation, unless it's in the explicit, individually-justified
+`known_disclosed_exceptions` list inside the file itself (as of 2026-08-31, just
+`validate_organization_graph` — found during the #45 review, same shape, not yet given the
+full per-function review its siblings received). `all_pass` is true only once
+`unexpected_new_violations` is empty — a name appearing there that isn't in the allowlist
+means a function was just created (or re-created) with the same authoring mistake #41/#43/
+#45 keep independently rediscovering. Run this after adding or modifying ANY
+`SECURITY DEFINER` function anywhere in the schema, not just factory/notification code —
+that's the whole point of it being generic rather than feature-scoped.

@@ -42,20 +42,22 @@
   },
   "pending_db_pushes": [
     {
-      "migration": "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql",
-      "fixes": "CRITICAL - anon (fully unauthenticated) role can currently call create_founder_notification and insert attacker-controlled founder_notifications rows, including squatting a dedupe_key to permanently suppress a real future notification.",
-      "rollback_test_evidence": "Tested twice live inside begin;...rollback;: (1) exploit call as anon correctly fails with 'permission denied for function create_founder_notification' after the revoke, causing the whole test transaction to abort/rollback on its own; (2) separately, a real trigger-driven transition (blocked) still successfully creates a real notification after the revoke, proving nested SECURITY DEFINER calls remain unaffected.",
-      "urgency": "HIGHEST PRIORITY founder-approval item from this entire verification pass - a live, currently-exploitable, zero-authentication security hole in production."
+      "migration": "supabase/migrations/202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql",
+      "fixes": "OVERPRIVILEGED / DEFENSE-IN-DEPTH (not currently exploitable, live-tested): create_mcp_connector_secret, delete_mcp_connector_secret, get_mcp_connector_token, set_company_relationship, and set_person_assignment all retain a default anon (two also bare PUBLIC) EXECUTE grant, never explicitly revoked. All five fail closed today via an unconditional, first-statement internal is_founder_or_admin()-class gate - this migration removes the unneeded grant so a future refactor of that gate can't silently reopen unauthenticated access with zero grant-level signal.",
+      "rollback_test_evidence": "See qa/KNOWN_FAILURE_MODES.md #45 for full per-function live evidence (anon denied zero-side-effect, non-admin authenticated denied, founder path reaches real logic proven via a genuine FK-constraint hit on deliberately nonexistent test ids), all inside begin;...rollback;, zero residue.",
+      "urgency": "Founder-authorized fix, not urgent (no live exploit) - defense-in-depth per explicit instruction not to treat 'not currently exploitable' as 'safe'."
     }
   ],
   "prepared_fixes": [
-    "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql - FIX PREPARED, NOT PUSHED (see pending_db_pushes)"
+    "supabase/migrations/202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql - FIX PREPARED, NOT PUSHED (see pending_db_pushes)"
   ],
   "live_verified_fixes": [
-    "qa/scenarios-runner/factory_realtime_rls_truth.sql - fixed the stale pre-Phase-4 event_type literal ('work_order_blocked' -> 'FACTORY_WORK_ORDER_BLOCKED'), re-run live, all_pass=true, zero residue. This is a qa/ file only, no production DB change involved - fully live-verified and safe to have fixed directly."
+    "qa/scenarios-runner/factory_realtime_rls_truth.sql - fixed the stale pre-Phase-4 event_type literal ('work_order_blocked' -> 'FACTORY_WORK_ORDER_BLOCKED'), re-run live, all_pass=true, zero residue. This is a qa/ file only, no production DB change involved - fully live-verified and safe to have fixed directly.",
+    "supabase/migrations/202608310002_org_graph_check_excludes_archived.sql - LIVE VERIFIED 2026-08-31: pg_get_functiondef confirms the archived-status filter is genuinely present in validate_organization_graph's body in production, independent of migration-history bookkeeping.",
+    "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql - LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED 2026-08-31: qa/scenarios-runner/founder_notification_no_anon_exploit.sql re-run live, all_pass=true; a dedicated 3-persona proof (anon denied on all three Phase 4 functions, non-admin authenticated denied internally on resolve/mark_read, real founder profile reaches the real authorized branch on both) also re-run live and passed. This was previously listed below as an open pending_db_push - it is not; see qa/KNOWN_FAILURE_MODES.md #44's 2026-08-31 resolution note for why migration-history bookkeeping alone should never be trusted for this (#40's own lesson)."
   ],
   "not_fixed_disclosed_limitations": [
-    "202608310002 (anon revoke) requires founder-authorized db push - not applied by this verifier per the standing no-autonomous-db-push rule, despite being a live, currently-exploitable critical security hole. See pending_db_pushes for full detail."
+    "validate_organization_graph carries the same anon/PUBLIC-granted, gate-first shape as the five functions #45 reviewed in depth, but was not itself given that same per-function review and is not fixed by 202608310004 - tracked as a known_disclosed_exception in qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql, needs its own follow-up review."
   ],
   "tooling_gaps_disclosed": [
     "No browser automation tool (mcp__claude-in-chrome__* or any ToolSearch-loadable equivalent) was available anywhere in this session's tool registry - confirmed by direct attempt (this session's actual tool list contains only Read/Grep/Glob/Bash/Edit/Write/Skill, no ToolSearch function to invoke). Item 4's UI-rendering-layer checks (authenticated page load, live notification panel update, live realtime auto-refresh) are BLOCKED, not silently substituted as complete - matches the same disclosed gap as KNOWN_FAILURE_MODES.md #39."
