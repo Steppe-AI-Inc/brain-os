@@ -2892,12 +2892,22 @@ superseded tasks archived (`archive_task()`); their own two failed agent_runs cl
 **Real, disclosed, NOT worked around**: after this reconciliation, `complete_work_order()`
 still refuses to close `e35219b8-...` — `incomplete_or_failed_run`, because a `rejected`
 agent_run remains linked to the Work Order even though its own task was properly archived.
-This may be entirely correct, intentional design (a Work Order with ANY rejected run in its
-history arguably should require explicit human/founder review before closing, not an
-automatic pass-through once the failed task is merely archived) — or it may be a real gap
-worth fixing in a future pass. Left honestly at `status='in_progress'`, an accurate reflection
-of its real history, rather than forced closed. Flagged for Phase 10 proper, not solved here
-as a side effect of an unrelated scheduler test.
+Left honestly at `status='in_progress'`, an accurate reflection of its real history, rather
+than forced closed. Flagged for Phase 10 proper, not solved here as a side effect of an
+unrelated scheduler test.
+
+**Resolved 2026-08-31, while waiting on the Phase 3/4 verifier**: read
+`202608300002_complete_work_order.sql`'s own check directly (line ~179-192) — this is
+**confirmed intentional design, not a bug**. Its own comment states the requirement
+explicitly: "every linked agent_run must be done - covers a still-running run (blocks
+premature completion) and a rejected run... equally." The check counts every `agent_runs`
+row linked by `canonical_work_order_id` regardless of its task's archive status, by design
+— a real historical failure should require explicit human/founder acknowledgment before a
+Work Order can be marked done, not get silently laundered away by archiving the failed
+task alone. `e35219b8-...` staying at `in_progress` is therefore the CORRECT state, not an
+open gap — it accurately reflects that a real failure happened in its history and hasn't
+been explicitly overridden. No code change made; this closes the open question from the
+Phase 2 entry above rather than leaving it unresolved.
 
 ## 39. Software Factory Phase 3 — real-time Workflow Factory control center, first real Realtime wiring in this codebase (2026-08-30)
 
