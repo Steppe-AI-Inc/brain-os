@@ -169,7 +169,7 @@ export async function notifyStaleAgents() {
 select ls.id, ls.canonical_work_order_id, ls.agent_id, a.name as agent_name
 from public.agent_runs_with_live_status ls
 join public.agents a on a.id = ls.agent_id
-where ls.live_status = 'STALE';
+where ls.live_run_status = 'STALE';
 `);
   const staleRuns = result.rows ?? [];
   const notified = [];

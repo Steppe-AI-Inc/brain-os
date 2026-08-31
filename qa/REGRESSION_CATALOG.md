@@ -576,3 +576,66 @@ new content never runs. Before trusting a push, independently re-query the live 
 whatever the migration was supposed to change (a view definition, a publication's table
 list, a column) — never trust the push command's own exit status as proof of the intended
 end state.
+
+## Phase 4 typed notification event model (catches: `qa/KNOWN_FAILURE_MODES.md` #41's four
+real bugs + the founder's full permanent-regression list, added 2026-08-31)
+
+`qa/scenarios-runner/factory_notification_lifecycle_truth.sql` (rolled-back transaction) —
+re-run after any change to `create_founder_notification`/`resolve_founder_notification`/
+`mark_founder_notification_read`, either trigger function, or the `founder_notifications`
+schema. Covers, each with a specific real-bug lineage:
+
+- **FACTORY_NOTIFICATION_IDEMPOTENT** — the partial unique index (`dedupe_key WHERE
+  status != 'resolved' AND dedupe_key IS NOT NULL`) and `create_founder_notification`'s
+  own `ON CONFLICT` clause must use the **exact same predicate**, or every insert fails
+  outright (real bug #2) — a byte-for-byte match, not "close enough."
+- **FACTORY_NOTIFICATION_RESOLVES_WITH_BLOCKER** — resolving a notification, then a
+  genuinely new occurrence of the same `dedupe_key` prefix (different state marker) must
+  notify again — a resolved blocker must never be permanently suppressed.
+- **FACTORY_NOTIFICATION_DERIVED_FROM_CANONICAL_STATE** /
+  **FACTORY_BLOCKER_CREATES_FOUNDER_NOTIFICATION** — both structural triggers must fire
+  only on a genuine `OLD.status IS DISTINCT FROM NEW.status` transition (never on a
+  no-op rewrite), and must actually execute at all — real bug #3 (`work_status` needing
+  `public.` qualification under `set search_path = ''`) silently broke both triggers
+  until caught by direct live testing, not code review.
+- **FACTORY_COMPLETION_NOTIFICATION_CREATED_ONCE** — `complete_work_order()`'s own
+  idempotent re-call (already-done Work Order) must never create a second completion
+  notification.
+- **FACTORY_NOTIFICATION_RLS_PREVENTS_CROSS_COMPANY_LEAK** — see the dedicated
+  `factory_realtime_rls_truth.sql` entry above; `founder_notifications` has no
+  `company_id` at all, is founder-only for every command unconditionally.
+- **FACTORY_STALE_AGENT_CREATES_NOTIFICATION** /
+  **FACTORY_NORMAL_HEARTBEAT_DOES_NOT_SPAM_NOTIFICATION** — a fresh-heartbeat run must
+  never read as `STALE` (uses `agent_runs_with_live_status.live_run_status`, **not**
+  `live_status` — real bug #4, a naming collision with the different agents-level view,
+  caught only by running the actual shipped `scheduler.mjs` code against real data, not
+  a hand-written SQL mirror of it); a genuinely stale run must notify, and three
+  immediately-repeated `notifyStaleAgents()` polls must create zero further rows.
+- A non-admin persona must get `{authorized:false}` from both `resolve_founder_notification`
+  and `mark_founder_notification_read` — a real, internal `is_founder_or_admin()` gate,
+  not merely relying on RLS.
+
+**Live acceptance re-run** (do this, not just the rolled-back SQL, before trusting any
+change to this subsystem is really live): create a real synthetic Work Order, transition
+it to `blocked`, confirm exactly one real notification via direct query, mark-read,
+unblock + resolve, complete via the real `complete_work_order()` RPC, confirm exactly one
+new completion notification. Separately: a real `agent_runs` row with `last_heartbeat_at`
+backdated past 10 minutes, call the real (unmodified) `notifyStaleAgents()` from
+`scheduler.mjs` directly (`node -e "import('./scheduler.mjs').then(m=>m.notifyStaleAgents())"`),
+confirm exactly one notification, call it 2-3 more times immediately and confirm zero
+further notifications, refresh the heartbeat and confirm
+`agent_runs_with_live_status.live_run_status` flips back to `RUNNING`, resolve, and close
+the synthetic run via `complete_agent_run()` rather than leaving a phantom `RUNNING` row.
+
+## RPC privilege grants must be reviewed for direct-callability, not just RLS (catches:
+the security gap in `qa/KNOWN_FAILURE_MODES.md` #41)
+
+A `SECURITY DEFINER` function called *only* from within another `SECURITY DEFINER`
+function (e.g. a trigger) does not need `GRANT EXECUTE ... TO authenticated` at all —
+nested calls inside a definer context are not subject to the original caller's own
+grants. Before granting `EXECUTE` on any new `SECURITY DEFINER` function to
+`authenticated`, ask: does any *client-facing* code path need to call this directly? If
+the answer is no (it's purely an internal helper for triggers/other definer functions),
+leave it fully private (`REVOKE ALL FROM public, authenticated`) and verify live — as
+this session did — that a real non-admin test call gets `permission denied`, not a
+successful insert.

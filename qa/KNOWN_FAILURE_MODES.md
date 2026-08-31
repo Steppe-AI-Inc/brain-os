@@ -2979,3 +2979,71 @@ trigger-generated `id` — an explicit `INSERT ... public.profiles` right after 
 its generated `id` for the `company_memberships` FK rather than assuming it equals
 `auth_user_id`. Zero residue confirmed by direct re-query after rollback, both before and
 after the fix.
+
+## 41. Phase 4 notification model — full live acceptance chain proven, one more real bug self-caught, one real security gap self-caught before it could be exploited for real (2026-08-31)
+
+**Real security gap found and fixed BEFORE any real exploitation** (only this session's
+own deliberate test exploited it): `create_founder_notification` was initially `GRANT
+EXECUTE ... TO authenticated` — a real, live test call as a genuine non-admin
+(non-founder, freshly created via `auth.users` + the real `on_auth_user_created` trigger)
+successfully inserted an attacker-controlled row (`title: "ATTACKER-INJECTED"`, arbitrary
+`event_type`, arbitrary `dedupe_key`) — proving a real attacker could both spam fake
+critical notifications AND permanently squat a real future `dedupe_key` (e.g.
+`agent_stale:<a-real-run-id>` guessed or observed in advance) to silently suppress a
+genuine future founder notification, since the partial unique index only allows one open
+row per key and a non-admin cannot resolve it either. Fixed: `REVOKE ALL ... FROM
+authenticated` (and `FROM public`). Verified live, in this order: (1) non-admin call now
+correctly fails `permission denied for function create_founder_notification`; (2) both
+structural triggers (`agent_run_notify_transition`/`canonical_work_order_notify_transition`)
+still work perfectly after the revoke — confirming nested function calls from within a
+`SECURITY DEFINER` trigger body are not subject to the *original caller's* own `EXECUTE`
+grants, only the calling function's own definer identity.
+
+**Real bug #2, found in the SAME first live call, before bug #1 could even be isolated**:
+`create_founder_notification`'s `ON CONFLICT (dedupe_key) WHERE status != 'resolved'`
+did not exactly match the real partial unique index's predicate (`WHERE status !=
+'resolved' AND dedupe_key IS NOT NULL`) — Postgres requires an *exact* predicate match
+for conflict-target inference. Real error: `there is no unique or exclusion constraint
+matching the ON CONFLICT specification`. This broke the function for **every** caller,
+including both structural triggers — meaning neither trigger had ever actually
+successfully fired before this was caught. Fixed by matching the predicate exactly.
+
+**Real bug #3**: both trigger functions use `set search_path = ''` (correct hardening,
+matching this project's own established convention) — but their bodies referenced the
+bare, unqualified `work_status` enum type, which cannot resolve with an empty search
+path. Real error: `type "work_status" does not exist`. Fixed by qualifying every
+reference as `public.work_status`.
+
+**Real bug #4, found only when running the ACTUAL shipped `scheduler.mjs` code (not a
+SQL mirror of it) against real backdated data**: `notifyStaleAgents()`'s own SQL
+referenced `ls.live_status`, but `agent_runs_with_live_status`'s real computed column is
+named `live_run_status` (a naming collision with the *different*, agent-level
+`agents_with_live_status.live_status` column — confirmed live: `column ls.live_status
+does not exist`). This meant the shipped STALE-notification mechanism had never actually
+run successfully in production before this was caught. Fixed and re-verified live.
+
+**Full live acceptance chain, real production data, disclosed, cleaned up** (Work Order
+`c6ee1e72-...`, "QA Factory Notification Test"): real canonical `blocked` state change →
+exactly one real `FACTORY_WORK_ORDER_BLOCKED` notification (confirmed via direct query,
+correct title/body/`action_required=true`) → `mark_founder_notification_read` (founder)
+→ real canonical unblock (`in_progress`) → `resolve_founder_notification` (founder) →
+real `complete_work_order()` (minimal real task+run) → exactly one, new,
+`FACTORY_WORK_ORDER_COMPLETED` notification, the original blocked notification correctly
+still shows `resolved` (not duplicated, not reverted). Separately: a real `agent_runs`
+row with a genuinely 15-minutes-backdated `last_heartbeat_at` (disclosed methodology — a
+real backdated timestamp, not an actual 10-minute wall-clock wait) → the real, unmodified
+`notifyStaleAgents()` function → exactly one real `FACTORY_AGENT_STALE` notification →
+**three repeated poll calls in immediate succession created zero further notifications**
+(idempotency under real repeated polling, not just a single-call assertion) → real
+heartbeat refresh → `agent_runs_with_live_status.live_run_status` genuinely flips back to
+`RUNNING` → the stale notification resolved → the synthetic run itself closed via
+`complete_agent_run()` rather than left as a phantom `RUNNING` row with no real process
+behind it.
+
+**Disclosed methodology note**: the STALE scenario used a directly-backdated
+`last_heartbeat_at` rather than a real 10-minute wall-clock wait, and the notification
+mechanism was exercised by calling `notifyStaleAgents()` directly from a Node REPL
+(`import('./scheduler.mjs')`) rather than via a literal `node scheduler.mjs <workOrderId>`
+CLI invocation — both are faithful to the real shipped function (same code path, same SQL),
+just not the exact end-to-end CLI/timing shape a fully autonomous 24-hour poll loop would
+use.
