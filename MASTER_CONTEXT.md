@@ -1,6 +1,6 @@
 # SEM Brain / Steppe AI — Master Context
 
-**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. **Last updated: 2026-08-28 (later, office machine) — see "Office-machine session — 2026-08-28: BRAIN OS master prompt, first slice" below, then "Overnight security/QA hardening session" for everything since 2026-08-25. The office-machine section is the one to read first if you're picking this up fresh — it also covers a live external outage that may still be affecting chat.** Prior entries preserved for history: Last updated 2026-08-25 (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
+**Read this first in any new session (any machine).** This file is the continuity anchor across devices — it's committed to `master` so it's readable straight from GitHub. **Last updated: 2026-08-31 (office machine, pulling in a full weekend of home-PC work) — see "Weekend session — 2026-08-29 to 2026-08-31: Software Factory + chat pendingAction generalization" below, the newest section, read it first.** The 2026-08-28 office-machine outage mentioned lower in this file is old news — confirmed resolved same evening, then again independently over the weekend. Prior entries preserved for history: Last updated 2026-08-25 (**Settings page shipped** — `/settings` on `/web`: AI provider selection with no raw keys in the database, MCP connector management via Supabase Vault, and real token/usage tracking off `model_usage` — see Track 1 detail below. Also: **`/web` is now the confirmed base foundation**, deployed under the Vercel project **`brain-os`** — the founder compared it directly against the old app in production and explicitly designated it: "much better version than a original master... i want this become the base foundation now." Vercel cleanup: the founder created `brain-os` via the dashboard's Git-import flow (correct Root Directory from the start, real working auto-deploy) after finding the old `web` project's Root Directory was unfixable via CLI; I found and fixed a second bug in the new project (Supabase env vars set as "Sensitive," which Next.js can't read at build time, causing 500s), moved `brain.open-spot.ai` to it, verified it live, then **deleted both the old `web` project and the original vanilla-JS app's project** (`sem-brain-mvp-v0.7.1-auto-deploy`) per explicit founder confirmation — `brain-os` is the only Vercel project left under `steppe-ai`. The `codex/sem-brain-v1` branch was fast-forwarded to match `master` so it starts from this same foundation rather than a stale earlier snapshot. Track 1 detail: Goals module + Organization Board + Apple-style redesign shipped, DB migration applied and verified live, two real bugs the founder caught in Chrome — broken font fallback, forced dark mode — fixed and redeployed. Track 2 pivoted from the Hostinger VPS plan to serverless — Vercel + the shared Supabase project; Slice 1 code is written, tested locally, committed, and pushed, but **not yet deployed** — see "Deployment plan — serverless" below for exactly what's left and who does it).
 
 ## Who / where
 
@@ -24,6 +24,80 @@ git checkout blankcollar    # the Blank Collar import
 ```
 
 Git identity on this machine is set to `Trey OpenSpot <info@evqparking.com>` globally — reconfigure on a new machine if you want commits attributed the same way (`git config --global user.name/user.email`).
+
+## Weekend session — 2026-08-29 to 2026-08-31: Software Factory + chat pendingAction generalization
+
+Home-PC track, ~110 commits over the weekend, `master` branch, pulled into the office
+machine 2026-08-31. **Don't re-derive this from scratch — the detailed, load-bearing
+continuity docs already exist and this section just orients you to them:**
+`docs/software-factory/MASTER_PLAN.md` (the Software Factory's own phase-by-phase status),
+`qa/KNOWN_FAILURE_MODES.md` entries **#16 through #44** (every incident, bug, and fix from
+the whole weekend, numbered and in order), and `qa/verification/CURRENT_CAMPAIGN.json`
+(machine-readable checkpoint — **but see the staleness note below before trusting it**).
+
+### What it is
+Two real bodies of work, both in `sem-ai-command`/the DB, not in tension with each other:
+1. **Chat truth/bug-fix campaign** (Fri night → Sat): generalized the office-machine
+   session's own `pendingConfirmation` (see below) into `pendingAction` — 5 kinds
+   (`bulk_confirmation`, `single_entity_clarification`, `disambiguation`, `open_question`,
+   `multi_action_plan`), each with a deterministic pre-LLM regex short-circuit so a
+   follow-up turn resolves with zero LLM call. Full backward compatibility with the
+   original shape confirmed — nothing from the 2026-08-28 slice below was broken, only
+   extended. `updateCompanies` is unchanged in shape but now can't bypass
+   `archiveCompanyIds`/`restoreCompanyIds` for archive-status transitions.
+2. **"Software Factory"**: a real code-delegation system — `claude --agent <name> ... --bg`
+   spawns genuinely separate Claude Code processes with their own git worktrees that make
+   real commits (deliberately not in-app Task-tool subagents, to avoid inheriting the
+   parent session's plan-mode gate). Orchestrated by `.claude/agents/brain-os-factory-
+   director.md` (Goal → Work Order → Task DAG → specialist dispatch). Per its own
+   `MASTER_PLAN.md`: **Phases 0-4 done and live-verified, Phases 6-11 explicitly "NOT
+   STARTED."** Treat any "done" claim about this subsystem as scoped to Phases 0-4 only
+   unless you've re-read the plan doc and confirmed otherwise — it was still mid-flight
+   (a Phase 3/4 independent verifier was still running) as of the last weekend commit.
+
+### Security — one thing to know, already resolved; one thing gated on you
+- **A real, live, unauthenticated privilege-escalation hole existed in production**
+  (`create_founder_notification` — Supabase's own default `EXECUTE`-to-`anon` grant was
+  never revoked, so any unauthenticated caller could insert fake founder notifications or
+  squat a `dedupe_key` to silently suppress a real one). **Independently re-verified CLOSED
+  in production** as of `qa/KNOWN_FAILURE_MODES.md` #44 (a live anon-role call now
+  correctly fails with `insufficient_privilege`) — no action needed on this specific hole.
+- **`qa/verification/CURRENT_CAMPAIGN.json` is now stale on this point** — it still lists
+  the anon exploit as an open `pending_db_push` because it was written by the verifier
+  *before* #44's follow-up closed it. Don't trust that file's `pending_db_pushes` list at
+  face value; `KNOWN_FAILURE_MODES.md`'s highest-numbered entries are more current.
+- **Two migrations remain genuinely gated on founder authorization for `supabase db
+  push`** (per this repo's standing no-autonomous-db-push rule — not pushed by this
+  session either):
+  - `202608310002_org_graph_check_excludes_archived.sql` — low-risk, non-security: fixes a
+    false-positive in the org-integrity checker that flags an already-archived business
+    unit as missing a parent edge.
+  - `202608310003_create_founder_notification_revoke_anon.sql` — defense-in-depth only
+    (the specific exploit above is already closed live): extends the same `anon` revoke to
+    two more Phase 4 functions that a broader sweep found with the identical unrevoked
+    grant, both confirmed **not currently exploitable** (each has its own internal
+    `is_founder_or_admin()`-class gate).
+  - Also flagged, not fixed, **not gated on a specific migration** — a wider sweep found 5
+    older, pre-existing functions (`create_mcp_connector_secret`,
+    `get_mcp_connector_token`, `delete_mcp_connector_secret`, `set_company_relationship`,
+    `set_person_assignment`) with the same unrevoked `anon` grant, predating the Software
+    Factory campaign entirely. None currently exploitable (same reason — internal gates),
+    but this is a real systemic gap worth a deliberate founder-scoped review at some point.
+- Both real *Software Factory* security incidents from the weekend (a cross-company
+  `goal_id` gap, and an `agent_runs` insert-scope spoofing defect) are fully resolved —
+  full detail in `docs/software-factory/PHASE_8_SECURITY_INCIDENT.md`.
+
+### Process notes
+- `.githooks/pre-push` (new, local, **opt-in** — `git config core.hooksPath .githooks`)
+  blocks a push touching `supabase/functions/**` unless `ALLOW_FUNCTIONS_DEPLOY=1` is set.
+  Does **not** change actual CI behavior — `.github/workflows/supabase-functions.yml` still
+  auto-deploys all 6 Edge Functions on any qualifying `master` push regardless.
+- Software Factory background agents needed one narrow, founder-authorized permission
+  grant (`Bash(git worktree add:*)` in `.claude/settings.json`) — confirmed to **not**
+  extend to push/deploy capability. This is a different root cause from the 2026-08-28
+  `supabase` CLI credential incident below (that one was a persisted OS-level credential
+  any subagent inherits; this one was Claude Code's own local tool-permission classifier
+  blocking a background agent's `git worktree add` with no way to answer the prompt).
 
 ## Office-machine session — 2026-08-28: BRAIN OS master prompt, first slice
 
