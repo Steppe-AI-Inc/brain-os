@@ -16,8 +16,66 @@
     "P3": "cosmetic; minor copy; layout; low-impact UX."
   },
 
-  "counts": { "open_p0": 0, "open_p1": 0, "open_p2": 0, "open_p3": 0, "total_open": 0, "total_closed": 0 },
+  "counts": { "open_p0": 0, "open_p1": 0, "open_p2": 1, "open_p3": 0, "total_open": 1, "total_closed": 0 },
 
-  "bugs": [],
-  "_bugs_note": "Empty because Campaign C001's live browser testing has not yet run under the platform. The 5 PASS capabilities carried over from the pre-platform C000 smoke pass produced no defects. This is an honest zero, not an unpopulated placeholder - it will change as soon as C001 executes."
+  "bugs": [
+    {
+      "bug_id": "BUG-001",
+      "title": "/departments presents departments of ARCHIVED companies as active, unmarked - contradicting the same page's own company picker",
+      "severity": "P2",
+      "status": "REGRESSION_CREATED",
+      "discovered_by": "fable-qa-director:C001:W1-org",
+      "discovered_at": "2026-08-31T09:12:00Z",
+      "reproduced_at": "2026-08-31T10:31:12Z",
+      "campaign_id": "C001",
+      "commit_tested": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "commit_tested_short": "266f86a",
+      "also_present_on": ["256f183"],
+      "_sha_note": "Independently RE-REPRODUCED against deployed 266f86a after production redeployed mid-campaign. web/lib/data/departments.ts and the /departments route are byte-identical across 256f183..266f86a (git diff empty), so the defect is build-independent across that range.",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai",
+      "resources": ["departments", "companies"],
+      "persona": "founder",
+      "canonical_entity_ids": {
+        "company": "7ba01ff2-6404-4c06-8bc5-4449b50df5de",
+        "department": "9573a957-eebd-4552-b28a-b8ed2a9de37a"
+      },
+      "_fixture_safety": "Both ids are REGISTERED/ACTIVE synthetic fixtures in FIXTURE_REGISTRY.json. No real business entity was mutated. Fixture was returned to 'active' after the reproduction.",
+
+      "expected": "Department of an archived company is either filtered out of the active list OR visibly marked as belonging to an archived company.",
+      "actual": "Renders as an ordinary active row showing the archived company's name, with no archived marker (/archiv/i does not match the rendered table), while the SAME page's company picker correctly excludes that company.",
+
+      "truth_checks": {
+        "db": "PASS - status='archived', row preserved, updated_at advanced, child department intact and still linked (matches the archive dialog's explicit promise).",
+        "ui": "FAIL - /departments contradicts /companies and contradicts its own picker.",
+        "ai": "N/A - UI-only reproduction.",
+        "relationship": "PASS at data layer (FK intact by design, enabling coherent restore); FAIL at presentation layer.",
+        "permission": "N/A - founder-only surface, no authorization boundary crossed.",
+        "reload": "FAIL - persists across a full fresh networkidle load, so not client-side staleness.",
+        "fresh_session": "NOT_SEPARATELY_TESTED - fresh-load result makes a session-cache explanation implausible."
+      },
+
+      "root_cause_evidence": "web/lib/data/departments.ts getDepartments() selects 'companies(name)' with no parent-status filter and never selects companies.status - so the UI cannot render an archived badge even in principle. The same feature's getCompaniesForSelection() deliberately excludes archived companies via the get_effectively_active_companies RPC. The intent exists in the codebase; getDepartments() does not honor it.",
+      "likely_component": "web/lib/data/departments.ts :: getDepartments(), plus the /departments table Company column renderer",
+      "blast_radius": "Not data loss, corruption, or a security issue. DB stays coherent and restore works. Real impact: a user reorganizing the business sees a department under a company they just archived with no signal, so may believe the archive failed or act on a stale org picture. Workaround exists (/companies/archived) - hence P2, not P1.",
+
+      "regression_path": "qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql",
+      "regression_state": "EXPECTED_FAIL",
+      "regression_last_result": {
+        "precondition_parent_actually_archived": true,
+        "parent_status_in_db": "archived",
+        "picker_offers_parent": false,
+        "departments_query_returns_row": true,
+        "contradiction_present": true,
+        "all_pass": false
+      },
+      "regression_pending": "qa/playwright/regression/BUG-001-departments-archived-parent.spec.ts (authoritative UI assertion; blocked on Playwright harness install)",
+      "evidence_paths": [
+        "qa/bugs/BUG-001.md",
+        "qa/runs/C001/W1-org/evidence/BUG-001-departments-shows-archived-parent.png"
+      ],
+      "implementation_recommendation": "Add companies(name, status) to the getDepartments() select and render an Archived badge/muted style. Then audit sibling surfaces that join to companies (projects, goals, people) for the same missing parent-status handling - this is a failure CLASS, not a one-off.",
+      "_qa_boundary": "QA did NOT implement the fix. Work-PC QA never modifies production implementation."
+    }
+  ]
 }

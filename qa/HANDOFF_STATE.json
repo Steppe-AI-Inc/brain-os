@@ -1,55 +1,49 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
-
   "schema_version": 1,
-  "last_updated": "2026-08-31T09:08:00Z",
+  "last_updated": "2026-08-31T10:45:00Z",
   "updated_by": "fable-qa-director",
-
-  "product_commit_tested": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
-  "product_commit_tested_short": "256f183",
-  "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
-  "latest_implementation_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "product_commit_tested": "266f86a1641a0e4c57c48818849cb943687cbd58",
+  "product_commit_tested_short": "266f86a",
+  "deployed_product_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+  "latest_implementation_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "qa_artifact_commit": null,
   "_qa_artifact_commit_note": "Populated on each qa/work-pc push. Null here because this is the initial platform-bootstrap state, written before its own first commit exists.",
   "qa_artifact_branch": "qa/work-pc",
   "home_pc_handoff_branch": "qa/home-pc-handoff",
-
   "campaign_id": "C001",
-  "campaign_state": "PLATFORM_BOOTSTRAP",
-  "_campaign_state_note": "C001 has not started live browser execution yet; the platform scaffolding is being stood up first. Coverage numbers below reflect carried-over C000 evidence only.",
-
+  "campaign_state": "RUNNING",
+  "_campaign_state_note": "C001 live execution in progress. Production redeployed twice mid-campaign (256f183 -> 7df9656 -> 266f86a); BUG-001 was independently RE-REPRODUCED against 266f86a rather than carried over, and the defect surface was confirmed byte-identical across that range.",
   "open_p0": 0,
   "open_p1": 0,
-  "open_p2": 0,
+  "open_p2": 1,
   "open_p3": 0,
-
-  "ready_for_implementation": [],
+  "ready_for_implementation": [
+    "BUG-001"
+  ],
   "fix_pushed": [],
   "ready_for_retest": [],
   "retesting": [],
   "closed": [],
-
   "coverage": {
-    "required_capabilities": 40,
-    "pass": 5,
-    "fail": 0,
+    "required_capabilities": 42,
+    "pass": 7,
+    "fail": 2,
     "flaky": 0,
     "blocked": 4,
-    "not_tested": 31,
-    "coverage_percentage": 12.5,
-    "release_state": "PARTIALLY VERIFIED",
-    "_source": "Computed by qa/runner/compute-coverage.mjs from CAPABILITY_INVENTORY.json - never hand-typed."
+    "not_tested": 29,
+    "coverage_percentage": 21.4,
+    "release_state": "FAILED",
+    "_source": "Computed by qa/runner/compute-coverage.mjs - never hand-typed."
   },
-
   "known_coverage_gaps": [
+    "FAILURE CLASS OPEN: ARCHIVED_PARENT_NOT_SURFACED affects up to 24 data-layer join sites; 2 confirmed live (/departments, /people). Remaining ~22 surfaces NOT yet individually tested.",
     "CONTROL-LEVEL INVENTORY INCOMPLETE: 35 routes and ~150 domain server actions are enumerated, but the per-page interactive control inventory (buttons/menus/dropdowns/dialogs) requires the live browser discovery pass. The current denominator of 40 capabilities is therefore a FLOOR, not the true total - it will grow substantially. Coverage % must be read with that in mind.",
     "LIVE QA DASHBOARD — NOT YET IMPLEMENTED: 3 qa-platform capabilities BLOCKED pending the QA-PLATFORM-REALTIME-CONTROL-PLANE Home-PC implementation.",
     "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
   ],
-
-  "next_required_actor": "WORK_PC",
-  "next_action": "Complete platform scaffolding (supervisor, launcher, publisher spec), then begin Campaign C001 live browser execution starting with Company archive/restore.",
-
+  "next_required_actor": "HOME_PC",
+  "next_action": "Home PC: implement BUG-001 (see qa/IMPLEMENTATION_HANDOFF.md). Fix the FAILURE CLASS, not just /departments - 24/24 data-layer companies(...) joins omit status; /people already confirmed as a second live instance. Work PC continues Campaign C001 in parallel.",
   "home_pc_instructions": {
     "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
     "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",
