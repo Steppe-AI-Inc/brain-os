@@ -1,0 +1,16 @@
+# Agent definition files are hashed byte-for-byte (definition_hash in public.agents,
+# computed by scripts/factory-runner/sync-agents.mjs and re-verified at dispatch time by
+# scripts/factory-runner/provider.mjs's startRunByAgentId) to detect drift between the
+# live on-disk file and what the registry believes was registered. Without this file, a
+# checkout's line-ending conversion (core.autocrlf) is environment-dependent - the exact
+# same git blob content checks out as LF on one machine/config and CRLF on another (found
+# live during independent Phase 5 verification, 2026-08-31: a fresh `git worktree add`
+# checkout on this same Windows machine, using the ambient core.autocrlf=true, produced
+# CRLF for these files while the long-lived primary working directory - checked out under
+# different historical settings - had LF, matching the git blob and the DB's stored hash;
+# not a real registry defect since the primary directory content was already correct, but
+# a real latent fragility in the hash-based drift-detection mechanism itself for any
+# future clone/checkout). Forcing LF here means definition_hash means the same thing
+# everywhere this repo is checked out, independent of any individual machine's
+# core.autocrlf setting.
+.claude/agents/*.md text eol=lf

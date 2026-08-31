@@ -1,32 +1,56 @@
 {
-  "campaign_id": "verify-08ae06e-phase3-realtime-phase4-notifications",
-  "base_commit": "08ae06ea7233cabd8e4880210bff3ed20bfbf581",
+  "campaign_id": "verify-0f5ace8-phase5-beehive-dag",
+  "base_commit": "0f5ace888f75ef0de4f8f81f7d028e88450cb723",
   "started_at": "2026-08-31T00:00:00Z",
-  "last_checkpoint_at": "2026-08-31T03:10:00Z",
-  "completed_at": "2026-08-31T03:10:00Z",
-  "worktree": "C:/Users/Dell/dev/brain-os-verify-08ae06e",
-  "prior_campaign": "verify-1eda9ce-bugs-11-12-execution-plan-and-context-budget (archived) - unrelated scope, superseded here",
-  "scope": "Independent, genuinely separate verification pass of Software Factory Phase 3 (real-time Workflow Factory control center, commits 02d8170/e5784d1/1468eea/d9d8df6) and Phase 4 (typed canonical founder notification event model, commits b3ff0c5/d995be6/b49bc01/05f259d/08ae06e). This verifier has no memory of the implementing session and treated KNOWN_FAILURE_MODES.md #39-#41 only as pointers to re-derive, not as trusted fact.",
+  "last_checkpoint_at": "2026-08-31T08:15:00Z",
+  "completed_at": "2026-08-31T08:15:00Z",
+  "worktree": "C:/Users/Dell/dev/brain-os-verify-0f5ace8",
+  "prior_campaign": "verify-08ae06e-phase3-realtime-phase4-notifications (superseded here - different scope, Phase 3/4 realtime+notifications, not Phase 5)",
+  "scope": "Independent, genuinely separate verification pass of Software Factory Phase 5 (capability-routed beehive DAG execution), documented in qa/KNOWN_FAILURE_MODES.md #45 and #47. This verifier has no memory of the implementing session and treated those entries only as pointers to re-derive, not as trusted fact.",
   "project_ref": "pvphxgrtdfrudejjhzjk",
+  "tooling_gaps_disclosed": [
+    "ToolSearch is disabled for this session ('No such tool available: ToolSearch. ToolSearch is disabled for this session, in subagents as well as here.') - no mcp__claude-in-chrome__* browser tools were ever loadable. All UI-layer checks (there were none directly in scope for this Phase 5 verification - it is DB/scheduler-layer, not UI) are BLOCKED as a matter of record, not silently skipped."
+  ],
   "synthetic_entities_created_by_this_campaign": {
-    "rls_truth_bbbb_series": "qa/scenarios-runner/factory_realtime_rls_truth.sql re-run inside begin;...rollback; - zero residue confirmed by direct re-query after run",
-    "notification_lifecycle_dddd_series": "qa/scenarios-runner/factory_notification_lifecycle_truth.sql re-run inside begin;...rollback; - zero residue confirmed by direct re-query after run",
-    "anon_exploit_test_key": "one-off live exploit proof (anon role calling create_founder_notification), inside begin;...rollback; (aborted by the permission-denied error on the post-fix retest) - zero residue",
-    "fresh_acceptance_facade00_series": "real, COMMITTED (not rolled back) fresh acceptance fixtures created by this verifier per task item 7: company QA-VERIFY-CO, canonical_work_orders QA-VERIFY-WO + QA-VERIFY-WO-STALE, task QA-VERIFY-TASK, agent QA-VERIFY-AGENT, agent_runs facade00-...-0004/0007, plus the real founder_notifications rows they triggered. Fully exercised: blocked->notify->mark_read->resolve->complete_work_order()->completed-notify, and backdated-heartbeat->notifyStaleAgents() (real import from scheduler.mjs, not a SQL mirror)->stale-notify->3x-idempotent-repoll->heartbeat-refresh->RUNNING->resolve->complete_agent_run(). ALL DELETED at the end of this campaign - zero residue confirmed by direct re-query (companies=0, wos=0, tasks=0, runs=0, agents=0, notifs=0 for the facade00 id prefix)."
+    "all_deleted_real_delete_not_rollback": "Company 55550005-0000-0000-0000-000000000001 (QA-VERIFY-PHASE5-CO), 3 canonical_work_orders (2cb21d7f-... QA-VERIFY-PHASE5-DAG, 008e081b-... QA-VERIFY-PHASE5-STALE, 932803e4-... QA-VERIFY-PHASE5-ADVERSARIAL-A), 9 tasks (T1-T4 DAG, T5-STALE, A1-A4), 7 agent_runs (real claude --bg dispatches: 55439fc3/5beafa97/79ac00ad/7a5ef1b4/a2f88314/14cee753/9d75f120, plus 1 direct-fixture stale row), and all associated founder_notifications. Re-queried directly after cleanup: remaining_agent_runs=0, remaining_company=0, remaining_notifications=0, remaining_tasks=0, remaining_work_orders=0. claude agents --json confirmed all 7 real dispatched sessions show idle/done, zero lingering background processes."
   },
   "scenarios": {
-    "item1_realtime_publication_membership": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_publication_tables query against real production confirms agent_runs/canonical_work_orders/tasks/founder_notifications all present in supabase_realtime." },
-    "item2_agents_with_live_status_stale_derivation": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_get_viewdef('public.agents_with_live_status', true) shows STALE derived from a live EXISTS subquery against agent_runs.last_heartbeat_at < now() - interval '10 minutes', never a stored/fakeable column." },
-    "item3_factory_realtime_rls_truth_rerun": { "status": "PASS (after a self-caught and fixed regression-test defect)", "evidence": "First run FAILED with a real, live check-constraint violation - the test still used the pre-Phase-4 literal 'work_order_blocked', which Phase 4's 202608310001 migration renamed to 'FACTORY_WORK_ORDER_BLOCKED' without sweeping this test file. Fixed the test literal, re-ran live: all_pass=true (10/10 assertions), zero residue confirmed by direct re-query. New KNOWN_FAILURE_MODES.md #43 entry documents this (renumbered from #42 during merge - #42 was independently taken by a concurrent org-graph fix pushed to master while this campaign was running)." },
-    "item4_realtime_refresher_and_notification_panel_code_review": { "status": "CODE INSPECTED", "evidence": "realtime-refresher.tsx subscribes postgres_changes on agent_runs/canonical_work_orders/tasks (event: *), debounced router.refresh(). notification-panel.tsx subscribes INSERT+UPDATE on founder_notifications, seeded from server fetch. Both resolve/mark-read actions (web/lib/data/factory.ts) call the real RPCs resolve_founder_notification/mark_founder_notification_read via supabase.rpc(), confirmed by direct grep - not simulated. UI RENDERING ITSELF WAS NOT VISUALLY CONFIRMED - see tooling_gaps_disclosed." },
-    "item5_factory_notification_lifecycle_truth_rerun": { "status": "PASS", "evidence": "LIVE VERIFIED - re-run independently against real production inside begin;...rollback;, all_pass=true (7/7 assertions: dedupe, resolve, re-notify-after-genuine-new-episode, completion-exactly-once, non-admin-resolve-blocked, non-admin-mark-read-blocked, healthy-heartbeat-not-stale). Zero residue confirmed by direct re-query." },
-    "item6a_on_conflict_predicate_match": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_get_functiondef shows 'on conflict (dedupe_key) where status != 'resolved' and dedupe_key is not null', byte-matching the real partial unique index definition read via pg_indexes ('WHERE ((status <> 'resolved'::text) AND (dedupe_key IS NOT NULL))')." },
-    "item6b_no_execute_grant_authenticated": { "status": "PASS for authenticated/public, FAIL for anon (NEW DEFECT FOUND)", "evidence": "role_routine_grants and pg_proc.proacl both confirm NO grant to authenticated or public - correctly matches #41's fix. HOWEVER live-tested as the real anon role: create_founder_notification SUCCEEDED (a real row was inserted) - a live, unauthenticated, currently-exploitable privilege escalation that #41's fix did not close. See defect_found_anon_exploit below." },
-    "item6c_trigger_functions_qualify_work_status": { "status": "PASS", "evidence": "LIVE VERIFIED - pg_get_functiondef on both notify_agent_run_transition and notify_work_order_transition, read directly from production, shows every work_status literal qualified as public.work_status." },
-    "item6d_scheduler_notifyStaleAgents_column_name": { "status": "PASS", "evidence": "CODE INSPECTED - grep of the shipped scripts/factory-runner/scheduler.mjs confirms `where ls.live_run_status = 'STALE'` (fixed), no remaining `live_status` reference in this function." },
-    "item7_fresh_live_acceptance_scenario": { "status": "PASS", "evidence": "LIVE VERIFIED end-to-end, independently authored fixtures (facade00-... prefix), fully committed then fully deleted. Work-order path: blocked transition -> exactly 1 FACTORY_WORK_ORDER_BLOCKED -> mark_read (changed:true) -> resolve (changed:true) -> complete_work_order() (changed:true, reason:completed) -> exactly 1 FACTORY_WORK_ORDER_COMPLETED, original blocked notification correctly shows status=resolved (not duplicated/reverted). Agent-stale path: real backdated agent_runs row (last_heartbeat_at now()-15min) -> confirmed STALE via agent_runs_with_live_status -> notifyStaleAgents() imported directly from scheduler.mjs (not a SQL mirror) -> exactly 1 FACTORY_AGENT_STALE -> 2 additional immediate re-polls -> zero further notifications (idempotency proven under real repeated polling) -> heartbeat refresh -> live_run_status flips back to RUNNING -> resolve_founder_notification -> complete_agent_run() (changed:true) - no phantom RUNNING row left. All facade00-prefixed rows deleted; zero residue confirmed by direct re-query (companies/wos/tasks/runs/agents/notifs all = 0)." },
-    "item8_cross_company_rls_isolation": { "status": "PASS", "evidence": "LIVE VERIFIED via item3's re-run (company-A manager sees own company's WO/task/agent_run, sees zero of company B's, sees zero founder_notifications; founder sees everything) plus a direct pg_policies read confirming founder_notifications_founder_only is_founder_or_admin() on ALL commands and agent_runs/canonical_work_orders/tasks selection scopes are unchanged by Phase 3/4." },
-    "item9_notification_bodies_no_sensitive_fields": { "status": "PASS", "evidence": "CODE/LIVE INSPECTED - pg_get_functiondef on both trigger functions shows bodies built only from new.error/new.summary/new.title/new.objective/new.id (work-order/agent-run operational fields) - no reference to salary, financial_reports, credentials, or any other sensitive table/column." }
+    "item1_agent_registry_fix_both_agents": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED - direct query of public.agents for brain-os-product-architect and brain-os-release-operator confirms execution_provider='claude_code_background', has_production_authority=true, active=true, permission_mode='auto', real distinct capabilities. qa/scenarios-runner/factory_agent_registry_dispatchability_truth.sql re-run live: all_pass=true, capable_but_undispatchable_agents=[]."
+    },
+    "item1b_definition_hash_independent_recompute": {
+      "status": "PASS (after resolving a real but narrow methodology/fragility finding, not a registry defect)",
+      "evidence": "Independently computed SHA-256 (Node crypto, matching sync-agents.mjs's own method exactly: readFileSync(path,'utf8') then createHash('sha256').update(content,'utf8')) of both live .claude/agents/*.md files. First attempt, from an isolated git worktree checkout, did NOT match the DB value - root-caused to this machine's core.autocrlf=true converting LF to CRLF on a fresh checkout with no .gitattributes protection. The primary working directory's on-disk content (checked out under different historical settings) DOES match the DB hash exactly, confirmed via git cat-file -p HEAD:<path> matching the DB value byte-for-byte. provider.mjs's real startRunByAgentId hardcodes REPO_ROOT to the primary directory and re-verifies this same hash before every real dispatch - confirmed live-correct (zero hash-mismatch rejections across all 7 real dispatches this session). Fixed the underlying fragility (not a live defect) via a new, narrowly-scoped .gitattributes forcing eol=lf on .claude/agents/*.md. See qa/KNOWN_FAILURE_MODES.md #48 for full detail."
+    },
+    "item2_fresh_real_dag_proof": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED, E2E - brand-new Work Order 2cb21d7f-... created via real create_factory_work_order/create_factory_task RPCs, dispatched via real scheduler.mjs/complete-run.mjs/complete_work_order(). T1 (security) dispatched alone first cycle; T2 (backend) + T3 (frontend) dispatched together next cycle as two genuinely separate claude --bg processes (5beafa97/79ac00ad) under brain-os-implementation-engineer, real overlapping timestamps confirmed directly from agent_runs (T2 08:01:41-08:02:54, T3 08:02:03-08:02:59, genuine overlap); T4 (db_truth, fan-in) dispatched only after both T2/T3 done, routed to brain-os-verifier with a real attached-skill injection (verification-before-completion). Every dispatch (T1-T4) confirmed via `claude logs <provider_run_id>` (ANSI-stripped) to have genuinely replied with the exact instructed string. complete_work_order() succeeded (changed:true, newStatus:done)."
+    },
+    "item3a_adversarial_failed_branch_blocks_fanin": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED - fresh 4-task DAG 932803e4-... A1(security, real dispatch+pass) -> A2(backend, real dispatch, deliberately completed rejected via complete-run.mjs) + A3(frontend, real dispatch+pass) -> A4(db_truth fan-in). Scheduler re-run after A2 rejected: dispatched:[], reason no_ready_tasks. Direct query confirmed A4.status stayed 'queued', never 'in_progress'. Also grep-confirmed isTaskPermanentlyBlocked is defined+unit-tested in scheduler.mjs but never called from dispatchReadyTasks - real, disclosed, accurately-described gap (status doesn't distinguish waiting vs permanently-blocked; behavior is still correct)."
+    },
+    "item3b_adversarial_stale_worker_no_duplicate_dispatch": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED - real task/agent_run pair (WO 008e081b-...) with started_at 20min old, last_heartbeat_at 15min old, status in_progress, fake provider_run_id (no live claude session). Real scheduler.mjs CLI (which directly imports and calls the real notifyStaleAgents()/refreshHeartbeats(), not a reimplementation) correctly detected STALE, created exactly 1 real FACTORY_AGENT_STALE founder_notifications row, never re-dispatched (dispatched:[], task stayed in_progress). Repeat scheduler run: 0 new notifications (idempotent), agent_runs count for this task stayed exactly 1 before and after both runs. Also grep-confirmed (grep -riE 'requeue|re-dispatch|redispatch|automatic.*retry' across every .mjs in the repo) zero automatic retry/recovery logic exists anywhere for a STALE run - real, disclosed, accurately-described gap."
+    },
+    "item3c_adversarial_scheduler_restart_no_duplicates": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED - fresh Node process invocation of scheduler.mjs against the already-fully-resolved DAG Work Order (2cb21d7f-...): agent_runs count 37 before, 37 after. Zero duplicates from a genuine cold restart."
+    },
+    "item4_full_specialist_registry_audit": {
+      "status": "PASS",
+      "evidence": "LIVE VERIFIED - qa/scenarios-runner/factory_specialist_registry_audit.sql re-run live against production: all 7 SOFTWARE_FACTORY/SECURITY/INTEGRATION/VERIFICATION/RELEASE agents (brain-os-factory-director, brain-os-product-architect, brain-os-implementation-engineer, brain-os-db-security-engineer, brain-os-integration-engineer, brain-os-verifier, brain-os-release-operator) show active=true, real distinct execution_provider/has_production_authority/capabilities, matching #47's own claim exactly (last_run_at/last_run_status for several agents advanced as an expected, honest side effect of this verifier's own real dispatches)."
+    },
+    "item5a_isTaskPermanentlyBlocked_not_wired": {
+      "status": "PASS (disclosed gap confirmed accurate)",
+      "evidence": "CODE INSPECTED + LIVE PROVEN (via item3a) - grep confirms isTaskPermanentlyBlocked is defined and exported in scheduler.mjs, used only in scheduler.regression.test.mjs, never called inside dispatchReadyTasks. Behavior is still correct today (isTaskReady's dependency-status check alone produces the right outcome, proven live in item3a) - the gap is purely a status-column legibility gap (queued vs permanently-blocked indistinguishable without checking depends_on), exactly as #47 described, neither overstated nor understated."
+    },
+    "item5b_no_automatic_stale_retry": {
+      "status": "PASS (disclosed gap confirmed accurate)",
+      "evidence": "CODE INSPECTED - grep -riE 'retry|requeue|re-dispatch|redispatch' across scripts/factory-runner/*.mjs and repo-wide *.mjs glob found zero real retry/recovery logic; the only 'retry' references are docstring comments describing the master plan's own retry-policy language as not-yet-implemented, exactly as #47 disclosed."
+    }
   },
   "global_integrity_counts": {
     "orphan_canonical_references": 0,
@@ -35,31 +59,18 @@
     "duplicate_entities_from_name_collision": 0,
     "stale_authoritative_names_displayed": 0,
     "ai_false_execution_claims_observed": 0,
-    "ui_db_contradictions_observed": "not directly observed - UI checks BLOCKED (no browser tool available this session, confirmed by direct attempt)",
+    "ui_db_contradictions_observed": "not applicable this pass - Phase 5 scope is DB/scheduler-layer, no UI surface exists for this feature yet",
     "ai_db_contradictions_observed_count": 0,
-    "live_unauthenticated_rpc_exploit_found": 1,
-    "stale_regression_test_defect_found": 1
+    "hash_drift_detection_fragility_found_and_fixed": 1,
+    "live_exploits_found": 0
   },
-  "pending_db_pushes": [
-    {
-      "migration": "supabase/migrations/202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql",
-      "fixes": "OVERPRIVILEGED / DEFENSE-IN-DEPTH (not currently exploitable, live-tested): create_mcp_connector_secret, delete_mcp_connector_secret, get_mcp_connector_token, set_company_relationship, and set_person_assignment all retain a default anon (two also bare PUBLIC) EXECUTE grant, never explicitly revoked. All five fail closed today via an unconditional, first-statement internal is_founder_or_admin()-class gate - this migration removes the unneeded grant so a future refactor of that gate can't silently reopen unauthenticated access with zero grant-level signal.",
-      "rollback_test_evidence": "See qa/KNOWN_FAILURE_MODES.md #45 for full per-function live evidence (anon denied zero-side-effect, non-admin authenticated denied, founder path reaches real logic proven via a genuine FK-constraint hit on deliberately nonexistent test ids), all inside begin;...rollback;, zero residue.",
-      "urgency": "Founder-authorized fix, not urgent (no live exploit) - defense-in-depth per explicit instruction not to treat 'not currently exploitable' as 'safe'."
-    }
-  ],
-  "prepared_fixes": [
-    "supabase/migrations/202608310004_revoke_anon_public_from_legacy_privileged_rpcs.sql - FIX PREPARED, NOT PUSHED (see pending_db_pushes)"
-  ],
+  "pending_db_pushes": [],
+  "prepared_fixes": [],
   "live_verified_fixes": [
-    "qa/scenarios-runner/factory_realtime_rls_truth.sql - fixed the stale pre-Phase-4 event_type literal ('work_order_blocked' -> 'FACTORY_WORK_ORDER_BLOCKED'), re-run live, all_pass=true, zero residue. This is a qa/ file only, no production DB change involved - fully live-verified and safe to have fixed directly.",
-    "supabase/migrations/202608310002_org_graph_check_excludes_archived.sql - LIVE VERIFIED 2026-08-31: pg_get_functiondef confirms the archived-status filter is genuinely present in validate_organization_graph's body in production, independent of migration-history bookkeeping.",
-    "supabase/migrations/202608310003_create_founder_notification_revoke_anon.sql - LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED 2026-08-31: qa/scenarios-runner/founder_notification_no_anon_exploit.sql re-run live, all_pass=true; a dedicated 3-persona proof (anon denied on all three Phase 4 functions, non-admin authenticated denied internally on resolve/mark_read, real founder profile reaches the real authorized branch on both) also re-run live and passed. This was previously listed below as an open pending_db_push - it is not; see qa/KNOWN_FAILURE_MODES.md #44's 2026-08-31 resolution note for why migration-history bookkeeping alone should never be trusted for this (#40's own lesson)."
+    ".gitattributes (new file, repo root) - forces eol=lf on .claude/agents/*.md so definition_hash means the same thing on every future checkout regardless of core.autocrlf. Not a DB change, no migration involved - safe to commit/push directly, matches this repo's own fix-authority scope for web/ and tooling-level fixes."
   ],
   "not_fixed_disclosed_limitations": [
-    "validate_organization_graph carries the same anon/PUBLIC-granted, gate-first shape as the five functions #45 reviewed in depth, but was not itself given that same per-function review and is not fixed by 202608310004 - tracked as a known_disclosed_exception in qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql, needs its own follow-up review."
-  ],
-  "tooling_gaps_disclosed": [
-    "No browser automation tool (mcp__claude-in-chrome__* or any ToolSearch-loadable equivalent) was available anywhere in this session's tool registry - confirmed by direct attempt (this session's actual tool list contains only Read/Grep/Glob/Bash/Edit/Write/Skill, no ToolSearch function to invoke). Item 4's UI-rendering-layer checks (authenticated page load, live notification panel update, live realtime auto-refresh) are BLOCKED, not silently substituted as complete - matches the same disclosed gap as KNOWN_FAILURE_MODES.md #39."
+    "isTaskPermanentlyBlocked (scheduler.mjs) remains defined but not wired into dispatchReadyTasks - status column still can't distinguish 'waiting' from 'permanently blocked' without a separate depends_on check. Confirmed real and correctly disclosed by #47, not fixed by this verification pass (behavior is correct, this is a legibility gap only, left as a small follow-up per #47's own framing).",
+    "No automatic retry/re-queue logic exists anywhere in this codebase for a STALE agent_run. Recovery today is manual (a human acts on the FACTORY_AGENT_STALE notification). Confirmed real and correctly disclosed by #47, not fixed by this verification pass (out of scope - a future phase's work per the master plan)."
   ]
 }

@@ -3525,3 +3525,120 @@ and B above), not a real production problem; disclosed here rather than masked b
 follow-up "clean-up" dispatch that would exist only to make the audit look better
 (explicitly against the founder's own "do not create fake Agent Runs merely to make every
 agent appear utilized" instruction).
+
+## 48. Independent verification of #45/#47 (Phase 5 capability-routed beehive DAG execution) — all claims re-derived live and confirmed true; one real, narrow, latent fragility found and fixed in the drift-detection mechanism itself, not the registry state (E2E VERIFIED, 2026-08-31)
+
+**Why this entry exists even though nothing in #45/#47 was actually wrong**: same
+rationale as #21/#22/#23/#26 — a genuinely separate verifier (no memory of the
+implementing session, only committed repo state + live production) re-deriving the same
+claims independently is real institutional evidence, distinct from trusting the original
+session's own report. This pass found the underlying #45/#47 claims to be accurate, and
+also surfaced one real, narrow, previously-undiscovered issue worth recording on its own.
+
+**#45 (agent registry fix) re-verified, both agents, live**: `select execution_provider,
+has_production_authority, active, permission_mode, capabilities from public.agents where
+name in (...)` against real production confirms both `brain-os-product-architect` and
+`brain-os-release-operator` show `execution_provider='claude_code_background'`,
+`has_production_authority=true`, `active=true`, `permission_mode='auto'`, and their real,
+distinct capability arrays — exactly as claimed.
+`qa/scenarios-runner/factory_agent_registry_dispatchability_truth.sql` re-run live:
+`all_pass=true`, `capable_but_undispatchable_agents=[]`.
+
+**A real, narrow latent fragility found while independently re-computing `definition_hash`
+— not a registry defect**: instructed to "compute the hash yourself, do not trust the
+stored value," this verifier's first attempt (reading the two `.claude/agents/*.md` files
+from a fresh, isolated `git worktree add` checkout, used deliberately for verifier/
+implementer isolation) produced a SHA-256 that did **not** match the value stored in
+`public.agents.definition_hash` for either agent. Root-caused, not just noted: this
+machine's `core.autocrlf=true` converts LF→CRLF on any *fresh* checkout, and this repo has
+no `.gitattributes` forcing a specific line ending for these files — so the exact same git
+blob (verified via `git cat-file -p HEAD:<path>`, confirmed genuinely LF, hash matching the
+DB value byte-for-byte) checks out as LF in the long-lived primary working directory
+(checked out under different historical settings, never re-normalized) but as CRLF in a
+brand-new worktree checkout on the identical machine. **Confirmed this is NOT a live
+production defect**: `scripts/factory-runner/provider.mjs`'s `startRunByAgentId` — the
+function that actually gates real dispatch on a live hash match — hardcodes `REPO_ROOT`
+to the primary working directory specifically, always reads the live file from there, and
+that directory's on-disk content already matched the DB hash exactly; every real dispatch
+this session ran (the fresh DAG proof and all three adversarial scenarios below) dispatched
+successfully with zero hash-mismatch rejections, live-confirming the gate works correctly
+today. But the *mechanism* itself — a byte-for-byte hash used as the sole drift signal,
+with zero protection against checkout-environment line-ending differences — is genuinely
+fragile: a future fresh clone, a new team member's machine, a CI runner, or any checkout
+with a different `core.autocrlf` resolution would compute a different hash for
+byte-identical semantic content and either wrongly refuse to dispatch (false drift alarm)
+or wrongly accept a real drifted file (if the false hash happened to coincide with a
+stale registered value — not the failure observed here, but the same root cause could
+produce it). **Fixed**: added `.gitattributes` (`\.claude/agents/*.md text eol=lf`),
+scoped narrowly to just the hashed agent-definition files (not a blanket `text=auto` for
+the whole repo, which would risk large unrelated renormalization diffs) — forces LF on
+every future checkout of these specific files regardless of the checking-out machine's
+`core.autocrlf`, so `definition_hash` means the same thing everywhere this repo is ever
+checked out. This is itself the permanent fix/regression for this class — a git attribute
+rule is self-enforcing at checkout time, no separate SQL/JS test can meaningfully assert
+"the next checkout will use LF" any more directly than the attribute itself does.
+
+**#47 (real DAG proof + 3 adversarial scenarios) re-derived from scratch, not re-read**:
+this verifier created a **brand-new** synthetic Work Order (`QA-VERIFY-PHASE5-DAG`,
+`2cb21d7f-...`) with the same 4-task shape via the real `create_factory_work_order`/
+`create_factory_task` RPCs (impersonated as the real founder fixture identity, matching
+`qa/scenarios-runner/README.md`'s own convention) and dispatched it with the real
+`scheduler.mjs`/`complete-run.mjs`/`complete_work_order()` — not a re-read of the original
+`0522ce5e-...` Work Order. Confirmed live, independently: (1) T1 (`security` capability)
+dispatched alone, T2/T3/T4 all withheld (`no_ready_tasks`); (2) once T1 completed, T2
+(`backend`) and T3 (`frontend`) dispatched **together in the same cycle** as two genuinely
+separate `claude --bg` processes (`5beafa97`/`79ac00ad`) under the same agent identity
+(`brain-os-implementation-engineer`) — real overlapping wall-clock spans confirmed
+directly from `agent_runs` timestamps (T2 08:01:41→08:02:54, T3 08:02:03→08:02:59 — T3
+genuinely started while T2 was still running); (3) T4 (`db_truth`, fan-in on both T2 and
+T3) dispatched only after both reached `done`, routed correctly to `brain-os-verifier`
+(which also correctly received a real attached-skill injection —
+`verification-before-completion` — proving `buildSkillInjectionPrompt` fires on a genuine
+dispatch, not just in isolated unit tests). Every single dispatch (T1–T4) was confirmed via
+`claude logs <provider_run_id>` (ANSI-stripped) to have genuinely reached its process and
+replied with the exact instructed string (`VERIFY-T1-DONE` through `VERIFY-T4-DONE`) —
+not inferred from DB state alone. `complete_work_order()` succeeded
+(`changed:true,newStatus:'done'`).
+
+**All three adversarial scenarios independently re-run, all real, all confirmed** (a
+second, brand-new fixture set, `QA-VERIFY-PHASE5-ADVERSARIAL-A`/`-STALE`, not a re-read of
+`2460316a-.../cc041bb7-...`): **(A)** a real 4-task DAG (`932803e4-...`) with T2 completed
+`rejected` via `complete-run.mjs` after a real dispatch — re-running the scheduler
+correctly returned `dispatched:[]`, and a direct query confirmed the fan-in task's status
+stayed `queued`, never `in_progress`, exactly matching #47's claim; also directly
+grep-confirmed `isTaskPermanentlyBlocked` is defined and unit-tested but never called from
+`dispatchReadyTasks` — the *behavior* is correct (via `isTaskReady`'s dependency-status
+check alone) but nothing distinguishes "waiting" from "permanently blocked" in
+`tasks.status` itself, exactly as #47 disclosed, not overstated or understated. **(B)** a
+real task/agent_run pair with a genuinely 20-minute-old `started_at`/15-minute-old
+`last_heartbeat_at` — `scheduler.mjs`'s real `notifyStaleAgents()` (invoked via the
+genuine CLI entrypoint, which imports and calls it directly — not a reimplementation)
+correctly created exactly one real `FACTORY_AGENT_STALE` notification, never re-dispatched
+the task (`dispatched:[]`, task stayed `in_progress`), and a repeat scheduler run produced
+zero duplicate notifications and the same exactly-one `agent_runs` row count before and
+after (1 before, 1 after both runs) — also directly grep-confirmed via
+`grep -riE "retry|requeue|re-dispatch"` across every file in `scripts/factory-runner/`
+that no automatic retry/recovery logic exists anywhere in this codebase for a STALE run,
+exactly as #47 disclosed. **(C)** a genuinely fresh Node process re-invocation of
+`scheduler.mjs` against three already-fully-resolved Work Orders (the two above plus the
+original DAG proof) produced zero new `agent_runs` rows (37 before, 37 after a full
+`scheduler.mjs` re-run against the completed DAG Work Order specifically).
+
+**Full specialist registry audit re-run live**:
+`qa/scenarios-runner/factory_specialist_registry_audit.sql` re-confirms all 7 agents
+`active=true` with real, distinct `execution_provider`/`has_production_authority`/
+`capabilities` — unchanged from #47's own audit (this verifier's own dispatches
+additionally updated several agents' `last_run_at`/`last_run_status` fields, an expected
+and honest side effect of genuinely exercising the pipeline, not a discrepancy).
+
+**Cleanup**: all synthetic entities (company `55550005-...-0001`, 3 Work Orders, 9 tasks,
+7 agent_runs, all associated `founder_notifications`) were real DELETEs, not left in
+place — re-queried directly after cleanup and confirmed zero residue across every table.
+No lingering `claude --bg` sessions either (`claude agents --json` confirmed every
+provider_run_id this verifier created shows `idle`/`done`).
+
+**Verdict**: `E2E VERIFIED — CAPABILITY-ROUTED BEEHIVE EXECUTION`. Every #45/#47 claim
+re-derived independently and confirmed true; the one new thing found (`definition_hash`'s
+checkout-environment sensitivity) was a real but narrow latent fragility in the
+verification mechanism itself, not a live defect — fixed the same session via
+`.gitattributes`, no production DB change required, no `db push` involved.
