@@ -3057,3 +3057,30 @@ mechanism was exercised by calling `notifyStaleAgents()` directly from a Node RE
 CLI invocation — both are faithful to the real shipped function (same code path, same SQL),
 just not the exact end-to-end CLI/timing shape a fully autonomous 24-hour poll loop would
 use.
+
+## 42. `validate_organization_graph()` never excludes archived companies from `businessUnitsWithoutParentEdge` — real false-positive found while reconciling a dormant fixture (2026-08-31)
+
+While waiting on the Phase 3/4 verifier, investigated the one dormant finding an earlier
+independent verifier flagged but left out of scope (#36's own report):
+`businessUnitsWithoutParentEdge=['QA-LIFECYCLE-BU']`. Confirmed it was genuine synthetic
+QA fixture debris (both linked `people` rows named `QA-LIFECYCLE-EMPLOYEE`/
+`QA-LIFECYCLE-EMPLOYEE2`, zero goals/tasks/Work Orders, zero relationships), archived it
+via the real `archive_company()` RPC (reversible, preserves history, per the founder's own
+Phase 10 rule to close things through canonical lifecycle operations, never a raw
+`UPDATE`).
+
+**Real gap found**: re-running `validate_organization_graph()` afterward still flagged it —
+the `businessUnitsWithoutParentEdge` sub-check (`202608280010_organization_graph_integrity_checker.sql`,
+last touched by `202608290009`) has **no status filter at all**, so it flags any
+non-`legal_entity` company with no parent relationship edge regardless of whether it has
+already been correctly archived. This is a real, generalizable false-positive: any
+archived business unit will show up in this check forever, indistinguishable from a
+genuinely live data-integrity problem, for as long as this gap exists — not specific to
+this one fixture.
+
+**Fix authored, NOT pushed** (`202608310002_org_graph_check_excludes_archived.sql`) — a
+minimal, surgical `create or replace function` adding `and c.status <> 'archived'` to
+only the one broken sub-check; every other sub-check in the function is left byte-for-byte
+identical, deliberately not a broader audit of the whole integrity checker. GATED per the
+standing rule; needs explicit founder authorization before push, same as every other
+schema change this session.
