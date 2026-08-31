@@ -153,14 +153,19 @@ returning id, slug, install_status, manifest -> 'sandbox_test' as sandbox_test;
   return result;
 }
 
-// Step 4: ENABLE. Only 'installed' (or already-'enabled', idempotent) components may
-// become attachable — matches agent_plugin_attachments' own real dependency.
+// Step 4: ENABLE. 'installed' (having genuinely passed sandbox-test), already-'enabled'
+// (idempotent), or 'disabled' (re-enabling a component that already passed sandbox-test
+// once and was only toggled off — disabling never un-installs it) may become attachable.
+// Real live bug found and fixed during this session's own smoke test: the first version of
+// this guard only accepted 'installed'/'enabled', so ENABLED -> DISABLED -> ENABLED (the
+// founder's own explicit smoke-test sequence) failed on the re-enable step even though it
+// is a completely legitimate operation.
 export async function enableComponent(componentId) {
   const current = await runSql(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const row = current.rows?.[0];
   if (!row) throw new Error(`plugin-attach: no plugin_components row ${componentId}`);
-  if (!['installed', 'enabled'].includes(row.install_status)) {
-    throw new Error(`plugin-attach: cannot enable ${componentId} from install_status=${row.install_status} — must be 'installed' first (discover -> review -> sandbox-test -> enable)`);
+  if (!['installed', 'enabled', 'disabled'].includes(row.install_status)) {
+    throw new Error(`plugin-attach: cannot enable ${componentId} from install_status=${row.install_status} — must be 'installed' or 'disabled' first (discover -> review -> sandbox-test -> enable[/disable/enable])`);
   }
   return runSql(`
 update public.plugin_components set enabled = true, install_status = 'enabled', updated_at = now()
