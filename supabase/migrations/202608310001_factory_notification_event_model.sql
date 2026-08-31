@@ -60,7 +60,16 @@ create unique index if not exists founder_notifications_dedupe_open_idx
 
 -- Canonical creation path - every real notification-creating call site (triggers below,
 -- scheduler.mjs's heartbeat poll) goes through this, never a raw INSERT, so idempotency
--- is enforced in exactly one place.
+-- is enforced in exactly one place. Deliberately NOT granted to `authenticated` (see
+-- below) - only callable from a SECURITY DEFINER trigger context (nested calls inside a
+-- definer function are not subject to the caller's own EXECUTE grants - verified live)
+-- or the scheduler's own elevated `db query --linked` connection, which never goes
+-- through PostgREST/RLS at all. A real, live-caught vulnerability motivates this: an
+-- earlier version of this migration granted EXECUTE to `authenticated`, and a real
+-- non-admin test call successfully inserted an attacker-controlled
+-- FACTORY_APPROVAL_REQUIRED row (title "ATTACKER-INJECTED") - see
+-- qa/KNOWN_FAILURE_MODES.md for the full record. Ordinary founders/admins never need to
+-- call this directly; resolve/mark-read below remain the real UI-facing surface.
 create or replace function public.create_founder_notification(
   p_event_type text,
   p_severity text,
@@ -82,13 +91,13 @@ begin
     (event_type, severity, title, body, work_order_id, agent_run_id, dedupe_key, action_required, status)
   values
     (p_event_type, p_severity, p_title, p_body, p_work_order_id, p_agent_run_id, p_dedupe_key, p_action_required, 'unread')
-  on conflict (dedupe_key) where status != 'resolved' do nothing
+  on conflict (dedupe_key) where status != 'resolved' and dedupe_key is not null do nothing
   returning id into v_id;
   return v_id; -- null means a real, still-open duplicate was correctly suppressed
 end;
 $$;
 revoke all on function public.create_founder_notification from public;
-grant execute on function public.create_founder_notification to authenticated;
+revoke all on function public.create_founder_notification from authenticated;
 
 -- Real resolution path - preserves audit/history (row stays, status flips), matching the
 -- founder's own explicit "preserve audit/history appropriately" requirement.
@@ -148,8 +157,12 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+-- Note: `set search_path = ''` (below) means every type/table reference in this function
+-- body must be schema-qualified - a real live bug this migration originally had:
+-- 'rejected'::work_status failed with "type work_status does not exist" until qualified
+-- as public.work_status. Fixed and verified live before this file was finalized.
 begin
-  if new.status = 'rejected'::work_status and old.status is distinct from 'rejected'::work_status then
+  if new.status = 'rejected'::public.work_status and old.status is distinct from 'rejected'::public.work_status then
     perform public.create_founder_notification(
       'FACTORY_AGENT_FAILED', 'critical',
       'Agent run failed',
@@ -183,7 +196,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.status = 'blocked'::work_status and old.status is distinct from 'blocked'::work_status then
+  if new.status = 'blocked'::public.work_status and old.status is distinct from 'blocked'::public.work_status then
     perform public.create_founder_notification(
       'FACTORY_WORK_ORDER_BLOCKED', 'warning',
       'Work Order blocked: ' || new.title,
@@ -192,7 +205,7 @@ begin
       'work_order_blocked:' || new.id::text || ':' || extract(epoch from new.updated_at)::text, true
     );
   end if;
-  if new.status = 'done'::work_status and old.status is distinct from 'done'::work_status then
+  if new.status = 'done'::public.work_status and old.status is distinct from 'done'::public.work_status then
     perform public.create_founder_notification(
       'FACTORY_WORK_ORDER_COMPLETED', 'info',
       'Work Order completed: ' || new.title,
