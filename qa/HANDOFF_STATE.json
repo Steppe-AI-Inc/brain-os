@@ -1,0 +1,62 @@
+{
+  "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
+
+  "schema_version": 1,
+  "last_updated": "2026-08-31T09:08:00Z",
+  "updated_by": "fable-qa-director",
+
+  "product_commit_tested": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "product_commit_tested_short": "256f183",
+  "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "latest_implementation_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "qa_artifact_commit": null,
+  "_qa_artifact_commit_note": "Populated on each qa/work-pc push. Null here because this is the initial platform-bootstrap state, written before its own first commit exists.",
+  "qa_artifact_branch": "qa/work-pc",
+  "home_pc_handoff_branch": "qa/home-pc-handoff",
+
+  "campaign_id": "C001",
+  "campaign_state": "PLATFORM_BOOTSTRAP",
+  "_campaign_state_note": "C001 has not started live browser execution yet; the platform scaffolding is being stood up first. Coverage numbers below reflect carried-over C000 evidence only.",
+
+  "open_p0": 0,
+  "open_p1": 0,
+  "open_p2": 0,
+  "open_p3": 0,
+
+  "ready_for_implementation": [],
+  "fix_pushed": [],
+  "ready_for_retest": [],
+  "retesting": [],
+  "closed": [],
+
+  "coverage": {
+    "required_capabilities": 40,
+    "pass": 5,
+    "fail": 0,
+    "flaky": 0,
+    "blocked": 4,
+    "not_tested": 31,
+    "coverage_percentage": 12.5,
+    "release_state": "PARTIALLY VERIFIED",
+    "_source": "Computed by qa/runner/compute-coverage.mjs from CAPABILITY_INVENTORY.json - never hand-typed."
+  },
+
+  "known_coverage_gaps": [
+    "CONTROL-LEVEL INVENTORY INCOMPLETE: 35 routes and ~150 domain server actions are enumerated, but the per-page interactive control inventory (buttons/menus/dropdowns/dialogs) requires the live browser discovery pass. The current denominator of 40 capabilities is therefore a FLOOR, not the true total - it will grow substantially. Coverage % must be read with that in mind.",
+    "LIVE QA DASHBOARD — NOT YET IMPLEMENTED: 3 qa-platform capabilities BLOCKED pending the QA-PLATFORM-REALTIME-CONTROL-PLANE Home-PC implementation.",
+    "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
+  ],
+
+  "next_required_actor": "WORK_PC",
+  "next_action": "Complete platform scaffolding (supervisor, launcher, publisher spec), then begin Campaign C001 live browser execution starting with Company archive/restore.",
+
+  "home_pc_instructions": {
+    "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
+    "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",
+    "2_read_queue": "git show origin/qa/work-pc:qa/BUG_QUEUE.json — work P0 -> P1 -> P2 -> P3 in that order.",
+    "3_read_bug_detail": "git show origin/qa/work-pc:qa/bugs/<BUG_ID>.md — full repro, six truth checks, evidence, regression path, implementation recommendation.",
+    "4_implement": "Fix on master. Run the linked regression to confirm it now passes.",
+    "5_publish_fix_report": "Write qa/home-pc-handoff/fixes/<BUG_ID>.json on the qa/home-pc-handoff branch with: bug_id, fix_commit, implementation_summary, implementation_tests, status='READY_FOR_RETEST', timestamp. Do NOT edit qa/BUG_QUEUE.json - it is Work-PC-owned.",
+    "6_never": "Never set CLOSED. Only an independent Work-PC retest closes a defect."
+  }
+}

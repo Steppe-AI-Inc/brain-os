@@ -1,0 +1,55 @@
+{
+  "_doc": "MANDATORY SAFETY GATE. Before ANY mutation other than the initial CREATE (edit/move/archive/restore/delete/reassign/hard-delete), the target's canonical id MUST appear here with lifecycle REGISTERED or ACTIVE, AND the acting worker must be authorized by access_scope. A synthetic-LOOKING display name is NEVER sufficient authorization on its own - real production entities could share a name prefix, and the whole point of the real-name digital-twin convention is that names are deliberately near-identical to real ones. Written only by the Fable QA Director (single-writer rule); workers request registration, they do not self-register.",
+
+  "lifecycle_states": ["PLANNED", "CREATED", "REGISTERED", "ACTIVE", "CLEANED", "RETAINED"],
+  "_lifecycle_note": "PLANNED is written BEFORE creation (no canonical id exists yet - Brain OS generates it at creation time; this is the documented bootstrap exception). CREATE is therefore the ONLY operation permitted against a fixture that is not yet REGISTERED. Immediately after creation the real generated canonical id is captured and the row moves CREATED -> REGISTERED -> ACTIVE. RETAINED means deliberately kept for regression re-runs rather than cleaned up.",
+
+  "access_scopes": ["PRIVATE_WORKER", "SHARED_SCENARIO", "SHARED_CAMPAIGN"],
+  "_access_scope_note": "PRIVATE_WORKER = only owner_worker_id may mutate. SHARED_SCENARIO = any worker in authorized_worker_ids running scenario_id may mutate. SHARED_CAMPAIGN = any authorized worker in the campaign. Highly destructive ops on shared fixtures (hard-delete a shared parent company, delete a shared project, archive a shared top-level org, delete a manager several scenarios depend on) require Fable QA Director coordination so one worker does not invalidate another's in-flight scenario - unless that collision IS the chaos test being run.",
+
+  "fixtures": [
+    {
+      "fixture_id": "LEGACY-C000-company-qa-swarm-test-co",
+      "canonical_id": "7ba01ff2-6404-4c06-8bc5-4449b50df5de",
+      "resource_type": "company",
+      "synthetic_display_name": "QA-SWARM-TEST-CO-VIA-CHAT",
+      "real_name_template": null,
+      "source_origin": "SCENARIO_DERIVED",
+      "campaign_id": "C000-PRE-PLATFORM",
+      "worker_id": "director-manual",
+      "owner_worker_id": "director-manual",
+      "scenario_id": "legacy-company-crud-smoke",
+      "access_scope": "SHARED_CAMPAIGN",
+      "authorized_worker_ids": ["*"],
+      "created_at": "2026-08-31T07:41:00Z",
+      "environment": "production",
+      "lifecycle": "ACTIVE",
+      "cleanup_method": "ui_delete_or_chat_delete",
+      "cleanup_status": "PENDING",
+      "retained_for_regression": false,
+      "notes": "Created BEFORE the real-name digital-twin convention was adopted, under the older generic QA-SWARM-TEST-* naming. Retained as valid already-collected evidence per the founder's explicit 'do not restart completed evidence collection' instruction - NOT renamed retroactively (renaming would add no new evidence). Evidence: Company create (UI) PASS, Company edit/rename (UI) PASS + persisted, Company rename via Brain Chat PASS + independently DB-verified. New fixtures from C001 onward use the digital-twin convention instead."
+    },
+    {
+      "fixture_id": "LEGACY-C000-department-qa-swarm-test-dept",
+      "canonical_id": "9573a957-eebd-4552-b28a-b8ed2a9de37a",
+      "_canonical_id_note": "Not captured at creation time (predates this registry); resolved 2026-08-31T09:05Z by direct DB lookup against public.departments, confirming both the id AND that its company_id matches fixture LEGACY-C000-company-qa-swarm-test-co (7ba01ff2-...). Now mutation-authorized.",
+      "resource_type": "department",
+      "synthetic_display_name": "QA-SWARM-TEST-DEPT-EDITED",
+      "real_name_template": null,
+      "source_origin": "SCENARIO_DERIVED",
+      "campaign_id": "C000-PRE-PLATFORM",
+      "worker_id": "director-manual",
+      "owner_worker_id": "director-manual",
+      "scenario_id": "legacy-department-crud-smoke",
+      "access_scope": "SHARED_CAMPAIGN",
+      "authorized_worker_ids": ["*"],
+      "created_at": "2026-08-31T07:44:00Z",
+      "environment": "production",
+      "lifecycle": "ACTIVE",
+      "cleanup_method": "ui_delete",
+      "cleanup_status": "PENDING",
+      "retained_for_regression": false,
+      "notes": "Parent company is fixture LEGACY-C000-company-qa-swarm-test-co. Evidence: Department create (UI) PASS, Department edit/rename (UI) PASS + persisted. Was initially recorded CREATED (not REGISTERED) because its canonical id had never been captured - a real demonstration of why the two-phase lifecycle exists; promoted to ACTIVE only after the id was resolved and its parent linkage independently confirmed."
+    }
+  ]
+}

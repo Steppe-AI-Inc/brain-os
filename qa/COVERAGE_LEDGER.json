@@ -1,0 +1,204 @@
+{
+  "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
+  "generated_at": "2026-08-31T09:07:43Z",
+  "generator": "qa/runner/compute-coverage.mjs",
+  "product_commit_under_test": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "environment": "production",
+  "required_capabilities": 40,
+  "executed_capabilities": 5,
+  "coverage_percentage": 12.5,
+  "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
+  "totals": {
+    "NOT_TESTED": 31,
+    "QUEUED": 0,
+    "RUNNING": 0,
+    "PASS": 5,
+    "FAIL": 0,
+    "BLOCKED": 4,
+    "FLAKY": 0
+  },
+  "by_domain": {
+    "companies": {
+      "NOT_TESTED": 5,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 3,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "departments": {
+      "NOT_TESTED": 3,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 2,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "business-units": {
+      "NOT_TESTED": 3,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "people": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "employment": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "projects": {
+      "NOT_TESTED": 4,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "goals": {
+      "NOT_TESTED": 1,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "tasks": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "approvals": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "brain-chat": {
+      "NOT_TESTED": 4,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "navigation": {
+      "NOT_TESTED": 1,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "relationships": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "qa-platform": {
+      "NOT_TESTED": 0,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 3,
+      "FLAKY": 0
+    },
+    "permissions": {
+      "NOT_TESTED": 0,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "FLAKY": 0
+    }
+  },
+  "by_surface": {
+    "UI": {
+      "NOT_TESTED": 15,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 4,
+      "FAIL": 0,
+      "BLOCKED": 4,
+      "FLAKY": 0
+    },
+    "BRAIN_CHAT": {
+      "NOT_TESTED": 14,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 1,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    },
+    "MIXED": {
+      "NOT_TESTED": 2,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "FLAKY": 0
+    }
+  },
+  "blocked_capabilities": [
+    {
+      "capability_id": "CAP-QA-COMMAND-CENTER-DASHBOARD",
+      "domain": "qa-platform",
+      "reason": "LIVE QA DASHBOARD — NOT YET IMPLEMENTED. Requires Home-PC product implementation via the QA-PLATFORM-REALTIME-CONTROL-PLANE handoff (Supabase schema/RLS/RPC + Brain OS dashboard page). Work PC authors the spec and its own publisher side, but must not implement production UI/schema itself."
+    },
+    {
+      "capability_id": "CAP-QA-COMMAND-CENTER-REALTIME",
+      "domain": "qa-platform",
+      "reason": "Same handoff dependency as CAP-QA-COMMAND-CENTER-DASHBOARD."
+    },
+    {
+      "capability_id": "CAP-QA-COMMAND-CENTER-COMMANDS",
+      "domain": "qa-platform",
+      "reason": "Same handoff dependency. Includes the negative test that an unauthorized persona's command is denied at the BACKEND, not merely hidden in the UI."
+    },
+    {
+      "capability_id": "CAP-BROWSER-PERSONA-MULTIUSER",
+      "domain": "permissions",
+      "reason": "No SUPABASE_SERVICE_ROLE_KEY in this environment, so synthetic logins cannot be minted directly. Per the charter this must NOT be accepted as final without first investigating product-supported paths (public signup, workspace-admin user creation, invitePerson() + a safe email sink). That investigation is itself QUEUED - see qa/QA_COVERAGE_GAPS.md. Backend SQL impersonation covers the authorization half but is NOT equivalent to browser persona coverage and will never be reported as such."
+    }
+  ],
+  "failing_capabilities": [],
+  "flaky_capabilities": [],
+  "release_state": "PARTIALLY VERIFIED",
+  "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
+  "headline": "Required capabilities: 40 | PASS: 5 | FAIL: 0 | FLAKY: 0 | BLOCKED: 4 | NOT TESTED: 31 -> PARTIALLY VERIFIED"
+}

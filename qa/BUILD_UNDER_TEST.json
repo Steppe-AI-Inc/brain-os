@@ -1,0 +1,36 @@
+{
+  "_doc": "Authoritative deployment provenance for the Work-PC QA node. The three SHAs below are deliberately tracked separately and must never be conflated: browser evidence is ALWAYS attributed to deployed_product_sha, never to latest_implementation_sha. Written/updated only by the Fable QA Director (single-writer rule).",
+  "target_environment": "production",
+  "target_url": "https://brain.open-spot.ai",
+  "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
+
+  "latest_implementation_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "latest_implementation_sha_short": "256f183",
+  "latest_implementation_ref": "origin/master",
+  "latest_implementation_subject": "verify: independent Phase 5 beehive DAG verification - all claims re-derived live, one latent hash-drift fragility fixed",
+
+  "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "deployed_product_sha_short": "256f183",
+  "deployment_id": "dpl_9eRgBvspSjcuH7h2NdatQ2pvTdyv",
+  "deployment_url": "https://brain-9xekx9tax-steppe-ai.vercel.app",
+  "deployment_ref": "master",
+  "deployment_status": "READY",
+  "deployment_target": "production",
+  "deployment_created_at": "2026-08-31T08:18:39Z",
+
+  "qa_artifact_sha": null,
+  "qa_artifact_branch": "qa/work-pc",
+  "qa_artifact_base_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada",
+  "_qa_artifact_base_note": "qa/work-pc was branched from local master b04cedb. qa_artifact_sha is populated on each QA artifact commit.",
+
+  "verification_method": "Vercel REST API v13 GET /deployments/{id} -> meta.githubCommitSha, read with the Vercel CLI's own stored auth token. NOT inferred from origin/master HEAD, and NOT inferred from `vercel ls` ordering. The alias list on this deployment was independently confirmed to include brain.open-spot.ai, proving this specific deployment is what the QA target URL actually serves.",
+  "verified_at": "2026-08-31T09:03:20Z",
+  "verified_by": "fable-qa-director",
+
+  "sha_alignment_note": "As of this verification, deployed_product_sha == latest_implementation_sha (256f183). This is a VERIFIED coincidence at this moment in time, not a standing assumption: the deployment watcher must re-verify on every campaign start, because origin/master routinely moves ahead of the deployed build (the home PC pushes frequently, and Vercel deploys are asynchronous).",
+
+  "notes": [
+    "brain.open-spot.ai is bound at the Vercel PROJECT level (project: steppe-ai/brain-os), so it auto-follows the latest successful production deployment. Confirmed live via `vercel inspect` alias list.",
+    "There is no separate staging environment. QA runs against production, which is exactly why the FIXTURE_REGISTRY gate + real-name synthetic digital-twin naming exist."
+  ]
+}

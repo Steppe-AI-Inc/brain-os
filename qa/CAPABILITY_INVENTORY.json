@@ -1,0 +1,121 @@
+{
+  "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
+
+  "schema_version": 1,
+  "generated_at": "2026-08-31T09:06:00Z",
+  "product_commit_under_test": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
+  "environment": "production",
+
+  "status_values": ["NOT_TESTED", "QUEUED", "RUNNING", "PASS", "FAIL", "BLOCKED", "FLAKY"],
+  "_status_note": "NOT_TESTED is never upgraded by inference from adjacent coverage. BLOCKED requires an explicit stated reason. FLAKY is a first-class outcome (first-run FAIL then retry PASS), never silently rounded to PASS.",
+
+  "truth_axes": ["DB", "UI", "AI", "RELATIONSHIP", "PERMISSION", "RELOAD", "FRESH_SESSION", "AUDIT", "NOTIFICATION", "AGGREGATION", "KPI", "SEARCH"],
+
+  "discovery_sources": [
+    "Static route enumeration: 35 page.tsx files under web/app/(app)/ (enumerated 2026-08-31).",
+    "Domain operation enumeration: 34 modules under web/lib/data/ exporting ~150 server actions (counted 2026-08-31).",
+    "Brain Chat operation enumeration: JSON schema fields in supabase/functions/sem-ai-command/index.ts, cross-checked against real execution blocks (research pass 2026-08-31).",
+    "PENDING: live in-browser control inventory (buttons/menus/dropdowns/dialogs per page) - this is what the HUMAN_QA_MASTER_MATRIX campaign produces, and it will ADD rows here."
+  ],
+
+  "coverage_scope_note": "The route and domain counts below are complete as of this commit. The CONTROL-level inventory is deliberately incomplete until the live browser discovery pass runs - that gap is disclosed in qa/QA_COVERAGE_GAPS.md rather than hidden by reporting a flattering denominator.",
+
+  "routes_discovered": [
+    "/access", "/ai-assistants", "/approvals", "/billing", "/board", "/chat",
+    "/companies", "/companies/archived", "/dashboard", "/departments", "/documents",
+    "/engineering", "/finance", "/goals", "/goals/[id]", "/goals/archived", "/help",
+    "/integrations", "/inventory", "/kpi", "/memory", "/mindmap", "/models", "/people",
+    "/products", "/projects", "/proposals", "/sales", "/settings", "/software",
+    "/software-factory", "/software-factory/[id]", "/tasks", "/tasks/archived", "/workflows"
+  ],
+
+  "capabilities": [
+    {
+      "capability_id": "CAP-COMPANY-CREATE-UI",
+      "domain": "companies", "resource": "company", "operation": "create", "surface": "UI",
+      "required_roles": ["founder"], "required_truth_axes": ["DB", "UI"],
+      "scenario_ids": ["legacy-company-crud-smoke"], "status": "PASS",
+      "evidence": "Live Playwright, 2026-08-31, pre-platform campaign C000. Created QA-SWARM-TEST-CO via /companies Add company form; row appeared in table and org tree.",
+      "tested_against_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada",
+      "_sha_caveat": "Evidence predates the deployment-provenance discipline; attributed to the local master SHA at test time, which may not equal the then-deployed SHA. Re-verify under C001 against the confirmed deployed SHA before treating as durable."
+    },
+    {
+      "capability_id": "CAP-COMPANY-RENAME-UI",
+      "domain": "companies", "resource": "company", "operation": "rename", "surface": "UI",
+      "required_roles": ["founder"], "required_truth_axes": ["DB", "UI"],
+      "scenario_ids": ["legacy-company-crud-smoke"], "status": "PASS",
+      "evidence": "Live Playwright, 2026-08-31. Row menu -> Edit -> renamed to QA-SWARM-TEST-CO-RENAMED -> Save; table and org tree both reflected new name.",
+      "tested_against_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada"
+    },
+    {
+      "capability_id": "CAP-COMPANY-RENAME-CHAT",
+      "domain": "companies", "resource": "company", "operation": "rename", "surface": "BRAIN_CHAT",
+      "required_roles": ["founder"], "required_truth_axes": ["DB", "UI", "AI"],
+      "scenario_ids": ["legacy-company-crud-smoke"], "status": "PASS",
+      "evidence": "Live Playwright + independent DB verification, 2026-08-31. Chat command renamed to QA-SWARM-TEST-CO-VIA-CHAT; chat CLAIMED success AND direct SQL confirmed companies.name actually changed (updated_at 2026-08-31 07:35:55Z). AI truth classification: PASS (claim matched persisted state).",
+      "tested_against_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada"
+    },
+    {
+      "capability_id": "CAP-DEPARTMENT-CREATE-UI",
+      "domain": "departments", "resource": "department", "operation": "create", "surface": "UI",
+      "required_roles": ["founder"], "required_truth_axes": ["DB", "UI"],
+      "scenario_ids": ["legacy-department-crud-smoke"], "status": "PASS",
+      "evidence": "Live Playwright, 2026-08-31. Created QA-SWARM-TEST-DEPT under the QA test company via /departments.",
+      "tested_against_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada"
+    },
+    {
+      "capability_id": "CAP-DEPARTMENT-RENAME-UI",
+      "domain": "departments", "resource": "department", "operation": "rename", "surface": "UI",
+      "required_roles": ["founder"], "required_truth_axes": ["DB", "UI"],
+      "scenario_ids": ["legacy-department-crud-smoke"], "status": "PASS",
+      "evidence": "Live Playwright, 2026-08-31. Row menu -> Edit -> renamed to QA-SWARM-TEST-DEPT-EDITED -> Save; table reflected new name.",
+      "tested_against_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada"
+    },
+
+    { "capability_id": "CAP-COMPANY-ARCHIVE-UI", "domain": "companies", "resource": "company", "operation": "archive", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 1 },
+    { "capability_id": "CAP-COMPANY-RESTORE-UI", "domain": "companies", "resource": "company", "operation": "restore", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 1 },
+    { "capability_id": "CAP-COMPANY-ARCHIVE-CHAT", "domain": "companies", "resource": "company", "operation": "archive", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 1, "notes": "Chat field archiveCompanyIds -> archive_company() RPC. DB-trigger-enforced as the ONLY path to status='archived'; updateCompanies is explicitly blocked from setting it directly - verify that block actually holds." },
+    { "capability_id": "CAP-COMPANY-RESTORE-CHAT", "domain": "companies", "resource": "company", "operation": "restore", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 1 },
+    { "capability_id": "CAP-COMPANY-DELETE-UI", "domain": "companies", "resource": "company", "operation": "permanent_delete", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 1, "notes": "Founder/admin only, fixtures only, refuses if dependents exist - test the refusal path too, not just the happy path." },
+
+    { "capability_id": "CAP-DEPARTMENT-DELETE-UI", "domain": "departments", "resource": "department", "operation": "delete", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 2 },
+    { "capability_id": "CAP-DEPARTMENT-UPDATE-CHAT", "domain": "departments", "resource": "department", "operation": "update", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 2 },
+    { "capability_id": "CAP-DEPARTMENT-DELETE-CHAT-ABSENT", "domain": "departments", "resource": "department", "operation": "delete", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 2, "expected_behavior": "NEGATIVE TEST: no delete-department field exists in the chat schema. Chat must HONESTLY DECLINE, not hallucinate success. A false success here is a P1 FALSE_SUCCESS defect." },
+
+    { "capability_id": "CAP-ORGBU-CREATE-CHAT", "domain": "business-units", "resource": "company_relationship", "operation": "create", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 3, "notes": "DUAL-MODEL ATTACK: companies.type='business_unit' + set_company_relationship is a DIFFERENT model from the departments table. Never merge results. Research indicates NO UI path exists to create/edit an org-graph relationship - confirm live and log as a parity defect if true." },
+    { "capability_id": "CAP-ORGBU-CHANGE-PARENT-CHAT", "domain": "business-units", "resource": "company_relationship", "operation": "change_parent", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 3 },
+    { "capability_id": "CAP-ORGBU-CREATE-UI-MISSING", "domain": "business-units", "resource": "company_relationship", "operation": "create", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 3, "expected_behavior": "PARITY PROBE: the company Edit dialog says 'Use chat to set which company it sits under.' Verify whether that is genuinely true or a UI dead-end. A human-authorized operation with no UI path is a parity defect per charter rules." },
+
+    { "capability_id": "CAP-PERSON-EDIT-UI", "domain": "people", "resource": "person", "operation": "update", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 4 },
+    { "capability_id": "CAP-PERSON-END-EMPLOYMENT-UI", "domain": "people", "resource": "person", "operation": "end_employment", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 4 },
+    { "capability_id": "CAP-PERSON-REASSIGN-CHAT", "domain": "employment", "resource": "person_assignment", "operation": "reassign", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","AI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 5, "notes": "createPersonAssignments / reassign_person. Research indicates this is CHAT-ONLY with no UI equivalent - confirm by inspecting /people live for any hidden reassignment control before logging as a parity gap." },
+    { "capability_id": "CAP-PERSON-REASSIGN-UI-MISSING", "domain": "employment", "resource": "person_assignment", "operation": "reassign", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 5, "expected_behavior": "PARITY PROBE: verify absence of any UI reassignment path." },
+
+    { "capability_id": "CAP-PROJECT-CREATE-UI", "domain": "projects", "resource": "project", "operation": "create", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 6 },
+    { "capability_id": "CAP-PROJECT-EDIT-UI", "domain": "projects", "resource": "project", "operation": "update", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 6 },
+    { "capability_id": "CAP-PROJECT-DELETE-UI", "domain": "projects", "resource": "project", "operation": "delete", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 6 },
+    { "capability_id": "CAP-PROJECT-EDIT-CHAT-ABSENT", "domain": "projects", "resource": "project", "operation": "update", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 6, "expected_behavior": "NEGATIVE TEST: chat has createProjects only, no update/delete/archive field. Must honestly decline, not fabricate success." },
+
+    { "capability_id": "CAP-GOAL-EDIT-UI", "domain": "goals", "resource": "goal", "operation": "update", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 7 },
+    { "capability_id": "CAP-TASK-EDIT-UI", "domain": "tasks", "resource": "task", "operation": "update", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 8 },
+    { "capability_id": "CAP-TASK-EDIT-CHAT-ABSENT", "domain": "tasks", "resource": "task", "operation": "update_fields", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 8, "expected_behavior": "NEGATIVE TEST: chat can assign owner (assign_task) / archive / restore / delete, but has NO field to edit an existing task's title/description/priority/status. 'Change this task's priority to critical' must be declined honestly." },
+
+    { "capability_id": "CAP-APPROVAL-DECIDE-UI", "domain": "approvals", "resource": "approval", "operation": "approve_reject", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","PERMISSION","AUDIT"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 9, "notes": "HIGH VALUE: approvals are the governance chokepoint. decideApproval must actually EXECUTE the deferred action, not just flip a status - this exact class of bug (approval approved, nothing executed) is documented in KNOWN_FAILURE_MODES." },
+    { "capability_id": "CAP-APPROVAL-DECIDE-CHAT-ABSENT", "domain": "approvals", "resource": "approval", "operation": "approve_reject", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["AI","PERMISSION"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 9, "expected_behavior": "NEGATIVE TEST: chat has deleteApprovalIds ONLY - it cannot approve or reject. Governance-sensitive: a chat that claims to have approved something would be a P1 (arguably P0) FALSE_SUCCESS." },
+
+    { "capability_id": "CAP-CHAT-NL-RENAME-VARIANTS", "domain": "brain-chat", "resource": "any", "operation": "natural_language_variants", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","AI"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 10, "notes": "pronouns, typos, casing, quoted/unquoted/partial names, 'call it X now', 'change it to X', multi-turn clarification, yes/do it/cancel/undo that." },
+    { "capability_id": "CAP-CHAT-MULTI-ACTION", "domain": "brain-chat", "resource": "any", "operation": "multi_action_command", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","AI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 11 },
+    { "capability_id": "CAP-RELOAD-FRESH-SESSION-TRUTH", "domain": "navigation", "resource": "any", "operation": "reload_fresh_session_truth", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI","RELOAD","FRESH_SESSION"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 12 },
+    { "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN", "domain": "relationships", "resource": "company", "operation": "archive_cascade", "surface": "MIXED", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP","RELOAD"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 13, "notes": "Known target failure pattern from the charter: BU archived/deleted BUT employee still shows actively attached. Must become a permanent regression." },
+    { "capability_id": "CAP-CASCADE-DELETE-BU-WITH-EMPLOYEES", "domain": "relationships", "resource": "business_unit", "operation": "delete_cascade", "surface": "MIXED", "required_roles": ["founder"], "required_truth_axes": ["DB","UI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "campaign_1_item": 13 },
+
+    { "capability_id": "CAP-ENTITY-RESOLUTION-CLASS-A", "domain": "brain-chat", "resource": "any", "operation": "real_vs_synthetic_resolution", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","AI"], "scenario_ids": [], "status": "NOT_TESTED", "notes": "CLASS A = NON-DESTRUCTIVE ONLY (read/query/selection/clarification/preview). One candidate target is a REAL production record. Verify the real entity's updated_at is unchanged after every probe. A mutation landing on the real entity is P0/P1." },
+    { "capability_id": "CAP-ENTITY-RESOLUTION-CLASS-B", "domain": "brain-chat", "resource": "any", "operation": "synthetic_vs_synthetic_resolution", "surface": "BRAIN_CHAT", "required_roles": ["founder"], "required_truth_axes": ["DB","AI","RELATIONSHIP"], "scenario_ids": [], "status": "NOT_TESTED", "notes": "CLASS B = FULLY AGGRESSIVE destructive testing permitted, because every candidate target is a registered synthetic twin. This is where wrong-target execution is safely observable." },
+
+    { "capability_id": "CAP-QA-COMMAND-CENTER-DASHBOARD", "domain": "qa-platform", "resource": "qa_command_center", "operation": "live_dashboard", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI","PERMISSION"], "scenario_ids": [], "status": "BLOCKED", "blocked_reason": "LIVE QA DASHBOARD — NOT YET IMPLEMENTED. Requires Home-PC product implementation via the QA-PLATFORM-REALTIME-CONTROL-PLANE handoff (Supabase schema/RLS/RPC + Brain OS dashboard page). Work PC authors the spec and its own publisher side, but must not implement production UI/schema itself." },
+    { "capability_id": "CAP-QA-COMMAND-CENTER-REALTIME", "domain": "qa-platform", "resource": "qa_command_center", "operation": "realtime_no_refresh", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI"], "scenario_ids": [], "status": "BLOCKED", "blocked_reason": "Same handoff dependency as CAP-QA-COMMAND-CENTER-DASHBOARD." },
+    { "capability_id": "CAP-QA-COMMAND-CENTER-COMMANDS", "domain": "qa-platform", "resource": "qa_commands", "operation": "authorized_command_execution", "surface": "UI", "required_roles": ["founder"], "required_truth_axes": ["UI","PERMISSION","DB"], "scenario_ids": [], "status": "BLOCKED", "blocked_reason": "Same handoff dependency. Includes the negative test that an unauthorized persona's command is denied at the BACKEND, not merely hidden in the UI." },
+
+    { "capability_id": "CAP-BROWSER-PERSONA-MULTIUSER", "domain": "permissions", "resource": "auth", "operation": "distinct_browser_personas", "surface": "UI", "required_roles": ["founder","manager","employee","unrelated_employee","anon"], "required_truth_axes": ["PERMISSION","UI"], "scenario_ids": [], "status": "BLOCKED", "blocked_reason": "No SUPABASE_SERVICE_ROLE_KEY in this environment, so synthetic logins cannot be minted directly. Per the charter this must NOT be accepted as final without first investigating product-supported paths (public signup, workspace-admin user creation, invitePerson() + a safe email sink). That investigation is itself QUEUED - see qa/QA_COVERAGE_GAPS.md. Backend SQL impersonation covers the authorization half but is NOT equivalent to browser persona coverage and will never be reported as such." }
+  ]
+}

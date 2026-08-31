@@ -1,0 +1,36 @@
+{
+  "_doc": "Maps every real (or founder-specified) business entity to its synthetic digital-twin counterpart. Exists so 'which real record does this synthetic one mirror' is always answerable from the repo alone, and so a wrong-target mutation can be detected by comparing against the real canonical id recorded here. Written only by the Fable QA Director.",
+
+  "naming_convention": "<EXACT REAL DISPLAY NAME> — SYNTHETIC QA [<campaign>-<worker-or-scenario>]",
+  "_naming_rules": [
+    "The real-name portion is copied BYTE-FOR-BYTE from the actual canonical record - never abbreviated, translated, normalized, or reconstructed from shorthand prose. e.g. 'SEM Global Robotics Technologies LLC — SYNTHETIC QA [...]', NOT 'SEM GRT LLC — SYNTHETIC QA [...]'.",
+    "The em-dash separator and the bracketed campaign tag are the visible synthetic marker. They are what lets a human instantly distinguish a QA twin from the real record in the same list.",
+    "Synthetic clones ALWAYS get a different canonical DB id from the real entity. Same display-name prefix, different id - that is the deliberate entity-resolution pressure.",
+    "Synthetic PEOPLE preserve the real display name and business role, but NEVER real contact info/credentials. Emails use the RFC-2606 reserved .invalid TLD (e.g. aldajan.c001w1@example.invalid) so no message can ever physically be delivered."
+  ],
+
+  "source_origin_values": ["CANONICAL_RECORD", "FOUNDER_SPEC", "SCENARIO_DERIVED"],
+  "_source_origin_note": "CANONICAL_RECORD = a real Brain OS row exists; real_canonical_id is populated and was read read-only to copy the exact name. FOUNDER_SPEC = the founder explicitly supplied this as a real intended business entity but no Brain OS record exists yet; real_canonical_id is null BY DESIGN (do not fabricate a real record just to satisfy the schema). SCENARIO_DERIVED = invented for a test scenario with no real-world counterpart claimed.",
+
+  "real_entities_resolved_readonly": {
+    "_note": "Resolved read-only 2026-08-31 to obtain exact canonical display names. These REAL records are never mutated by QA. Any mutation landing on one of these ids is a P0/P1 wrong-target defect.",
+    "companies": {
+      "SEM LLC": "a2475f8e-17ad-4c2b-b07e-1a998f6e36f9",
+      "SEM Global Robotics Technologies LLC": "773210d1-1203-4910-b18a-eab4cc7c3d9c",
+      "SEM Technologies LLC": "4e4a0553-4069-4367-960e-d671e0025fcd",
+      "CLIX GPS": "ed8ae510-ddbc-4be6-9d9e-d1f725b1381d"
+    },
+    "people": {
+      "Aldajan Zagila": "7ab968a1-4a45-4a3d-b9f2-a0026ed9d825"
+    },
+    "projects": {
+      "IQParking & OpenSpot Hardware Operations": "1e5dc270-f63d-4b45-9e8c-5b9e06700c3c"
+    },
+    "not_found_in_brain_os": [
+      "SpoonTech LLC — founder-specified as IQParking's owning client; no companies row exists. Recorded as FOUNDER_SPEC when its twin is created, real_canonical_id null."
+    ]
+  },
+
+  "clones": [],
+  "_clones_note": "Populated as the C001 IQParking digital twin is built. Each entry: real_entity_type, real_canonical_id (nullable iff source_origin=FOUNDER_SPEC), real_display_name, source_origin, synthetic_canonical_id, synthetic_display_name, campaign_id, worker_id, clone_purpose, created_at, cleanup_status."
+}

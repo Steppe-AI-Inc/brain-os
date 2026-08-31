@@ -1,0 +1,23 @@
+{
+  "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
+
+  "schema_version": 1,
+  "last_updated": "2026-08-31T09:08:00Z",
+  "updated_by": "fable-qa-director",
+
+  "status_values": ["OPEN", "REGRESSION_CREATED", "HANDED_OFF", "FIX_PUSHED", "READY_FOR_RETEST", "RETESTING", "CLOSED", "REOPENED"],
+  "_authority_rule": "ONLY independent Work-PC QA may set CLOSED. The Home PC may never set it, directly or by request - a fix being pushed and even deployed is not evidence the defect is gone; only an independent retest by a DIFFERENT Work-PC session (not the one that discovered/handed off the bug) can close it. FIX_PUSHED / READY_FOR_RETEST are set by the Work PC in response to reading a Home-PC fix report, not by the Home PC editing this file.",
+
+  "severity_values": ["P0", "P1", "P2", "P3"],
+  "_severity_rubric": {
+    "P0": "cross-company data leak; auth bypass; approval bypass with serious consequence; destructive wrong-target operation against a REAL (non-synthetic) record; permanent real-data loss; secret exposure.",
+    "P1": "false success (AI/UI claims done, DB unchanged); wrong target; duplicate execution; broken relationship graph; ownership corruption; unauthorized write; orphaned approvals/tasks; serious archive/restore inconsistency.",
+    "P2": "missing valid editing path; stale UI; reload inconsistency with workaround; search/filter failure; parity gap causing workflow failure.",
+    "P3": "cosmetic; minor copy; layout; low-impact UX."
+  },
+
+  "counts": { "open_p0": 0, "open_p1": 0, "open_p2": 0, "open_p3": 0, "total_open": 0, "total_closed": 0 },
+
+  "bugs": [],
+  "_bugs_note": "Empty because Campaign C001's live browser testing has not yet run under the platform. The 5 PASS capabilities carried over from the pre-platform C000 smoke pass produced no defects. This is an honest zero, not an unpopulated placeholder - it will change as soon as C001 executes."
+}
