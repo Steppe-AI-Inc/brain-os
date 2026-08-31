@@ -29,6 +29,26 @@ test('buildSkillInjectionPrompt: names the skill and its pinned origin for one a
   assert.match(block, /Skill tool/);
 });
 
+test('buildSkillInjectionPrompt: FACTORY_SKILL_INJECTION_INCLUDES_DEFINITION_PATH — real bug fixed live during the Phase 6 Task Observer proof. The Skill tool only resolves skills that are ALSO installed as a real Claude Code marketplace plugin (confirmed live: Skill(task-observer) returned "Unknown skill" for a vendored-only component); reading definition_path directly is the reliable path regardless of marketplace-installation status, so it must be present and instructed', () => {
+  const block = buildSkillInjectionPrompt([
+    {
+      skill: 'task-observer',
+      origin: 'rebelytics/one-skill-to-rule-them-all',
+      pinned_ref: '510caad26c907793e48306262af216ff9f71c9f7',
+      definition_path: 'vendor\\plugins\\rebelytics-task-observer\\SKILL.md',
+    },
+  ]);
+  assert.match(block, /vendor\\plugins\\rebelytics-task-observer\\SKILL\.md/);
+  assert.match(block, /Read this file directly/i);
+  assert.match(block, /Read.*directly.*(?:always works|reliable)/is);
+});
+
+test('buildSkillInjectionPrompt: omits the "Read this file directly" clause when definition_path is absent (never prints "Read this file directly: undefined")', () => {
+  const block = buildSkillInjectionPrompt([{ skill: 'no-path-skill', origin: 'some/repo', pinned_ref: 'abc123' }]);
+  assert.doesNotMatch(block, /undefined/);
+  assert.doesNotMatch(block, /no-path-skill\).*Read this file directly/);
+});
+
 test('buildSkillInjectionPrompt: lists every attached skill, not just the first', () => {
   const block = buildSkillInjectionPrompt([
     { skill: 'systematic-debugging', origin: 'obra/superpowers', pinned_ref: 'abc123' },

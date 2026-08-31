@@ -217,19 +217,36 @@ from public.agents where id = '${agentId}'::uuid;`;
 
 /**
  * Builds the real, non-cosmetic prompt block that makes an attached skill actually
- * reach the execution runtime: an explicit directive naming each attached skill and its
- * exact pinned origin, instructing the dispatched session to load it via the Skill tool
- * before starting the task. Returns '' when the agent has no attachments — dispatch is
- * unchanged for every agent that isn't using this feature yet.
- * @param {Array<{skill:string, origin:string, pinned_ref:string|null}>} externalCapabilities
+ * reach the execution runtime.
+ *
+ * Real, live-found bug fixed here (Phase 6, qa/KNOWN_FAILURE_MODES.md #50): the original
+ * version of this function told the dispatched session to "invoke via the Skill tool" but
+ * never included definition_path - the Skill tool only resolves skills that are ALSO
+ * installed as a real Claude Code marketplace plugin on this machine (confirmed live:
+ * obra/superpowers IS installed that way, so `Skill(systematic-debugging)` genuinely
+ * worked; rebelytics/one-skill-to-rule-them-all is NOT, so `Skill(task-observer)`
+ * genuinely failed with "Unknown skill: task-observer" - and the agent had no path/name to
+ * fall back to reading directly, because this function never told it one). Every
+ * plugin_components row Brain OS registers is NOT guaranteed to also be a real installed
+ * Claude Code marketplace plugin - a vendored file registered through plugin-attach.mjs's
+ * own pipeline is the common case, not the exception. Now instructs the dispatched session
+ * to Read the real definition_path directly and apply its instructions - reliable
+ * regardless of marketplace-installation status - and only additionally suggests the Skill
+ * tool as a possible shortcut when it happens to already be registered that way.
+ *
+ * @param {Array<{skill:string, origin:string, pinned_ref:string|null, definition_path?:string}>} externalCapabilities
  */
 export function buildSkillInjectionPrompt(externalCapabilities) {
   if (!externalCapabilities?.length) return '';
-  const lines = externalCapabilities.map(
-    (c) => `- ${c.skill} (from ${c.origin}${c.pinned_ref ? ` @ ${c.pinned_ref}` : ''})`
-  );
+  const lines = externalCapabilities.map((c) => {
+    const originText = `${c.skill} (from ${c.origin}${c.pinned_ref ? ` @ ${c.pinned_ref}` : ''})`;
+    return c.definition_path ? `- ${originText} - Read this file directly: ${c.definition_path}` : `- ${originText}`;
+  });
   return (
-    `\n\nAttached skills for this run (invoke via the Skill tool before proceeding if relevant to the task):\n` +
+    `\n\nAttached skills for this run - for each one, Read its file directly (the Skill ` +
+    `tool only works if it also happens to be installed as a Claude Code marketplace ` +
+    `plugin on this machine; reading the file directly always works) and apply its ` +
+    `instructions before proceeding if relevant to the task:\n` +
     lines.join('\n') +
     '\n'
   );

@@ -3741,3 +3741,52 @@ Setup, Claude-Mem, Headroom, OmniRoute) have not yet been processed through this
 pipeline; the plugin registry UI has not yet been updated to surface this new lifecycle;
 and a separate `brain-os-verifier` dispatch has not yet independently re-confirmed any of
 the above — this entry is the implementing session's own record, not a verified claim.
+
+## 50. `buildSkillInjectionPrompt` never actually told a dispatched session HOW to reach a skill's real content — the Skill tool silently fails for any component that isn't ALSO a real installed Claude Code marketplace plugin (FOUND LIVE, FIXED, 2026-08-31, during the Task Observer proof)
+
+**A significant, previously-undetected gap in the whole Phase 1–6 "attach" mechanism**,
+found only by attempting to process the first non-`obra/superpowers` component through
+the real pipeline — every prior proof this session (Phase 1's original attach proof, and
+this same Phase 6 build-out's own central acceptance test for `systematic-debugging`)
+happened to use a skill from `obra/superpowers`, which is *also* installed as a real
+Claude Code marketplace plugin on this machine
+(`C:\Users\Dell\.claude\plugins\marketplaces\superpowers-dev`). That coincidence masked
+the real gap: `buildSkillInjectionPrompt` (`provider.mjs`) told the dispatched session to
+"invoke via the Skill tool" but never included `definition_path` in the injected block —
+so a component registered through Brain OS's own `plugin-attach.mjs` pipeline (a vendored
+file, not a marketplace install) gave the dispatched session a skill *name* with no way to
+actually reach its content.
+
+**Live proof of the failure**: attaching `task-observer`
+(`rebelytics/one-skill-to-rule-them-all`, vendored into `vendor/plugins/
+rebelytics-task-observer/SKILL.md`, never installed as a Claude Code marketplace plugin)
+to `brain-os-verifier` and dispatching a real task, the agent's own transcript reported,
+honestly and without fabricating success: *"task-observer ... is not actually installed
+in this environment. I checked `~/.claude/plugins/known_marketplaces.json` and
+`installed_plugins.json` — only vercel and superpowers are registered ... Invoking it
+returns 'Unknown skill.' I'm not going to fabricate having run a methodology I could not
+load."* The agent then correctly fell back to applying the methodology *described in the
+dispatch task's own prompt text* rather than the real skill file — which happened to still
+produce a reasonable output, but is not what "attach a skill" is supposed to mean, and
+would have been silently wrong for a task that didn't restate the methodology inline.
+
+**What this means for everything proven earlier this session**: the central acceptance
+test's claim that "the skill's content is present" in the raw transcript was accurate for
+what it actually tested (the skill's *name*, *origin*, and *pinned SHA* appearing in the
+injected block, and `agent_runs.attached_skills` recording the same) — but had not yet
+been tested for whether the dispatched session could actually *load and apply* that
+skill's real instructions, because `systematic-debugging`'s Skill-tool invocation happened
+to work for an unrelated reason (marketplace co-installation) that doesn't generalize to
+any Brain-OS-vendored-only component — which is the common case for real Phase 6 work,
+not the exception.
+
+**Fix**: `buildSkillInjectionPrompt` now includes each attachment's real `definition_path`
+(already present in `agents.provenance.external_capabilities` via `sync-agents.mjs`'s
+`resolveAttachedCapabilities` — the data was already there, only the prompt-building step
+wasn't using it) and instructs the dispatched session to **Read the file directly** as the
+reliable mechanism, with the Skill tool offered only as a possible shortcut when it
+happens to already be marketplace-registered. Two new permanent regression tests added
+(`plugin-attach.regression.test.mjs`): `FACTORY_SKILL_INJECTION_INCLUDES_DEFINITION_PATH`
+and a companion test confirming no `"Read this file directly: undefined"` artifact when
+`definition_path` is absent. Re-verified live after the fix: re-dispatching the same
+Task Observer proof — see the following entry once confirmed.
