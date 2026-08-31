@@ -1,127 +1,88 @@
 # Work-PC QA Status Dashboard
 
-Human-readable companion to `qa/HANDOFF_STATE.json` / `qa/COVERAGE_LEDGER.json`.
-All numbers are computed from `CAPABILITY_INVENTORY.json` by
-`qa/runner/compute-coverage.mjs` — never hand-typed, never estimated.
+All numbers computed by `qa/runner/compute-coverage.mjs` — never hand-typed.
+
+**Session ended 2026-08-31** (founder left office / connectivity cut). Everything below is
+pushed to `origin/qa/work-pc`. **The campaign is resumable from repository state alone** —
+no chat history needed. Next session starts at `qa/runner/QA_DIRECTOR_BOOT.md`.
 
 ---
 
-## Current state
+## Verdict
+
+> ## QA FAILED — 4 defects (2× P1, 2× P2)
 
 | | |
 |---|---|
-| **Campaign** | `C001` |
-| **Campaign state** | `PLATFORM_BOOTSTRAP` |
-| **Environment** | production (`https://brain.open-spot.ai`) |
-| **Deployed product SHA** | `256f183` ✅ *Vercel-API verified, not inferred* |
-| **Latest implementation SHA** | `256f183` (`origin/master`) |
-| **QA artifact branch** | `qa/work-pc` |
-| **Release state** | **PARTIALLY VERIFIED** |
-| **Platform state** | **AUTONOMOUS QA PLATFORM — PARTIALLY VERIFIED** |
+| **Campaign** | `C001` — CHECKPOINTED_SESSION_END |
+| **Deployed SHA under test** | `8521b0e` (Vercel-API verified) |
+| **QA artifact SHA** | `89b549f` on `qa/work-pc` |
+| **Release state** | **FAILED** |
+| **Platform state** | AUTONOMOUS QA PLATFORM — PARTIALLY VERIFIED |
 
-### Deployment provenance
+```
+63 capabilities | PASS 22 | FAIL 9 | FLAKY 1 | BLOCKED 4 | NOT_TESTED 27
+50.8% executed  ->  FAILED
+```
 
-`brain.open-spot.ai` → deployment `dpl_9eRgBvspSjcuH7h2NdatQ2pvTdyv` → commit `256f183`,
-confirmed via the Vercel REST API (`meta.githubCommitSha`) **and** by confirming that
-deployment's alias list actually contains the QA target URL. Not inferred from
-`origin/master` HEAD, not inferred from `vercel ls` ordering.
-
-At this moment `deployed_product_sha == latest_implementation_sha`. That is a **verified
-coincidence, not a standing assumption** — the deployment watcher re-verifies every campaign
-start, because master routinely runs ahead of the deployed build.
+> ⚠️ The denominator is a **floor**. The per-page control inventory has not run, so the true
+> total is higher. See `QA_COVERAGE_GAPS.md` §1.
 
 ---
 
-## Coverage
+## Open defects — Home-PC priority order
 
-```
-Required capabilities: 40
-PASS:        5
-FAIL:        0
-FLAKY:       0
-BLOCKED:     4
-NOT TESTED: 31
-→ 12.5% executed (5/40)   →   PARTIALLY VERIFIED
-```
-
-> ⚠️ **The denominator is a floor, not the truth.** 40 capabilities come from static
-> enumeration (35 routes, ~150 server actions, Brain-Chat schema fields). The live per-page
-> control inventory has not run yet, so the real total is substantially higher. See
-> `qa/QA_COVERAGE_GAPS.md` §1.
-
-| Domain | PASS | NOT_TESTED | BLOCKED |
+| Bug | Sev | Title | Regression |
 |---|---|---|---|
-| companies | 3 | 5 | — |
-| departments | 2 | 3 | — |
-| business-units | — | 3 | — |
-| people | — | 2 | — |
-| employment | — | 2 | — |
-| projects | — | 4 | — |
-| goals | — | 1 | — |
-| tasks | — | 2 | — |
-| approvals | — | 2 | — |
-| brain-chat | — | 4 | — |
-| navigation | — | 1 | — |
-| relationships | — | 2 | — |
-| qa-platform | — | — | 3 |
-| permissions | — | — | 1 |
+| [BUG-004](bugs/BUG-004.md) | **P1** | Any self-registered user can write into the company brain; unscoped memories bypass every sensitivity tier | `memories_null_company_scope_not_a_bypass.sql` |
+| [BUG-002](bugs/BUG-002.md) | **P1** | Brain Chat fabricates success for unsupported ops — **product-wide class** (approvals, departments, projects) | `chat_must_not_fabricate_approval_decision.md` |
+| [BUG-003](bugs/BUG-003.md) | P2 | Dashboard "Companies" counts archived — 18 shown vs 8 active (125% overstatement) | `dashboard_company_count_excludes_archived.sql` |
+| [BUG-001](bugs/BUG-001.md) | P2 | Archived-parent descendants shown unmarked — 24/24 join sites omit `companies.status` | `departments_hide_or_mark_archived_parent.sql` |
+
+All four regressions are **EXPECTED_FAIL by design** — they assert correct behavior, not
+current behavior.
 
 ---
 
-## Defects
+## What held (recorded so the failures aren't misread)
 
-**0 open.** This is an honest zero: Campaign C001 live execution has not started, and the
-carried-over C000 smoke pass produced no defects. It is not an unpopulated placeholder.
-
-| Severity | Open |
-|---|---|
-| P0 | 0 |
-| P1 | 0 |
-| P2 | 0 |
-| P3 | 0 |
-
-Awaiting implementation: none · Awaiting retest: none
+- **Company-scoped RLS holds.** A zero-membership account read 0 from approvals, documents,
+  `financial_reports`, `product_lines`, `sales_leads`, projects. BUG-004 is the null-scope
+  escape hatch specifically, not a general RLS failure.
+- **The governance gate holds.** Despite BUG-002's fabricated "has been approved", no approval
+  was ever actually decided and no linked task resumed.
+- **Archived enforcement holds where it matters.** 6/6 pickers exclude archived; chat refuses
+  to create under, or move a person into, an archived company.
+- **Context truncation is honest** (§6): *"25 tasks total. You're seeing 15 of them."*
+- **Archive/restore round-trips cleanly** with all descendants preserved.
 
 ---
 
-## Evidence carried forward (campaign C000, pre-platform)
+## Three false leads caught and NOT filed
 
-Preserved per the explicit "do not restart completed evidence collection" instruction:
-
-| Capability | Result |
-|---|---|
-| Company create (UI) | PASS |
-| Company edit/rename (UI) | PASS — persisted |
-| Company rename (Brain Chat) | PASS — **independently DB-verified**, AI truth = PASS |
-| Department create (UI) | PASS |
-| Department edit/rename (UI) | PASS — persisted |
-
-⚠️ SHA-attribution caveat: tested before deployment-provenance discipline existed; attributed
-to local master `b04cedb`. Re-verify against the confirmed deployed SHA during C001 (see
-`QA_COVERAGE_GAPS.md` §4).
+1. A stale in-test read that looked like a restore failure — fresh load disproved it.
+2. "Email silently dropped" — my own selector filled the wrong input.
+3. A regression that passed **for the wrong reason** (`archive_company()` silently no-opped
+   without founder impersonation) — now guarded by an explicit precondition assertion.
 
 ---
 
-## Blocked (4) — with explicit reasons, never silently dropped
+## Deployment discipline
 
-1. **`LIVE QA DASHBOARD — NOT YET IMPLEMENTED`** ×3 — needs the Home-PC
-   `QA-PLATFORM-REALTIME-CONTROL-PLANE` implementation. Does not block C001.
-2. **`DISTINCT BROWSER PERSONAS UNAVAILABLE`** ×1 — no service-role key.
-   **Not accepted as final** until product-supported account paths are investigated.
-
----
-
-## Real-business acceptance (IQParking)
-
-**Status:** not started. Canonical entities already resolved read-only so nothing is
-duplicated: SEM LLC, SEM Global Robotics Technologies LLC, SEM Technologies LLC, CLIX GPS,
-Aldajan Zagila, and the project *IQParking & OpenSpot Hardware Operations* all exist.
-**SpoonTech LLC does not exist** in Brain OS — it will be recorded as `FOUNDER_SPEC` (real
-name supplied by the founder, `real_canonical_id: null`) rather than fabricating a real record.
+Production redeployed **5×** mid-campaign (`256f183 → 7df9656 → 266f86a → 8c33527 →
+8521b0e`). Evidence was checkpointed rather than re-stamped, and both defect surfaces were
+proven byte-identical across the range via `git diff`, so findings are build-independent.
 
 ---
 
-## Next action
+## Remaining C001 work (next session)
 
-**Actor:** WORK_PC. Finish platform scaffolding, then begin Campaign C001 live execution —
-Company archive/restore first, building the real-name synthetic digital twin in parallel.
+Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands,
+remaining cascade attacks, reload/fresh-session truth. Then the supervisor/auto-start.
+
+## Blocked (4) — explicit reasons
+
+- Live QA dashboard ×3 — needs Home-PC `QA-PLATFORM-REALTIME-CONTROL-PLANE`.
+- Distinct browser personas ×1 — **investigation advanced this session**: public signup is
+  open and *is* a viable path; the real blocker is the lack of a test inbox for OTP, not
+  absence of capability. Recorded accurately rather than as "impossible".
