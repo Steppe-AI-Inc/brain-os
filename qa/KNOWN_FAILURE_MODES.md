@@ -4263,3 +4263,67 @@ human QA retest, and does not resolve `tasks_update_scope`/`archive_task`/
 `restore_task`'s shared open design question (still explicitly open). The invite
 creation/redemption UI gap is now tracked here as a real, open follow-up, not folded
 into this security claim's scope.
+
+## 57. Independent verification of #53/BUG-003 and #55/BUG-001 — both fixes confirmed genuinely true live, one real fresh-entity lifecycle test performed on BUG-001, disclosed remainder confirmed still accurately scoped (INDEPENDENTLY VERIFIED, NO NEW DEFECT, 2026-09-01)
+
+A separate verifier session, no memory of the implementing session, re-derived both
+claims from scratch against `qa/bugs/BUG-001.md`/`qa/bugs/BUG-003.md` on
+`origin/qa/work-pc` (read via `git show`, branch never merged) rather than trusting #53/
+#55's own narration.
+
+**BUG-003 (dashboard company count)**: confirmed by direct read that
+`web/app/(app)/dashboard/page.tsx`'s companies count and `web/lib/data/companies.ts`'s
+`getCompanies()` use the byte-identical `.neq("status","archived")` filter. A fresh,
+independently-written live query (not the implementer's own script) against production
+returned `total_companies=18, non_archived_count=8, archived_count=10` — matching
+BUG-003's originally-reported split exactly and confirming the two call sites now agree.
+`qa/scenarios-runner/dashboard_company_count_excludes_archived.sql` re-run unmodified:
+`dashboard_kpi_expected_value=8`, matches.
+
+**BUG-001 (archived-parent marking)**: confirmed by direct read of all five touched
+files (`web/lib/data/departments.ts`, `web/lib/data/people.ts`,
+`web/app/(app)/departments/departments-table.tsx`,
+`web/app/(app)/people/people-table.tsx`, `web/components/archived-company-badge.tsx`)
+that both data-layer functions now select `companies(name, status)` and both tables
+correctly render `<ArchivedCompanyBadge status={...} />` from it. Then ran a genuinely
+fresh live lifecycle test with brand-new `QA-VERIFY-BUG001-*` fixtures (not reusing the
+implementer's own regression IDs): created a real company + department + person,
+archived the company via the real `archive_company()` RPC impersonating the real
+founder, and confirmed in one combined query that (a) `get_effectively_active_companies()`
+correctly excludes the archived company, and (b) queries mirroring `getDepartments()`/
+`getPeople()`'s exact joins return the department/person rows WITH a non-null
+`parent_status='archived'` — the row is neither silently dropped nor rendered without
+the data the badge needs. Also tested idempotency (a second `archive_company()` call
+correctly reported `changed:false, reason:already_archived`, no duplicate mutation) and
+a full restore round-trip (`restore_company()` flipped status back to `active`, the
+picker re-included it, the departments-mirror query showed `active` again — the badge
+would correctly disappear). All three fixtures then really deleted and re-queried by id
+to confirm zero residue. Also independently re-derived the disclosed remaining-scope
+claim: a fresh grep for the literal unfixed `companies(name)` pattern (excluding the
+now-fixed `companies(name, status)` and a prose comment that merely mentions the old
+pattern) found exactly the same 18 files #55 names, no more and no fewer, and confirmed
+the tracking `canonical_work_orders` row (`9016651a-b7c7-4dea-be33-06fbd621b8e0`) is
+real and queued naming that exact scope.
+
+**One disclosed-but-worth-restating finding**: a fresh blast-radius query found the
+*currently live* remainder of BUG-001 is not hypothetical — production right now has 2
+tasks and 1 goal actively attached to archived companies with no archived indication
+anywhere (their data-layer files, `tasks.ts`/`goals.ts`, are 2 of the still-disclosed 18).
+This is not a new defect and not something this dispatch had fix authority for — it is
+the accurately-scoped, already-tracked remainder of #55, restated here with a live count
+so "PASS" on BUG-001 is not misread as "fully closed."
+
+**Coverage gap, disclosed plainly, not silently absorbed**: `mcp__claude-in-chrome__*`
+browser tools were not available to load in this verifier session (no `ToolSearch`
+function present in its tool list) — no actual authenticated browser render of
+`/dashboard`, `/departments`, or `/people` was possible. All findings above are
+CODE INSPECTED + LIVE VERIFIED at the query-shape-and-live-data level (query text and
+rendering JSX read directly from source, cross-checked against real production rows via
+queries that mirror those exact functions), not full E2E VERIFIED via a live page
+render. `npx tsc --noEmit` and `npx eslint` against every touched file were both clean.
+
+**Status**: `INDEPENDENTLY VERIFIED — BUG-003 FULLY CLOSED, BUG-001 CORRECTLY FIXED ON
+ITS 2 DISCLOSED SURFACES WITH AN ACCURATELY-SCOPED, TRACKED, STILL-REAL REMAINDER`. No
+new defect found; no DB push required; nothing left running. Full evidence in
+`qa/verification/CURRENT_CAMPAIGN.json` (campaign
+`verify-31579cd-bug001-bug003-independent-recheck`).

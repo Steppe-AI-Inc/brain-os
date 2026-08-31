@@ -1,53 +1,47 @@
 {
-  "campaign_id": "verify-f45e2f7-bug004-null-scope-bypass-class",
-  "base_commit": "f45e2f73bf6568bb50448ef9212949d970165f51",
-  "started_at": "2026-08-31T12:00:00Z",
-  "last_checkpoint_at": "2026-09-01T00:00:00Z",
-  "completed_at": "2026-09-01T00:00:00Z",
-  "scope": "Independent re-verification of BUG-004 (qa/bugs/BUG-004.md on origin/qa/work-pc) and KNOWN_FAILURE_MODES.md #52's own self-report (not trusted). Re-derive from scratch: (1) memories RLS live policy text + fresh zero-membership persona transaction, (2) handle_new_auth_user() hardening + SSO-bypass rebind test, (3) invite-only signup E2E, (4) same-defect sweep across 7 tables + whole-schema pg_policy sweep, (5) both permanent regression SQL scripts live, (6) sem-ai-command memories retrieval code path.",
+  "campaign_id": "verify-31579cd-bug001-bug003-independent-recheck",
+  "base_commit": "31579cdb6a867fe35165f8ad0176042d91e365ee",
+  "started_at": "2026-09-01T00:00:00Z",
+  "last_checkpoint_at": "2026-09-01T01:30:00Z",
+  "completed_at": "2026-09-01T01:30:00Z",
+  "worktree": "C:/Users/Dell/dev/brain-os-verify-31579cd-bug001-003",
+  "prior_campaign": "verify-f45e2f7-bug004-null-scope-bypass-class (different scope, BUG-004 - concurrent, unrelated session)",
+  "scope": "Independent re-verification (fresh, not trusting qa/KNOWN_FAILURE_MODES.md #53/#55 or the implementing session's own narration) of BUG-001 (departments/people not marking archived-parent companies) and BUG-003 (dashboard Companies KPI counting archived companies), per qa/bugs/BUG-001.md and qa/bugs/BUG-003.md on origin/qa/work-pc (read via git show, never merged). BUG-002/BUG-004 explicitly out of scope for this dispatch (BUG-004 had a separate, concurrent independent verification - see prior_campaign - which landed ad48825 on master mid-run; confirmed its 4 touched files do not overlap any file this campaign verified).",
   "project_ref": "pvphxgrtdfrudejjhzjk",
-  "worktree": "C:/Users/Dell/dev/brain-os-verify-f45e2f7",
-  "prior_campaign": "verify-461ec6e-phase6-plugin-skill-lifecycle (archived, different scope)",
   "tooling_gaps_disclosed": [
-    "mcp__claude-in-chrome__* browser tools not loaded/exercised - not needed for the six explicitly-scoped items (all DB-level RLS/RPC/function-body checks plus one code-path read). The one UI-facing fix found outside the six (item7) was verified via tsc/eslint against the real project tsconfig, not a live browser session - INTEGRATION VERIFIED not E2E VERIFIED for that specific fix."
+    "mcp__claude-in-chrome__* browser tools were not available to load in this session (no ToolSearch function present in this session's tool list) - a real, disclosed coverage gap. UI/AI-chat truth checks that would require an actual authenticated browser render (screenshot/DOM read of /dashboard and /departments and /people) are BLOCKED, not silently skipped. Compensated with: (1) direct source inspection of every touched .tsx/.ts file confirming the exact JSX wiring (ArchivedCompanyBadge usage, select() column lists), (2) live DB queries that mirror the exact query shape each server function runs, cross-checked byte-for-byte against the source, (3) a real unauthenticated curl confirming production redirects to /login (Acceptance Test #1, unrelated to these two bugs but confirms the prod domain is live and routing normally)."
   ],
   "synthetic_entities_created_by_this_campaign": {
-    "all_via_rolled_back_transactions_zero_residue": "Every persona test used begin;...rollback; with brand-new synthetic auth.users/profiles/companies/memories/approvals/integration_queue/product_specs/tasks/company_invitations rows, all emails prefixed qa-verify-bug004-*. Final residue check after all tests: 0 rows in every touched table matching qa-verify-bug004%/QA-VERIFY-BUG004%/REGRESSION-BUG004%/REGRESSION-probe% - confirmed via direct count query, not assumed from rollback alone."
+    "all_deleted_real_delete_not_rollback_zero_residue": "Company aaaaaaa1-0000-4000-8000-000000000001 (QA-VERIFY-BUG001-CO), department aaaaaaa1-...-002 (QA-VERIFY-BUG001-DEPT), person aaaaaaa1-...-003 (QA-VERIFY-BUG001-PERSON). Full real lifecycle exercised (create -> archive_company() RPC as real founder -> verify -> archive again for idempotency -> restore_company() RPC -> verify reversal -> real DELETE of all three rows) then re-queried by id and by name-prefix LIKE match: 0 residual rows in companies/departments/people. Also ran the implementer's own two pre-existing regression scripts (departments_hide_or_mark_archived_parent.sql, people_mark_archived_parent_company.sql) unmodified - both self-clean via begin;...rollback; internally, re-confirmed 0 residue from those too."
   },
   "scenarios": {
-    "item1_memories_rls": {
+    "bug003_dashboard_company_count": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - pg_policy read confirms no company_id IS NULL branch in memories_select_scope/memories_write_scope at any tier. Fresh zero-membership stranger denied write; seeded confidential+null-scope row invisible (0 returned, not vacuous - 1 existed underneath)."
+      "evidence": "CODE INSPECTED: web/app/(app)/dashboard/page.tsx line 49 reads `supabase.from(\"companies\").select(\"id\",{count:\"exact\"}).neq(\"status\",\"archived\")` - byte-identical filter to web/lib/data/companies.ts's getCompanies() (`.neq(\"status\",\"archived\")`), confirmed by direct read of both files. LIVE VERIFIED: fresh independent query (not the implementer's script) against production - total_companies=18, non_archived_count=8, archived_count=10 - matches BUG-003.md's originally-reported 18/8/10 split exactly, and confirms the dashboard KPI (now filtered) and getCompanies() (already filtered) return the identical 8. Also re-ran qa/scenarios-runner/dashboard_company_count_excludes_archived.sql unmodified: dashboard_kpi_expected_value=8, matches. No UI screenshot possible (browser tools unavailable, disclosed above) - this is INTEGRATION VERIFIED at the query-shape+live-data level, not full E2E VERIFIED via an actual authenticated page render."
     },
-    "item2_handle_new_auth_user_hardening": {
+    "bug001_code_wiring_departments_and_people": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - pg_get_functiondef matches 202608310008. Already-claimed profile NOT rebound via is_sso_user=true email-collision bypass; genuinely unclaimed pre-seeded profile bound correctly on first real signup."
+      "evidence": "CODE INSPECTED, all 5 files read directly: web/lib/data/departments.ts getDepartments() selects `companies(name, status)` (not `companies(name)`); web/lib/data/people.ts getPeople() selects `companies(name, status)`; web/app/(app)/departments/departments-table.tsx renders `<ArchivedCompanyBadge status={d.companies?.status} />` next to the company name; web/app/(app)/people/people-table.tsx renders the same for `p.companies?.status`; web/components/archived-company-badge.tsx correctly returns null unless `status === 'archived'`, otherwise a visible Archive-icon Badge. All four call sites/renders line up correctly - no gap between what's selected and what's rendered."
     },
-    "item3_invite_only_signup_e2e": {
+    "bug001_disclosed_scope_18_files_recheck": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED full RPC-level E2E: plain signup -> active=false, 0 memberships. Ordinary employee denied create_company_invitation. accept_company_invitation(p_token text) signature confirmed to take no company_id/role param. Founder invitation acceptance bound exactly the invitation's company_id/role. Second acceptance of same token denied."
+      "evidence": "Independent grep of web/lib/data/*.ts for the literal, unfixed pattern `companies(name)` (excluding the fixed `companies(name, status)` and excluding a code comment in departments.ts that merely mentions the old pattern in prose) found exactly 18 distinct files still on the old pattern: access.ts, ai-assistants.ts, approvals.ts, engineering.ts, factory.ts, finance.ts, goals.ts, integrations.ts, inventory.ts, kpi.ts, memory.ts, onboarding.ts, products.ts, projects.ts, proposals.ts, sales.ts, software.ts, tasks.ts - matching both the commit message ('2 of 24 sites') and KNOWN_FAILURE_MODES.md #55's own file list exactly, not merely re-asserting it. Total occurrence count (some files select `companies(name)` twice, e.g. software.ts/goals.ts/proposals.ts/factory.ts) = 22, consistent with 24 original occurrences minus the 2 now-fixed occurrences in departments.ts/people.ts. Also confirmed the disclosed follow-up canonical_work_orders row 9016651a-b7c7-4dea-be33-06fbd621b8e0 is real and queued, naming this exact remaining scope - not a vague TODO."
     },
-    "item4_same_defect_sweep": {
+    "bug001_fresh_live_lifecycle_test": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - all 7 swept policies byte-identical to 202608310010. Whole-schema bare-IS-NULL sweep returns only tasks_update_scope (documented exception). SECURITY DEFINER sweep: archive_task/restore_task share the documented pattern; validate_organization_graph's occurrence is a read-only diagnostic; permanently_delete_fixture_company_graph confirmed via strpos to have NO occurrence (one ILIKE sweep query transiently mis-flagged it - resolved, documented in KFM #56, not a security finding). Fresh stranger denied on all 4 write-fixed tables, 0 rows on all 3 read-fixed tables + memories. Founder global path still works."
+      "evidence": "LIVE VERIFIED, brand-new QA-VERIFY-BUG001-* entities (not reused from any implementer fixture): created company+department+person -> archived the company via the real archive_company() RPC impersonating the real founder (auth cbcc41cf-830d-4600-8545-3b9e22c8297f, per qa/scenarios-runner/README.md's established live-impersonation method) -> archive_result confirmed {authorized:true, changed:true, previousStatus:active, newStatus:archived, postconditionPassed:true}. Then verified in ONE combined query: (a) get_effectively_active_companies() correctly EXCLUDES the archived company (picker_excludes_archived_company=true), (b) a query mirroring getDepartments()'s exact join returns the department row WITH a non-null parent_status='archived', (c) a query mirroring getPeople()'s exact join returns the person row WITH a non-null parent_status='archived' - i.e. the row is neither silently filtered out nor rendered without the data needed to mark it. IDEMPOTENCY: calling archive_company() a second time on the already-archived company correctly returned {changed:false, reason:already_archived} - no duplicate mutation, no false new-change claim. RESTORE: restore_company() correctly flipped company status back to active, the picker re-included it (picker_includes_after_restore=true), and the departments-mirror query showed parent_status='active' again - full round-trip consistency, badge would correctly disappear on restore. CLEANUP: real DELETE of all 3 rows, re-queried by id: 0 residual rows in companies/departments/people."
     },
-    "item5_regression_scripts_live": {
+    "bug001_global_integrity_recheck_disclosed_gap_still_real": {
+      "status": "CONCERNS (expected, disclosed, not a new defect)",
+      "evidence": "Re-ran a blast-radius query against live production: 10 archived companies currently have 4 active people, 2 tasks, 1 goal, 1 department still attached. The department is now correctly marked (fixed surface); the 4 people are now correctly marked (fixed surface); the 2 tasks and 1 goal are NOT marked (tasks.ts/goals.ts are 2 of the still-disclosed 18 unfixed files) - this is the honestly-disclosed remainder of BUG-001, not a new or hidden defect, and it is explicitly out of scope for this dispatch's fix authority (already tracked as canonical_work_order 9016651a-b7c7-4dea-be33-06fbd621b8e0). Flagged here so the founder does not read 'PASS' on BUG-001 as 'fully closed' - it is 'PASS on the 2 disclosed/live-confirmed surfaces, with an accurately-scoped, tracked, real remainder.'"
+    },
+    "static_checks": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - both memories_null_company_scope_not_a_bypass.sql and null_tenant_scope_bypass_class_closed.sql run unmodified against production: all_pass=true on both, unclassified_null_scope_policies=[]."
-    },
-    "item6_sem_ai_command_memories_context_path": {
-      "status": "PASS",
-      "evidence": "CODE INSPECTED + LIVE VERIFIED - sem-ai-command's one Supabase client uses anon key + caller JWT, zero SERVICE_ROLE references. match_memories() confirmed prosecdef=false (SECURITY INVOKER); live call as fresh stranger against a seeded confidential+unscoped memory returned 0 rows."
-    },
-    "item7_new_defect_found_pending_activation_ui_gap": {
-      "status": "FOUND, FIXED LIVE (web/ only, no DB push)",
-      "evidence": "Not one of the six required items. 202608310009 made signups inert at DB layer but middleware never checked profiles.active and zero frontend code referenced the invite RPCs. Fixed: web/app/pending-activation/page.tsx + gate in web/app/(app)/layout.tsx. tsc/eslint clean. Founder-facing invite UI remains unbuilt, disclosed as open follow-up. Full write-up: KNOWN_FAILURE_MODES.md #56."
+      "evidence": "npx tsc --noEmit -p . (web/) clean, zero errors. npx eslint on all 7 touched files (dashboard/page.tsx, lib/data/companies.ts, lib/data/departments.ts, lib/data/people.ts, departments-table.tsx, people-table.tsx, archived-company-badge.tsx) clean, zero errors/warnings."
     }
   },
   "pending_db_pushes": [],
   "prepared_fixes": [],
-  "live_verified_fixes": [
-    "web/app/pending-activation/page.tsx (new) + web/app/(app)/layout.tsx (gate on profile.active) - closes the UI/DB truth gap in item7. Committed and pushed to master; Vercel auto-deploys. No test framework configured in web/ - verified via tsc --noEmit + eslint against the real project config, disclosed as INTEGRATION VERIFIED not E2E VERIFIED."
-  ],
+  "live_verified_fixes": [],
   "remaining_scenarios": []
 }
