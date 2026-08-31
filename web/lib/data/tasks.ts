@@ -12,13 +12,21 @@ type WorkStatus = Database["public"]["Enums"]["work_status"];
 const TASK_SELECT =
   "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), owner_person_id, people(full_name), created_at, updated_at";
 
-export async function getTasks() {
+// Overnight multi-org milestone: activeOrganizationId scopes Tasks to the currently
+// selected organization when set, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+// A task with company_id IS NULL (the tasks_update_scope creator-owns-unscoped-task
+// case, tracked separately as Work Order b9abe2f2-...) is simply excluded when a
+// specific org is active, same as any other company-scoped filter would exclude it.
+export async function getTasks(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("tasks")
     .select(TASK_SELECT)
     .in("status", TASK_COLUMNS)
     .order("created_at", { ascending: false });
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

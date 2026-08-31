@@ -3,6 +3,8 @@ import { getDocuments } from "@/lib/data/documents";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getDepartments } from "@/lib/data/departments";
 import { getProjects } from "@/lib/data/projects";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { PageHeader } from "@/components/page-header";
 import { DocumentCreateForm } from "./document-create-form";
 import { DocumentsTree } from "./documents-tree";
@@ -11,8 +13,13 @@ import { DocumentsTable } from "./documents-table";
 export const maxDuration = 30;
 
 export default async function DocumentsPage() {
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
   const [documents, companies, departments, projects] = await Promise.all([
-    getDocuments(),
+    getDocuments(scopeToActiveOrg),
     getCompaniesForSelection(),
     getDepartments(),
     getProjects(),
@@ -23,7 +30,11 @@ export default async function DocumentsPage() {
       <PageHeader
         icon={FileText}
         title="Documents & Knowledge"
-        description="Files stored and sorted by company and category. Select multiple to batch-download or delete."
+        description={
+          organizations.activeOrganizationName && scopeToActiveOrg
+            ? `Files stored and sorted by category in ${organizations.activeOrganizationName}. Select multiple to batch-download or delete.`
+            : "Files stored and sorted by company and category. Select multiple to batch-download or delete."
+        }
       />
       <DocumentCreateForm
         companies={companies.map((c) => ({ id: c.id, name: c.name }))}

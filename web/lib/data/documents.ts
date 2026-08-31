@@ -76,13 +76,18 @@ async function reconcileEditableSource(
     .eq("id", docId);
 }
 
-export async function getDocuments() {
+// Overnight multi-org milestone: activeOrganizationId scopes Documents to the currently
+// selected organization when set, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+export async function getDocuments(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("documents")
     .select(DOCUMENT_SELECT)
     .order("created_at", { ascending: false })
     .limit(300);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

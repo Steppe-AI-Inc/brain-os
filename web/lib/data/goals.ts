@@ -8,14 +8,19 @@ import { classifyGoal, type GoalKind } from "@/lib/goals/classify";
 const GOAL_LIST_COLUMNS =
   "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name), departments(name), updated_at";
 
-export async function getGoals() {
+// Overnight multi-org milestone: activeOrganizationId scopes Goals to the currently
+// selected organization when set, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+export async function getGoals(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("goals")
     .select(GOAL_LIST_COLUMNS)
     .neq("status", "archived")
     .order("created_at", { ascending: false })
     .limit(200);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
