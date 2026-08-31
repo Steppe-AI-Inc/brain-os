@@ -639,3 +639,29 @@ the answer is no (it's purely an internal helper for triggers/other definer func
 leave it fully private (`REVOKE ALL FROM public, authenticated`) and verify live — as
 this session did — that a real non-admin test call gets `permission denied`, not a
 successful insert.
+
+**Update 2026-08-31**: `REVOKE ALL FROM public, authenticated` is not enough on its own —
+Supabase grants `EXECUTE` to `anon`, `authenticated`, AND `service_role` by default on
+every new function, so `anon` must be explicitly revoked too, or a fully unauthenticated
+caller retains access (`qa/KNOWN_FAILURE_MODES.md` #43-#44 — a real, live,
+unauthenticated privilege-escalation exploit against `create_founder_notification`, found
+independently and closed). Any time a new `SECURITY DEFINER` RPC is added,
+`revoke all on function public.<name> from anon;` belongs in the same migration by
+default, not as an afterthought.
+
+## New privileged RPC denies anon by default (catches: `qa/KNOWN_FAILURE_MODES.md` #44 —
+NEW_PRIVILEGED_RPC_DENIES_ANON_BY_DEFAULT)
+
+`qa/scenarios-runner/factory_rpc_privilege_sweep.sql` (rolled-back transaction) — run
+after adding or modifying any `SECURITY DEFINER` function in `public`. Part A is a
+generic sweep for any non-trigger, non-RLS-helper function still holding an `anon`
+`EXECUTE` grant (excludes `is_%`/`has_%`/`current_%` by name, since those legitimately
+need `anon` access for RLS itself to evaluate — do not "fix" that class). A **growing**
+`functions_still_holding_anon_grant` list on a future run, beyond the five pre-existing,
+already-disclosed, separately-tracked functions from #44
+(`create_mcp_connector_secret`/`get_mcp_connector_token`/`delete_mcp_connector_secret`/
+`set_company_relationship`/`set_person_assignment`), means a NEW function just made this
+same mistake — investigate immediately, don't assume it's safe. Part B is the specific
+3-persona live behavioral proof (anon denied, non-admin denied, founder's real canonical
+path still works) for whichever functions are actually in scope for the change being
+tested.

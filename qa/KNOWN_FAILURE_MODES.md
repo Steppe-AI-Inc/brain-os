@@ -3168,3 +3168,80 @@ browser this pass either — same disclosed gap as #39, still open. Code inspect
 and correct real-RPC call sites (`resolve_founder_notification`/
 `mark_founder_notification_read` via `web/lib/data/factory.ts`), but this is
 CODE INSPECTED, not LIVE VERIFIED, for the UI layer specifically.
+
+## 44. Closing #43's critical anon exploit — broader sweep finds two more Phase 4 functions with the same gap (not exploitable), and a pre-existing, out-of-scope pattern across five older functions (2026-08-31)
+
+**Merge/handoff note**: session #43's verifier hit a real, benign operational snag — its
+own auto-mode classifier blocked a plain `git show`/`/tmp` read command mid-push, leaving
+its real merge commit (`b650d30`, parents `f3bc331` + this session's `50faf41`) formed but
+unpushed, with some stray uncommitted working-tree artifacts (moved aside, not deleted,
+to `/tmp` before completing the merge — confirmed by direct content diff that they were
+stale/superseded scratch state, not novel unpreserved work). Completed via
+`git merge --ff-only b650d30` (zero conflict, since the commit object already existed and
+was already a genuine fast-forward target) and pushed — not a duplicate/re-derived merge,
+the verifier's own real commit, confirmed via `git diff --stat` to contain exactly the
+claimed anon-exploit fix + regression test + stale-test correction + verification
+checkpoint, no unrelated changes.
+
+**Live-confirmed the critical exploit is CLOSED**: independently re-tested
+`create_founder_notification` as the real `anon` role after the merge — correctly denied
+(`insufficient_privilege`), not the exploit success #43 originally found. (The narrower,
+41-line version of `202608310003_create_founder_notification_revoke_anon.sql` had
+already reached production by the time this was checked — consistent with this session's
+own established, still-unexplained observation that a migration version sometimes shows
+"applied" sooner than expected; independently re-verified via a real live anon-role call,
+never trusted from `migration list` alone, per #40's own lesson.)
+
+**Broader sweep performed** (per explicit founder instruction not to assume the defect
+exists only on `create_founder_notification`): a direct `pg_proc`/`proacl` query across
+every Phase 1-4 factory RPC found **two more Phase 4 functions with the identical
+unrevoked-`anon`-grant shape**: `resolve_founder_notification` and
+`mark_founder_notification_read`. Empirically re-tested live as the real `anon` role:
+neither is currently exploitable — both correctly return
+`{"authorized":false,"reason":"not_founder_or_admin"}` (their own internal gate, not
+merely relying on the (missing) grant revocation) — but per least-privilege, no
+unauthenticated caller should hold `EXECUTE` on any of the three at all. Extended
+`202608310003` to revoke `anon` from all three together (verified: the file the merge
+brought in had already been correctly auto-renamed from `202608310002` to `202608310003`
+by the verifier's own conflict resolution, avoiding collision with this session's
+`202608310002_org_graph_check_excludes_archived.sql` — no rename needed on this end).
+
+**A wider, generic privilege sweep also found a real, pre-existing, OUT-OF-SCOPE
+pattern**: `create_mcp_connector_secret`, `get_mcp_connector_token`,
+`delete_mcp_connector_secret` (all three touch `vault.secrets` directly),
+`set_company_relationship`, and `set_person_assignment` all carry the same unrevoked
+`anon` grant — none of these are Phase 1-4 additions (oldest from `202608260002`, newest
+from `202608290008`), so this pattern predates this entire Software Factory campaign.
+Each was read directly (not assumed) and confirmed to have its own internal
+`is_founder_or_admin()`-class gate — not currently exploitable — but this is a real,
+disclosed, **not-fixed-here** finding: a systemic gap where Supabase's own default
+`EXECUTE`-to-`anon` privilege was never explicitly revoked across an unknown fraction of
+this codebase's `SECURITY DEFINER` functions, predating and unrelated to the Phase 4
+incident that surfaced it. Flagged for a separate, deliberate founder-scoped review — not
+bundled into this migration, which stays scoped to the three Phase 4 functions this
+specific incident actually touched.
+
+**Real design correction to the generic sweep itself, found while building it**: an
+early version of the sweep query flagged 14 functions, most of them RLS-policy predicate
+helpers (`is_founder_or_admin`, `is_company_manager`, `is_hr_finance`,
+`has_company_access`, `current_profile_id`, `current_role`) that **must** remain
+`anon`-executable for row-level security to evaluate at all for an anon-role query —
+revoking those would have broken RLS across the app, a far worse outcome than the
+narrow issue being fixed. The permanent regression
+(`qa/scenarios-runner/factory_rpc_privilege_sweep.sql`) excludes this class by name
+pattern (`^(is_|has_|current_)`), documented inline with the reasoning, so it stays a
+meaningful signal rather than permanently noisy.
+
+**Permanent regressions added**: `qa/scenarios-runner/factory_rpc_privilege_sweep.sql` —
+Part A is the generic, non-parameterized sweep (the early-warning signal for the *next*
+function to make this mistake); Part B is the specific 3-persona live behavioral proof
+(anon denied, non-admin denied, founder's real canonical trigger-driven path still
+works) for the three functions this incident actually touched. `all_pass` is scoped to
+the in-incident three functions specifically, so the test stays a truthful signal rather
+than perpetually red over the separately-tracked, pre-existing five-function finding.
+
+**Gated, NOT pushed**: the extended `202608310003_create_founder_notification_revoke_anon.sql`
+(now revoking `anon` from all three Phase 4 functions) requires explicit founder
+authorization before `supabase db push`, per the standing rule — presented as the next
+authorization boundary. Target phrase once pushed and independently re-verified:
+`LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
