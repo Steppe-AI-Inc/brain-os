@@ -4162,3 +4162,104 @@ self-cleaning, live-proven against a real `archive_company()` call, both with th
 precondition guard QA's own original already learned the hard way (an unimpersonated
 `archive_company()` call silently no-ops and would otherwise report a false pass). Full
 `tsc --noEmit`/`eslint`/`next build` clean. Not an Edge Function change.
+
+## 56. Independent verification of #52/BUG-004 — every re-derived claim held; one new UI/DB truth gap found and fixed live (INDEPENDENTLY VERIFIED, ONE NEW DEFECT FOUND+FIXED — 2026-09-01)
+
+**Method**: re-derived all six required items from scratch against live production
+(project `pvphxgrtdfrudejjhzjk`) — direct `pg_policy`/`pg_get_functiondef` reads (never
+trusted #52's quoted policy text), and fresh, self-authored, self-cleaning
+(`begin;...rollback;`) persona transactions using brand-new synthetic
+`qa-verify-bug004-*` auth users created via real `auth.users` inserts (so
+`handle_new_auth_user()` fired for real, not simulated) — never reused #52's own fixture
+IDs. Zero residue confirmed by direct count query across every touched table after every
+transaction.
+
+**All six re-derived independently and confirmed true, live, this session**:
+1. `memories_select_scope`/`memories_write_scope` — live policy text has no
+   `company_id IS NULL` branch at any tier. Fresh zero-membership stranger (real
+   `auth.users` row, trigger-created profile): write denied
+   (`new row violates row-level security policy`), and a `confidential`+`company_id IS
+   NULL` row this session deliberately seeded (0 existed in prod, same as #52 found) was
+   invisible to the stranger even though it existed in the table — read-side is real, not
+   vacuous.
+2. `handle_new_auth_user()` live body confirmed matching `202608310008`'s final form
+   (`... where public.profiles.auth_user_id is null`). Two-case live test: (a) a
+   claimed profile (bound to a real, non-SSO `auth.users` row) survived a second
+   `auth.users` insert for the same email with `is_sso_user=true` (the exact
+   `users_email_partial_key ... WHERE is_sso_user=false` bypass #52 flagged) —
+   not rebound to the attacker; (b) a genuinely unclaimed, pre-seeded profile
+   (`auth_user_id IS NULL`) correctly bound on its first real signup.
+3. Invite-only signup, full RPC-level E2E: plain signup landed with `active=false`, 0
+   `company_memberships` (confirmed via the real trigger, not assumed). An ordinary
+   member (`role_in_company='employee'`) calling `create_company_invitation` was denied
+   (`not authorized to invite members to this company`). A founder-created invitation
+   accepted via `accept_company_invitation(p_token text)` (confirmed via
+   `pg_get_function_arguments`: no `company_id`/`role` parameter exists in the signature
+   at all) bound EXACTLY the invitation's own `company_id`/`invited_role`. A second
+   acceptance of the same token was denied (`invitation not found or already used`).
+4. Same-defect sweep: live-read all 7 swept policies, byte-identical to
+   `202608310010`. A whole-schema sweep (bare `IS NULL`, not just `company_id IS NULL`,
+   a strictly broader search than #52's own) returned exactly one policy:
+   `tasks_update_scope` — the sole documented exception, confirmed still the only one.
+   A `SECURITY DEFINER` function sweep found: `archive_task`/`restore_task` share the
+   identical documented creator-owns-unscoped-task pattern (consistent, not a new
+   bypass); `validate_organization_graph`'s only `company_id IS NULL` occurrence is a
+   read-only `peopleWithNoCompany` diagnostic under an `is_founder_or_admin()`-gated
+   function, not an authorization bypass; `permanently_delete_fixture_company_graph`
+   contains no `company_id IS NULL` occurrence at all on a precise `strpos` re-check
+   (one earlier `ILIKE`-based sweep query in this same session transiently mis-flagged
+   it — noted as a minor tooling inconsistency, resolved by using an unambiguous
+   string-position check rather than trusting the first result). A fresh
+   zero-membership stranger was denied write on all 4 write-fixed tables
+   (`approvals`/`integration_queue`/`product_specs`/`tasks`), saw 0 rows on all 3
+   read-fixed tables plus `memories`; a fresh synthetic founder's global path on
+   `approvals` still succeeded.
+5. Both permanent regression scripts run live, unmodified: `all_pass: true` on both
+   `qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql` and
+   `qa/scenarios-runner/null_tenant_scope_bypass_class_closed.sql`
+   (`unclassified_null_scope_policies: []`).
+6. `sem-ai-command/index.ts` code-read: the function's one Supabase client
+   (`createClient(supabaseUrl, supabaseAnon, { global: { headers: { Authorization:
+   auth } } })`) uses the anon key plus the caller's own JWT, not a service-role key —
+   zero `SERVICE_ROLE` references anywhere in the file. `memoriesQuery` and every other
+   context-pack query run through that same RLS-scoped client. `match_memories()` (the
+   embedding-search RPC path) is confirmed `SECURITY INVOKER` (`prosecdef: false`), and
+   a live call as the fresh zero-membership stranger against a seeded, embedding-bearing
+   `confidential`+unscoped memory returned 0 rows — the semantic-search path is exactly
+   as RLS-scoped as the plain `select`, not a separate bypass surface.
+
+**One new defect found independently, not in #52's own report — a genuine UI/DB truth
+gap, not a security hole (it fails safe)**: `202608310009` made every new signup land
+inert at the database layer, but nothing in the product ever changed to match.
+`web/lib/supabase/middleware.ts` only checked "is there a session" (never
+`profiles.active`), `web/app/signup/page.tsx` still reads "Create your Brain OS
+account" / "Verify & create account" with zero indication the resulting account is
+powerless, and a grep confirmed zero frontend code anywhere referencing
+`accept_company_invitation`/`create_company_invitation`/`company_invitations` — the
+entire invite creation and redemption flow shipped as backend-only RPCs with no UI. A
+freshly inert user authenticated successfully and landed straight on `/dashboard`,
+which (correctly, per RLS) rendered essentially empty, with no explanation why.
+
+**Fixed live, within this verification pass's `web/` fix authority (no DB/migration
+involved)**: added `web/app/pending-activation/page.tsx` (explains the inert state,
+names the exact email needing an invite, offers sign-out) and gated
+`web/app/(app)/layout.tsx` to redirect to it when `!profile || !profile.active`, right
+next to the layout's existing `getCurrentProfile()` call (`active` was already
+selected, no new query added). An already-active user landing on `/pending-activation`
+directly is bounced back to `/dashboard` by the page itself, so the redirect can never
+trap a real, activated user. Type-checked clean against the real project
+`tsconfig.json` (one unrelated, pre-existing `LayoutProps` error confirmed present
+identically on unmodified `master` too — a missing generated `.next/types` artifact in
+a fresh worktree, not caused by this change) and linted clean. Founder-facing
+invite-creation/redemption UI itself (a form to invite someone, an
+`/accept-invite?token=` page) remains genuinely unbuilt — flagged as a real follow-up
+product gap, not silently fixed under this pass's narrower authority, since it is new
+feature surface rather than a truth-gap regression fix.
+
+**Status**: `LIVE VERIFIED — NULL-SCOPE TENANT BYPASS CLASS CLOSED FOR REVIEWED
+POLICIES`, now independently confirmed, not merely the implementing session's own
+self-report. Same explicit scope as #52's own interim claim: does not cover a Work-PC
+human QA retest, and does not resolve `tasks_update_scope`/`archive_task`/
+`restore_task`'s shared open design question (still explicitly open). The invite
+creation/redemption UI gap is now tracked here as a real, open follow-up, not folded
+into this security claim's scope.

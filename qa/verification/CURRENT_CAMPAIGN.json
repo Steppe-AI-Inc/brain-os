@@ -1,54 +1,53 @@
 {
-  "campaign_id": "verify-461ec6e-phase6-plugin-skill-lifecycle",
-  "base_commit": "461ec6e458c04a24a54ff35f1f8e562056a14831",
-  "started_at": "2026-08-31T09:00:00Z",
-  "last_checkpoint_at": "2026-08-31T11:30:00Z",
-  "completed_at": "2026-08-31T11:30:00Z",
-  "worktree": "C:/Users/Dell/dev/brain-os-verify-461ec6e",
-  "prior_campaign": "verify-0f5ace8-phase5-beehive-dag (superseded - different scope, Phase 5 not Phase 6)",
-  "scope": "Independent re-verification of Software Factory Phase 6 (plugin/skill lifecycle), per KNOWN_FAILURE_MODES.md #49 (implementer's own self-report, not trusted). Re-derived all 7 required items from scratch.",
+  "campaign_id": "verify-f45e2f7-bug004-null-scope-bypass-class",
+  "base_commit": "f45e2f73bf6568bb50448ef9212949d970165f51",
+  "started_at": "2026-08-31T12:00:00Z",
+  "last_checkpoint_at": "2026-09-01T00:00:00Z",
+  "completed_at": "2026-09-01T00:00:00Z",
+  "scope": "Independent re-verification of BUG-004 (qa/bugs/BUG-004.md on origin/qa/work-pc) and KNOWN_FAILURE_MODES.md #52's own self-report (not trusted). Re-derive from scratch: (1) memories RLS live policy text + fresh zero-membership persona transaction, (2) handle_new_auth_user() hardening + SSO-bypass rebind test, (3) invite-only signup E2E, (4) same-defect sweep across 7 tables + whole-schema pg_policy sweep, (5) both permanent regression SQL scripts live, (6) sem-ai-command memories retrieval code path.",
   "project_ref": "pvphxgrtdfrudejjhzjk",
+  "worktree": "C:/Users/Dell/dev/brain-os-verify-f45e2f7",
+  "prior_campaign": "verify-461ec6e-phase6-plugin-skill-lifecycle (archived, different scope)",
   "tooling_gaps_disclosed": [
-    "mcp__claude-in-chrome__* browser tools not loaded/exercised - explicitly out of scope per prompt (plugin registry UI excluded from this pass)."
+    "mcp__claude-in-chrome__* browser tools not loaded/exercised - not needed for the six explicitly-scoped items (all DB-level RLS/RPC/function-body checks plus one code-path read). The one UI-facing fix found outside the six (item7) was verified via tsc/eslint against the real project tsconfig, not a live browser session - INTEGRATION VERIFIED not E2E VERIFIED for that specific fix."
   ],
   "synthetic_entities_created_by_this_campaign": {
-    "all_deleted_real_delete_not_rollback": "Company 66660006-0000-0000-0000-000000000001 (QA-VERIFY-PHASE6-CO), 1 canonical_work_order (b8253dfc-2553-4c44-a899-a19c616cb66d), 5 tasks, 5 real agent_runs (provider_run_ids 0294345c/622f5a6e/47d219bb/e23951e6/64d03ee5 - real claude --bg dispatches, all confirmed idle/done post-cleanup). 2 scratch files under the plugin cache (qa-verify-phase6/SKILL.md, cache-evil/SKILL.md) used for the update-test + sibling-collision security probe, rm -rf'd. Re-queried directly after cleanup: remaining_agent_runs=0, remaining_tasks=0, remaining_wo=0, remaining_company=0.",
-    "note_on_pre_existing_real_entity": "Reused the real, pre-existing systematic-debugging component (68d54f36-edcb-4d0b-b337-11087d4b91b4) and brain-os-implementation-engineer agent (7703cae0-2a4f-4f11-b79f-f1bff1904820) - found ATTACHED with real SHA b36e0829... at campaign start (implementer's own leftover live state, not synthetic). Left in EXACTLY that same final state (attached=true, install_status=enabled, real path/hash/SHA) after a full detach->attach->apply-update(new controlled version)->rollback cycle - confirmed via direct query after all testing completed. Deleted one phantom plugin_component_versions row (5e86f7df-af8d-402b-9b87-80f37dff0720) this verifier itself caused via a crashed first apply-update attempt (see finding (a))."
+    "all_via_rolled_back_transactions_zero_residue": "Every persona test used begin;...rollback; with brand-new synthetic auth.users/profiles/companies/memories/approvals/integration_queue/product_specs/tasks/company_invitations rows, all emails prefixed qa-verify-bug004-*. Final residue check after all tests: 0 rows in every touched table matching qa-verify-bug004%/QA-VERIFY-BUG004%/REGRESSION-BUG004%/REGRESSION-probe% - confirmed via direct count query, not assumed from rollback alone."
   },
   "scenarios": {
-    "item1_migration_live_and_backfill": {
+    "item1_memories_rls": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED - direct pg_constraint/information_schema query confirms plugin_components_install_status_check allows the new 9-value enum, plugin_component_versions exists with RLS+founder-only policy, security_review_status/license_review_status columns present. Backfill confirmed: real, non-overwritten plugin_component_versions history for component 68d54f36 (5 rows by end of this campaign: 1 migration backfill initial_install + 2 from implementer's prior LOCAL-TEST-B cycle + 2 from this verifier's own new cycle)."
+      "evidence": "LIVE VERIFIED - pg_policy read confirms no company_id IS NULL branch in memories_select_scope/memories_write_scope at any tier. Fresh zero-membership stranger denied write; seeded confidential+null-scope row invisible (0 returned, not vacuous - 1 existed underneath)."
     },
-    "item2_github_provenance": {
+    "item2_handle_new_auth_user_hardening": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED via gh api (this session's own auth): obra/superpowers real public repo, MIT license (both repo.license field and /license endpoint reading real LICENSE file), default_branch=main. Commit b36e0829c6d0140e93cfef2ca599b1b07d4a7797 real (2026-08-12). /compare/main...b36e0829 = identical, ahead_by=0, behind_by=0."
+      "evidence": "LIVE VERIFIED - pg_get_functiondef matches 202608310008. Already-claimed profile NOT rebound via is_sso_user=true email-collision bypass; genuinely unclaimed pre-seeded profile bound correctly on first real signup."
     },
-    "item3_central_acceptance_test_fresh_dispatch": {
-      "status": "PASS (core plumbing) with CONCERNS (AI self-report unreliability disclosed, see finding (b) in KNOWN_FAILURE_MODES #51)",
-      "evidence": "5 fresh real dispatch-task.mjs Agent Runs (0294345c/622f5a6e/47d219bb/e23951e6/64d03ee5), raw claude logs read directly by this verifier for every one. Baseline attached: transcript+DB show real SHA. Detach: transcript='NO ATTACHED SKILLS', DB attached_skills=[]. Re-attach: transcript+DB show real SHA again. In ALL 5 cases the raw prompt content and agent_runs.attached_skills column were 100% correct with zero exceptions. However the dispatched agent's own free-text self-summary was WRONG twice (R3 after re-attach, R5 after rollback both answered 'NO ATTACHED SKILLS' despite the skill block being plainly visible earlier in the same prompt) - a real, reproducible model self-report unreliability, not a plumbing defect. Documented in KNOWN_FAILURE_MODES #51(b)."
-    },
-    "item4_update_rollback_cycle_new_version": {
+    "item3_invite_only_signup_e2e": {
       "status": "PASS",
-      "evidence": "LIVE VERIFIED E2E with a genuinely new controlled version (QA-VERIFY-PHASE6-SHA-9f2c71, definitionPath under the real allowed plugin-cache root, NOT a reuse of LOCAL-TEST-B). apply-update staged (install_status=installed, provenance external_capabilities=[] confirming not-yet-live semantics) -> enable -> real dispatch R4 (e23951e6) transcript+DB show the new QA SHA/path live -> rollback(targetVersionId=22a66305, the real pre-update snapshot) -> enable -> real dispatch R5 (64d03ee5) transcript+DB show the real b36e0829 SHA restored. plugin_component_versions accumulated real, distinct, non-overwritten rows throughout (5 total by end). Found and fixed a real defect in the process: see finding (a)."
+      "evidence": "LIVE VERIFIED full RPC-level E2E: plain signup -> active=false, 0 memberships. Ordinary employee denied create_company_invitation. accept_company_invitation(p_token text) signature confirmed to take no company_id/role param. Founder invitation acceptance bound exactly the invitation's company_id/role. Second acceptance of same token denied."
     },
-    "item5_security_rls_and_path_traversal": {
+    "item4_same_defect_sweep": {
       "status": "PASS",
-      "evidence": "qa/scenarios-runner/factory_plugin_lifecycle_security.sql re-run live: all_pass=true, employee_rows_mutated=0, founder_rows_mutated=1. Independently attempted THREE out-of-bounds definitionPath variants: (1) direct absolute path (C:\\Windows\\System32\\drivers\\etc\\hosts) - refused, confirmed zero plugin_components rows created; (2) a ..-traversal escape from within an allowed root - refused (resolve() normalizes before the prefix check); (3) a sibling-directory-prefix collision (cache-evil/ vs cache/) - refused (trailing backslash in the startsWith check correctly prevents prefix-collision bypass). All three refused before any hash/registry write."
+      "evidence": "LIVE VERIFIED - all 7 swept policies byte-identical to 202608310010. Whole-schema bare-IS-NULL sweep returns only tasks_update_scope (documented exception). SECURITY DEFINER sweep: archive_task/restore_task share the documented pattern; validate_organization_graph's occurrence is a read-only diagnostic; permanently_delete_fixture_company_graph confirmed via strpos to have NO occurrence (one ILIKE sweep query transiently mis-flagged it - resolved, documented in KFM #56, not a security finding). Fresh stranger denied on all 4 write-fixed tables, 0 rows on all 3 read-fixed tables + memories. Founder global path still works."
     },
-    "item6_definition_hash_determinism": {
-      "status": "PASS (investigated and disclosed - deterministic today, but for reasons entirely external to this repo)",
-      "evidence": "Direct byte-level inspection of the live systematic-debugging SKILL.md in the plugin cache: 0 CRLF pairs, 283 bare LF, pure LF despite this machine's core.autocrlf=true (global and local). Root-caused: the cache tree has no .git directory (archive-based extraction, not git clone+checkout, so core.autocrlf is never applied), AND upstream obra/superpowers' own committed .gitattributes declares '*.md text eol=lf' (an attribute that would override local core.autocrlf even under a checkout-based mechanism). Cross-checked installed_plugins.json's own recorded gitCommitSha (b36e0829c6d0140e93cfef2ca599b1b07d4a7797) - a THIRD independent confirmation of the same provenance chain, matching plugin_sources.pinned_commit_sha and the gh api result. Disclosed, not fixed: this repo's own .gitattributes/#48 fix has zero effect on this file (outside the repo entirely); a future plugin source without its own eol=lf discipline would be exposed to #48's original fragility with no mitigation available at the Brain OS repo level. Documented in KNOWN_FAILURE_MODES #51(c)."
-    },
-    "item7_this_dispatch_ran_autonomously": {
+    "item5_regression_scripts_live": {
       "status": "PASS",
-      "evidence": "This entire verification campaign (skill load, worktree creation, ~15 DB queries, gh api calls, 5 real Agent Run dispatches with polling, a live code fix + regression tests + 2 documentation edits, DB cleanup, git commit/push) ran start-to-finish with zero interactive approval/plan-mode stalls and zero AskUserQuestion calls. The one blocking condition encountered (a background-session worktree-isolation guard on the first Write attempt) was a real technical guard, not a human-approval gate, and was resolved autonomously via `git worktree add` (the skill's own documented convention) without any user intervention or pause."
+      "evidence": "LIVE VERIFIED - both memories_null_company_scope_not_a_bypass.sql and null_tenant_scope_bypass_class_closed.sql run unmodified against production: all_pass=true on both, unclassified_null_scope_policies=[]."
+    },
+    "item6_sem_ai_command_memories_context_path": {
+      "status": "PASS",
+      "evidence": "CODE INSPECTED + LIVE VERIFIED - sem-ai-command's one Supabase client uses anon key + caller JWT, zero SERVICE_ROLE references. match_memories() confirmed prosecdef=false (SECURITY INVOKER); live call as fresh stranger against a seeded confidential+unscoped memory returned 0 rows."
+    },
+    "item7_new_defect_found_pending_activation_ui_gap": {
+      "status": "FOUND, FIXED LIVE (web/ only, no DB push)",
+      "evidence": "Not one of the six required items. 202608310009 made signups inert at DB layer but middleware never checked profiles.active and zero frontend code referenced the invite RPCs. Fixed: web/app/pending-activation/page.tsx + gate in web/app/(app)/layout.tsx. tsc/eslint clean. Founder-facing invite UI remains unbuilt, disclosed as open follow-up. Full write-up: KNOWN_FAILURE_MODES.md #56."
     }
   },
   "pending_db_pushes": [],
   "prepared_fixes": [],
   "live_verified_fixes": [
-    "scripts/factory-runner/plugin-attach.mjs: reordered applyUpdate()/rollbackComponent() so hashFile() (fallible) always runs before the first database write (snapshotVersion) - closes the orphaned-history-row defect found live during this campaign. Regression test added in plugin-attach.regression.test.mjs (8/8 passing). Committed and pushed to master."
+    "web/app/pending-activation/page.tsx (new) + web/app/(app)/layout.tsx (gate on profile.active) - closes the UI/DB truth gap in item7. Committed and pushed to master; Vercel auto-deploys. No test framework configured in web/ - verified via tsc --noEmit + eslint against the real project config, disclosed as INTEGRATION VERIFIED not E2E VERIFIED."
   ],
   "remaining_scenarios": []
 }
