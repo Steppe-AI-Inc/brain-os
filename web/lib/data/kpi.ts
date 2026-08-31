@@ -3,13 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getKpiRecords() {
+// Overnight multi-org milestone: activeOrganizationId scopes KPIs to the currently
+// selected organization when set, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+export async function getKpiRecords(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("kpi_records")
-    .select("id, metric, period, target, actual, score, salary_impact_pct, bonus_amount, status, people(full_name)")
+    .select("id, metric, period, target, actual, score, salary_impact_pct, bonus_amount, status, company_id, people(full_name)")
     .order("created_at", { ascending: false })
     .limit(30);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

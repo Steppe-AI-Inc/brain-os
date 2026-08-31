@@ -1,6 +1,8 @@
 import { BrainCircuit } from "lucide-react";
 import { getMemories } from "@/lib/data/memory";
 import { getCompaniesForSelection } from "@/lib/data/companies";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -21,14 +23,23 @@ const SENSITIVITY_VARIANT: Record<string, "default" | "secondary" | "destructive
 };
 
 export default async function MemoryPage() {
-  const [memories, companies] = await Promise.all([getMemories(), getCompaniesForSelection()]);
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
+  const [memories, companies] = await Promise.all([getMemories(scopeToActiveOrg), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         icon={BrainCircuit}
         title="Memory"
-        description="Organizational knowledge, linked back to its source. Confidential entries are limited to managers and HR/Finance."
+        description={
+          organizations.activeOrganizationName && scopeToActiveOrg
+            ? `Organizational knowledge in ${organizations.activeOrganizationName}, linked back to its source. Confidential entries are limited to managers and HR/Finance.`
+            : "Organizational knowledge, linked back to its source. Confidential entries are limited to managers and HR/Finance."
+        }
       />
       <MemoryCreateForm companies={companies} />
       <div className="flex flex-col gap-2">

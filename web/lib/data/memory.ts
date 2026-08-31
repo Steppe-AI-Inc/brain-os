@@ -3,13 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getMemories() {
+// Overnight multi-org milestone: activeOrganizationId scopes Memory to the currently
+// selected organization when set, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way. A
+// memory with company_id IS NULL (global/founder-scope, see BUG-004's null-scope tenant
+// work) is excluded when a specific org is active, same as any other company-scoped
+// filter — consistent with every other page's scoping, not a new exception.
+export async function getMemories(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("memories")
-    .select("id, fact, entity_type, sensitivity, confidence, created_at, companies(name)")
+    .select("id, fact, entity_type, sensitivity, confidence, created_at, company_id, companies(name)")
     .order("created_at", { ascending: false })
     .limit(50);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
