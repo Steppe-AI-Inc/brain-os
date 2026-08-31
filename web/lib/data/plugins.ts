@@ -184,7 +184,7 @@ async function queueOperation(
       plugin_component_id: componentId,
       agent_id: agentId,
       operation,
-      params,
+      params: params as never,
       requested_by_profile_id: profile?.id ?? null,
     })
     .select("id")
@@ -433,7 +433,15 @@ export async function getWorkers(): Promise<WorkerSummary[]> {
     .order("hostname", { ascending: true });
   if (error) throw error;
 
-  const workerIds = (workers ?? []).map((w) => w.id);
+  // The view's generated type marks every column nullable (Postgres can't statically
+  // prove a view column non-nullable) even though `id`/`hostname` are real NOT NULL
+  // columns on the base table — filter defensively rather than assert, so a genuinely
+  // malformed row (should never happen) is dropped instead of crashing the page.
+  const validWorkers = (workers ?? []).filter(
+    (w): w is typeof w & { id: string; hostname: string } => w.id !== null && w.hostname !== null
+  );
+
+  const workerIds = validWorkers.map((w) => w.id);
   const { data: installs } = workerIds.length
     ? await supabase
         .from("worker_plugin_installs")
@@ -448,7 +456,7 @@ export async function getWorkers(): Promise<WorkerSummary[]> {
     installsByWorker.set(row.worker_id, list);
   }
 
-  return (workers ?? []).map((w) => ({
+  return validWorkers.map((w) => ({
     id: w.id,
     hostname: w.hostname,
     displayName: w.display_name,

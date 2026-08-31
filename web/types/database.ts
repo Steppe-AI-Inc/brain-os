@@ -2567,6 +2567,80 @@ export type Database = {
           },
         ]
       }
+      plugin_operation_requests: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          error: string | null
+          id: string
+          operation: string
+          params: Json
+          plugin_component_id: string
+          requested_at: string
+          requested_by_profile_id: string | null
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          operation: string
+          params?: Json
+          plugin_component_id: string
+          requested_at?: string
+          requested_by_profile_id?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          operation?: string
+          params?: Json
+          plugin_component_id?: string
+          requested_at?: string
+          requested_by_profile_id?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_operation_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_operation_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents_with_live_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_operation_requests_plugin_component_id_fkey"
+            columns: ["plugin_component_id"]
+            isOneToOne: false
+            referencedRelation: "plugin_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plugin_operation_requests_requested_by_profile_id_fkey"
+            columns: ["requested_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plugin_sources: {
         Row: {
           created_at: string
@@ -3533,6 +3607,103 @@ export type Database = {
           },
         ]
       }
+      worker_plugin_installs: {
+        Row: {
+          configuration_drift: boolean
+          id: string
+          installed_at: string
+          installed_definition_hash: string | null
+          installed_version: string | null
+          last_checked_at: string | null
+          plugin_component_id: string
+          worker_id: string
+        }
+        Insert: {
+          configuration_drift?: boolean
+          id?: string
+          installed_at?: string
+          installed_definition_hash?: string | null
+          installed_version?: string | null
+          last_checked_at?: string | null
+          plugin_component_id: string
+          worker_id: string
+        }
+        Update: {
+          configuration_drift?: boolean
+          id?: string
+          installed_at?: string
+          installed_definition_hash?: string | null
+          installed_version?: string | null
+          last_checked_at?: string | null
+          plugin_component_id?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_plugin_installs_plugin_component_id_fkey"
+            columns: ["plugin_component_id"]
+            isOneToOne: false
+            referencedRelation: "plugin_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_plugin_installs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_plugin_installs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers_with_live_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers: {
+        Row: {
+          claude_code_version: string | null
+          display_name: string | null
+          hostname: string
+          id: string
+          last_heartbeat_at: string | null
+          max_concurrency: number | null
+          node_version: string | null
+          os_platform: string | null
+          registered_at: string
+          updated_at: string
+          worker_role: string | null
+        }
+        Insert: {
+          claude_code_version?: string | null
+          display_name?: string | null
+          hostname: string
+          id?: string
+          last_heartbeat_at?: string | null
+          max_concurrency?: number | null
+          node_version?: string | null
+          os_platform?: string | null
+          registered_at?: string
+          updated_at?: string
+          worker_role?: string | null
+        }
+        Update: {
+          claude_code_version?: string | null
+          display_name?: string | null
+          hostname?: string
+          id?: string
+          last_heartbeat_at?: string | null
+          max_concurrency?: number | null
+          node_version?: string | null
+          os_platform?: string | null
+          registered_at?: string
+          updated_at?: string
+          worker_role?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       agent_runs_with_live_status: {
@@ -3898,6 +4069,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workers_with_live_status: {
+        Row: {
+          claude_code_version: string | null
+          display_name: string | null
+          hostname: string | null
+          id: string | null
+          last_heartbeat_at: string | null
+          live_status: string | null
+          max_concurrency: number | null
+          node_version: string | null
+          os_platform: string | null
+          registered_at: string | null
+          updated_at: string | null
+          worker_role: string | null
+        }
+        Insert: {
+          claude_code_version?: string | null
+          display_name?: string | null
+          hostname?: string | null
+          id?: string | null
+          last_heartbeat_at?: string | null
+          live_status?: never
+          max_concurrency?: number | null
+          node_version?: string | null
+          os_platform?: string | null
+          registered_at?: string | null
+          updated_at?: string | null
+          worker_role?: string | null
+        }
+        Update: {
+          claude_code_version?: string | null
+          display_name?: string | null
+          hostname?: string | null
+          id?: string | null
+          last_heartbeat_at?: string | null
+          live_status?: never
+          max_concurrency?: number | null
+          node_version?: string | null
+          os_platform?: string | null
+          registered_at?: string | null
+          updated_at?: string | null
+          worker_role?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
