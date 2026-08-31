@@ -97,8 +97,17 @@ grant execute on function public.create_company_invitation(uuid, text, text) to 
 -- EXACTLY the company_id/invited_role read from the stored invitation row, never a
 -- caller-supplied value (the function signature deliberately takes no company_id/role
 -- parameter at all - client payload manipulation cannot change the outcome).
+-- Real bug found live during this session's own end-to-end test: returns table
+-- (company_id uuid, ...) creates a PL/pgSQL variable named company_id that shadows/
+-- collides with the real company_memberships.company_id column inside the function
+-- body's own `on conflict (company_id, profile_id)` clause (which cannot be
+-- table-qualified - that's not valid ON CONFLICT syntax) - "column reference
+-- company_id is ambiguous". Fixed by naming the OUT columns distinctly
+-- (out_company_id/out_role) so no column name in the function body can ever collide
+-- with a PL/pgSQL variable of the same name.
+drop function if exists public.accept_company_invitation(text);
 create or replace function public.accept_company_invitation(p_token text)
-returns table (company_id uuid, role text)
+returns table (out_company_id uuid, out_role text)
 language plpgsql
 security definer
 set search_path to 'public'
