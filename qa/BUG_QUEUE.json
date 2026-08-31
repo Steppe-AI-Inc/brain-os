@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:17:32Z",
+  "last_updated": "2026-08-31T11:25:47Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -47,7 +47,10 @@
       "commit_tested": "266f86a1641a0e4c57c48818849cb943687cbd58",
       "commit_tested_short": "266f86a",
       "also_present_on": [
-        "256f183"
+        "256f183",
+        "266f86a",
+        "8c33527",
+        "8521b0e"
       ],
       "_sha_note": "Independently RE-REPRODUCED against deployed 266f86a after production redeployed mid-campaign. web/lib/data/departments.ts and the /departments route are byte-identical across 256f183..266f86a (git diff empty), so the defect is build-independent across that range.",
       "environment": "production",
@@ -92,7 +95,8 @@
         "qa/runs/C001/W1-org/evidence/BUG-001-departments-shows-archived-parent.png"
       ],
       "implementation_recommendation": "Add companies(name, status) to the getDepartments() select and render an Archived badge/muted style. Then audit sibling surfaces that join to companies (projects, goals, people) for the same missing parent-status handling - this is a failure CLASS, not a one-off.",
-      "_qa_boundary": "QA did NOT implement the fix. Work-PC QA never modifies production implementation."
+      "_qa_boundary": "QA did NOT implement the fix. Work-PC QA never modifies production implementation.",
+      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001."
     },
     {
       "bug_id": "BUG-002",
@@ -137,7 +141,14 @@
       ],
       "implementation_recommendation": "(1) REQUIRED: force capability-absence to surface as explicit refusal in the response pipeline (generic fix - closes the whole class). (2) OPTIONAL: add a real approve capability, but only behind the same domain-gated authority decide_approval() enforces. Do not add an approve field without that gate.",
       "class_sweep_required": "Every UI-only operation is exposed to the same fabrication risk: project update/delete, task field edits, document update/delete, department delete, chat channel create/rename.",
-      "_qa_boundary": "QA did NOT implement any fix and did NOT decide the approval."
+      "_qa_boundary": "QA did NOT implement any fix and did NOT decide the approval.",
+      "also_present_on": [
+        "256f183",
+        "266f86a",
+        "8c33527",
+        "8521b0e"
+      ],
+      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001."
     }
   ]
 }
