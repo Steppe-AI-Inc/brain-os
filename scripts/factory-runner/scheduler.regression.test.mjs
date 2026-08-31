@@ -16,6 +16,7 @@ import {
   selectAgentForTask,
   selectTasksToDispatch,
 } from './scheduler.mjs';
+import { ALLOWLIST } from './sync-agents.mjs';
 
 test('isTaskReady: a task with no dependencies is always ready', () => {
   assert.equal(isTaskReady({ id: 't1', depends_on: [] }, new Map()), true);
@@ -145,4 +146,24 @@ test('selectTasksToDispatch: a done/in_progress/archived task is never re-select
     { id: 't3', status: 'archived', depends_on: [], created_at: '2026-08-30T10:00:02Z' },
   ];
   assert.deepEqual(selectTasksToDispatch(tasks, 5), []);
+});
+
+test('FACTORY_PRODUCT_ARCHITECT_CAN_BE_DISPATCHED_WHEN_CAPABILITY_REQUIRED - a task requiring "architecture" routes to brain-os-product-architect, using the REAL registered capability list (sync-agents.mjs ALLOWLIST), not a synthetic mock', () => {
+  // Real incident this locks in (qa/KNOWN_FAILURE_MODES.md, Phase 5): Product Architect
+  // had real capabilities registered but no execution_provider at all, so no candidate
+  // list the scheduler ever builds from live agents (execution_provider is not null)
+  // could include it - an 'architecture' task was structurally undispatchable by
+  // anyone. This test can't see the DB-level execution_provider fix directly (that's
+  // factory_agent_registry_dispatchability_truth.sql's job), but it locks in the OTHER
+  // half of the contract: the capability-matching logic itself must genuinely prefer
+  // Product Architect for an architecture-shaped task, using its real, currently-
+  // registered capability list - not a hand-picked test fixture that could silently
+  // drift from what's actually configured.
+  const productArchitectEntry = ALLOWLIST.find((e) => e.name === 'brain-os-product-architect');
+  assert.ok(productArchitectEntry, 'brain-os-product-architect must remain in the sync ALLOWLIST');
+  assert.ok(productArchitectEntry.capabilities.includes('architecture'), 'must retain the architecture capability');
+
+  const candidates = ALLOWLIST.map((e) => ({ id: e.name, name: e.name, capabilities: e.capabilities, activeRunCount: 0 }));
+  const selected = selectAgentForTask(['architecture'], candidates);
+  assert.equal(selected?.id, 'brain-os-product-architect');
 });

@@ -3246,21 +3246,112 @@ authorization before `supabase db push`, per the standing rule — presented as 
 authorization boundary. Target phrase once pushed and independently re-verified:
 `LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
 
-**Resolution, 2026-08-31 (office machine, founder-authorized)**: `202608310002` and
-`202608310003` were both independently re-verified LIVE VERIFIED before this session even
-ran `supabase db push` — a real `pg_get_functiondef`/`has_function_privilege` query against
-production showed both fixes' actual DDL effects already present (org-graph archived-status
-filter live in `validate_organization_graph`'s body; `anon`/`authenticated` both correctly
-denied on all three Phase 4 functions), consistent with this codebase's own repeated lesson
-not to trust `supabase migration list`/`db push --dry-run` bookkeeping alone (#40). The
-subsequent real `db push` correctly reported `upToDate: true` (no-op). Full 3-persona live
-proof for `202608310003` (anon denied, non-admin `authenticated` denied internally, real
-founder path reaches its intended logic) re-run and passed —
-`LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.
+**Resolution, 2026-08-31 — two independent sessions converged on this within the same
+window (office machine + home-PC/factory session), reconciled here rather than duplicated**:
+
+The home-PC session pushed `202608310003` and hit the **same `db push` lie a second time**
+(same class as #40/#43): the exit status again reported `upToDate: true` while direct grant
+inspection showed only `create_founder_notification` had actually locked down —
+`resolve_founder_notification`/`mark_founder_notification_read` still held
+`anon_granted: true`. Applied the two missed `revoke all ... from anon;` statements
+directly, then re-verified via direct grant inspection (never trusted from the push exit
+status again): **all three now show `anon: false`, `public: false`;
+`create_founder_notification` also shows `authenticated: false` (fully private,
+callable only from the trigger context by design); `resolve_founder_notification`/
+`mark_founder_notification_read` correctly retain `authenticated: true`** (the real,
+intended client-facing path, gated internally). Full privilege matrix empirically
+confirmed live by that session (real role-impersonated calls, not just grant-table
+inspection): `anon` denied on all three; a real non-admin `authenticated` persona denied
+on all three; founder/admin's real canonical path (a genuine `blocked`-state transition
+through the structural trigger) still creates a real notification, and
+`resolve_founder_notification` still succeeds for the founder.
+`qa/scenarios-runner/factory_rpc_privilege_sweep.sql` re-run: `all_pass: true`,
+`in_scope_functions_clean: true`.
+
+The office-machine session, working in parallel and unaware of the above at the time,
+independently re-verified the same end state via its own direct `pg_get_functiondef`/
+`has_function_privilege` queries against production (both fixes' actual DDL effects
+present — org-graph archived-status filter live in `validate_organization_graph`'s body;
+`anon`/`authenticated` correctly denied on all three Phase 4 functions) and its own
+from-scratch 3-persona live proof (anon denied, non-admin `authenticated` denied
+internally, real founder path reaches its intended logic) — same conclusion, reached
+independently, consistent with this codebase's own repeated lesson not to trust
+`supabase migration list`/`db push --dry-run` bookkeeping alone (#40). Also ran a real
+(non-dry-run) `db push` from that session, which correctly reported `upToDate: true`
+(a true no-op this time, confirmed by the direct query, not just trusted).
 `qa/verification/CURRENT_CAMPAIGN.json` has been corrected to stop presenting this as an
 open `pending_db_push`.
 
-## 45. Dedicated security review of the 5 pre-existing anon/PUBLIC-granted functions #43-#44 disclosed but did not fix (2026-08-31)
+**`LIVE VERIFIED — FOUNDER NOTIFICATION RPC ANON ACCESS CLOSED`.**
+
+## 45. Phase 5 — two real "capable but undispatchable" agents found and fixed through the canonical registry (2026-08-31)
+
+**Real defect, not an acceptable limitation** (founder's own framing, correct): Phase 2's
+scheduler correctly refused to dispatch `brain-os-product-architect` for an
+`architecture`-capability task — but the ROOT CAUSE was never investigated at the time,
+only worked around by retargeting that one test's capability elsewhere. Investigated
+properly this pass, per explicit instruction to determine whether Product Architect is
+*intentionally* providerless or *incompletely* registered before touching anything.
+
+**Product Architect: confirmed incompletely registered, not intentional.** Its own body
+text explicitly requires it to produce "a design document (written to a real file...)" —
+but its `tools:` list had no `Write` at all, and it had no `permissionMode: auto` (so
+`sync-agents.mjs` never gave it a real `execution_provider`). An agent instructed to
+write output it has no tool to write is definitionally incomplete, not deliberately
+read-only. Fixed by adding `Write` and `permissionMode: auto` to its own definition file
+— its explicit behavioral prohibitions ("never touch the database or write application
+code") stay intact as instruction-level constraints, the same enforcement class every
+other constrained agent in this registry already relies on. **Fixed through the
+canonical Agent Registry** (`sync-agents.mjs` re-run, real registry row updated) — no
+provider hardcoded anywhere in scheduler logic, per explicit instruction.
+
+**Second real instance found by the SAME generic regression, not assumed**: re-running
+the new dispatchability sweep after fixing Product Architect immediately surfaced
+`brain-os-release-operator` with the identical shape — real capabilities
+(`release_gate`/`deployment`/`smoke_validation`), no `execution_provider`. Read its
+definition file directly rather than assuming the same fix applied: its role is
+*entirely* read-only build/test/query verification issuing a PASS/CONCERNS/FAIL/BLOCKED
+verdict — its existing `Read/Grep/Glob/Bash/Skill` tools were already sufficient, no new
+tool needed. Its own description ("Use as the final step before any Factory Work Order
+is considered release-ready") already establishes it's meant to run automatically as
+part of the real pipeline — same "incomplete, not intentional" determination, fixed the
+same way (`permissionMode: auto` only).
+
+**Independently re-verified live, both fixes**: direct SQL query confirms both agents now
+show `execution_provider='claude_code_background'`, `has_production_authority=true`,
+`active=true`, and each `definition_hash` byte-matches its live on-disk file (computed
+independently via Node's own `crypto.createHash`, not trusted from the sync script's own
+claim).
+
+**Two permanent regressions added**:
+- `qa/scenarios-runner/factory_agent_registry_dispatchability_truth.sql` — generic,
+  non-parameterized: flags ANY `SOFTWARE_FACTORY`-category agent with real capabilities
+  but no `execution_provider` (the exact "capable but undispatchable" signature that
+  caught both real instances here) — re-run after registering any new agent or editing
+  an existing one's frontmatter. `all_pass: true` confirmed live after both fixes.
+- `scripts/factory-runner/scheduler.regression.test.mjs` —
+  `FACTORY_PRODUCT_ARCHITECT_CAN_BE_DISPATCHED_WHEN_CAPABILITY_REQUIRED`: imports the
+  REAL `ALLOWLIST` from `sync-agents.mjs` (not a synthetic mock) and asserts
+  `selectAgentForTask(['architecture'], ...)` genuinely resolves to
+  `brain-os-product-architect` — locks in the capability-matching half of the contract,
+  separate from the registry-state half the SQL test covers.
+
+Full registry audit (all 7 `SOFTWARE_FACTORY`/`SECURITY`/`INTEGRATION`/`VERIFICATION`/
+`RELEASE`-category agents) now shows every registered agent with real capabilities is
+genuinely dispatchable — zero remaining "capable but undispatchable" rows.
+
+## 46. Dedicated security review of the 5 pre-existing anon/PUBLIC-granted functions #43-#44 disclosed but did not fix (2026-08-31)
+
+**Cross-session note, added during merge**: the home-PC/factory session's #44 resolution
+above (same day) created a real canonical Work Order (`a644b05a-...`, "P1 Security
+Hardening: pre-existing RPC anon/PUBLIC privilege audit") to dispatch this exact same
+six-function audit through the Software Factory pipeline. This entry is the
+office-machine session's own independent, already-completed manual review of the same
+scope, done in parallel and merged in after the fact — both sessions independently arrived
+at the same six functions and the same "not currently exploitable, still worth fixing"
+conclusion. **If that Work Order is still open, treat this entry and
+`202608310004` below as already covering its scope** — check its status before letting a
+dispatched agent redo (and potentially re-migrate) the same fix.
 
 Founder explicitly ordered this review rather than accepting "confirmed NOT currently
 exploitable" (#44's own phrasing) as sufficient — per instruction, "not exploitable today"
