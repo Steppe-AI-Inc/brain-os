@@ -31,7 +31,7 @@ create table if not exists public.company_invitations (
   -- Opaque, single-use, unguessable token - the ONLY thing a signup flow ever presents
   -- back to accept_company_invitation(). Never the row id (sequential-ish UUIDs are not
   -- meant to double as bearer tokens) and never the email alone (guessable).
-  token text not null default encode(gen_random_bytes(32), 'hex'),
+  token text not null default encode(extensions.gen_random_bytes(32), 'hex'),
   status text not null default 'pending' check (status in ('pending', 'accepted', 'revoked', 'expired')),
   invited_by_profile_id uuid references public.profiles(id),
   accepted_by_profile_id uuid references public.profiles(id),
@@ -83,7 +83,7 @@ begin
   insert into public.company_invitations (company_id, email, invited_role, invited_by_profile_id)
   values (p_company_id, lower(trim(p_email)), coalesce(p_invited_role, 'employee'), public.current_profile_id())
   on conflict (company_id, email) where status = 'pending'
-  do update set invited_role = excluded.invited_role, expires_at = now() + interval '7 days', token = encode(gen_random_bytes(32), 'hex')
+  do update set invited_role = excluded.invited_role, expires_at = now() + interval '7 days', token = encode(extensions.gen_random_bytes(32), 'hex')
   returning company_invitations.id, company_invitations.token, company_invitations.expires_at;
 end;
 $$;
