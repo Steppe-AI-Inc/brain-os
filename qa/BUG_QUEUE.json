@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:55:16Z",
+  "last_updated": "2026-08-31T12:01:58Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 1,
+    "open_p1": 2,
     "open_p2": 2,
     "open_p3": 0,
-    "total_open": 3,
+    "total_open": 4,
     "total_closed": 0
   },
   "bugs": [
@@ -205,6 +205,51 @@
       ],
       "implementation_recommendation": "Add .neq(\"status\",\"archived\") at dashboard/page.tsx:41. Then consolidate on ONE definition of active company (get_effectively_active_companies RPC already exists) instead of three hand-rolled variants that drift. Then audit remaining dashboard/report aggregates for the same missing-filter pattern.",
       "_qa_boundary": "QA did NOT implement the fix."
+    },
+    {
+      "bug_id": "BUG-004",
+      "title": "Any self-registered user can write into the company brain (memories company_id IS NULL bypass); unscoped memories bypass every sensitivity tier",
+      "severity": "P1",
+      "status": "REGRESSION_CREATED",
+      "discovered_by": "fable-qa-director:C001:W4-security",
+      "discovered_at": "2026-08-31T11:55:00Z",
+      "campaign_id": "C001",
+      "commit_tested": "8521b0e",
+      "environment": "production",
+      "resources": [
+        "memories",
+        "profiles",
+        "signup"
+      ],
+      "persona": "self-registered stranger (employee, zero memberships)",
+      "expected": "A zero-membership account cannot write company memory and cannot read unscoped confidential memories.",
+      "actual": "Insert of an unscoped memory SUCCEEDED. memories_select_scope and memories_write_scope both treat company_id IS NULL as a blanket bypass at every sensitivity tier including confidential.",
+      "truth_checks": {
+        "db": "FAIL - unauthorized insert succeeded",
+        "permission": "FAIL - null-scope bypass on read and write",
+        "ai": "Downstream exposure - memories feed AI context (CLAUDE.md 5)",
+        "ui": "n/a",
+        "reload": "n/a"
+      },
+      "root_cause_evidence": "memories_write_scope: is_founder_or_admin() OR (company_id IS NULL) OR is_company_manager(company_id). memories_select_scope repeats company_id IS NULL in all three sensitivity branches. Read from pg_policy in production.",
+      "exposure_today": "6 unscoped memories readable, all sensitivity=internal (4 QA noise, 1 mild org-structure fact). ZERO unscoped confidential rows exist, so no confidential data is currently exposed. Company-scoped tables all returned 0 - scoped RLS holds.",
+      "severity_reasoning": "P0 considered and rejected: no cross-company leak, no auth bypass, no destruction, no secret exposure. Unauthorized write is explicitly P1. Placed at TOP of P1 because the write lands in the AI memory substrate.",
+      "escalation_trigger": "Re-classify P0 if (a) any confidential memory is written with company_id IS NULL, or (b) Google OAuth signup is confirmed enabled (removes the mailbox requirement).",
+      "attacker_prerequisites": "Complete email OTP - requires any working mailbox. No invitation, no domain restriction, no existing relationship.",
+      "related_latent": "handle_new_auth_user ON CONFLICT (email) DO UPDATE SET auth_user_id rebinds an existing profile to a new auth user instead of rejecting. Currently NOT exploitable (0 profiles with email and null auth_user_id, 0 unbound privileged profiles). Becomes live if profiles are pre-seeded during onboarding.",
+      "regression_path": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql",
+      "regression_state": "EXPECTED_FAIL",
+      "regression_last_result": {
+        "stranger_can_write_unscoped_memory": true,
+        "unscoped_confidential_readable": 0,
+        "total_memories_visible_to_stranger": 6,
+        "all_pass": false
+      },
+      "evidence_paths": [
+        "qa/bugs/BUG-004.md"
+      ],
+      "implementation_recommendation": "Remove the blanket company_id IS NULL bypass from both memories policies; model genuinely-global memories explicitly rather than inferring global from a null FK. Restrict memory writes to at least company membership. Decide whether public self-signup should remain open. Harden the ON CONFLICT email rebinding. Grep other RLS policies for company_id IS NULL used as a permissive branch - this is a failure CLASS.",
+      "_qa_boundary": "QA did NOT implement any fix. All probing was transactional and rolled back - no memory persisted, no auth user created."
     }
   ]
 }

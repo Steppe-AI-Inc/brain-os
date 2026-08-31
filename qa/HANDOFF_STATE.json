@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:55:42Z",
+  "last_updated": "2026-08-31T12:02:29Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "8521b0e",
   "product_commit_tested_short": "8521b0e",
@@ -12,29 +12,30 @@
   "qa_artifact_branch": "qa/work-pc",
   "home_pc_handoff_branch": "qa/home-pc-handoff",
   "campaign_id": "C001",
-  "campaign_state": "RUNNING",
-  "_campaign_state_note": "C001 checkpointed after 5 production redeploys during the campaign. Both findings verified build-independent across the full range, so no evidence is discarded and no campaign restart is required.",
+  "campaign_state": "CHECKPOINTED_SESSION_END",
+  "_campaign_state_note": "Work-PC session ended (founder leaving office, internet cut). All evidence committed and pushed to qa/work-pc. Campaign C001 resumable from repository state alone - no chat history required. Next session: read qa/runner/QA_DIRECTOR_BOOT.md.",
   "open_p0": 0,
-  "open_p1": 1,
+  "open_p1": 2,
   "open_p2": 2,
   "open_p3": 0,
   "ready_for_implementation": [
+    "BUG-004",
     "BUG-002",
-    "BUG-001",
-    "BUG-003"
+    "BUG-003",
+    "BUG-001"
   ],
   "fix_pushed": [],
   "ready_for_retest": [],
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 59,
-    "pass": 20,
-    "fail": 7,
+    "required_capabilities": 63,
+    "pass": 22,
+    "fail": 9,
     "flaky": 1,
     "blocked": 4,
     "not_tested": 27,
-    "coverage_percentage": 47.5,
+    "coverage_percentage": 50.8,
     "release_state": "FAILED",
     "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
@@ -46,7 +47,7 @@
     "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
   ],
   "next_required_actor": "HOME_PC",
-  "next_action": "Home PC priority: BUG-002 (P1, product-wide fabrication class, needs STRUCTURAL zero-ops guard) -> BUG-003 (P2, one-line dashboard filter, cheapest real win) -> BUG-001 (P2, failure class across 24 join sites).",
+  "next_action": "Home PC priority order: BUG-004 (P1 security, unauthorized write into AI memory substrate) -> BUG-002 (P1, product-wide fabrication class, needs STRUCTURAL zero-ops guard) -> BUG-003 (P2, one-line dashboard filter) -> BUG-001 (P2, 24-join-site failure class).",
   "home_pc_instructions": {
     "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
     "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",
@@ -55,5 +56,6 @@
     "4_implement": "Fix on master. Run the linked regression to confirm it now passes.",
     "5_publish_fix_report": "Write qa/home-pc-handoff/fixes/<BUG_ID>.json on the qa/home-pc-handoff branch with: bug_id, fix_commit, implementation_summary, implementation_tests, status='READY_FOR_RETEST', timestamp. Do NOT edit qa/BUG_QUEUE.json - it is Work-PC-owned.",
     "6_never": "Never set CLOSED. Only an independent Work-PC retest closes a defect."
-  }
+  },
+  "work_pc_resume_instructions": "Read qa/runner/QA_DIRECTOR_BOOT.md, then qa/HANDOFF_STATE.json, qa/BUG_QUEUE.json, qa/CAPABILITY_INVENTORY.json. Remaining C001: Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands, remaining cascade attacks, reload/fresh-session truth. Then supervisor implementation."
 }
