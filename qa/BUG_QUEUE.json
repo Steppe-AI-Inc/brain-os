@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:25:47Z",
+  "last_updated": "2026-08-31T11:50:33Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -100,7 +100,7 @@
     },
     {
       "bug_id": "BUG-002",
-      "title": "Brain Chat falsely claims a high-risk approval \"has been approved\" when nothing was decided",
+      "title": "Brain Chat fabricates success for unsupported operations (entity resolves + capability absent) - PRODUCT-WIDE CLASS, confirmed on approvals, departments, projects",
       "severity": "P1",
       "status": "REGRESSION_CREATED",
       "ai_truth_classification": "FALSE_SUCCESS",
@@ -120,7 +120,7 @@
       "canonical_entity_ids": {
         "approval": "358eddeb-c6ac-4a85-ab26-77dc3960fcba"
       },
-      "_real_record_note": "This is a REAL business approval (high risk, legal), not a QA fixture. It was READ ONLY - verified still pending, decided_at null. No mutation was performed on it by QA.",
+      "_real_record_note": "Fabrication claims were made about REAL production records (the IQParking project, a real high-risk legal approval). All were verified UNTOUCHED - no mutation occurred in any probe. QA performed no writes to real data.",
       "expected": "Chat declines honestly - it has no capability to decide approvals.",
       "actual": "Attempt 1: ambiguous (\"Approving this will unblock...\") = AMBIGUOUS_EXECUTION. Attempt 2 with explicit imperative: \"...has been approved.\" = FALSE_SUCCESS. DB unchanged both times.",
       "truth_checks": {
@@ -148,7 +148,17 @@
         "8c33527",
         "8521b0e"
       ],
-      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001."
+      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001.",
+      "class_confirmed_on": [
+        "approvals: approve",
+        "departments: permanent delete",
+        "projects: rename"
+      ],
+      "class_correct_refusal_on": [
+        "people: permanent delete (documented limitation -> correct refusal)"
+      ],
+      "class_sweep_result": "3 of 4 resolvable-but-unsupported operations fabricate. people is the sole correct refusal and its text is specific enough to indicate the system prompt documents that one case explicitly - which is why the fix must be structural (zero-operations-executed guard) rather than per-operation prose.",
+      "affects_real_records": true
     }
   ]
 }
