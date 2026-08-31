@@ -1,12 +1,20 @@
 {
   "_doc": "MANDATORY SAFETY GATE. Before ANY mutation other than the initial CREATE (edit/move/archive/restore/delete/reassign/hard-delete), the target's canonical id MUST appear here with lifecycle REGISTERED or ACTIVE, AND the acting worker must be authorized by access_scope. A synthetic-LOOKING display name is NEVER sufficient authorization on its own - real production entities could share a name prefix, and the whole point of the real-name digital-twin convention is that names are deliberately near-identical to real ones. Written only by the Fable QA Director (single-writer rule); workers request registration, they do not self-register.",
-
-  "lifecycle_states": ["PLANNED", "CREATED", "REGISTERED", "ACTIVE", "CLEANED", "RETAINED"],
+  "lifecycle_states": [
+    "PLANNED",
+    "CREATED",
+    "REGISTERED",
+    "ACTIVE",
+    "CLEANED",
+    "RETAINED"
+  ],
   "_lifecycle_note": "PLANNED is written BEFORE creation (no canonical id exists yet - Brain OS generates it at creation time; this is the documented bootstrap exception). CREATE is therefore the ONLY operation permitted against a fixture that is not yet REGISTERED. Immediately after creation the real generated canonical id is captured and the row moves CREATED -> REGISTERED -> ACTIVE. RETAINED means deliberately kept for regression re-runs rather than cleaned up.",
-
-  "access_scopes": ["PRIVATE_WORKER", "SHARED_SCENARIO", "SHARED_CAMPAIGN"],
+  "access_scopes": [
+    "PRIVATE_WORKER",
+    "SHARED_SCENARIO",
+    "SHARED_CAMPAIGN"
+  ],
   "_access_scope_note": "PRIVATE_WORKER = only owner_worker_id may mutate. SHARED_SCENARIO = any worker in authorized_worker_ids running scenario_id may mutate. SHARED_CAMPAIGN = any authorized worker in the campaign. Highly destructive ops on shared fixtures (hard-delete a shared parent company, delete a shared project, archive a shared top-level org, delete a manager several scenarios depend on) require Fable QA Director coordination so one worker does not invalidate another's in-flight scenario - unless that collision IS the chaos test being run.",
-
   "fixtures": [
     {
       "fixture_id": "LEGACY-C000-company-qa-swarm-test-co",
@@ -20,7 +28,9 @@
       "owner_worker_id": "director-manual",
       "scenario_id": "legacy-company-crud-smoke",
       "access_scope": "SHARED_CAMPAIGN",
-      "authorized_worker_ids": ["*"],
+      "authorized_worker_ids": [
+        "*"
+      ],
       "created_at": "2026-08-31T07:41:00Z",
       "environment": "production",
       "lifecycle": "ACTIVE",
@@ -42,7 +52,9 @@
       "owner_worker_id": "director-manual",
       "scenario_id": "legacy-department-crud-smoke",
       "access_scope": "SHARED_CAMPAIGN",
-      "authorized_worker_ids": ["*"],
+      "authorized_worker_ids": [
+        "*"
+      ],
       "created_at": "2026-08-31T07:44:00Z",
       "environment": "production",
       "lifecycle": "ACTIVE",
@@ -50,6 +62,52 @@
       "cleanup_status": "PENDING",
       "retained_for_regression": false,
       "notes": "Parent company is fixture LEGACY-C000-company-qa-swarm-test-co. Evidence: Department create (UI) PASS, Department edit/rename (UI) PASS + persisted. Was initially recorded CREATED (not REGISTERED) because its canonical id had never been captured - a real demonstration of why the two-phase lifecycle exists; promoted to ACTIVE only after the id was resolved and its parent linkage independently confirmed."
+    },
+    {
+      "fixture_id": "C001-W2-person-001",
+      "canonical_id": "37d03420-96c7-426a-811e-6edf0e14813f",
+      "resource_type": "person",
+      "synthetic_display_name": "QA-SWARM-PERSON-001-EDITED",
+      "real_name_template": null,
+      "source_origin": "SCENARIO_DERIVED",
+      "campaign_id": "C001",
+      "worker_id": "W2",
+      "owner_worker_id": "W2",
+      "scenario_id": "C001-W2-person-edit",
+      "access_scope": "SHARED_CAMPAIGN",
+      "authorized_worker_ids": [
+        "*"
+      ],
+      "created_at": "2026-08-31T10:55:00Z",
+      "environment": "production",
+      "lifecycle": "ACTIVE",
+      "cleanup_method": "ui_end_employment_then_delete",
+      "cleanup_status": "PENDING",
+      "retained_for_regression": true,
+      "notes": "Person fixture under the C000 fixture company. Email uses .invalid per policy. Used for person full-edit PASS and archived-reassignment refusal test."
+    },
+    {
+      "fixture_id": "C001-W3-task-001",
+      "canonical_id": "b6ac01d7-0dfe-4d30-bc09-2cc99b343234",
+      "resource_type": "task",
+      "synthetic_display_name": "QA-SWARM-TASK-001",
+      "real_name_template": null,
+      "source_origin": "SCENARIO_DERIVED",
+      "campaign_id": "C001",
+      "worker_id": "W3",
+      "owner_worker_id": "W3",
+      "scenario_id": "C001-W3-chat-negative-parity",
+      "access_scope": "SHARED_CAMPAIGN",
+      "authorized_worker_ids": [
+        "*"
+      ],
+      "created_at": "2026-08-31T11:13:31Z",
+      "environment": "production",
+      "lifecycle": "ACTIVE",
+      "cleanup_method": "chat_or_ui_delete",
+      "cleanup_status": "PENDING",
+      "retained_for_regression": false,
+      "notes": "Created VIA BRAIN CHAT (proving chat task-create works). priority=low, status=queued. Fell outside the 15-of-25 task context window, which is how the truncation-reporting behavior got tested."
     }
   ]
 }

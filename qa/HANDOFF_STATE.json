@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T11:18:00Z",
+  "last_updated": "2026-08-31T11:24:39Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "product_commit_tested_short": "266f86a",
@@ -27,17 +27,18 @@
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 48,
-    "pass": 14,
+    "required_capabilities": 52,
+    "pass": 17,
     "fail": 3,
-    "flaky": 0,
+    "flaky": 1,
     "blocked": 4,
     "not_tested": 27,
-    "coverage_percentage": 35.4,
+    "coverage_percentage": 40.4,
     "release_state": "FAILED",
     "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
   "known_coverage_gaps": [
+    "FLAKY UNDER STUDY: compound chat requests produced a user-facing \"Model returned invalid JSON\" once, then passed on retry. Recorded FLAKY, not filed as a bug - needs a repeat-run study to establish a real failure rate before classification.",
     "FAILURE CLASS OPEN: ARCHIVED_PARENT_NOT_SURFACED affects up to 24 data-layer join sites; 2 confirmed live (/departments, /people). Remaining ~22 surfaces NOT yet individually tested.",
     "CONTROL-LEVEL INVENTORY INCOMPLETE: 35 routes and ~150 domain server actions are enumerated, but the per-page interactive control inventory (buttons/menus/dropdowns/dialogs) requires the live browser discovery pass. The current denominator of 40 capabilities is therefore a FLOOR, not the true total - it will grow substantially. Coverage % must be read with that in mind.",
     "LIVE QA DASHBOARD — NOT YET IMPLEMENTED: 3 qa-platform capabilities BLOCKED pending the QA-PLATFORM-REALTIME-CONTROL-PLANE Home-PC implementation.",

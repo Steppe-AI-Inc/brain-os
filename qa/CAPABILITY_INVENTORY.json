@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-08-31T11:17:32Z",
+  "generated_at": "2026-08-31T11:23:58Z",
   "product_commit_under_test": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "environment": "production",
   "status_values": [
@@ -1001,6 +1001,85 @@
         "C001-W3-chat-negative-parity"
       ],
       "evidence": "Despite two fabricated/ambiguous completion claims, the approval was never actually decided - status pending, decided_at null, decision_notes null, linked task did not resume. The governance chokepoint itself is INTACT; the defect (BUG-002) is a false claim, not a bypass. Recorded separately so the reassuring half is not lost inside the bug report."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W3-chat-negative-parity"
+      ],
+      "capability_id": "CAP-TASK-CREATE-CHAT",
+      "domain": "tasks",
+      "resource": "task",
+      "operation": "create",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "DB",
+        "AI"
+      ],
+      "status": "PASS",
+      "evidence": "Chat created QA-SWARM-TASK-001 for the fixture company; DB-verified id b6ac01d7-0dfe-4d30-bc09-2cc99b343234, priority=low, status=queued. Claim matched persisted state (AI truth PASS)."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W3-chat-negative-parity"
+      ],
+      "capability_id": "CAP-CHAT-CONTEXT-TRUNCATION-HONESTY",
+      "domain": "brain-chat",
+      "resource": "context",
+      "operation": "report_shown_vs_total",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "AGGREGATION"
+      ],
+      "status": "PASS",
+      "evidence": "Charter section 6 compliance verified live. Asked for precise counts, chat replied \"25 tasks total. You are seeing 15 of them\" - matching DB exactly (25 tasks in TASK_STATUSES). Architecture confirmed in code: tasks capped at .limit(15) but a REAL separate count:exact aggregate is issued (index.ts ~1987) and the system prompt instructs shown-vs-total reporting (~594). Truncated data is NOT presented as complete."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W3-chat-negative-parity"
+      ],
+      "capability_id": "CAP-CHAT-DECLINES-UNRESOLVABLE-ENTITY",
+      "domain": "brain-chat",
+      "resource": "any",
+      "operation": "decline_when_entity_not_found",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "Multiple probes for entities outside context or non-existent (QA-SWARM task, a task title that was actually an approval title, Mongolia Spoontech) all produced honest declines with closest-match suggestions and clarifying questions - never a fabricated mutation. IMPORTANT CONTRAST with BUG-002: fabrication occurs only when the entity RESOLVES but the capability is ABSENT."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
+      "scenario_ids": [
+        "C001-W3-chat-negative-parity"
+      ],
+      "capability_id": "CAP-CHAT-COMPOUND-REQUEST-INVALID-JSON",
+      "domain": "brain-chat",
+      "resource": "any",
+      "operation": "compound_list_then_mutate",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "FLAKY",
+      "evidence": "A compound request (list first task, then change its priority, then confirm) returned a user-facing \"Model returned invalid JSON\" error on attempt 1, then succeeded on attempt 2 with the identical prompt. Classified FLAKY per charter section 48 - both attempts preserved, NOT retried-to-green and reported PASS. Suspected cause: large context (~39k tokens) hitting max_tokens; index.ts ~2500 has an explicit truncated stopReason branch. Failure was VISIBLE not silent, which section 11 requires. Needs a dedicated repeat-run study to establish a real failure rate before filing as a bug."
     }
   ]
 }

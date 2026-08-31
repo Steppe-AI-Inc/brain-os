@@ -1,21 +1,21 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-08-31T11:17:32Z",
+  "generated_at": "2026-08-31T11:23:58Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "266f86a1641a0e4c57c48818849cb943687cbd58",
   "environment": "production",
-  "required_capabilities": 48,
-  "executed_capabilities": 17,
-  "coverage_percentage": 35.4,
+  "required_capabilities": 52,
+  "executed_capabilities": 21,
+  "coverage_percentage": 40.4,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 27,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 14,
+    "PASS": 17,
     "FAIL": 3,
     "BLOCKED": 4,
-    "FLAKY": 0
+    "FLAKY": 1
   },
   "by_domain": {
     "companies": {
@@ -85,7 +85,7 @@
       "NOT_TESTED": 2,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 0,
+      "PASS": 1,
       "FAIL": 0,
       "BLOCKED": 0,
       "FLAKY": 0
@@ -103,10 +103,10 @@
       "NOT_TESTED": 4,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 2,
+      "PASS": 4,
       "FAIL": 0,
       "BLOCKED": 0,
-      "FLAKY": 0
+      "FLAKY": 1
     },
     "navigation": {
       "NOT_TESTED": 1,
@@ -159,10 +159,10 @@
       "NOT_TESTED": 13,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 5,
+      "PASS": 8,
       "FAIL": 1,
       "BLOCKED": 0,
-      "FLAKY": 0
+      "FLAKY": 1
     },
     "MIXED": {
       "NOT_TESTED": 2,
@@ -213,8 +213,14 @@
       "bug_id": "BUG-001"
     }
   ],
-  "flaky_capabilities": [],
+  "flaky_capabilities": [
+    {
+      "capability_id": "CAP-CHAT-COMPOUND-REQUEST-INVALID-JSON",
+      "domain": "brain-chat",
+      "bug_id": null
+    }
+  ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 48 | PASS: 14 | FAIL: 3 | FLAKY: 0 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
+  "headline": "Required capabilities: 52 | PASS: 17 | FAIL: 3 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
 }
