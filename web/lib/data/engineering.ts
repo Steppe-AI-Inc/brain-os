@@ -7,7 +7,7 @@ export async function getEngineeringDrawings(companyId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from("engineering_drawings")
-    .select("id, company_id, title, description, svg_content, dimensions_summary, notes, created_at, companies(name)")
+    .select("id, company_id, title, description, svg_content, dimensions_summary, notes, created_at, companies(name, status)")
     .order("created_at", { ascending: false });
   if (companyId) query = query.eq("company_id", companyId);
   const { data, error } = await query;

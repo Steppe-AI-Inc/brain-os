@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { classifyGoal, type GoalKind } from "@/lib/goals/classify";
 
 const GOAL_LIST_COLUMNS =
-  "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name), departments(name), updated_at";
+  "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name, status), departments(name), updated_at";
 
 // Overnight multi-org milestone: activeOrganizationId scopes Goals to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —
@@ -30,7 +30,7 @@ export async function getGoal(id: string) {
   const { data, error } = await supabase
     .from("goals")
     .select(
-      "*, companies(name), departments(name), key_results(*), goal_context(content_md)"
+      "*, companies(name, status), departments(name), key_results(*), goal_context(content_md)"
     )
     .eq("id", id)
     .maybeSingle();

@@ -13,7 +13,7 @@ export async function getProposals() {
   const [{ data, error }, { data: financials }] = await Promise.all([
     supabase
       .from("proposals")
-      .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name)")
+      .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name, status)")
       .order("created_at", { ascending: false }),
     supabase.from("proposal_financials").select("proposal_id, internal_margin"),
   ]);
@@ -191,7 +191,7 @@ async function generateQuotationPdfInner(proposalId: string): Promise<string | {
 
   const { data: proposal, error: proposalError } = await supabase
     .from("proposals")
-    .select("id, title, currency, subtotal, discount_pct, total, payment_terms, created_at, company_id, companies(name)")
+    .select("id, title, currency, subtotal, discount_pct, total, payment_terms, created_at, company_id, companies(name, status)")
     .eq("id", proposalId)
     .single();
   if (proposalError || !proposal) return proposalError?.message || "Proposal not found.";

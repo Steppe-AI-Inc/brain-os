@@ -10,7 +10,7 @@ export async function getProjects(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("projects")
-    .select("id, title, status, deadline, risk_score, company_id, companies(name)")
+    .select("id, title, status, deadline, risk_score, company_id, companies(name, status)")
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;

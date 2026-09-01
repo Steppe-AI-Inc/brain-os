@@ -6,6 +6,8 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
+import type { CompanyRef } from "@/lib/data/company-ref";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +35,7 @@ export type TaskRow = {
   risk_level: string | null;
   approval_required: boolean | null;
   company_id: string | null;
-  companies: { name: string } | null;
+  companies: CompanyRef;
   owner_person_id: string | null;
   people: { full_name: string } | null;
 };
@@ -125,6 +127,9 @@ export function TaskCard({
           {task.companies?.name && (
             <span className="text-xs text-muted-foreground">{task.companies.name}</span>
           )}
+          {/* Deliberately outside the name guard: an archived parent must be flagged even
+              if its name failed to resolve. */}
+          <ArchivedCompanyBadge status={task.companies?.status} />
           {task.people?.full_name && (
             <Badge variant="secondary" className="text-xs">
               {task.people.full_name}

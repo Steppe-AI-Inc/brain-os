@@ -7,7 +7,7 @@ export async function getProductSpecs() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("product_specs")
-    .select("id, title, status, body_md, company_id, companies(name), created_at")
+    .select("id, title, status, body_md, company_id, companies(name, status), created_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
@@ -17,7 +17,7 @@ export async function getSoftwareTickets() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
-    .select("id, title, status, priority, company_id, companies(name)")
+    .select("id, title, status, priority, company_id, companies(name, status)")
     .eq("source", "software_factory")
     .order("created_at", { ascending: false })
     .limit(20);

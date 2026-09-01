@@ -4,7 +4,7 @@ export async function getIntegrationQueue() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("integration_queue")
-    .select("id, integration, action, status, created_at, companies(name)")
+    .select("id, integration, action, status, created_at, companies(name, status)")
     .order("created_at", { ascending: false })
     .limit(30);
   if (error) throw error;

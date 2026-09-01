@@ -10,7 +10,7 @@ type RiskLevel = Database["public"]["Enums"]["risk_level"];
 type WorkStatus = Database["public"]["Enums"]["work_status"];
 
 const TASK_SELECT =
-  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name), owner_person_id, people(full_name), created_at, updated_at";
+  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name, status), owner_person_id, people(full_name), created_at, updated_at";
 
 // Overnight multi-org milestone: activeOrganizationId scopes Tasks to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —

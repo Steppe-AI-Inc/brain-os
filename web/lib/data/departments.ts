@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-// BUG-001 (Work-PC QA campaign C001): joins to companies(name) alone give the UI
+// BUG-001 (Work-PC QA campaign C001): joins to companies(name, status) alone give the UI
 // nothing to render an archived-parent indicator from - a department whose company was
 // just archived rendered as an ordinary active row, contradicting the same page's own
 // company picker (which correctly excludes archived companies). Selecting `status` too

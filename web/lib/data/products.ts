@@ -13,7 +13,7 @@ export async function getProductLines() {
   const [{ data, error }, { data: costs }] = await Promise.all([
     supabase
       .from("product_lines")
-      .select("id, name, description, currency, unit_price, active, company_id, companies(name)")
+      .select("id, name, description, currency, unit_price, active, company_id, companies(name, status)")
       .order("name"),
     supabase.from("product_costs").select("product_line_id, unit_cost"),
   ]);

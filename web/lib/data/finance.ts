@@ -8,7 +8,7 @@ export async function getFinancialReports(companyId?: string) {
   let query = supabase
     .from("financial_reports")
     .select(
-      "id, company_id, period, revenue, expenses, net_income, cash_position, health_status, notable_flags, summary, created_at, companies(name)"
+      "id, company_id, period, revenue, expenses, net_income, cash_position, health_status, notable_flags, summary, created_at, companies(name, status)"
     )
     .order("created_at", { ascending: false });
   if (companyId) query = query.eq("company_id", companyId);

@@ -8,7 +8,7 @@ export async function getInventory() {
   const { data, error } = await supabase
     .from("inventory_items")
     .select(
-      "id, sku, quantity_on_hand, reserved_quantity, reorder_point, location, company_id, companies(name), product_lines(name)"
+      "id, sku, quantity_on_hand, reserved_quantity, reorder_point, location, company_id, companies(name, status), product_lines(name)"
     )
     .order("sku");
   if (error) throw error;

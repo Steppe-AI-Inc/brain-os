@@ -7,7 +7,7 @@ export async function getLeads() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("sales_leads")
-    .select("id, client_name, contact_name, contact_email, status, stage, value_estimate, company_id, companies(name)")
+    .select("id, client_name, contact_name, contact_email, status, stage, value_estimate, company_id, companies(name, status)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;

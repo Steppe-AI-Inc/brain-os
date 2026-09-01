@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
 import { GOAL_STATUS_DOT, GOAL_STATUS_LABEL } from "@/lib/goals/classify";
+import type { CompanyRef } from "@/lib/data/company-ref";
 
 type GoalRow = {
   id: string;
@@ -15,7 +17,7 @@ type GoalRow = {
   kind: string;
   progress: number | null;
   due_at: string | null;
-  companies: { name: string } | null;
+  companies: CompanyRef;
   departments: { name: string } | null;
 };
 
@@ -71,8 +73,12 @@ export function GoalList({ goals }: { goals: GoalRow[] }) {
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${GOAL_STATUS_DOT[g.status]}`} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{g.title}</div>
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {g.departments?.name ?? g.companies?.name ?? "—"}
+                  {/* The label may resolve to the department, but the archived ancestor
+                      being flagged is always the company — so the badge reads companies.status
+                      regardless of which name is shown. */}
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="truncate">{g.departments?.name ?? g.companies?.name ?? "—"}</span>
+                    <ArchivedCompanyBadge status={g.companies?.status} />
                   </div>
                 </div>
                 {pct != null && (

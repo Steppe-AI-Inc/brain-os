@@ -8,7 +8,7 @@ export type AutomationMode = "manual" | "draft" | "auto_routine" | "fallback_aft
 export async function getPersonAiPolicies() {
   const supabase = await createClient();
   const [{ data: people, error: peopleError }, { data: policies, error: policyError }] = await Promise.all([
-    supabase.from("people").select("id, full_name, role_title, company_id, active, companies(name)").eq("active", true).order("full_name"),
+    supabase.from("people").select("id, full_name, role_title, company_id, active, companies(name, status)").eq("active", true).order("full_name"),
     supabase.from("person_ai_policy").select("person_id, mode, fallback_sla_minutes, allowed_categories"),
   ]);
   if (peopleError) throw peopleError;

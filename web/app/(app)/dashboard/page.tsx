@@ -36,7 +36,7 @@ async function getDashboardData(activeOrganizationId?: string | null) {
   let recentRunsQuery = supabase.from("work_orders").select("id", { count: "exact", head: true }).gte("created_at", since14d);
   let liveGoalsQuery = supabase
     .from("goals")
-    .select("id, title, status, kind, progress, companies(name)")
+    .select("id, title, status, kind, progress, companies(name, status)")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(6);

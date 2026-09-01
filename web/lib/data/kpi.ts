@@ -23,7 +23,7 @@ export async function getSalaryRules() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("salary_rules")
-    .select("id, company_id, role_title, rule_name, formula, active, companies(name)")
+    .select("id, company_id, role_title, rule_name, formula, active, companies(name, status)")
     .eq("active", true)
     .order("role_title", { ascending: true, nullsFirst: true });
   if (error) throw error;
