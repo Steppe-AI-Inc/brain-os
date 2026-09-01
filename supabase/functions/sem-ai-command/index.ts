@@ -2624,6 +2624,11 @@ serve(async (req) => {
         // scoped to in-flight statuses only and never contains an archived task.
         const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
         const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
+        const claimExecutionEvidence: Array<{ resourceType: string; action: string; id: string; postconditionPassed: boolean }> = [];
+        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean) => {
+          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({ resourceType, action, id, postconditionPassed });
+        };
+
         const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id)))];
         const requestedRestoreTaskIds = Array.isArray(result.restoreTaskIds) ? result.restoreTaskIds as unknown[] : [];
         const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && contextArchivedTaskIds.has(id)))];
@@ -2643,6 +2648,10 @@ serve(async (req) => {
           const name = taskTitleById.get(id) || id;
           if (error || !data) { taskArchiveRestoreLines.push(`Task "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
+          // TRUTHFUL task-archive claim was denied. Only a genuine state change counts:
+          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
+          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);
           taskArchiveRestoreLines.push(`Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreTaskIds) {
@@ -2653,6 +2662,10 @@ serve(async (req) => {
           // Tasks restore to their exact prior status (not a fixed target like companies/
           // goals) - worth naming explicitly rather than a generic "restored", since
           // which status it landed on is real information the founder would ask about.
+          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
+          // TRUTHFUL task-restore claim was denied. Only a genuine state change counts:
+          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
+          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);
           taskArchiveRestoreLines.push(r.reason === 'restored'
             ? `Task "${name}": restored (back to "${r.newStatus}").`
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
@@ -2872,10 +2885,6 @@ serve(async (req) => {
         // archive_company/restore_company re-read the row afterwards, and a mutation whose
         // postcondition did not confirm must never support a success claim.
         // ==================================================================================
-        const claimExecutionEvidence: Array<{ resourceType: string; action: string; id: string; postconditionPassed: boolean }> = [];
-        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean) => {
-          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({ resourceType, action, id, postconditionPassed });
-        };
 
         const archiveRestoreLines: string[] = [];
         const reasonText: Record<string, string> = {
@@ -3173,6 +3182,10 @@ serve(async (req) => {
           const name = goalTitleById.get(id) || id;
           if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
+          // TRUTHFUL goal-archive claim was denied. Only a genuine state change counts:
+          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
+          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreGoalIds) {
@@ -3180,6 +3193,10 @@ serve(async (req) => {
           const name = goalTitleById.get(id) || id;
           if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
+          // TRUTHFUL goal-restore claim was denied. Only a genuine state change counts:
+          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
+          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
@@ -4343,6 +4360,15 @@ serve(async (req) => {
           }
         }
 
+        // #66/D46 (F5): corrected prose leaked raw UUIDs and dropped the entity name the
+        // founder actually recognises. Resolve names from the same canonical read used for
+        // state verification, falling back to the id only when there is genuinely no name.
+        const displayName = (resourceType, id) => {
+          const row = canonicalById.get(resourceType + '|' + id);
+          const n = row && (row.name || row.title || row.full_name);
+          return typeof n === 'string' && n.length > 0 ? n + ' (' + id + ')' : String(id);
+        };
+
         const rawClaims = Array.isArray(result.claims) ? result.claims : null;
         const verifiedClaims = [];
         const rejectedClaims = [];
@@ -4361,9 +4387,14 @@ serve(async (req) => {
             // resource type are all UNSUPPORTED. This is the clause every prose generation
             // could not satisfy — "same resource type but wrong UUID must not support it".
             if (!resourceId) return { verdict: 'unsupported', reason: 'mutation claim carries no canonical resource id' };
+            // #66/D42 (L11/L12): an action-less claim previously matched ANY action recorded
+            // for that id, so archive evidence supported a permanent-deletion claim, and a
+            // non-string action silently coerced to null and did the same. The action is
+            // half the claim's identity - without it there is nothing to verify.
+            if (!action) return { verdict: 'unsupported', reason: 'mutation claim carries no action to verify' };
             const actions = evidenceIndex.get(key);
             if (!actions) return { verdict: 'unsupported', reason: 'no execution evidence for ' + resourceType + ' ' + resourceId + ' this turn' };
-            if (action && !actions.has(action)) return { verdict: 'unsupported', reason: 'executed ' + [...actions].join('/') + ' on this resource, not ' + action };
+            if (!actions.has(action)) return { verdict: 'unsupported', reason: 'executed ' + [...actions].join('/') + ' on this resource, not ' + action };
             return { verdict: 'supported', reason: 'backend execution evidence with confirmed postcondition' };
           }
 
@@ -4372,6 +4403,14 @@ serve(async (req) => {
             if (!resourceId) return { verdict: 'unknown', reason: 'state claim carries no canonical resource id' };
             const row = canonicalById.get(key);
             if (!row) return { verdict: 'unknown', reason: 'resource not present in this turn’s canonical read' };
+            // #66/D43 (F3/F4): contextPack is read at the START of the turn, so for any
+            // resource this turn then MUTATED it is stale. Judging against it inverted the
+            // truth — a correct post-mutation state claim was CONTRADICTED while the
+            // now-false pre-mutation state was SUPPORTED. Stale evidence must not decide
+            // either way: say unknown until a post-mutation re-read exists.
+            if (evidenceIndex.has(key)) {
+              return { verdict: 'unknown', reason: 'this turn mutated ' + resourceType + ' ' + resourceId + '; the canonical read predates that change and cannot settle its current state' };
+            }
             const predicate = typeof claim.predicate === 'string' ? claim.predicate : null;
             if (!predicate) return { verdict: 'supported', reason: 'resource exists in the canonical read' };
             const actual = row[predicate];
@@ -4409,13 +4448,28 @@ serve(async (req) => {
 
         const hasRejectedClaims = rejectedClaims.length > 0;
 
-        // Legacy safety net, defense-in-depth ONLY. When the model emits no structured
-        // claims at all, fall back to the deployed v92 whole-summary behaviour so this build
-        // is never WORSE than production on an unstructured response. It is deliberately not
-        // consulted when structured claims exist - structured verification is primary, and
-        // re-deriving truth from prose afterwards is exactly what #65 forbids.
+        // CATASTROPHIC-DRIFT CHECK — defense-in-depth, and deliberately ADDITIVE.
+        //
+        // #66/D40-D41: this was previously gated on `!rawClaims`, so ANY claims array
+        // suppressed it — including a trivially-true existence claim, an always-unknown
+        // historical_event, or an always-supported verification_state. That handed the model
+        // a switch for its own truth gate: emit one harmless claim and fabricate freely in
+        // prose. Eleven laundering shapes, and a REGRESSION against deployed v92, which
+        // catches every one of them.
+        //
+        // The fix is not to make prose authoritative again (#65 item 8 forbids that).
+        // Structured claims remain primary and decide WHAT is corrected. This check only
+        // asks a narrower question: does the prose assert a completion that NO supported
+        // mutation claim accounts for? If so the reply has drifted from the verified
+        // structure and must not be shipped as-is. A turn whose mutation claims were
+        // genuinely verified is unaffected.
         const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
-        const legacyProseFallback = !rawClaims
+        // A supported mutation/assignment claim is the only thing that can account for
+        // completion wording. State, existence, historical and verification claims cannot —
+        // that asymmetry is exactly what L7/L8/L9/L10 exploited.
+        const hasSupportedMutationClaim = verifiedClaims.some((v) => v.verdict === 'supported'
+          && (v.claim.type === 'mutation_result' || v.claim.type === 'assignment'));
+        const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
           && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
@@ -4431,13 +4485,14 @@ serve(async (req) => {
             .filter((v) => v.verdict === 'supported')
             .map((v) => {
               const c = v.claim;
-              if (c.type === 'mutation_result' || c.type === 'assignment') return `${c.resourceType} ${c.resourceId}: ${c.action} confirmed.`;
-              if (c.predicate) return `${c.resourceType} ${c.resourceId}: ${c.predicate} is ${String(c.expectedValue)}.`;
-              return `${c.resourceType} ${c.resourceId}: confirmed.`;
+              if (c.type === 'mutation_result' || c.type === 'assignment') return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: ${c.action} confirmed.`;
+              if (c.predicate) return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: ${c.predicate} is ${String(c.expectedValue)}.`;
+              return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: confirmed.`;
             });
           const rejectedLines = rejectedClaims.map((r) => {
             const c = r.claim;
-            const what = c.action ? `${c.action} ${c.resourceType}${c.resourceId ? ' ' + c.resourceId : ''}` : `${c.resourceType}${c.resourceId ? ' ' + c.resourceId : ''}`;
+            const label = c.resourceId ? ' ' + displayName(c.resourceType, c.resourceId) : '';
+            const what = c.action ? `${c.action} ${c.resourceType}${label}` : `${c.resourceType}${label}`;
             return `I couldn’t confirm that ${what} — nothing was changed for it.`;
           });
 
@@ -4457,20 +4512,6 @@ serve(async (req) => {
           result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
         }
 
-        // ONE AUTHORITATIVE RESPONSE ENVELOPE. The same object feeds the live SSE reply and
-        // the persisted work_orders.output, so a reload or a fresh context recovers exactly
-        // what the founder was shown. No separate unverified model-summary copy is kept.
-        // (VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH /
-        //  LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE)
-        result.verifiedResponse = {
-          verifiedClaims,
-          rejectedClaims,
-          questions: envelopeQuestions,
-          proposedActions: envelopeProposedActions,
-          pendingAction: result.pendingAction || null,
-          summary: result.summary,
-          executionEvidence: claimExecutionEvidence,
-        };
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution
@@ -4485,6 +4526,21 @@ serve(async (req) => {
         if (model === 'deterministic-confirmation' && !groundedOutcomeThisTurn) {
           result.summary = 'I understood and you confirmed that, but I don’t have a way to actually carry it out yet — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute (archive/restore a company, end/restore someone’s employment, etc.).';
         }
+
+        // ONE AUTHORITATIVE RESPONSE ENVELOPE. The same object feeds the live SSE reply and
+        // the persisted work_orders.output, so a reload or a fresh context recovers exactly
+        // what the founder was shown. No separate unverified model-summary copy is kept.
+        // (VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH /
+        //  LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE)
+        result.verifiedResponse = {
+          verifiedClaims,
+          rejectedClaims,
+          questions: envelopeQuestions,
+          proposedActions: envelopeProposedActions,
+          pendingAction: result.pendingAction || null,
+          summary: result.summary,
+          executionEvidence: claimExecutionEvidence,
+        };
 
         // Real, systemic gap found live: work_orders.output was written once, as
         // p_output, INSIDE the sem_execute_ai_command call above — necessarily before

@@ -60,7 +60,18 @@ function extractWide(source) {
     else if (source[k] === '}') { depth--; if (depth === 0) { end = k + 1; break; } }
   }
   if (end === -1) throw new Error('unbalanced braces in the confirmation override');
-  return stripTS(source.slice(start, end));
+  // WINDOW EXTENDED 2026-09-01. F6 (envelope/summary divergence on the
+  // deterministic-confirmation path) was FIXED by moving the verifiedResponse envelope to
+  // AFTER every summary override — which is the whole point, since the envelope can only
+  // be the single source of truth if nothing rewrites the summary behind it. That moved
+  // the envelope outside this window, so 23 cases began THROWING on an undefined envelope
+  // instead of measuring anything. Extend to the end of the envelope assignment. If the
+  // envelope is ever missing this still throws rather than passing silently.
+  const envIdx = source.indexOf('result.verifiedResponse = {', end);
+  if (envIdx === -1) throw new Error('verifiedResponse envelope not found after the overrides — update this harness, do not let it pass');
+  const envEnd = source.indexOf('};', envIdx);
+  if (envEnd === -1) throw new Error('unterminated verifiedResponse envelope');
+  return stripTS(source.slice(start, envEnd + 2));
 }
 const slice = extractWide(src);
 if (/\btype\s+\w+\s*=/.test(slice) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.test(slice)) {
@@ -94,28 +105,28 @@ const C = (id, kind, desc, thunk, expected) => CASES.push([id, kind, desc, thunk
 C('L1', 'CONTRACT', 'claims:null -> legacy v92 gate still catches the real production fabrication',
   () => run({ claims: null, summary: REAL_FABRICATION }).corrected, true);
 C('L2', 'LAUNDERING', 'claims:[] (schema-valid empty array) disables the gate on the same real fabrication',
-  () => run({ claims: [], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [], summary: REAL_FABRICATION }).corrected, true);
 C('L3', 'LAUNDERING', 'claims:[{}] disables the gate',
-  () => run({ claims: [{}], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{}], summary: REAL_FABRICATION }).corrected, true);
 C('L4', 'LAUNDERING', 'claims:[null] disables the gate',
-  () => run({ claims: [null], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [null], summary: REAL_FABRICATION }).corrected, true);
 C('L5', 'LAUNDERING', 'claims with non-object entries disable the gate',
-  () => run({ claims: ['x'], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: ['x'], summary: REAL_FABRICATION }).corrected, true);
 C('L6', 'LAUNDERING', 'an unrecognised claim type -> verdict unknown -> gate disabled',
-  () => run({ claims: [{ type: 'note' }], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{ type: 'note' }], summary: REAL_FABRICATION }).corrected, true);
 C('L7', 'LAUNDERING', 'one trivially-true existence claim launders the whole fabricated reply',
-  () => run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: CO }], context: { companies: [{ id: CO, status: 'active' }] }, summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: CO }], context: { companies: [{ id: CO, status: 'active' }] }, summary: REAL_FABRICATION }).corrected, true);
 C('L8', 'LAUNDERING', 'historical_event (always unknown, needs no evidence) launders the reply',
-  () => run({ claims: [{ type: 'historical_event', resourceType: 'approval', resourceId: A, action: 'approve' }], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{ type: 'historical_event', resourceType: 'approval', resourceId: A, action: 'approve' }], summary: REAL_FABRICATION }).corrected, true);
 C('L9', 'LAUNDERING', 'verification_state (always supported, needs no evidence) launders the reply',
-  () => run({ claims: [{ type: 'verification_state', resourceType: 'company', resourceId: CO }], summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{ type: 'verification_state', resourceType: 'company', resourceId: CO }], summary: REAL_FABRICATION }).corrected, true);
 
 C('L10', 'LAUNDERING', 'approval_state about a DECIDED approval is unverifiable by construction (the context pack fetches only status=pending) -> unknown -> uncorrected',
-  () => run({ claims: [{ type: 'approval_state', resourceType: 'approval', resourceId: A, predicate: 'status', expectedValue: 'approved' }], context: { approvals: [] }, summary: REAL_FABRICATION }).corrected, false);
+  () => run({ claims: [{ type: 'approval_state', resourceType: 'approval', resourceId: A, predicate: 'status', expectedValue: 'approved' }], context: { approvals: [] }, summary: REAL_FABRICATION }).corrected, true);
 C('L11', 'LAUNDERING', 'mutation_result with NO action is grounded by ANY evidence on that id (archive evidence supports a permanent-deletion claim)',
-  () => run({ claims: [M('company', CO)], evidence: [ev('company', 'archive', CO)], summary: 'The company was permanently deleted with all of its data.' }).corrected, false);
+  () => run({ claims: [M('company', CO)], evidence: [ev('company', 'archive', CO)], summary: 'The company was permanently deleted with all of its data.' }).corrected, true);
 C('L12', 'LAUNDERING', 'a non-string action is coerced to null and grounded the same way',
-  () => run({ claims: [M('company', CO, 123)], evidence: [ev('company', 'archive', CO)], summary: 'The company was permanently deleted.' }).corrected, false);
+  () => run({ claims: [M('company', CO, 123)], evidence: [ev('company', 'archive', CO)], summary: 'The company was permanently deleted.' }).corrected, true);
 
 C('C1', 'CONTRACT', 'wrong UUID, same resource type -> rejected',
   () => run({ claims: [M('company', B, 'archive')], evidence: [ev('company', 'archive', A)] }).envelope.rejectedClaims.length === 1, true);
@@ -136,18 +147,29 @@ C('C5', 'CONTRACT', 'no malformed claim shape can throw and kill the turn (fail 
     return true;
   }, true);
 
-C('F1', 'FALSENEG', 'a TRUTHFUL task-archive claim is denied - archive_task records no execution evidence in this build',
+// F1/F2 REWRITTEN 2026-09-01. As recorded, both passed `evidence: []` and asserted the
+// claim was rejected — which is CORRECT fail-closed behaviour, not the defect. The real
+// defect was upstream: archive_task / restore_task / archive_goal / restore_goal executed
+// but recorded NO execution evidence, so a truthful claim could never be supported in
+// production. That is now fixed at those four sites (guarded on changed===true, so
+// "already archived" still cannot support a mutation claim). These now test the FIX, with
+// the fail-closed case kept alongside so neither direction can regress unnoticed.
+C('F1', 'CONTRACT', 'a TRUTHFUL task-archive claim IS supported once archive_task records evidence',
+  () => run({ claims: [M('task', A, 'archive')], evidence: [ev('task', 'archive', A)], grounded: true, summary: 'I archived that task.' }).envelope.rejectedClaims.length === 0, true);
+C('F1b', 'CONTRACT', 'the same task claim with NO evidence still fails closed',
   () => run({ claims: [M('task', A, 'archive')], evidence: [], grounded: true, summary: 'I archived that task.' }).envelope.rejectedClaims.length === 1, true);
-C('F2', 'FALSENEG', 'a TRUTHFUL goal-archive claim is denied - archive_goal records no execution evidence',
+C('F2', 'CONTRACT', 'a TRUTHFUL goal-archive claim IS supported once archive_goal records evidence',
+  () => run({ claims: [M('goal', A, 'archive')], evidence: [ev('goal', 'archive', A)], grounded: true, summary: 'I archived that goal.' }).envelope.rejectedClaims.length === 0, true);
+C('F2b', 'CONTRACT', 'the same goal claim with NO evidence still fails closed',
   () => run({ claims: [M('goal', A, 'archive')], evidence: [], grounded: true, summary: 'I archived that goal.' }).envelope.rejectedClaims.length === 1, true);
 C('F3', 'FALSENEG', 'a TRUTHFUL post-archive state claim is CONTRADICTED because the canonical read predates this turn mutations',
-  () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'archived' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is now archived.' }).envelope.rejectedClaims.length === 1, true);
+  () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'archived' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is now archived.' }).envelope.rejectedClaims.length === 1, false);
 C('F4', 'FALSENEG', 'the now-FALSE pre-mutation state is SUPPORTED by that same stale read',
-  () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is still active.' }).envelope.verifiedClaims.some((v) => v.verdict === 'supported'), true);
+  () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is still active.' }).envelope.verifiedClaims.some((v) => v.verdict === 'supported'), false);
 C('F5', 'FALSENEG', 'corrected founder-facing prose leaks a raw UUID and drops the entity name',
   () => /[0-9a-f]{8}-[0-9a-f]{4}-/.test(run({ claims: [M('company', A, 'archive')], evidence: [], summary: 'I archived ACME.' }).summary), true);
 C('F6', 'FALSENEG', 'envelope.summary DIVERGES from the rendered and persisted summary on the deterministic-confirmation path',
-  () => { const r = run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: CO }], context: { companies: [{ id: CO }] }, model: 'deterministic-confirmation', grounded: false, summary: 'Confirmed - Permanently delete ACME.' }); return r.envelope.summary !== r.summary; }, true);
+  () => { const r = run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: CO }], context: { companies: [{ id: CO }] }, model: 'deterministic-confirmation', grounded: false, summary: 'Confirmed - Permanently delete ACME.' }); return r.envelope.summary !== r.summary; }, false);
 
 C('C7', 'CONTRACT', 'a state claim about a resource ABSENT from the canonical read is UNKNOWN, never supported',
   () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: B, predicate: 'status', expectedValue: 'active' }], context: { companies: [] } }).envelope.verifiedClaims[0].verdict === 'unknown', true);

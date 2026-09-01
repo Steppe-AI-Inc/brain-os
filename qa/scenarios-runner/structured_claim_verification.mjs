@@ -115,9 +115,14 @@ check('B4 CURRENT STATE does not prove a HISTORICAL event',
     context: { companies: [{ id: A, status: 'archived' }] } }).envelope.verifiedClaims[0].verdict === 'unknown',
   'A company being archived NOW does not prove it was archived in a prior turn. Must be unknown, not supported.');
 
-check('B5 execution evidence does NOT bless a current_state claim about a different predicate value',
-  rejected(run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }],
-    evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'archived' }] } })));
+// UPDATED 2026-09-01 (#66/D43): a resource this turn MUTATED now yields 'unknown' for
+// state claims, because contextPack predates the change. Previously the stale read was
+// treated as authoritative in BOTH directions - contradicting the true post-mutation state
+// and supporting the now-false pre-mutation one.
+check('B5 a state claim about a resource mutated this turn is UNKNOWN, not judged on a stale read',
+  run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }],
+    evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'archived' }] } }).envelope.verifiedClaims[0].verdict === 'unknown',
+  'contextPack is read at the START of the turn. For a resource this turn mutated it is stale, and judging on it inverted the truth: the correct post-mutation claim was contradicted while the now-false pre-mutation one was supported.');
 
 // =======================================================================================
 // SECTION C — QUESTIONS AND FUTURE ACTIONS ARE NOT EXECUTION CLAIMS.
