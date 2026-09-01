@@ -110,7 +110,11 @@ const run = buildGateRunner(src);
 // Which generation of the gate is in the tree right now? Both are supported so this suite
 // is meaningful on master (deployed v92 shape) AND on the per-claim branch.
 const PER_CLAIM_BUILD = /const CLAIM_SPLIT_PATTERN/.test(src);
-const BUILD = PER_CLAIM_BUILD ? 'per-claim (82bc28a shape)' : 'whole-summary (c9dfab5/v92 shape)';
+// Third build generation (2026-09-01): per-RESOURCE grounding replaced the punctuation
+// splitter with a whole-summary assertion scanner, so CLAIM_SPLIT_PATTERN no longer exists
+// and the old detector silently misreported this build as v92.
+const PER_RESOURCE_BUILD = /const ASSERTION_SCANNER/.test(src) && /executedResources/.test(src);
+const BUILD = PER_RESOURCE_BUILD ? 'per-resource (structural)' : (PER_CLAIM_BUILD ? 'per-claim (82bc28a shape)' : 'whole-summary (c9dfab5/v92 shape)');
 
 // Corrected? Match either generation's marker, and fall back to the real boolean the gate
 // itself computed. Same helper shape as past_completion_gate_behavior.mjs.
@@ -252,7 +256,9 @@ for (const row of TRUTHFUL_PRODUCTION_ROWS_DESTROYED) {
   const name = row[0];
   const pa = row.length === 3 ? row[1] : null;
   const s = row[row.length - 1];
-  const r = run('gpt', s, pa, false);
+  // Status ANSWERS are read-only turns: the founder asked a question, so a past-tense
+  // sentence is a report about history, not a claim that this turn changed anything.
+  const r = run('gpt', s, pa, false, [], 'what is the status?');
   if (PER_CLAIM_BUILD) {
     check(name + ' is DESTROYED (known-open #64/D15 false positive)', corrected(r),
       'This truthful production reply is preserved again — the FP is fixed. INVERT this case.');
@@ -269,7 +275,7 @@ const PRESENT_TENSE_FP_SHAPES = [
   ['I9 conditional future clause', 'Once the restructuring and KPI work are done, you can roll out Brain OS.'],
 ];
 for (const [name, s] of PRESENT_TENSE_FP_SHAPES) {
-  const r = run('gpt', s, null, false);
+  const r = run('gpt', s, null, false, [], 'what is the status?');
   if (PER_CLAIM_BUILD) {
     check(name + ' is DESTROYED (known-open #64/D15)', corrected(r), 'FP fixed — INVERT this case.');
   } else {

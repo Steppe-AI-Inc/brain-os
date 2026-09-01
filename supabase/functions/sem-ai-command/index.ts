@@ -4329,7 +4329,13 @@ serve(async (req) => {
         // contraction only reads as "is/are" when the completion verb follows almost
         // immediately, which a possessive never does.
         const ASSERTION_SCANNER = new RegExp(
-          '(?:\\b(?:has|have|had|was|were|is|are)\\b[^.!?;]{0,40}?\\b' + COMPLETION_VERB + '\\b)'
+          // The gap must not cross ANOTHER auxiliary. Without that guard the scanner pairs a
+          // distant auxiliary with a later verb and drags an unrelated negation into the
+          // span: "The status is not draft (the goal has been archived)." matched from "is"
+          // all the way to "archived", swallowed the "not" that belongs to "draft", and the
+          // fabrication inside the parenthetical was exempted. Requiring the nearest
+          // auxiliary keeps each assertion to its own verb phrase.
+          '(?:\\b(?:has|have|had|was|were|is|are)\\b(?:(?!\\b(?:has|have|had|was|were|is|are)\\b)[^.!?;]){0,40}?\\b' + COMPLETION_VERB + '\\b)'
           + '|(?:[\\w]+[’\']( ?s|re)\\s+(?:now\\s+|been\\s+|already\\s+){0,2}' + COMPLETION_VERB + '\\b)'
           + '|(?:\\b' + COMPLETION_VERB + '\\s+successfully\\b)',
           'gi'
