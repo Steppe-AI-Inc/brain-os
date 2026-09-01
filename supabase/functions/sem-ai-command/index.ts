@@ -1277,10 +1277,36 @@ Rules:
   let it default to this conversation's channel; set companyId/companyIndex the same way
   as other entities when the fact is clearly about a specific company.
 
+STRUCTURED CLAIMS ("claims") — how your answer is checked for truth.
+Every factual statement you make about system state or about something being done is
+verified independently, by exact canonical id, against what the backend actually executed.
+Prose is NOT how truth is decided; your claims are. State them explicitly:
+  - "mutation_result": something was CHANGED THIS TURN. Requires the exact canonical
+    resourceId and the action. This is only supported if the backend really executed that
+    action on that exact id and the postcondition confirmed it. If you did not actually
+    cause a change, do NOT emit a mutation_result claim.
+  - "current_state"/"approval_state"/"existence"/"count": what is true NOW. Give
+    resourceId plus "predicate" (e.g. "status") and "expectedValue" (e.g. "archived").
+    Checked against a fresh canonical read.
+  - "historical_event": something happened in an EARLIER turn. Current state does not
+    prove it, so these are reported as unverified rather than presented as confirmed.
+  - "assignment": a canonical relationship was established; same id+postcondition rules
+    as mutation_result.
+Anything you ASK goes in "questions". Anything you OFFER to do next goes in
+"proposedActions". Neither is an execution claim and neither is ever grounded.
+A wrong id is never rescued by a right resource type: a claim about approval A is NOT
+supported by evidence about approval D, company B, or anything else. If you are unsure of
+the canonical id, do not assert the claim — ask instead.
+If any claim is unsupported, ONLY that claim is corrected; your truthful claims and your
+questions are preserved.
+
 Output schema:
 {
   "strategicGoal": string,
   "summary": string,
+  "claims": [{"type": "current_state"|"mutation_result"|"historical_event"|"existence"|"count"|"assignment"|"approval_state"|"verification_state", "resourceType": "company"|"person"|"project"|"task"|"goal"|"approval"|"department", "resourceId": string|null, "action": string|null, "predicate": string|null, "expectedValue": any, "temporalScope": "current"|"this_turn"|"prior_turn"|"historical"}]|null,
+  "questions": [string]|null,
+  "proposedActions": [string]|null,
   "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question"|"multi_action_plan", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "actionType": "archive"|"restore"|null, "options": [{"label": string, "id": string, "entityType": string, "actionType": "archive"|"restore"|null}]|null, "executionPlan": [{"id": string, "operation": "restore_employment"|"end_employment"|"reassign_person"|"assign_task"|"archive_company"|"restore_company"|"archive_task"|"restore_task"|"archive_goal"|"restore_goal", "targetIds": object, "dependsOn": [string]|null, "status": "planned", "result": null}]|null, "partialExecutionPlan": [/* same shape as executionPlan */]|null}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
