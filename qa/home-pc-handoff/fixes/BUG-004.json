@@ -1,0 +1,34 @@
+{
+  "bug_id": "BUG-004",
+  "status_report": "FIX_PUSHED",
+  "note": "Home PC never sets bug_id status directly — this is a report for the Work-PC QA Director to read and update BUG_QUEUE.json itself, per qa/IMPLEMENTATION_HANDOFF.md's ownership rule.",
+  "fix_commits": [
+    "745d79e — security: BUG-004 P1 - close memories RLS company_id IS NULL bypass",
+    "010a3f5 — security: BUG-004 follow-on - invite-only workspace membership (founder decision)",
+    "8c25fc0 — security: same-defect sweep for BUG-004's company_id IS NULL RLS bypass class",
+    "0eaa120 — test: permanent regression for the full null-tenant-scope bypass class"
+  ],
+  "independent_verification_commit": "ad48825",
+  "independent_verification_reference": "qa/KNOWN_FAILURE_MODES.md #56 (full campaign) and #52 (original fix record)",
+  "product_decision_made": "Founder explicitly decided public self-signup must NOT auto-grant active employee/workspace access (\"AUTH IDENTITY != PERSON != ORGANIZATION MEMBERSHIP != EMPLOYMENT\"). handle_new_auth_user() now creates every new signup inert (active=false) by default; a real invite-only membership model was built (company_invitations, create_company_invitation(), accept_company_invitation()) — single-use, expiring, revocable, role-scoped, tied to exact company/email.",
+  "scope_fixed": [
+    "memories_select_scope / memories_write_scope — company_id IS NULL blanket bypass removed",
+    "7 more policies fixed in the same-defect sweep (same class, not just the originally-reported memories table) — see migration 202608310010",
+    "handle_new_auth_user()'s unconditional ON CONFLICT (email) DO UPDATE — a real account-takeover path via is_sso_user=true bypassing auth.users' own partial unique index — fixed with a WHERE auth_user_id IS NULL guard",
+    "tasks_update_scope deliberately left unchanged — a genuine creator-owns-unscoped-task design question, tracked as a canonical Work Order (b9abe2f2-e379-4206-ab64-a9cf7a2488d1), not silently absorbed into the sweep"
+  ],
+  "verification_evidence": "Independent verifier ran the full per-table/per-persona matrix (anon denied, no-membership user cannot exploit company_id IS NULL, ordinary employee only gets intended company-scoped access, founder/admin's intended global path still works) against real RLS policy definitions AND empirical read/write attempts under real personas, plus a fresh whole-schema sweep confirming no remaining unclassified occurrences of company_id IS NULL used as a permissive branch. Also verified Brain Chat retrieval cannot be poisoned via the same vector.",
+  "regression_test": {
+    "path": "qa/scenarios-runner/null_tenant_scope_bypass_class_closed.sql",
+    "also": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql (adapted from the original QA regression)"
+  },
+  "new_defect_found_and_fixed_by_the_verifier_itself": {
+    "what": "invitePerson() (web/lib/data/people.ts, the founder/admin-gated 'Invite' button on /people) silently broke: the new active=false-by-default signup behavior meant every invited employee landed permanently inert on /pending-activation, despite the invite itself being fully legitimate and already gated.",
+    "fix_commit": "033cfa9",
+    "fix": "invitePerson() now explicitly activates the new profile (active=true) right after creation, since it is a different, already-founder/admin-gated path than public self-signup and deserves real activation, same as accept_company_invitation() grants.",
+    "caveat": "This fix's real end-to-end email-invite flow could not be tested outside a live Playwright/Work-PC session — the underlying invariant (invited profiles land active) was verified live, but the full click-through UX was not."
+  },
+  "ready_for_retest": true,
+  "retest_priority": "This is the P1 security item — recommend retesting before BUG-001/003.",
+  "reported_at": "2026-09-01"
+}

@@ -1,0 +1,30 @@
+{
+  "bug_id": "BUG-001",
+  "status_report": "FIX_PUSHED",
+  "note": "Home PC never sets bug_id status directly — this is a report for the Work-PC QA Director to read and update BUG_QUEUE.json itself, per qa/IMPLEMENTATION_HANDOFF.md's ownership rule.",
+  "fix_commit": "31579cd",
+  "fix_commit_full": "fix: BUG-001 P2 - mark archived-parent companies on departments/people (2 of 24 sites)",
+  "independent_verification_commit": "b9b72f5",
+  "independent_verification_reference": "qa/KNOWN_FAILURE_MODES.md #57 (a genuinely separate verifier session, no memory of the implementing session, re-derived the claim from scratch)",
+  "scope_fixed": [
+    "web/lib/data/departments.ts (getDepartments) — now selects companies(name, status)",
+    "web/lib/data/people.ts (getPeople) — now selects companies(name, status)",
+    "web/app/(app)/departments/departments-table.tsx — renders <ArchivedCompanyBadge/>",
+    "web/app/(app)/people/people-table.tsx — renders <ArchivedCompanyBadge/>",
+    "web/components/archived-company-badge.tsx (new, shared component)"
+  ],
+  "scope_explicitly_not_fixed_yet": {
+    "count": 18,
+    "reason": "The failure class (companies(name) joins with no status, across projects/goals/documents/etc.) has 24 total occurrences repo-wide; only the 2 originally-reported surfaces (departments, people) were fixed and verified. The remaining 18 are tracked as a canonical Work Order in Brain OS itself (id 9016651a-b7c7-4dea-be33-06fbd621b8e0), not silently dropped.",
+    "independently_reconfirmed_count": "The verifier session (#57) independently re-grepped the repo for the literal unfixed companies(name) pattern and found exactly the same 18 files, no more and no fewer."
+  },
+  "regression_test": {
+    "path": "qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql",
+    "adapted_from_qa": true,
+    "verifier_also_ran": "a fresh, independently-written lifecycle test with brand-new QA-VERIFY-BUG001-* fixtures (create company+department+person, archive via real archive_company() RPC, confirm both get_effectively_active_companies() exclusion AND the department/person row carries parent_status='archived', test idempotency and full restore round-trip, then really delete and re-confirm zero residue) — this is IN ADDITION to re-running the original regression script, not a substitute."
+  },
+  "live_blast_radius_at_verification_time": "2 real tasks and 1 real goal are currently attached to archived companies with no archived indication (tasks.ts/goals.ts are 2 of the still-open 18) — restated here so a retest of the 2 FIXED surfaces isn't misread as BUG-001 being fully closed.",
+  "ready_for_retest": true,
+  "retest_scope": "The 2 originally-reported surfaces only (/departments, /people). The 18-surface remainder is NOT ready for retest — it hasn't been touched.",
+  "reported_at": "2026-09-01"
+}
