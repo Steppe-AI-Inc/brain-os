@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T06:02:00Z",
+  "generated_at": "2026-09-01T06:13:13Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -240,11 +240,11 @@
       "scenario_ids": [
         "C001-W1-company-archive-restore"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-001",
       "campaign_1_item": 1,
       "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
-      "evidence": "/departments lists a department whose parent company is archived, unmarked, while the SAME page's company picker correctly excludes that company. See qa/bugs/BUG-001.md. Regression: qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql (EXPECTED_FAIL).",
+      "evidence": "RETESTED C002: /departments renders an archived badge; master confirms departments.ts selects companies(name, status).",
       "discovered_by": "capability CAP-COMPANY-ARCHIVE-UI testing - a cascade-truth check the charter explicitly names as a target failure pattern"
     },
     {
@@ -872,10 +872,10 @@
       "scenario_ids": [
         "C001-W1-archived-parent-failure-class"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-001",
       "tested_against_sha": "266f86a1641a0e4c57c48818849cb943687cbd58",
-      "evidence": "/people shows QA-LIFECYCLE-EMPLOYEE, QA-LIFECYCLE-EMPLOYEE2 (company QA-LIFECYCLE-BU) and QA-VERIFY-EMPLOYEE (company QA-VERIFY-BU) as active employees of ARCHIVED companies, with no archived marker. Second independent surface confirming the BUG-001 failure class; matches the charter-named pattern verbatim.",
+      "evidence": "RETESTED C002: /people renders an archived badge; master confirms people.ts selects companies(name, status).",
       "failure_class": "ARCHIVED_PARENT_NOT_SURFACED — 24/24 data-layer companies(...) joins select only name, never status; only companies.ts guards archived state."
     },
     {
@@ -1181,9 +1181,9 @@
         "AGGREGATION",
         "RELOAD"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-003",
-      "evidence": "Dashboard shows \"18 Companies\"; DB has 8 non-archived and 10 archived. /companies (authoritative list) shows 8. 125% overstatement. Root cause at dashboard/page.tsx:41 - count query omits the .neq(status,archived) filter that companies.ts:13 applies. Discovered because archiving a company did not decrement the count."
+      "evidence": "RETESTED C002: dashboard renders 10 under label 'Active Companies'; DB non_archived = 10. Agrees exactly with its authoritative list."
     },
     {
       "required_roles": [
@@ -1247,9 +1247,9 @@
         "PERMISSION",
         "AI"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-004",
-      "evidence": "Zero-membership employee (shape produced by public self-signup) successfully INSERTED an unscoped memory. memories_write_scope treats company_id IS NULL as a blanket bypass. Memories feed AI context, so this is an integrity/misinformation vector."
+      "evidence": "RETESTED C002: stranger_can_write_unscoped_memory now FALSE (was true). Class sweep confirms memories/product_specs/tasks/integration_queue null-scope writes all DENIED_CORRECTLY, while founder's intended null-scope write still ALLOWED_CORRECTLY."
     },
     {
       "required_roles": [
@@ -1268,9 +1268,9 @@
         "DB",
         "PERMISSION"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-004",
-      "evidence": "memories_select_scope allows company_id IS NULL at EVERY tier including confidential. Latent, not live: 0 unscoped confidential rows exist today, so no confidential data is currently exposed. 6 internal unscoped memories are readable by any authenticated stranger."
+      "evidence": "RETESTED C002: total_memories_visible_to_stranger went 6 -> 0; unscoped confidential readable stays 0; whole-schema sweep reports unclassified_null_scope_policies=[]."
     },
     {
       "required_roles": [
@@ -1290,7 +1290,7 @@
         "PERMISSION"
       ],
       "status": "PASS",
-      "evidence": "FACTUAL FINDING (not itself a defect): /signup returns HTTP 200 to a fully unauthenticated browser context with no redirect. signInWithOtp shouldCreateUser:true, and handle_new_auth_user grants role=employee active=true. Recorded as a PASS of the observation, and as the amplifier that makes BUG-004 reachable by any internet user. Whether open signup is DESIRED is a founder product decision, flagged in BUG-004."
+      "evidence": "UPDATED C002: signup remains publicly reachable BY DESIGN (founder product decision), but is no longer dangerous - handle_new_auth_user now inserts active=false so a self-registered stranger lands inert, and the ON CONFLICT rebinding is guarded by `where profiles.auth_user_id is null`. Both verified in the deployed trigger definition."
     },
     {
       "required_roles": [
@@ -1480,6 +1480,69 @@
       "status": "FAIL",
       "bug_id": "BUG-002",
       "evidence": "D3 bypass reproduced live on both paths. Fabricated completion + trailing question defeats claimsPastCompletionWithNoGrounding via the && !result.pendingAction short-circuit. DB verified untouched. Predicted by the independent verifier before the test - a correct prediction, now empirically confirmed."
+    },
+    {
+      "capability_id": "CAP-SIGNUP-INERT-BY-DEFAULT",
+      "domain": "permissions",
+      "resource": "auth",
+      "operation": "self_signup_lands_inert",
+      "surface": "API",
+      "required_roles": [
+        "anon"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "PERMISSION"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-004",
+      "tested_against_sha": "production-db-2026-09-01",
+      "scenario_ids": [
+        "C002-bug004-retest"
+      ],
+      "evidence": "Deployed handle_new_auth_user inserts active=false and guards ON CONFLICT with `where public.profiles.auth_user_id is null`. Read directly from the live function definition, not from the migration file."
+    },
+    {
+      "capability_id": "CAP-BUG001-ARCHIVED-BADGE-RENDERED",
+      "domain": "departments",
+      "resource": "company",
+      "operation": "archived_parent_badge_rendered",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "UI",
+        "RELATIONSHIP"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-001",
+      "tested_against_sha": "production-ui-2026-09-01",
+      "scenario_ids": [
+        "C002-p2-retest"
+      ],
+      "evidence": "Authoritative UI assertion for BUG-001, delegated here from the SQL regression which cannot observe a TypeScript select list. Both /departments and /people render an archived indication for archived-parent rows."
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-PARENT-CLASS-REMAINDER",
+      "domain": "relationships",
+      "resource": "company",
+      "operation": "archived_parent_surfaced_all_join_sites",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "UI",
+        "RELATIONSHIP"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-001",
+      "tested_against_sha": "origin/master 607cdaa",
+      "scenario_ids": [
+        "C002-p2-retest"
+      ],
+      "evidence": "23 bare companies(name) selects remain in web/lib/data/ on master, including tasks.ts and goals.ts. Only departments.ts and people.ts were fixed. Tracked by the Home PC as Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0. Recorded as its own FAILING capability so closing BUG-001 cannot be misread as closing the class."
     }
   ]
 }

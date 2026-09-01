@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T06:02:00Z",
+  "last_updated": "2026-09-01T06:13:13Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -28,18 +28,18 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 3,
-    "open_p2": 2,
+    "open_p1": 2,
+    "open_p2": 0,
     "open_p3": 0,
-    "total_open": 5,
-    "total_closed": 0
+    "total_open": 2,
+    "total_closed": 4
   },
   "bugs": [
     {
       "bug_id": "BUG-001",
       "title": "/departments presents departments of ARCHIVED companies as active, unmarked - contradicting the same page's own company picker",
       "severity": "P2",
-      "status": "REGRESSION_CREATED",
+      "status": "CLOSED",
       "discovered_by": "fable-qa-director:C001:W1-org",
       "discovered_at": "2026-08-31T09:12:00Z",
       "reproduced_at": "2026-08-31T10:31:12Z",
@@ -96,7 +96,13 @@
       ],
       "implementation_recommendation": "Add companies(name, status) to the getDepartments() select and render an Archived badge/muted style. Then audit sibling surfaces that join to companies (projects, goals, people) for the same missing parent-status handling - this is a failure CLASS, not a one-off.",
       "_qa_boundary": "QA did NOT implement the fix. Work-PC QA never modifies production implementation.",
-      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001."
+      "build_independence_note": "Defect surface byte-identical across 256f183..8521b0e (git diff empty), so the finding is build-independent across every deployment made during campaign C001.",
+      "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
+      "closed_at": "2026-09-01T06:13:13Z",
+      "closure_scope": "CLOSED FOR THE ORIGINALLY-REPORTED SCOPE ONLY: /departments and /people. Verified live - both pages now render an archived badge, and source on master confirms both data functions select companies(name, status).",
+      "class_remains_open": "THE FAILURE CLASS IS NOT CLOSED. An independent source grep of origin/master finds 23 remaining bare companies(name) selects in web/lib/data/, including tasks.ts and goals.ts. The Home PC tracks the remainder as canonical Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0. Closing BUG-001 must not be read as closing ARCHIVED_PARENT_NOT_SURFACED.",
+      "false_positive_avoided": "A naive /archiv/i page-text check matched on /tasks and /goals, which would have wrongly suggested they were fixed - those pages simply carry an 'Archived' nav link. Settled from source instead of trusting the heuristic.",
+      "test_defect_found_in_own_artifact": "The BUG-001 regression carried a hardcoded false for departments_query_exposes_parent_status, making all_pass structurally unreachable even after a correct fix. Corrected in C002: the SQL script now asserts only what SQL can legitimately observe (archive took effect, picker excludes), and the UI assertion is explicitly delegated to Playwright. Same correction applied to the BUG-003 regression, which had been comparing a simulation of the OLD dashboard query against non_archived and so could never pass."
     },
     {
       "bug_id": "BUG-002",
@@ -172,7 +178,7 @@
       "bug_id": "BUG-003",
       "title": "Dashboard \"Companies\" KPI counts archived companies - 18 shown vs 8 actually active (125% overstatement)",
       "severity": "P2",
-      "status": "REGRESSION_CREATED",
+      "status": "CLOSED",
       "discovered_by": "fable-qa-director:C001:W1-org",
       "discovered_at": "2026-08-31T11:40:00Z",
       "campaign_id": "C001",
@@ -212,13 +218,16 @@
         "qa/bugs/BUG-003.md"
       ],
       "implementation_recommendation": "Add .neq(\"status\",\"archived\") at dashboard/page.tsx:41. Then consolidate on ONE definition of active company (get_effectively_active_companies RPC already exists) instead of three hand-rolled variants that drift. Then audit remaining dashboard/report aggregates for the same missing-filter pattern.",
-      "_qa_boundary": "QA did NOT implement the fix."
+      "_qa_boundary": "QA did NOT implement the fix.",
+      "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
+      "closed_at": "2026-09-01T06:13:13Z",
+      "closure_evidence": "Live UI verified: /dashboard now renders \"10\" under the label \"Active Companies\" (label was \"Companies\"). DB non_archived_companies = 10 at the same moment, so the figure and its authoritative list now agree exactly. The 125% overstatement is gone. The relabel is a genuine improvement beyond the reported fix - the number is now self-describing rather than merely self-consistent."
     },
     {
       "bug_id": "BUG-004",
       "title": "Any self-registered user can write into the company brain (memories company_id IS NULL bypass); unscoped memories bypass every sensitivity tier",
       "severity": "P1",
-      "status": "REGRESSION_CREATED",
+      "status": "CLOSED",
       "discovered_by": "fable-qa-director:C001:W4-security",
       "discovered_at": "2026-08-31T11:55:00Z",
       "campaign_id": "C001",
@@ -257,7 +266,19 @@
         "qa/bugs/BUG-004.md"
       ],
       "implementation_recommendation": "Remove the blanket company_id IS NULL bypass from both memories policies; model genuinely-global memories explicitly rather than inferring global from a null FK. Restrict memory writes to at least company membership. Decide whether public self-signup should remain open. Harden the ON CONFLICT email rebinding. Grep other RLS policies for company_id IS NULL used as a permissive branch - this is a failure CLASS.",
-      "_qa_boundary": "QA did NOT implement any fix. All probing was transactional and rolled back - no memory persisted, no auth user created."
+      "_qa_boundary": "QA did NOT implement any fix. All probing was transactional and rolled back - no memory persisted, no auth user created.",
+      "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
+      "closed_at": "2026-09-01T06:07:22Z",
+      "closure_evidence": [
+        "Original QA regression memories_null_company_scope_not_a_bypass.sql FLIPPED from EXPECTED_FAIL to all_pass=true. The load-bearing assertion stranger_can_write_unscoped_memory went true -> FALSE. Read side also closed: total_memories_visible_to_stranger went 6 -> 0.",
+        "Home-PC class sweep null_tenant_scope_bypass_class_closed.sql re-run independently by Work PC: all_pass=true. memories/product_specs/tasks/integration_queue null-scope writes all DENIED_CORRECTLY, engineering_drawings + confidential memories read 0, unclassified_null_scope_policies=[] (whole-schema sweep clean).",
+        "Intended path preserved, not just blocked: founder_can_still_write_null_scope=ALLOWED_CORRECTLY. The fix did not over-correct.",
+        "Signup hardening verified live in the deployed trigger: handle_new_auth_user now inserts active=false (was true), so a self-registered stranger lands inert.",
+        "Account-takeover path closed: the ON CONFLICT (email) DO UPDATE now carries `where public.profiles.auth_user_id is null`, so an existing bound profile can no longer be rebound by signing up with its email.",
+        "Invite-only membership infrastructure exists: company_invitations table plus create_company_invitation() and accept_company_invitation() RPCs."
+      ],
+      "closure_caveat_disclosed": "NOT closed on the invite click-through UX. The Home PC flagged that invitePerson()'s end-to-end email-invite flow could not be exercised outside a live browser session, and Work PC did not exercise it either this pass - it needs a deliverable test inbox, which remains the standing blocker (see DISTINCT BROWSER PERSONAS UNAVAILABLE). The security invariants above ARE verified; the onboarding UX path is recorded as still unproven rather than folded into the closure.",
+      "closed_against": "production DB policies + deployed handle_new_auth_user trigger, verified 2026-09-01"
     },
     {
       "bug_id": "BUG-005",
@@ -348,6 +369,26 @@
         "campaign": "C002",
         "retested_at": "2026-09-01T05:57:29Z"
       }
+    },
+    {
+      "bug_id": "ANON-INVESTOR-RLS-HELPER",
+      "title": "is_investor_viewer_of() lacked EXECUTE for anon, crashing 5 tables' SELECT policies for anonymous callers (fail-crash, NOT a data leak)",
+      "severity": "P2",
+      "status": "CLOSED",
+      "_classification_note": "Explicitly NOT a data leak and NOT an authorization bypass. No anonymous caller could see protected rows before or after. Postgres cannot short-circuit the second OR operand, so anon hit an ungranted function and got insufficient_privilege (42501) instead of the predicate simply evaluating false.",
+      "origin": "Surfaced by the Main-PC session, scope corrected by an independent verifier from 1 table to 5.",
+      "affected_surfaces": [
+        "companies",
+        "goals",
+        "financial_reports",
+        "documents",
+        "memories"
+      ],
+      "fix_migration": "202609010002_fix_investor_viewer_anon_rls_helper_grant.sql",
+      "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
+      "closed_at": "2026-09-01T06:07:22Z",
+      "closure_evidence": "Work PC independently re-ran is_investor_viewer_of_anon_grant_fix.sql against production: grant_is_live_in_production=true, rls_helper_callable_by_anon_and_returns_false=true, zero_protected_rows_exposed=true, anon_investor_helper_grant_does_not_expose_investor_data=true, and all five tables (companies/goals/financial_reports/documents/memories) query without crashing for anon.",
+      "_qa_boundary": "QA did not implement this fix."
     }
   ]
 }

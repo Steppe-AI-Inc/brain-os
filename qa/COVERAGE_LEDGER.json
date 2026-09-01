@@ -1,19 +1,19 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-01T06:02:00Z",
+  "generated_at": "2026-09-01T06:13:13Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
-  "required_capabilities": 71,
-  "executed_capabilities": 40,
-  "coverage_percentage": 56.3,
+  "required_capabilities": 74,
+  "executed_capabilities": 43,
+  "coverage_percentage": 58.1,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 27,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 24,
-    "FAIL": 15,
+    "PASS": 31,
+    "FAIL": 11,
     "BLOCKED": 4,
     "FLAKY": 1
   },
@@ -31,8 +31,8 @@
       "NOT_TESTED": 3,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 2,
-      "FAIL": 2,
+      "PASS": 4,
+      "FAIL": 1,
       "BLOCKED": 0,
       "FLAKY": 0
     },
@@ -49,8 +49,8 @@
       "NOT_TESTED": 1,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 3,
-      "FAIL": 1,
+      "PASS": 4,
+      "FAIL": 0,
       "BLOCKED": 0,
       "FLAKY": 0
     },
@@ -122,7 +122,7 @@
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 1,
-      "FAIL": 1,
+      "FAIL": 2,
       "BLOCKED": 0,
       "FLAKY": 0
     },
@@ -139,8 +139,8 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 2,
-      "FAIL": 2,
+      "PASS": 5,
+      "FAIL": 0,
       "BLOCKED": 1,
       "FLAKY": 0
     },
@@ -148,8 +148,8 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 0,
-      "FAIL": 1,
+      "PASS": 1,
+      "FAIL": 0,
       "BLOCKED": 0,
       "FLAKY": 0
     }
@@ -159,8 +159,8 @@
       "NOT_TESTED": 12,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 11,
-      "FAIL": 4,
+      "PASS": 15,
+      "FAIL": 2,
       "BLOCKED": 4,
       "FLAKY": 0
     },
@@ -186,8 +186,8 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 1,
-      "FAIL": 2,
+      "PASS": 4,
+      "FAIL": 0,
       "BLOCKED": 0,
       "FLAKY": 0
     }
@@ -216,19 +216,9 @@
   ],
   "failing_capabilities": [
     {
-      "capability_id": "CAP-DEPARTMENTS-ARCHIVED-PARENT-DISPLAY",
-      "domain": "departments",
-      "bug_id": "BUG-001"
-    },
-    {
       "capability_id": "CAP-APPROVAL-DECIDE-CHAT-ABSENT",
       "domain": "approvals",
       "bug_id": "BUG-002"
-    },
-    {
-      "capability_id": "CAP-PEOPLE-ARCHIVED-PARENT-DISPLAY",
-      "domain": "people",
-      "bug_id": "BUG-001"
     },
     {
       "capability_id": "CAP-DEPARTMENT-DELETE-CHAT-ABSENT",
@@ -241,24 +231,9 @@
       "bug_id": "BUG-002"
     },
     {
-      "capability_id": "CAP-DASHBOARD-COMPANY-COUNT-AGGREGATION",
-      "domain": "dashboard",
-      "bug_id": "BUG-003"
-    },
-    {
       "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-ACTIVE-DESCENDANTS",
       "domain": "relationships",
       "bug_id": "BUG-001"
-    },
-    {
-      "capability_id": "CAP-MEMORIES-NULL-SCOPE-WRITE-BYPASS",
-      "domain": "permissions",
-      "bug_id": "BUG-004"
-    },
-    {
-      "capability_id": "CAP-MEMORIES-NULL-SCOPE-READ-BYPASS",
-      "domain": "permissions",
-      "bug_id": "BUG-004"
     },
     {
       "capability_id": "CAP-ISSUE5-B-ASSIGN-FLOW-COMPLETES",
@@ -289,6 +264,11 @@
       "capability_id": "CAP-BUG002-D3-CLAIM-PLUS-QUESTION-BYPASS",
       "domain": "brain-chat",
       "bug_id": "BUG-002"
+    },
+    {
+      "capability_id": "CAP-ARCHIVED-PARENT-CLASS-REMAINDER",
+      "domain": "relationships",
+      "bug_id": "BUG-001"
     }
   ],
   "flaky_capabilities": [
@@ -300,5 +280,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 71 | PASS: 24 | FAIL: 15 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
+  "headline": "Required capabilities: 74 | PASS: 31 | FAIL: 11 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
 }
