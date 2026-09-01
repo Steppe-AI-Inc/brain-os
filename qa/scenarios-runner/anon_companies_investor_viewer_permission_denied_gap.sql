@@ -29,14 +29,18 @@
 -- unauthenticated REST or PostgREST caller hitting these 5 tables gets a hard error
 -- instead of Brain OS's otherwise-consistent "clean empty result" contract for anon.
 --
--- Expected once fixed (own migration, needs founder authorization — NOT covered by
--- create_own_company's authorization scope): `grant execute on function
--- public.is_investor_viewer_of(uuid) to anon;` (safe — the function's own body already
--- requires auth.uid() to match a real, active, investor_viewer-role membership; granting
--- EXECUTE to anon only lets it be *called*, it still correctly returns false/no-match for
--- an anonymous caller with no auth.uid()). After that, all 5 queries below should return
--- a clean empty result instead of raising 42501 — update this comment and cross-reference
--- KNOWN_FAILURE_MODES.md when that lands.
+-- Fix migration PREPARED, 2026-09-01, NOT YET PUSHED (needs founder authorization,
+-- separate from create_own_company's own authorization scope):
+-- supabase/migrations/202609010002_fix_investor_viewer_anon_rls_helper_grant.sql —
+-- `grant execute on function public.is_investor_viewer_of(uuid) to anon;` (safe — the
+-- function's own body already requires auth.uid() to match a real, active,
+-- investor_viewer-role membership; granting EXECUTE to anon only lets it be *called*, it
+-- still correctly returns false/no-match for an anonymous caller with no auth.uid()).
+-- Adversarially proven live via a temporary in-transaction GRANT (see
+-- qa/scenarios-runner/is_investor_viewer_of_anon_grant_fix.sql, KNOWN_FAILURE_MODES.md
+-- #60) — all 5 queries below returned a clean empty result instead of raising 42501, and
+-- a direct enumeration attempt with real + fake company UUIDs proved zero data exposure.
+-- Update this comment again once the migration is actually pushed to production.
 
 begin;
 set local role anon;

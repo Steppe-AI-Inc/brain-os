@@ -4532,3 +4532,78 @@ ONE NEW DEFECT FOUND AND FIXED LIVE (BOARD PAGE ORG-SCOPING GAP), ONE PRE-EXISTI
 DISCLOSED FINDING'S BLAST RADIUS CORRECTED FROM 1 TABLE TO 5`. No DB push required for
 anything found this session (the investor-viewer grant fix remains BLOCKED — DB PUSH,
 prepared as documentation only, same as #58's own disclosure — not pushed).
+
+## 60. `is_investor_viewer_of()` anon-EXECUTE grant fix — migration prepared and adversarially proven live, still BLOCKED — DB PUSH (2026-09-01)
+
+Founder-directed follow-up to #59's expanded finding. Before writing anything permanent,
+confirmed the exact function identity live rather than guessing:
+`public.is_investor_viewer_of(cid uuid)` (`pg_get_function_identity_arguments` /
+`pg_proc`), `SECURITY DEFINER`, `STABLE`. Confirmed current grants via
+`has_function_privilege()` per role: `anon=false`, `authenticated=true`,
+`service_role=true`, `postgres=true`, `public=false` — so the minimal fix is exactly one
+`GRANT EXECUTE ... TO anon`, nothing else; `authenticated`'s existing grant is left
+untouched, `PUBLIC` is deliberately never granted.
+
+**Function body read directly** (`pg_get_functiondef`): `select exists (select 1 from
+company_memberships m join profiles p on p.id = m.profile_id where p.auth_user_id =
+auth.uid() and m.company_id = cid and m.active = true and p.role = 'investor_viewer')`.
+For `anon`, `auth.uid()` is `NULL`; no `profiles` row can ever satisfy `auth_user_id =
+NULL`, so the function can only ever return `false` for an anonymous caller regardless of
+`cid` — proven from the body, not assumed.
+
+**Confirmed this fix needs no change to the existing anon/public-grant sweeps**:
+`qa/scenarios-runner/privileged_rpc_anon_public_grant_sweep.sql` and
+`factory_rpc_privilege_sweep.sql` both already exclude any function matching
+`^(is_|has_|current_)` by name, with documented rationale ("RLS-policy predicate helpers
+... MUST stay anon-executable for row-level security to evaluate at all"). This function
+already falls under that existing, documented exception class — nothing to add.
+
+**Adversarial rollback proof, run live against production** (not simulated):
+1. Temporary in-transaction `GRANT EXECUTE ... TO anon` (never committed).
+2. All 5 affected tables (`companies`, `goals`, `financial_reports`, `documents`,
+   `memories`) queried as `anon` — all returned a clean `0` (no error), despite real data
+   existing (`companies` has 18 real rows in production).
+3. Direct enumeration attempt: called the function directly with 3 real company UUIDs
+   (CLIX GPS, SEM Global Robotics, OpenSpot/Steppe AI) plus one random nonexistent UUID —
+   all four returned `false`, zero differentiation. The helper cannot be used to
+   enumerate real vs. fake company IDs, or investor relationships, by an anonymous
+   caller.
+4. `ROLLBACK`, then re-confirmed `has_function_privilege('anon', ...) = false` — zero
+   residue, the proof transaction had no permanent effect.
+5. `qa/scenarios-runner/investor_viewer_scope.sql` (the existing authenticated
+   `investor_viewer` regression) re-run separately, unaffected: `all_pass: true` — this
+   fix is purely additive to `anon`, it does not touch the `authenticated`/founder/admin
+   paths.
+
+**Migration prepared, not pushed**:
+`supabase/migrations/202609010002_fix_investor_viewer_anon_rls_helper_grant.sql` — a
+single `GRANT EXECUTE ON FUNCTION public.is_investor_viewer_of(uuid) TO anon;` inside
+`begin;...commit;`, nothing else (no table grants, no service_role, no founder/admin
+authority, no function-body change).
+
+**Permanent regression added**:
+`qa/scenarios-runner/is_investor_viewer_of_anon_grant_fix.sql` — self-cleaning
+(`begin;...rollback;`, safe to re-run before or after the real migration lands, since the
+`GRANT` is idempotent). Covers, by name:
+`RLS_HELPER_IS_INVESTOR_VIEWER_OF_CALLABLE_BY_ANON`,
+`ANON_RLS_PREDICATE_RETURNS_FALSE_NOT_PRIVILEGE_ERROR`,
+`ANON_COMPANIES_QUERY_DOES_NOT_CRASH`, `ANON_GOALS_QUERY_DOES_NOT_CRASH`,
+`ANON_FINANCIAL_REPORTS_QUERY_DOES_NOT_CRASH`, `ANON_DOCUMENTS_QUERY_DOES_NOT_CRASH`,
+`ANON_MEMORIES_QUERY_DOES_NOT_CRASH`,
+`ANON_INVESTOR_HELPER_GRANT_DOES_NOT_EXPOSE_INVESTOR_DATA`. Live run confirmed all pass.
+
+**Classification, precise, not overstated**: this was never an authorization bypass
+(`fail-open`) — no anonymous caller could ever see protected data with or without this
+fix, since the underlying `has_company_access(id)` operand and the helper's own
+`auth.uid()` check both correctly deny an anonymous caller either way. This is a
+`fail-crash` / availability and RLS-evaluation-correctness defect: an anonymous caller
+gets a hard `insufficient_privilege` error where the policy should have simply evaluated
+its second `OR` operand to `false` and returned an empty result, matching Brain OS's
+otherwise-consistent "clean empty result for anon" contract everywhere else.
+
+**Status**: `FIX PREPARED — IS_INVESTOR_VIEWER_OF ANON RLS HELPER GRANT`. Affected
+tables: 5. Live exploit/data leak: NOT demonstrated (proven not possible, not merely
+untested). Current defect: anonymous RLS queries crash. Proposed fix: exact-function
+`GRANT EXECUTE TO anon`, nothing broader. Rollback proof: PASS. Protected-data exposure
+test: PASS (zero rows exposed, zero enumeration signal). Production push: **AUTHORIZATION
+REQUIRED** — remains `BLOCKED — DB PUSH`, migration file committed but not applied.
