@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T06:59:26Z",
+  "generated_at": "2026-09-01T07:01:29Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1646,6 +1646,26 @@
       ],
       "status": "PASS",
       "evidence": "Chat renamed an ARCHIVED company (QA-C002-CLASSB-TARGET -> QA-C002-RENAMED-X) and the rename genuinely persisted (DB-verified). Consistent with the earlier C001 finding that editing an existing archived-parent descendant is permitted while creation under it is blocked. Recorded as PASS (claim matched reality) - whether editing archived entities SHOULD be allowed remains the open product question already logged in BUG-001."
+    },
+    {
+      "capability_id": "CAP-ISSUE5-PENDING-ACTION-CARRIES-ACTION-TYPE",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "pending_action_persists_action_type",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-channel-state-layer-probe"
+      ],
+      "evidence": "0 of 51 persisted pendingAction objects carry an actionType, across 37 channels / 53 turns in 2 days. kind is present in 28 of 51. No channel has exceeded the limit(8) retrieval window (longest 7), so windowing is excluded as a cause. This is the structural root of the issue #5 confirmation defects."
     }
   ]
 }

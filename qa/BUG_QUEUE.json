@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T06:59:26Z",
+  "last_updated": "2026-09-01T07:01:29Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -315,7 +315,8 @@
           "work_pc_evidence": "Single clean channel 44dafd9a, 3 consecutive user turns, only 1 work_orders row persisted. This is NOT the limit(8) retrieval window the Home PC measured - at 3 turns that window cannot apply. Turns are not being WRITTEN, which is a different mechanism from not being READ.",
           "hypothesis_for_home_pc": "UNPROVEN, needs Home-PC confirmation: BUG-002 fix wired claimsPastCompletionWithNoGrounding into the SAME work_orders.output persist-condition as claimsFutureActionWithNoPlan. If that condition suppresses persistence for turns whose text trips the pattern, then the BUG-002 fix may be AMPLIFYING the Class A continuity defect. Work PC did not read that code path and is not asserting this - flagged as the highest-value thing for Home PC to check first.",
           "new_evidence_off_by_one": "SHARPER MECHANISM FOUND. In channel test C the replies lag one turn behind the prompts: turn 1 'Restore QA-SWARM-TEST-CO-VIA-CHAT' -> 'restored.' (correct, DB confirms active). Turn 2 'How many companies do we have in total?' -> 'QA-SWARM-TEST-CO-VIA-CHAT: restored.' (repeats turn 1's answer). Turn 3 'yes' -> '20 companies in total.' (answers turn 2's question; 20 matches the real DB total). Each response answers the PREVIOUS turn. This is turn/response misalignment, which is a more specific and more actionable defect than generic 'history loss' - and it plausibly explains how a bare confirmation lands on the wrong pending action.",
-          "classification_layer": "Layer classification per founder instruction: this is NOT 'the LLM forgot'. The off-by-one pattern points at PROMPT-CONSTRUCTION or RETRIEVAL ORDERING (the turn assembled into the prompt is one behind the user's actual latest message), not at model recall. Home PC should check how the current turn is appended relative to the retrieved history window before treating this as a context-size problem."
+          "classification_layer": "Layer classification per founder instruction: this is NOT 'the LLM forgot'. The off-by-one pattern points at PROMPT-CONSTRUCTION or RETRIEVAL ORDERING (the turn assembled into the prompt is one behind the user's actual latest message), not at model recall. Home PC should check how the current turn is appended relative to the retrieved history window before treating this as a context-size problem.",
+          "layer_verdict": "PERSISTENCE/STRUCTURE layer, definitively. Retrieval windowing is EXCLUDED by measurement (no channel has ever exceeded limit(8); longest observed is 7 turns)."
         },
         "B": {
           "title": "Confirmation action/target binding - bare yes on an assign clarification archived the company",
@@ -346,7 +347,8 @@
           "title": "Authoritative execution-result continuity - contradicts its own prior execution result",
           "status": "OPEN - NOT IMPLEMENTED",
           "work_pc_disposition": "CONFIRMED FAILING",
-          "work_pc_evidence": "Brain contradicted its own immediately-prior statement about the same entity in the same channel (see Class C evidence). Also, asked \"what did you just do\", it answered \"The prior pending action is not visible in this turn context.\" - an explicit self-report of the continuity loss."
+          "work_pc_evidence": "Brain contradicted its own immediately-prior statement about the same entity in the same channel (see Class C evidence). Also, asked \"what did you just do\", it answered \"The prior pending action is not visible in this turn context.\" - an explicit self-report of the continuity loss.",
+          "layer_verdict": "Execution-state continuity cannot hold while 0 of 51 pending actions carry an actionType - there is no durable record of WHAT was pending to be continuous about."
         },
         "E": {
           "title": "Channel/context identity continuity",
@@ -390,6 +392,19 @@
         "edge_function": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475), independently confirmed ACTIVE by Work PC",
         "campaign": "C002",
         "retested_at": "2026-09-01T05:57:29Z"
+      },
+      "layer_classification_DEFINITIVE": {
+        "_method": "Measured across ALL real channels of the last 2 days rather than inferred from one transcript: 37 channels, 53 persisted turns, 51 persisted pendingAction objects. Regression: qa/scenarios-runner/issue5_channel_state_layer_probe.sql",
+        "pending_actions_persisted": 51,
+        "pending_carrying_kind": 28,
+        "pending_carrying_action_type": 0,
+        "longest_channel_turns": 7,
+        "retrieval_window_limit": 8,
+        "longest_channel_exceeds_window": false,
+        "VERDICT": "STRUCTURAL - not retrieval, not context size, not model recall. ZERO of 51 persisted pending actions carry an actionType, and NO channel has ever exceeded the limit(8) retrieval window (longest = 7). The window has therefore never once fired in production, so it cannot explain any continuity failure observed to date.",
+        "why_this_matters": "It rules out the two explanations that would otherwise be reached for first - 'the history window is too small' and 'the model forgot'. Neither is supported. The pending-action record is written without the one field needed to bind a confirmation, in every channel, every time.",
+        "extends_home_pc_finding": "The Home PC identified actionType as unrepresentable for ASSIGN specifically (typed archive|restore|null). The measurement is broader: actionType is absent for ALL 51 pending actions, not only assigns. kind IS populated in 28 of 51, so the structure partially exists - it is specifically the action type that never survives.",
+        "home_pc_next_step": "Fixing the retrieval window or adding compaction would NOT address this. The pendingAction persistence shape is the thing to change."
       }
     },
     {

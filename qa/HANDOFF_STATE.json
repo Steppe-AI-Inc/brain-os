@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T06:59:26Z",
+  "last_updated": "2026-09-01T07:01:30Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "8521b0e",
   "product_commit_tested_short": "8521b0e",
@@ -29,13 +29,13 @@
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 79,
+    "required_capabilities": 80,
     "pass": 33,
-    "fail": 14,
+    "fail": 15,
     "flaky": 1,
     "blocked": 4,
     "not_tested": 27,
-    "coverage_percentage": 60.8,
+    "coverage_percentage": 61.3,
     "release_state": "FAILED",
     "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
