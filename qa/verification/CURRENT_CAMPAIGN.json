@@ -1,131 +1,49 @@
 {
-  "campaign_id": "verify-e085cfc-d3-past-completion-gate-pendingaction-shortcircuit",
-  "base_commit": "e085cfcd5c73659edd312d82a88e2351ca48b636",
-  "parent_commit": "607cdaa (master head; production Edge Function is at c9dfab5 / sem-ai-command v92)",
-  "started_at": "2026-09-01T00:00:00Z",
-  "last_checkpoint_at": "2026-09-01T-final",
-  "prior_campaign": "verify-c9dfab5-edge-function-deploy-issue5-classB-and-bug002 (COMPLETED, archived to qa/verification/archive/campaign-c9dfab5-edge-deploy.json). Different base commit - its evidence is NOT carried forward except as a claim to re-derive.",
-  "scope": "Independent verification of PREPARED-BUT-NOT-DEPLOYED branch pending/d3-past-completion-gate-pendingaction-shortcircuit @ e085cfc. Tasks: (1) confirm D3 defect real in parent and fix removes !result.pendingAction from PAST gate only; (2) scrutinise the pendingAction prompt re-attachment second-order change; (3) hunt NEW false positives; (4) run all 4 suites + independently prove the D3 test fails on revert, restore byte-identical; (5) zero new type errors; (6) persist condition still includes the PAST gate.",
+  "campaign_id": "verify-606cfa8-d3-followup-detector-narrowing",
+  "base_commit": "606cfa8c274c6189f00824e997b3a70d9badae39",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run3-start",
+  "last_checkpoint_at": "2026-09-01T-run3-final",
+  "completed_at": "2026-09-01T-run3-final",
+  "verifier": "independent verifier #3 (fresh context)",
+  "prior_campaign": "verify-e085cfc-... archived to qa/verification/archive/campaign-e085cfc-d3-branch.json. Different base_commit; evidence NOT carried forward - every claim re-derived at 606cfa8.",
   "project_ref": "pvphxgrtdfrudejjhzjk",
-  "production_domain": "brain.open-spot.ai",
-  "hard_constraints_acknowledged": [
-    "DO NOT deploy; DO NOT push supabase/functions/**",
-    "DO NOT touch incident evidence (QA-SWARM-TEST-CO-VIA-CHAT archived, approval 358eddeb pending)",
-    "DO NOT close BUG-002",
-    "No DB migrations"
-  ],
-  "scenarios": {
-    "task1_d3_defect_real_and_scoped": {
-      "status": "PASS - LIVE VERIFIED (defect present in deployed bytes) + CODE INSPECTED (branch scope)",
-      "evidence": "Downloaded deployed v92; its PAST gate still carries !result.pendingAction. git show e085cfc diff touches exactly 2 files; the ONLY functional change to the gate line is removal of '&& !result.pendingAction' from claimsPastCompletionWithNoGrounding; claimsFutureActionWithNoPlan at line 4197 KEEPS it. Verified by direct read + by executing the real extracted source."
-    },
-    "task2_prompt_reattachment_scrutiny": {
-      "status": "PARTIAL - ONE REAL GAP FOUND (D7), everything else checked out",
-      "evidence": "5 PendingAction kinds carry question? (single_entity_clarification/disambiguation/open_question) or summary? (bulk_confirmation/multi_action_plan). Re-attachment is lossless for open_question and single_entity_clarification (system prompt requires summary==question there), adequate for bulk_confirmation/multi_action_plan. FALSIFIED for 'disambiguation': the system prompt (index.ts 754-758) requires the OPTION NAMES to be written in \"summary\", and matchDisambiguationOption() resolves the next turn only if the reply CONTAINS an option label. The D3 correction destroys summary and re-attaches only question, so a live disambiguation pendingAction becomes unresolvable by a user who can no longer see the labels. result.pendingAction itself is never nulled and is emitted in the SSE done event and persisted (p_output: result is unconditional at line 3597), so machine-side resolution still works."
-    },
-    "task3_new_false_positives": {
-      "status": "FAIL - REAL FALSE POSITIVES PROVEN ON REAL PRODUCTION DATA",
-      "evidence": "Executed the REAL extracted gate source against 442 real production work_orders.output rows. 70 carried a live pendingAction; 12 of those match the real PAST_COMPLETION_CLAIM_PATTERN. 9 are lifecycleMismatchCorrections-era rows now unreachable (claims*Deleted all require !modelProposedPendingAction). The 3 still-reachable ones are ALL truthful and ALL would be newly overwritten by D3: c1cab239 ('That action was confirmed as done.'), c763bd89 ('QA-LIFECYCLE-EMPLOYEE2 was not created.' - negation blindness), 432f1a52 ('they were just restored in the prior turn'). ZERO fabrications of the D3 shape exist in the whole 442-turn corpus; the actual BUG-002 incident row a031cb51 has pendingAction=null and is already fully covered by the deployed gate."
-    },
-    "task4_four_suites_and_revert_proof": {
-      "status": "PASS with ONE TEST DEFECT FOUND AND FIXED (D5)",
-      "evidence": "All four suites run by me: issue5 10/10 exit0, bug002 regex 13/13 exit0, drift guard 13/13 exit0, D3 10/10 exit0. Mutation-proved the D3 suite: re-adding !result.pendingAction to the PAST gate -> 9/10 exit1 (matches the implementer's claim exactly); full revert to parent 607cdaa index.ts -> 8/10 exit1; gutting the FUTURE short-circuit -> 9/10 exit1; removing the prompt re-attachment -> 9/10 exit1. BUT removing claimsPastCompletionWithNoGrounding from the work_orders persist condition -> STILL 10/10 exit0: that assertion is VACUOUS (its regex is satisfied by the gate's own 'if (claimsPastCompletionWithNoGrounding)' statement). index.ts restored byte-identical after every mutation, sha256 8d76f13d..., git status clean for supabase/."
-    },
-    "task5_zero_new_type_errors": {
-      "status": "PASS - CONFIRMED",
-      "evidence": "tsc 5.9.3 (web/node_modules). --strict: 14 diagnostics on BOTH parent 607cdaa and branch e085cfc, identical text and identical line numbers. non-strict: 13 on both, diff empty. ZERO new. The implementer's literal figure of '5 errors' does not reproduce as a diagnostic count under either flag set (it equals the number of DISTINCT TS error codes: TS2307/TS2339/TS7006/TS2304/TS2322)."
-    },
-    "task6_persist_condition": {
-      "status": "PASS - LIVE VERIFIED",
-      "evidence": "Line 4325 persist condition still contains claimsPastCompletionWithNoGrounding. Upgraded from code-inspection to LIVE: production work_order 4401e508-0764-479f-b485-1b6124859501 (2026-09-01 05:53:59Z, command 'Rename the project \"IQParking & OpenSpot Hardware Operations\" to QA-C002-RENAMED. Confirm when done.', pendingAction null) has output.summary stored as the exact BUG-002 correction string - so the gate fired AND its corrected summary reached work_orders.output in real production. No other persist branch can be true for that turn."
-    },
-    "incident_evidence_immutability": {
-      "status": "PASS - UNTOUCHED",
-      "evidence": "companies QA-SWARM-TEST-CO-VIA-CHAT id 7ba01ff2-6404-4c06-8bc5-4449b50df5de status=archived updated_at 2026-08-31 15:56:01.097726+00 (unchanged). approvals 358eddeb-c6ac-4a85-ab26-77dc3960fcba status=pending decided_at=null. Neither restored nor decided by this campaign."
-    },
-    "global_integrity": {
-      "status": "PASS WITH THE SAME KNOWN EXCEPTION + EXPLAINED DRIFT",
-      "evidence": "global_integrity_assertions.sql read-only: all orphan counts 0; active_task_under_archived_company=2 (unchanged, #61 D4). BASELINE DRIFT: companies_active 6 -> 8, caused by QA-C002-CLASSB-TARGET (2026-09-01 05:44:48Z, Work-PC QA campaign C002) and CLIX GPS 2 (05:58:23Z, real founder work) - NOT by this campaign, which created zero rows."
-    },
-    "live_http_acceptance": {
-      "status": "BLOCKED - no browser tools, no session minting, no outbound HTTP",
-      "evidence": "No ToolSearch function exists in this session (tools: Read, Grep, Glob, Bash, Edit, Write, Skill), so mcp__claude-in-chrome__* cannot be loaded. Same gap as campaigns #59 and #61. PARTIAL COMPENSATION, stated precisely: real live production behavior was recovered from PERSISTED production state (work_orders.output for the 14 turns since the deploy) rather than simulated - that is real evidence of what production did, but it is other people's traffic, not an acceptance test I drove."
-    }
-  },
-  "pending_db_pushes": [],
-  "prepared_fixes": [
-    {
-      "id": "D3-FP / D6 / D7 candidate",
-      "path": "qa/verification/proposed/d3-followup-detector-tightening.patch",
-      "status": "FIX PREPARED - BLOCKED - FUNCTIONS DEPLOY. Not applied to supabase/functions/**, not committed there, not deployed.",
-      "evidence": "Applied to a scratch copy of index.ts; past_completion_gate_behavior.mjs Sections A+B+C all pass simultaneously (neither master nor e085cfc does) and Section D flips to 'D6 appears FIXED'. index.ts then restored byte-identical (sha256 8d76f13d...), git status clean for supabase/. Limitations documented in the patch header; NO live HTTP acceptance."
-    }
-  ],
-  "live_verified_fixes": [],
-  "remaining_scenarios": [],
-  "regressions_added": [
-    "qa/scenarios-runner/past_completion_gate_behavior.mjs (NEW - first BEHAVIORAL test of this gate; executes the real extracted source; Section B red on master/deployed = D3, Section C red on e085cfc = D3-FP, no build passes both)",
-    "qa/scenarios-runner/d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs (FIXED - vacuous persist assertion replaced; 10/10 -> 12/12)"
-  ],
-  "defects_found": [
-    {
-      "id": "D3-FP",
-      "severity": "P1 for the deploy decision - the prepared fix is NET-NEGATIVE",
-      "summary": "Removing !result.pendingAction from the PAST gate newly overwrites TRUTHFUL replies. Real corpus: 442 production work_orders, 70 with a live pendingAction, 12 regex matches, 3 still reachable - all 3 truthful (prior-turn report / truthful NEGATIVE 'was not created' / history recap), ZERO fabrications of the D3 shape anywhere in the corpus. The actual BUG-002 incident row a031cb51 has pendingAction=null and is already covered by the deployed gate. Class: WIDENING A COARSE DETECTOR INSTEAD OF SHARPENING IT.",
-      "status": "REPORTED - RECOMMENDATION: DO NOT DEPLOY e085cfc AS WRITTEN. Candidate fix prepared, blocked on functions deploy."
-    },
-    {
-      "id": "D6",
-      "severity": "P2 accuracy - ALREADY LIVE IN PRODUCTION at c9dfab5/v92, NOT introduced by D3",
-      "summary": "PAST_COMPLETION_CLAIM_PATTERN matches Brain OS's OWN lifecycleMismatchCorrections text ('...was actually archived or restored this turn'), which is definitionally ungrounded, so the gate overwrites its own truthful corrector with a message that additionally claims falsely that chat cannot do the action. Executed against the DOWNLOADED DEPLOYED BYTES: all 4 corrector strings overwritten. 23 such summaries in production history, 14 with no pendingAction. Class: A CORRECTOR THAT MATCHES ITS OWN OUTPUT.",
-      "status": "NOT FIXED - candidate prepared, BLOCKED - FUNCTIONS DEPLOY. Characterized in past_completion_gate_behavior.mjs Section D."
-    },
-    {
-      "id": "D7",
-      "severity": "P2 usability/dead-end",
-      "summary": "The branch comment claims question/summary are the only user-facing prompt fields across the 5 pendingAction kinds. FALSE for 'disambiguation': matchDisambiguationOption() resolves only a reply containing an option LABEL, and the system prompt puts the labels in 'summary' - which the correction destroys, re-attaching only 'question'. Result: a live pendingAction the user can no longer answer.",
-      "status": "NOT FIXED - candidate prepared, BLOCKED - FUNCTIONS DEPLOY."
-    },
-    {
-      "id": "D5",
-      "severity": "real test-quality defect, same class as #61/D2 recurring one commit later",
-      "summary": "The branch's own persist assertion was VACUOUS - its regex was satisfied by the gate's own if-statement. Proven by mutation: deleting the term from the real work_orders persist condition left the suite green 10/10.",
-      "status": "FIXED LIVE in qa/ - assertion now anchored to the real persist statement; 12/12, and the same mutation now fails it 11/12."
-    },
-    {
-      "id": "D8",
-      "severity": "claim accuracy, minor",
-      "summary": "Commit message says 'the same 5 pre-existing Deno-vs-tsc errors'. Actual diagnostic counts are 13 (non-strict) / 14 (--strict), identical on parent and branch. 5 is the number of distinct TS error CODES. The substantive 'zero new' claim is CONFIRMED.",
-      "status": "reported, no code change needed"
-    },
-    {
-      "id": "D9",
-      "severity": "out of scope, flagged",
-      "summary": "Live post-deploy turn 2026-09-01 05:55:16Z answered 'Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST deleted.' - a bare-participle completion claim the regex does NOT match (it requires has been/was/were or '... successfully'). BUG-002's own class sweep listed department permanent-delete as a reproduced fabrication.",
-      "status": "flagged, not investigated"
-    }
-  ],
-  "verdict": "PARTIALLY VERIFIED - FIX PREPARED, DO NOT DEPLOY AS WRITTEN. The D3 defect is real and LIVE VERIFIED present in the deployed v92 bytes, and the branch's scope/tense reasoning are correct. But the prepared fix is NET-NEGATIVE on the real production corpus (3 truthful replies newly destroyed, 0 fabrications of the target shape in 442 turns), and two further defects were found - one of them (D6) already live in production. Neither c9dfab5 nor e085cfc is PRODUCTION ACCEPTED. All live HTTP behavioral acceptance remains BLOCKED.",
   "production_state_established": {
-    "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
-    "origin_master": "607cdaaf3ae9a9bbec3fbcda70f617fb86b651e2",
-    "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit @ e085cfc (NOT pushed to origin, NOT deployed)",
-    "sem_ai_command": "version 92, ACTIVE, verify_jwt true, updated_at 1788239725518 (2026-09-01T05:15:25.518Z) - UNCHANGED from the prior campaign",
-    "deployed_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == git show c9dfab5:supabase/functions/sem-ai-command/index.ts",
-    "deployed_past_gate_line_4241": "'&& !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan' - D3 fix is CONFIRMED NOT DEPLOYED",
-    "working_tree_index_ts_sha256_CRLF": "8d76f13d0ef9ff97ec1248f13de06ff2fd028e4ae10685d4fc3fca58c16771a4"
+    "sem_ai_command": "version 92 ACTIVE verify_jwt=true updated_at 2026-09-01T05:15:25.518Z - UNCHANGED",
+    "deployed_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == c9dfab5 (== 607cdaa, same file)",
+    "branch_606cfa8_lf_sha256": "63173cd68ff8cba396d2b8a92efca9d957db4311590b60c4021d83807b3bf299 - NOT deployed",
+    "working_tree_index_ts_crlf_sha256": "f71a655f506a7c7399195c1a5dd172707b74e3ee7f2da7ebf8eec478a6d3a45c",
+    "git_diff_HEAD_supabase": "0 lines at campaign close",
+    "deployed_past_gate_line_4241": "still carries '&& !result.pendingAction' - D3 IS LIVE IN PRODUCTION"
   },
-  "completed_at": "2026-09-01T-final",
-  "known_failure_modes_entries_created": [
-    62
+  "scenarios": {
+    "1_d3_pendingaction_shortcircuit": {"status": "PASS - CODE VERIFIED + mutation-proven", "evidence": "PAST gate 4262 lacks !result.pendingAction; FUTURE gate 4196 keeps it. Re-adding to PAST -> 12/13 + 19/24. Removing from FUTURE -> 12/13 + 23/24."},
+    "2_d5_persist_condition": {"status": "PASS - no longer vacuous", "evidence": "Deleting '|| claimsPastCompletionWithNoGrounding' from the REAL persist condition (line 4338) -> D3 suite 12/13 exit1 (was green 10/10 pre-#62). index.ts restored byte-identical, hash-verified."},
+    "3_d6_self_corrector": {"status": "PASS (fixed) but MIS-ATTRIBUTED - see D10/D11", "evidence": "Fixed by PAST_CLAIM_NEGATED, NOT by the lifecycleMismatchCorrections guard, which has zero coverage (deleting it left all 5 suites green). Guard is safe only via an implicit else-if-chain invariant; forcing the state flips 17 real rows incl. a031cb51."},
+    "4_d7_disambiguation_labels": {"status": "PASS - behaviourally proven", "evidence": "Assigning pendingPrompt instead of promptWithOptions -> C4 red (23/24)."},
+    "5_mixed_claim_structural_gap": {"status": "CONFIRMED - broader than disclosed", "evidence": "6 escape shapes across BOTH new regexes, all with pendingAction=null, ALL corrected by deployed v92. Per-claim grounding against factLines confirmed as the correct structural answer. Pinned by new Section G."},
+    "6_test_quality_all_five_suites": {"status": "FAIL - one NEW vacuous assertion (D10), now fixed", "evidence": "All 5 suites non-vacuous overall (7/10, 10/13, 12/13+11/13, 12/13, 19-34/35). But D6 guard had zero coverage; loosened prompt assertion + its D7 sibling pass on a dead-code build (13/13). Section D inversion directionally correct but mis-attributed. correctionBlock brace-matching fix judged CORRECT AND NECESSARY."},
+    "7_production_state": {"status": "PASS - LIVE VERIFIED", "evidence": "v92, byte hash == c9dfab5. Unchanged."},
+    "8_incident_evidence": {"status": "FAIL - company mutated (NOT by me); approval intact", "evidence": "QA-SWARM-TEST-CO-VIA-CHAT 7ba01ff2 now status=active, updated_at 2026-09-01 06:50:55Z. Cause: founder chat command 'Restore the archived company QA-SWARM-TEST-CO-VIA-CHAT' at 06:50:49Z + matching ai_command_executed at 06:50:55Z. Approval 358eddeb still pending/decided_at NULL. This campaign was read-only; did NOT re-archive."},
+    "9_workpc_drift": {"status": "PASS - legitimate founder/C002 activity", "evidence": "Interactive human-shaped founder session 06:44-06:52Z; QA-C002-CLASSB-TARGET archived then renamed to QA-C002-RENAMED-X (DB confirms); CLIX GPS real since 08-24. Cannot cryptographically distinguish founder-human from founder-credentialed session."},
+    "10_live_browser_acceptance": {"status": "BLOCKED", "evidence": "No ToolSearch in this session type -> mcp__claude-in-chrome__* unloadable. No session minting, no outbound HTTP. Fourth consecutive campaign blocked."},
+    "11_recommendation": {"status": "DEPLOY THE NARROWING, THEN DO PER-CLAIM GROUNDING", "evidence": "415-row differential: 21 real false positives removed, 0 real regressions, 0 real fabrications newly caught."}
+  },
+  "corpus_differential_415_rows": {"bothCorrect": 18, "onlyDeployedCorrects": 21, "onlyBranchCorrects": 0, "neither": 376, "rows_with_live_pendingAction": 75, "note": "all 21 onlyDeployedCorrects are TRUTHFUL replies = live false positives production commits today"},
+  "global_integrity": {"orphans_all": 0, "duplicate_company_names_active": 0, "active_task_under_archived_company": 1, "note": "was 2 in #62; decreased because the founder restored QA-SWARM-TEST-CO-VIA-CHAT. Known #61/D4.", "BASELINE_approval_358eddeb": "pending", "companies_active": 8, "companies_archived": 10},
+  "defects_found": [
+    {"id": "D10", "severity": "P2 test-quality, THIRD consecutive recurrence of the vacuous-assertion class", "status": "FIXED LIVE in qa/ (Sections DA1/E1), mutation-proven"},
+    {"id": "D11", "severity": "P1 latent", "status": "FIXED LIVE in qa/ (Section E2 shape lock), mutation-proven"},
+    {"id": "D12", "severity": "P2 test-quality", "status": "FIXED LIVE in qa/ (Sections F1/F2), mutation-proven"},
+    {"id": "D13", "severity": "P1 accuracy", "status": "OPEN - pinned by Section G; needs per-claim grounding"},
+    {"id": "D14", "severity": "process", "status": "REPORTED, not reverted - founder decision"}
   ],
-  "synthetic_entities_created_by_this_campaign": {
-    "none": "ZERO. No QA-VERIFY-* rows were created and nothing in production was mutated - every DB interaction this campaign made was read-only SELECT. Incident evidence (QA-SWARM-TEST-CO-VIA-CHAT archived, approval 358eddeb pending) deliberately left exactly as found."
-  },
-  "blocked_scenarios": [
-    "LIVE HTTP acceptance of the D3 branch and of BUG-002/issue#5 (no ToolSearch -> no browser tools; no session minting; no outbound HTTP)",
-    "UI <-> DB truth checks (no browser)",
-    "AI <-> DB truth checks in a fresh chat channel (no chat session)",
-    "Deploying/validating the prepared candidate patch (BLOCKED - FUNCTIONS DEPLOY, by instruction)"
-  ]
+  "regressions_added": ["qa/scenarios-runner/past_completion_gate_behavior.mjs Sections DA1, E1, E2, F1, F2, G1-G6 (24/24 -> 35/35)"],
+  "pending_db_pushes": [],
+  "prepared_fixes": [{"id": "606cfa8 D3 follow-up", "status": "FIX PREPARED - BLOCKED - FUNCTIONS DEPLOY (by instruction). Recommended for deploy."}],
+  "live_verified_fixes": [],
+  "known_failure_modes_entries_created": [63],
+  "synthetic_entities_created_by_this_campaign": {"none": "ZERO. No QA-VERIFY-* rows created; every DB interaction was a read-only SELECT. Nothing to clean up."},
+  "verdict": "PARTIALLY VERIFIED - FIX PREPARED, RECOMMENDED FOR DEPLOY, BUG-002 NOT CLOSED.",
+  "blocked_scenarios": ["Live HTTP/browser acceptance", "UI <-> DB truth checks", "verifier-driven fresh-channel AI <-> DB checks", "deploying 606cfa8 (by instruction)"]
 }

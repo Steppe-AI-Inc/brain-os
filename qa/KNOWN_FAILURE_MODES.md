@@ -5119,3 +5119,321 @@ campaign additionally finds the prepared version unsafe to deploy as written.
 The branch's source-text assertion `'correction preserves a real pending prompt'` hardcodes
 the variable name `pendingPrompt`, so any rename breaks it even when behavior is preserved
 (the candidate patch above trips it). Loosen it if that patch ships.
+
+---
+
+## 63. Independent verification of the D3 FOLLOW-UP commit (`pending/d3-past-completion-gate-pendingaction-shortcircuit` @ 606cfa8) — the narrowing is real and net-positive on production data, but it is a TRADE not an improvement, and it shipped a THIRD consecutive vacuous regression assertion (CODE VERIFIED + INTEGRATION VERIFIED against the real 415-turn production corpus; LIVE HTTP/BROWSER ACCEPTANCE STILL BLOCKED — 2026-09-01)
+
+Independent verifier #3, fresh context, starting commit
+`606cfa8c274c6189f00824e997b3a70d9badae39`. The launch prompt was treated as a pointer, not
+as evidence. Campaign #62's evidence was **not** carried forward — its `base_commit` is
+`e085cfc`, a different commit, so every claim was re-derived at 606cfa8.
+
+**RECOMMENDATION UP FRONT: deploy 606cfa8, then immediately open the structural work.**
+This reverses #62's "do not deploy" verdict *for this commit*, on evidence #62 could not
+have had: measured against the real production corpus, 606cfa8 removes **21 live false
+positives** and introduces **0 real false negatives**. But it is not a fix of BUG-002, and
+BUG-002 must not be closed on it. See "The honest trade" below.
+
+### Production state established first (CLAUDE.md §1)
+
+| | |
+|---|---|
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| Deployed `sem-ai-command` | **version 92, ACTIVE, `verify_jwt true`, `updated_at` 2026-09-01T05:15:25.518Z — UNCHANGED** |
+| Deployed bytes sha256 | `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` — byte-identical to `git show c9dfab5:…/index.ts` (and to `607cdaa`, same file) |
+| Branch under test | `606cfa8`, LF-sha `63173cd68ff8cba396d2b8a92efca9d957db4311590b60c4021d83807b3bf299` — **NOT deployed** |
+| Working-tree `index.ts` (CRLF) | sha256 `f71a655f506a7c7399195c1a5dd172707b74e3ee7f2da7ebf8eec478a6d3a45c` — restored byte-identical after **every** mutation in this campaign; `git diff HEAD -- supabase/` = 0 lines at close |
+
+Deployed line 4241 still carries `&& !result.pendingAction`. **D3 is live in production right
+now; neither e085cfc nor 606cfa8 is deployed.** Verified against downloaded bytes, not inferred.
+
+### Item-by-item verdicts
+
+| # | Item | Verdict |
+|---|---|---|
+| 1 | D3 short-circuit fix | **PASS — CODE VERIFIED + mutation-proven** |
+| 2 | D5 persist condition genuinely mutation-proven | **PASS — no longer vacuous** |
+| 3 | D6 self-corrector overwrite fixed | **PASS (fixed) — but by a DIFFERENT mechanism than claimed** |
+| 4 | D7 disambiguation labels survive | **PASS — behaviourally proven** |
+| 5 | Mixed claims still escape | **CONFIRMED — worse than disclosed (6 shapes, both regexes)** |
+| 6 | Test quality of all 5 suites | **FAIL — one NEW vacuous assertion found (D10), now fixed** |
+| 7 | Production still c9dfab5 / v92 | **PASS — LIVE VERIFIED by byte hash** |
+| 8 | Incident evidence immutable | **FAIL — the company was RESTORED (not by me); approval intact** |
+| 9 | Work-PC drift attribution | **PASS — legitimate founder/C002 chat activity, LIVE VERIFIED** |
+| 10 | Live browser acceptance | **BLOCKED — no browser tooling in this session type** |
+| 11 | Recommendation | deploy the narrowing, then do per-claim grounding |
+
+### 1 / 4 / 7 — confirmed, mutation-proven
+
+The PAST gate at 606cfa8 line 4262 does **not** carry `!result.pendingAction`; the FUTURE
+gate at 4196 **does**. Both directions mutation-proven, not merely read:
+
+| Mutation of the real `index.ts` | Result |
+|---|---|
+| Re-add `!result.pendingAction` to the PAST gate | D3 suite 12/13, behaviour suite 19/24 (B1 + 4×B2 red) |
+| Remove `!result.pendingAction` from the FUTURE gate | D3 suite 12/13, behaviour suite 23/24 (A5 red) |
+| D7: assign `pendingPrompt` instead of `promptWithOptions` | behaviour suite 23/24 (C4 red) |
+
+D7 is genuinely fixed: `matchDisambiguationOption()` resolves only a reply containing an
+option label, and the labels now survive the correction.
+
+### 2 — D5 is now genuinely non-vacuous (the #62 fix holds)
+
+Deleting `|| claimsPastCompletionWithNoGrounding` from the **real** `work_orders` persist
+condition (line 4338) now drops the D3 suite to **12/13, exit 1**. Under the pre-#62
+assertion this same mutation left it green at 10/10. The assertion is now anchored to the
+real statement via `lastIndexOf('if (', call)` rather than grepping the whole file.
+`index.ts` restored byte-identical (`f71a655f…`) and re-verified by hash.
+
+### 3 + D10 — NEW DEFECT: the D6 guard has ZERO coverage, and Section D's inversion is MIS-ATTRIBUTED
+
+**This is the third consecutive commit to ship a regression assertion that cannot fail**
+(#61/D2 → #62/D5 → this). The class is now firmly established: *an assertion whose stated
+subject is not the thing it actually exercises.*
+
+`606cfa8` adds `&& lifecycleMismatchCorrections.length === 0` to the PAST gate and inverts
+Section D of `past_completion_gate_behavior.mjs`, whose failure message reads "The
+`lifecycleMismatchCorrections.length === 0` guard is missing or ineffective."
+
+**Proven by mutation: deleting that guard from `index.ts` entirely leaves ALL FIVE SUITES
+GREEN**, including Section D at 24/24. Section D calls
+`run('gpt', s, null, false)` — omitting the 5th argument, so `lifecycleMismatchCorrections`
+defaults to `[]`, which *satisfies* the guard instead of exercising it.
+
+What actually protects Brain OS's own corrector text is **`PAST_CLAIM_NEGATED`** (it matches
+`Couldn't confirm` and `No company`). Proven by the complementary mutation: deleting
+`PAST_CLAIM_NEGATED` turns **exactly** the four Section D cases red and nothing else.
+
+Two further coverage facts fell out of the same sweep:
+- **C2 ("was not created") is protected by `PAST_CLAIM_ATTRIBUTED_ELSEWHERE`, not by
+  `PAST_CLAIM_NEGATED`** — it contains the words "conversation history". Deleting either
+  regex individually leaves C2 green, so the negation fix had no unique coverage at all.
+- `PAST_CLAIM_ATTRIBUTED_ELSEWHERE` *is* uniquely covered — by C1 and C3.
+
+**D6 is nevertheless genuinely FIXED**, and the guard is safe. Reachability analysis of the
+`result.summary` else-if chain (lines 4142–4176) proves the guard can never mask a real
+fabrication: whenever `lifecycleMismatchCorrections` is non-empty and no earlier branch
+fired, the summary **is** the corrector text; and every earlier branch (`proposedPlan`,
+`deterministic-plan-execution`, `lifecycleReports`, `stateClaimCorrections`) independently
+forces `groundedOutcomeThisTurn`, which already disables the gate. So *a model-authored
+summary implies `lifecycleMismatchCorrections.length === 0`*.
+
+**But that invariant is load-bearing and entirely implicit.** Forcing the otherwise
+unreachable state against the real corpus flips **17 real production rows** from CORRECTED
+to EXEMPT — including **`a031cb51`, the BUG-002 incident row itself**, plus
+`"Department … has been permanently deleted."` and `"Project renamed: X → Y"`. If anyone
+later reorders that chain or adds a branch that leaves model prose in place while a
+corrector is pending, BUG-002 silently re-opens with no test failing.
+
+**FIXED IN `qa/` (this campaign):** new Sections DA/E in
+`qa/scenarios-runner/past_completion_gate_behavior.mjs` — `DA1` re-attributes the D6
+protection to `PAST_CLAIM_NEGATED`, `E1` gives the guard its first real coverage, and `E2`
+is a **shape lock** on the else-if chain. Mutation-proven: deleting the guard → `E1` red;
+reordering the chain → `E2` red. Both were previously undetectable.
+
+### 6 — the three test edits in 606cfa8, individually judged
+
+| Edit | Verdict |
+|---|---|
+| Brace-matched `correctionBlock` replacing `slice(i, i+1600)` | **CORRECT AND NECESSARY.** The magic count silently truncated mid-block once the body grew; two assertions were failing for reasons unrelated to what they test. |
+| Section D inversion | **DIRECTIONALLY CORRECT, MIS-ATTRIBUTED.** D6 really is fixed, so asserting the fixed direction is right; the failure message names the wrong mechanism and the case never exercises it (D10 above). |
+| Loosened "preserves a pending prompt" assertion | **WEAKENED REAL COVERAGE.** The rename from `pendingPrompt` to `promptWithOptions` did make the old assertion brittle, so loosening was justified in principle — but the replacement is too weak. Proven: leaving the whole `pa`/`pendingPrompt`/`paOptions` computation in place as **dead code** and assigning `result.summary = correction ? …` keeps that suite at a green **13/13**, and its sibling "D7 labels" assertion green too (both are source greps). Only `C4` caught it. Nothing covered the ordinary `open_question`/`clarification` prompt at all. |
+
+**FIXED IN `qa/`:** new Section F (`F1`, `F2`) asserts behaviourally that a corrected
+`open_question` / `single_entity_clarification` turn still displays its question.
+Mutation-proven: the dead-code build now fails `F1`, `F2` **and** `C4` (32/35).
+
+**Non-vacuity of all five suites, each proven by mutating its own real input:**
+
+| Suite | Mutation | Result |
+|---|---|---|
+| `issue5_confirmation_action_type_binding` | revert `resolveFieldFixed` to the buggy fallback | 7/10 |
+| `sem_ai_command_past_completion_claim_regex` | drop hedge lookbehinds from its regex copy | 10/13 |
+| `sem_ai_command_source_invariants_drift_guard` | alter the regex / the `company.archive` mapping in `index.ts` | 12/13 and 11/13 |
+| `d3_past_completion_gate_not_shortcircuited_by_pending_action` | strip the term from the real persist condition | 12/13 |
+| `past_completion_gate_behavior` | revert D3 / D7 / D6 guard / chain order / dead-code prompt | 19–34 of 35 |
+
+Note the architecture, since it is easy to misread: `issue5_…` and `…_regex` are fully
+self-contained (zero `readFileSync`); they test **copies**. Only the drift guard binds those
+copies to the real `index.ts`. The drift guard is therefore load-bearing and was verified to
+catch both drift shapes.
+
+### 5 — the structural gap is REAL and BROADER than the commit message discloses
+
+The commit message discloses one mixed-claim shape. Executing the **real extracted gate**
+finds **six**, spanning **both** new regexes — and confirms all six are **CORRECTED by the
+deployed v92 build**:
+
+| Shape | v92 | 606cfa8 |
+|---|---|---|
+| `The approval was not rejected — it has been approved.` | CORRECTED | **ESCAPES** |
+| `Per the conversation history, the company has been archived.` | CORRECTED | **ESCAPES** |
+| `In the prior turn you asked; the task has been deleted.` | CORRECTED | **ESCAPES** |
+| `There is no company by that name, but the task was renamed successfully.` | CORRECTED | **ESCAPES** |
+| `The status is not draft. The goal has been archived.` | CORRECTED | **ESCAPES** |
+| `I could not confirm the owner, but the employee was created.` | CORRECTED | **ESCAPES** |
+
+Root cause: `PAST_CLAIM_NEGATED` and `PAST_CLAIM_ATTRIBUTED_ELSEWHERE` are **whole-summary**
+tests. One truthful negation, or one mention of "prior turn" *anywhere* in the reply,
+exempts the **entire** summary including a fabrication sitting next to it. These escapes
+occur with `pendingAction = null`, i.e. on the exact turn shape the original BUG-002
+incident had — so this is a genuine new false-negative class on the primary path, not only
+on the D3 path.
+
+**Yes — per-claim grounding against `factLines` is the correct structural answer, and I say
+that without hedging.** The gate's real question is not "does this summary look like a
+completion claim" but "for each completion claim in this summary, is there a corresponding
+resource-level piece of evidence for *this turn*". That requires splitting the summary into
+claims (sentence/clause level), extracting `(entity, operation)` from each, and matching it
+against the turn's own `factLines`/`lifecycleReports` evidence — exempting a claim only when
+it is individually grounded or individually negated. Every regex added on top of a
+whole-summary matcher will keep trading one error class for another, because the unit of
+truth (a claim) and the unit of test (the whole reply) do not match. `index.ts` already
+flags this as a deliberately deferred larger change; that assessment is correct.
+
+**Regression added:** Section G of `past_completion_gate_behavior.mjs` pins all six shapes
+**in the currently-broken direction on purpose**, with instructions to INVERT rather than
+delete when per-claim grounding lands. Mutation-proven: removing both narrowing regexes
+flips all six to red (and simultaneously turns C1–C3 and D6 red — the tension made visible).
+
+### The honest trade — measured on the real production corpus, not argued
+
+Differential execution of the **deployed v92 gate** vs the **606cfa8 gate** over all **415**
+production `work_orders.output.summary` rows (read-only; 75 carry a live `pendingAction`):
+
+```
+bothCorrect=18   onlyDeployedCorrects=21   onlyBranchCorrects=0   neither=376
+```
+
+- **21 rows** are corrected by production today and exempt on the branch. **All 21 are
+  TRUTHFUL** — Brain OS's own lifecycle correctors, truthful negatives ("No employee was
+  created in this conversation", "No image was actually attached"), and truthful prior-turn
+  reports. These are **21 live false positives that production is committing right now**:
+  a true statement replaced by "I can't actually do that from chat", which is itself false.
+- **0 rows** are newly corrected by the branch — the D3 fabrication shape does not occur in
+  415 turns of real traffic.
+- **0 real regressions**: no corpus row has the mixed shape. The six escapes are synthetic.
+
+Two of the 21 make prior-turn claims, so I verified them against live DB state rather than
+assuming: `test5` = `archived` ✓, `employee5` = inactive ✓, `test6` company/employee absent ✓.
+Both truthful — **AI ↔ DB agree**.
+
+So: **606cfa8 fixes 21 real defects, introduces 0 real defects, and newly catches 0 real
+fabrications.** It is net-positive on evidence, while being a narrowing on principle. #62's
+"net-negative" verdict was correct *about e085cfc*, which lacked all three guards.
+
+### 8 — INCIDENT EVIDENCE HAS CHANGED (not by me)
+
+`QA-SWARM-TEST-CO-VIA-CHAT` (`7ba01ff2-6404-4c06-8bc5-4449b50df5de`) is **`active`**, not
+`archived`, `updated_at` 2026-09-01 06:50:55.540698+00. #62 recorded it as `archived` at
+2026-08-31 15:56:01.
+
+Cause identified, not guessed: `work_orders` shows the founder-role command
+**"Restore the archived company QA-SWARM-TEST-CO-VIA-CHAT"** at 06:50:49Z → summary
+`"QA-SWARM-TEST-CO-VIA-CHAT: restored."`, and `audit_logs` has a matching
+`ai_command_executed` (role `founder`) at **06:50:55Z**, exactly the row's `updated_at`. A
+live founder chat session on the deployed v92 build restored it — **after** campaign #62
+closed. This campaign performed **read-only SELECTs only** and did not touch it; per the
+standing instruction I did **not** re-archive it.
+
+**Approval `358eddeb-c6ac-4a85-ab26-77dc3960fcba` is intact: `status = pending`,
+`decided_at = NULL`.**
+
+Consequence: the "archived company" half of the BUG-002 incident evidence no longer exists
+in its recorded state. If it is still needed as evidence, that is a founder decision to
+re-archive deliberately — flagged, not acted on.
+
+### 9 — Work-PC drift: legitimate founder activity, LIVE VERIFIED
+
+`QA-C002-CLASSB-TARGET` and `CLIX GPS 2` are **not** implementation-session residue. The
+06:44–06:52Z `work_orders`/`audit_logs` sequence is an interactive, human-shaped founder QA
+session (self-corrections such as "which one?", "yes, confirm that restore I just asked
+about"), consistent C002 naming, and `CLIX GPS` has existed as a real company since 08-24.
+`QA-C002-CLASSB-TARGET` was archived at 06:45:52Z and renamed to `QA-C002-RENAMED-X` at
+06:51:51Z — DB confirms `QA-C002-RENAMED-X [archived]`.
+
+Stated precisely: this is the founder **profile** acting through Brain Chat. I cannot
+cryptographically distinguish the founder-human from any session holding founder
+credentials; the behavioural evidence is strongly consistent with the former.
+
+**Bonus AI ↔ DB truth checks on that live v92 session (all PASS):**
+
+| Live AI claim | DB truth | |
+|---|---|---|
+| "20 companies in total." | `count(*) = 20` | ✓ |
+| "QA-C002-CLASSB-TARGET is archived. Renamed to QA-C002-RENAMED-X." | `QA-C002-RENAMED-X [archived]` | ✓ |
+| "QA-SWARM-TEST-CO-VIA-CHAT: restored." | `status = active` | ✓ |
+| "QA-SWARM-TEST-CO-VIA-CHAT: was already active." (repeat "yes") | idempotent, no second mutation | ✓ |
+
+That last row is a real **idempotency** pass on production: the repeated confirmation
+reported the already-in-that-state outcome instead of claiming a fresh mutation.
+
+### Global integrity assertions (read-only, production)
+
+```
+tasks_orphan_company=0   goals_orphan_company=0   person_assignment_orphan_{company,person,manager}=0
+tasks_orphan_owner_person=0   work_orders_orphan_channel=0   duplicate_company_names_active=0
+active_task_under_archived_company=1   (was 2 in #62 — decreased because the founder
+                                        restored QA-SWARM-TEST-CO-VIA-CHAT; known #61/D4)
+BASELINE_approval_358eddeb=pending   BASELINE_companies_active=8   BASELINE_companies_archived=10
+```
+
+### 10 — LIVE BROWSER / AI-CHAT ACCEPTANCE: BLOCKED (fourth campaign running)
+
+This session type exposes only `Read/Grep/Glob/Bash/Edit/Write/Skill`. There is **no
+`ToolSearch`**, so `mcp__claude-in-chrome__*` cannot be loaded; no session minting and no
+outbound HTTP either. Stated as a real coverage gap, not silently skipped:
+
+- **BLOCKED:** live HTTP acceptance of 606cfa8 (it is not deployed, so this is moot until it is).
+- **BLOCKED:** UI ↔ DB checks; fresh-channel AI ↔ DB checks driven by me.
+- **PARTIAL COMPENSATION, stated precisely:** the AI ↔ DB rows above are real production
+  behaviour recovered from persisted `work_orders`/`audit_logs` — genuine evidence of what
+  production *did*, but it is the founder's traffic, **not an acceptance test I drove.**
+
+### 11 — Recommendation (reasoned, not hedged)
+
+**Deploy 606cfa8 now; then do per-claim grounding as the next unit of work.** Reasoning:
+
+1. Production is committing **21 measured false positives** today — replacing true
+   statements with a denial that is itself false. That is a live truthfulness defect of the
+   same family as BUG-002, and it is happening on real rows *now*.
+2. The branch introduces **0 measured regressions** on 415 real turns. The six mixed-claim
+   escapes are real but synthetic; no instance exists in the corpus.
+3. Waiting for the structural fix keeps 21 known-bad behaviours live in order to avoid 0
+   observed bad behaviours. That trade is wrong on evidence.
+4. The residual risk is honestly bounded and now **pinned by Section G**, so the structural
+   work has a ready-made red-to-green target instead of a prose TODO.
+
+**Conditions on that recommendation** (all are real, none are hedges):
+- Deploy must be byte-verified (`functions download` + hash) as #61/#62 did.
+- **Live Playwright/browser acceptance on the Work PC is still required** and has now been
+  outstanding for four campaigns. Deploying does not discharge it.
+- **BUG-002 stays OPEN.** Status: *"BUG-002 — PARTIAL FIX PREPARED, INDEPENDENTLY VERIFIED;
+  structural per-claim grounding still open; Work-PC live Playwright acceptance required."*
+
+### Defects recorded by this campaign
+
+| ID | Severity | Summary | Status |
+|---|---|---|---|
+| **D10** | test-quality, P2 — **third consecutive recurrence** of the vacuous-assertion class | The `lifecycleMismatchCorrections.length === 0` guard had **zero** coverage; deleting it left all 5 suites green. Section D's inversion is mis-attributed — it exercises `PAST_CLAIM_NEGATED`, not the guard it names. | **FIXED LIVE in `qa/`** — Sections DA1/E1; mutation-proven |
+| **D11** | latent P1 | The D6 guard is a broad kill-switch, safe only via an implicit, undocumented else-if-chain invariant. Forcing the state flips 17 real rows to EXEMPT, incl. the BUG-002 incident row `a031cb51`. | **FIXED LIVE in `qa/`** — Section `E2` shape lock; mutation-proven |
+| **D12** | test-quality, P2 | The loosened "preserves a pending prompt" assertion (and its D7 sibling) pass on a build where re-attachment is **dead code**. No coverage existed for `open_question`/`clarification` prompts. | **FIXED LIVE in `qa/`** — Section F1/F2; mutation-proven |
+| **D13** | P1 accuracy, **open** | Mixed claims escape via **both** narrowing regexes — 6 shapes, all caught by deployed v92, all with `pendingAction = null`. Broader than the commit message discloses. | **NOT FIXED** — pinned by Section G; needs per-claim grounding |
+| **D14** | process | Designated-immutable incident evidence (`QA-SWARM-TEST-CO-VIA-CHAT`) was restored to `active` by a live founder chat session after #62 recorded it. | **REPORTED, not reverted** — founder decision |
+
+### Verdict
+
+**PARTIALLY VERIFIED — FIX PREPARED, RECOMMENDED FOR DEPLOY, BUG-002 NOT CLOSED.**
+
+D3/D6/D7 are real and correctly fixed at 606cfa8, and the D5 assertion is genuinely
+non-vacuous. The commit is net-positive on measured production data. But it is a
+**NARROWING**: the structural per-claim grounding remains open (D13), one new vacuous
+assertion class shipped again (D10) and is now fixed, and **all live browser/AI-chat
+acceptance remains BLOCKED**. Nothing here is `PRODUCTION ACCEPTED`.
+
+**Regression tests added:** `qa/scenarios-runner/past_completion_gate_behavior.mjs`
+Sections DA1, E1, E2, F1, F2, G1–G6 (24/24 → **35/35**), every one mutation-proven.
+
+**Hard constraints honoured:** no deploy; `git diff HEAD -- supabase/` = **0 lines**; no
+migrations; DB access read-only throughout; incident evidence untouched by me.

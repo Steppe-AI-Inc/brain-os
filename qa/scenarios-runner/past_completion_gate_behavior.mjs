@@ -284,6 +284,120 @@ for (const s of SELF_CANNIBALIZED) {
   );
 }
 
+// SECTION D-ATTRIBUTION - added 2026-09-01 by the INDEPENDENT VERIFIER of 606cfa8
+// (qa/KNOWN_FAILURE_MODES.md #63). READ THIS BEFORE TRUSTING SECTION D ABOVE.
+//
+// Section D failure text blames the lifecycleMismatchCorrections.length === 0 guard.
+// That attribution is WRONG, proven by mutation: DELETING that guard from index.ts
+// entirely leaves all five suites green, including Section D at 24/24. Section D passes
+// lifecycleMismatchCorrections = [] (the parameter default), which SATISFIES the guard
+// instead of exercising it. What actually protects the corrector text is
+// PAST_CLAIM_NEGATED - deleting THAT turns exactly the four Section D cases red and
+// nothing else. D6 is genuinely fixed, but by a different mechanism than claimed.
+check(
+  'DA1 D6 protection holds with lifecycleMismatchCorrections EMPTY (PAST_CLAIM_NEGATED is the real mechanism)',
+  SELF_CANNIBALIZED.every((t) => !overwritten(run('gpt', t, null, false, []))),
+  'If this is red while Section D is green, the two disagree - re-derive which mechanism protects the corrector text.'
+);
+
+// SECTION E - THE D6 GUARD IS A LATENT KILL-SWITCH. Characterisation + shape lock.
+//
+// lifecycleMismatchCorrections.length === 0 disables the ENTIRE past-completion gate for
+// any turn where a lifecycle-mismatch corrector fired - including a genuine fabrication.
+// Verified against the real production corpus: forcing that state flips 17 real rows from
+// CORRECTED to EXEMPT, among them a031cb51 (the BUG-002 incident row itself), a
+// "Department ... has been permanently deleted." row and a "Project renamed: X -> Y" row.
+//
+// SAFE TODAY ONLY because of the else-if chain that assigns result.summary: when
+// lifecycleMismatchCorrections is non-empty and no earlier branch fired, the summary IS
+// the corrector text; and every earlier branch (proposedPlan, deterministic-plan-execution,
+// lifecycleReports, stateClaimCorrections) independently forces groundedOutcomeThisTurn,
+// which already disables the gate. So a MODEL-AUTHORED summary implies
+// lifecycleMismatchCorrections.length === 0 and the guard can never mask a fabrication.
+// That invariant is load-bearing and entirely implicit. E2 locks the chain shape.
+const A_CORRECTOR = ['Could not confirm that. No company was actually archived or restored this turn.'];
+check(
+  'E1 CHARACTERISATION: with a corrector pending, the gate is fully disabled even for a real fabrication',
+  overwritten(run('gpt', 'The approval has been approved.', null, false, []))
+    && !overwritten(run('gpt', 'The approval has been approved.', null, false, A_CORRECTOR)),
+  'If this flips, the D6 guard changed shape - re-verify a fabrication cannot ride along with a pending corrector.'
+);
+check(
+  'E2 SHAPE LOCK: lifecycleMismatchCorrections is the LAST summary branch and every earlier branch forces groundedOutcomeThisTurn',
+  (() => {
+    const chainStart = src.indexOf('if (proposedPlan) {');
+    const gIdx = src.indexOf('const groundedOutcomeThisTurn');
+    if (chainStart === -1 || gIdx === -1 || gIdx < chainStart) return false;
+    const branches = [...src.slice(chainStart, gIdx).matchAll(/else if \(([^)]*)\)/g)].map((m) => m[1].trim());
+    const lastIsLmc = branches.length > 0
+      && branches[branches.length - 1].startsWith('lifecycleMismatchCorrections.length > 0');
+    const grounded = src.slice(gIdx, gIdx + 400);
+    const covers = [
+      'lifecycleReports.length > 0',
+      'stateClaimCorrections.length > 0',
+      'proposedPlan',
+      "model === 'deterministic-plan-execution'",
+    ].every((t) => grounded.includes(t));
+    return lastIsLmc && covers;
+  })(),
+  'The implicit invariant that makes the D6 guard safe has changed: a model-authored summary may now coexist with a non-empty lifecycleMismatchCorrections, disabling BUG-002 protection for that turn.'
+);
+
+// SECTION F - the correction must not strand a NON-disambiguation pending prompt.
+//
+// 606cfa8 LOOSENED the source-level assertion in
+// d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs from pinning the exact
+// assignment to a generic one. Verified by mutation that the loosened form is too weak
+// alone: leaving the whole pa/pendingPrompt/paOptions computation in place as DEAD CODE
+// and assigning the correction to itself keeps that suite at a green 13/13. Only C4
+// (disambiguation labels) caught it there - nothing covered the ordinary open_question or
+// clarification prompt at all. F1/F2 close that hole behaviourally.
+check(
+  'F1 a corrected open_question turn still shows its question (prompt not stranded)',
+  (() => {
+    const q = 'Should I notify the team about this?';
+    const r = run('gpt', 'The approval has been approved.', { kind: 'open_question', question: q }, false);
+    return overwritten(r) && String(r.summary).includes(q);
+  })(),
+  'The gate fired on a turn carrying a live open_question but did not re-attach the question, leaving a live pendingAction with nothing to answer.'
+);
+check(
+  'F2 a corrected single_entity_clarification turn still shows its question',
+  (() => {
+    const q = 'Did you mean Ariunjargal (Installation Technician)?';
+    const r = run('gpt', 'The employee has been removed.', { kind: 'single_entity_clarification', question: q, entityType: 'person', actionType: 'archive' }, false);
+    return overwritten(r) && String(r.summary).includes(q);
+  })()
+);
+
+// SECTION G - OPEN STRUCTURAL GAP (#63). MIXED CLAIMS STILL ESCAPE.
+//
+// PAST_CLAIM_NEGATED and PAST_CLAIM_ATTRIBUTED_ELSEWHERE are WHOLE-SUMMARY tests, so one
+// truthful negation, or one mention of a prior turn anywhere in the reply, exempts the
+// ENTIRE summary - including a real fabrication sitting right next to it. The 606cfa8
+// commit message discloses ONE such shape; all six below were verified against the real
+// extracted gate, and ALL SIX ARE CORRECTED BY THE DEPLOYED v92 BUILD. This is the precise
+// sense in which 606cfa8 is a NARROWING and not a structural fix.
+//
+// ASSERTED IN THE CURRENTLY-BROKEN DIRECTION ON PURPOSE (the same discipline Section D
+// used before it was fixed): when per-claim grounding against factLines lands, these flip
+// and this section must be INVERTED, not deleted.
+const MIXED_CLAIM_ESCAPES = [
+  ['G1 negation + fabrication', 'The approval was not rejected. Also, it has been approved.'],
+  ['G2 history word + fabrication', 'Per the conversation history, the company has been archived.'],
+  ['G3 prior turn + fabrication', 'In the prior turn you asked; the task has been deleted.'],
+  ['G4 no-entity + fabrication', 'There is no company by that name, but the task was renamed successfully.'],
+  ['G5 is-not + fabrication', 'The status is not draft. The goal has been archived.'],
+  ['G6 could-not-confirm + fabrication', 'I could not confirm the owner, but the employee was created.'],
+];
+for (const [name, summary] of MIXED_CLAIM_ESCAPES) {
+  check(
+    name + ' STILL ESCAPES (known-open #63; deployed v92 catches it)',
+    !overwritten(run('gpt', summary, null, false)),
+    'This mixed claim is now CORRECTED. If per-claim grounding shipped, INVERT Section G rather than deleting it.'
+  );
+}
+
 console.log('\npast_completion_gate_behavior: ' + pass + '/' + (pass + failures.length) + ' passed');
 if (failures.length) {
   console.log('\nFAILURES:');
