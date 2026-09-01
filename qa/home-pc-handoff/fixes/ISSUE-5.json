@@ -1,0 +1,52 @@
+{
+  "bug_id": "ISSUE-5",
+  "_note": "GitHub issue #5, not a Work-PC BUG_QUEUE id. Filed by the founder 2026-08-31. Home PC never sets status directly - this is a report for the Work-PC QA Director.",
+  "status_report": "FIX PREPARED — NOT DEPLOYED",
+  "ready_for_retest": false,
+  "do_not_retest_as_fixed": true,
+  "class_b": {
+    "title": "Bare confirmation misbinds to a destructive action (assign employee -> archive company)",
+    "severity": "P1",
+    "status": "FIX PREPARED — NOT DEPLOYED",
+    "branch": "pending/issue-5-confirmation-action-type-binding",
+    "root_cause": "Architectural, not wording. pendingAction.actionType is typed archive|restore|null, so a clarification about an ASSIGN has no representable value and is necessarily emitted absent. Both deterministic-execution call sites then resolved the mutation field as CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType || 'archive'] - coercing an ABSENT action type into the most destructive operation available for that entity type. A bare 'yes' passes isClarificationAffirmative(), and commandContradictsActionType() cannot help because 'yes' contains neither verb family.",
+    "fix": "Single fail-closed resolveClarificationField(entityType, actionType) helper: both must be explicitly present and known, otherwise it returns undefined and the turn falls through to the ordinary LLM path instead of mutating. Replaces both vulnerable call sites. Legitimate archive/restore confirmations set actionType explicitly and are unaffected.",
+    "tests": "qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs - 10/10 pass, plain node, no deploy/DB/network. Reproduces the live defect and proves the fix, including that every real archive/restore/delete path still resolves identically.",
+    "typecheck": "tsc on the Edge Function shows zero NEW type errors; the 5 pre-existing Deno-vs-tsc strictness errors are byte-identical before and after, only shifted by line count.",
+    "why_not_deployed": "Touches supabase/functions/**. The repo's .githooks/pre-push guard correctly blocks the push without ALLOW_FUNCTIONS_DEPLOY=1, and that authorization has not been given. Queued with BUG-002; both ship in one push."
+  },
+  "classes_a_c_d_e": {
+    "title": "Same-channel history loss, stale grounding, false execution claims, channel identity regression",
+    "status": "NOT IMPLEMENTED / ARCHITECTURE GAP",
+    "not_solved_by_class_b": true,
+    "architecture_findings": {
+      "structured_pending_action": "last-turn work_orders.output only",
+      "canonical_target_ids": "resolvedEntities, last turn only",
+      "source_turn_ids": "absent",
+      "expected_confirmation_type": "absent",
+      "channel_session_binding": "present since 2026-08-31",
+      "compaction": "none",
+      "history_retrieval": "hard limit(8)",
+      "persisted_history_payload": "{command, summary} only - no canonical IDs"
+    },
+    "long_context_harness": {
+      "path": "qa/scenarios-runner/issue5_long_context_harness.sql",
+      "self_cleaning": true,
+      "results": [
+        { "turns": 50, "visible": 8, "pct_visible": 16, "first_turn_reachable": false, "canonical_ids_in_window": 0 },
+        { "turns": 100, "visible": 8, "pct_visible": 8, "first_turn_reachable": false, "canonical_ids_in_window": 0 },
+        { "turns": 200, "visible": 8, "pct_visible": 4, "first_turn_reachable": false, "canonical_ids_in_window": 0 }
+      ]
+    },
+    "honesty_notes": [
+      "401 of 428 lifetime work_orders rows have channel_id IS NULL, but these are LEGACY (pre-2026-08-31, before channel binding shipped). Every turn on 8-31 carried a real channel_id. NOT the cause of current history loss.",
+      "The longest real production channel to date is 7 turns - just under the limit(8) window - so this truncation has never actually fired in production. It is guaranteed to at 50+ turns.",
+      "A harness bug was caught and fixed during authoring: Postgres now() is transaction-stable, so all inserted rows shared a created_at and order-by-created_at returned an arbitrary 8, producing a false PASS at the 200-turn scale. created_at is now set explicitly per turn; all three scales are consistent."
+    ],
+    "required_future_design": "structured channel_state with source_turn_id, pending action, action type, canonical target IDs, expected confirmation, expiry, session/channel binding, recent typed focus, last successful mutation, compaction-safe summary. Needs a new migration; not designed or authorized.",
+    "work_pc_guidance": "Do NOT attempt to certify this closed. Run baseline/adversarial tests and preserve evidence. Failures here are expected architecture limits, not Work-PC regressions."
+  },
+  "work_pc_is_final_acceptance_authority": true,
+  "requested_work_pc_action": "Run the exact founder transcript against the CURRENT deployed build to capture baseline evidence of the destructive behaviour (the fix is intentionally not deployed), then run it again after deployment.",
+  "reported_at": "2026-09-01"
+}

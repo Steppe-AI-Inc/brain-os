@@ -57,5 +57,32 @@
     "5_publish_fix_report": "Write qa/home-pc-handoff/fixes/<BUG_ID>.json on the qa/home-pc-handoff branch with: bug_id, fix_commit, implementation_summary, implementation_tests, status='READY_FOR_RETEST', timestamp. Do NOT edit qa/BUG_QUEUE.json - it is Work-PC-owned.",
     "6_never": "Never set CLOSED. Only an independent Work-PC retest closes a defect."
   },
-  "work_pc_resume_instructions": "Read qa/runner/QA_DIRECTOR_BOOT.md, then qa/HANDOFF_STATE.json, qa/BUG_QUEUE.json, qa/CAPABILITY_INVENTORY.json. Remaining C001: Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands, remaining cascade attacks, reload/fresh-session truth. Then supervisor implementation."
+  "work_pc_resume_instructions": "Read qa/runner/QA_DIRECTOR_BOOT.md, then qa/HANDOFF_STATE.json, qa/BUG_QUEUE.json, qa/CAPABILITY_INVENTORY.json. Remaining C001: Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands, remaining cascade attacks, reload/fresh-session truth. Then supervisor implementation.",
+
+  "main_pc_implementation_state": {
+    "_doc": "IMPLEMENTATION-OWNED block, added by the Main-PC implementation session 2026-09-01. Deliberately additive and namespaced: every Work-PC-owned field above is left byte-identical, because this file declares itself single-writer Work-PC-owned AND the handoff instruction was to not overwrite Work-PC canonical QA evidence. Those two constraints conflict with 'also update HANDOFF_STATE.json', so this block is the reconciliation - Work-PC is free to ignore, relocate, or delete it. It sets NO bug status; bug status remains exclusively Work-PC's via qa/BUG_QUEUE.json.",
+    "written_by": "main-pc-implementation-session",
+    "written_at": "2026-09-01",
+    "read_this_first": "qa/FINAL_WORK_PC_QA_HANDOFF_2026-09-01.md",
+    "origin_master_sha": "9f270fc",
+    "origin_qa_work_pc_sha_at_write_time": "13b793a",
+    "deployed_web_app_sha": "9f270fc",
+    "deployed_edge_function_content_sha": "16c9251",
+    "_edge_function_note": "Vercel auto-deploys web from master, so deployed web == 9f270fc. sem-ai-command's deployed CONTENT is as of 16c9251 (2026-08-30), the last master commit touching supabase/functions/**. Neither BUG-002 nor issue #5 Class B is deployed.",
+    "production_db_migration_state": "applied through 202609010002_fix_investor_viewer_anon_rls_helper_grant.sql; nothing pending",
+    "independent_verifier_campaign": "verify-a905df5-multiorg-milestone-independent-recheck (completed 2026-09-01, see qa/verification/CURRENT_CAMPAIGN.json)",
+    "fix_reports_published": [
+      "qa/home-pc-handoff/fixes/BUG-001.json",
+      "qa/home-pc-handoff/fixes/BUG-002.json",
+      "qa/home-pc-handoff/fixes/BUG-003.json",
+      "qa/home-pc-handoff/fixes/BUG-004.json",
+      "qa/home-pc-handoff/fixes/ISSUE-5.json",
+      "qa/home-pc-handoff/fixes/ANON-INVESTOR-RLS-HELPER.json"
+    ],
+    "deployed_and_ready_for_retest": ["BUG-004", "BUG-003", "BUG-001 (3 of ~24 surfaces only)", "multi-org", "own-company", "organization-selector", "manager-column-read-only", "anon-investor-rls-helper"],
+    "NOT_ready_for_retest": ["BUG-002", "ISSUE-5-class-B", "ISSUE-5-classes-A-C-D-E", "brain-chat-org-awareness", "model-health-registry", "messaging-adapters", "BUG-001 remaining ~18 surfaces", "manager-set-UI"],
+    "single_blocking_authorization": "Both Edge Function fixes (BUG-002 + issue #5 Class B) are queued behind one ALLOW_FUNCTIONS_DEPLOY=1 authorization and will ship in the same push.",
+    "next_required_actor_per_main_pc": "WORK_PC",
+    "suggested_next_action": "Run P0 security retest first (BUG-004, anon RLS helper, signup/invite, global memory poisoning, cross-org isolation), then capture baseline evidence for issue #5's exact transcript against the CURRENT deployed build (fix intentionally not deployed yet)."
+  }
 }

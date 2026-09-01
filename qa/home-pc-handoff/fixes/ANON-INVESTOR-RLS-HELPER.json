@@ -1,0 +1,29 @@
+{
+  "bug_id": "ANON-INVESTOR-RLS-HELPER",
+  "_note": "Not yet a Work-PC BUG_QUEUE id. Originally surfaced by the Main-PC session, scope corrected by an independent verifier. Work-PC may file it as a fresh id if it wants one; it is already fixed and live, so it can equally be filed directly as CLOSED-pending-retest. Home PC sets no status.",
+  "status_report": "LIVE VERIFIED",
+  "ready_for_retest": true,
+  "retest_priority": "low - already live-verified end to end at the DB layer",
+  "classification": "fail-crash / RLS-helper EXECUTE defect. NOT a data leak and NOT an authorization bypass - please do not describe it as one. No anonymous caller could see protected rows before or after the fix.",
+  "affected_surfaces": ["companies", "goals", "financial_reports", "documents", "memories"],
+  "root_cause": "These five tables' SELECT policies are `has_company_access(id) OR is_investor_viewer_of(id)`. is_investor_viewer_of() had EXECUTE granted to authenticated/service_role/postgres only, never anon. Postgres cannot short-circuit away the second OR operand, so an anon caller hit the ungranted function and got insufficient_privilege (42501) instead of the predicate simply evaluating to false.",
+  "pre_existing_since": "202608280004_investor_viewer_scope.sql (2026-08-28) - three days before the create_own_company migration it was found while re-verifying. Not introduced by that work.",
+  "scope_correction": "Originally reported by the Main-PC session as companies-only. An independent brain-os-verifier session expanded the confirmed blast radius to 5 tables. The earlier companies-only note in qa/home-pc-handoff/README.md was corrected in commit 13b793a.",
+  "fix_migration": "202609010002_fix_investor_viewer_anon_rls_helper_grant.sql",
+  "fix_content": "GRANT EXECUTE ON FUNCTION public.is_investor_viewer_of(uuid) TO anon; - nothing else. authenticated's existing grant untouched, PUBLIC never granted, no table grants, no service_role/founder authority, no function-body change.",
+  "why_safe": "The function body already requires auth.uid() to match a real, active investor_viewer membership. For anon, auth.uid() is NULL, so no profiles row can ever match and the function can only ever return false regardless of the company id passed in. Granting EXECUTE only lets it be called, not change what it returns.",
+  "deployed": true,
+  "post_deploy_proof": {
+    "grant_live": "has_function_privilege('anon','public.is_investor_viewer_of(uuid)','EXECUTE') = true (was false)",
+    "all_five_tables_as_anon": "clean 0 rows each, no insufficient_privilege error",
+    "enumeration_side_channel": "none - 3 real company UUIDs + 2 fake UUIDs all returned false, uniformly indistinguishable",
+    "authenticated_non_investor": "sc056_cross_company_isolation.sql all_pass true - still 0 cross-company rows",
+    "valid_investor": "investor_viewer_scope.sql all_pass true - intended access preserved",
+    "founder_admin": "factory_rpc_privilege_sweep.sql founder_canonical_path_works true",
+    "generic_sweep_compatibility": "privileged_rpc_anon_public_grant_sweep.sql returns unexpected_new_violations: [] - the sweep's existing ^(is_|has_|current_) RLS-helper exclusion already covers this function, so a future generic security sweep will not try to revoke the grant again"
+  },
+  "regression": "qa/scenarios-runner/is_investor_viewer_of_anon_grant_fix.sql - asserts the REAL persistent grant (does not grant to itself in-transaction), so a future revocation fails loudly rather than being masked.",
+  "known_failure_modes_entries": ["#58 (original, companies-only)", "#59 (verifier scope expansion to 5 tables)", "#60 (migration preparation, adversarial proof, and post-deploy verification)"],
+  "optional_work_pc_check": "Confirm no anonymous/logged-out route in the app throws a 500 on these five surfaces.",
+  "reported_at": "2026-09-01"
+}
