@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVE_ORG_COOKIE, ALL_ORGANIZATIONS_ID, type OrganizationContext, type OrganizationOption } from "@/lib/data/organizations-types";
 
@@ -94,4 +95,36 @@ export async function setActiveOrganization(companyId: string) {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
+}
+
+// Overnight multi-org milestone, Priority 1 — "employee creates their own company" as a
+// first-class scenario, live-verified 2026-09-01 (qa/KNOWN_FAILURE_MODES.md #58): calls
+// the real create_own_company() RPC (202609010001_create_own_company.sql), which makes
+// the caller the sole 'owner' of a brand-new company and touches nothing about their
+// existing employment elsewhere — no subsidiary relationship, no access granted to
+// anyone else, their other memberships are completely untouched. Immediately makes the
+// new company the active organization so the effect is visible without an extra manual
+// switch, then revalidates the whole app shell (the sidebar switcher reads
+// getOrganizationContext() from the root layout) so the new company shows up right away.
+export async function createOwnCompany(_prevState: string | null, formData: FormData): Promise<string | null> {
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return "Company name is required.";
+  const country = String(formData.get("country") || "").trim() || undefined;
+  const legalEntityName = String(formData.get("legal_entity_name") || "").trim() || undefined;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_own_company", {
+    p_name: name,
+    p_organization_type: "legal_entity",
+    p_country: country,
+    p_legal_entity_name: legalEntityName,
+  });
+  if (error) return error.message;
+
+  const newCompanyId = data?.[0]?.id;
+  if (!newCompanyId) return "Company created but no id came back — check the Supabase dashboard.";
+
+  await setActiveOrganization(newCompanyId);
+  revalidatePath("/", "layout");
+  return null;
 }

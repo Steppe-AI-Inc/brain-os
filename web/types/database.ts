@@ -1009,6 +1009,77 @@ export type Database = {
           },
         ]
       }
+      company_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_profile_id: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_profile_id: string | null
+          invited_role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_profile_id?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by_profile_id?: string | null
+          invited_role?: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_profile_id?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_profile_id?: string | null
+          invited_role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invitations_accepted_by_profile_id_fkey"
+            columns: ["accepted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "safe_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invitations_invited_by_profile_id_fkey"
+            columns: ["invited_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_memberships: {
         Row: {
           active: boolean | null
@@ -4117,6 +4188,13 @@ export type Database = {
       }
     }
     Functions: {
+      accept_company_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          out_company_id: string
+          out_role: string
+        }[]
+      }
       archive_company: { Args: { p_company_id: string }; Returns: Json }
       archive_goal: { Args: { p_goal_id: string }; Returns: Json }
       archive_task: { Args: { p_task_id: string }; Returns: Json }
@@ -4158,6 +4236,14 @@ export type Database = {
         Args: { p_company_id: string; p_description?: string; p_name: string }
         Returns: string
       }
+      create_company_invitation: {
+        Args: { p_company_id: string; p_email: string; p_invited_role?: string }
+        Returns: {
+          expires_at: string
+          id: string
+          token: string
+        }[]
+      }
       create_factory_task: {
         Args: {
           p_acceptance_criteria?: Json
@@ -4196,6 +4282,18 @@ export type Database = {
       create_mcp_connector_secret: {
         Args: { p_name: string; p_secret: string }
         Returns: string
+      }
+      create_own_company: {
+        Args: {
+          p_country?: string
+          p_legal_entity_name?: string
+          p_name: string
+          p_organization_type?: string
+        }
+        Returns: {
+          id: string
+          name: string
+        }[]
       }
       create_pending_work_order: {
         Args: { p_channel_id?: string; p_command: string; p_context_pack: Json }
