@@ -4237,11 +4237,44 @@ serve(async (req) => {
         // get overwritten - verified live this session via a standalone regex unit test
         // (13/13 cases, including this one) before this pattern was ever wired in.
         const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        // D3 (found 2026-09-01 by the independent verifier of the c9dfab5 deploy, see
+        // qa/KNOWN_FAILURE_MODES.md #61) — this gate previously carried
+        // `&& !result.pendingAction`, copied wholesale from claimsFutureActionWithNoPlan
+        // above ("Deliberately the same guard shape"). That inheritance was the defect:
+        // the short-circuit's justification is TENSE-SPECIFIC and does not transfer.
+        //
+        //   FUTURE tense: "I'll assign the employee — confirm?" WITH a real pendingAction
+        //   is HONEST. The pendingAction *is* the queued intent the sentence promises, so
+        //   skipping the correction is correct. Keep the short-circuit there.
+        //
+        //   PAST tense: "The approval has been approved. Would you like me to notify the
+        //   team?" is NOT made honest by carrying a pendingAction. A past-completion claim
+        //   asserts something ALREADY happened; a pending question says nothing about
+        //   that, and cannot ground it. The two are independent, so the short-circuit
+        //   silently exempted exactly the fabrications it should have caught.
+        //
+        // Structural fix, not a pattern tweak: evaluate the past-completion claim
+        // independently of whether a question is pending. Grounding is still required
+        // (!groundedOutcomeThisTurn) and every deterministic mode is still excluded, so
+        // no legitimately-executed turn is affected.
         const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
-          && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+          && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
           && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
         if (claimsPastCompletionWithNoGrounding) {
-          result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
+          const correction = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
+          // Dropping the short-circuit means this correction can now fire on a turn that
+          // legitimately HAS a pending question. Replacing the whole summary there would
+          // strand the user with a live pendingAction and no visible question, trading a
+          // truthfulness bug for a usability one. So preserve the real pending prompt and
+          // prepend the correction to it, rather than destroying it. pendingAction's
+          // question/summary are the only user-facing prompt fields in its 5 kinds
+          // (question: clarification/disambiguation/open_question; summary:
+          // bulk_confirmation/multi_action_plan).
+          const pa = result.pendingAction as { question?: unknown; summary?: unknown } | null | undefined;
+          const pendingPrompt = [pa?.question, pa?.summary]
+            .map((v) => (typeof v === 'string' ? v.trim() : ''))
+            .find((v) => v.length > 0) || '';
+          result.summary = pendingPrompt ? `${correction}\n\n${pendingPrompt}` : correction;
         }
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
