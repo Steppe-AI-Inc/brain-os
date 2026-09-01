@@ -1,0 +1,49 @@
+{
+  "campaign_id": "verify-606cfa8-d3-followup-detector-narrowing",
+  "base_commit": "606cfa8c274c6189f00824e997b3a70d9badae39",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run3-start",
+  "last_checkpoint_at": "2026-09-01T-run3-final",
+  "completed_at": "2026-09-01T-run3-final",
+  "verifier": "independent verifier #3 (fresh context)",
+  "prior_campaign": "verify-e085cfc-... archived to qa/verification/archive/campaign-e085cfc-d3-branch.json. Different base_commit; evidence NOT carried forward - every claim re-derived at 606cfa8.",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "production_state_established": {
+    "sem_ai_command": "version 92 ACTIVE verify_jwt=true updated_at 2026-09-01T05:15:25.518Z - UNCHANGED",
+    "deployed_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == c9dfab5 (== 607cdaa, same file)",
+    "branch_606cfa8_lf_sha256": "63173cd68ff8cba396d2b8a92efca9d957db4311590b60c4021d83807b3bf299 - NOT deployed",
+    "working_tree_index_ts_crlf_sha256": "f71a655f506a7c7399195c1a5dd172707b74e3ee7f2da7ebf8eec478a6d3a45c",
+    "git_diff_HEAD_supabase": "0 lines at campaign close",
+    "deployed_past_gate_line_4241": "still carries '&& !result.pendingAction' - D3 IS LIVE IN PRODUCTION"
+  },
+  "scenarios": {
+    "1_d3_pendingaction_shortcircuit": {"status": "PASS - CODE VERIFIED + mutation-proven", "evidence": "PAST gate 4262 lacks !result.pendingAction; FUTURE gate 4196 keeps it. Re-adding to PAST -> 12/13 + 19/24. Removing from FUTURE -> 12/13 + 23/24."},
+    "2_d5_persist_condition": {"status": "PASS - no longer vacuous", "evidence": "Deleting '|| claimsPastCompletionWithNoGrounding' from the REAL persist condition (line 4338) -> D3 suite 12/13 exit1 (was green 10/10 pre-#62). index.ts restored byte-identical, hash-verified."},
+    "3_d6_self_corrector": {"status": "PASS (fixed) but MIS-ATTRIBUTED - see D10/D11", "evidence": "Fixed by PAST_CLAIM_NEGATED, NOT by the lifecycleMismatchCorrections guard, which has zero coverage (deleting it left all 5 suites green). Guard is safe only via an implicit else-if-chain invariant; forcing the state flips 17 real rows incl. a031cb51."},
+    "4_d7_disambiguation_labels": {"status": "PASS - behaviourally proven", "evidence": "Assigning pendingPrompt instead of promptWithOptions -> C4 red (23/24)."},
+    "5_mixed_claim_structural_gap": {"status": "CONFIRMED - broader than disclosed", "evidence": "6 escape shapes across BOTH new regexes, all with pendingAction=null, ALL corrected by deployed v92. Per-claim grounding against factLines confirmed as the correct structural answer. Pinned by new Section G."},
+    "6_test_quality_all_five_suites": {"status": "FAIL - one NEW vacuous assertion (D10), now fixed", "evidence": "All 5 suites non-vacuous overall (7/10, 10/13, 12/13+11/13, 12/13, 19-34/35). But D6 guard had zero coverage; loosened prompt assertion + its D7 sibling pass on a dead-code build (13/13). Section D inversion directionally correct but mis-attributed. correctionBlock brace-matching fix judged CORRECT AND NECESSARY."},
+    "7_production_state": {"status": "PASS - LIVE VERIFIED", "evidence": "v92, byte hash == c9dfab5. Unchanged."},
+    "8_incident_evidence": {"status": "FAIL - company mutated (NOT by me); approval intact", "evidence": "QA-SWARM-TEST-CO-VIA-CHAT 7ba01ff2 now status=active, updated_at 2026-09-01 06:50:55Z. Cause: founder chat command 'Restore the archived company QA-SWARM-TEST-CO-VIA-CHAT' at 06:50:49Z + matching ai_command_executed at 06:50:55Z. Approval 358eddeb still pending/decided_at NULL. This campaign was read-only; did NOT re-archive."},
+    "9_workpc_drift": {"status": "PASS - legitimate founder/C002 activity", "evidence": "Interactive human-shaped founder session 06:44-06:52Z; QA-C002-CLASSB-TARGET archived then renamed to QA-C002-RENAMED-X (DB confirms); CLIX GPS real since 08-24. Cannot cryptographically distinguish founder-human from founder-credentialed session."},
+    "10_live_browser_acceptance": {"status": "BLOCKED", "evidence": "No ToolSearch in this session type -> mcp__claude-in-chrome__* unloadable. No session minting, no outbound HTTP. Fourth consecutive campaign blocked."},
+    "11_recommendation": {"status": "DEPLOY THE NARROWING, THEN DO PER-CLAIM GROUNDING", "evidence": "415-row differential: 21 real false positives removed, 0 real regressions, 0 real fabrications newly caught."}
+  },
+  "corpus_differential_415_rows": {"bothCorrect": 18, "onlyDeployedCorrects": 21, "onlyBranchCorrects": 0, "neither": 376, "rows_with_live_pendingAction": 75, "note": "all 21 onlyDeployedCorrects are TRUTHFUL replies = live false positives production commits today"},
+  "global_integrity": {"orphans_all": 0, "duplicate_company_names_active": 0, "active_task_under_archived_company": 1, "note": "was 2 in #62; decreased because the founder restored QA-SWARM-TEST-CO-VIA-CHAT. Known #61/D4.", "BASELINE_approval_358eddeb": "pending", "companies_active": 8, "companies_archived": 10},
+  "defects_found": [
+    {"id": "D10", "severity": "P2 test-quality, THIRD consecutive recurrence of the vacuous-assertion class", "status": "FIXED LIVE in qa/ (Sections DA1/E1), mutation-proven"},
+    {"id": "D11", "severity": "P1 latent", "status": "FIXED LIVE in qa/ (Section E2 shape lock), mutation-proven"},
+    {"id": "D12", "severity": "P2 test-quality", "status": "FIXED LIVE in qa/ (Sections F1/F2), mutation-proven"},
+    {"id": "D13", "severity": "P1 accuracy", "status": "OPEN - pinned by Section G; needs per-claim grounding"},
+    {"id": "D14", "severity": "process", "status": "REPORTED, not reverted - founder decision"}
+  ],
+  "regressions_added": ["qa/scenarios-runner/past_completion_gate_behavior.mjs Sections DA1, E1, E2, F1, F2, G1-G6 (24/24 -> 35/35)"],
+  "pending_db_pushes": [],
+  "prepared_fixes": [{"id": "606cfa8 D3 follow-up", "status": "FIX PREPARED - BLOCKED - FUNCTIONS DEPLOY (by instruction). Recommended for deploy."}],
+  "live_verified_fixes": [],
+  "known_failure_modes_entries_created": [63],
+  "synthetic_entities_created_by_this_campaign": {"none": "ZERO. No QA-VERIFY-* rows created; every DB interaction was a read-only SELECT. Nothing to clean up."},
+  "verdict": "PARTIALLY VERIFIED - FIX PREPARED, RECOMMENDED FOR DEPLOY, BUG-002 NOT CLOSED.",
+  "blocked_scenarios": ["Live HTTP/browser acceptance", "UI <-> DB truth checks", "verifier-driven fresh-channel AI <-> DB checks", "deploying 606cfa8 (by instruction)"]
+}

@@ -5437,3 +5437,301 @@ Sections DA1, E1, E2, F1, F2, G1–G6 (24/24 → **35/35**), every one mutation-
 
 **Hard constraints honoured:** no deploy; `git diff HEAD -- supabase/` = **0 lines**; no
 migrations; DB access read-only throughout; incident evidence untouched by me.
+
+
+## 64. Independent verification of the STRUCTURAL per-claim grounding commit (`pending/d3-past-completion-gate-pendingaction-shortcircuit` @ 82bc28a) — per-claim TYPING is real, per-claim GROUNDING is not, and the change is a NET REGRESSION against the live v92 build on real production data (CODE VERIFIED + INTEGRATION VERIFIED against the real 433-turn production corpus; LIVE HTTP/BROWSER ACCEPTANCE STILL BLOCKED — 2026-09-01)
+
+Independent verifier #4, fresh context, starting commit
+`82bc28a6d612ab4c7932d4e22cec5423f4724390`. The launch prompt was treated as a pointer, not
+as evidence. Campaign #63's evidence was **not** carried forward — its `base_commit` is
+`606cfa8`, a different commit, so every claim was re-derived at 82bc28a against the real
+extracted block, the real production corpus, and the real deployed bytes.
+
+**RECOMMENDATION UP FRONT: DO NOT DEPLOY 82bc28a AS WRITTEN.** It genuinely closes all six
+#63/D13 escapes and the #62 false-positive class, and D3/D5/D6/D7/D11/D12 are all really
+fixed. But measured against the same 433-row production corpus used to justify the previous
+deploy decision, it **removes 21 live false positives and introduces ~18 new ones**, and it
+**re-opens 12 fabrication-escape shapes that the currently-deployed v92 build catches**. The
+segmentation is fitted to the punctuation of the six test cases; change the joint and the
+D13 failure returns unchanged. **BUG-002 stays OPEN.**
+
+### Production state established first (CLAUDE.md §1)
+
+| | |
+|---|---|
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| Deployed `sem-ai-command` | **version 92, ACTIVE, `verify_jwt true`, `updated_at` 1788239725518 = 2026-09-01T05:15:25.518Z — UNCHANGED** |
+| Deployed bytes sha256 (downloaded, LF) | `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` — byte-identical to `git show c9dfab5:…/index.ts` |
+| Second, independent not-deployed proof | `grep -c claimAudit` on the **downloaded** source = **0**; `work_orders` rows carrying `output ? 'claimAudit'` = **0** |
+| Branch under test | `82bc28a`, working-tree `index.ts` (CRLF) sha256 `d270b01ddbd1efab9fd9909ef37b002a982c726f774aaef94bc140f2cabfc1e8` (LF `28c16ce196dee2e6ffab70b67c00c9c37b447cc48f68e627f52b140dce8db8e7`) — **NOT deployed**; restored byte-identical after **every** mutation below and re-verified by hash |
+| GitHub master | `607cdaa`; the pending branch has **never been pushed** (`git ls-remote --heads` returns nothing) |
+
+Deployed line 4241 still carries `&& !result.pendingAction` and has none of the later
+guards. **D3 is live in production right now.**
+
+### Item-by-item verdicts
+
+| # | Item | Verdict |
+|---|---|---|
+| 1 | Is per-claim grounding real, or a rebranded whole-summary gate? | **PARTIAL — typing/segmentation real, GROUNDING still whole-turn (D20)** |
+| 2 | D3 / D5 / D6 / D7 / D10 / D11 / D12 / D13 | **ALL CLOSED** — each reproduced and mutation-proven |
+| 3 | False positives on real production data | **FAIL — ~18 new FPs on real rows (D15)** |
+| 4 | Anaphora discriminator | **FAIL — launderable by one pronoun (D17); genuine reports destroyed without one** |
+| 5 | Mutation-test every guard in all six suites | **FAIL — two guards had ZERO coverage (D19), now closed** |
+| 6 | Section G / E1 inversions | **PASS — both correct, not red-tests-made-green** |
+| 7 | Persistence of corrected summary + `claimAudit` | **PASS — CODE VERIFIED, mutation-proven** |
+| 8 | Production still c9dfab5 / v92 | **PASS — LIVE VERIFIED by byte hash + zero `claimAudit`** |
+| 9 | Incident evidence untouched | **PASS — LIVE VERIFIED, read-only** |
+| 10 | Live browser acceptance | **BLOCKED — fifth consecutive campaign** |
+| 11 | Recommendation | **DO NOT DEPLOY AS WRITTEN; BUG-002 stays OPEN** |
+
+### 2 — every previously-open finding really is closed (each mutation-proven)
+
+`index.ts` was mutated, all suites run, then restored and hash-verified, 14 times.
+
+| Guard mutated | Detected by | Verdict |
+|---|---|---|
+| M1 `CLAIM_SPLIT_PATTERN` → sentences only | `mixed_claim_grounding`, `past_completion_gate_behavior` | covered |
+| M2 `turnHasRealExecutionEvidence` → `true` | 3 suites | covered |
+| M3 delete `FOLLOW_UP_QUESTION` classification | `mixed_claim_grounding` B2 | **the hole #63 flagged is genuinely closed** |
+| M4 disable `PRESENT_COMPLETION_PATTERN` | `mixed_claim_grounding` | covered |
+| M5 delete `MUTATION_FAILURE` (negation) branch | 2 suites | covered |
+| M6 drop survivors from the rebuilt reply | `mixed_claim_grounding` | covered |
+| M7 anaphora-anywhere → history-word-only | `past_completion_gate_behavior` G2 | covered |
+| M8 delete frame-carried anaphora branch | `past_completion_gate_behavior` | covered |
+| M9 delete `result.claimAudit = claimAudit` | `mixed_claim_grounding` G1–G3 | covered |
+| M12 hoist `historyFrameOpen` before classification | `past_completion_gate_behavior` | covered |
+| M13 drop the gate from the `work_orders` persist condition | `d3_…` suite | **D5 still non-vacuous** |
+| M14 emit `pendingPrompt` instead of `promptWithOptions` | `mixed_claim_grounding` F2 | **D7/D12 still covered** |
+| **M10 delete `CLAIM_VERIFICATION_STATE`** | **NOTHING — all six suites green** | **NEW: D19** |
+| **M11 delete `FUTURE_ACTION` classification** | **NOTHING — all six suites green** | **NEW: D19** |
+
+D3: the PAST gate no longer references `result.pendingAction` at all — behaviourally
+confirmed (fabrication + question + live `pendingAction` → corrected, question preserved).
+D11: the `lifecycleMismatchCorrections.length === 0` kill-switch is gone from the gate; its
+only surviving reference is the persist condition, which is correct. D13: all six escapes
+independently re-run through the real block and confirmed CORRECTED.
+
+### 6 — the two inversions are honest
+
+**Section G** (six D13 escapes, flipped from "STILL ESCAPES" to "is CORRECTED") is
+factually right: re-derived independently, all six are corrected by the real block, and the
+truthful neighbour survives. **Section E1** (D11 kill-switch) is right too: with the
+kill-switch deleted, passing a non-empty `lifecycleMismatchCorrections` provably changes
+nothing, which is exactly what the assertion now claims, and the new `E1b` gives the
+"corrector output is never overwritten" invariant its own coverage. Neither is a red test
+painted green.
+
+One weakening worth recording, not a defect on its own: `overwritten()` gained
+`|| r.past === true`. That makes positive assertions weaker (the flag alone now satisfies
+them, without the user-visible summary having changed) while making negative ones stricter.
+It did not manufacture any green in Section G — the correction marker alone suffices there.
+
+### 1 + D20 — the unit of GROUNDING is still the whole turn
+
+Segmentation and claim typing are genuinely per-claim. **Grounding is not.**
+`turnHasRealExecutionEvidence` is ONE boolean (`groundedOutcomeThisTurn || factLines.length > 0`)
+applied identically to every `MUTATION_SUCCESS` claim, and `groundedOutcomeThisTurn`
+**includes `hasResolvedEntities`** (line 4177). So the block's own comment — *"Entity
+resolution alone is never support — that is the BUG-002 invariant"* — and the commit
+message's *"MUTATION_SUCCESS fails CLOSED unless the turn produced real execution
+evidence"* are **not true of the code as written**.
+
+Proven, not argued: `run('gpt', 'The company was archived. The approval has been approved.', null, /*grounded*/ true)` →
+**not corrected**. The fabricated approval claim rides on the archive's grounding. This is
+precisely the limitation `index.ts` discloses at line 4226 ("a turn that both performs one
+real supported action AND falsely claims an unsupported one … needs a per-claim cross-check
+against `factLines`' own resource-by-resource evidence"). **82bc28a does not implement it.**
+It implements per-claim *typing* with whole-turn grounding. That is a real improvement over
+one regex, and it is not what the commit message says it is.
+
+### 3 + D15 — NEW FALSE-POSITIVE CLASS, measured on real production rows (P0)
+
+Differential execution of the **deployed v92 gate** vs the **82bc28a block** over all
+**433** production `work_orders.output.summary` rows (read-only; each row's real
+`pendingAction`, `resolvedEntities` and `executionEvidence` used as the grounding proxy):
+
+```
+bothCorrect=16   onlyDeployedCorrects=21   onlyBranchCorrects=20   neither=376
+```
+
+The `onlyDeployedCorrects=21` figure reproduces #63's measurement exactly — the branch does
+fix all 21 of those live false positives. But `onlyBranchCorrects` is **20**, not 0, and
+**at least 18 of the 20 are TRUTHFUL replies the branch destroys**. Root cause is
+`PRESENT_COMPLETION_PATTERN`: on an ungrounded (i.e. read-only) turn, ordinary status
+answers are typed `MUTATION_SUCCESS` and replaced with *"Nothing was actually changed — I
+can't execute that from chat"*, which is itself false.
+
+Real rows, verbatim, with the exact clause the branch deletes, and live DB state re-checked
+this session:
+
+| Row | Clause deleted | Truth |
+|---|---|---|
+| `659d0c02` | "but is archived (status: archived, effectivelyActive: false)." | `test3` = `archived` ✓ |
+| `05606524` | "test3 is archived (status: archived, effectivelyActive: false)." | ✓ |
+| `82ff58bb` | "but is archived." | ✓ |
+| `7207a195` | "but test4 company itself is archived so the employee is effectively inactive." | `test3 employee` `active=false` ✓ |
+| `dee9c313` | "their record shows active:false, and their employer company (test9) is archived." | `test9` = `archived`, `test8worker` `active=false` ✓ |
+| `f67f133b` | "QA-C002-CLASSB-TARGET is archived." | `QA-C002-RENAMED-X` = `archived` ✓ |
+| `dcdf9bad`, `5f9f00d1` | "test4 is archived (a QA fixture company)." | ✓ at the time |
+| `faf46074`, `f16e7626` | "The harmless factory verification work is complete and verified." | truthful Work-Order status read |
+| `b236b70c` | "- Enkh-Erdene (CTO) is assigned to SEM Global Robotics Technologies LLC" | truthful org read |
+| `5b0d858a` | the whole sentence, because it **quotes** channel names containing "QA-LIFECYCLE-BU is archived…" | truthful |
+| `f8e714e0` | "Once the restructuring and KPI work **are done**, you can roll out Brain OS…" | a **conditional future clause**, not a claim at all |
+| `c763bd89` | "but I asked for clarification on which company it should belong to (since QA-LIFECYCLE-BU **was archived** at that time)." | truthful explanation |
+| `658111fd`, `7b5f0fb7`, `baab68ca`, `0ea4d19f` | "One atomic task **is created**…", "A new project … **is created**…", "All tickets **are assigned** to…" | the turn's own task/project creation narrative |
+
+Only `79896fd5` ("QA-MULTI-TASK is now assigned to QA-MULTI-EMPLOYEE.", the real Bug 11
+incident) and arguably `3918b412` ("This restructuring is now complete.") are correct new
+catches — and Bug 11 is already closed by the `proposedPlan` override upstream.
+
+Synthetic minimal shapes confirm the class is general, not corpus-specific:
+`"3 of 5 tasks are completed."`, `"The task QA-TASK-1 is completed."`,
+`"The company CLIX GPS is archived."`, `"The approval is approved."` — **all destroyed**.
+These are the single most common thing Brain Chat is asked to say. Several of the affected
+production rows carried a live `pendingAction` and were exempt under v92's
+`!result.pendingAction` short-circuit; removing that short-circuit (correctly, for D3) is
+what widens this class onto clarification/disambiguation turns as well.
+
+**Why the FP survivors survive is incidental, which is the deeper problem.**
+`"test3 is active — a legal entity … No projects or tasks are assigned to it."` (`908a6aea`)
+and `"QA-LIFECYCLE-EMPLOYEE is assigned to QA-LIFECYCLE-BU, which is archived and no longer
+active."` (`e353218a`) survive only because an unrelated word ("No", "no longer") elsewhere
+in the same clause trips `NEGATION_PATTERN`. Truthfulness is being decided by accident.
+
+### D16 — the segmentation is corpus-fitted; 12 escape shapes v92 catches and 82bc28a does not (P1)
+
+`CLAIM_SPLIT_PATTERN` splits on exactly the punctuation present in the six Section G cases:
+`. `, ` — `, ` -- `, `; `, `, but|however|although|though`, ` but|however`. Semantically
+identical mixed claims with a different joint re-fuse, and `NEGATION_PATTERN` then exempts
+the fused whole — the identical #63/D13 failure, one delimiter away:
+
+| Shape (all: `pendingAction = null`, ungrounded) | v92 | 82bc28a |
+|---|---|---|
+| `The approval was not rejected, and it has been approved.` | CORRECTED | **ESCAPES** |
+| `The approval was not rejected – it has been approved.` (EN dash) | CORRECTED | **ESCAPES** |
+| `The approval was not rejected—it has been approved.` (tight em dash) | CORRECTED | **ESCAPES** |
+| `The approval was not rejected: it has been approved.` | CORRECTED | **ESCAPES** |
+| `The approval was not rejected\n- it has been approved` | CORRECTED | **ESCAPES** |
+| `No company matched that name so the company has been archived.` | CORRECTED | **ESCAPES** |
+| `I could not confirm the owner yet the employee was created.` | CORRECTED | **ESCAPES** |
+| `The status is not draft (the goal has been archived).` | CORRECTED | **ESCAPES** |
+| `The approval has been approved\n\nWould you like me to notify the team?` | CORRECTED | **ESCAPES** |
+| `Here is what I did:\n- The company has been archived\n- The task has been completed\nAnything else?` | CORRECTED | **ESCAPES** |
+| `The task has been completed, right?` | CORRECTED | **ESCAPES** |
+
+The last three are **#61/D3 itself, re-opened**: with no full stop before the question the
+whole reply is one claim, it ends in `?`, it is typed `FOLLOW_UP_QUESTION`, and the
+fabrication is laundered intact. Bullet lists and un-punctuated line breaks are ordinary LLM
+output, not adversarial constructions.
+
+### D17 — the anaphora discriminator is launderable by one pronoun, and destroys reports without one (P1)
+
+The commit's own worked example is correct: `Per the conversation history, the company has
+been archived.` is caught, because its subject is concrete. **Pronominalise it and the same
+fabrication is typed `PRIOR_TURN_REPORT` and kept:**
+
+| Shape | v92 | 82bc28a |
+|---|---|---|
+| `Looking at the conversation history, it has been approved.` | CORRECTED | **ESCAPES** |
+| `Per the conversation history, they have been archived.` | CORRECTED | **ESCAPES** |
+| `Per the conversation history, the company has been archived.` (control) | CORRECTED | CORRECTED |
+
+`HISTORY_FRAME_PATTERN && ANAPHORIC_ANYWHERE_PATTERN` is a two-keyword test, not a
+structural one; "it"/"they" is the cheapest token an LLM emits. And the mirror failure is
+real too: `In the prior turn the company was archived.` and `The conversation history shows
+QA-CO was archived earlier today.` — both genuine reports — are **destroyed** for lacking a
+pronoun (true on v92 as well, so not a regression, but still a live false positive).
+
+### 5 + D19 — FOURTH consecutive vacuous-coverage defect (P2 test quality)
+
+The class is now #61/D2 → #62/D5 → #63/D10 → here. Two guards had **zero** coverage:
+
+* **`CLAIM_VERIFICATION_STATE`** — deleting it left all six suites green. Nearly dead code
+  (every corrector string Brain OS emits segments into clauses that fall through to `OTHER`
+  or `MUTATION_FAILURE`), but not fully: `NEGATION_PATTERN` lists only **straight-apostrophe**
+  contractions, so a single-clause hedge written with the **curly** apostrophe Brain OS
+  actually uses — `Couldn’t confirm that the company has been archived.` — reaches
+  `MUTATION_SUCCESS` without it and a truthful hedge is destroyed.
+* **`FUTURE_ACTION`** — deleting it left all six suites green while genuinely changing
+  behaviour: `I will archive it once it has been approved.` (with a live `pendingAction`)
+  becomes `MUTATION_SUCCESS` and a truthful proposal is destroyed.
+
+The nominal `FUTURE_ACTION` test, `mixed_claim_grounding` **E6**, was itself vacuous:
+`!saysNothingChanged(r) || has(r, 'the company is active')` — a disjunction whose second
+half is true whenever survivors are re-emitted — and neither of its two claims matches any
+completion pattern, so it never reached the branch it names. **Both holes are now closed and
+mutation-proven** (see regression tests below).
+
+### 7 — persistence is correct
+
+`result.claimAudit` is attached inside the correction branch; `work_orders.output` is
+written as the whole `result` **after** the correction; and the persist guard names
+`claimsPastCompletionWithNoGrounding`. Mutation M13 (dropping that term) turns the `d3_…`
+suite red, so the #35 class is genuinely guarded. `web/lib/data/chat-history.ts` reads only
+`output.summary`, so the extra `claimAudit` key is inert on the read path. **CODE VERIFIED**
+— it cannot be LIVE VERIFIED because the branch is not deployed and must not be.
+
+### 9 — incident evidence, verified read-only, unchanged
+
+`QA-SWARM-TEST-CO-VIA-CHAT` (`7ba01ff2…`) = **`active`**, `updated_at`
+2026-09-01 06:50:55.540698+00 — **bit-identical to what #63 recorded**, i.e. untouched since
+the Work-PC C002 restore. Approval `358eddeb-c6ac-4a85-ab26-77dc3960fcba` = **`pending`,
+`decided_at NULL`**. Not re-archived, not touched. This campaign performed **zero writes**:
+every DB interaction was a `SELECT`.
+
+Global integrity, re-derived: `companies_active` 8, `companies_archived` 10, orphan
+task→company 0, orphan person→company 0, duplicate active company names 0,
+`work_orders` carrying `claimAudit` 0. `active_task_under_archived_company` = **1** and
+`active_person_under_archived_company` = **3** (`QA-VERIFY-EMPLOYEE` under `QA-VERIFY-BU`;
+`QA-LIFECYCLE-EMPLOYEE` and `QA-LIFECYCLE-EMPLOYEE2` under `QA-LIFECYCLE-BU`) — all
+pre-existing QA fixtures from earlier campaigns, the known #61/D4 + #55/BUG-001 class, not
+created or altered here.
+
+### 10 — LIVE BROWSER ACCEPTANCE STILL BLOCKED
+
+No `ToolSearch` tool exists in this session type, so `mcp__claude-in-chrome__*` cannot be
+loaded; there is no session-minting or outbound-HTTP path either. **Fifth consecutive
+campaign in which no assertion about the real browser, the real chat UI, or real live AI
+behaviour could be made.** Nothing in this entry is LIVE VERIFIED except the deployed bytes,
+the Edge Function version, and read-only database state.
+
+### Regression tests added
+
+* **NEW `qa/scenarios-runner/claim_segmentation_and_present_tense_fp.mjs`** (29/29 on the
+  per-claim build, 26/26 on the deployed v92 build). Executes the **real** extracted block
+  and is **build-aware**, so it is green against both generations and turns red the moment
+  either one's behaviour changes. Sections **H/H2** (11 segmentation + question-fusion
+  escapes), **J** (pronoun laundering), **K** (genuine reports destroyed), **I** (six
+  verbatim production rows + three synthetic shapes of the present-tense FP), **L**
+  (whole-turn grounding), **M** (first `FUTURE_ACTION` coverage), **N** (first
+  `CLAIM_VERIFICATION_STATE` coverage). Sections H/H2/I/J are **pinned in the
+  currently-broken direction on purpose**, with instructions to INVERT rather than delete.
+  Non-vacuity mutation-proven against M1/M2/M4/M7/M10/M11.
+* **`qa/scenarios-runner/mixed_claim_grounding.mjs`**: E6 de-vacuumed and split into
+  `E6`/`E6b` (42/42 → **43/43**); `E6b` is what now catches M11.
+
+### What a correct fix looks like (unchanged from #63, plus what 82bc28a taught)
+
+1. Ground **per claim against `factLines`' own per-resource evidence**, not against one
+   whole-turn boolean, and drop `hasResolvedEntities` from what counts as execution
+   evidence. Until that lands, per-claim typing on top of whole-turn grounding cannot close
+   BUG-002.
+2. Segment on **clause structure**, not a punctuation list. Any joint list will be fitted to
+   whatever cases are in the suite that day — that is D16, and it is the same
+   corpus-overfitting failure in a new costume.
+3. `PRESENT_COMPLETION_PATTERN` must not fire on a **read-only** turn at all. A status answer
+   and an execution claim are different speech acts; tense does not distinguish them.
+4. Attribution needs a real referent (does the named entity/operation appear in this turn's
+   own evidence or in the prior turn's persisted `resolvedEntities`?), not a pronoun.
+
+### Status
+
+**BUG-002 — STRUCTURAL FIX PREPARED, INDEPENDENT VERIFICATION REQUIRED.** Verification
+performed; the answer is **do not deploy as written**. BUG-002 is **NOT** closed and cannot
+be closed without a deploy plus Work-PC live Playwright acceptance.
+
+**Hard constraints honoured:** no deploy; no migration; no `db push`; DB access read-only
+throughout (zero writes); `git diff HEAD -- supabase/` = **0 lines** at close and
+`index.ts` sha256 `d270b01d…` re-verified after all 14 mutations; the pending branch was
+**not pushed** (it contains `supabase/functions/**`); incident evidence untouched.

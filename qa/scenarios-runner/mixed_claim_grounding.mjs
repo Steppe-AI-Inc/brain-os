@@ -216,10 +216,23 @@ for (const m of ['deterministic-confirmation', 'deterministic-plan-execution', '
   check('E5 state+mutation+question: question survives', has(r, 'shall i continue'));
 }
 {
-  // current state + future action — a proposal is not an execution claim
+  // current state + future action — a proposal is not an execution claim.
+  //
+  // STRENGTHENED 2026-09-01 by independent verifier #4 (qa/KNOWN_FAILURE_MODES.md #64/D19).
+  // The original assertion was "!saysNothingChanged(r) || has(r, 'the company is active')"
+  // — a disjunction whose second half is true whenever survivors are re-emitted, so it
+  // could not fail. Worse, neither of its two claims matches ANY completion pattern, so it
+  // never reached the FUTURE_ACTION branch it names. Mutation-proven: deleting
+  // "if (FUTURE_PROMISE_PATTERN.test(c)) return 'FUTURE_ACTION';" from index.ts left ALL SIX
+  // suites green. This is the fourth recurrence of the vacuous-assertion class
+  // (#61/D2 -> #62/D5 -> #63/D10 -> here), so it is fixed with a real input, not a reworded
+  // one: E6b's proposal MENTIONS a past condition, which is what forces the guard to matter.
   const r = run('gpt', 'The company is active. I’ll archive it next.', null, false);
-  check('E6 future proposal is not an execution claim', !saysNothingChanged(r) || has(r, 'the company is active'),
-    'A FUTURE_ACTION claim must not be treated as a past execution claim.');
+  check('E6 state claim + plain proposal is untouched', !r.corrected,
+    'A FUTURE_ACTION claim must not be treated as a past execution claim. Got: ' + JSON.stringify(String(r.summary || '').slice(0, 200)));
+  const r2 = run('gpt', 'I will archive it once it has been approved.', { kind: 'bulk_confirmation', summary: 'Archive 1 company?' }, false);
+  check('E6b FUTURE_ACTION guard: a proposal that mentions a past condition is not an execution claim', !r2.corrected,
+    'Without the FUTURE_ACTION classification this is typed MUTATION_SUCCESS and a truthful proposal is destroyed. Got: ' + JSON.stringify(String(r2.summary || '').slice(0, 200)));
 }
 {
   // all false
