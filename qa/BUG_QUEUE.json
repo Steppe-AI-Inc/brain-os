@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T06:13:13Z",
+  "last_updated": "2026-09-01T06:50:48Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
-    "open_p2": 0,
+    "open_p2": 1,
     "open_p3": 0,
-    "total_open": 2,
+    "total_open": 3,
     "total_closed": 4
   },
   "bugs": [
@@ -172,7 +172,18 @@
       "what_the_fix_does_NOT_close": "D3 bypass CONFIRMED LIVE, exactly as the independent verifier predicted (KNOWN_FAILURE_MODES #61 / D3). claimsPastCompletionWithNoGrounding is short-circuited by the condition [ && !result.pendingAction ], so a fabricated completion claim PAIRED WITH a follow-up question sails straight through. Reproduced on both paths: \"Done. Project renamed to QA-C002-D3. What would you like to rename next?\" and \"Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST deleted. ... Would you like me to create a task...\". DB verified untouched: project title and updated_at still 2026-08-24, department row still present, zero projects named QA-C002-D3.",
       "work_pc_severity_note": "The bypass is not an exotic edge case - it is arguably the COMMON case. Conversational assistants naturally end turns with a follow-up question, so the phrasing that defeats the gate is the phrasing the product most often produces. The fix protects the rarer bare-claim form and misses the more natural one. Severity stays P1.",
       "per_verifier_instruction": "Logged as known evidence under BUG-002 rather than filed as a fresh bug, per the verifier D3 note. No duplicate bug id created.",
-      "d3_short_circuit_condition": "&& !result.pendingAction"
+      "d3_short_circuit_condition": "&& !result.pendingAction",
+      "d3_handoff_priority": "IMMEDIATE - P1 REOPENED",
+      "d3_expanded_phrasing_matrix": [
+        "Done. X. Anything else?",
+        "Completed. X. What next?",
+        "X has been changed. Would you like me to...",
+        "Sure - done. Do you also want...",
+        "Finished. X. Shall I..."
+      ],
+      "d3_required_fix_shape": "The guard must reason STRUCTURALLY about whether any operation actually executed, not about the shape or ending of the response text. Any form of 'claim + trailing question' currently defeats it because the short-circuit keys off result.pendingAction being present rather than off executed-operation count. A response-form heuristic will always be defeatable by rephrasing; an executed-operations check cannot be.",
+      "d3_why_not_edge_case": "Conversational assistants routinely end a turn with a follow-up question, so the phrasing that defeats the gate is the phrasing the product most naturally produces. The fix currently protects the rarer bare-claim form and misses the common one.",
+      "regression_path_expanded": "qa/scenarios-runner/bug002_completion_claim_phrasing_matrix.md"
     },
     {
       "bug_id": "BUG-003",
@@ -389,6 +400,33 @@
       "closed_at": "2026-09-01T06:07:22Z",
       "closure_evidence": "Work PC independently re-ran is_investor_viewer_of_anon_grant_fix.sql against production: grant_is_live_in_production=true, rls_helper_callable_by_anon_and_returns_false=true, zero_protected_rows_exposed=true, anon_investor_helper_grant_does_not_expose_investor_data=true, and all five tables (companies/goals/financial_reports/documents/memories) query without crashing for anon.",
       "_qa_boundary": "QA did not implement this fix."
+    },
+    {
+      "bug_id": "BUG-006",
+      "title": "ARCHIVED_PARENT_NOT_SURFACED class remainder - 23 company joins still omit companies.status",
+      "severity": "P2",
+      "status": "OPEN",
+      "_relationship_to_bug_001": "BUG-001 covered the two originally-reported manifestations (/departments, /people), both now VERIFIED FIXED and CLOSED. This entry carries the CLASS so closing those two surfaces cannot be mistaken for closing the failure class. Split per founder instruction option B.",
+      "campaign_id": "C002",
+      "discovered_by": "fable-qa-director:C002 source audit",
+      "discovered_at": "2026-09-01T06:50:48Z",
+      "environment": "production",
+      "commit_audited": "origin/master 607cdaa",
+      "evidence": "git grep on origin/master finds 23 remaining bare companies(name) selects in web/lib/data/ with no status column. Confirmed unfixed by name: tasks.ts (line 13) and goals.ts (lines 9 and 33). Only departments.ts:17 and people.ts:33 carry companies(name, status).",
+      "verified_fixed_surfaces": [
+        "web/lib/data/departments.ts",
+        "web/lib/data/people.ts"
+      ],
+      "unfixed_surface_count": 23,
+      "named_unfixed_surfaces": [
+        "web/lib/data/tasks.ts",
+        "web/lib/data/goals.ts"
+      ],
+      "live_blast_radius": "Home PC reported 2 real tasks and 1 real goal currently attached to archived companies with no archived indication. Those specific surfaces are among the unfixed 23.",
+      "home_pc_tracking": "Canonical Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0",
+      "false_positive_warning": "A naive /archiv/i page-text check matches on /tasks and /goals because those pages carry an 'Archived' NAV LINK, not a badge. Any future retest must settle this from source or from a badge-specific selector, never from page text.",
+      "implementation_recommendation": "Apply the same companies(name, status) + shared ArchivedCompanyBadge pattern already proven on departments/people across the remaining joins. The shared component already exists at web/components/archived-company-badge.tsx.",
+      "_qa_boundary": "QA does not implement fixes."
     }
   ]
 }

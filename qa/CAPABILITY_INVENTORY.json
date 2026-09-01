@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T06:13:13Z",
+  "generated_at": "2026-09-01T06:50:48Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1537,12 +1537,12 @@
         "RELATIONSHIP"
       ],
       "status": "FAIL",
-      "bug_id": "BUG-001",
+      "bug_id": "BUG-006",
       "tested_against_sha": "origin/master 607cdaa",
       "scenario_ids": [
         "C002-p2-retest"
       ],
-      "evidence": "23 bare companies(name) selects remain in web/lib/data/ on master, including tasks.ts and goals.ts. Only departments.ts and people.ts were fixed. Tracked by the Home PC as Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0. Recorded as its own FAILING capability so closing BUG-001 cannot be misread as closing the class."
+      "evidence": "23 bare companies(name) selects remain on origin/master 607cdaa, including tasks.ts and goals.ts. Reassigned from BUG-001 to the dedicated class-level defect BUG-006 so the fixed surfaces (departments, people) and the unfixed class surfaces are accounted separately in the ledger."
     }
   ]
 }
