@@ -374,3 +374,56 @@ Bug closure authority remains exclusively Work-PC's. Main-PC has not set any sta
 - **Manager set-UI** — does not exist.
 
 Both Edge Function fixes (BUG-002 + Issue #5 Class B) are queued behind a single `ALLOW_FUNCTIONS_DEPLOY=1` authorization and will ship together.
+
+---
+
+## ADDENDUM 2026-09-01 (overnight) — two Main-PC commits after this handoff was cut
+
+Both are web + qa only. **No migration, no Edge Function change, no deploy** — production
+Vercel picks them up on its next deployment; until Work-PC confirms the deployed site
+serves them, their status is `DEPLOYED — QA RETEST REQUIRED` at most, never LIVE VERIFIED.
+
+### A. `af6a4f4` — BUG-006 (archived-ancestry remainder): `FIX PREPARED — QA RETEST REQUIRED`
+
+Supersedes the "3 of ~24 surfaces / Sweep remaining 18" row in section 17 and the
+"BUG-001's remaining ~18 surfaces — not fixed" line in section 18:
+
+- All 24 `companies(name)` joins across `web/lib/data/*.ts` now select
+  `companies(name, status)` — including the named-FK form
+  `companies!documents_company_id_fkey(...)` in `documents.ts` that a literal sweep
+  missed and the new drift guard caught.
+- Canonical module `web/lib/data/company-ref.ts` (COMPANY_REF / companyRefVia /
+  CompanyRef / isArchivedParent — only `status === 'archived'` counts).
+- Projects, Goals, Tasks now RENDER the shared `ArchivedCompanyBadge` (the three
+  surfaces where the live blast-radius check found 2 tasks + 1 goal attached to
+  archived companies with no indication). Departments/People were already closed by
+  Work-PC as BUG-001.
+- Drift guard `qa/scenarios-runner/company_ref_no_bare_name_join.mjs` (8/8,
+  mutation-proven): fails on any reintroduced bare join, on a named surface fetching
+  status without rendering the badge, and on a badge fed a literal instead of a real
+  `.status` expression.
+
+**Work-PC retest ask**: archive a company with attached projects/goals/tasks → the
+attached rows must show the "Archived" badge on /projects, /goals, /tasks (and still on
+/departments, /people). Surfaces beyond those five now carry status in their queries but
+do not render a badge yet — finding missing badges there is expected and should be filed
+as scope for a follow-up, not as a regression of this fix.
+
+### B. `43d51f5` — Multi-org: org selector scopes all ten remaining business surfaces: `FIX PREPARED — QA RETEST REQUIRED`
+
+Supersedes "Organization selector — Complete (8 surfaces)" in section 17: Approvals,
+Departments, Engineering, Finance, Integrations, Inventory, Products, Proposals, Sales,
+Software now compute the same server-side `scopeToActiveOrg` the original surfaces use
+and filter their company-scoped queries by it (11 readers across 9 `lib/data` modules;
+query-shape filter only — RLS remains the sole authorization boundary).
+
+Deliberately NOT scoped (do not file as gaps): single-record-by-id readers, identity
+readers, company pickers, chat (issue #5 owns it), factory-internal pages.
+
+Drift guard `qa/scenarios-runner/org_selector_scoping_coverage.mjs` (5/5, 19 surfaces,
+mutation-proven in three layers: page must pass the scope, reader must apply it,
+"All organizations" must stay unscoped).
+
+**Work-PC retest ask**: as the multi-membership founder persona, switch active org and
+confirm each of the ten pages narrows server-side (view-source/network, not just DOM
+filtering); switch to "All organizations" and confirm the full portfolio returns.
