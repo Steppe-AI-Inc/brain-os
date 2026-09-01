@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T07:01:29Z",
+  "generated_at": "2026-09-01T07:15:32Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1666,6 +1666,151 @@
         "C002-channel-state-layer-probe"
       ],
       "evidence": "0 of 51 persisted pendingAction objects carry an actionType, across 37 channels / 53 turns in 2 days. kind is present in 28 of 51. No channel has exceeded the limit(8) retrieval window (longest 7), so windowing is excluded as a cause. This is the structural root of the issue #5 confirmation defects."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-testG"
+      ],
+      "capability_id": "CAP-ISSUE5-G-PENDING-SURVIVES-NAVIGATION",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "pending_survives_navigation_away_and_back",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "RELOAD"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-005",
+      "evidence": "Created a clarification for QA-G1B-EMP in channel b462c165, navigated to /companies then /dashboard, returned to the SAME resolved channel URL, and sent a bare 'yes'. Brain re-asked the SAME question about the SAME employee ('I need to know which company QA-G1B-EMP should join'). Context survived the round trip and the target never switched."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-testG"
+      ],
+      "capability_id": "CAP-ISSUE5-G-PENDING-SURVIVES-HARD-RELOAD",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "pending_survives_hard_reload",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "RELOAD"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-005",
+      "evidence": "Created a clarification for QA-G2-EMP in channel 4a89ca89, performed a hard page reload, then sent a bare 'yes'. Brain re-surfaced the same clarification for the same employee rather than binding the confirmation to anything else. No target or action switching across reload."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-testG"
+      ],
+      "capability_id": "CAP-ISSUE5-G-NO-TARGET-SWITCH-ON-RESUME",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "no_action_or_target_switch_after_interruption",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-005",
+      "evidence": "Across both navigation and reload resumes, the confirmation never mutated into a different action - the founder's stated requirement ('state must remain coherent or expire explicitly; never switch target/action') is met on this path. Notably this NARROWS the issue #5 diagnosis: conversational context does survive navigation and reload. What fails is binding a confirmation to it, consistent with the measured 0-of-51 missing actionType."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-testG"
+      ],
+      "capability_id": "CAP-ISSUE5-G-RESUME-COMPLETES-ACTION",
+      "domain": "brain-chat",
+      "resource": "person",
+      "operation": "resumed_clarification_completes",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Safe but non-functional: on resume the clarification is re-asked indefinitely rather than completing. Same dead-loop already recorded for the assign flow - the pending action carries no actionType, so it can never be confirmed. Recorded separately from the three PASS rows above so the safety result is not confused with a working feature."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-50turn"
+      ],
+      "capability_id": "CAP-CONTEXT-SHOWN-TOTAL-PAIR-COMPLETE",
+      "domain": "brain-chat",
+      "resource": "context",
+      "operation": "every_collection_ships_shown_and_total",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "AGGREGATION"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-007",
+      "evidence": "companies, people, projects, goals and inventory ship Total with no Shown (index.ts 2037-2047), so the system prompt's shown<total truncation rule cannot fire for them. Live consequence: Brain reported 12 companies (the window size) when 20 exist, and named 3 archived of 10."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-50turn"
+      ],
+      "capability_id": "CAP-CHAT-TASK-COUNT-TRUNCATION-HONEST",
+      "domain": "brain-chat",
+      "resource": "context",
+      "operation": "task_counts_report_shown_vs_total",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "AGGREGATION"
+      ],
+      "status": "PASS",
+      "evidence": "Control case, same conversation: '27 active tasks total (15 shown here)' - correct, and tasks is one of the entities that ships the Shown/Total pair. Recorded separately so BUG-007 is not misread as 'the model ignores truncation'."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-50turn"
+      ],
+      "capability_id": "CAP-CHAT-PEOPLE-COUNT-ACCURATE",
+      "domain": "brain-chat",
+      "resource": "people",
+      "operation": "people_count_matches_db",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "AGGREGATION"
+      ],
+      "status": "PASS",
+      "evidence": "Brain said '16 people total in the workspace'; DB people_total = 16. Exact match. Noted because people is one of the five types missing a Shown field - it happens to be correct here only because the real total is below the .limit(30) window, so the defect is latent for people rather than absent."
     }
   ]
 }

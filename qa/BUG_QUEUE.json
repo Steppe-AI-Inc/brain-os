@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T07:01:29Z",
+  "last_updated": "2026-09-01T07:15:32Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
-    "open_p2": 1,
+    "open_p2": 2,
     "open_p3": 0,
-    "total_open": 3,
+    "total_open": 4,
     "total_closed": 4
   },
   "bugs": [
@@ -405,6 +405,11 @@
         "why_this_matters": "It rules out the two explanations that would otherwise be reached for first - 'the history window is too small' and 'the model forgot'. Neither is supported. The pending-action record is written without the one field needed to bind a confirmation, in every channel, every time.",
         "extends_home_pc_finding": "The Home PC identified actionType as unrepresentable for ASSIGN specifically (typed archive|restore|null). The measurement is broader: actionType is absent for ALL 51 pending actions, not only assigns. kind IS populated in 28 of 51, so the structure partially exists - it is specifically the action type that never survives.",
         "home_pc_next_step": "Fixing the retrieval window or adding compaction would NOT address this. The pendingAction persistence shape is the thing to change."
+      },
+      "test_G_reload_navigation": {
+        "verdict": "PASS on the safety axis, FAIL on completion",
+        "detail": "Pending clarifications survive both navigating away/back and a hard reload, re-asking the SAME question about the SAME entity. No target or action switching. This is a meaningful narrowing of the diagnosis: context survives; binding does not.",
+        "invalid_first_attempt_disclosed": "The first G1 run was INVALID and is not counted: the channel URL was captured before it resolved from ?new=1 to a real channel id, so 'returning' actually opened a fresh channel. Re-run with a URL-resolution wait before trusting it. Recorded so the discarded attempt is not silently dropped."
       }
     },
     {
@@ -453,6 +458,41 @@
       "false_positive_warning": "A naive /archiv/i page-text check matches on /tasks and /goals because those pages carry an 'Archived' NAV LINK, not a badge. Any future retest must settle this from source or from a badge-specific selector, never from page text.",
       "implementation_recommendation": "Apply the same companies(name, status) + shared ArchivedCompanyBadge pattern already proven on departments/people across the remaining joins. The shared component already exists at web/components/archived-company-badge.tsx.",
       "_qa_boundary": "QA does not implement fixes."
+    },
+    {
+      "bug_id": "BUG-007",
+      "title": "Brain reports the context WINDOW as the TOTAL for 5 entity types (said 12 companies, real total 20; named 3 archived of 10)",
+      "severity": "P2",
+      "status": "REGRESSION_CREATED",
+      "ai_truth_classification": "Truncation presented as complete data (CLAUDE.md 6 and 26)",
+      "discovered_by": "fable-qa-director:C002 50-turn suite",
+      "discovered_at": "2026-09-01T07:15:32Z",
+      "campaign_id": "C002",
+      "commit_tested": "sem-ai-command v92",
+      "environment": "production",
+      "resources": [
+        "companies",
+        "people",
+        "projects",
+        "goals",
+        "inventory_items",
+        "sem-ai-command"
+      ],
+      "persona": "founder",
+      "expected": "Counting questions return the true total, or explicitly state 'N of M shown'.",
+      "actual": "Said '12 companies (9 active, 3 archived)' and named 3 archived; DB had 20 companies, 10 active, 10 archived. 12 is exactly the companies context window size (.limit(12)).",
+      "hypothesis_disproved": "My first hypothesis - 'companies has no count aggregate' - is WRONG and is recorded because it is the natural guess. Line 2013 DOES issue count:'exact' for companies. The defect is one level up, in how the pack is assembled.",
+      "root_cause_evidence": "index.ts lines 2037-2047: tasks, approvals, salesLeads, channels, departments and documents each ship a Shown/Total PAIR, but companies, people, projects, goals and inventory ship a Total with NO Shown counterpart. The system prompt's truncation rule (~line 594) is written as a comparison between the pair ('If tasksShown < tasksTotal ...'), so for those five types the model has no field to compare and the rule cannot fire.",
+      "corroborating_control": "In the SAME conversation, tasks - which do have the pair - were reported correctly: '27 active tasks total (15 shown here)'. So the model honours the truncation rule precisely where the data supports it and cannot where it does not. That contrast is the strongest evidence the gap is structural, not behavioural.",
+      "known_class_recurrence": "Same class as the historical 'AI says 20 approvals when DB contains 75' incident in qa/KNOWN_FAILURE_MODES.md. The fix then introduced the Shown/Total pattern but only for some entities; this is that class surviving in the five types it never covered.",
+      "blast_radius": "Read-only misinformation, no data or security impact. A founder asking a counting question about companies/people/projects/goals/inventory can get a number silently capped at the window size. P2 - easy cross-check in the UI, no state divergence, no false completion claim.",
+      "implementation_recommendation": "Add the missing ...Shown fields for companies, people, projects, goals and inventory. Better: have the pack builder emit the pair STRUCTURALLY for every collection so a future entity cannot be added with a Total and no Shown - the current asymmetry is exactly what a hand-maintained per-entity list produces over time. The system-prompt rule should then fire unmodified.",
+      "regression_path": "qa/scenarios-runner/context_pack_shown_total_pairs.md",
+      "regression_state": "EXPECTED_FAIL",
+      "evidence_paths": [
+        "qa/bugs/BUG-007.md"
+      ],
+      "_qa_boundary": "QA did not implement the fix."
     }
   ]
 }
