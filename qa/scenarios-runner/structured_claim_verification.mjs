@@ -36,11 +36,18 @@ function extractStructuredBlock(source) {
 
 const slice = extractStructuredBlock(src);
 const fn = new Function(
-  'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan',
+  'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno', 'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
   slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
-const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false }) =>
-  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false);
+// The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
+// the PRODUCTION default (debug OFF) rather than whatever the host happens to have set.
+const DENO_STUB = { env: { get: () => undefined } };
+// The four lifecycle name maps live far earlier in index.ts, outside the extracted window,
+// so the harness supplies them. They are the 'last known safe label' source that lets a
+// resource this turn archived still be named instead of falling back to a typed reference.
+const mk = (o) => new Map(Object.entries(o || {}));
+const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {} }) =>
+  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal));
 
 let pass = 0;
 const failures = [];
@@ -151,16 +158,22 @@ check('B5 a state claim about a resource mutated this turn is UNKNOWN, not judge
     context: { approvals: [{ id: A, status: 'pending' }] },
     questions: ['Would you like me to notify the team?'],
   });
-  check('D1 supported approval state is retained', supportedCount(r) === 1 && new RegExp(A).test(r.summary));
+  // UPDATED (#66/D46): identity is now conveyed by a safe LABEL, never a raw uuid.
+  check('D1 supported approval state is retained (identified safely, no uuid)',
+    supportedCount(r) === 1 && /the approval|status is pending/i.test(r.summary) && !/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(r.summary));
   check('D2 unsupported rename is rejected', r.envelope.rejectedClaims.length === 1);
   check('D3 the rename is NOT rendered as success', !/rename confirmed/i.test(r.summary));
   check('D4 the question still survives', /notify the team/.test(r.summary));
 }
 {
-  // one真 + one false on the SAME resource type, different ids
-  const r = run({ claims: [mut('company', A, 'archive'), mut('company', B, 'archive')], evidence: [ev('company', 'archive', A)] });
+  // one true + one false on the SAME resource type, different ids
+  const r = run({ claims: [mut('company', A, 'archive'), mut('company', B, 'archive')], evidence: [ev('company', 'archive', A)],
+    labels: { company: { [A]: 'ACME Corp', [B]: 'Globex Ltd' } } });
   check('D5 same-type mixed ids: only the evidenced id is supported', supportedCount(r) === 1 && r.envelope.rejectedClaims.length === 1);
-  check('D6 the rejected id is named in the correction', new RegExp(B).test(r.summary));
+  // UPDATED (#66/D46): the rejected resource must still be identifiable to the founder, but
+  // by its safe LABEL — never by leaking either raw uuid.
+  check('D6 the rejected resource is named by label, not uuid',
+    /Globex Ltd/.test(r.summary) && !new RegExp(B).test(r.summary) && !new RegExp(A).test(r.summary));
 }
 
 // =======================================================================================
@@ -226,6 +239,29 @@ for (const summary of [
 check('G structured claims SUPPRESS the legacy prose path entirely',
   run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' }).corrected === false,
   'Once structured claims verify, prose must not be re-parsed as authority (#65 item 8).');
+
+// =======================================================================================
+// SECTION H - FOUNDER-FACING RESOURCE REFERENCES. Treated as a correctness/privacy
+// defect (#66/D46), not cosmetic: internal UUIDs mean nothing to the founder and leak
+// internal identifiers into text that may be read, forwarded or persisted.
+// =======================================================================================
+check('H1 FOUNDER_RESPONSE_NEVER_LEAKS_RAW_RESOURCE_UUID (entity absent from every label source)',
+  !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(run({ claims: [mut('company', A, 'archive')], evidence: [], summary: 'I archived ACME.' }).summary),
+  'A raw canonical UUID must never appear in founder-facing prose.');
+check('H2 MISSING_ENTITY_LABEL_USES_SAFE_TYPED_FALLBACK',
+  /the company/i.test(run({ claims: [mut('company', A, 'archive')], evidence: [], summary: 'x' }).summary),
+  'With no resolvable label the reply must say "the company", not an id and not a guess.');
+check('H3 HISTORICAL_ENTITY_CAN_USE_LAST_KNOWN_SAFE_LABEL (canonical read has it)',
+  /ACME Corp/.test(run({ claims: [mut('company', A, 'archive')], evidence: [], context: { companies: [{ id: A, name: 'ACME Corp' }] }, summary: 'x' }).summary),
+  'A known label must be used in preference to a typed fallback.');
+check('H4 UNKNOWN_RESOURCE_NAME_IS_NOT_INVENTED',
+  (() => { const s = run({ claims: [mut('project', B, 'rename')], evidence: [], summary: 'x' }).summary; return /the project/i.test(s) && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(s); })(),
+  'No name exists, so the reply must fall back to a neutral typed reference and invent nothing.');
+check('H5 DEBUG_ONLY_UUID_OUTPUT_REQUIRES_EXPLICIT_AUTHORIZED_MODE',
+  src.includes("Deno.env.get('SEM_AI_DEBUG_RESOURCE_IDS')") && src.includes('DEBUG_RESOURCE_IDS ?'),
+  'Ids may only ever be emitted behind an explicit, deliberately-set developer flag - never something a caller or the model can influence.');
+check('H6 a SUPPORTED claim is also rendered without a raw uuid',
+  !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, name: 'ACME Corp' }] }, summary: 'x' }).summary));
 
 console.log('\nstructured_claim_verification: ' + pass + '/' + (pass + failures.length) + ' passed');
 if (failures.length) {

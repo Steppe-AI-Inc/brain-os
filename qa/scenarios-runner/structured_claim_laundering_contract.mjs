@@ -78,11 +78,18 @@ if (/\btype\s+\w+\s*=/.test(slice) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.
   throw new Error('TypeScript survived stripping — fix _gate_extract.mjs rather than letting this pass');
 }
 const fn = new Function(
-  'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan',
+  'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno', 'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
   slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
-const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false }) =>
-  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false);
+// The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
+// the PRODUCTION default (debug OFF) rather than whatever the host happens to have set.
+const DENO_STUB = { env: { get: () => undefined } };
+// The four lifecycle name maps live far earlier in index.ts, outside the extracted window,
+// so the harness supplies them. They are the 'last known safe label' source that lets a
+// resource this turn archived still be named instead of falling back to a typed reference.
+const mk = (o) => new Map(Object.entries(o || {}));
+const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {} }) =>
+  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal));
 
 const A = '11111111-1111-1111-1111-111111111111';
 const B = '22222222-2222-2222-2222-222222222222';
@@ -166,8 +173,14 @@ C('F3', 'FALSENEG', 'a TRUTHFUL post-archive state claim is CONTRADICTED because
   () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'archived' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is now archived.' }).envelope.rejectedClaims.length === 1, false);
 C('F4', 'FALSENEG', 'the now-FALSE pre-mutation state is SUPPORTED by that same stale read',
   () => run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }], evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'active' }] }, summary: 'It is still active.' }).envelope.verifiedClaims.some((v) => v.verdict === 'supported'), false);
-C('F5', 'FALSENEG', 'corrected founder-facing prose leaks a raw UUID and drops the entity name',
-  () => /[0-9a-f]{8}-[0-9a-f]{4}-/.test(run({ claims: [M('company', A, 'archive')], evidence: [], summary: 'I archived ACME.' }).summary), true);
+// FIXED 2026-09-01 (#66/D46), and treated as a correctness/privacy defect rather than
+// cosmetic cleanup: founder-facing prose must never surface a raw canonical UUID. A single
+// canonical formatter now resolves canonical label -> last-known safe label -> neutral
+// typed reference ("the company"), never a uuid and never an invented name. Ids are
+// emitted only under an explicit authorized debug flag. Expectation INVERTED in the same
+// commit as the fix, per this suite's own rule.
+C('F5', 'CONTRACT', 'founder-facing prose never leaks a raw canonical UUID',
+  () => /[0-9a-f]{8}-[0-9a-f]{4}-/.test(run({ claims: [M('company', A, 'archive')], evidence: [], summary: 'I archived ACME.' }).summary), false);
 C('F6', 'FALSENEG', 'envelope.summary DIVERGES from the rendered and persisted summary on the deterministic-confirmation path',
   () => { const r = run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: CO }], context: { companies: [{ id: CO }] }, model: 'deterministic-confirmation', grounded: false, summary: 'Confirmed - Permanently delete ACME.' }); return r.envelope.summary !== r.summary; }, false);
 

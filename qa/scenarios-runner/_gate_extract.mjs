@@ -69,6 +69,15 @@ export function stripTS(source) {
     'function ' + name + '(' + params.replace(/:\s*[^,)]+/g, '') + ') {');
   s = s.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{/g, (_m, name, params) =>
     'function ' + name + '(' + params.replace(/:\s*[^,)]+/g, '') + ') {');
+  // Arrow functions: `= (a: T, b: U): R => {` -> `= (a, b) => {`. Added 2026-09-01 — the
+  // stripper handled `function` declarations and annotated consts but not arrows, so the
+  // canonical displayName/lastKnownLabel helpers broke every harness with an opaque
+  // "Unexpected token ':'". The return type is matched with [^=]+ because it cannot
+  // contain '=' and therefore stops cleanly at the '=>'.
+  s = s.replace(/=\s*\(([^)]*)\)\s*:\s*[^=]+=>/g, (_m, params) =>
+    '= (' + params.replace(/:\s*[^,)]+/g, '') + ') =>');
+  s = s.replace(/=\s*\(([^)]*)\)\s*=>/g, (_m, params) =>
+    '= (' + params.replace(/:\s*[^,)]+/g, '') + ') =>');
   // Non-null assertions (`pa!.options`).
   s = s.replace(/(\w)!\./g, '$1.');
   s = stripTypeAssertions(s);

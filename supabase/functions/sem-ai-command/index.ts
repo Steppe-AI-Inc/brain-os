@@ -4363,10 +4363,54 @@ serve(async (req) => {
         // #66/D46 (F5): corrected prose leaked raw UUIDs and dropped the entity name the
         // founder actually recognises. Resolve names from the same canonical read used for
         // state verification, falling back to the id only when there is genuinely no name.
-        const displayName = (resourceType, id) => {
+        // ==================================================================================
+        // THE single canonical formatter for founder-facing resource references.
+        // (#66/D46 — treated as a correctness/privacy defect, not cosmetic cleanup.)
+        //
+        // FOUNDER-FACING PROSE MUST NEVER SURFACE A RAW CANONICAL UUID. Internal ids are an
+        // implementation detail: they mean nothing to the founder, and echoing them into a
+        // reply that may be read, forwarded or persisted leaks internal identifiers for no
+        // benefit. The previous form appended "(uuid)" to every name and fell back to a bare
+        // uuid when no name resolved.
+        //
+        // Resolution order, and it never guesses:
+        //   1. the canonical read for this turn;
+        //   2. the last-known safe label from the lifecycle name maps, which include
+        //      archived/deleted entities — so a resource this turn archived is still named;
+        //   3. a neutral TYPED reference ("the company"). Never a uuid, never an invented
+        //      name.
+        //
+        // Everything routes through this one helper rather than each response branch doing
+        // its own formatting, so the invariant is enforced in a single place.
+        //
+        // Raw ids are emitted ONLY under an explicit, authorized developer mode
+        // (SEM_AI_DEBUG_RESOURCE_IDS), which is off unless deliberately set on the Edge
+        // Function. It is never enabled by anything the model or a caller can influence.
+        // ==================================================================================
+        const DEBUG_RESOURCE_IDS = Deno.env.get('SEM_AI_DEBUG_RESOURCE_IDS') === '1';
+        const TYPED_FALLBACK: Record<string, string> = {
+          company: 'the company', person: 'the person', project: 'the project', task: 'the task',
+          goal: 'the goal', approval: 'the approval', department: 'the department',
+          business_unit: 'the business unit', work_order: 'the work order', agent: 'the agent',
+        };
+        const lastKnownLabel = (resourceType: string, id: string): string | null => {
+          const fromMap = resourceType === 'company' ? companyNameById.get(id)
+            : resourceType === 'task' ? taskTitleById.get(id)
+            : resourceType === 'person' ? personNameById.get(id)
+            : resourceType === 'goal' ? goalTitleById.get(id)
+            : null;
+          return typeof fromMap === 'string' && fromMap.length > 0 ? fromMap : null;
+        };
+        const displayName = (resourceType: string, id: string): string => {
           const row = canonicalById.get(resourceType + '|' + id);
-          const n = row && (row.name || row.title || row.full_name);
-          return typeof n === 'string' && n.length > 0 ? n + ' (' + id + ')' : String(id);
+          const canonical = row && (row.name || row.title || row.full_name);
+          const label = (typeof canonical === 'string' && canonical.length > 0 ? canonical : null)
+            || lastKnownLabel(resourceType, id);
+          if (label) return DEBUG_RESOURCE_IDS ? `${label} (${id})` : label;
+          // No safe label exists. Use a neutral typed reference — never the raw id, and
+          // never a fabricated name.
+          const typed = TYPED_FALLBACK[resourceType] || `the ${resourceType || 'record'}`;
+          return DEBUG_RESOURCE_IDS ? `${typed} (${id})` : typed;
         };
 
         const rawClaims = Array.isArray(result.claims) ? result.claims : null;
@@ -4485,15 +4529,20 @@ serve(async (req) => {
             .filter((v) => v.verdict === 'supported')
             .map((v) => {
               const c = v.claim;
-              if (c.type === 'mutation_result' || c.type === 'assignment') return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: ${c.action} confirmed.`;
-              if (c.predicate) return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: ${c.predicate} is ${String(c.expectedValue)}.`;
-              return `${c.resourceType} ${displayName(c.resourceType, c.resourceId)}: confirmed.`;
+              // displayName already carries the type when it falls back ("the company"), so
+              // the resourceType is not repeated — otherwise a fallback read "company the
+              // company: archive confirmed."
+              const subject = displayName(c.resourceType, c.resourceId);
+              if (c.type === 'mutation_result' || c.type === 'assignment') return `${subject}: ${c.action} confirmed.`;
+              if (c.predicate) return `${subject}: ${c.predicate} is ${String(c.expectedValue)}.`;
+              return `${subject}: confirmed.`;
             });
           const rejectedLines = rejectedClaims.map((r) => {
             const c = r.claim;
-            const label = c.resourceId ? ' ' + displayName(c.resourceType, c.resourceId) : '';
-            const what = c.action ? `${c.action} ${c.resourceType}${label}` : `${c.resourceType}${label}`;
-            return `I couldn’t confirm that ${what} — nothing was changed for it.`;
+            const subject = displayName(c.resourceType, c.resourceId);
+            return c.action
+              ? `I couldn’t confirm that ${subject} was ${c.action}d — nothing was changed for it.`
+              : `I couldn’t confirm that claim about ${subject} — nothing was changed for it.`;
           });
 
           const pa = result.pendingAction;
