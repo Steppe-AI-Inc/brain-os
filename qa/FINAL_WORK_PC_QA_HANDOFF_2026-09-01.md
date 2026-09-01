@@ -1,12 +1,19 @@
 # WORK-PC QA START HERE
 
+> ### UPDATED 2026-09-01 — EDGE FUNCTION DEPLOY LANDED
+> BUG-002 and issue #5 Class B **are now deployed and live**. Both moved from
+> `NOT READY FOR RETEST` to **`READY FOR PLAYWRIGHT RETEST`** — see §7, §8, §17, §18.
+> Independent verification of that deploy was **still running** when this update was
+> written; that is stated plainly rather than pre-claimed. Everything else is unchanged.
+
 **Test target:**
-- `origin/master`: **`9f270fc90d5c00b2ab6d64a6e5b8bcbeb0d3f4a1`** (short `9f270fc`) — "issue #5: long-context harness (50/100/200 turns) + architecture findings"
-- **Production deployed app state:** Vercel auto-deploys from `master`, so the deployed web app == `9f270fc`.
-- **Production deployed Edge Function state:** `sem-ai-command` content is as of **`16c9251`** (2026-08-30, "Fix: multi_action_plan Defect C corrector's safe summary was never persisted"). This is the last commit on `master` that touched `supabase/functions/**`. **Neither BUG-002 nor issue #5 Class B is deployed.**
+- `origin/master`: **`c9dfab5bd43346bad501ab44d7bfbc5211e90ed5`** (short `c9dfab5`) — "fix: BUG-002 P1 - Brain Chat must not fabricate past-tense completion claims"
+- **Production deployed app state:** Vercel auto-deploys from `master`, so the deployed web app == `c9dfab5`.
+- **Production deployed Edge Function state:** `sem-ai-command` **version 92, ACTIVE**, deployed from **`c9dfab5`** by GitHub Actions run `33472871764` (conclusion `success`, `headSha` `c9dfab5`). **Deployed content independently confirmed**, not trusted from the deploy command: the live source was pulled with `supabase functions download` and diffed against the committed file — identical apart from CRLF/LF (Windows checkout artifact), with **both** fixes present in the *deployed* copy. **BUG-002 and issue #5 Class B are both LIVE.**
 - **Production DB migration state:** applied through **`202609010002_fix_investor_viewer_anon_rls_helper_grant.sql`**. Every migration on disk is live; nothing pending.
-- `origin/qa/work-pc`: `13b793a` (before this handoff commit)
+- `origin/qa/work-pc`: `42bc32e` (before this update commit)
 - Main-PC working tree at handoff time: **clean**
+- Rollback ref retained on Main-PC: `safety/pre-edge-deploy-9f270fc`
 
 **Date:** 2026-09-01
 
@@ -142,13 +149,25 @@ Nothing below is called deployed unless production proves it. Where a fix is com
 
 ---
 
-## 7. BUG-002 — P1 false success — `FIX PREPARED — NOT DEPLOYED`
+## 7. BUG-002 — P1 false success — `DEPLOYED — READY FOR PLAYWRIGHT RETEST`
 
-**Reconciled: still not deployed.** Fix lives on branch `pending/bug-002-edge-function-chat-fabrication-fix` (local to Main-PC; the `.githooks/pre-push` guard correctly blocks pushing `supabase/functions/**` without `ALLOW_FUNCTIONS_DEPLOY=1`, and that authorization has not been given).
+**Deployed 2026-09-01** in `c9dfab5`, Edge Function version 92. Founder-authorized via `ALLOW_FUNCTIONS_DEPLOY=1`. The fix is confirmed present in the **downloaded deployed source**, not just the repo.
 
-**Do NOT retest this as fixed.** Production Brain Chat still exhibits the original defect.
+**This replaces the earlier `NOT DEPLOYED` status — please DO retest it now.**
 
-Unit tests: 13/13 PASS (`qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs`, runnable with plain `node`). Behavioural spec ready for the moment it deploys: `qa/scenarios-runner/chat_must_not_fabricate_approval_decision.md`.
+**Fix:** structural, per BUG_QUEUE's own `class_sweep_required` note — not a per-resource prose patch. `PAST_COMPLETION_CLAIM_PATTERN` / `claimsPastCompletionWithNoGrounding`, wired into the same `work_orders.output` persist-condition that already carried `claimsFutureActionWithNoPlan`, deliberately reusing the existing safety-net mechanism.
+
+Unit tests: **13/13 PASS** (`qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs`, plain `node`). Behavioural spec: `qa/scenarios-runner/chat_must_not_fabricate_approval_decision.md`.
+
+**Not yet done — this is your job:** no live HTTP acceptance test was run. `sem-ai-command` requires a genuine authenticated user JWT (it calls `auth.getUser()` with the caller's own token and never uses service-role), and the Main-PC implementation session had no way to mint one — the same gap `qa/HANDOFF_STATE.json` records as *"DISTINCT BROWSER PERSONAS UNAVAILABLE."* Live behaviour was **not** inferred from code reading. Status is therefore **DEPLOYED + CODE VERIFIED**, awaiting your real-browser proof.
+
+**Required invariant to test:** requested mutation → resolved entities → executable operation → backend execution → postcondition → final response. **If zero operations executed: no success language.**
+
+**Playwright reproduction:** ask Brain Chat to perform mutations where the entity **resolves** but `executable_operations = 0` — approve an approval, permanently delete a department, rename a project. Brain must truthfully say it was not executed / capability unavailable. Then confirm a genuinely **supported** mutation still works end to end.
+
+**Regressions to satisfy:** `BRAIN_CHAT_ZERO_EXECUTED_OPERATIONS_CANNOT_REPORT_SUCCESS`, `BRAIN_CHAT_ENTITY_RESOLUTION_IS_NOT_EXECUTION`, `BRAIN_CHAT_UNSUPPORTED_MUTATION_FAILS_TRUTHFULLY`, `BRAIN_CHAT_SUCCESS_REQUIRES_POSTCONDITION`.
+
+**Safety:** approval `358eddeb-c6ac-4a85-ab26-77dc3960fcba` is a **real** legal-restructuring record and was the original repro target — **do not decide it.** Prefer synthetic fixtures. Pre-deploy baseline for drift checking: that approval `pending`; companies `active=6`, `archived=10`.
 
 **Original defect:** entity resolution succeeds **+** executable operations = 0 → Brain fabricated success. Confirmed on approvals, departments, projects.
 
@@ -156,11 +175,15 @@ Unit tests: 13/13 PASS (`qa/scenarios-runner/sem_ai_command_past_completion_clai
 
 ---
 
-## 8. GitHub issue #5 Class B — `FIX PREPARED — NOT DEPLOYED`
+## 8. GitHub issue #5 Class B — `DEPLOYED — READY FOR PLAYWRIGHT RETEST`
 
-**Reconciled: not deployed.** Fix on branch `pending/issue-5-confirmation-action-type-binding`, queued behind the *same* Edge Function authorization as BUG-002 (both ship in one push). **Do not tell QA it is ready for fixed-behaviour retest — the destructive path is still live in production.**
+**Deployed 2026-09-01** in `c9dfab5` (commit `72a44ce`), Edge Function version 92, alongside BUG-002 in the same authorized push. Fix confirmed present in the **downloaded deployed source**.
 
-**Exact founder reproduction (still reproducible today):**
+**This replaces the earlier `NOT DEPLOYED` status — please DO retest it now.** The destructive path below should no longer be reproducible; capturing that it is genuinely gone is the highest-value test in this batch.
+
+**Scope, unchanged and important: only Class B shipped.** Classes A/C/D/E remain open architecture work (§9). **Do not report issue #5 as closed.**
+
+**Exact founder reproduction (this is what must now FAIL to archive):**
 ```
 "Rename the project ... to QA-RENAMED-PROJECT"      -> renamed
 "create new employee 10"                            -> "Which company?"
@@ -281,7 +304,7 @@ Product rule for when it is built: **no new proprietary messenger.** Brain OS is
 1. BUG-004 · 2. anon RLS helper · 3. signup/invite · 4. global memory poisoning · 5. cross-org isolation
 
 **P1 — DESTRUCTIVE / EXECUTION TRUTH**
-6. Issue #5 exact transcript (**baseline evidence — fix NOT deployed**) · 7. BUG-002 **(skip — not deployed)** · 8. pending confirmation · 9. zero-executed-operation false success · 10. archive/restore action binding
+6. Issue #5 exact transcript (**fix now DEPLOYED — must no longer archive**) · 7. BUG-002 unsupported-mutation reproduction (**now DEPLOYED — retest**) · 8. pending confirmation, incl. adversarial `yes` / `do it` / `that one` / `sure` variants · 9. zero-executed-operation false success · 10. archive/restore action binding
 
 **P2 — MULTI-ORG / TEAM READY**
 11. own-company creation · 12. organization selector · 13. manager relationships · 14. cross-org RLS · 15. dashboard org scoping · 16. Board/Goals/Projects/Tasks scoping
@@ -320,10 +343,10 @@ Bug closure authority remains exclusively Work-PC's. Main-PC has not set any sta
 | Surface | Severity | Implementation | Production | Independent Verifier | Work-PC Action |
 |---|---|---|---|---|---|
 | BUG-004 (null-scope security) | P1 | Complete | **Deployed** | PASS (#52/#56) | **Retest first (P0)** |
-| BUG-002 (false success) | P1 | Complete, 13/13 unit | **NOT deployed** | not run | **Do not retest** |
+| BUG-002 (false success) | P1 | Complete, 13/13 unit | **DEPLOYED c9dfab5 / v92** | in progress | **Retest (P1 #7)** |
 | BUG-003 (dashboard count) | P2 | Complete | **Deployed** | PASS (#57) | Retest |
 | BUG-001 (archived ancestry) | P2 | **3 of ~24 surfaces** | Deployed (partial) | PASS on the 2 disclosed | Sweep remaining 18 |
-| Issue #5 Class B (destructive confirm) | P1 | Complete, 10/10 unit | **NOT deployed** | not run | **Baseline evidence only** |
+| Issue #5 Class B (destructive confirm) | P1 | Complete, 10/10 unit | **DEPLOYED c9dfab5 / v92** | in progress | **Retest first (P1 #6)** |
 | Issue #5 A/C/D/E (continuity) | P1 | **Not implemented** | n/a | n/a | Adversarial baseline, do not certify |
 | Multi-org backend | — | Complete | **Deployed** | PASS | Retest |
 | Own company (`create_own_company`) | — | Complete | **Deployed** | PASS | Retest |
@@ -340,8 +363,9 @@ Bug closure authority remains exclusively Work-PC's. Main-PC has not set any sta
 
 ## 18. Not ready for retest — explicit list
 
-- **BUG-002** — fix not deployed.
-- **Issue #5 Class B** — fix not deployed (baseline evidence welcome).
+> **Updated:** BUG-002 and Issue #5 Class B have been **removed from this list** — both are
+> deployed in `c9dfab5` (Edge Function v92) and are now **ready for Playwright retest**.
+
 - **Issue #5 A/C/D/E** — architecture not built.
 - **Brain Chat org awareness / org-scoped entity resolution** — not implemented.
 - **Model health registry / fallback observability** — not implemented.

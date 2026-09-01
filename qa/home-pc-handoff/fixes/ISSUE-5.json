@@ -1,19 +1,42 @@
 {
   "bug_id": "ISSUE-5",
   "_note": "GitHub issue #5, not a Work-PC BUG_QUEUE id. Filed by the founder 2026-08-31. Home PC never sets status directly - this is a report for the Work-PC QA Director.",
-  "status_report": "FIX PREPARED — NOT DEPLOYED",
-  "ready_for_retest": false,
-  "do_not_retest_as_fixed": true,
+  "status_report": "CLASS B DEPLOYED — READY FOR PLAYWRIGHT RETEST; CLASSES A/C/D/E STILL OPEN",
+  "_supersedes": "An earlier version of this file reported FIX PREPARED — NOT DEPLOYED with ready_for_retest=false. Obsolete for Class B only: the founder authorized ALLOW_FUNCTIONS_DEPLOY=1 and Class B shipped 2026-09-01. Classes A/C/D/E are unchanged and still NOT IMPLEMENTED.",
+  "ready_for_retest": true,
+  "do_not_retest_as_fixed": false,
+  "do_not_report_issue_5_as_closed": "Only Class B was deployed. Classes A/C/D/E remain open architecture work.",
   "class_b": {
     "title": "Bare confirmation misbinds to a destructive action (assign employee -> archive company)",
     "severity": "P1",
-    "status": "FIX PREPARED — NOT DEPLOYED",
-    "branch": "pending/issue-5-confirmation-action-type-binding",
+    "status": "DEPLOYED — READY FOR PLAYWRIGHT RETEST",
+    "deployed": {
+      "master_commit": "c9dfab5 (fix commit 72a44ce)",
+      "edge_function": "sem-ai-command version 92, ACTIVE",
+      "github_actions_run": "33472871764 (conclusion success, headSha c9dfab5)",
+      "content_verification": "Deployed source pulled via `supabase functions download` and diffed against the committed file — identical apart from CRLF/LF. Fix confirmed present in the DEPLOYED copy. Also confirmed zero live code paths retain the fail-dangerous `actionType || 'archive'` default (2 remaining textual matches are comments documenting the old behavior).",
+      "deployed_at": "2026-09-01"
+    },
+    "independent_verification": "IN PROGRESS at time of writing — a separate brain-os-verifier session was dispatched immediately after deploy and had not finished. This report does NOT claim it passed. See qa/KNOWN_FAILURE_MODES.md #61.",
+    "live_http_acceptance_not_run_by_main_pc": "sem-ai-command requires a genuine authenticated user JWT (auth.getUser(), never service-role). The Main-PC session could not mint one — same gap qa/HANDOFF_STATE.json records as 'DISTINCT BROWSER PERSONAS UNAVAILABLE'. Live behaviour was NOT inferred from code reading. DEPLOYED + CODE VERIFIED, awaiting Work-PC real-browser proof.",
+    "work_pc_retest": {
+      "sequence": "create/add employee N -> Brain asks which company -> give a PARTIAL company name -> Brain resolves a candidate and asks 'Did you mean X?' -> reply 'yes'",
+      "required_result": "The 'yes' confirms ONLY the pending employee-assignment clarification. It must NEVER archive the company.",
+      "also_verify_in_db": "Target company's status is UNCHANGED after the test.",
+      "adversarial_variants": ["yes", "do it", "that one", "sure"],
+      "regressions": [
+        "BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_ACTION_TYPE",
+        "BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_CANONICAL_TARGET",
+        "BRAIN_CHAT_YES_CANNOT_SWITCH_ASSIGN_TO_ARCHIVE",
+        "BRAIN_CHAT_CLARIFICATION_RESOLUTION_DOES_NOT_MUTATE_UNRELATED_RESOURCE"
+      ],
+      "baseline_for_drift": "companies active=6, archived=10 immediately before deploy"
+    },
     "root_cause": "Architectural, not wording. pendingAction.actionType is typed archive|restore|null, so a clarification about an ASSIGN has no representable value and is necessarily emitted absent. Both deterministic-execution call sites then resolved the mutation field as CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType || 'archive'] - coercing an ABSENT action type into the most destructive operation available for that entity type. A bare 'yes' passes isClarificationAffirmative(), and commandContradictsActionType() cannot help because 'yes' contains neither verb family.",
     "fix": "Single fail-closed resolveClarificationField(entityType, actionType) helper: both must be explicitly present and known, otherwise it returns undefined and the turn falls through to the ordinary LLM path instead of mutating. Replaces both vulnerable call sites. Legitimate archive/restore confirmations set actionType explicitly and are unaffected.",
     "tests": "qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs - 10/10 pass, plain node, no deploy/DB/network. Reproduces the live defect and proves the fix, including that every real archive/restore/delete path still resolves identically.",
     "typecheck": "tsc on the Edge Function shows zero NEW type errors; the 5 pre-existing Deno-vs-tsc strictness errors are byte-identical before and after, only shifted by line count.",
-    "why_not_deployed": "Touches supabase/functions/**. The repo's .githooks/pre-push guard correctly blocks the push without ALLOW_FUNCTIONS_DEPLOY=1, and that authorization has not been given. Queued with BUG-002; both ship in one push."
+    "deploy_history": "Was blocked by the repo's .githooks/pre-push guard until the founder authorized ALLOW_FUNCTIONS_DEPLOY=1 on 2026-09-01. Shipped in the same push as BUG-002, exactly as planned."
   },
   "classes_a_c_d_e": {
     "title": "Same-channel history loss, stale grounding, false execution claims, channel identity regression",

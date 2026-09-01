@@ -64,13 +64,16 @@
     "written_by": "main-pc-implementation-session",
     "written_at": "2026-09-01",
     "read_this_first": "qa/FINAL_WORK_PC_QA_HANDOFF_2026-09-01.md",
-    "origin_master_sha": "9f270fc",
-    "origin_qa_work_pc_sha_at_write_time": "13b793a",
-    "deployed_web_app_sha": "9f270fc",
-    "deployed_edge_function_content_sha": "16c9251",
-    "_edge_function_note": "Vercel auto-deploys web from master, so deployed web == 9f270fc. sem-ai-command's deployed CONTENT is as of 16c9251 (2026-08-30), the last master commit touching supabase/functions/**. Neither BUG-002 nor issue #5 Class B is deployed.",
+    "updated_at": "2026-09-01, post Edge Function deploy",
+    "origin_master_sha": "c9dfab5",
+    "origin_qa_work_pc_sha_at_write_time": "42bc32e",
+    "deployed_web_app_sha": "c9dfab5",
+    "deployed_edge_function_content_sha": "c9dfab5",
+    "deployed_edge_function_version": "sem-ai-command v92, ACTIVE",
+    "_edge_function_note": "UPDATED: BUG-002 and issue #5 Class B ARE NOW DEPLOYED (previously 16c9251, now c9dfab5). GitHub Actions run 33472871764 succeeded at headSha c9dfab5. Deployed content independently confirmed by downloading the live source and diffing against the commit - identical apart from CRLF/LF, both fixes present in the DEPLOYED copy. The deploy command's own success was deliberately not trusted alone.",
+    "rollback_ref_on_main_pc": "safety/pre-edge-deploy-9f270fc",
     "production_db_migration_state": "applied through 202609010002_fix_investor_viewer_anon_rls_helper_grant.sql; nothing pending",
-    "independent_verifier_campaign": "verify-a905df5-multiorg-milestone-independent-recheck (completed 2026-09-01, see qa/verification/CURRENT_CAMPAIGN.json)",
+    "independent_verifier_campaign": "verify-a905df5-multiorg-milestone-independent-recheck (completed 2026-09-01, see qa/verification/CURRENT_CAMPAIGN.json). A SECOND campaign covering the Edge Function deploy was dispatched immediately after deploy and was STILL RUNNING when this was written - its result is NOT claimed here; see qa/KNOWN_FAILURE_MODES.md #61 when it lands.",
     "fix_reports_published": [
       "qa/home-pc-handoff/fixes/BUG-001.json",
       "qa/home-pc-handoff/fixes/BUG-002.json",
@@ -79,10 +82,11 @@
       "qa/home-pc-handoff/fixes/ISSUE-5.json",
       "qa/home-pc-handoff/fixes/ANON-INVESTOR-RLS-HELPER.json"
     ],
-    "deployed_and_ready_for_retest": ["BUG-004", "BUG-003", "BUG-001 (3 of ~24 surfaces only)", "multi-org", "own-company", "organization-selector", "manager-column-read-only", "anon-investor-rls-helper"],
-    "NOT_ready_for_retest": ["BUG-002", "ISSUE-5-class-B", "ISSUE-5-classes-A-C-D-E", "brain-chat-org-awareness", "model-health-registry", "messaging-adapters", "BUG-001 remaining ~18 surfaces", "manager-set-UI"],
-    "single_blocking_authorization": "Both Edge Function fixes (BUG-002 + issue #5 Class B) are queued behind one ALLOW_FUNCTIONS_DEPLOY=1 authorization and will ship in the same push.",
+    "deployed_and_ready_for_retest": ["BUG-004", "BUG-003", "BUG-001 (3 of ~24 surfaces only)", "multi-org", "own-company", "organization-selector", "manager-column-read-only", "anon-investor-rls-helper", "BUG-002 (NEW - deployed c9dfab5)", "ISSUE-5-class-B (NEW - deployed c9dfab5)"],
+    "NOT_ready_for_retest": ["ISSUE-5-classes-A-C-D-E", "brain-chat-org-awareness", "model-health-registry", "messaging-adapters", "BUG-001 remaining ~18 surfaces", "manager-set-UI"],
+    "single_blocking_authorization": "RESOLVED 2026-09-01 - the founder authorized ALLOW_FUNCTIONS_DEPLOY=1 and both Edge Function fixes shipped together in c9dfab5. No Edge Function work is currently queued behind an authorization.",
+    "live_http_acceptance_gap": "Neither BUG-002 nor issue #5 Class B has had a live HTTP acceptance test. sem-ai-command requires a genuine authenticated user JWT (auth.getUser(), never service-role) and the Main-PC session could not mint one - the same 'DISTINCT BROWSER PERSONAS UNAVAILABLE' gap recorded in known_coverage_gaps above. Both are DEPLOYED + CODE VERIFIED only. Work-PC's real-browser proof is the missing evidence.",
     "next_required_actor_per_main_pc": "WORK_PC",
-    "suggested_next_action": "Run P0 security retest first (BUG-004, anon RLS helper, signup/invite, global memory poisoning, cross-org isolation), then capture baseline evidence for issue #5's exact transcript against the CURRENT deployed build (fix intentionally not deployed yet)."
+    "suggested_next_action": "Run P0 security retest first (BUG-004, anon RLS helper, signup/invite, global memory poisoning, cross-org isolation). Then P1: the issue #5 exact founder transcript - it must now FAIL to archive the company - and the BUG-002 unsupported-mutation reproduction, plus adversarial confirmation variants (yes / do it / that one / sure). Both fixes are live as of c9dfab5."
   }
 }
