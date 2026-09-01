@@ -209,11 +209,15 @@ const CLAIM_SLICE = (() => {
 const runClaims = new Function('result', 'claimExecutionEvidence', 'contextPack', 'model',
   'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno',
   'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
+  // run7/D50-D51: the deterministic report state is computed above the window in
+  // index.ts and only its two derived values are referenced inside — injected here.
+  'summaryIsFullyDeterministic', 'deterministicPrefix',
   CLAIM_SLICE + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };');
 const DENO_OFF = { env: { get: () => undefined } };
-const claims = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {} }) =>
+const claims = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '' }) =>
   runClaims({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_OFF,
-    mkMap(labels.company || {}), mkMap(labels.task || {}), mkMap(labels.person || {}), mkMap(labels.goal || {}));
+    mkMap(labels.company || {}), mkMap(labels.task || {}), mkMap(labels.person || {}), mkMap(labels.goal || {}),
+    fullyDeterministic, deterministicPrefix);
 
 const M = (rt, id, action) => ({ type: 'mutation_result', resourceType: rt, resourceId: id, action });
 const EV = (rt, action, id, okFlag = true) => ({ resourceType: rt, action, id, postconditionPassed: okFlag });
@@ -228,7 +232,10 @@ const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
     'Losing the prompt strands the founder mid-clarification with no way to answer.');
   check('R2 the pendingAction OPTIONS survive the claim rewrite', /ACME Holdings/.test(r.summary) && /ACME Services/.test(r.summary));
   check('R3 questions survive the claim rewrite', /notify the team/.test(r.summary));
-  check('R4 the rejected claim is still stated', /couldn.t confirm/i.test(r.summary));
+  // run7/D50 wording change (same commit as the fix): the correction is a non-assertion
+  // ("can't confirm from this turn's execution record"), never the denial "nothing was
+  // changed" — evidence coverage is finite, so a denial can be false about a real change.
+  check('R4 the rejected claim is still stated, as a non-denial', /can.t confirm/i.test(r.summary) && !/nothing was changed/i.test(r.summary));
 }
 
 // R5 closes the last uncovered guard found by mutation testing: dropping
@@ -252,6 +259,52 @@ check('R5 a rejected-claim turn is FLAGGED as needing persistence (claimsPastCom
 }
 
 // =======================================================================================
+// SECTION S — EVIDENCE SITES EXIST IN SOURCE (run7/D50 coverage half).
+//
+// Honesty note, learned from run7's scenario-9 finding: this harness re-executes the
+// structured-claim WINDOW with synthetic evidence, so no windowed case can detect a
+// recording site being deleted from the execution paths OUTSIDE the window — a synthetic-
+// evidence test relabelled as covering the sites would be exactly the F1/F2 overstatement
+// run7 called out. These checks are therefore explicitly SOURCE-LEVEL: each asserts the
+// literal recordExecution call at its real write site. Mutation-proven: deleting the
+// end_employment site fails S below while every windowed case stays green.
+// =======================================================================================
+{
+  const SITE_LITERALS = [
+    ["person end_employment", "recordExecution('person', 'end_employment', id, true)"],
+    ["person restore_employment", "recordExecution('person', 'restore_employment', id, true)"],
+    ["company update", "recordExecution('company', 'update', c.id, true)"],
+    ["company permanent_delete", "recordExecution('company', 'permanent_delete', id, true)"],
+    ["person permanent_delete", "recordExecution('person', 'permanent_delete', String(p.id), true)"],
+    ["channel delete", "recordExecution('channel', 'delete', ch.id, true)"],
+    ["approval delete", "recordExecution('approval', 'delete', ap.id, true)"],
+    ["generic deleteByIds evidence", "recordExecution(evidenceType, 'delete', row.id, true)"],
+    ["company_relationship create", "recordExecution('company_relationship', 'create', (cr || {}).id, true)"],
+    ["person_assignment create", "recordExecution('person_assignment', 'create', (pa || {}).id, true)"],
+    ["memory create", "recordExecution('memory', 'create', (m || {}).id, true)"],
+    ["department create", "recordExecution('department', 'create', data.id, true)"],
+    ["department update", "recordExecution('department', 'update', d.id, true)"],
+    ["lead create", "recordExecution('lead', 'create', data.id, true)"],
+    ["lead update", "recordExecution('lead', 'update', l.id, true)"],
+    ["document create", "recordExecution('document', 'create', data.id, true)"],
+    ["product_line create", "recordExecution('product_line', 'create', inserted.id, true)"],
+    ["product_line update", "recordExecution('product_line', 'update', p.id, true)"],
+    ["product_spec create", "recordExecution('product_spec', 'create', spec.id, true)"],
+    ["product_spec update", "recordExecution('product_spec', 'update', s.id, true)"],
+    ["drawing create", "recordExecution('drawing', 'create', inserted.id, true)"],
+    ["ai_provider create", "recordExecution('ai_provider', 'create', data.id, true)"],
+    ["ai_provider activate", "recordExecution('ai_provider', 'activate', activateAiProviderId, true)"],
+    ["proposal create", "recordExecution('proposal', 'create', data.id, true)"],
+    ["proposal update", "recordExecution('proposal', 'update', p.id, true)"],
+    ["factory work_order create", "recordExecution('work_order', 'create', data as string, true)"],
+  ];
+  for (const [label, literal] of SITE_LITERALS) {
+    check('S evidence site exists in source: ' + label, src.includes(literal),
+      'The write path for "' + label + '" no longer records per-id evidence — truthful claims about it become unverifiable (run7/D50).');
+  }
+}
+
+// =======================================================================================
 // SECTION X — DEFECTS MEASURED ON 25af3b0 (#67). Same two-way-drift discipline as
 // structured_claim_laundering_contract.mjs: the expected value is what the build ACTUALLY
 // does today, so a silent regression fails AND a silent fix nobody recorded fails.
@@ -264,68 +317,94 @@ const contract = (id, desc, thunk, expected) => X.push([id, 'CONTRACT', desc, th
 const APPROVAL_FABRICATION = 'Approval 358eddeb-c6ac-4a85-ab26-77dc3960fcba has been approved.';
 const PERSON = 'aaaa1111-bb22-cc33-dd44-eeeeeeee5555';
 
-// X1. The #66 additive drift check closed `claims: []`, but the ARMING condition is now
-// "any supported mutation claim", which is a whole-TURN signal. A successful task/approval/
-// project CREATE records evidence yet sets no grounding flag (factLines only report
-// shortfalls; resolvedEntities covers companies/people/goals only) - so in that specific
-// window deployed v92 catches an unrelated fabrication and this build does not.
-defect('X1', 'one supported task-create claim disarms the drift check for an UNRELATED fabricated completion (regression vs v92 in the ungrounded-execution window)',
-  () => claims({ claims: [M('task', ID, 'create')], evidence: [EV('task', 'create', ID)], grounded: false,
-    summary: 'Task created. ' + APPROVAL_FABRICATION }).corrected, false);
+// X1. FIXED (run7/D52, same commit): the rewrite now triggers on ANY mutation-shaped
+// claim, so a mutation turn is re-rendered from verified structure every time — one
+// supported create can no longer carry an unrelated fabricated completion. Asserted
+// both ways: the turn is corrected AND the fabricated sentence is gone.
+contract('X1', 'one supported task-create claim NO LONGER disarms the truth gate: the turn is re-rendered and the unrelated fabrication is dropped (run7/D52 FIXED)',
+  () => {
+    const r = claims({ claims: [M('task', ID, 'create')], evidence: [EV('task', 'create', ID)], grounded: false,
+      summary: 'Task created. ' + APPROVAL_FABRICATION });
+    return r.corrected === true && !/has been approved/.test(r.summary);
+  }, true);
 contract('X1b', 'the same prose with NO claims is still caught, exactly as deployed v92 does',
   () => claims({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false,
     summary: 'Task created. ' + APPROVAL_FABRICATION }).corrected, true);
 
-// X2. recordExecution is wired at 13 sites. Person end/restore employment, permanent
-// fixture delete, company field updates, department/lead/product/proposal/document/
-// drawing/provider/connector/memory/assignment writes all really mutate and record
-// nothing - so a TRUTHFUL, contract-compliant mutation_result claim about them is
-// REJECTED and the founder is told "nothing was changed for it" about a real change.
-defect('X2', 'a TRUTHFUL end_employment claim is rejected and the founder is told nothing changed (no evidence site exists for person lifecycle)',
-  () => /nothing was changed/.test(claims({ claims: [M('person', PERSON, 'end_employment')], evidence: [], grounded: true,
-    labels: { person: { [PERSON]: 'QA Person' } },
-    summary: 'Employment ended for QA Person. Assignment closed.' }).summary), true);
+// X2. FIXED (run7/D50, same commit), in both halves:
+//  (a) recordExecution is now wired at every mutating path in index.ts — person
+//      end/restore employment, permanent fixture delete, company field updates,
+//      department/lead/product/spec/proposal/document/drawing/provider/connector/
+//      memory/relationship/assignment/channel/approval/factory-work-order writes all
+//      record per-id evidence at the write site — so this truthful claim, fed the
+//      evidence the real site now produces, verifies.
+contract('X2', 'a TRUTHFUL end_employment claim IS supported once the person-lifecycle site records evidence (run7/D50 FIXED)',
+  () => {
+    const r = claims({ claims: [M('person', PERSON, 'end_employment')], evidence: [EV('person', 'end_employment', PERSON)], grounded: true,
+      labels: { person: { [PERSON]: 'QA Person' } },
+      summary: 'Employment ended for QA Person. Assignment closed.' });
+    return r.envelope.rejectedClaims.length === 0 && /QA Person/.test(r.summary);
+  }, true);
+//  (b) and even with NO evidence, the correction never DENIES — it declines to confirm.
+//      Coverage is necessarily finite; a denial can be false about a real change.
+contract('X2b', 'an unverifiable mutation claim is corrected WITHOUT the false denial "nothing was changed" (run7/D50 FIXED)',
+  () => {
+    const s = claims({ claims: [M('person', PERSON, 'end_employment')], evidence: [], grounded: true,
+      labels: { person: { [PERSON]: 'QA Person' } },
+      summary: 'Employment ended for QA Person. Assignment closed.' }).summary;
+    return !/nothing was changed/i.test(s) && /can.t confirm/i.test(s);
+  }, true);
 
-// X3. On a real lifecycle turn result.summary is ALREADY the deterministic, backend-built
-// report (index.ts: result.summary = lifecycleReports.join(' ')). The claim rewrite
-// discards it wholesale and re-renders from claims only, so every real outcome the model
-// did not happen to claim disappears from the founder's reply.
-defect('X3', 'the deterministic lifecycle report is discarded by the claim rewrite; real archives the model did not claim vanish',
+// X3. FIXED (run7/D51, same commit): on a real lifecycle turn index.ts computes
+// summaryIsFullyDeterministic=true with the lifecycle report as deterministicPrefix
+// (both computed just ABOVE the structured-claim window from the function's own
+// execution state — the harness injects them exactly as the real caller would). The
+// rewrite now keeps that report as the base and only APPENDS corrections, so the
+// archive of Beta Co that the model did not claim stays in the founder's reply.
+contract('X3', 'the deterministic lifecycle report SURVIVES the claim rewrite; unclaimed real archives stay in the reply (run7/D51 FIXED)',
   () => {
     const B1 = '11111111-aaaa-bbbb-cccc-111111111111';
     const B2 = '22222222-aaaa-bbbb-cccc-222222222222';
+    const REPORT = 'Company "ACME": archived. Company "Beta Co": archived.';
     const r = claims({ claims: [M('company', B1, 'archive'), M('company', 'deadbeef-0000-0000-0000-000000000000', 'archive')],
       evidence: [EV('company', 'archive', B1), EV('company', 'archive', B2)], grounded: true,
       labels: { company: { [B1]: 'ACME', [B2]: 'Beta Co' } },
-      summary: 'Company "ACME": archived. Company "Beta Co": archived.' });
-    return !/Beta Co/.test(r.summary);
+      summary: REPORT, fullyDeterministic: true, deterministicPrefix: REPORT });
+    return /Beta Co/.test(r.summary) && /can.t confirm/i.test(r.summary);
   }, true);
 
-// X4. questions[], pendingAction.summary/question and option labels are model-authored
-// strings that the rewrite splices verbatim into the founder-facing summary. The drift
-// check ran earlier, against the ORIGINAL summary only, so nothing ever inspects them.
-// Preserving them is right (see Section R); leaving them ungated is the defect.
-defect('X4', 'a fabricated completion routed through questions[] reaches the founder through the CORRECTION path, ungated',
+// X4. FIXED (run7/D53, same commit): questions[], pendingAction.summary/question and
+// option labels now pass safeProseFragment before rendering OR persisting — a fragment
+// asserting a past completion (or carrying a uuid) is laundering through the question
+// channel and is dropped; a genuine question still survives (Section R proves that).
+contract('X4', 'a fabricated completion routed through questions[] is DROPPED by the laundering gate (run7/D53 FIXED)',
   () => /has been approved/.test(claims({ claims: [M('approval', ID, 'approve')], evidence: [], summary: 'ok',
-    questions: [APPROVAL_FABRICATION + ' Anything else?'] }).summary), true);
-defect('X4b', 'the same fabrication routed through pendingAction.summary',
+    questions: [APPROVAL_FABRICATION + ' Anything else?'] }).summary), false);
+contract('X4b', 'the same fabrication routed through pendingAction.summary is DROPPED (run7/D53 FIXED)',
   () => /has been approved/.test(claims({ claims: [M('approval', ID, 'approve')], evidence: [], summary: 'ok',
-    pendingAction: { summary: APPROVAL_FABRICATION } }).summary), true);
+    pendingAction: { summary: APPROVAL_FABRICATION } }).summary), false);
+// X4c isolates the past-completion half of the gate: X4/X4b's payload carries a uuid, so
+// the uuid scrub alone would catch them and removing the completion check would go
+// unnoticed (found by mutation testing — the exact masking this suite exists to prevent).
+contract('X4c', 'a UUID-FREE fabricated completion routed through questions[] is still DROPPED (run7/D53)',
+  () => /was archived/.test(claims({ claims: [M('approval', ID, 'approve')], evidence: [], summary: 'ok',
+    questions: ['The company was archived as requested. Anything else?'] }).summary), false);
 
-// X5-X7. #66/D46 states the invariant FOUNDER_RESPONSE_NEVER_LEAKS_RAW_RESOURCE_UUID and
-// routes labels through one formatter. Three sibling interpolations in the same two render
-// paths were not routed through it, and all three are model-controlled strings.
-defect('X5', 'resourceType is interpolated RAW into the typed fallback, so a uuid smuggled in it reaches founder prose',
+// X5-X7. FIXED (run7/D54, same commit): every model-authored claim field is sanitized
+// before interpolation — resourceType collapses to a word-shaped typed fallback, action
+// renders only from the executor's own past-tense vocabulary, predicate must be a plain
+// column name, and any value carrying a uuid renders as a neutral reference.
+contract('X5', 'a uuid smuggled through resourceType never reaches founder prose (run7/D54 FIXED)',
   () => UUID_RE.test(claims({ claims: [{ type: 'mutation_result', resourceType: 'company|' + ID, resourceId: '', action: 'archive' }],
-    evidence: [], summary: 'x' }).summary), true);
-defect('X6', 'action is interpolated RAW into the rejection sentence, so a uuid smuggled in it reaches founder prose',
-  () => UUID_RE.test(claims({ claims: [M('company', ID, 'archive ' + ID)], evidence: [], summary: 'x' }).summary), true);
-defect('X7', 'predicate/expectedValue are interpolated RAW into a SUPPORTED state line, leaking a real canonical uuid',
+    evidence: [], summary: 'x' }).summary), false);
+contract('X6', 'a uuid smuggled through action never reaches founder prose (run7/D54 FIXED)',
+  () => UUID_RE.test(claims({ claims: [M('company', ID, 'archive ' + ID)], evidence: [], summary: 'x' }).summary), false);
+contract('X7', 'a real canonical uuid arriving via predicate/expectedValue never reaches founder prose (run7/D54 FIXED)',
   () => UUID_RE.test(claims({
     claims: [M('company', ID, 'archive'),
       { type: 'current_state', resourceType: 'company', resourceId: ID, predicate: 'owner_id', expectedValue: 'deadbeef-1111-2222-3333-444444444444' }],
     evidence: [], context: { companies: [{ id: ID, name: 'ACME', owner_id: 'deadbeef-1111-2222-3333-444444444444' }] },
-    summary: 'x' }).summary), true);
+    summary: 'x' }).summary), false);
 
 let drift = 0, openDefects = 0;
 for (const [id, kind, desc, thunk, expected] of X) {

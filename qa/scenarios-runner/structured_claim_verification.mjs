@@ -37,6 +37,9 @@ function extractStructuredBlock(source) {
 const slice = extractStructuredBlock(src);
 const fn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno', 'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
+  // run7/D50-D51: the deterministic report state is computed above the window in
+  // index.ts and only its two derived values are referenced inside — injected here.
+  'summaryIsFullyDeterministic', 'deterministicPrefix',
   slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
 // The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
@@ -46,8 +49,8 @@ const DENO_STUB = { env: { get: () => undefined } };
 // so the harness supplies them. They are the 'last known safe label' source that lets a
 // resource this turn archived still be named instead of falling back to a typed reference.
 const mk = (o) => new Map(Object.entries(o || {}));
-const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {} }) =>
-  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal));
+const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '' }) =>
+  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal), fullyDeterministic, deterministicPrefix);
 
 let pass = 0;
 const failures = [];
@@ -193,16 +196,26 @@ check('B5 a state claim about a resource mutated this turn is UNKNOWN, not judge
 
 // =======================================================================================
 // SECTION F — PROSE IS NOT RE-PARSED AS AUTHORITY once structured claims exist.
+//
+// run7/D52 CONTRACT CHANGE (intentional, recorded in the same commit as the fix): this
+// case previously asserted the raw prose SURVIVED when every claim verified — which was
+// itself the D52 laundering shape: pair one real supported claim with fabricated
+// completion prose about anything else and the whole sentence shipped. A mutation-claim
+// turn is now re-rendered from verified structure: no prose parser decides truth
+// (#65 item 8 still holds — nothing is parsed), the supported claim IS stated, and the
+// unverified fabrications are simply never rendered.
 // =======================================================================================
 {
-  // Prose full of success words, but every structured claim is supported -> untouched.
   const r = run({
     claims: [mut('company', A, 'archive')],
     evidence: [ev('company', 'archive', A)],
-    summary: 'The company has been archived and the approval has been approved and everything was deleted successfully.',
+    summary: 'The company has been archived and the approval has been archived and everything was deleted successfully.',
   });
-  check('F1 supported claims are not second-guessed by a prose scan', !rejected(r) && r.summary.includes('archived and the approval'),
-    'Once structured claims verify, a second prose parser must NOT override them (#65 item 8).');
+  check('F1 a supported mutation claim IS stated after the structural re-render', !rejected(r) && /archived — confirmed/.test(r.summary),
+    'The verified structure, not the raw prose, is what the founder reads on a mutation turn.');
+  check('F1b unverified fabrications in the same prose do NOT survive the re-render (run7/D52)',
+    !/approval has been archived/.test(r.summary) && !/deleted successfully/.test(r.summary),
+    'One real claim must not carry unrelated fabricated completions into the reply.');
 }
 {
   // No structured claims at all -> legacy v92 behaviour, so this build is never worse.
@@ -236,9 +249,16 @@ for (const summary of [
   check('G legacy fallback leaves a truthful reply alone - ' + summary.slice(0, 38),
     run({ claims: null, evidence: [], summary }).corrected === false);
 }
-check('G structured claims SUPPRESS the legacy prose path entirely',
-  run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' }).corrected === false,
-  'Once structured claims verify, prose must not be re-parsed as authority (#65 item 8).');
+// run7/D52 CONTRACT CHANGE (intentional, same commit as the fix): 'corrected' is now
+// TRUE here because a mutation-claim turn is re-rendered from verified structure and the
+// re-rendered summary must persist. The load-bearing assertion is that the fabricated
+// approval sentence does not survive - prose is re-rendered, never re-parsed (#65 item 8).
+{
+  const g = run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' });
+  check('G a mutation-claim turn is re-rendered; the fabricated sentence does not survive (run7/D52)',
+    g.corrected === true && !/approval has been approved/.test(g.summary),
+    'One supported claim must not disarm the truth gate for unrelated fabricated prose.');
+}
 
 // =======================================================================================
 // SECTION H - FOUNDER-FACING RESOURCE REFERENCES. Treated as a correctness/privacy
@@ -292,7 +312,14 @@ for (const summary of [
   check('G legacy fallback leaves a truthful reply alone - ' + summary.slice(0, 38),
     run({ claims: null, evidence: [], summary }).corrected === false);
 }
-check('G structured claims SUPPRESS the legacy prose path entirely',
-  run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' }).corrected === false,
-  'Once structured claims verify, prose must not be re-parsed as authority (#65 item 8).');
+// run7/D52 CONTRACT CHANGE (intentional, same commit as the fix): 'corrected' is now
+// TRUE here because a mutation-claim turn is re-rendered from verified structure and the
+// re-rendered summary must persist. The load-bearing assertion is that the fabricated
+// approval sentence does not survive - prose is re-rendered, never re-parsed (#65 item 8).
+{
+  const g = run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' });
+  check('G a mutation-claim turn is re-rendered; the fabricated sentence does not survive (run7/D52)',
+    g.corrected === true && !/approval has been approved/.test(g.summary),
+    'One supported claim must not disarm the truth gate for unrelated fabricated prose.');
+}
 

@@ -2732,6 +2732,7 @@ serve(async (req) => {
             result.summary = `${result.summary || ''}\n\n(Channel deletion failed: ${deleteChannelsError.message})`.trim();
           } else {
             deletedChannelCount = deletedChannels?.length || 0;
+            for (const ch of deletedChannels || []) recordExecution('channel', 'delete', ch.id, true);
           }
         }
 
@@ -2759,6 +2760,7 @@ serve(async (req) => {
             result.summary = `${result.summary || ''}\n\n(Approval deletion failed: ${deleteApprovalsError.message})`.trim();
           } else {
             deletedApprovalCount = deletedApprovals?.length || 0;
+            for (const ap of deletedApprovals || []) recordExecution('approval', 'delete', ap.id, true);
           }
         }
 
@@ -2853,7 +2855,7 @@ serve(async (req) => {
           if (c.organizationType) patch.organization_type = c.organizationType;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
-          if (data && data.length > 0) updatedCompanyCount++;
+          if (data && data.length > 0) { updatedCompanyCount++; recordExecution('company', 'update', c.id, true); }
         }
 
         // Archive/restore: the ONLY real deletion mechanism for a company (there is no
@@ -2986,7 +2988,8 @@ serve(async (req) => {
             const deletedPeople = peopleDeletedRaw.map((p) => p.name).join(', ');
             permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`);
             deletedCompanyEntities.push({ id, name: String(name) });
-            for (const p of peopleDeletedRaw) deletedPersonEntities.push({ id: String(p.id), name: String(p.name) });
+            recordExecution('company', 'permanent_delete', id, true);
+            for (const p of peopleDeletedRaw) { deletedPersonEntities.push({ id: String(p.id), name: String(p.name) }); recordExecution('person', 'permanent_delete', String(p.id), true); }
             continue;
           }
           permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — unexpected result.`);
@@ -3066,6 +3069,9 @@ serve(async (req) => {
           const name = personNameById.get(id) || id;
           if (error || !data) { personLifecycleLines.push(`${name}: end-employment failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          // Evidence only on a genuine transition — already_inactive/denied/not_found
+          // changed nothing and must not be able to ground a mutation claim.
+          if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true);
           personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreEmploymentPersonIds) {
@@ -3073,6 +3079,7 @@ serve(async (req) => {
           const name = personNameById.get(id) || id;
           if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
+          if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true);
           personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const personLifecycleReport = personLifecycleLines.length > 0 ? personLifecycleLines.join(' ') : null;
@@ -3450,6 +3457,12 @@ serve(async (req) => {
         // Execute all six deletions now (immediate, same as channels/approvals above) —
         // one shared helper since the shape (delete by id list, count real affected rows,
         // surface a real error instead of swallowing it) is identical across all of them.
+        // Table -> claim resourceType, so per-id deletion evidence lands in the same
+        // vocabulary the structured-claim verifier and the model's claims use.
+        const DELETE_EVIDENCE_TYPE: Record<string, string> = {
+          product_lines: 'product_line', product_specs: 'product_spec', engineering_drawings: 'drawing',
+          ai_providers: 'ai_provider', mcp_connectors: 'mcp_connector', proposals: 'proposal',
+        };
         async function deleteByIds(table: string, ids: string[], label: string): Promise<number> {
           if (ids.length === 0) return 0;
           const { data, error } = await supabase.from(table).delete().in('id', ids).select('id');
@@ -3457,6 +3470,8 @@ serve(async (req) => {
             result.summary = `${result.summary || ''}\n\n(${label} deletion failed: ${error.message})`.trim();
             return 0;
           }
+          const evidenceType = DELETE_EVIDENCE_TYPE[table];
+          if (evidenceType) for (const row of data || []) recordExecution(evidenceType, 'delete', row.id, true);
           return data?.length || 0;
         }
         const deletedProductLineCount = await deleteByIds('product_lines', deleteProductLineIds, 'Product line');
@@ -3717,6 +3732,9 @@ serve(async (req) => {
         for (const pr of createdProjects) recordExecution('project', 'create', (pr || {}).id, true);
         for (const g of createdGoals) recordExecution('goal', 'create', (g || {}).id, true);
         for (const id of deletedTaskIds) recordExecution('task', 'delete', id, true);
+        for (const cr of createdCompanyRelationships) recordExecution('company_relationship', 'create', (cr || {}).id, true);
+        for (const pa of createdPersonAssignments) recordExecution('person_assignment', 'create', (pa || {}).id, true);
+        for (const m of createdMemories) recordExecution('memory', 'create', (m || {}).id, true);
 
         // Bugs 7/9 (2026-08-30 campaign): a person-assignment change touching BOTH the
         // legal employer and operating company (a real "reassign X entirely to Y"
@@ -3830,7 +3848,7 @@ serve(async (req) => {
             p_priority: w.priority,
             p_acceptance_criteria: w.acceptanceCriteria,
           });
-          if (!error && data) createdFactoryWorkOrders.push({ id: data as string, title: w.title });
+          if (!error && data) { createdFactoryWorkOrders.push({ id: data as string, title: w.title }); recordExecution('work_order', 'create', data as string, true); }
         }
 
         const createdDepartments: { id: string }[] = [];
@@ -3839,7 +3857,7 @@ serve(async (req) => {
           if (!companyId) continue;
           const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
           const { data, error } = await supabase.from('departments').insert({ company_id: companyId, name: d.name, slug }).select('id').single();
-          if (!error && data) createdDepartments.push(data);
+          if (!error && data) { createdDepartments.push(data); recordExecution('department', 'create', data.id, true); }
         }
         let updatedDepartmentCount = 0;
         for (const d of updateDepartmentsReq) {
@@ -3849,7 +3867,7 @@ serve(async (req) => {
           if (companyId) patch.company_id = companyId;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('departments').update(patch).eq('id', d.id).select('id');
-          if (data && data.length > 0) updatedDepartmentCount++;
+          if (data && data.length > 0) { updatedDepartmentCount++; recordExecution('department', 'update', d.id, true); }
         }
 
         // owner_person_id must be the caller's own person row — matches createLead's own
@@ -3871,7 +3889,7 @@ serve(async (req) => {
             client_name: l.clientName, company_id: companyId, contact_name: l.contactName, contact_email: l.contactEmail,
             stage: l.stage || 'lead', value_estimate: l.valueEstimate ?? 0, owner_person_id: callerPersonId,
           }).select('id').single();
-          if (!error && data) createdLeads.push(data);
+          if (!error && data) { createdLeads.push(data); recordExecution('lead', 'create', data.id, true); }
         }
         let updatedLeadCount = 0;
         for (const l of updateLeadsReq) {
@@ -3883,7 +3901,7 @@ serve(async (req) => {
           if (l.valueEstimate !== null) patch.value_estimate = l.valueEstimate;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('sales_leads').update(patch).eq('id', l.id).select('id');
-          if (data && data.length > 0) updatedLeadCount++;
+          if (data && data.length > 0) { updatedLeadCount++; recordExecution('lead', 'update', l.id, true); }
         }
 
         const createdDocuments: { id: string }[] = [];
@@ -3894,7 +3912,7 @@ serve(async (req) => {
             extracted_text: doc.text, summary: doc.text.slice(0, 200), sensitivity: doc.sensitivity,
             uploaded_by_profile_id: profile.id,
           }).select('id').single();
-          if (!error && data) createdDocuments.push(data);
+          if (!error && data) { createdDocuments.push(data); recordExecution('document', 'create', data.id, true); }
         }
 
         const createdProductLines: { id: string }[] = [];
@@ -3910,6 +3928,7 @@ serve(async (req) => {
             // same line already drawn for what enters its read-side context.
             await supabase.from('product_costs').insert({ product_line_id: inserted.id, unit_cost: 0 });
             createdProductLines.push(inserted);
+            recordExecution('product_line', 'create', inserted.id, true);
           }
         }
         let updatedProductLineCount = 0;
@@ -3920,7 +3939,7 @@ serve(async (req) => {
           if (p.active !== null) patch.active = p.active;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('product_lines').update(patch).eq('id', p.id).select('id');
-          if (data && data.length > 0) updatedProductLineCount++;
+          if (data && data.length > 0) { updatedProductLineCount++; recordExecution('product_line', 'update', p.id, true); }
         }
         // Any product-line create/update that actually touched pricing gets the same
         // forced audit-approval as a deletion — pricing is on the "discounts/financing"
@@ -3947,6 +3966,7 @@ serve(async (req) => {
           }).select('id').single();
           if (error || !spec) continue;
           createdProductSpecs.push(spec);
+          recordExecution('product_spec', 'create', spec.id, true);
           // Mirrors createSoftwareSpec's fixed ticket template exactly (web/lib/data/software.ts)
           // — same 6 titles, same approval-required split, so chat-created specs behave
           // identically to UI-created ones rather than a thinner lookalike.
@@ -3977,7 +3997,7 @@ serve(async (req) => {
           if (s.bodyMd !== null) patch.body_md = s.bodyMd;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('product_specs').update(patch).eq('id', s.id).select('id');
-          if (data && data.length > 0) updatedProductSpecCount++;
+          if (data && data.length > 0) { updatedProductSpecCount++; recordExecution('product_spec', 'update', s.id, true); }
         }
 
         // Engineering drawings: invokes the same real generate-technical-drawing Edge
@@ -3998,19 +4018,20 @@ serve(async (req) => {
             notes: typeof genResult.notes === 'string' ? genResult.notes : null,
             created_by_profile_id: profile.id,
           }).select('id').single();
-          if (!error && inserted) createdDrawings.push(inserted);
+          if (!error && inserted) { createdDrawings.push(inserted); recordExecution('drawing', 'create', inserted.id, true); }
         }
 
         const createdAiProviders: { id: string }[] = [];
         for (const p of createAiProvidersReq) {
           const { data, error } = await supabase.from('ai_providers').insert({ provider: p.provider, model: p.model, label: p.label }).select('id').single();
-          if (!error && data) createdAiProviders.push(data);
+          if (!error && data) { createdAiProviders.push(data); recordExecution('ai_provider', 'create', data.id, true); }
         }
         let activatedAiProvider = false;
         if (activateAiProviderId) {
           await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId);
           const { data } = await supabase.from('ai_providers').update({ is_active: true }).eq('id', activateAiProviderId).select('id');
           activatedAiProvider = !!data && data.length > 0;
+          if (activatedAiProvider) recordExecution('ai_provider', 'activate', activateAiProviderId, true);
         }
 
         const createdProposals: { id: string }[] = [];
@@ -4018,7 +4039,7 @@ serve(async (req) => {
           const companyId = resolveCompanyId(p.companyId, p.companyIndex);
           if (!companyId) continue;
           const { data, error } = await supabase.from('proposals').insert({ title: p.title, company_id: companyId, status: 'draft' }).select('id').single();
-          if (!error && data) createdProposals.push(data);
+          if (!error && data) { createdProposals.push(data); recordExecution('proposal', 'create', data.id, true); }
         }
         let updatedProposalCount = 0;
         for (const p of updateProposalsReq) {
@@ -4027,7 +4048,7 @@ serve(async (req) => {
           if (p.paymentTerms !== null) patch.payment_terms = p.paymentTerms;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('proposals').update(patch).eq('id', p.id).select('id');
-          if (data && data.length > 0) updatedProposalCount++;
+          if (data && data.length > 0) { updatedProposalCount++; recordExecution('proposal', 'update', p.id, true); }
         }
 
         // Ground the reply in what the executor actually did, not what the model's own
@@ -4322,7 +4343,26 @@ serve(async (req) => {
         // EXACT correct-refusal shape QA's own report praised) would itself match and
         // get overwritten - verified live this session via a standalone regex unit test
         // (13/13 cases, including this one) before this pattern was ever wired in.
-        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        // ---- run7/D51: the deterministic backend report is the PRIMARY truth. ----
+        // Everything above this point that wrote result.summary deterministically —
+        // factLines, the organization graph report, lifecycle full-replacement reports,
+        // grounded state corrections, plan confirmations, the future-promise correction —
+        // is derived from real execution results, not from the model. The claim rewrite
+        // below must never discard it: run7 proved the old rewrite replaced a correct
+        // "Deleted 3 of 3 requested approval(s)." with claim-only lines, so real
+        // mutations the model failed to claim vanished (D51) and truthful claims about
+        // paths without per-id evidence were answered with a false denial (D50).
+        // Computed HERE, above the structured-claim window, because it reads this
+        // function's deterministic execution state — inside the window only the two
+        // resulting values are referenced (the QA harnesses re-execute the window in
+        // isolation and inject these as parameters).
+        const summaryIsFullyDeterministic = !!organizationGraphCheck || !!proposedPlan
+          || model === 'deterministic-plan-execution' || lifecycleReports.length > 0
+          || stateClaimCorrections.length > 0 || lifecycleMismatchCorrections.length > 0
+          || claimsFutureActionWithNoPlan;
+        const deterministicPrefix = summaryIsFullyDeterministic
+          ? String(result.summary || '')
+          : (factLines.length > 0 ? factLines.join(' ') : '');
         // ==================================================================================
         // STRUCTURED-CLAIM VERIFICATION (2026-09-01). Truth is no longer inferred from prose.
         //
@@ -4340,6 +4380,10 @@ serve(async (req) => {
         // The model proposes; the backend executes and alone knows the real ids and
         // postconditions; claims are matched against that evidence by EXACT id.
         // ==================================================================================
+
+        // (Moved inside the structured-claim window so the QA harnesses that re-execute
+        // this window in isolation see it; its only consumer is safeProseFragment below.)
+        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
 
         // Evidence index keyed by EXACT resource identity. Only postcondition-confirmed rows
         // are indexed, so an attempted-but-unconfirmed mutation can never support a claim.
@@ -4392,6 +4436,11 @@ serve(async (req) => {
           company: 'the company', person: 'the person', project: 'the project', task: 'the task',
           goal: 'the goal', approval: 'the approval', department: 'the department',
           business_unit: 'the business unit', work_order: 'the work order', agent: 'the agent',
+          channel: 'the channel', lead: 'the lead', document: 'the document',
+          product_line: 'the product line', product_spec: 'the software spec', drawing: 'the drawing',
+          ai_provider: 'the AI provider', mcp_connector: 'the MCP connector', proposal: 'the proposal',
+          company_relationship: 'the company relationship', person_assignment: 'the assignment',
+          memory: 'the memory entry',
         };
         const lastKnownLabel = (resourceType: string, id: string): string | null => {
           const fromMap = resourceType === 'company' ? companyNameById.get(id)
@@ -4408,9 +4457,47 @@ serve(async (req) => {
             || lastKnownLabel(resourceType, id);
           if (label) return DEBUG_RESOURCE_IDS ? `${label} (${id})` : label;
           // No safe label exists. Use a neutral typed reference — never the raw id, and
-          // never a fabricated name.
-          const typed = TYPED_FALLBACK[resourceType] || `the ${resourceType || 'record'}`;
+          // never a fabricated name. The resourceType itself is MODEL-AUTHORED text on a
+          // claim, so it is never interpolated raw either (run7/D54): only a lowercase
+          // word-shaped type may appear, anything else collapses to "the record".
+          const typed = TYPED_FALLBACK[resourceType]
+            || (typeof resourceType === 'string' && /^[a-z][a-z_]{0,29}$/.test(resourceType) ? `the ${resourceType.replace(/_/g, ' ')}` : 'the record');
           return DEBUG_RESOURCE_IDS ? `${typed} (${id})` : typed;
+        };
+
+        // ---- run7/D54: NOTHING model-authored is interpolated raw into founder prose. ----
+        // displayName covers the resource reference; these cover every other field a claim
+        // carries. An action outside the executor's own vocabulary renders as "changed",
+        // a predicate that isn't a plain column name is dropped, and any value carrying a
+        // canonical uuid is replaced with a neutral reference — the founder-facing reply
+        // must stay uuid-free even when the uuid arrives via expectedValue (the exact
+        // no-smuggling-required leak run7 demonstrated).
+        const UUID_IN_TEXT = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+        const ACTION_PAST: Record<string, string> = {
+          create: 'created', delete: 'deleted', update: 'updated', archive: 'archived',
+          restore: 'restored', activate: 'activated', assign: 'assigned',
+          permanent_delete: 'permanently deleted', end_employment: 'removed from active employment',
+          restore_employment: 'restored to active employment',
+        };
+        const safeActionPast = (action: unknown): string => ACTION_PAST[String(action)] || 'changed';
+        const safePredicate = (p: unknown): string | null =>
+          typeof p === 'string' && /^[a-zA-Z0-9_]{1,40}$/.test(p) ? p : null;
+        const safeValueText = (v: unknown): string => {
+          const s = String(v);
+          return UUID_IN_TEXT.test(s) ? 'the referenced record' : s;
+        };
+        // run7/D53: questions[] and the pendingAction prompt/options are model-authored
+        // prose spliced into the CORRECTED summary — the one output path that exists
+        // because the model's prose could not be trusted. A fragment that asserts a past
+        // completion or carries a uuid is not a question/prompt, it is laundering through
+        // the question channel, and is dropped rather than rendered.
+        const safeProseFragment = (s: unknown): string | null => {
+          if (typeof s !== 'string') return null;
+          const t = s.trim();
+          if (t.length === 0) return null;
+          if (UUID_IN_TEXT.test(t)) return null;
+          if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return null;
+          return t;
         };
 
         const rawClaims = Array.isArray(result.claims) ? result.claims : null;
@@ -4486,9 +4573,14 @@ serve(async (req) => {
         }
 
         // Questions and proposed actions are NOT factual execution claims and are never
-        // subject to grounding. They pass through untouched.
-        const envelopeQuestions = Array.isArray(result.questions) ? result.questions.filter((q) => typeof q === 'string' && q.trim().length > 0) : [];
-        const envelopeProposedActions = Array.isArray(result.proposedActions) ? result.proposedActions.filter((a) => typeof a === 'string' && a.trim().length > 0) : [];
+        // GROUNDED — but they are still model-authored prose that gets spliced into the
+        // corrected summary and persisted in the envelope, so they pass the run7/D53
+        // laundering gate: no past-completion assertions, no uuids. A genuine question
+        // survives untouched.
+        const envelopeQuestions = (Array.isArray(result.questions) ? result.questions : [])
+          .map(safeProseFragment).filter((q) => q !== null) as string[];
+        const envelopeProposedActions = (Array.isArray(result.proposedActions) ? result.proposedActions : [])
+          .map(safeProseFragment).filter((a) => a !== null) as string[];
 
         const hasRejectedClaims = rejectedClaims.length > 0;
 
@@ -4518,9 +4610,21 @@ serve(async (req) => {
           && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
           && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
 
-        const claimsPastCompletionWithNoGrounding = hasRejectedClaims || legacyProseFallback;
+        // run7/D52: a single supported mutation claim used to disarm the drift check
+        // entirely, so the model could pair one real create with fabricated completion
+        // prose about anything else. The rewrite now triggers on ANY mutation-shaped
+        // claim, not only on rejections — a mutation turn's founder-facing prose is
+        // re-rendered from verified structure every time, so unclaimed fabrications in
+        // the raw prose never ship regardless of what else was genuinely done. Read-only
+        // turns (no mutation claims, no rejections) are untouched, per the standing
+        // "read-only turns must not enter mutation-completion correction" rule.
+        const hasMutationShapedClaim = rawClaims
+          ? rawClaims.some((c) => c && typeof c === 'object' && (c.type === 'mutation_result' || c.type === 'assignment'))
+          : false;
+        const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim;
+        const claimsPastCompletionWithNoGrounding = rewriteFromStructure || legacyProseFallback;
 
-        if (hasRejectedClaims) {
+        if (rewriteFromStructure) {
           // VERIFIED STRUCTURE -> PROSE. The reply is re-rendered from what was actually
           // verified, so an unsupported claim is never displayed as success and the prose is
           // never parsed to decide what to keep. Supported claims, questions and any pending
@@ -4533,30 +4637,65 @@ serve(async (req) => {
               // the resourceType is not repeated — otherwise a fallback read "company the
               // company: archive confirmed."
               const subject = displayName(c.resourceType, c.resourceId);
-              if (c.type === 'mutation_result' || c.type === 'assignment') return `${subject}: ${c.action} confirmed.`;
-              if (c.predicate) return `${subject}: ${c.predicate} is ${String(c.expectedValue)}.`;
+              if (c.type === 'mutation_result' || c.type === 'assignment') return `${subject}: ${safeActionPast(c.action)} — confirmed.`;
+              const predicate = safePredicate(c.predicate);
+              if (predicate) return `${subject}: ${predicate} is ${safeValueText(c.expectedValue)}.`;
               return `${subject}: confirmed.`;
             });
+          // run7/D50: "nothing was changed for it" was a DENIAL, and with evidence
+          // coverage necessarily finite it denied real mutations. An unsupported claim
+          // means exactly one thing — this turn's execution record cannot confirm it —
+          // so that is all the correction asserts. Only a CONTRADICTED state claim,
+          // disproven by the fresh canonical read, earns an assertive correction.
           const rejectedLines = rejectedClaims.map((r) => {
             const c = r.claim;
             const subject = displayName(c.resourceType, c.resourceId);
+            if (r.verdict === 'contradicted') {
+              const predicate = safePredicate(c.predicate);
+              return predicate
+                ? `Actually, ${subject}’s ${predicate} is not ${safeValueText(c.expectedValue)} in the current records.`
+                : `Actually, the records show otherwise for ${subject}.`;
+            }
             return c.action
-              ? `I couldn’t confirm that ${subject} was ${c.action}d — nothing was changed for it.`
-              : `I couldn’t confirm that claim about ${subject} — nothing was changed for it.`;
+              ? `I can’t confirm from this turn’s execution record that ${subject} was ${safeActionPast(c.action)}.`
+              : `I can’t confirm that claim about ${subject} from this turn’s execution record.`;
           });
+          // run7/D51 (other half): real mutations the model did NOT claim must not vanish.
+          // Deletes and lifecycle transitions already surface through factLines/lifecycle
+          // reports (preserved via deterministicPrefix below); creates/updates/activations
+          // are quiet-on-success there, so any such evidence row no supported claim covers
+          // is reported directly from the backend record.
+          const claimedEvidenceKeys = new Set(verifiedClaims
+            .filter((v) => v.verdict === 'supported' && (v.claim.type === 'mutation_result' || v.claim.type === 'assignment'))
+            .map((v) => v.claim.resourceType + '|' + v.claim.resourceId + '|' + v.claim.action));
+          const unclaimedLines = [];
+          const seenUnclaimed = new Set();
+          for (const e of claimExecutionEvidence) {
+            if (!e.postconditionPassed) continue;
+            if (e.action !== 'create' && e.action !== 'update' && e.action !== 'activate') continue;
+            const k = e.resourceType + '|' + e.id + '|' + e.action;
+            if (claimedEvidenceKeys.has(k) || seenUnclaimed.has(k)) continue;
+            seenUnclaimed.add(k);
+            unclaimedLines.push(`${displayName(e.resourceType, String(e.id))}: ${safeActionPast(e.action)}.`);
+          }
 
           const pa = result.pendingAction;
           const pendingPrompt = pa && typeof pa === 'object'
-            ? [pa.question, pa.summary].map((v) => (typeof v === 'string' ? v.trim() : '')).find((v) => v.length > 0) || ''
+            ? [pa.question, pa.summary].map(safeProseFragment).find((v) => v !== null) || ''
             : '';
           const rawOptions = pa && typeof pa === 'object' && Array.isArray(pa.options) ? pa.options : [];
-          const paOptions = rawOptions.map((o) => (o && typeof o.label === 'string' ? o.label.trim() : '')).filter((l) => l.length > 0);
+          const paOptions = rawOptions.map((o) => safeProseFragment(o && o.label)).filter((l) => l !== null) as string[];
           const promptWithOptions = paOptions.length > 0
             ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
             : pendingPrompt;
 
-          result.summary = [...supportedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
-            .filter((p) => p && String(p).trim().length > 0).join(' ').trim();
+          // The deterministic report leads; on a fully-deterministic summary the claim
+          // lines that would merely restate it (supported/unclaimed) are omitted — only
+          // corrections and genuine questions are appended.
+          const claimParts = summaryIsFullyDeterministic
+            ? [deterministicPrefix, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
+            : [deterministicPrefix, ...supportedLines, ...unclaimedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions];
+          result.summary = claimParts.filter((p) => p && String(p).trim().length > 0).join(' ').trim();
         } else if (legacyProseFallback) {
           result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
         }
