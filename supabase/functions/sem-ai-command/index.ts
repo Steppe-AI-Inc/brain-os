@@ -4200,6 +4200,50 @@ serve(async (req) => {
           result.summary = 'I described an action but didn’t actually queue or execute it — nothing happened yet. Please ask again and I’ll either do it immediately or ask for confirmation first.';
         }
 
+        // BUG-002 (Work-PC QA campaign C001, qa/bugs/BUG-002.md) — a FOURTH shape of the
+        // same class as claimsFutureActionWithNoPlan just above, this time PAST tense:
+        // "Approve approval <id> now. Confirm when done." was answered "...has been
+        // approved." with the approval record verified still pending — approvals have no
+        // schema field at all (chat can delete an approval via deleteApprovalIds, but
+        // cannot decide one; decide_approval() is only wired into the UI path,
+        // web/lib/data/approvals.ts), so nothing in this file ever attempted the action,
+        // and nothing forced the model to admit that instead of inventing a completion
+        // sentence. QA's class sweep confirmed this is product-wide, not
+        // approval-specific: the identical shape reproduced on department permanent-
+        // delete and project rename (both fabricated success against unchanged rows),
+        // while a genuinely unsupported operation with system-prompt-documented text
+        // (people hard-delete) correctly refused — proving the fix must be structural,
+        // not another per-resource prose patch: "the entity resolved but the capability
+        // is absent" is exactly what groundedOutcomeThisTurn already distinguishes from
+        // "a real operation executed" (factLines.length > 0 iff something in this
+        // function's own resource handling actually ran). Deliberately the same guard
+        // shape as claimsFutureActionWithNoPlan (same deterministic-mode exclusions,
+        // same !groundedOutcomeThisTurn gate) - a turn where anything real actually
+        // executed (real factLines, a real pendingAction, a real plan, etc.) is
+        // completely unaffected, so a legitimate "created 3 tasks, and here's a summary"
+        // reply is never touched by this check.
+        //
+        // Known, disclosed limitation (not fixed by this pass): groundedOutcomeThisTurn
+        // is a whole-turn signal, not per-resource. A single turn that both performs one
+        // real supported action (grounding the turn) AND falsely claims an unsupported
+        // one in the same reply would not be caught here - that needs a per-claim cross-
+        // check against factLines' own resource-by-resource evidence, a larger change
+        // deliberately deferred rather than rushed into this already-large function under
+        // time pressure. QA's own reproductions were all single-intent turns, which this
+        // fix fully closes.
+        // Hedge-word exclusion is load-bearing, not decoration: without it, an honest
+        // "I don't see that task - it may have been archived or deleted" decline (the
+        // EXACT correct-refusal shape QA's own report praised) would itself match and
+        // get overwritten - verified live this session via a standalone regex unit test
+        // (13/13 cases, including this one) before this pattern was ever wired in.
+        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+          && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+          && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
+        if (claimsPastCompletionWithNoGrounding) {
+          result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
+        }
+
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution
         // precedence above) always emits "Confirmed — {summary}" unconditionally — correct
@@ -4245,7 +4289,7 @@ serve(async (req) => {
         // even carried two raw entity UUIDs directly in that never-corrected stored text -
         // the exact "no raw UUIDs in founder-facing text" invariant this campaign
         // otherwise holds elsewhere. Same fix shape as the rest of this comment.
-        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan) {
+        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 
