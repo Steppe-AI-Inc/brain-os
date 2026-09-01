@@ -3,8 +3,26 @@
 > ### UPDATED 2026-09-01 — EDGE FUNCTION DEPLOY LANDED
 > BUG-002 and issue #5 Class B **are now deployed and live**. Both moved from
 > `NOT READY FOR RETEST` to **`READY FOR PLAYWRIGHT RETEST`** — see §7, §8, §17, §18.
-> Independent verification of that deploy was **still running** when this update was
-> written; that is stated plainly rather than pre-claimed. Everything else is unchanged.
+>
+> ### UPDATED AGAIN — INDEPENDENT VERIFICATION COMPLETE (`607cdaa`, KFM #61)
+> The verifier **passed the deploy** (deployed bytes proven identical to the commit by
+> sha256) but found **four issues, two of which change what you should expect**:
+> - **D3 — BUG-002's fix is INCOMPLETE.** The gate is short-circuited by
+>   `&& !result.pendingAction`, so a fabricated claim *paired with a follow-up question*
+>   still gets through: `"The approval has been approved. Would you like me to…?"` matches
+>   the pattern but bypasses the correction. **Expect this to still reproduce.** Not fixed
+>   (needs another functions deploy). Independently re-confirmed by Main-PC.
+> - **D4 — production still carries the original incident's damage.**
+>   `QA-SWARM-TEST-CO-VIA-CHAT` — the company the issue #5 bug wrongly archived — was
+>   never restored, and 2 active tasks sit under archived companies unlabelled (same class
+>   as BUG-001/#55).
+> - **D1 — a Main-PC claim was wrong** and is corrected below (§8).
+> - **D2 — both unit regressions were "detached copies"** that would stay green even if the
+>   product regressed; the verifier added a real source-drift guard.
+>
+> **Live HTTP acceptance is still BLOCKED for every automated session** — the verifier hit
+> the same wall (no browser tools, session minting and even outbound HTTP denied). All 8
+> named regressions remain unverified. **Work-PC is now the only path to that evidence.**
 
 **Test target:**
 - `origin/master`: **`c9dfab5bd43346bad501ab44d7bfbc5211e90ed5`** (short `c9dfab5`) — "fix: BUG-002 P1 - Brain Chat must not fabricate past-tense completion claims"
@@ -161,6 +179,24 @@ Unit tests: **13/13 PASS** (`qa/scenarios-runner/sem_ai_command_past_completion_
 
 **Not yet done — this is your job:** no live HTTP acceptance test was run. `sem-ai-command` requires a genuine authenticated user JWT (it calls `auth.getUser()` with the caller's own token and never uses service-role), and the Main-PC implementation session had no way to mint one — the same gap `qa/HANDOFF_STATE.json` records as *"DISTINCT BROWSER PERSONAS UNAVAILABLE."* Live behaviour was **not** inferred from code reading. Status is therefore **DEPLOYED + CODE VERIFIED**, awaiting your real-browser proof.
 
+### ⚠️ D3 — the fix is INCOMPLETE. Read before testing.
+
+Found by independent verification (`607cdaa`, KFM #61) and re-confirmed by Main-PC against the deployed source. The gate reads:
+
+```
+const claimsPastCompletionWithNoGrounding = model !== 'deterministic-…'
+  && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+  && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
+```
+
+The `&& !result.pendingAction` clause means **any fabricated completion claim that also carries a pending action escapes the correction.** So:
+
+> `"The approval has been approved. Would you like me to notify the team?"`
+
+matches the pattern, but **bypasses the gate** and is returned to the user uncorrected. Pre-existing (the sibling `claimsFutureActionWithNoPlan` gate shares the same short-circuit), **not fixed**, and fixing it needs another Edge Function deploy.
+
+**Expect this variant to still reproduce.** That is a known gap, not a new regression — please log it as evidence rather than a fresh bug. The plain form (fabricated claim with **no** follow-up question) *should* now be corrected.
+
 **Required invariant to test:** requested mutation → resolved entities → executable operation → backend execution → postcondition → final response. **If zero operations executed: no success language.**
 
 **Playwright reproduction:** ask Brain Chat to perform mutations where the entity **resolves** but `executable_operations = 0` — approve an approval, permanently delete a department, rename a project. Brain must truthfully say it was not executed / capability unavailable. Then confirm a genuinely **supported** mutation still works end to end.
@@ -182,6 +218,10 @@ Unit tests: **13/13 PASS** (`qa/scenarios-runner/sem_ai_command_past_completion_
 **This replaces the earlier `NOT DEPLOYED` status — please DO retest it now.** The destructive path below should no longer be reproducible; capturing that it is genuinely gone is the highest-value test in this batch.
 
 **Scope, unchanged and important: only Class B shipped.** Classes A/C/D/E remain open architecture work (§9). **Do not report issue #5 as closed.**
+
+**D1 — correction to an earlier Main-PC claim.** An earlier version of this handoff (and the deploy commit message) said the 2 remaining `actionType || 'archive'` matches were "comments only." **That was wrong.** There are **3** occurrences, and line 234 (`const resolvedActionType = actionType || 'archive';` inside `commandContradictsActionType`) is **live code** — it was reached by a grep pattern that filtered it out. The security conclusion still holds, but for a different reason than stated: line 234 is a **non-mutating boolean guard** that only decides whether to *reject* a stale confirmation; it can never select a mutation field. The two call sites that *do* select a mutation field both go through the fail-closed `resolveClarificationField()`. **Do not re-verify from the "comments only" premise.**
+
+**D4 — production still carries this incident's damage.** `QA-SWARM-TEST-CO-VIA-CHAT`, the company this exact bug wrongly archived, **was never restored** and is still `archived`. There are 2 active tasks under archived companies with no label (same failure class as BUG-001/#55). Useful as physical evidence of the original incident; the founder has been asked whether to restore it or leave it. Do not assume it was cleaned up.
 
 **Exact founder reproduction (this is what must now FAIL to archive):**
 ```
@@ -343,10 +383,10 @@ Bug closure authority remains exclusively Work-PC's. Main-PC has not set any sta
 | Surface | Severity | Implementation | Production | Independent Verifier | Work-PC Action |
 |---|---|---|---|---|---|
 | BUG-004 (null-scope security) | P1 | Complete | **Deployed** | PASS (#52/#56) | **Retest first (P0)** |
-| BUG-002 (false success) | P1 | Complete, 13/13 unit | **DEPLOYED c9dfab5 / v92** | in progress | **Retest (P1 #7)** |
+| BUG-002 (false success) | P1 | **Partial — D3 gap open** | **DEPLOYED c9dfab5 / v92** | **PASS w/ 4 findings** | **Retest (P1 #7); expect D3 variant to reproduce** |
 | BUG-003 (dashboard count) | P2 | Complete | **Deployed** | PASS (#57) | Retest |
 | BUG-001 (archived ancestry) | P2 | **3 of ~24 surfaces** | Deployed (partial) | PASS on the 2 disclosed | Sweep remaining 18 |
-| Issue #5 Class B (destructive confirm) | P1 | Complete, 10/10 unit | **DEPLOYED c9dfab5 / v92** | in progress | **Retest first (P1 #6)** |
+| Issue #5 Class B (destructive confirm) | P1 | Complete, 10/10 unit + drift guard | **DEPLOYED c9dfab5 / v92** | **PASS (root cause re-derived)** | **Retest first (P1 #6)** |
 | Issue #5 A/C/D/E (continuity) | P1 | **Not implemented** | n/a | n/a | Adversarial baseline, do not certify |
 | Multi-org backend | — | Complete | **Deployed** | PASS | Retest |
 | Own company (`create_own_company`) | — | Complete | **Deployed** | PASS | Retest |
