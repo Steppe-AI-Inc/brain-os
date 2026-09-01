@@ -104,6 +104,60 @@ export async function updatePerson(id: string, input: PersonInput) {
   return null;
 }
 
+// The manager set-UI's write path — the piece the Work-PC handoff table called out as
+// missing ("Manager relationships — read-only, no set-UI"). Calls the same idempotent
+// set_person_assignment() RPC the AI-chat path uses (202608280011), so the UI and chat
+// converge on one canonical write: authority is enforced INSIDE the RPC (founder/admin
+// or manager of the target company — it raises, not silently no-ops), one current
+// primary assignment per person is DB-unique, and people.company_id stays in sync.
+//
+// Honest scope limit, on purpose: the RPC coalesces p_manager_person_id on an existing
+// current assignment, so passing null KEEPS the old manager rather than clearing it.
+// Set/change is therefore all this action offers — a real "clear manager" needs an RPC
+// change (a gated migration), and faking it here with a raw table update would bypass
+// the canonical write path this exists to converge on.
+//
+// The person must already have a company: the assignment is org-scoped by definition
+// ("who is X's manager in company Y"), and the RPC requires an operating company to
+// scope authority against.
+export async function setPersonManager(personId: string, managerPersonId: string): Promise<string | null> {
+  if (!personId || !managerPersonId) return "Both a person and a manager are required.";
+  if (personId === managerPersonId) return "A person can’t be their own manager.";
+  const supabase = await createClient();
+  const { data: person, error: personError } = await supabase
+    .from("people")
+    .select("id, company_id")
+    .eq("id", personId)
+    .maybeSingle();
+  if (personError) return personError.message;
+  if (!person) return "This person may no longer exist or you may not have access to them.";
+  if (!person.company_id) return "Assign this person to a company first — a manager relationship is scoped to one organization.";
+  // The manager must be visible to the caller and belong to the SAME organization —
+  // the org-scoped-manager rule. The RPC itself doesn't check this (chat resolves
+  // targets from context first), so the UI path checks it against a real read here
+  // rather than trusting the submitted id.
+  const { data: manager, error: managerError } = await supabase
+    .from("people")
+    .select("id, company_id, active")
+    .eq("id", managerPersonId)
+    .maybeSingle();
+  if (managerError) return managerError.message;
+  if (!manager) return "That manager may no longer exist or you may not have access to them.";
+  if (manager.company_id !== person.company_id) return "Manager must belong to the same organization — manager relationships are per-company.";
+  if (manager.active === false) return "That person’s employment has ended — pick a current employee as manager.";
+
+  const { error } = await supabase.rpc("set_person_assignment", {
+    p_person_id: personId,
+    p_operating_company_id: person.company_id,
+    p_manager_person_id: managerPersonId,
+  });
+  // The RPC RAISES on missing authority (founder/admin or target-company manager), so
+  // unlike the RLS-silent-no-op paths above, an error here is a real, specific answer.
+  if (error) return error.message;
+  revalidatePath("/people");
+  return null;
+}
+
 // Real login-account onboarding: a `people` row is just an HR record, it never grants
 // access. This sends a real Supabase invite email, then links the resulting profile back
 // onto the person and grants company membership. Uses the service-role client for
