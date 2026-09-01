@@ -23,6 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { extractGateSlice } from './_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
@@ -64,51 +65,29 @@ function stripTypeAssertions(text) {
 }
 
 function buildGateRunner(source) {
-  const start = source.indexOf('const FUTURE_PROMISE_PATTERN');
-  if (start === -1) throw new Error('FUTURE_PROMISE_PATTERN not found - update this harness');
-  const ifIdx = source.indexOf('if (claimsPastCompletionWithNoGrounding)', start);
-  if (ifIdx === -1) throw new Error('past-completion correction block not found - update this harness');
-  let depth = 0, end = -1;
-  for (let k = source.indexOf('{', ifIdx); k < source.length; k++) {
-    if (source[k] === '{') depth++;
-    else if (source[k] === '}') { depth--; if (depth === 0) { end = k + 1; break; } }
-  }
-  if (end === -1) throw new Error('unbalanced braces in the correction block');
-  // The only TypeScript-only syntax inside this slice is `x as <Type>` assertions. Strip
-  // them with a balanced scan (nested {} / <> / [] / () all handled) so plain node can
-  // execute the real statements verbatim. A hand-written regex was tried first and was
-  // NOT good enough - it silently failed on a nested `Array<{ label?: unknown }>`, and a
-  // harness that cannot parse the source it is supposed to execute must throw, never
-  // quietly pass.
-  // Normalize to LF first (working tree is CRLF; any line-anchored strip below would
-  // silently fail against \r\n), then remove the TypeScript-only declarations the
-  // 2026-09-01 structural per-claim rewrite introduced. Same treatment as
-  // mixed_claim_grounding.mjs. If any survives, THROW rather than pass opaquely.
-  let pre = source.slice(start, end).replace(/\r\n/g, '\n');
-  pre = pre.replace(/^\s*type ClaimType =[\s\S]*?;\s*$/m, '');
-  // Signature-agnostic (see mixed_claim_grounding.mjs for the same reasoning): pinning the
-  // exact parameter list broke when classifyClaim gained its historyFrameOpen argument.
-  pre = pre.replace(/function classifyClaim\(([^)]*)\):\s*ClaimType/, (_m, params) =>
-    'function classifyClaim(' + params.replace(/:\s*[A-Za-z_][\w.<>[\]]*/g, '') + ')');
-  pre = pre.replace(/const claimAudit: Array<[\s\S]*?> =/, 'const claimAudit =');
-  pre = pre.replace(/const rebuiltClaims: string\[\] =/, 'const rebuiltClaims =');
-  const slice = stripTypeAssertions(pre);
-  if (/\btype ClaimType\b|: ClaimType\b/.test(slice)) {
-    throw new Error('TypeScript type syntax survived stripping - update this harness');
-  }
-  // lifecycleMismatchCorrections is injected too: it is in scope at the real call site,
-  // and a candidate fix for D6 (#62) needs to reference it. Defaults to [] for the
-  // versions that do not.
-  // `factLines` added 2026-09-01: the structural per-claim rewrite grounds against real
-  // per-resource execution evidence, so the harness must supply it. `lifecycleMismatchCorrections`
-  // is retained even though the rewrite removed the broad kill-switch that used it (D11) —
-  // harmless, and keeps this harness able to execute the older block shapes it documents.
+  // Uses the SHARED extractor in qa/scenarios-runner/_gate_extract.mjs.
+  // Each harness previously carried its own hand-written TypeScript stripper naming
+  // specific symbols, so every product change broke all three in a different way. One of
+  // those private copies also had a latent bug that silently consumed 6,700 characters of
+  // real code whenever a product comment happened to contain the words " as " - the
+  // harness then failed with a ReferenceError far from the cause.
+  const slice = extractGateSlice(source);
   const fn = new Function(
-    'model', 'result', 'groundedOutcomeThisTurn', 'lifecycleMismatchCorrections', 'factLines',
-    slice + '\n; return { summary: result.summary, pendingAction: result.pendingAction, past: claimsPastCompletionWithNoGrounding, future: claimsFutureActionWithNoPlan };'
+    'model', 'result', 'groundedOutcomeThisTurn', 'factLines', 'hasExecutionEvidence', 'proposedPlan', 'lifecycleMismatchCorrections', 'command',
+    slice + '\n; return { summary: result.summary, pendingAction: result.pendingAction, claimAudit: result.claimAudit || null, corrected: claimsPastCompletionWithNoGrounding, past: claimsPastCompletionWithNoGrounding, future: claimsFutureActionWithNoPlan };'
   );
-  return (model, summary, pendingAction, grounded, lifecycleMismatchCorrections = [], factLines = []) =>
-    fn(model, { summary, pendingAction }, grounded, lifecycleMismatchCorrections, factLines);
+  return (model, summary, pendingAction, grounded, a, b) => {
+    // Older call sites pass (…, lifecycleMismatchCorrections, factLines); newer ones pass
+    // (…, factLines). Accept both: whichever array carries fact lines is used as evidence.
+    const arrA = Array.isArray(a) ? a : [];
+    const arrB = Array.isArray(b) ? b : [];
+    const factLines = arrB.length > 0 ? arrB : arrA;
+    // A string in either trailing slot is the founder COMMAND for this turn. Default is a
+    // mutation request, because that is what the fabrication corpus represents; read-only
+    // cases pass an explicit query so the gate correctly treats the reply as a report.
+    const cmd = typeof b === 'string' ? b : (typeof a === 'string' ? a : 'archive the company');
+    return fn(model, { summary, pendingAction }, grounded, factLines, factLines.length > 0, null, arrA, cmd);
+  };
 }
 
 const run = buildGateRunner(src);

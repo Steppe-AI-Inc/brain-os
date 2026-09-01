@@ -25,6 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { extractGateSlice } from './_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
@@ -60,41 +61,36 @@ function stripTypeAssertions(text) {
 }
 
 function buildRunner(source) {
-  const start = source.indexOf('const FUTURE_PROMISE_PATTERN');
-  if (start === -1) throw new Error('FUTURE_PROMISE_PATTERN not found — update this harness');
-  const anchor = source.indexOf('(result).claimAudit = claimAudit;', start) !== -1
-    ? source.indexOf('(result).claimAudit = claimAudit;', start)
-    : source.indexOf('claimAudit = claimAudit;', start);
-  if (anchor === -1) throw new Error('claim-grounding block not found — update this harness');
-  const end = source.indexOf('}', source.indexOf('\n', anchor)) + 1;
-  // Normalize to LF FIRST. The working tree is CRLF, and every strip pattern below that
-  // anchors on a line end would silently fail to match against \r\n — the harness would
-  // then hand un-stripped TypeScript to new Function() and throw. Normalizing once here
-  // makes all of them line-ending agnostic.
-  let slice = source.slice(start, end).replace(/\r\n/g, '\n');
-  // Drop the TS type alias and the typed annotations node cannot parse.
-  slice = slice.replace(/^\s*type ClaimType =[\s\S]*?;\s*$/m, '');
-  // Signature-agnostic: strip param type annotations and the return type whatever the
-  // parameter list is. Pinning the exact signature broke the moment classifyClaim gained
-  // its second parameter, and a harness that cannot parse the source it executes must not
-  // be the thing that blocks a correct change.
-  slice = slice.replace(/function classifyClaim\(([^)]*)\):\s*ClaimType/, (_m, params) =>
-    'function classifyClaim(' + params.replace(/:\s*[A-Za-z_][\w.<>[\]]*/g, '') + ')');
-  slice = slice.replace(/const claimAudit: Array<[\s\S]*?> =/, 'const claimAudit =');
-  slice = slice.replace(/const rebuiltClaims: string\[\] =/, 'const rebuiltClaims =');
-  slice = stripTypeAssertions(slice);
-  if (/\btype ClaimType\b|: ClaimType\b/.test(slice)) {
-    throw new Error('TypeScript type syntax survived stripping — update this harness rather than letting it throw opaquely');
-  }
+  // Uses the SHARED extractor in qa/scenarios-runner/_gate_extract.mjs.
+  // Each harness previously carried its own hand-written TypeScript stripper naming
+  // specific symbols, so every product change broke all three in a different way. One of
+  // those private copies also had a latent bug that silently consumed 6,700 characters of
+  // real code whenever a product comment happened to contain the words " as " - the
+  // harness then failed with a ReferenceError far from the cause.
+  const slice = extractGateSlice(source);
   const fn = new Function(
-    'model', 'result', 'groundedOutcomeThisTurn', 'factLines',
-    slice + '\n; return { summary: result.summary, claimAudit: result.claimAudit || null, corrected: claimsPastCompletionWithNoGrounding };'
+    'model', 'result', 'groundedOutcomeThisTurn', 'factLines', 'hasExecutionEvidence', 'proposedPlan', 'lifecycleMismatchCorrections', 'command',
+    slice + '\n; return { summary: result.summary, pendingAction: result.pendingAction, claimAudit: result.claimAudit || null, corrected: claimsPastCompletionWithNoGrounding, past: claimsPastCompletionWithNoGrounding, future: claimsFutureActionWithNoPlan };'
   );
-  return (model, summary, pendingAction, grounded, factLines = []) =>
-    fn(model, { summary, pendingAction }, grounded, factLines);
+  return (model, summary, pendingAction, grounded, a, b) => {
+    // Older call sites pass (…, lifecycleMismatchCorrections, factLines); newer ones pass
+    // (…, factLines). Accept both: whichever array carries fact lines is used as evidence.
+    const arrA = Array.isArray(a) ? a : [];
+    const arrB = Array.isArray(b) ? b : [];
+    const factLines = arrB.length > 0 ? arrB : arrA;
+    // A string in either trailing slot is the founder COMMAND for this turn. Default is a
+    // mutation request, because that is what the fabrication corpus represents; read-only
+    // cases pass an explicit query so the gate correctly treats the reply as a report.
+    const cmd = typeof b === 'string' ? b : (typeof a === 'string' ? a : 'archive the company');
+    return fn(model, { summary, pendingAction }, grounded, factLines, factLines.length > 0, null, arrA, cmd);
+  };
 }
 
-const run = buildRunner(src);
+const runRaw = buildRunner(src);
+const run = (model, summary, pendingAction, grounded, factLines) => runRaw(model, summary, pendingAction, grounded, factLines);
+// Read-only variant: the founder ASKED a question rather than requesting a mutation, so a
+// past-tense sentence in the answer is a report about history, not a claim about this turn.
+const runReadOnly = (model, summary, pendingAction) => runRaw(model, summary, pendingAction, false, [], "what happened in this channel?");
 
 let pass = 0;
 const failures = [];
@@ -180,7 +176,10 @@ const TRUTHFUL_SURVIVORS = [
   ['C5 honest hedged decline', 'I don’t see that task — it may have been archived or deleted.'],
 ];
 for (const [name, s] of TRUTHFUL_SURVIVORS) {
-  const r = run('gpt', s, null, false);
+  // Read-only runner: these are reports and declines answering a QUESTION, not replies to a
+  // mutation request. Under per-resource grounding that distinction is what protects them,
+  // rather than any pronoun heuristic (#64/D17).
+  const r = runReadOnly('gpt', s, null);
   check(name + ' — untouched', !r.corrected,
     'A truthful reply must not be corrected. Got corrected=' + r.corrected + ' summary=' + JSON.stringify(String(r.summary || '').slice(0, 160)));
 }
@@ -188,8 +187,11 @@ for (const [name, s] of TRUTHFUL_SURVIVORS) {
 // =======================================================================================
 // SECTION D — grounded turns. Real execution evidence must let a success claim stand.
 // =======================================================================================
-check('D1 grounded (groundedOutcomeThisTurn) success claim survives',
-  !run('gpt', 'The company was archived successfully.', null, true).corrected);
+// Grounding is now PER-RESOURCE: a matching factLine, not the whole-turn
+// groundedOutcomeThisTurn signal (which counted mere entity resolution as mutation proof —
+// the exact thing the contract says to stop doing).
+check('D1 grounded success claim survives when SAME-RESOURCE evidence exists',
+  !run('gpt', 'The company was archived successfully.', null, true, ['Archived 1 of 1 requested company(s).']).corrected);
 check('D2 grounded via factLines evidence survives',
   !run('gpt', 'The company was archived successfully.', null, false, ['Archived 1 of 1 requested company(s).']).corrected);
 check('D3 ungrounded success claim is corrected',
@@ -241,8 +243,8 @@ for (const m of ['deterministic-confirmation', 'deterministic-plan-execution', '
 }
 {
   // all supported, grounded
-  const r = run('gpt', 'The task has been completed. The project has been renamed.', null, true);
-  check('E8 all-supported grounded reply untouched', !r.corrected);
+  const r = run('gpt', 'The task has been completed. The project has been renamed.', null, true, ['Task batch — Requested: 1. Succeeded: 1. Failed: 0.', 'Project batch — Requested: 1. Succeeded: 1. Failed: 0.']);
+  check('E8 all-supported reply untouched when every resource has evidence', !r.corrected);
 }
 
 // =======================================================================================
@@ -267,9 +269,11 @@ for (const m of ['deterministic-confirmation', 'deterministic-plan-execution', '
   const r = run('gpt', 'The approval was not rejected — it has been approved.', null, false);
   check('G1 claimAudit emitted on correction', Array.isArray(r.claimAudit) && r.claimAudit.length >= 2);
   check('G2 claimAudit marks the false claim contradicted',
-    Array.isArray(r.claimAudit) && r.claimAudit.some((c) => c.verdict === 'contradicted' && /has been approved/i.test(c.claim)));
-  check('G3 claimAudit keeps the truthful claim',
-    Array.isArray(r.claimAudit) && r.claimAudit.some((c) => c.verdict === 'kept' && /was not rejected/i.test(c.claim)));
+    Array.isArray(r.claimAudit) && r.claimAudit.some((c) => c.verdict === 'contradicted' && /has been approved/i.test(c.text)));
+  // Verdict vocabulary is now supported | contradicted | not_a_claim, and each entry
+  // records the assertion span in .text with the reason it was classified that way.
+  check('G3 claimAudit records the truthful claim as not-a-claim with a reason',
+    Array.isArray(r.claimAudit) && r.claimAudit.some((c) => c.verdict === 'not_a_claim' && /negated/i.test(c.reason)));
 }
 
 console.log('\nmixed_claim_grounding: ' + pass + '/' + (pass + failures.length) + ' passed');
