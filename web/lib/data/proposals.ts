@@ -8,13 +8,20 @@ import { renderPdf, type PdfLine } from "@/lib/pdf/simple-pdf";
 // internal_margin lives in proposal_financials (manager+ RLS), fetched separately and
 // merged — mirrors getProductLines(). A non-manager's proposal_financials query comes
 // back empty (RLS), so every row is visible with margin simply omitted, not an error.
-export async function getProposals() {
+//
+// Multi-org milestone: activeOrganizationId scopes Proposals to the currently selected
+// organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
+// filter only, RLS remains the sole authorization boundary either way. proposal_financials
+// is left unscoped on purpose: the map is only read for the already-filtered proposals.
+export async function getProposals(activeOrganizationId?: string | null) {
   const supabase = await createClient();
+  let proposalsQuery = supabase
+    .from("proposals")
+    .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name, status)")
+    .order("created_at", { ascending: false });
+  if (activeOrganizationId) proposalsQuery = proposalsQuery.eq("company_id", activeOrganizationId);
   const [{ data, error }, { data: financials }] = await Promise.all([
-    supabase
-      .from("proposals")
-      .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name, status)")
-      .order("created_at", { ascending: false }),
+    proposalsQuery,
     supabase.from("proposal_financials").select("proposal_id, internal_margin"),
   ]);
   if (error) throw error;

@@ -3,13 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getEngineeringDrawings(companyId?: string) {
+// Multi-org milestone: the pre-existing optional company filter is now the canonical
+// activeOrganizationId parameter, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+export async function getEngineeringDrawings(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("engineering_drawings")
     .select("id, company_id, title, description, svg_content, dimensions_summary, notes, created_at, companies(name, status)")
     .order("created_at", { ascending: false });
-  if (companyId) query = query.eq("company_id", companyId);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;
   if (error) throw error;
   return data;

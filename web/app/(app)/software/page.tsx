@@ -1,6 +1,8 @@
 import { Code2 } from "lucide-react";
 import { getProductSpecs, getSoftwareTickets } from "@/lib/data/software";
 import { getCompaniesForSelection } from "@/lib/data/companies";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -8,9 +10,14 @@ import { SpecCreateForm } from "./spec-create-form";
 import { SpecsList } from "./specs-list";
 
 export default async function SoftwarePage() {
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
   const [specs, tickets, companies] = await Promise.all([
-    getProductSpecs(),
-    getSoftwareTickets(),
+    getProductSpecs(scopeToActiveOrg),
+    getSoftwareTickets(scopeToActiveOrg),
     getCompaniesForSelection(),
   ]);
 

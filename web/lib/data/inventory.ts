@@ -3,14 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getInventory() {
+// Multi-org milestone: activeOrganizationId scopes Inventory to the currently selected
+// organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
+// filter only, RLS remains the sole authorization boundary either way.
+export async function getInventory(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("inventory_items")
     .select(
       "id, sku, quantity_on_hand, reserved_quantity, reorder_point, location, company_id, companies(name, status), product_lines(name)"
     )
     .order("sku");
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

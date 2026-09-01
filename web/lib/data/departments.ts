@@ -9,15 +9,23 @@ import { createClient } from "@/lib/supabase/server";
 // company picker (which correctly excludes archived companies). Selecting `status` too
 // is the minimal real fix; the corresponding page renders <ArchivedCompanyBadge/>
 // (web/components/archived-company-badge.tsx) from it.
-export async function getDepartments() {
+// Multi-org milestone: activeOrganizationId scopes Departments to the currently selected
+// organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
+// filter only, RLS remains the sole authorization boundary either way. The goals count
+// query is scoped in step: an unscoped count would still be *correct* (the map is only
+// read for the filtered departments) but would fetch every org's goals for nothing.
+export async function getDepartments(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const [{ data: departments, error }, { data: activeGoals }] = await Promise.all([
-    supabase
-      .from("departments")
-      .select("id, name, slug, company_id, created_at, companies(name, status)")
-      .order("created_at", { ascending: false }),
-    supabase.from("goals").select("department_id").eq("status", "active"),
-  ]);
+  let departmentsQuery = supabase
+    .from("departments")
+    .select("id, name, slug, company_id, created_at, companies(name, status)")
+    .order("created_at", { ascending: false });
+  let goalsQuery = supabase.from("goals").select("department_id").eq("status", "active");
+  if (activeOrganizationId) {
+    departmentsQuery = departmentsQuery.eq("company_id", activeOrganizationId);
+    goalsQuery = goalsQuery.eq("company_id", activeOrganizationId);
+  }
+  const [{ data: departments, error }, { data: activeGoals }] = await Promise.all([departmentsQuery, goalsQuery]);
   if (error) throw error;
 
   const counts = new Map<string, number>();

@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getFinancialReports(companyId?: string) {
+// Multi-org milestone: the pre-existing optional company filter is now the canonical
+// activeOrganizationId parameter, same pattern as getPeople() in lib/data/people.ts —
+// a query-shape filter only, RLS remains the sole authorization boundary either way.
+export async function getFinancialReports(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("financial_reports")
@@ -11,7 +14,7 @@ export async function getFinancialReports(companyId?: string) {
       "id, company_id, period, revenue, expenses, net_income, cash_position, health_status, notable_flags, summary, created_at, companies(name, status)"
     )
     .order("created_at", { ascending: false });
-  if (companyId) query = query.eq("company_id", companyId);
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;
   if (error) throw error;
   return data;

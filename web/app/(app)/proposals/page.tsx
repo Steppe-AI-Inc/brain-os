@@ -2,6 +2,8 @@ import { FileSignature } from "lucide-react";
 import { getProposals } from "@/lib/data/proposals";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getProductLines } from "@/lib/data/products";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { PageHeader } from "@/components/page-header";
 import { ProposalCreateForm } from "./proposal-create-form";
 import { ProposalsTable } from "./proposals-table";
@@ -14,10 +16,15 @@ import { ProposalsTable } from "./proposals-table";
 export const maxDuration = 60;
 
 export default async function ProposalsPage() {
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
   const [proposals, companies, products] = await Promise.all([
-    getProposals(),
+    getProposals(scopeToActiveOrg),
     getCompaniesForSelection(),
-    getProductLines(),
+    getProductLines(scopeToActiveOrg),
   ]);
 
   return (

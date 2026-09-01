@@ -3,14 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getApprovals() {
+// Multi-org milestone: activeOrganizationId scopes Approvals to the currently selected
+// organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
+// filter only, RLS remains the sole authorization boundary either way. An approval with
+// company_id IS NULL (system-wide gates like the salary-review one) is excluded when a
+// specific org is active, same as any other company-scoped filter would exclude it.
+export async function getApprovals(activeOrganizationId?: string | null) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("approvals")
     .select(
       "id, title, reason, status, risk_level, domain, decision_notes, approval_payload, created_at, decided_at, companies(name, status)"
     )
     .order("created_at", { ascending: false });
+  if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

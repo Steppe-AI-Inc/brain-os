@@ -8,13 +8,21 @@ import { createClient } from "@/lib/supabase/server";
 // so the shape stays a predictable flat map regardless of the 1:1 relationship's embed
 // direction. A non-manager's product_costs query just comes back empty (RLS), not an
 // error — they see every row with unit_cost omitted, not blocked from the page.
-export async function getProductLines() {
+//
+// Multi-org milestone: activeOrganizationId scopes Products to the currently selected
+// organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
+// filter only, RLS remains the sole authorization boundary either way. product_costs is
+// left unscoped on purpose: it has no company_id of its own and the map is only read for
+// the already-filtered product lines.
+export async function getProductLines(activeOrganizationId?: string | null) {
   const supabase = await createClient();
+  let linesQuery = supabase
+    .from("product_lines")
+    .select("id, name, description, currency, unit_price, active, company_id, companies(name, status)")
+    .order("name");
+  if (activeOrganizationId) linesQuery = linesQuery.eq("company_id", activeOrganizationId);
   const [{ data, error }, { data: costs }] = await Promise.all([
-    supabase
-      .from("product_lines")
-      .select("id, name, description, currency, unit_price, active, company_id, companies(name, status)")
-      .order("name"),
+    linesQuery,
     supabase.from("product_costs").select("product_line_id, unit_cost"),
   ]);
   if (error) throw error;
