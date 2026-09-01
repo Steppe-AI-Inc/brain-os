@@ -164,6 +164,30 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> 
   employee: { archive: 'endEmploymentPersonIds', restore: 'restoreEmploymentPersonIds' },
 };
 
+// GitHub issue #5 (P1), defect class B. The single place a pending clarification/
+// disambiguation is allowed to become a real, deterministic (no-LLM) mutation field.
+//
+// Fail-CLOSED by construction: both entityType AND actionType must be explicitly present
+// and known. This replaced two call sites that each did
+// `MAP[entityType]?.[actionType || 'archive']`, where an ABSENT action type silently
+// became the most destructive operation available for that entity type.
+//
+// Why absence is common enough to matter: pendingAction.actionType is typed
+// "archive"|"restore"|null, so a clarification about an ASSIGN (or any other
+// non-archive/restore intent) has no representable value and is necessarily emitted
+// absent. Coercing that to 'archive' is what let a bare "yes" confirming
+// "add employee 10 to qa swarm test / Did you mean QA-SWARM-TEST-CO-VIA-CHAT?" archive
+// the company instead. Absence must mean "not deterministically executable - fall
+// through to the ordinary LLM path", never a destructive default.
+//
+// Returning undefined is the refusal signal: both call sites already treat a falsy field
+// as "don't build a deterministic result", so the turn proceeds to the normal LLM call
+// exactly as if no pending action had matched.
+function resolveClarificationField(entityType: string | undefined | null, actionType: string | undefined | null): string | undefined {
+  if (!entityType || !actionType) return undefined;
+  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType];
+}
+
 // Real, live-reproduced defect found by an independent verifier certifying the fix above
 // (2026-08-30, "disambiguation-stale-actionType-hijack" — see qa/KNOWN_FAILURE_MODES.md
 // #32): matchDisambiguationOption() matches a new command against a pending
@@ -2373,16 +2397,24 @@ serve(async (req) => {
             tag: 'deterministic-confirmation',
           };
         } else if (pendingAction && pendingAction.kind === 'single_entity_clarification' && Array.isArray(pendingAction.candidateIds) && pendingAction.candidateIds.length > 0 && isClarificationAffirmative(command) && !commandContradictsActionType(command, pendingAction.actionType)) {
-          // actionType defaults to 'archive' when absent - every clarification proposed
-          // before this fix (and every archive/delete-style clarification since) never set
-          // it, so this default keeps that behavior byte-identical. A restore clarification
-          // MUST set actionType:'restore' (system prompt requirement below) to reach
-          // restoreCompanyIds/restoreTaskIds/restoreGoalIds/restoreEmploymentPersonIds
-          // instead of silently landing on the archive field for the same entityType.
-          // The !commandContradictsActionType guard is defense-in-depth here (an ordinary
-          // affirmative already can't contain a contradicting verb) - the real exploited
-          // path was the disambiguation branch below, not this one.
-          const field = CLARIFICATION_ENTITY_ACTION_FIELD[pendingAction.entityType || '']?.[pendingAction.actionType || 'archive'];
+          // GitHub issue #5 (P1), defect class B - the highest-risk part of that report:
+          // this line previously read `[pendingAction.actionType || 'archive']`, i.e. an
+          // ABSENT action type was coerced into the single most destructive operation
+          // available for that entity type. That is what turned "add employee 10 to qa
+          // swarm test" -> "Did you mean QA-SWARM-TEST-CO-VIA-CHAT?" -> "yes" into an
+          // ARCHIVED COMPANY: an assign/reassign clarification has no representable
+          // actionType (the enum is archive|restore|null), so the model necessarily emits
+          // it absent, and absence then meant 'archive'. The bare affirmative passes
+          // isClarificationAffirmative(), and commandContradictsActionType() cannot help
+          // because "yes" contains neither verb family - nothing stopped it.
+          // Now fail-closed: a deterministic, no-LLM mutation requires an EXPLICITLY
+          // present, known action type. Absence is the signal that this clarification is
+          // about something the deterministic executor does not support, so it must
+          // refuse and fall through to the ordinary LLM path (field stays undefined),
+          // never silently pick a destructive default. Every legitimate archive/restore
+          // clarification sets actionType explicitly (system prompt requirement below)
+          // and is unaffected - proven by qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs.
+          const field = resolveClarificationField(pendingAction.entityType, pendingAction.actionType);
           if (field) {
             deterministic = {
               summary: pendingAction.question ? `Confirmed — ${pendingAction.question.replace(/\?+\s*$/, '')}.` : 'Confirmed.',
@@ -2402,7 +2434,10 @@ serve(async (req) => {
           // state the opposite action, this is a fresh command, not a stale confirmation -
           // fall through to the ordinary LLM call instead of resolving deterministically.
           const contradicted = !!matchedOption && commandContradictsActionType(command, matchedOption.actionType);
-          const field = matchedOption && !contradicted ? CLARIFICATION_ENTITY_ACTION_FIELD[matchedOption.entityType]?.[matchedOption.actionType || 'archive'] : undefined;
+          // Same GitHub issue #5 class-B fail-closed fix as the single_entity_clarification
+          // branch above: an option carrying no explicit actionType must refuse, not
+          // default to this entity type's destructive field.
+          const field = matchedOption && !contradicted ? resolveClarificationField(matchedOption.entityType, matchedOption.actionType) : undefined;
           if (matchedOption && !contradicted && field) {
             deterministic = {
               summary: `Confirmed — ${matchedOption.label}.`,
