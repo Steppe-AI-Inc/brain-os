@@ -17,6 +17,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // already-correctly-scoped result set, never a source of authority itself. Omit the
 // argument for the prior cross-company view (still used nowhere today, kept as an
 // explicit opt-out for a future "All Organizations" mode).
+// Manager relationship is per-organization/employment context (person_assignments,
+// operating_company_id-scoped), not a single global field — the founder's explicit
+// requirement ("who is X's manager in company Y" must not cross-contaminate). Fetched as
+// a separate query (a self-referencing aliased embed — people -> person_assignments ->
+// manager:people — defeats supabase-js's generated-type inference, collapsing the whole
+// row to an untyped error type) and merged in JS, rather than trusting
+// people.manager_person_id (a legacy, single-company field with no explicit UI or write
+// path today) as the source of truth. RLS already scopes person_assignments to companies
+// the caller can see (person_assignments_select_scope) — this is a query-shape join only.
 export async function getPeople(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
@@ -26,7 +35,24 @@ export async function getPeople(activeOrganizationId?: string | null) {
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;
   if (error) throw error;
-  return data;
+  if (data.length === 0) return data.map((p) => ({ ...p, manager_name: null as string | null }));
+
+  const { data: assignments } = await supabase
+    .from("person_assignments")
+    .select("person_id, operating_company_id, is_primary, state, manager:people!person_assignments_manager_person_id_fkey(full_name)")
+    .in(
+      "person_id",
+      data.map((p) => p.id)
+    );
+
+  return data.map((p) => {
+    const forThisCompany = (assignments ?? []).filter((a) => a.person_id === p.id && a.operating_company_id === p.company_id && a.manager);
+    const best =
+      forThisCompany.find((a) => a.is_primary && a.state === "current") ??
+      forThisCompany.find((a) => a.state === "current") ??
+      forThisCompany[0];
+    return { ...p, manager_name: best?.manager?.full_name ?? null };
+  });
 }
 
 export async function createPerson(_prevState: string | null, formData: FormData) {

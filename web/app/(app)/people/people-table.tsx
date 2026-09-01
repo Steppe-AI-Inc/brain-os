@@ -34,6 +34,9 @@ type PersonRow = {
   active: boolean | null;
   profile_id: string | null;
   companies: { name: string; status: string | null } | null;
+  // Resolved server-side in getPeople() from person_assignments, scoped to this
+  // person's own company (per-organization manager relationship, not a global field).
+  manager_name: string | null;
 };
 
 const EMPTY: PersonInput = { fullName: "", email: "", roleTitle: "", companyId: null };
@@ -119,6 +122,7 @@ export function PeopleTable({
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Company</TableHead>
+              <TableHead>Manager</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -141,6 +145,7 @@ export function PeopleTable({
                     <ArchivedCompanyBadge status={p.companies?.status} />
                   </span>
                 </TableCell>
+                <TableCell>{p.manager_name ?? "—"}</TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -197,7 +202,7 @@ export function PeopleTable({
             ))}
             {people.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No people visible yet.
                 </TableCell>
               </TableRow>
