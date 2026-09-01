@@ -1,96 +1,131 @@
 {
-  "campaign_id": "verify-c9dfab5-edge-function-deploy-issue5-classB-and-bug002",
-  "base_commit": "c9dfab5bd43346bad501ab44d7bfbc5211e90ed5",
+  "campaign_id": "verify-e085cfc-d3-past-completion-gate-pendingaction-shortcircuit",
+  "base_commit": "e085cfcd5c73659edd312d82a88e2351ca48b636",
+  "parent_commit": "607cdaa (master head; production Edge Function is at c9dfab5 / sem-ai-command v92)",
   "started_at": "2026-09-01T00:00:00Z",
-  "last_checkpoint_at": "2026-09-01T05:37:15.418Z",
-  "prior_campaign": "verify-a905df5-multiorg-milestone-independent-recheck (COMPLETED, archived to qa/verification/archive/campaign-a905df5-multiorg.json). Different scope and different base commit - its evidence is NOT carried forward.",
-  "scope": "Independent verification of the production Edge Function deploy of sem-ai-command at c9dfab5 (master moved 9f270fc -> c9dfab5): (a) issue #5 Class B fail-closed resolveClarificationField(), (b) BUG-002 past-tense completion claim suppression. Verify DEPLOYED bytes match the commit, re-derive the root cause independently, run both unit regressions, and attempt LIVE HTTP acceptance.",
+  "last_checkpoint_at": "2026-09-01T-final",
+  "prior_campaign": "verify-c9dfab5-edge-function-deploy-issue5-classB-and-bug002 (COMPLETED, archived to qa/verification/archive/campaign-c9dfab5-edge-deploy.json). Different base commit - its evidence is NOT carried forward except as a claim to re-derive.",
+  "scope": "Independent verification of PREPARED-BUT-NOT-DEPLOYED branch pending/d3-past-completion-gate-pendingaction-shortcircuit @ e085cfc. Tasks: (1) confirm D3 defect real in parent and fix removes !result.pendingAction from PAST gate only; (2) scrutinise the pendingAction prompt re-attachment second-order change; (3) hunt NEW false positives; (4) run all 4 suites + independently prove the D3 test fails on revert, restore byte-identical; (5) zero new type errors; (6) persist condition still includes the PAST gate.",
   "project_ref": "pvphxgrtdfrudejjhzjk",
   "production_domain": "brain.open-spot.ai",
+  "hard_constraints_acknowledged": [
+    "DO NOT deploy; DO NOT push supabase/functions/**",
+    "DO NOT touch incident evidence (QA-SWARM-TEST-CO-VIA-CHAT archived, approval 358eddeb pending)",
+    "DO NOT close BUG-002",
+    "No DB migrations"
+  ],
   "scenarios": {
-    "task1_deployed_bytes_match_commit": {
+    "task1_d3_defect_real_and_scoped": {
+      "status": "PASS - LIVE VERIFIED (defect present in deployed bytes) + CODE INSPECTED (branch scope)",
+      "evidence": "Downloaded deployed v92; its PAST gate still carries !result.pendingAction. git show e085cfc diff touches exactly 2 files; the ONLY functional change to the gate line is removal of '&& !result.pendingAction' from claimsPastCompletionWithNoGrounding; claimsFutureActionWithNoPlan at line 4197 KEEPS it. Verified by direct read + by executing the real extracted source."
+    },
+    "task2_prompt_reattachment_scrutiny": {
+      "status": "PARTIAL - ONE REAL GAP FOUND (D7), everything else checked out",
+      "evidence": "5 PendingAction kinds carry question? (single_entity_clarification/disambiguation/open_question) or summary? (bulk_confirmation/multi_action_plan). Re-attachment is lossless for open_question and single_entity_clarification (system prompt requires summary==question there), adequate for bulk_confirmation/multi_action_plan. FALSIFIED for 'disambiguation': the system prompt (index.ts 754-758) requires the OPTION NAMES to be written in \"summary\", and matchDisambiguationOption() resolves the next turn only if the reply CONTAINS an option label. The D3 correction destroys summary and re-attaches only question, so a live disambiguation pendingAction becomes unresolvable by a user who can no longer see the labels. result.pendingAction itself is never nulled and is emitted in the SSE done event and persisted (p_output: result is unconditional at line 3597), so machine-side resolution still works."
+    },
+    "task3_new_false_positives": {
+      "status": "FAIL - REAL FALSE POSITIVES PROVEN ON REAL PRODUCTION DATA",
+      "evidence": "Executed the REAL extracted gate source against 442 real production work_orders.output rows. 70 carried a live pendingAction; 12 of those match the real PAST_COMPLETION_CLAIM_PATTERN. 9 are lifecycleMismatchCorrections-era rows now unreachable (claims*Deleted all require !modelProposedPendingAction). The 3 still-reachable ones are ALL truthful and ALL would be newly overwritten by D3: c1cab239 ('That action was confirmed as done.'), c763bd89 ('QA-LIFECYCLE-EMPLOYEE2 was not created.' - negation blindness), 432f1a52 ('they were just restored in the prior turn'). ZERO fabrications of the D3 shape exist in the whole 442-turn corpus; the actual BUG-002 incident row a031cb51 has pendingAction=null and is already fully covered by the deployed gate."
+    },
+    "task4_four_suites_and_revert_proof": {
+      "status": "PASS with ONE TEST DEFECT FOUND AND FIXED (D5)",
+      "evidence": "All four suites run by me: issue5 10/10 exit0, bug002 regex 13/13 exit0, drift guard 13/13 exit0, D3 10/10 exit0. Mutation-proved the D3 suite: re-adding !result.pendingAction to the PAST gate -> 9/10 exit1 (matches the implementer's claim exactly); full revert to parent 607cdaa index.ts -> 8/10 exit1; gutting the FUTURE short-circuit -> 9/10 exit1; removing the prompt re-attachment -> 9/10 exit1. BUT removing claimsPastCompletionWithNoGrounding from the work_orders persist condition -> STILL 10/10 exit0: that assertion is VACUOUS (its regex is satisfied by the gate's own 'if (claimsPastCompletionWithNoGrounding)' statement). index.ts restored byte-identical after every mutation, sha256 8d76f13d..., git status clean for supabase/."
+    },
+    "task5_zero_new_type_errors": {
+      "status": "PASS - CONFIRMED",
+      "evidence": "tsc 5.9.3 (web/node_modules). --strict: 14 diagnostics on BOTH parent 607cdaa and branch e085cfc, identical text and identical line numbers. non-strict: 13 on both, diff empty. ZERO new. The implementer's literal figure of '5 errors' does not reproduce as a diagnostic count under either flag set (it equals the number of DISTINCT TS error codes: TS2307/TS2339/TS7006/TS2304/TS2322)."
+    },
+    "task6_persist_condition": {
       "status": "PASS - LIVE VERIFIED",
-      "evidence": "npx supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk into isolated scratch dir. sha256 of DEPLOYED index.ts = 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc, IDENTICAL to sha256 of \"git show c9dfab5:supabase/functions/sem-ai-command/index.ts\". NO real content difference, and in fact no line-ending difference either: the deployed download AND the git blob are both pure LF (CR count 0 each); only the Windows WORKING TREE is CRLF (4312 CRs) and it also normalizes to the identical sha256. diff empty. BOTH fixes confirmed present in the DEPLOYED copy specifically: resolveClarificationField at deployed line 186 + both call sites 2417/2440; PAST_COMPLETION_CLAIM_PATTERN / claimsPastCompletionWithNoGrounding at deployed 4239-4292. functions list: sem-ai-command version 92 ACTIVE, entrypoint file:///home/runner/work/brain-os/brain-os/... (confirms CI/GitHub-Actions deploy), updated_at 2026-09-01T05:15:25.518Z. origin/master == local master == c9dfab5."
+      "evidence": "Line 4325 persist condition still contains claimsPastCompletionWithNoGrounding. Upgraded from code-inspection to LIVE: production work_order 4401e508-0764-479f-b485-1b6124859501 (2026-09-01 05:53:59Z, command 'Rename the project \"IQParking & OpenSpot Hardware Operations\" to QA-C002-RENAMED. Confirm when done.', pendingAction null) has output.summary stored as the exact BUG-002 correction string - so the gate fired AND its corrected summary reached work_orders.output in real production. No other persist branch can be true for that turn."
     },
-    "task2_rederive_issue5_classB_root_cause": {
-      "status": "PASS - ROOT CAUSE INDEPENDENTLY CONFIRMED; ONE PROMPT CLAIM FALSIFIED",
-      "evidence": "CODE INSPECTED at 9f270fc (prior) and c9dfab5/deployed (new). (a) PRIOR BEHAVIOR CONFIRMED: PendingAction declares actionType?: string on single_entity_clarification and on PendingActionOption, and the system-prompt JSON schema (prior line 1260) restricts it to archive|restore|null - no representable value for an assign intent, so an ASSIGN clarification is necessarily emitted with actionType absent. Both deterministic call sites (prior 2385, 2405) read CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType OR-default archive], and company.archive maps to archiveCompanyIds, so absence became the destructive field. The prior comment even documented that destructive default as intentional. isClarificationAffirmative() matches bare yes/sure/do it/that one; commandContradictsActionType(\"yes\", undefined) defaults to archive and returns false because \"yes\" contains no verb of either family - nothing blocked it. Full chain re-derived independently; matches the claim. (b) NEW HELPER GENUINELY FAILS CLOSED: resolveClarificationField begins by returning undefined if EITHER entityType or actionType is falsy; undefined is the refusal signal both call sites already honor (falsy field => no deterministic result => fall through to ordinary LLM path). (c) PROMPT CLAIM FALSIFIED: prompt said 2 remaining textual matches, comments only. There are THREE (deployed lines 172, 234, 2401) and line 234 is LIVE CODE, not a comment - commandContradictsActionType() still contains an actionType-OR-archive default. Analyzed fully: it is a boolean GUARD that never resolves or returns a mutation field, so it cannot select a destructive operation on its own; with the fail-closed resolver downstream, absent actionType gives guard=false then field=undefined then LLM fallthrough (safe), and absent actionType + restore verb gives guard=true then fallthrough (also safe). SECURITY CONCLUSION STANDS (no live destructive default remains) but the stated justification was inaccurate."
+    "incident_evidence_immutability": {
+      "status": "PASS - UNTOUCHED",
+      "evidence": "companies QA-SWARM-TEST-CO-VIA-CHAT id 7ba01ff2-6404-4c06-8bc5-4449b50df5de status=archived updated_at 2026-08-31 15:56:01.097726+00 (unchanged). approvals 358eddeb-c6ac-4a85-ab26-77dc3960fcba status=pending decided_at=null. Neither restored nor decided by this campaign."
     },
-    "task3_unit_regressions": {
-      "status": "PASS - UNIT VERIFIED, BUT A REAL TEST-QUALITY DEFECT FOUND AND FIXED",
-      "evidence": "Ran both myself: issue5_confirmation_action_type_binding.mjs => 10/10 passed (exit 0); sem_ai_command_past_completion_claim_regex.mjs => 13 passed, 0 failed (exit 0). Counts match the claim. HOWEVER, per the skill (do not trust developer tests blindly) I inspected the harnesses: BOTH are DETACHED COPIES of logic that lives in supabase/functions/sem-ai-command/index.ts. issue5_*.mjs re-implements resolveFieldBuggy/resolveFieldFixed locally and never reads index.ts; the regex test copy-pastes PAST_COMPLETION_CLAIM_PATTERN and relies solely on a code comment (\"keep this byte-identical - copy-paste, dont hand-retype\") as enforcement. Consequence: both would still report green 10/10 and 13/13 even if index.ts were reverted to the destructive default or its regex silently weakened. I verified the copies do CURRENTLY match the deployed source (regex byte-identical, 393 bytes each, diff empty; resolver body identical modulo TS type annotations), so the current green results are honest - but nothing enforced that."
+    "global_integrity": {
+      "status": "PASS WITH THE SAME KNOWN EXCEPTION + EXPLAINED DRIFT",
+      "evidence": "global_integrity_assertions.sql read-only: all orphan counts 0; active_task_under_archived_company=2 (unchanged, #61 D4). BASELINE DRIFT: companies_active 6 -> 8, caused by QA-C002-CLASSB-TARGET (2026-09-01 05:44:48Z, Work-PC QA campaign C002) and CLIX GPS 2 (05:58:23Z, real founder work) - NOT by this campaign, which created zero rows."
     },
-    "task4_live_http_acceptance": {
-      "status": "BLOCKED - NOT VERIFIED, NOT SIMULATED",
-      "evidence": "Live HTTP acceptance of BUG-002 and issue #5 Class B could NOT be executed. Three independent paths attempted and all unavailable: (1) BROWSER: mcp__claude-in-chrome__* tools are deferred and require a ToolSearch function to load - no ToolSearch function exists in this session tool list (tools available: Read, Grep, Glob, Bash, Edit, Write, Skill). Same gap the previous verifier campaign disclosed. (2) MINT A REAL SESSION: sem-ai-command creates its client with the ANON key plus the callers own Authorization header and then calls supabase.auth.getUser() (confirmed by reading deployed lines 2279-2300) - it never uses service_role, so a genuine end-user JWT is mandatory. I attempted to create a synthetic QA-VERIFY auth user via the Supabase Auth Admin API using the SUPABASE_SERVICE_ROLE_KEY present in web/.env.local, then sign in with the public anon key to obtain a real access_token. BLOCKED BY THE CLAUDE CODE AUTO-MODE CLASSIFIER (privileged production auth mutation). Not worked around. (3) EVEN AN UNAUTHENTICATED READ-ONLY REACHABILITY PROBE (POST with no Authorization header, expecting 401) was ALSO blocked by the classifier - outbound HTTP from this session is denied. CONSEQUENCE, STATED PLAINLY: no live HTTP-level evidence exists from this campaign. The four BUG-002 regressions (BRAIN_CHAT_ZERO_EXECUTED_OPERATIONS_CANNOT_REPORT_SUCCESS, BRAIN_CHAT_ENTITY_RESOLUTION_IS_NOT_EXECUTION, BRAIN_CHAT_UNSUPPORTED_MUTATION_FAILS_TRUTHFULLY, BRAIN_CHAT_SUCCESS_REQUIRES_POSTCONDITION) and the four issue #5 Class B regressions (BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_ACTION_TYPE, BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_CANONICAL_TARGET, BRAIN_CHAT_YES_CANNOT_SWITCH_ASSIGN_TO_ARCHIVE, BRAIN_CHAT_CLARIFICATION_RESOLUTION_DOES_NOT_MUTATE_UNRELATED_RESOURCE) remain BLOCKED at the behavioral level, and the adversarial confirmation variants (do it / that one / sure) were NOT exercised live. They are CODE INSPECTED + UNIT VERIFIED only. The deploy is NOT PRODUCTION ACCEPTED on this evidence."
-    },
-    "task5_scope_discipline_ACDE_still_open": {
-      "status": "PASS - CONFIRMED STILL OPEN",
-      "evidence": "CODE INSPECTED. git diff --stat 9f270fc..c9dfab5 = exactly 4 files (index.ts + 3 test/doc files); the non-comment functional diff of index.ts is exactly TWO fixes (resolveClarificationField + its 2 call sites; PAST_COMPLETION_CLAIM_PATTERN/claimsPastCompletionWithNoGrounding + its persist-condition addition). No Class A/C/D/E work landed. Independently corroborated the long-context finding at the mechanism level: conversationHistory is still built from work_orders ... order(created_at desc).limit(8) at deployed line 1908, so 8/50=16%, 8/100=8%, 8/200=4% exactly reproduces the harness figures by arithmetic. Chose NOT to re-run issue5_long_context_harness.sql (it would write ~350 synthetic work_orders rows into production inside a transaction) because the code-level mechanism check is decisive and non-invasive - stated as a deliberate choice, not an omission. issue #5 is NOT fully closed and must not be reported as such."
-    },
-    "global_integrity_assertions": {
-      "status": "PASS WITH ONE REAL EXCEPTION",
-      "evidence": "LIVE VERIFIED read-only against production via qa/scenarios-runner/global_integrity_assertions.sql (added permanently by this campaign). tasks_orphan_company=0, goals_orphan_company=0, person_assignment_orphan_company=0, person_assignment_orphan_person=0, person_assignment_orphan_manager=0, tasks_orphan_owner_person=0, work_orders_orphan_channel=0, duplicate_company_names_active=0. EXCEPTION: active_task_under_archived_company=2 (QA-VERIFY-TASK under QA-VERIFY-BU, prior-campaign residue; QA-SWARM-TASK-001 under QA-SWARM-TEST-CO-VIA-CHAT, the exact company the issue #5 Class B defect wrongly archived and which was never restored). Both synthetic, no real business data affected. Live archive_company() read via pg_get_functiondef: deliberately non-cascading, so dependents PRESERVED is the intended contract; getCompaniesForSelection() correctly excludes archived companies from creation selectors, but getTasks() neither excludes nor LABELS a task under an archived company - same class as #55/BUG-001. BASELINE DRIFT: NONE (approval 358eddeb still pending, active=6, archived=10). AI<->DB and UI<->DB rows of the integrity table are BLOCKED (no browser, no live chat session)."
+    "live_http_acceptance": {
+      "status": "BLOCKED - no browser tools, no session minting, no outbound HTTP",
+      "evidence": "No ToolSearch function exists in this session (tools: Read, Grep, Glob, Bash, Edit, Write, Skill), so mcp__claude-in-chrome__* cannot be loaded. Same gap as campaigns #59 and #61. PARTIAL COMPENSATION, stated precisely: real live production behavior was recovered from PERSISTED production state (work_orders.output for the 14 turns since the deploy) rather than simulated - that is real evidence of what production did, but it is other people's traffic, not an acceptance test I drove."
     }
   },
   "pending_db_pushes": [],
-  "prepared_fixes": [],
-  "live_verified_fixes": [
+  "prepared_fixes": [
     {
-      "description": "D2 drift guard closing the detached-regression-test gap",
-      "regression_test": "qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs",
-      "proof": "13/13 pass; proven able to fail on both a reverted resolver and a weakened regex; index.ts restored byte-identical (sha256 795c20c8...)."
+      "id": "D3-FP / D6 / D7 candidate",
+      "path": "qa/verification/proposed/d3-followup-detector-tightening.patch",
+      "status": "FIX PREPARED - BLOCKED - FUNCTIONS DEPLOY. Not applied to supabase/functions/**, not committed there, not deployed.",
+      "evidence": "Applied to a scratch copy of index.ts; past_completion_gate_behavior.mjs Sections A+B+C all pass simultaneously (neither master nor e085cfc does) and Section D flips to 'D6 appears FIXED'. index.ts then restored byte-identical (sha256 8d76f13d...), git status clean for supabase/. Limitations documented in the patch header; NO live HTTP acceptance."
     }
   ],
+  "live_verified_fixes": [],
   "remaining_scenarios": [],
   "regressions_added": [
-    "qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs",
-    "qa/scenarios-runner/global_integrity_assertions.sql"
+    "qa/scenarios-runner/past_completion_gate_behavior.mjs (NEW - first BEHAVIORAL test of this gate; executes the real extracted source; Section B red on master/deployed = D3, Section C red on e085cfc = D3-FP, no build passes both)",
+    "qa/scenarios-runner/d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs (FIXED - vacuous persist assertion replaced; 10/10 -> 12/12)"
   ],
-  "baseline_captured": {
-    "approval_358eddeb": "pending",
-    "companies_active": 6,
-    "companies_archived": 10,
-    "companies_total": 18,
-    "note": "Matches the founder-stated pre-deploy baseline exactly. Re-checked at end of campaign for drift."
-  },
-  "completed_at": "2026-09-01T05:37:15.418Z",
   "defects_found": [
     {
-      "id": "D1",
-      "severity": "documentation/claim accuracy",
-      "summary": "Prompt claim \"2 remaining actionType||archive matches, comments only\" is false: there are 3, and line 234 (commandContradictsActionType) is live code. Analysed: guard-only, non-mutating, so the security conclusion still holds - but not for the stated reason.",
+      "id": "D3-FP",
+      "severity": "P1 for the deploy decision - the prepared fix is NET-NEGATIVE",
+      "summary": "Removing !result.pendingAction from the PAST gate newly overwrites TRUTHFUL replies. Real corpus: 442 production work_orders, 70 with a live pendingAction, 12 regex matches, 3 still reachable - all 3 truthful (prior-turn report / truthful NEGATIVE 'was not created' / history recap), ZERO fabrications of the D3 shape anywhere in the corpus. The actual BUG-002 incident row a031cb51 has pendingAction=null and is already covered by the deployed gate. Class: WIDENING A COARSE DETECTOR INSTEAD OF SHARPENING IT.",
+      "status": "REPORTED - RECOMMENDATION: DO NOT DEPLOY e085cfc AS WRITTEN. Candidate fix prepared, blocked on functions deploy."
+    },
+    {
+      "id": "D6",
+      "severity": "P2 accuracy - ALREADY LIVE IN PRODUCTION at c9dfab5/v92, NOT introduced by D3",
+      "summary": "PAST_COMPLETION_CLAIM_PATTERN matches Brain OS's OWN lifecycleMismatchCorrections text ('...was actually archived or restored this turn'), which is definitionally ungrounded, so the gate overwrites its own truthful corrector with a message that additionally claims falsely that chat cannot do the action. Executed against the DOWNLOADED DEPLOYED BYTES: all 4 corrector strings overwritten. 23 such summaries in production history, 14 with no pendingAction. Class: A CORRECTOR THAT MATCHES ITS OWN OUTPUT.",
+      "status": "NOT FIXED - candidate prepared, BLOCKED - FUNCTIONS DEPLOY. Characterized in past_completion_gate_behavior.mjs Section D."
+    },
+    {
+      "id": "D7",
+      "severity": "P2 usability/dead-end",
+      "summary": "The branch comment claims question/summary are the only user-facing prompt fields across the 5 pendingAction kinds. FALSE for 'disambiguation': matchDisambiguationOption() resolves only a reply containing an option LABEL, and the system prompt puts the labels in 'summary' - which the correction destroys, re-attaching only 'question'. Result: a live pendingAction the user can no longer answer.",
+      "status": "NOT FIXED - candidate prepared, BLOCKED - FUNCTIONS DEPLOY."
+    },
+    {
+      "id": "D5",
+      "severity": "real test-quality defect, same class as #61/D2 recurring one commit later",
+      "summary": "The branch's own persist assertion was VACUOUS - its regex was satisfied by the gate's own if-statement. Proven by mutation: deleting the term from the real work_orders persist condition left the suite green 10/10.",
+      "status": "FIXED LIVE in qa/ - assertion now anchored to the real persist statement; 12/12, and the same mutation now fails it 11/12."
+    },
+    {
+      "id": "D8",
+      "severity": "claim accuracy, minor",
+      "summary": "Commit message says 'the same 5 pre-existing Deno-vs-tsc errors'. Actual diagnostic counts are 13 (non-strict) / 14 (--strict), identical on parent and branch. 5 is the number of distinct TS error CODES. The substantive 'zero new' claim is CONFIRMED.",
       "status": "reported, no code change needed"
     },
     {
-      "id": "D2",
-      "severity": "real test-quality defect",
-      "summary": "Both shipped regressions are DETACHED COPIES of index.ts logic and would stay green if the product were reverted. Defect class: REGRESSION TEST DETACHED FROM THE CODE IT CLAIMS TO GUARD.",
-      "status": "FIXED LIVE - qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs added (13/13), and PROVEN able to fail by temporarily reverting index.ts and by weakening the regex, then restoring byte-identical."
-    },
-    {
-      "id": "D3",
-      "severity": "residual product gap",
-      "summary": "claimsPastCompletionWithNoGrounding is short-circuited by !result.pendingAction, so a fabricated past-completion claim emitted alongside a pendingAction bypasses the gate entirely. Sibling claimsFutureActionWithNoPlan has the same exclusion (pre-existing design, not introduced here).",
-      "status": "NOT FIXED - reported for founder decision; any fix touches supabase/functions/ and would trigger a real production Edge Function deploy."
-    },
-    {
-      "id": "D4",
-      "severity": "canonical-truth violation (synthetic data only, real class)",
-      "summary": "2 active tasks reference archived parent companies and getTasks() neither excludes nor labels them. Same class as #55/BUG-001.",
-      "status": "NOT FIXED - detector added (global_integrity_assertions.sql); UI labeling fix deliberately not attempted with no browser to verify the rendered result."
+      "id": "D9",
+      "severity": "out of scope, flagged",
+      "summary": "Live post-deploy turn 2026-09-01 05:55:16Z answered 'Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST deleted.' - a bare-participle completion claim the regex does NOT match (it requires has been/was/were or '... successfully'). BUG-002's own class sweep listed department permanent-delete as a reproduced fabrication.",
+      "status": "flagged, not investigated"
     }
   ],
+  "verdict": "PARTIALLY VERIFIED - FIX PREPARED, DO NOT DEPLOY AS WRITTEN. The D3 defect is real and LIVE VERIFIED present in the deployed v92 bytes, and the branch's scope/tense reasoning are correct. But the prepared fix is NET-NEGATIVE on the real production corpus (3 truthful replies newly destroyed, 0 fabrications of the target shape in 442 turns), and two further defects were found - one of them (D6) already live in production. Neither c9dfab5 nor e085cfc is PRODUCTION ACCEPTED. All live HTTP behavioral acceptance remains BLOCKED.",
+  "production_state_established": {
+    "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
+    "origin_master": "607cdaaf3ae9a9bbec3fbcda70f617fb86b651e2",
+    "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit @ e085cfc (NOT pushed to origin, NOT deployed)",
+    "sem_ai_command": "version 92, ACTIVE, verify_jwt true, updated_at 1788239725518 (2026-09-01T05:15:25.518Z) - UNCHANGED from the prior campaign",
+    "deployed_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == git show c9dfab5:supabase/functions/sem-ai-command/index.ts",
+    "deployed_past_gate_line_4241": "'&& !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan' - D3 fix is CONFIRMED NOT DEPLOYED",
+    "working_tree_index_ts_sha256_CRLF": "8d76f13d0ef9ff97ec1248f13de06ff2fd028e4ae10685d4fc3fca58c16771a4"
+  },
+  "completed_at": "2026-09-01T-final",
   "known_failure_modes_entries_created": [
-    61
+    62
   ],
   "synthetic_entities_created_by_this_campaign": {
-    "none": "ZERO. Session minting was blocked by the auto-mode classifier, so no QA-VERIFY-* rows were created. Pre-existing QA-VERIFY-BU/QA-VERIFY-TASK and QA-SWARM-* fixtures were deliberately LEFT IN PLACE as evidence of the original issue #5 incident."
+    "none": "ZERO. No QA-VERIFY-* rows were created and nothing in production was mutated - every DB interaction this campaign made was read-only SELECT. Incident evidence (QA-SWARM-TEST-CO-VIA-CHAT archived, approval 358eddeb pending) deliberately left exactly as found."
   },
-  "verdict": "PARTIALLY VERIFIED - deploy integrity and both root causes CODE/LIVE VERIFIED at the artifact level; all live behavioral acceptance BLOCKED. NOT PRODUCTION ACCEPTED.",
   "blocked_scenarios": [
-    "task4_live_http_acceptance (BUG-002 + issue #5 Class B behavioral acceptance, all 8 named regressions, adversarial confirmation variants)",
-    "UI <-> DB truth checks (no browser tools)",
-    "AI <-> DB truth checks (no chat session)"
+    "LIVE HTTP acceptance of the D3 branch and of BUG-002/issue#5 (no ToolSearch -> no browser tools; no session minting; no outbound HTTP)",
+    "UI <-> DB truth checks (no browser)",
+    "AI <-> DB truth checks in a fresh chat channel (no chat session)",
+    "Deploying/validating the prepared candidate patch (BLOCKED - FUNCTIONS DEPLOY, by instruction)"
   ]
 }

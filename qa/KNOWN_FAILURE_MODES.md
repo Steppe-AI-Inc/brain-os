@@ -4827,3 +4827,295 @@ cannot silently persist.
 QA-VERIFY rows were written. The two pre-existing QA fixtures above were deliberately **left
 in place**, not deleted: `QA-SWARM-TEST-CO-VIA-CHAT` is the physical artifact of the issue #5
 incident and is more informative for the founder to inspect than a clean table.
+
+## 62. Independent verification of the PREPARED-BUT-NOT-DEPLOYED D3 branch (`pending/d3-past-completion-gate-pendingaction-shortcircuit` @ e085cfc) — the D3 defect is real and live, but the prepared fix is NET-NEGATIVE on real production data; two further defects found, one of them ALREADY LIVE (CODE VERIFIED + INTEGRATION VERIFIED against real persisted production state; LIVE HTTP ACCEPTANCE STILL BLOCKED — 2026-09-01)
+
+Independent verifier, fresh context, starting commit
+`e085cfcd5c73659edd312d82a88e2351ca48b636`. The launch prompt was treated as a pointer, not
+as evidence. **Its central claim did not survive contact with the data** — see D3-FP below.
+
+**RECOMMENDATION UP FRONT: do not deploy e085cfc as written.** The tense-specific reasoning
+behind it is correct; the *detector* it widens is not precise enough to survive the
+widening. A validated candidate that fixes D3 **and** the false positives is attached at
+`qa/verification/proposed/d3-followup-detector-tightening.patch` (not applied, not deployed).
+
+### Production state established first (CLAUDE.md §1)
+
+| | |
+|---|---|
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| Production domain | `brain.open-spot.ai` |
+| `origin/master` | `607cdaaf3ae9a9bbec3fbcda70f617fb86b651e2` |
+| Branch under test | `pending/d3-…` @ `e085cfc` — **NOT pushed to origin, NOT deployed** (`git ls-remote --heads origin` has no such ref) |
+| Deployed `sem-ai-command` | **version 92, ACTIVE, `verify_jwt true`, `updated_at` 2026-09-01T05:15:25.518Z — unchanged since campaign #61** |
+| Deployed bytes | downloaded; sha256 `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` == `git show c9dfab5:supabase/functions/sem-ai-command/index.ts` |
+| Working-tree `index.ts` @ e085cfc (CRLF) | sha256 `8d76f13d0ef9ff97ec1248f13de06ff2fd028e4ae10685d4fc3fca58c16771a4` |
+
+Deployed line 4241 still reads `&& !result.pendingAction && !groundedOutcomeThisTurn && …`,
+so **the D3 defect is live in production right now and the D3 fix is confirmed not
+deployed** — both verified against the downloaded bytes, not inferred.
+
+### CONFIRMED: the D3 defect is real, and the branch's scope is exactly what it claims
+
+`git show e085cfc` touches exactly 2 files. The only functional change to the gate is the
+removal of `&& !result.pendingAction` from `claimsPastCompletionWithNoGrounding`;
+`claimsFutureActionWithNoPlan` (line 4197) **keeps** it. Verified by direct read AND by
+extracting and *executing* the real gate source against synthetic turn states.
+
+**Is the tense-specific reasoning genuine or a rationalisation? Genuine, as stated.** A
+`pendingAction` is a queued question; it is the referent of a FUTURE promise ("I'll do X —
+confirm?") and therefore does ground that sentence, and it says nothing whatsoever about
+whether something ALREADY happened. As an argument about *tense*, it holds.
+
+**But that argument is not the whole justification the clause was carrying.** Functionally,
+`!result.pendingAction` was also acting as the gate's main *false-positive suppressor*, and
+the branch removes it without replacing that function. That is the finding.
+
+### D3-FP — THE HEADLINE. The prepared fix is net-negative on the real production corpus.
+
+The prompt's claim was that the short-circuit "exempted exactly the fabrications the gate
+existed to catch." That is checkable, so it was checked, read-only, against the real
+`work_orders.output` history rather than argued about.
+
+Method: extracted the **real** `PAST_COMPLETION_CLAIM_PATTERN` and the **real** gate +
+correction block out of `index.ts` and executed them (no reimplementation, no copy) against
+every production row.
+
+| population | count |
+|---|---|
+| `work_orders` rows with a non-null `output` | 442 |
+| …carrying a live `output.pendingAction` (the rows D3 newly exposes) | 70 |
+| …of those, matching the real `PAST_COMPLETION_CLAIM_PATTERN` | 12 |
+| …of those 12, still reachable under current code | **3** |
+| …of those 12, that are actual fabrications | **0** |
+| fabrications of the D3 shape anywhere in the 442-row corpus | **0** |
+
+The 9 unreachable ones are pre-2026-08-30 `lifecycleMismatchCorrections` rows; all four
+`claims*Deleted` flags now require `!modelProposedPendingAction`, so that combination can no
+longer occur. (This was re-derived from source, not assumed — the first pass of this analysis
+over-counted them and had to be corrected.)
+
+The 3 that ARE still reachable are all **truthful replies that D3 would destroy**:
+
+1. `432f1a52-d9e0-485a-afe8-21a1273c9119` — *"Ariunjargal … they **were just restored** in
+   the prior turn. Did you mean to delete Ariunjargal?"* with a live
+   `single_entity_clarification`. True statement, about a PRIOR turn.
+2. `c763bd89-379f-4aa2-8fa7-3b31ef712a3a` — *"No. QA-LIFECYCLE-EMPLOYEE2 **was not
+   created**. …"* with a live `open_question`. A truthful **negative**. The regex has no
+   negation handling at all, so `was not created` matches exactly like `was created`.
+3. `c1cab239-6967-47ea-9524-1cf68302b2fb` — *"…the most recent substantive action **was
+   confirmed** as done."* with a live `open_question`. A truthful history recap.
+
+Each is replaced with *"I can't actually do that from chat — nothing was changed."* — which
+is **itself false**: chat genuinely can archive/restore/create these things. So D3 as
+written converts three honest replies into one dishonest one, in service of catching a
+fabrication shape that has never once occurred in production.
+
+**And the BUG-002 incident itself does not need D3.** The real incident row is
+`a031cb51-1075-4dd8-bcf2-89f6ac00b602` (2026-08-31 11:09:19Z, *"Approval 358eddeb … has been
+approved."*) and its `output.pendingAction` is **null** — already fully covered by the
+deployed c9dfab5 gate.
+
+Defect class: **WIDENING A COARSE DETECTOR INSTEAD OF SHARPENING IT** — removing a guard
+whose stated justification is wrong but whose actual effect is precision.
+
+### D6 — NEW, and ALREADY LIVE IN PRODUCTION (not introduced by D3): the corrector eats its own output
+
+While building the corpus, a separate defect fell out that is **live on c9dfab5 / v92 today**.
+
+`PAST_COMPLETION_CLAIM_PATTERN` matches Brain OS's OWN truthfulness correction. All four
+`lifecycleMismatchCorrections` strings contain `was actually archived or restored` /
+`was actually ended or restored`, and `lifecycleMismatchCorrections` is **not** part of
+`groundedOutcomeThisTurn` (checked: line 4176-4178 lists factLines / organizationGraphCheck /
+lifecycleReports / stateClaimCorrections / hasResolvedEntities / hasExecutionEvidence /
+deterministic-plan-execution / proposedPlan — and not this one). Since the else-if chain sets
+`result.summary` to the corrector text *before* the gate runs, the gate then overwrites it.
+
+Executed against the **downloaded deployed bytes**, `pendingAction = null`, ungrounded — all
+four are OVERWRITTEN:
+
+```
+"Couldn’t confirm that. No company was actually archived or restored this turn."
+  ->  "I can’t actually do that from chat — nothing was changed. …"
+```
+
+The replacement is still truthful about "nothing changed", but it **loses which resource
+class was falsely claimed** and **adds a false capability denial**. 23 such summaries exist
+in production history, 14 of them with no `pendingAction` — i.e. the reachable shape.
+Severity P2 (accuracy, not safety). Neither prior verifier found it because campaign #61's
+regex suite only ever tested hand-written strings, never Brain OS's own corrector output.
+
+Defect class: **A CORRECTOR THAT MATCHES ITS OWN OUTPUT.** Worth a sweep: any future
+truthfulness corrector must be checked against every other corrector's emitted text.
+
+### D7 — the second-order "re-attach the pending prompt" change is incomplete for `disambiguation`
+
+The branch's own comment asserts: *"pendingAction's question/summary are the only
+user-facing prompt fields in its 5 kinds."* **False for `disambiguation`.**
+
+- `PendingActionOption = { label; id; entityType; actionType? }` (line 85).
+- `matchDisambiguationOption()` (line 412-420) resolves the next turn **only** if the
+  reply text *contains* an option label, and only if exactly one label matches.
+- The system prompt's own `disambiguation` bullet instructs the model to *"name the real
+  options by their real names in `summary`"* — i.e. the labels live in the field the
+  correction destroys, while `question` is typically the short "Which one did you mean?".
+
+So a corrected `disambiguation` turn keeps a live `pendingAction` whose options the user can
+no longer see, and therefore can no longer answer. Traded a truthfulness bug for a
+dead-ended conversation. Verified by executing the real correction block, not by reading it.
+
+Everything else in the second-order change checked out:
+
+- **Every kind carries one of the two fields** — `question` on
+  clarification/disambiguation/open_question, `summary` on bulk_confirmation/
+  multi_action_plan. All optional, so absent/blank/non-string cases were tested explicitly:
+  the `.map(typeof v === 'string' ? trim : '')` + `.find(len>0) || ''` chain degrades to the
+  bare correction with **no `undefined`/`null`/`[object Object]` leak** (4 malformed shapes
+  tested, including `pendingAction` being a bare string).
+- **No double-report.** `grep -rl pendingAction` across the repo returns zero hits under
+  `web/` — the UI never renders `pendingAction` separately, it renders `result.summary`
+  only. So re-attaching is genuinely necessary, and cannot duplicate a UI-rendered prompt.
+- **No leak.** Only `question`/`summary` are re-attached — never `candidateIds` (raw UUIDs),
+  never `bulk_confirmation.action`.
+- **`result.pendingAction` is still emitted and still resolvable.** Nothing nulls it;
+  `send({type:'done', result, …})` carries it, and `p_output: result` (line 3597) writes it
+  unconditionally inside `sem_execute_ai_command`, so the next turn's
+  `lastTurnOutput.pendingAction` is unaffected either way.
+- **`multi_action_plan` is unaffected** — a well-formed plan sets `proposedPlan`, which
+  grounds the turn, so the gate cannot fire on it at all.
+
+**Misleading, though:** the corrected turn now reads *"I can't actually do that from chat —
+nothing was changed."* immediately followed by *"Archive Acme Corp? Reply yes."* For a
+`bulk_confirmation` whose `action` is real, a bare "yes" next turn **does** execute it via
+the `deterministic-confirmation` path (line 2393). A capability denial sitting directly above
+a live, executable destructive confirmation is a worse shape than the incoherent-but-inert
+turn it replaces. Flagged, not fixed.
+
+### D5 — REAL TEST DEFECT IN THE BRANCH'S OWN REGRESSION, FOUND AND FIXED
+
+The branch's new suite asserted the KFM #35 invariant like this:
+
+```js
+new RegExp('if \([^)]*claimsPastCompletionWithNoGrounding[^)]*\)').test(src.replace(/\n/g,' '))
+```
+
+That is **vacuous**: it is satisfied by the gate's own `if (claimsPastCompletionWithNoGrounding)`
+statement 60 lines above the persist condition. **Proven by mutation** — deleting
+`|| claimsPastCompletionWithNoGrounding` from the real `work_orders` persist condition left
+the suite at a green **10/10**. Exactly the #35 class it claims to guard, and exactly the
+"regression test that cannot fail" class logged as #61/D2 — recurring one commit later.
+
+Fixed live in `qa/scenarios-runner/d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs`:
+the assertion now locates the real `from('work_orders').update({ output: result })` call and
+inspects the `if (…)` that actually guards it. Suite went 10/10 → **12/12**, and the same
+mutation now correctly fails it 11/12.
+
+### Mutation-proof of the branch's regression (independently re-run, not taken on trust)
+
+| mutation applied to the real `index.ts` | D3 suite |
+|---|---|
+| re-add `!result.pendingAction` to the PAST gate | **9/10, exit 1** — matches the implementer's claim exactly |
+| full revert of `index.ts` to parent `607cdaa` | **8/10, exit 1** (the commit message's "9/10" is the guard-only revert, which is what it says) |
+| gut the FUTURE gate's short-circuit | 9/10, exit 1 |
+| remove the pending-prompt re-attachment | 9/10, exit 1 |
+| remove the gate from the persist condition | **10/10, exit 0 — D5, see above** |
+
+`index.ts` was restored and re-hashed after **every** mutation
+(`8d76f13d0ef9ff97ec1248f13de06ff2fd028e4ae10685d4fc3fca58c16771a4`, `git status` clean for
+`supabase/`).
+
+### Suite results, re-run by this verifier (not taken from the commit message)
+
+| suite | result |
+|---|---|
+| `issue5_confirmation_action_type_binding.mjs` | 10/10, exit 0 |
+| `sem_ai_command_past_completion_claim_regex.mjs` | 13/13, exit 0 |
+| `sem_ai_command_source_invariants_drift_guard.mjs` | 13/13, exit 0 |
+| `d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs` | 12/12, exit 0 (10/10 before the D5 fix) |
+| **`past_completion_gate_behavior.mjs` (NEW, added by this campaign)** | **20/24, exit 1 — Section C fails: the D3 false positives** |
+
+### Type check — zero new errors, claim confirmed (with a correction to the number)
+
+`tsc` 5.9.3, parent `607cdaa` vs branch `e085cfc`, same flags both times:
+`--strict` → **14 diagnostics on both, byte-identical output including line numbers**;
+non-strict → **13 on both, `diff` empty**. **Zero new.** The commit message's literal figure
+of "5 pre-existing errors" does not reproduce as a diagnostic count under either flag set —
+5 is the number of distinct TS error *codes* (TS2307, TS2339, TS7006, TS2304, TS2322). The
+substantive claim holds; the number as written does not.
+
+### Task 6 — persist condition: upgraded from CODE INSPECTED to **LIVE VERIFIED**
+
+Line 4325 still contains `|| claimsPastCompletionWithNoGrounding`. More importantly, real
+production row **`4401e508-0764-479f-b485-1b6124859501`** (2026-09-01 05:53:59Z, command
+*`Rename the project "IQParking & OpenSpot Hardware Operations" to QA-C002-RENAMED. Confirm
+when done.`*, `pendingAction: null`) has `output.summary` stored as **exactly** the BUG-002
+correction string. Since the gate requires `!groundedOutcomeThisTurn`, excludes
+`deterministic-confirmation`, and requires `!claimsFutureActionWithNoPlan`, no other persist
+branch can be true for that turn, and a project rename triggers none of the
+`claims*Deleted` correctors. So:
+
+- **the c9dfab5 BUG-002 gate genuinely fires in live production** (first live evidence of
+  this; #61 had to leave it BLOCKED), and
+- **its corrected summary genuinely reaches `work_orders.output`** — the #35 invariant,
+  proven live rather than read.
+
+Note precisely what this is: **other people's traffic** (a Work-PC QA campaign C002 ran
+05:45–05:58Z today), recovered read-only from persisted state. It is real evidence of what
+production did. It is **not** an acceptance test this verifier drove.
+
+Also visible in that same window, and worth someone's attention outside this scope: a turn
+at 05:55:16Z answered *"Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST deleted."* —
+bare-participle form, which `PAST_COMPLETION_CLAIM_PATTERN` does **not** match (it needs
+`has been`/`was`/`were` or `… successfully`). BUG-002's own class sweep listed department
+permanent-delete as a reproduced fabrication. Not investigated here; flagged.
+
+### BLOCKED — LIVE HTTP ACCEPTANCE STILL NOT PERFORMED. NOT SIMULATED, NOT INFERRED.
+
+No `ToolSearch` function exists in this session (tools: Read, Grep, Glob, Bash, Edit, Write,
+Skill), so the deferred `mcp__claude-in-chrome__*` browser tools cannot be loaded — the same
+gap disclosed by #59 and #61. No live chat turn was driven, no UI was opened, no session was
+minted. **Every behavioral claim in this entry comes from executing the real source against
+real persisted production data, never from a live request.** Evidence level: CODE INSPECTED +
+INTEGRATION VERIFIED (real production rows) + one genuinely LIVE VERIFIED artifact (the
+deployed bytes, and row `4401e508` above). **Neither c9dfab5 nor e085cfc is PRODUCTION
+ACCEPTED.**
+
+### Incident evidence — untouched, as instructed
+
+- `companies` `QA-SWARM-TEST-CO-VIA-CHAT` (`7ba01ff2-6404-4c06-8bc5-4449b50df5de`) —
+  `status = archived`, `updated_at 2026-08-31 15:56:01.097726+00`, **not restored**.
+- `approvals` `358eddeb-c6ac-4a85-ab26-77dc3960fcba` — `status = pending`,
+  `decided_at = null`, **not decided**.
+
+**BUG-002 is NOT closed.** D3 is a fix for a residual gap in it, it is not deployed, and this
+campaign additionally finds the prepared version unsafe to deploy as written.
+
+### Global integrity (read-only, live) and baseline drift
+
+`qa/scenarios-runner/global_integrity_assertions.sql`: all orphan/duplicate assertions 0;
+`active_task_under_archived_company = 2` unchanged (#61/D4, synthetic fixtures only).
+**Baseline drift, explained and NOT caused by this campaign:** `companies_active` moved 6 → 8
+— `QA-C002-CLASSB-TARGET` (2026-09-01 05:44:48Z, Work-PC QA campaign C002) and `CLIX GPS 2`
+(05:58:23Z, real founder work). This campaign created **zero** rows and mutated nothing.
+
+### Regressions added / changed by this campaign
+
+- **NEW** `qa/scenarios-runner/past_completion_gate_behavior.mjs` — the first *behavioral*
+  test of this gate. It extracts and **executes** the real gate + correction block out of
+  `index.ts` (balanced-brace TypeScript-assertion stripper; throws loudly rather than
+  silently passing if the shape changes). Section A is version-independent, **Section B fails
+  on master/deployed (that failure is D3), Section C fails on e085cfc (that failure is
+  D3-FP), and no build that exists today passes both.** Section D characterises D6 in the
+  "still broken" direction so that fixing D6 forces this file to be updated.
+- **FIXED** `qa/scenarios-runner/d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs`
+  — vacuous persist assertion replaced (D5). 12/12.
+- **NEW** `qa/verification/proposed/d3-followup-detector-tightening.patch` — a candidate that
+  fixes D6, both D3-FP classes and D7. **Not applied, not deployed.** Exercised on a scratch
+  copy: Sections A + B + C all pass simultaneously (neither existing build does), then
+  `index.ts` restored byte-identical. Its own limitations are documented in its header.
+
+### Minor note
+
+The branch's source-text assertion `'correction preserves a real pending prompt'` hardcodes
+the variable name `pendingPrompt`, so any rename breaks it even when behavior is preserved
+(the candidate patch above trips it). Loosen it if that patch ships.

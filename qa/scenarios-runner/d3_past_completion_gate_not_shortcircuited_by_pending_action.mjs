@@ -97,10 +97,38 @@ check(
 );
 
 // --- The corrected turn must still be persisted (KNOWN_FAILURE_MODES #35 class) ---
+//
+// VERIFIER FIX (2026-09-01, qa/KNOWN_FAILURE_MODES.md #62, finding D5): this assertion
+// used to be `new RegExp('if \([^)]*claimsPastCompletionWithNoGrounding[^)]*\)')`
+// tested against the whole file, which is VACUOUS - it is satisfied by the gate's OWN
+// `if (claimsPastCompletionWithNoGrounding)` statement 60 lines earlier, not by the
+// persist condition at all. PROVEN by mutation: deleting
+// `|| claimsPastCompletionWithNoGrounding` from the real work_orders persist condition
+// left this suite at a green 10/10. That is exactly the #35 defect class the assertion
+// claims to guard, and exactly the "regression test that cannot fail" class the same
+// verifier logged as #61/D2. Now anchored to the REAL persist statement.
+const persistGuard = (() => {
+  const call = src.indexOf("from('work_orders').update({ output: result })");
+  if (call === -1) return null;
+  const ifStart = src.lastIndexOf('if (', call);
+  if (ifStart === -1) return null;
+  const close = src.indexOf(') {', ifStart);
+  return close === -1 || close > call ? null : src.slice(ifStart, close + 1);
+})();
 check(
-  'corrected output is still persisted (claimsPastCompletionWithNoGrounding in the persist condition)',
-  new RegExp('if \\([^)]*claimsPastCompletionWithNoGrounding[^)]*\\)').test(src.replace(/\n/g, ' ')),
-  'Incident #35: a corrective left out of the work_orders.output persist condition means the UNCORRECTED fabrication persists forever.'
+  'the work_orders persist statement exists and is guarded by an if(...)',
+  !!persistGuard,
+  "Could not locate the from('work_orders').update({ output: result }) call or its guard - the shape changed; update this harness rather than deleting the assertion."
+);
+check(
+  'corrected output is still persisted (persist GUARD itself names claimsPastCompletionWithNoGrounding)',
+  !!persistGuard && persistGuard.includes('claimsPastCompletionWithNoGrounding'),
+  'Incident #35: a corrective left out of the work_orders.output persist condition means the UNCORRECTED fabrication persists forever. Guard found: ' + String(persistGuard)
+);
+check(
+  'the sibling FUTURE-gate corrective is in that same persist guard (#35 regression)',
+  !!persistGuard && persistGuard.includes('claimsFutureActionWithNoPlan'),
+  'Guard found: ' + String(persistGuard)
 );
 
 // --- The hedge-word exclusion must survive (honest declines must not be overwritten) ---
