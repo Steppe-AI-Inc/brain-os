@@ -4237,57 +4237,173 @@ serve(async (req) => {
         // get overwritten - verified live this session via a standalone regex unit test
         // (13/13 cases, including this one) before this pattern was ever wired in.
         const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
-        // D3 (found 2026-09-01 by the independent verifier of the c9dfab5 deploy, see
-        // qa/KNOWN_FAILURE_MODES.md #61) — this gate previously carried
-        // `&& !result.pendingAction`, copied wholesale from claimsFutureActionWithNoPlan
-        // above ("Deliberately the same guard shape"). That inheritance was the defect:
-        // the short-circuit's justification is TENSE-SPECIFIC and does not transfer.
+        // ==================================================================================
+        // STRUCTURAL PER-CLAIM GROUNDING (2026-09-01) — replaces the whole-summary
+        // PAST-completion gate that shipped at c9dfab5 and its two narrowing follow-ups.
         //
-        //   FUTURE tense: "I'll assign the employee — confirm?" WITH a real pendingAction
-        //   is HONEST. The pendingAction *is* the queued intent the sentence promises, so
-        //   skipping the correction is correct. Keep the short-circuit there.
+        // WHY THE OLD SHAPE KEPT FAILING. Every prior version treated the ENTIRE assistant
+        // summary as ONE truth unit: one regex over the whole string, one boolean, one
+        // all-or-nothing replacement. That is the wrong unit. A reply routinely contains
+        // several independent claims, and a whole-summary matcher can only ever answer
+        // "does this reply contain something suspicious?" — never "which part is false?".
+        // Consequences, each found live and logged:
+        //   #61/D3   — a fabricated claim escaped because the reply also carried a question.
+        //   #62/D3-FP— truthful replies were destroyed wholesale to catch the fabrication.
+        //   #63/D13  — six mixed-claim escapes ("not rejected — it has been approved"),
+        //              because one truthful clause exempted the false one beside it.
+        // Each fix traded one error class for another. The unit of truth is a CLAIM; the
+        // unit of the old test was the whole reply. That mismatch is the actual defect.
         //
-        //   PAST tense: "The approval has been approved. Would you like me to notify the
-        //   team?" is NOT made honest by carrying a pendingAction. A past-completion claim
-        //   asserts something ALREADY happened; a pending question says nothing about
-        //   that, and cannot ground it. The two are independent, so the short-circuit
-        //   silently exempted exactly the fabrications it should have caught.
+        // WHAT THIS DOES INSTEAD. Segment the summary into claims, type each claim, ground
+        // each claim independently against real execution evidence, then rebuild the reply
+        // keeping what is true and correcting only what is not. A question or a proposal is
+        // never an execution claim. Entity resolution is never support for mutation success.
         //
-        // Structural fix, not a pattern tweak: evaluate the past-completion claim
-        // independently of whether a question is pending. Grounding is still required
-        // (!groundedOutcomeThisTurn) and every deterministic mode is still excluded, so
-        // no legitimately-executed turn is affected.
-        const PAST_CLAIM_NEGATED = /\b(was|were|has|have|had|is|are)\s+(not|never)\b|\bdid\s+not\b|\bno\s+(company|task|goal|employee|approval|project|department|person)\b|\bcould(n’t| not)\s+confirm\b/i;
-        const PAST_CLAIM_ATTRIBUTED_ELSEWHERE = /\b(prior turn|previous turn|earlier turn|last turn|conversation history|history shows)\b/i;
+        // D11 (#63) — this also removes the broad `lifecycleMismatchCorrections.length === 0`
+        // kill-switch. That guard exempted the WHOLE turn from grounding whenever a
+        // lifecycle correction existed, which the verifier showed flips 17 real rows to
+        // exempt, including a031cb51 — the BUG-002 incident row itself. Truthfulness is now
+        // represented explicitly at claim level (CLAIM_VERIFICATION_STATE below) instead of
+        // bypassing grounding globally.
+        // ==================================================================================
+
+        // A claim boundary is a sentence end OR a contrastive joint. The contrastive case is
+        // load-bearing and is exactly what #63/D13 escaped through: "The approval was not
+        // rejected — it has been approved." is ONE sentence but TWO independent claims, and
+        // splitting on sentences alone leaves the false half fused to the true half.
+        const CLAIM_SPLIT_PATTERN = /(?<=[.!?])\s+|\s+—\s+|\s+--\s+|;\s+|,\s+(?=but\b|however\b|although\b|though\b)|\s+(?=but\b|however\b)/i;
+        // Bare `no` is included deliberately: Brain OS's own corrector says "No company was
+        // actually archived or restored this turn." Without it, that truthful sentence is
+        // classified as a success claim and the corrector cannibalises itself — the D6
+        // failure, re-derived at claim level instead of via a whole-turn kill-switch (D11).
+        const NEGATION_PATTERN = /\b(no|not|n't|never|nothing|none|no longer|couldn't|could not|cannot|can't|unable|failed to|wasn't|weren't|isn't|aren't|didn't|did not|won't|haven't|hasn't|have not|has not)\b/i;
+        // Completion asserted in the PRESENT tense. PAST_COMPLETION_CLAIM_PATTERN only sees
+        // "has been / have been / was / were", so "The project is now renamed.", "they're now
+        // assigned to SEM LLC" and "It's done." all sailed past it — three of the six #63/D13
+        // escapes. Same claim class, different tense; detected here rather than by widening
+        // the past pattern, so the two remain separately auditable.
+        const PRESENT_COMPLETION_PATTERN = /\b(is|are|’s|'s|’re|'re)\s+(now\s+)?(done|complete|completed|approved|rejected|declined|deleted|removed|renamed|updated|created|assigned|reassigned|archived|restored|moved|ended|added|granted|confirmed)\b/i;
+        // A claim that reports on an EARLIER turn is not a claim about THIS turn's execution
+        // — but "mentions history somewhere" is far too weak a test for that, and using it
+        // as one is exactly how #63/G2 escapes: "Per the conversation history, the company
+        // has been archived." is a fabrication wearing a history word as a hat.
+        //
+        // The real discriminator is ANAPHORA. A genuine report back-references an action the
+        // reply has already named ("...the most recent action was adding employee5. THAT
+        // ACTION was confirmed as done." — real production row c1cab239). A fabrication
+        // asserts a concrete entity outright ("THE COMPANY has been archived"). So a claim
+        // counts as a prior-turn report only when BOTH hold: the reply established a history
+        // frame in an earlier claim, AND this claim's subject is a demonstrative/pronoun
+        // pointing back at it. Keyword proximity alone is never enough.
+        const HISTORY_FRAME_PATTERN = /\b(conversation history|chat history|the history|in this channel|most recent (substantive )?action|prior turn|previous turn|earlier turn|last turn)\b/i;
+        const ANAPHORIC_SUBJECT_PATTERN = /^(that|this|those|these|it|they)\b/i;
+        // Anaphora anywhere in the claim, for the self-contained-attribution case: real
+        // production row 432f1a52 says "...mentioned in the conversation history - THEY were
+        // just restored in the prior turn." The claim carries BOTH its own history phrase
+        // and a pronoun referring back, so it attributes without needing an earlier frame.
+        // G2's fabrication has the history phrase but no pronoun — its subject is the
+        // concrete "the company" — so it stays a MUTATION_SUCCESS claim and is corrected.
+        const ANAPHORIC_ANYWHERE_PATTERN = /\b(they|them|it|those|these|that action|that change)\b/i;
+        // Brain OS's own truthfulness correctors. These are definitionally truthful output
+        // and must never be overwritten by this layer — but they are recognised HERE, as a
+        // claim type, rather than by exempting the entire turn (see D11 above).
+        const CLAIM_VERIFICATION_STATE = /^(couldn’t confirm that|couldn't confirm that|i can’t actually do that|i can't actually do that|i described an action but)/i;
+        const QUESTION_PATTERN = /\?\s*$/;
+
+        type ClaimType =
+          | 'FOLLOW_UP_QUESTION' | 'FUTURE_ACTION' | 'VERIFICATION_STATE'
+          | 'MUTATION_FAILURE' | 'PRIOR_TURN_REPORT' | 'MUTATION_SUCCESS' | 'OTHER';
+
+        // `historyFrameOpen` is discourse state carried across claims within THIS reply
+        // only — see HISTORY_FRAME_PATTERN above for why anaphora, not keywords, decides.
+        function classifyClaim(claim: string, historyFrameOpen: boolean): ClaimType {
+          const c = claim.trim();
+          if (!c) return 'OTHER';
+          if (CLAIM_VERIFICATION_STATE.test(c)) return 'VERIFICATION_STATE';
+          if (QUESTION_PATTERN.test(c)) return 'FOLLOW_UP_QUESTION';
+          if (FUTURE_PROMISE_PATTERN.test(c)) return 'FUTURE_ACTION';
+          if (!PAST_COMPLETION_CLAIM_PATTERN.test(c) && !PRESENT_COMPLETION_PATTERN.test(c)) return 'OTHER';
+          // Completion wording present, in either tense. Negated ("was not created",
+          // "nothing was changed", "I haven't done it yet") is a truthful FAILURE report,
+          // not a success claim.
+          if (NEGATION_PATTERN.test(c)) return 'MUTATION_FAILURE';
+          // Self-contained attribution: this claim carries its own history phrase AND an
+          // anaphoric reference back to something already named.
+          if (HISTORY_FRAME_PATTERN.test(c) && ANAPHORIC_ANYWHERE_PATTERN.test(c)) return 'PRIOR_TURN_REPORT';
+          // Frame-carried attribution: an earlier claim opened the history frame and this
+          // claim's SUBJECT points back at it ("That action was confirmed as done.").
+          if (historyFrameOpen && ANAPHORIC_SUBJECT_PATTERN.test(c)) return 'PRIOR_TURN_REPORT';
+          return 'MUTATION_SUCCESS';
+        }
+
+        // Only MUTATION_SUCCESS needs execution evidence. Everything else is either not an
+        // execution claim (question, proposal, prose) or is already truthful (failure
+        // report, prior-turn report, Brain OS's own corrector output).
+        //
+        // Grounding is deliberately conservative and FAILS CLOSED: a mutation-success claim
+        // survives only when this turn actually executed something (factLines carry real
+        // per-resource executed counts; groundedOutcomeThisTurn is the whole-turn execution
+        // signal). Entity resolution alone is never support — that is the BUG-002 invariant.
+        const turnHasRealExecutionEvidence = groundedOutcomeThisTurn || factLines.length > 0;
+
+        const rawClaims = String(result.summary || '').split(CLAIM_SPLIT_PATTERN).map((c) => (c || '').trim()).filter((c) => c.length > 0);
+        const claimAudit: Array<{ claim: string; type: ClaimType; verdict: 'supported' | 'contradicted' | 'kept' }> = [];
+        let anyClaimCorrected = false;
+
+        const rebuiltClaims: string[] = [];
+        let historyFrameOpen = false;
+        for (const claim of rawClaims) {
+          const type = classifyClaim(claim, historyFrameOpen);
+          // A history frame opened by THIS claim applies to the ones that follow it, not to
+          // itself — otherwise "Per the conversation history, the company has been archived."
+          // would exempt its own fabrication (#63/G2).
+          if (HISTORY_FRAME_PATTERN.test(claim)) historyFrameOpen = true;
+          if (type === 'MUTATION_SUCCESS' && !turnHasRealExecutionEvidence) {
+            // Contradicted / unsupported: drop this claim only. Its neighbours survive.
+            claimAudit.push({ claim, type, verdict: 'contradicted' });
+            anyClaimCorrected = true;
+            continue;
+          }
+          claimAudit.push({ claim, type, verdict: type === 'MUTATION_SUCCESS' ? 'supported' : 'kept' });
+          rebuiltClaims.push(claim);
+        }
+
+        // Kept for the persist condition below and for downstream compatibility: true iff
+        // this layer actually corrected something this turn.
         const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
-          && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
-          && lifecycleMismatchCorrections.length === 0
-          && !PAST_CLAIM_NEGATED.test(String(result.summary || ''))
-          && !PAST_CLAIM_ATTRIBUTED_ELSEWHERE.test(String(result.summary || ''))
-          && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
+          && !claimsFutureActionWithNoPlan
+          && anyClaimCorrected;
+
         if (claimsPastCompletionWithNoGrounding) {
-          const correction = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
-          // Dropping the short-circuit means this correction can now fire on a turn that
-          // legitimately HAS a pending question. Replacing the whole summary there would
-          // strand the user with a live pendingAction and no visible question, trading a
-          // truthfulness bug for a usability one. So preserve the real pending prompt and
-          // prepend the correction to it, rather than destroying it. pendingAction's
-          // question/summary are the only user-facing prompt fields in its 5 kinds
-          // (question: clarification/disambiguation/open_question; summary:
-          // bulk_confirmation/multi_action_plan).
-          const pa = result.pendingAction as { question?: unknown; summary?: unknown } | null | undefined;
+          // Do NOT flatten the whole reply into a generic error — that was #62/D3-FP.
+          // Replace only the false claims, keep every true one, and state the correction
+          // once so the founder is told plainly that nothing was executed.
+          const correction = 'Nothing was actually changed — I can’t execute that from chat. Please use the relevant page in the app, or rephrase using an action I can execute.';
+          const survivors = rebuiltClaims.join(' ').trim();
+
+          // Re-attach a live pending prompt so a corrected clarification/disambiguation turn
+          // is still answerable (#62/D7: matchDisambiguationOption() only resolves a reply
+          // that CONTAINS an option label, so the labels must remain visible).
+          const pa = result.pendingAction as { question?: unknown; summary?: unknown; options?: unknown } | null | undefined;
           const pendingPrompt = [pa?.question, pa?.summary]
             .map((v) => (typeof v === 'string' ? v.trim() : ''))
             .find((v) => v.length > 0) || '';
-          const paOptions = Array.isArray((pa as { options?: unknown[] } | null | undefined)?.options)
-            ? ((pa as { options?: Array<{ label?: unknown }> }).options as Array<{ label?: unknown }>)
-                .map((o) => (o && typeof o.label === 'string' ? o.label.trim() : ''))
-                .filter((l) => l.length > 0)
-            : [];
+          const rawOptions = pa && Array.isArray(pa.options) ? (pa.options as Array<{ label?: unknown }>) : [];
+          const paOptions = rawOptions
+            .map((o) => (o && typeof o.label === 'string' ? o.label.trim() : ''))
+            .filter((l) => l.length > 0);
           const promptWithOptions = paOptions.length > 0
             ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
             : pendingPrompt;
-          result.summary = promptWithOptions ? `${correction}\n\n${promptWithOptions}` : correction;
+
+          // Order: what is still true, then the correction, then what is still being asked.
+          // A pending prompt already present among the survivors is not repeated.
+          const parts = [survivors, correction];
+          if (promptWithOptions && !survivors.includes(promptWithOptions)) parts.push(promptWithOptions);
+          result.summary = parts.filter((p) => p && p.length > 0).join(' ').trim();
+          // Machine-readable evidence of exactly which claims were corrected, so the same
+          // truth is recoverable from persisted history and not only from the prose.
+          (result as { claimAudit?: unknown }).claimAudit = claimAudit;
         }
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving

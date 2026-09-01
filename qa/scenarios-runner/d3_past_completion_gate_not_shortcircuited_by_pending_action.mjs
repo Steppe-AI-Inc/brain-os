@@ -39,11 +39,22 @@ function check(name, cond, detail) {
 }
 
 // Isolate each gate's own declaration text (from `const <name> =` to the terminating `;`).
+// Re-anchored 2026-09-01: this used to seek `;` after `.test(`, which assumed every gate
+// ends in a regex test. The structural per-claim rewrite made the PAST gate end in
+// `&& anyClaimCorrected;` — no `.test(` at all — so the old extractor returned null and
+// SEVEN assertions failed for a reason unrelated to what they test. Now scans for the
+// first `;` at paren-depth zero, which holds for any declaration shape.
 function gateBody(constName) {
   const start = src.indexOf('const ' + constName + ' =');
   if (start === -1) return null;
-  const end = src.indexOf(';', src.indexOf('.test(', start));
-  return end === -1 ? null : src.slice(start, end + 1);
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (ch === ';' && depth === 0) return src.slice(start, i + 1);
+  }
+  return null;
 }
 
 const futureGate = gateBody('claimsFutureActionWithNoPlan');
@@ -66,9 +77,15 @@ check(
 );
 
 // --- Grounding must still be required, or the gate would fire on real executions ---
+// Re-anchored 2026-09-01: grounding moved OUT of the gate declaration and INTO the
+// per-claim loop, where it belongs — `turnHasRealExecutionEvidence` is what each
+// MUTATION_SUCCESS claim is grounded against. The invariant is unchanged (a success claim
+// still requires real execution evidence); only its location moved.
 check(
-  'PAST gate still requires !groundedOutcomeThisTurn',
-  !!pastGate && /!groundedOutcomeThisTurn/.test(pastGate)
+  'grounding is still required for a mutation-success claim',
+  /const turnHasRealExecutionEvidence\s*=\s*groundedOutcomeThisTurn\s*\|\|\s*factLines\.length\s*>\s*0/.test(src)
+    && /type === 'MUTATION_SUCCESS' && !turnHasRealExecutionEvidence/.test(src),
+  'A MUTATION_SUCCESS claim must be dropped unless the turn produced real execution evidence (groundedOutcomeThisTurn or factLines). Entity resolution alone is never support.'
 );
 check(
   'PAST gate still excludes every deterministic mode',
@@ -106,13 +123,25 @@ const correctionBlock = (() => {
 // pending prompt out of pendingAction and conditionally concatenate it onto the summary.
 // The real behavioural coverage lives in past_completion_gate_behavior.mjs (Section C);
 // this is the cheap source-level guard that the mechanism has not been deleted outright.
+// Re-anchored again 2026-09-01 for the structural rewrite: the correction no longer
+// assigns via a ternary (`result.summary = x ? ...`). It now REBUILDS the reply from the
+// surviving claims plus the correction plus any pending prompt, which is a strictly
+// stronger behaviour. Assert that shape instead. Behavioural proof lives in
+// past_completion_gate_behavior.mjs Section F and mixed_claim_grounding.mjs Section F.
 check(
   'correction preserves a real pending prompt instead of destroying it',
   /pendingAction/.test(correctionBlock)
     && /(question|summary)/.test(correctionBlock)
-    && /result\.summary\s*=\s*\w+\s*\?/.test(correctionBlock)
-    && /\$\{correction\}/.test(correctionBlock),
-  'Now that the gate can fire on a turn WITH a pendingAction, blindly overwriting result.summary would leave a live pendingAction with no visible question. The correction must re-attach pendingAction.question/summary (and, since D7, disambiguation option labels).'
+    && /survivors/.test(correctionBlock)
+    && /parts\.filter/.test(correctionBlock),
+  'The correction must rebuild the reply from surviving claims + correction + pending prompt, never blindly overwrite result.summary — that would strand a live pendingAction with no visible question.'
+);
+// The structural invariant that makes this a per-CLAIM fix rather than another
+// whole-summary gate: truthful claims survive alongside the correction.
+check(
+  'STRUCTURAL: surviving claims are re-emitted, not discarded',
+  /const survivors = rebuiltClaims\.join/.test(correctionBlock),
+  'If the correction stops re-emitting rebuiltClaims, the fix has regressed to whole-summary replacement (#62/D3-FP).'
 );
 // D7 (qa/KNOWN_FAILURE_MODES.md #62): a disambiguation is only answerable if the option
 // LABELS survive - matchDisambiguationOption() resolves a reply only when it CONTAINS a
@@ -124,7 +153,7 @@ check(
 );
 check(
   'correction still states plainly that nothing was changed',
-  /nothing was changed/.test(correctionBlock)
+  /[Nn]othing was actually changed/.test(correctionBlock)
 );
 
 // --- The corrected turn must still be persisted (KNOWN_FAILURE_MODES #35 class) ---

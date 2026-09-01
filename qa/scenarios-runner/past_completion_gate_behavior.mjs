@@ -80,21 +80,52 @@ function buildGateRunner(source) {
   // NOT good enough - it silently failed on a nested `Array<{ label?: unknown }>`, and a
   // harness that cannot parse the source it is supposed to execute must throw, never
   // quietly pass.
-  const slice = stripTypeAssertions(source.slice(start, end));
+  // Normalize to LF first (working tree is CRLF; any line-anchored strip below would
+  // silently fail against \r\n), then remove the TypeScript-only declarations the
+  // 2026-09-01 structural per-claim rewrite introduced. Same treatment as
+  // mixed_claim_grounding.mjs. If any survives, THROW rather than pass opaquely.
+  let pre = source.slice(start, end).replace(/\r\n/g, '\n');
+  pre = pre.replace(/^\s*type ClaimType =[\s\S]*?;\s*$/m, '');
+  // Signature-agnostic (see mixed_claim_grounding.mjs for the same reasoning): pinning the
+  // exact parameter list broke when classifyClaim gained its historyFrameOpen argument.
+  pre = pre.replace(/function classifyClaim\(([^)]*)\):\s*ClaimType/, (_m, params) =>
+    'function classifyClaim(' + params.replace(/:\s*[A-Za-z_][\w.<>[\]]*/g, '') + ')');
+  pre = pre.replace(/const claimAudit: Array<[\s\S]*?> =/, 'const claimAudit =');
+  pre = pre.replace(/const rebuiltClaims: string\[\] =/, 'const rebuiltClaims =');
+  const slice = stripTypeAssertions(pre);
+  if (/\btype ClaimType\b|: ClaimType\b/.test(slice)) {
+    throw new Error('TypeScript type syntax survived stripping - update this harness');
+  }
   // lifecycleMismatchCorrections is injected too: it is in scope at the real call site,
   // and a candidate fix for D6 (#62) needs to reference it. Defaults to [] for the
   // versions that do not.
+  // `factLines` added 2026-09-01: the structural per-claim rewrite grounds against real
+  // per-resource execution evidence, so the harness must supply it. `lifecycleMismatchCorrections`
+  // is retained even though the rewrite removed the broad kill-switch that used it (D11) —
+  // harmless, and keeps this harness able to execute the older block shapes it documents.
   const fn = new Function(
-    'model', 'result', 'groundedOutcomeThisTurn', 'lifecycleMismatchCorrections',
+    'model', 'result', 'groundedOutcomeThisTurn', 'lifecycleMismatchCorrections', 'factLines',
     slice + '\n; return { summary: result.summary, pendingAction: result.pendingAction, past: claimsPastCompletionWithNoGrounding, future: claimsFutureActionWithNoPlan };'
   );
-  return (model, summary, pendingAction, grounded, lifecycleMismatchCorrections = []) =>
-    fn(model, { summary, pendingAction }, grounded, lifecycleMismatchCorrections);
+  return (model, summary, pendingAction, grounded, lifecycleMismatchCorrections = [], factLines = []) =>
+    fn(model, { summary, pendingAction }, grounded, lifecycleMismatchCorrections, factLines);
 }
 
 const run = buildGateRunner(src);
-const CORRECTION_PREFIX = 'I can’t actually do that from chat';
-const overwritten = (r) => String(r.summary || '').startsWith(CORRECTION_PREFIX);
+// "Was this reply corrected?" — deliberately NOT a startsWith() on one hardcoded phrase.
+// The 2026-09-01 structural per-claim rewrite changed both the wording AND the position:
+// truthful surviving claims now come FIRST and the correction is appended, so a prefix
+// match reported "not corrected" for every genuinely corrected reply. Matching either
+// generation's marker anywhere keeps this harness able to characterise the older block
+// shapes it documents, and `r.past` is the semantic signal from the real code.
+const CORRECTION_MARKERS = [
+  'I can’t actually do that from chat',      // c9dfab5 / e085cfc / 606cfa8 wording
+  'Nothing was actually changed',            // structural per-claim rewrite wording
+];
+const overwritten = (r) => {
+  const s = String(r.summary || '');
+  return CORRECTION_MARKERS.some((m) => s.includes(m)) || r.past === true;
+};
 
 let pass = 0;
 const failures = [];
@@ -316,11 +347,25 @@ check(
 // lifecycleMismatchCorrections.length === 0 and the guard can never mask a fabrication.
 // That invariant is load-bearing and entirely implicit. E2 locks the chain shape.
 const A_CORRECTOR = ['Could not confirm that. No company was actually archived or restored this turn.'];
+// INVERTED 2026-09-01 (D11 fixed). This used to characterise the broad
+// `lifecycleMismatchCorrections.length === 0` kill-switch, which disabled the ENTIRE gate
+// whenever a corrector was pending — safe only via an implicit, undocumented else-if-chain
+// invariant, and the verifier showed forcing that state exempts 17 real rows including
+// a031cb51, the BUG-002 incident row itself. The structural rewrite deleted that
+// kill-switch and represents corrector truthfulness at CLAIM level instead
+// (CLAIM_VERIFICATION_STATE), so a fabrication can no longer ride along with a pending
+// corrector. Asserted in the FIXED direction.
 check(
-  'E1 CHARACTERISATION: with a corrector pending, the gate is fully disabled even for a real fabrication',
+  'E1 D11 FIXED: a real fabrication is corrected whether or not a corrector is pending',
   overwritten(run('gpt', 'The approval has been approved.', null, false, []))
-    && !overwritten(run('gpt', 'The approval has been approved.', null, false, A_CORRECTOR)),
-  'If this flips, the D6 guard changed shape - re-verify a fabrication cannot ride along with a pending corrector.'
+    && overwritten(run('gpt', 'The approval has been approved.', null, false, A_CORRECTOR)),
+  'REGRESSION: a fabrication rode along with a pending corrector. The broad D6 kill-switch must not come back — corrector truthfulness belongs at claim level.'
+);
+// The corrector text itself must still survive untouched — that is the D6 invariant,
+// now enforced per claim rather than by exempting the whole turn.
+check(
+  'E1b corrector output itself is still never overwritten (D6, claim-level)',
+  !overwritten(run('gpt', A_CORRECTOR[0], null, false, A_CORRECTOR))
 );
 check(
   'E2 SHAPE LOCK: lifecycleMismatchCorrections is the LAST summary branch and every earlier branch forces groundedOutcomeThisTurn',
@@ -390,11 +435,16 @@ const MIXED_CLAIM_ESCAPES = [
   ['G5 is-not + fabrication', 'The status is not draft. The goal has been archived.'],
   ['G6 could-not-confirm + fabrication', 'I could not confirm the owner, but the employee was created.'],
 ];
+// INVERTED 2026-09-01 by the structural per-claim grounding change, exactly as this
+// section's own instruction required ("INVERT Section G rather than deleting it"). All six
+// #63/D13 mixed-claim escapes are now CORRECTED: each reply is segmented into claims, and
+// the false success claim is removed while its truthful neighbour survives. Asserted in
+// the FIXED direction so any regression re-breaks this suite.
 for (const [name, summary] of MIXED_CLAIM_ESCAPES) {
   check(
-    name + ' STILL ESCAPES (known-open #63; deployed v92 catches it)',
-    !overwritten(run('gpt', summary, null, false)),
-    'This mixed claim is now CORRECTED. If per-claim grounding shipped, INVERT Section G rather than deleting it.'
+    name + ' is CORRECTED (structural per-claim grounding)',
+    overwritten(run('gpt', summary, null, false)),
+    'REGRESSION: this mixed claim escaped again. Per-claim grounding is not segmenting or not grounding this shape — do not "fix" this by deleting the case.'
   );
 }
 
