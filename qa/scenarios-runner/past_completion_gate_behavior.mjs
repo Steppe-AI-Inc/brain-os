@@ -140,12 +140,15 @@ check(
 
 check(
   'A2 GROUNDED turn with a past-completion sentence -> untouched',
-  !overwritten(run('gpt', 'The company was archived successfully.', null, true))
+  // Per-resource grounding: evidence must name the SAME resource. The whole-turn
+  // groundedOutcomeThisTurn flag is deliberately no longer the authority (it counted mere
+  // entity resolution as mutation proof), so this now supplies a real company factLine.
+  !overwritten(run('gpt', 'The company was archived successfully.', null, true, ['Archived 1 of 1 requested company(s).']))
 );
 
 check(
   'A3 grounded turn WITH a pendingAction -> untouched',
-  !overwritten(run('gpt', 'The company was archived successfully.', { kind: 'open_question', question: 'Anything else?' }, true))
+  !overwritten(run('gpt', 'The company was archived successfully.', { kind: 'open_question', question: 'Anything else?' }, true, ['Archived 1 of 1 requested company(s).']))
 );
 
 for (const m of ['deterministic-confirmation', 'deterministic-plan-execution', 'deterministic-clarification', 'deterministic-disambiguation']) {
@@ -230,7 +233,9 @@ const FALSE_POSITIVE_CORPUS = [
     { kind: 'open_question', question: 'Which specific action would you like me to verify?' }],
 ];
 for (const [name, summary, pa] of FALSE_POSITIVE_CORPUS) {
-  const r = run('gpt', summary, pa, false);
+  // Read-only runner: these truthful production replies answer a QUESTION. Under
+  // per-resource grounding that is what protects them - never a pronoun heuristic (#64/D17).
+  const r = run('gpt', summary, pa, false, [], 'what happened in this channel?');
   check(
     name + ' -> must NOT be overwritten',
     !overwritten(r),

@@ -83,9 +83,17 @@ check(
 // still requires real execution evidence); only its location moved.
 check(
   'grounding is still required for a mutation-success claim',
-  /const turnHasRealExecutionEvidence\s*=\s*groundedOutcomeThisTurn\s*\|\|\s*factLines\.length\s*>\s*0/.test(src)
-    && /type === 'MUTATION_SUCCESS' && !turnHasRealExecutionEvidence/.test(src),
-  'A MUTATION_SUCCESS claim must be dropped unless the turn produced real execution evidence (groundedOutcomeThisTurn or factLines). Entity resolution alone is never support.'
+  // Re-anchored 2026-09-01 for PER-RESOURCE grounding. Evidence is no longer a single
+  // whole-turn boolean; it is a set of resources that actually executed, built from
+  // factLines, and a claim is checked against ITS OWN resource.
+  // Plain string containment, not regex: the previous form used unescaped `()` and `||`,
+  // which silently became a capture group and an empty alternation, so two of the three
+  // conditions could never behave as written. Exactly the vacuous-assertion class logged
+  // four times in this file's own history — string checks cannot drift that way.
+  src.includes('const executedResources = new Set()')
+    && src.includes('executedResources.has(resource)')
+    && !src.includes('groundedOutcomeThisTurn || factLines.length > 0'),
+  'Grounding must be per-resource: an approval claim needs approval evidence. The whole-turn groundedOutcomeThisTurn signal must NOT be the authority — it counts entity resolution as mutation proof.'
 );
 check(
   'PAST gate still excludes every deterministic mode',
@@ -130,18 +138,25 @@ const correctionBlock = (() => {
 // past_completion_gate_behavior.mjs Section F and mixed_claim_grounding.mjs Section F.
 check(
   'correction preserves a real pending prompt instead of destroying it',
-  /pendingAction/.test(correctionBlock)
-    && /(question|summary)/.test(correctionBlock)
-    && /survivors/.test(correctionBlock)
-    && /parts\.filter/.test(correctionBlock),
+  // Re-anchored for per-resource grounding: the correction no longer rebuilds from a
+  // `survivors` array. It strikes only the contradicted assertions out of the original
+  // prose, then appends the notice and any live pending prompt.
+  correctionBlock.includes('pendingAction')
+    && correctionBlock.includes('pendingPrompt')
+    && correctionBlock.includes('promptWithOptions')
+    && correctionBlock.includes('parts.filter'),
   'The correction must rebuild the reply from surviving claims + correction + pending prompt, never blindly overwrite result.summary — that would strand a live pendingAction with no visible question.'
 );
 // The structural invariant that makes this a per-CLAIM fix rather than another
 // whole-summary gate: truthful claims survive alongside the correction.
 check(
-  'STRUCTURAL: surviving claims are re-emitted, not discarded',
-  /const survivors = rebuiltClaims\.join/.test(correctionBlock),
-  'If the correction stops re-emitting rebuiltClaims, the fix has regressed to whole-summary replacement (#62/D3-FP).'
+  'STRUCTURAL: only the false assertion is struck, the rest of the reply survives',
+  // Per-resource grounding edits the prose in place: each contradicted assertion is
+  // replaced with a marker and everything else is left standing. If this ever reverts to
+  // assigning a canned string over result.summary, it is the #62/D3-FP regression again.
+  correctionBlock.includes('for (const a of contradicted)')
+    && correctionBlock.includes('[not executed]'),
+  'The correction must strike ONLY the contradicted assertions out of the prose and keep every truthful claim around them.'
 );
 // D7 (qa/KNOWN_FAILURE_MODES.md #62): a disambiguation is only answerable if the option
 // LABELS survive - matchDisambiguationOption() resolves a reply only when it CONTAINS a

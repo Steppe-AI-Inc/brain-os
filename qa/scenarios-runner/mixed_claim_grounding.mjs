@@ -165,6 +165,21 @@ for (const q of QUESTIONS_WITH_COMPLETION_WORDING) {
 }
 
 // =======================================================================================
+// SECTION B3 — ZERO-SUCCESS fact lines are NOT evidence. Added after mutation testing:
+// changing the evidence builder to add a resource regardless of its success count was NOT
+// caught by any suite. A batch that ran and succeeded ZERO times is proof the mutation did
+// NOT happen — treating it as support would resurrect BUG-002 through the evidence path
+// rather than the prose path.
+// =======================================================================================
+check('B3 Succeeded: 0 is not evidence',
+  run('gpt', 'The task has been completed.', null, false, ['Task batch — Requested: 1. Succeeded: 0. Failed: 1.']).corrected,
+  'A batch with zero successes must not support a completion claim.');
+check('B3 "0 of 3" is not evidence',
+  run('gpt', 'The tasks have been deleted.', null, false, ['Deleted 0 of 3 requested task(s).']).corrected,
+  'Zero executed out of three requested must not support a completion claim.');
+check('B3 a genuine non-zero success IS evidence (control)',
+  !run('gpt', 'The task has been completed.', null, false, ['Task batch — Requested: 1. Succeeded: 1. Failed: 0.']).corrected);
+// =======================================================================================
 // SECTION C — #62/D3-FP: truthful replies must SURVIVE. These are the real production
 // shapes the previous fix destroyed. None may be replaced by a capability denial.
 // =======================================================================================

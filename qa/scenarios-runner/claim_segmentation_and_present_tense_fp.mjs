@@ -293,9 +293,19 @@ for (const [name, s] of PRESENT_TENSE_FP_SHAPES) {
 // index.ts itself discloses at the top of this block. It is NOT closed by 82bc28a.
 // True on both builds; asserted unconditionally.
 // =======================================================================================
-check('L1 a grounded turn still blesses a fabricated second claim (BUG-002 limitation OPEN)',
-  !corrected(run('gpt', 'The company was archived. The approval has been approved.', null, true)),
-  'If this is now corrected, per-claim GROUNDING (not just typing) landed — INVERT and update #64.');
+// INVERTED 2026-09-01: per-RESOURCE grounding landed, exactly as this section's own
+// instruction anticipated. Evidence is no longer one whole-turn boolean applied to every
+// claim — it is the set of resources that actually executed, and each claim is checked
+// against ITS OWN resource. A turn that really archived a company therefore supports the
+// COMPANY claim while refusing the APPROVAL claim beside it. This is the BUG-002
+// limitation index.ts disclosed at the top of the old block, now genuinely closed.
+check('L1 a grounded turn does NOT bless a fabricated claim about a DIFFERENT resource',
+  corrected(run('gpt', 'The company was archived. The approval has been approved.', null, true, ['Archived 1 of 1 requested company(s).'])),
+  'REGRESSION: real company evidence blessed a fabricated approval claim. Grounding must be per-resource — an approval claim requires approval facts.');
+// The paired half: the truthful, genuinely-executed claim must SURVIVE that correction.
+check('L1b the truthful same-resource claim survives alongside the correction',
+  /company was archived/i.test(String(run('gpt', 'The company was archived. The approval has been approved.', null, true, ['Archived 1 of 1 requested company(s).']).summary || '')),
+  'Per-resource correction must strike only the unsupported claim, never the executed one.');
 
 // =======================================================================================
 // SECTION M — first real coverage for the FUTURE_ACTION claim type. Mutation testing showed
