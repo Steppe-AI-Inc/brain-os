@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T12:01:58Z",
+  "last_updated": "2026-09-01T05:57:29Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 2,
+    "open_p1": 3,
     "open_p2": 2,
     "open_p3": 0,
-    "total_open": 4,
+    "total_open": 5,
     "total_closed": 0
   },
   "bugs": [
@@ -250,6 +250,96 @@
       ],
       "implementation_recommendation": "Remove the blanket company_id IS NULL bypass from both memories policies; model genuinely-global memories explicitly rather than inferring global from a null FK. Restrict memory writes to at least company membership. Decide whether public self-signup should remain open. Harden the ON CONFLICT email rebinding. Grep other RLS policies for company_id IS NULL used as a permissive branch - this is a failure CLASS.",
       "_qa_boundary": "QA did NOT implement any fix. All probing was transactional and rolled back - no memory persisted, no auth user created."
+    },
+    {
+      "bug_id": "BUG-005",
+      "github_issue": 5,
+      "repository": "Steppe-AI-Inc/brain-os",
+      "title": "Brain Chat same-channel continuity / destructive-confirmation binding corruption (founder-filed)",
+      "severity": "P1",
+      "status": "OPEN",
+      "_parent_closure_rule": "BUG-005 stays OPEN until ALL of classes A-E have independent Work-PC disposition. Passing Class B alone MUST NEVER produce CLOSED or VERIFIED for the parent defect.",
+      "ai_truth_classification": "CONFIRMATION_MISBINDING (new taxonomy entry) + STALE_CONTEXT + FALSE_SUCCESS",
+      "distinct_from_bug_002": "NOT the same root cause. BUG-002 = entity resolves + capability ABSENT -> fabricated success. BUG-005 = a pending action EXISTS and is mis-bound to the wrong action type/target, plus channel-state continuity loss. Do not merge.",
+      "campaign_id": "C002",
+      "reported_by": "founder",
+      "reported_at": "2026-08-31",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai",
+      "classes": {
+        "A": {
+          "title": "Same-channel history continuity - Brain loses/denies recent history, claims current message is first in channel",
+          "status": "OPEN - NOT IMPLEMENTED (architecture gap)",
+          "work_pc_disposition": "CONFIRMED FAILING (live reproduction)",
+          "home_pc_measurement": "history retrieval is a hard limit(8). At 50/100/200 turns only 8 turns visible (16%/8%/4%), first turn unreachable, ZERO canonical IDs in window. Longest real production channel to date is 7 turns, so this has never fired in production yet - guaranteed to at 50+.",
+          "work_pc_evidence": "Single clean channel 44dafd9a, 3 consecutive user turns, only 1 work_orders row persisted. This is NOT the limit(8) retrieval window the Home PC measured - at 3 turns that window cannot apply. Turns are not being WRITTEN, which is a different mechanism from not being READ.",
+          "hypothesis_for_home_pc": "UNPROVEN, needs Home-PC confirmation: BUG-002 fix wired claimsPastCompletionWithNoGrounding into the SAME work_orders.output persist-condition as claimsFutureActionWithNoPlan. If that condition suppresses persistence for turns whose text trips the pattern, then the BUG-002 fix may be AMPLIFYING the Class A continuity defect. Work PC did not read that code path and is not asserting this - flagged as the highest-value thing for Home PC to check first."
+        },
+        "B": {
+          "title": "Confirmation action/target binding - bare yes on an assign clarification archived the company",
+          "status": "DEPLOYED - READY FOR PLAYWRIGHT RETEST",
+          "work_pc_disposition": "VERIFIED FIXED (safety property) - RETEST PASSED",
+          "root_cause": "pendingAction.actionType typed archive|restore|null, so an ASSIGN clarification had no representable value and was emitted ABSENT. Both deterministic call sites resolved CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType || \"archive\"], coercing absence into the MOST DESTRUCTIVE op. Bare yes passes isClarificationAffirmative(); commandContradictsActionType() cannot help because yes contains neither verb family.",
+          "fix": "fail-closed resolveClarificationField(entityType,actionType) - both must be explicitly present and known else undefined and the turn falls through to the ordinary LLM path.",
+          "deployed": {
+            "master_commit": "c9dfab5",
+            "fix_commit": "72a44ce",
+            "edge_function_version": 92,
+            "independently_confirmed_by_work_pc": "supabase functions list -> sem-ai-command version 92 ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475"
+          },
+          "work_pc_evidence": "Live Playwright vs sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475), independently confirmed ACTIVE by Work PC. Ran the founder transcript plus two variants; sent a bare \"yes\" on an assign-type clarification THREE times. Target company QA-C002-CLASSB-TARGET (8fdad6e2-fffb-41bc-af0a-df8cab09110b) status stayed active with updated_at unchanged at its creation timestamp 05:44:48, and companies_archived_last_20min = 0. The destructive coercion does not fire.",
+          "residual_defect": "The fail-closed fix removes the DANGER but not the DEFECT: the assign-via-clarification flow is now a dead loop. Replying \"yes\" returns the identical question verbatim and never completes - employees_created_total = 0 across all attempts. Safe, but non-functional."
+        },
+        "C": {
+          "title": "Fresh canonical active/archive grounding - Brain reports stale entity state after mutation",
+          "status": "OPEN - NOT IMPLEMENTED",
+          "work_pc_disposition": "CONFIRMED FAILING",
+          "work_pc_evidence": "Within one channel: turn 1 Brain stated \"Yes. The company exists. Its exact name is QA-C002-CLASSB-TARGET.\" Turn 2 offered to assign to it. Turn 3 said \"I do not see either QA-C002-EMP-002 or QA-C002-CLASSB-TARGET in the current context. The company may not exist yet.\" The company demonstrably exists (DB-verified active). Grounding is lost between consecutive turns."
+        },
+        "D": {
+          "title": "Authoritative execution-result continuity - contradicts its own prior execution result",
+          "status": "OPEN - NOT IMPLEMENTED",
+          "work_pc_disposition": "CONFIRMED FAILING",
+          "work_pc_evidence": "Brain contradicted its own immediately-prior statement about the same entity in the same channel (see Class C evidence). Also, asked \"what did you just do\", it answered \"The prior pending action is not visible in this turn context.\" - an explicit self-report of the continuity loss."
+        },
+        "E": {
+          "title": "Channel/context identity continuity",
+          "status": "OPEN - NOT IMPLEMENTED",
+          "work_pc_disposition": "CONFIRMED FAILING - and worse than reported",
+          "work_pc_evidence": "NEW SUB-FINDING not in the original issue: asked what it had just done, Brain offered pending actions belonging to ENTIRELY DIFFERENT conversations as candidates - \"Are you confirming the establishment of SEM Global Robotics Technologies LLC as a 100% subsidiary of SEM LLC (task 1e70d5b3-ead8-44da-a5d7-764085f12eff), or the reassignment of...\". Pending-action candidates are bleeding ACROSS channel/context boundaries. This is the same misbinding risk that caused the original issue: had a bare confirmation bound to one of those, it would have executed an unrelated action in an unrelated context."
+        }
+      },
+      "home_pc_architecture_findings": {
+        "structured_pending_action": "last-turn work_orders.output only",
+        "canonical_target_ids": "resolvedEntities, last turn only",
+        "source_turn_ids": "absent",
+        "expected_confirmation_type": "absent",
+        "channel_session_binding": "present since 2026-08-31",
+        "compaction": "none",
+        "history_retrieval": "hard limit(8)",
+        "persisted_history_payload": "{command,summary} only - no canonical IDs"
+      },
+      "stale_field_discrepancy_flagged": "ISSUE-5.json contains a stale requested_work_pc_action saying \"the fix is intentionally not deployed\", contradicting its own status_report CLASS B DEPLOYED. The _supersedes note makes DEPLOYED current. Flagged rather than silently resolved.",
+      "regression_paths_required": [
+        "exact founder transcript repro",
+        "assignment confirmation cannot become archive",
+        "pending action survives normal continuation",
+        "pending action does not survive when stale/invalid",
+        "multiple pending actions require clarification",
+        "confirmation binds to pending_action_id+action_type+canonical ids",
+        "reload/navigation continuity",
+        "50/100/200-turn sweeps",
+        "compaction boundary",
+        "mutation result equals final claim"
+      ],
+      "_qa_boundary": "QA does not implement fixes.",
+      "structural_root_cause_confirmed_live": "work_orders.output for the assign clarification persists pendingAction.kind = open_question with actionType = (none). That is exactly the unrepresentable-ASSIGN condition the Home PC identified: actionType is typed archive|restore|null, so an assign has no legal value and is emitted absent. Pre-fix, actionType || \"archive\" coerced that absence into the most destructive operation. Post-fix it fails closed - which is why nothing archives, and equally why nothing can ever be confirmed.",
+      "_closure_status": "REMAINS OPEN. Class B safety verified, but A/C/D/E all CONFIRMED FAILING by independent Work-PC reproduction. Per founder instruction, passing Class B alone must never close or verify the parent defect.",
+      "retested_against": {
+        "edge_function": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475), independently confirmed ACTIVE by Work PC",
+        "campaign": "C002",
+        "retested_at": "2026-09-01T05:57:29Z"
+      }
     }
   ]
 }

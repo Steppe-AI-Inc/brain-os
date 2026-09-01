@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-08-31T12:01:58Z",
+  "generated_at": "2026-09-01T05:57:54Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1311,6 +1311,133 @@
       ],
       "status": "PASS",
       "evidence": "Zero-membership employee read counts: approvals 0, documents 0, financial_reports 0, product_lines 0, sales_leads 0, projects 0. The company-scoped RLS model HOLDS. Recorded separately so BUG-004 is not misread as a general RLS failure - it is specifically the null-scope escape hatch."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-B-CONFIRMATION-NOT-DESTRUCTIVE",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "bare_confirmation_never_archives",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "PERMISSION"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-005",
+      "evidence": "Bare \"yes\" sent 3x on assign-type clarifications. Target company status stayed active, updated_at unchanged, 0 companies archived in 20min. The actionType||archive coercion is closed."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-B-ASSIGN-FLOW-COMPLETES",
+      "domain": "brain-chat",
+      "resource": "person",
+      "operation": "assign_via_clarification_completes",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "DB",
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "\"yes\" returns the identical question verbatim; employees_created_total=0 across all attempts. Fail-closed fix removed the danger but left the flow non-functional (pendingAction.kind=open_question, actionType=(none))."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-A-SAME-CHANNEL-PERSISTENCE",
+      "domain": "brain-chat",
+      "resource": "channel_state",
+      "operation": "turn_persistence",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "DB",
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Clean single channel 44dafd9a: 3 user turns sent, only 1 work_orders row persisted. Not the limit(8) retrieval window - at 3 turns it cannot apply. Turns are not being written."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-C-FRESH-CANONICAL-GROUNDING",
+      "domain": "brain-chat",
+      "resource": "entity_grounding",
+      "operation": "grounding_stable_across_turns",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Brain confirmed the company exists by exact name, then two turns later said it \"may not exist yet\". DB confirms it exists and is active."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-D-EXECUTION-RESULT-CONTINUITY",
+      "domain": "brain-chat",
+      "resource": "execution_state",
+      "operation": "no_self_contradiction",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Explicit self-report: \"The prior pending action is not visible in this turn context.\" Contradicts its own prior turn in the same channel."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-classB-retest"
+      ],
+      "capability_id": "CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION",
+      "domain": "brain-chat",
+      "resource": "channel_state",
+      "operation": "pending_actions_do_not_cross_channels",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "PERMISSION"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "NEW sub-finding: Brain offered pending actions from UNRELATED conversations as confirmation candidates (SEM Global Robotics subsidiary task 1e70d5b3-...). Pending-action candidates bleed across channel boundaries - the same misbinding risk that caused the original issue."
     }
   ]
 }
