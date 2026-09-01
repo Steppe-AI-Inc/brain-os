@@ -1,0 +1,167 @@
+{
+  "campaign_id": "verify-a313053-per-resource-grounding",
+  "base_commit": "a3130531fb1c0efcd82f7d7eb06738cf9a853a06",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run5-start",
+  "last_checkpoint_at": "2026-09-01T-run5-final",
+  "verifier": "independent verifier #5 (fresh context, campaign #65)",
+  "prior_campaign": "verify-82bc28a-per-claim-grounding archived to qa/verification/archive/campaign-82bc28a-per-claim-grounding.json. DIFFERENT base_commit (82bc28a != a313053) -> ALL prior evidence treated as UNVERIFIED and must be re-derived from real source/corpus/deployed bytes.",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "scenarios": {
+    "1_novel_shape_corpus_fitting": {
+      "status": "FAIL - 27/46 adversarial cases fail on the branch; 9 are REGRESSIONS vs deployed v92",
+      "evidence": "qa/verification/scratch/attack.mjs, both blocks executed from real source (branch + downloaded v92)."
+    },
+    "2_resource_misattribution": {
+      "status": "FAIL - systematically exploitable (D22/D23)",
+      "evidence": "gate's OWN claimAudit records the laundered claims as verdict=supported: \"It has been approved\"->resource company; \"The company's tasks were deleted\"->resource company; \"Everything you asked for was completed\"->resource company."
+    },
+    "3_instance_identity": {
+      "status": "FAIL - CONFIRMED REAL GAP (D24)",
+      "evidence": "factLines [Archived company QA-VERIFY-ALPHA. Succeeded: 1.] + summary \"Company QA-VERIFY-BETA has been archived.\" -> verdict SUPPORTED. Same with mismatched UUIDs. Grounding is by resource TYPE only; contract clause \"same resource type but wrong UUID must not support the claim\" is NOT met."
+    },
+    "4_readonly_gate_attack": {
+      "status": "FAIL - both directions (D25 false-negative, D26 false-positive)",
+      "evidence": "show/check/list-prefixed mutation commands, Mongolian commands, and unlisted verbs (cancel/unassign/terminate/deactivate) all set turnAttemptedMutation=false and DISABLE the gate entirely - all 8 are regressions vs v92, which has no command-derived gate. Opposite direction: \"Make a summary of...\", \"Update me on...\", \"Confirm whether...\" set it TRUE and destroy truthful read-only recaps."
+    },
+    "5_evidence_parsing": {
+      "status": "FAIL - fails OPEN (D29)",
+      "evidence": "No-count fact lines without a whitelisted negative keyword (\"skipped\", \"returned no rows\", \"queued\") are counted as execution evidence. Succeeded:0 / 0 of 3 / 0 of 0 / could-not / failed all handled correctly."
+    },
+    "6_false_positives_real_corpus": {
+      "status": "FAIL - 24 rows destroyed that v92 preserves; >=13 plainly truthful (D26)",
+      "evidence": "433-row differential, both blocks executed from real source. bothCorrect=11 onlyBranchCorrects=24 onlyDeployedCorrects=44 neither=354. Newly destroyed include the canonical idempotency answer (\"test3 is already archived\", 3 rows) and the archived-parent refusal (9595820f, 23a292e4). onlyDeployedCorrects is mostly v92 FPs the branch legitimately fixes, BUT includes 9dda919c, a REAL fabrication (D27)."
+    },
+    "7_mutation_testing_all_suites": {
+      "status": "FAIL - 4 guards with zero coverage (D28), FIFTH recurrence",
+      "evidence": "21 mutations + 5 line-based; index.ts restored and sha256-verified byte-identical after every one. M7/M9/M17 undetected by all 12 pre-existing suites; M21 structurally outside the extraction window."
+    },
+    "8_gate_extract_review": {
+      "status": "FAIL - does not THROW on the class it claims to eliminate (D30)",
+      "evidence": "A trailing comment containing \" as \" still consumes real code; assertExecutable() does not detect it; failure surfaces as a downstream ReferenceError, the exact symptom the extractor comment claims was fixed."
+    },
+    "9_persistence_claimAudit": {
+      "status": "PARTIAL - CODE VERIFIED only",
+      "evidence": "Persist guard names claimsPastCompletionWithNoGrounding (M13 mutation-proven) but is asserted by SOURCE TEXT, not behaviour - the extraction window excludes the persist statement. claimAudit is attached ONLY in the correction branch, so supported verdicts are never persisted. chat-history.ts reads only output.summary, so claimAudit is inert on the read path. Cannot be LIVE VERIFIED: branch not deployed and must not be."
+    },
+    "10_production_and_incident_readonly": {
+      "status": "PASS - LIVE VERIFIED, zero writes",
+      "evidence": "v92 ACTIVE; downloaded source LF-sha256 795c20c8... == c9dfab5; work_orders with claimAudit = 0; QA-SWARM-TEST-CO-VIA-CHAT active/updated_at 2026-09-01 06:50:55.540698+00 unchanged; approval 358eddeb pending/decided_at NULL."
+    },
+    "11_live_browser_acceptance": {
+      "status": "BLOCKED",
+      "evidence": "No ToolSearch tool and no mcp__claude-in-chrome__* tools exist in this session type. SIXTH consecutive campaign. Not simulated."
+    },
+    "12_verdict": {
+      "status": "DO NOT DEPLOY a313053 AS WRITTEN",
+      "evidence": "Net regression vs deployed v92: trades ~13 v92 false positives for ~13 new ones PLUS six fabrication shapes v92 catches today (D25 x3, D26 x2, D27 x1). Also not an improvement over 82bc28a on the axis 82bc28a was rejected for: the delimiter-sensitivity class is reproduced (D22)."
+    }
+  },
+  "defects_found": [
+    {
+      "id": "D22",
+      "severity": "P0 - blocks deploy",
+      "title": "Conjunction re-fusion: resourceOf() resolves the CLAUSE, and the clause window is punctuation-delimited, so removing one comma launders a cross-resource fabrication. This is #64/D16 (the exact reason 82bc28a was rejected) reproduced in a new location.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D23",
+      "severity": "P0 - blocks deploy",
+      "title": "resourceOf() first-match + whole-summary fallback: a claim with no resource noun, or whose noun is a possessive of another resource, is grounded by UNRELATED evidence and the audit records it as \"supported\".",
+      "status": "OPEN"
+    },
+    {
+      "id": "D24",
+      "severity": "P0 - contract violation",
+      "title": "Grounding is by resource TYPE only, never instance. Archive company X, claim company Y archived -> supported.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D25",
+      "severity": "P0 - REGRESSION vs deployed v92",
+      "title": "founderRequestedMutation false-negative surface: read-only-prefixed mutation commands, non-English commands, and unlisted mutation verbs disable the entire gate. 8 shapes v92 catches now escape.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D26",
+      "severity": "P1",
+      "title": "founderRequestedMutation false-positive surface: \"Make/Update/Confirm ...\" read-only requests are classified as mutation turns and destroy truthful recaps. The branch's own stated read-only protection is incomplete.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D27",
+      "severity": "P1 - REGRESSION vs deployed v92",
+      "title": "PAST_COMPLETION_CLAIM_PATTERN is now DEAD CODE (1 occurrence = its own definition). Its \brenamed:\\s*.+(->) alternation was not carried into ASSERTION_SCANNER, so \"Project renamed: Alpha -> Beta.\" escapes the branch and is caught by v92.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D28",
+      "severity": "P2 test-quality, FIFTH recurrence of the vacuous-coverage class",
+      "title": "M7 (resourceOf whole-summary fallback), M9 (NEGATIVE_FACT_PATTERN) and M17 (successfully alternation) had ZERO mutation coverage; M21 is structurally uncoverable by the harness extraction window.",
+      "status": "FIXED LIVE in qa/ - new suite detects M7/M9/M15/M17, mutation-proven"
+    },
+    {
+      "id": "D29",
+      "severity": "P2",
+      "title": "factLines evidence parsing fails OPEN: a non-execution fact line without a whitelisted negative keyword counts as proof of execution.",
+      "status": "OPEN - pinned by C-E1/C-E2, anchored by C-E3"
+    },
+    {
+      "id": "D30",
+      "severity": "P2",
+      "title": "_gate_extract.mjs assertExecutable() does not detect \" as \"-in-trailing-comment corruption; detection is incidental via a downstream ReferenceError, not the designed THROW.",
+      "status": "OPEN - reported, not fixed (would change shared harness behaviour mid-verification)"
+    }
+  ],
+  "regressions_added": [
+    "qa/scenarios-runner/per_resource_grounding_contract.mjs (NEW) - 23 contract cases, executes the REAL block, build-aware with MEASURED baselines for both the per-resource build and the deployed whole-summary build. Fails on ANY change to the defect set in either direction. Non-vacuity mutation-proven against M7/M9/M15/M17."
+  ],
+  "pending_db_pushes": [],
+  "prepared_fixes": [
+    {
+      "id": "a313053 structural per-RESOURCE grounding",
+      "status": "FIX PREPARED - NOT RECOMMENDED FOR DEPLOY AS WRITTEN. See D22/D23/D24/D25/D26/D27."
+    }
+  ],
+  "live_verified_fixes": [],
+  "remaining_scenarios": [],
+  "verdict": "PARTIALLY VERIFIED - STRUCTURAL FIX PREPARED, DO NOT DEPLOY AS WRITTEN, NET REGRESSION vs deployed v92, BUG-002 NOT CLOSED.",
+  "production_state_established": {
+    "sem_ai_command": "version 92 ACTIVE verify_jwt=true updated_at 1788239725518 = 2026-09-01T05:15:25.518Z - UNCHANGED vs #64",
+    "deployed_LF_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == git show c9dfab5:supabase/functions/sem-ai-command/index.ts (LF-normalised) - EXACT MATCH",
+    "branch_index_ts_raw_sha256": "9343ef568279639872c5e86ef1ad5dbc97a2c0c16abd29ba0eb149574b0fd239",
+    "branch_index_ts_LF_sha256": "f3d42e51a38b5781e91cf00616d102ff7226bf847eaa55e142601592fbd45c3a",
+    "note": "`supabase functions download` OVERWRITES supabase/functions/<slug>/index.ts in the working tree. It did so here; restored via git checkout and re-hashed to the branch value above before any test ran."
+  },
+  "completed_at": "2026-09-01T-run5-final",
+  "known_failure_modes_entries_created": [
+    65
+  ],
+  "synthetic_entities_created_by_this_campaign": {
+    "none": "ZERO. Every DB interaction was a read-only SELECT. No QA-VERIFY-* rows created, so nothing to clean up. Pre-existing QA fixtures and the incident fixture were left exactly as found."
+  },
+  "global_integrity": {
+    "orphan_task_company": 0,
+    "orphan_goal_company": 0,
+    "person_assignment_orphan_company": 0,
+    "person_assignment_orphan_person": 0,
+    "person_assignment_orphan_manager": 0,
+    "tasks_orphan_owner_person": 0,
+    "work_orders_orphan_channel": 0,
+    "duplicate_company_names_active": 0,
+    "companies_active": 8,
+    "companies_archived": 10,
+    "active_task_under_archived_company": 1,
+    "active_task_note": "pre-existing #61/D4 fixture, not created or altered by this campaign",
+    "work_orders_with_claimAudit": 0,
+    "BASELINE_approval_358eddeb": "pending",
+    "AI_vs_DB": "BLOCKED - no live AI path available this session type",
+    "UI_vs_DB": "BLOCKED - no browser tooling available this session type"
+  },
+  "blocked_scenarios": [
+    "Live HTTP/browser acceptance",
+    "UI <-> DB truth checks",
+    "fresh-channel AI <-> DB checks",
+    "deploying a313053 (by instruction AND by verdict)"
+  ]
+}

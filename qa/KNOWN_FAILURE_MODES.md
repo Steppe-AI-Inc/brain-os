@@ -5989,3 +5989,295 @@ lines** at close and `index.ts` sha256 `9343ef56…` re-verified after all 26 mu
 injections; the pending branch was **not pushed** (it contains `supabase/functions/**`);
 incident evidence `QA-SWARM-TEST-CO-VIA-CHAT` and approval `358eddeb` verified read-only and
 left exactly as found.
+
+## 66. Independent verification of the STRUCTURED-CLAIM ARCHITECTURE commit (`pending/d3-past-completion-gate-pendingaction-shortcircuit` @ 72dabe6) — the architecture makes the MODEL the switch for its own truth gate: `claims: []` is schema-valid and silently disables every protection deployed v92 has, losing 50/50 of v92's real-corpus catches including three LIVE-VERIFIED production fabrications (CODE VERIFIED + INTEGRATION VERIFIED against the real 433-turn production corpus and live DB state; LIVE HTTP/BROWSER ACCEPTANCE STILL BLOCKED — 2026-09-01)
+
+**Verdict: DO NOT DEPLOY 72dabe6 AS WRITTEN. It is a NET REGRESSION against deployed v92
+on real production data, and it improves on the rejected prose builds only on the narrow
+axis they were rejected for.
+BUG-002 — STRUCTURED-CLAIM ARCHITECTURE PREPARED, INDEPENDENT VERIFICATION REQUIRED
+(still OPEN).**
+
+### Production state established first (LIVE VERIFIED, zero writes)
+
+| item | value |
+|---|---|
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| `sem-ai-command` | **version 92 ACTIVE**, `verify_jwt=true`, `updated_at` 1788239725518 = 2026-09-01T05:15:25.518Z — unchanged vs #64/#65 |
+| branch deployed? | **No.** `work_orders` with `output ? 'verifiedResponse'` = **0**; with `output ? 'claims'` = **0**; with `output ? 'claimAudit'` = **0** (472 rows scanned) |
+| branch `index.ts` sha256 (raw, CRLF working tree) | `9d5b46ba9399683287cf64e916b4e73b24a4bbbc269fe69e25bf3204ecfea660` — re-verified after **all 40** source mutations |
+| incident fixture `QA-SWARM-TEST-CO-VIA-CHAT` | `active`, `updated_at 2026-09-01 06:50:55.540698+00` — bit-identical to #65, **not touched** |
+| approval `358eddeb` | `pending`, `decided_at NULL` — unchanged |
+| global integrity | `tasks_orphan_company 0`, `goals_orphan_company 0`, `person_assignment_orphan_* 0`, `tasks_orphan_owner_person 0`, `work_orders_orphan_channel 0`, `duplicate_company_names_active 0`, `companies 8 active / 10 archived`, `active_task_under_archived_company 1` (pre-existing #61/D4 fixture) |
+
+`supabase functions download` was **not** run in the working tree this campaign;
+`scripts/safe-function-download.sh` exists for it, and the branch/deployed comparison was
+made from `git show c9dfab5:` instead, which cannot touch the tree at all.
+
+### The one-sentence finding
+
+The build removes the deployed truth gate and replaces it with a gate the **untrusted
+component decides whether to arm**. `legacyProseFallback` is proven byte-equivalent to
+v92's `claimsPastCompletionWithNoGrounding` **plus one extra conjunct, `!rawClaims`** —
+and `rawClaims` is `Array.isArray(result.claims) ? result.claims : null`, so an **empty
+array is truthy** and turns the gate off. Nothing anywhere requires a prose sentence to
+have a corresponding claim. `CLAUDE.md` section 5 already names this: *agent instructions
+are not security*. Here the model's own self-report **is** the security boundary.
+
+### D40 (P0, REGRESSION vs deployed v92) — a schema-valid `claims: []` disables every protection v92 has today
+
+Real block executed (wider extraction window than the implementer's own suite, through the
+end of the deterministic-confirmation override). Same fabricated summary in every row:
+`"The approval has been approved and the company was archived successfully."`
+
+| `result.claims` | corrected? | note |
+|---|---|---|
+| `null` (v92 parity) | **yes** | exactly deployed behaviour |
+| `{}` (not an array) | **yes** | coerced to null |
+| `[]` | **NO** | fabrication rendered and persisted verbatim |
+| `[{}]` | **NO** | verdict `unknown`, never rejected |
+| `[null, null]` | **NO** | entries skipped, array still non-null |
+| `["nonsense"]` | **NO** | |
+| `[{type:"note"}]` | **NO** | unrecognised type -> `unknown` |
+| `[{type:"existence", resourceType:"company", resourceId:<any id in the pack>}]` | **NO** | trivially-true claim, no evidence needed |
+| `[{type:"current_state", predicate:"id", expectedValue:<same id>}]` | **NO** | self-referential, always supported |
+| `[{type:"verification_state", ...}]` | **NO** | hardcoded `supported`, no evidence path at all |
+| `[{type:"historical_event", ...}]` | **NO** | honest `unknown`, but still disarms the gate |
+
+**On the real 433-row production `work_orders.output` corpus (read-only): deployed v92
+corrects 50 rows; 72dabe6 with `claims: []` corrects 0. All 50 of v92's catches are lost.**
+Most of those 50 are v92 false positives the branch legitimately stops destroying — but
+three are **fabrications confirmed false against live production data right now**:
+
+| row | stored summary | live DB truth |
+|---|---|---|
+| `a031cb51` | "Approval 358eddeb-… has been approved." | approval `358eddeb` is **`pending`, `decided_at NULL`** — the BUG-002 incident itself |
+| `53181815` | "Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST has been permanently deleted." | department `9573a957-eebd-4552-b28a-b8ed2a9de37a` **still exists** |
+| `9dda919c` | "Project renamed: 'IQParking & OpenSpot Hardware Operations' -> 'QA-RENAMED-PROJECT'." | project `1e5dc270` **is still named "IQParking & OpenSpot Hardware Operations"**; no `QA-RENAMED-PROJECT` exists |
+
+Deployed v92 corrects all three today. 72dabe6 corrects none of them the moment the model
+emits any claims array — and commit 72dabe6's entire purpose is prompt guidance telling the
+model to emit claims. The protection is strongest exactly when the model ignores the new
+contract, and absent exactly when it follows it.
+
+Aggravating: a model that fabricates prose is the model least likely to voluntarily emit a
+correctly-typed, correctly-id'd, self-incriminating `mutation_result` claim about the thing
+it just fabricated. `claims: []` costs it nothing and is inside the schema.
+
+### D41 (P0) — a `mutation_result` with no `action` is grounded by ANY evidence on that id
+
+`if (action && !actions.has(action))` — the action check is skipped entirely when `action`
+is falsy, while `resourceId` is separately required. `action` is normalised with
+`typeof claim.action === 'string' ? claim.action : null`, so `null`, an omitted field, and
+a non-string all reach that path. Executed against the real block:
+
+* evidence: `{company, archive, CO, postconditionPassed:true}`
+* claim: `{type:"mutation_result", resourceType:"company", resourceId:CO}` (no `action`)
+* summary: `"The company was permanently deleted with all of its data."`
+* result: **verdict `supported`, zero rejections, summary untouched.**
+
+Archiving a company grounds a claim that it was permanently deleted. The prompt contract
+says a `mutation_result` *"Requires the exact canonical resourceId **and the action**"*;
+the code requires the id and treats the action as optional. It fails **open**, not closed.
+
+Correct casing (`Archive` vs `archive`), whitespace-padded ids, `|`-injected ids and
+cross-type evidence on an identical id all **do** fail closed — those parts of the contract
+are real and mutation-proven.
+
+### D42 (P1, SIXTH recurrence of the missing-coverage class) — 11 guards with zero mutation coverage
+
+40 source mutations were applied one at a time and `index.ts` was restored and
+**sha256-verified byte-identical after every single one** (`9d5b46ba…`). The implementer's
+claim of *"MUTATION-PROVEN, 9 guards"* holds for those nine. Eleven further guards are not
+covered by any suite in the repo:
+
+| mutation | undetected effect |
+|---|---|
+| supported-line filter accepts every verdict | `unknown` claims rendered to the founder as confirmed facts |
+| non-object claim entries no longer skipped | malformed claims reach the verifier |
+| `resourceId` string check replaced by `String()` coercion | non-string ids silently accepted |
+| missing `expectedValue` -> `supported` instead of `unknown` | predicate claims blessed with no expected value |
+| **absent canonical row -> `supported` instead of `unknown`** | a state claim about a resource not in the read gets blessed |
+| state claim with no id -> `supported` | |
+| **unrecognised claim type -> `supported`** | `{type:"anything"}` blessed |
+| **pendingAction prompt no longer preserved in the correction** | the #62/D7 defect class, re-openable undetected |
+| **`archive_company` evidence gate (`changed===true && postconditionPassed===true`) deleted** | the commit message's headline safety property has ZERO test coverage |
+| same gate for `restore_company` deleted | as above |
+| `recordExecution` accepts empty/undefined ids | |
+
+The archive/restore evidence gate is real in the source (CODE INSPECTED, lines 2905/2920)
+but is **only** CODE INSPECTED — the suite injects `claimExecutionEvidence` directly and
+never exercises the recorder, so removing the gate outright leaves 35/35 green.
+
+### D43 (P1) — evidence is recorded for 9 of ~35 mutation paths, so the build DENIES truthful mutations
+
+`recordExecution()` is called from exactly nine places: `company archive`, `company
+restore`, six `create` loops (task/approval/company/person/project/goal) and `task delete`.
+Every other real mutation in the same function records nothing — `archive_task`,
+`restore_task`, `archive_goal`, `restore_goal`,
+`permanently_delete_fixture_company_graph`, end/restore employment, company updates,
+departments, leads, documents, proposals, product lines/specs, drawings, AI providers, MCP
+connectors, channel and approval deletions.
+
+Because `mutation_result` fails closed, a **truthful** claim on any of those paths is
+rejected and the entire reply is replaced. Executed:
+
+| claim (all TRUE in this scenario) | rendered to the founder |
+|---|---|
+| task `A` archived | `"I couldn't confirm that archive task 11111111-… — nothing was changed for it."` |
+| goal `A` archived | `"I couldn't confirm that archive goal 11111111-… — nothing was changed for it."` |
+| person `A` employment ended | `"I couldn't confirm that end_employment person 11111111-… — nothing was changed for it."` |
+
+This is an **inverse fabrication**: Brain OS tells the founder nothing happened while the
+row really did change. That is a DB-vs-AI contradiction in its own right, and it covers most
+of the archive/restore surface the branch exists to serve.
+`pendingAction.executionPlan`'s own operation enum contains
+`archive_task/restore_task/archive_goal/restore_goal/end_employment/restore_employment` —
+six operations the model is explicitly told it can execute and for which no evidence is ever
+recorded.
+
+### D44 (P1) — `contextPack` is a PRE-MUTATION, truncated, filtered snapshot, not a "fresh canonical read"
+
+The code comment says *"contextPack was built from the database at the start of THIS turn,
+so it is a real read"*. It is a real read, but it is built at line ~2338, **before** the
+model call and **before** every mutation in the turn (lines ~2600-3700), and it is never
+re-read. Consequences, all executed against the real block:
+
+| scenario | actual verdict |
+|---|---|
+| company archived THIS turn, truthful claim `status = archived` | **contradicted -> rejected**, truthful reply destroyed |
+| same turn, now-FALSE claim `status = active` | **supported**, false statement blessed |
+| company not in the pack | `unknown` -> uncorrected |
+| archived task (`tasks` filters to `TASK_STATUSES`; `archivedTasks` is not one of the seven mapped buckets) | `unknown` |
+| approval that is approved/rejected | `unknown` — the pack query is `.eq('status','pending')`, so **no decided approval can ever be verified**, precisely the BUG-002 resource class |
+
+Truncation is not hypothetical: the pack is `companies .limit(12)` against **18 real
+companies** (8 active + 10 archived, live-verified), `tasks .limit(15)`, `people .limit(30)`,
+`goals .limit(20)`, `approvals` pending-only `.limit(20)`. `unknown` verdicts are pushed
+into `verifiedClaims` and never reject, so every out-of-window state claim passes through
+unchecked.
+
+### D45 (P1) — the envelope is NOT the single source of output truth
+
+The commit says *"result.verifiedResponse … is the single source feeding both the live
+reply and work_orders.output — no separate unverified model-summary copy is persisted."*
+Traced end to end; all three parts are false:
+
+1. **Nothing reads it.** `grep -rn verifiedResponse web/` returns **zero** hits. The live
+   chat renders `m.result?.summary` (`web/app/(app)/chat/chat-client.tsx:758-760`); the
+   reload path renders `h.output?.summary` (line 119) via `web/lib/data/chat-history.ts`,
+   whose type is literally `output: { summary?: string; error?: string } | null`. What
+   actually feeds both is `result.summary`; the envelope is a sidecar.
+2. **It diverges from what is shown.** `result.verifiedResponse` is built **before** the
+   `deterministic-confirmation` override that reassigns `result.summary`. Executed: the
+   rendered summary is the corrected *"I understood and you confirmed that, but I don't
+   have a way to actually carry it out yet…"*, while `verifiedResponse.summary` still holds
+   **`"Confirmed - Permanently delete ACME and all of its data."`** — the verbatim shape of
+   the 2026-08-30 Confirmation-Truth incident, persisted inside `output`. The implementer's
+   own E2 identity assertion cannot see this because its extraction window stops at the
+   envelope literal.
+3. **On the D40 laundering path it is not persisted at all.** The persist condition is
+   `grounded || lifecycleMismatch || deterministic-confirmation || futureNoPlan ||
+   claimsPastCompletionWithNoGrounding`; with `claims: []` and a fabricated summary none are
+   true, so `work_orders.output` keeps the raw pre-gate `p_output` written earlier inside
+   `sem_execute_ai_command`.
+
+### D46 (P2) — corrected founder-facing prose leaks raw UUIDs and loses entity names
+
+Both renderers emit ids: `${c.resourceType} ${c.resourceId}: ${c.action} confirmed.` and
+`I couldn't confirm that ${action} ${resourceType} ${resourceId} …`. The founder sees
+`"I couldn't confirm that archive company 11111111-1111-1111-1111-111111111111"` instead of
+the company name, which the backend already has in `companyNameById`. This file's own
+comments assert a *"no raw UUIDs in founder-facing text"* invariant. On the state-claim path
+the action is absent entirely, producing the ungrammatical
+`"I couldn't confirm that company 11111111-… — nothing was changed for it."`
+
+### D47 (P2) — the five SUPERSEDED suites dropped ~103 of ~109 real corpus checks; the carry-forward claim is not accurate
+
+The commit says the superseded suites' *"fabrication/truthful corpora were carried into
+Section G."* Measured:
+
+| suite | checks before | carried into Section G |
+|---|---|---|
+| `mixed_claim_grounding.mjs` | 32 | — |
+| `per_resource_grounding_contract.mjs` | 24 | — |
+| `past_completion_gate_behavior.mjs` | 21 | — |
+| `claim_segmentation_and_present_tense_fp.mjs` | 18 | — |
+| `d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs` | 14 | — |
+| **total** | **~109** | **6** (3 fabrication strings, 2 truthful strings, 1 suppression check) |
+
+The legacy fallback those suites covered is **still live code**. Concretely dropped: all
+seven D13 mixed-claim escapes; the #61/D3 fabrication+question pair; four of the five
+#62/D3-FP truthful survivors; the zero-success `factLines` evidence cases; the FUTURE_ACTION
+guard cases verifier #4 added specifically to close a vacuous-assertion recurrence; and the
+#62/D7 pendingAction question/option-preservation cases — the last **confirmed as a real
+coverage loss** by mutation (deleting prompt preservation from the correction path is now
+undetected). `per_resource_grounding_contract.mjs` was added by verifier #5 as a permanent
+regression **one campaign ago** and was superseded before it ever protected anything.
+
+Separately: `issue5_confirmation_action_type_binding.mjs` (10/10 green) is a
+**reimplementation** — it defines its own `resolveFieldBuggy`/`resolveFieldFixed` and never
+reads `index.ts`, so it proves nothing about the shipped source. The invariant is genuinely
+protected, but by `sem_ai_command_source_invariants_drift_guard.mjs` (13/13), which does read
+the real file.
+
+### D48 (P2) — `structured_claim_verification.mjs` has a duplicated Section G AFTER its own `process.exit(1)`
+
+The final ~25 lines repeat Section G verbatim, below the
+`if (failures.length) { …; process.exit(1); }` block. Those six checks run only when
+everything above already passed, print after the `35/35 passed` line, and can never fail the
+suite. Any assertion appended at the end of that file is silently non-enforcing.
+
+### D49 (P3) — `PAST_COMPLETION_CLAIM_PATTERN` is dead code
+
+Defined at line 4308, referenced nowhere; the live path uses the byte-identical
+`LEGACY_PAST_COMPLETION` at 4417. Same dead-definition shape as #65/D27.
+
+### What the build genuinely gets right (verified, not conceded on trust)
+
+* Exact-id grounding for `mutation_result`/`assignment` **is** real: wrong UUID of the same
+  type, wrong action, cross-type evidence on an identical id, and
+  `postconditionPassed=false` all reject. This is the clause #62/#64/#65 could not satisfy,
+  and it is satisfied — mutation-proven, not asserted.
+* `legacyProseFallback` is provably v92's condition plus `!rawClaims`, so on an unstructured
+  reply the build is **exactly** v92, never worse. VERIFIED by source equality of both the
+  regex literal and the guard clause, then executed.
+* No malformed claim shape crashes the turn — 8 garbage shapes including `[null]`, `[[]]`
+  and a `__proto__` predicate all fail closed without throwing.
+* `historical_event` is honestly `unknown` rather than blessed.
+* `result.claims` is never used to drive execution — it does not widen the executable
+  surface (single read site, line 4346).
+* Issue #5's fail-closed clarification binding has **not** regressed:
+  `resolveClarificationField()` still returns `undefined` on an absent `entityType` OR
+  `actionType`, no live mutation path resolves a field via an `actionType || 'archive'`
+  default, and the drift guard that reads the real source is 13/13 green.
+
+### Is it better than the rejected prose builds?
+
+On the one axis they were rejected for — instance identity — **yes, decisively**: #65/D24
+("archive company X, claim company Y archived -> supported") cannot happen here. But that
+improvement is only reachable when the model volunteers a correct id, and the same change
+that makes it reachable (D40) removes the protection that catches the model when it does
+not. Against **deployed v92 on real production data the build is a net regression**, which
+is the specific thing that sank 82bc28a and a313053.
+
+### Regression test added
+
+`qa/scenarios-runner/structured_claim_laundering_contract.mjs` — 27 cases, executes the REAL
+block through a **wider** window than the implementer's suite (past the
+deterministic-confirmation override, so the envelope divergence is observable at all). Three
+kinds: `CONTRACT` (properties that must keep holding), `LAUNDERING` (11 shapes where the
+model can switch its own gate off), `FALSENEG` (6 truthful-reply corruptions). It is a
+two-way drift detector — a silent regression AND a silent unrecorded fix both fail it — and
+with `DEPLOY_GATE=1` it exits non-zero while any laundering shape or truthful-reply
+corruption remains. Non-vacuity **mutation-proven 10/10** against the real source, including
+the three cases that were vacuous in my own first draft and were fixed before commit rather
+than shipped.
+
+### Live acceptance — BLOCKED, seventh consecutive campaign
+
+No `ToolSearch` tool and no `mcp__claude-in-chrome__*` tools exist in this session type, so
+browser login, a real Brain Chat turn and a fresh-channel AI-vs-DB check could not be run and
+were **not simulated**. Everything above is CODE VERIFIED (real source executed) or
+INTEGRATION VERIFIED (against the real production corpus and live DB reads). Nothing here is
+LIVE VERIFIED at the HTTP/UI layer. BUG-002 cannot close without it.
