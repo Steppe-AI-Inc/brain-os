@@ -4601,9 +4601,44 @@ gets a hard `insufficient_privilege` error where the policy should have simply e
 its second `OR` operand to `false` and returned an empty result, matching Brain OS's
 otherwise-consistent "clean empty result for anon" contract everywhere else.
 
-**Status**: `FIX PREPARED — IS_INVESTOR_VIEWER_OF ANON RLS HELPER GRANT`. Affected
-tables: 5. Live exploit/data leak: NOT demonstrated (proven not possible, not merely
-untested). Current defect: anonymous RLS queries crash. Proposed fix: exact-function
-`GRANT EXECUTE TO anon`, nothing broader. Rollback proof: PASS. Protected-data exposure
-test: PASS (zero rows exposed, zero enumeration signal). Production push: **AUTHORIZATION
-REQUIRED** — remains `BLOCKED — DB PUSH`, migration file committed but not applied.
+**PUSHED AND LIVE-VERIFIED 2026-09-01** (founder-authorized, this migration only).
+Applied via `supabase db query --linked --file` (the project's established path, since
+`db push` has a documented history of silently no-op'ing). Post-deploy proof — live
+database queried directly, migration bookkeeping deliberately not trusted:
+
+- `has_function_privilege('anon', 'public.is_investor_viewer_of(uuid)', 'EXECUTE')` →
+  **`true`** (was `false` before).
+- All 5 affected tables re-queried as real `anon`: `companies`, `goals`,
+  `financial_reports`, `documents`, `memories` → every one returned a clean `0`, **no
+  `insufficient_privilege` error, zero protected rows**. Before the fix these raised
+  42501; the crash is gone and the fail-closed behavior is intact.
+- Enumeration side-channel re-tested post-deploy: `is_investor_viewer_of()` called
+  directly as `anon` with 3 real company UUIDs (CLIX GPS, SEM Global Robotics,
+  OpenSpot/Steppe AI) and 2 random nonexistent UUIDs → **all five returned `false`,
+  uniformly**. Real and fake company ids are indistinguishable to an anonymous caller; no
+  side channel.
+- Other personas re-verified, all unaffected (the fix is purely additive to `anon`):
+  `investor_viewer_scope.sql` `all_pass: true` (valid investor keeps intended access —
+  company/goal/financial-report visible, internal doc still hidden, task insert still
+  DENIED); `sc056_cross_company_isolation.sql` `all_pass: true` (authenticated
+  non-investor manager still sees 0 rows of another company across every table);
+  `factory_rpc_privilege_sweep.sql` `founder_canonical_path_works: true` (founder/admin
+  authority intact).
+- **Generic sweep correctly recognizes this as a legitimate RLS-helper exception**:
+  `privileged_rpc_anon_public_grant_sweep.sql` run post-deploy returns
+  `unexpected_new_violations: []` and `all_pass: true` — `is_investor_viewer_of` is not
+  flagged, because both sweeps' existing documented `^(is_|has_|current_)` RLS-predicate
+  exclusion already covers it. A future generic security sweep will therefore not try to
+  revoke this grant again, which was the specific risk worth guarding against.
+- The permanent regression `qa/scenarios-runner/is_investor_viewer_of_anon_grant_fix.sql`
+  was rewritten post-deploy to assert the **real, persistent** production grant (it no
+  longer grants the privilege to itself inside a transaction) — so if anything ever
+  revokes it, the regression fails loudly instead of masking the regression by
+  re-granting. Re-run live: all assertions pass, including the new
+  `grant_is_live_in_production` check.
+
+**Status**: `LIVE VERIFIED — ANON RLS INVESTOR HELPER EXECUTION RESTORED WITHOUT DATA
+EXPOSURE`. Affected tables: 5, all confirmed fixed. Live exploit/data leak: never
+demonstrated and proven not possible. Enumeration side channel: none. Authenticated
+investor / non-investor / founder-admin paths: all preserved unchanged. Generic sweep
+compatibility: confirmed.

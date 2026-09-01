@@ -1,9 +1,14 @@
 -- Permanent regression for the is_investor_viewer_of() anon-EXECUTE fix (see
 -- qa/scenarios-runner/anon_companies_investor_viewer_permission_denied_gap.sql for the
--- original gap documentation, and the migration this fix ships in for the production
--- change). Prepared 2026-09-01, ahead of authorization — the migration is NOT yet pushed
--- to production, so this script tests the fix in a self-cleaning, in-transaction GRANT
--- that is rolled back at the end, never a permanent production change on its own.
+-- original gap documentation, and
+-- supabase/migrations/202609010002_fix_investor_viewer_anon_rls_helper_grant.sql for the
+-- production change).
+--
+-- MIGRATION IS NOW LIVE (pushed and verified 2026-09-01, KNOWN_FAILURE_MODES.md #60) —
+-- this script no longer applies its own GRANT. It asserts the REAL, PERSISTENT
+-- production state, so a future regression (someone revoking the grant, e.g. via an
+-- over-broad security sweep) would make it fail loudly rather than being masked by the
+-- script granting the privilege to itself. Read-only: no mutation, no transaction needed.
 --
 -- Named regressions covered:
 --   RLS_HELPER_IS_INVESTOR_VIEWER_OF_CALLABLE_BY_ANON
@@ -15,31 +20,32 @@
 --   ANON_MEMORIES_QUERY_DOES_NOT_CRASH
 --   ANON_INVESTOR_HELPER_GRANT_DOES_NOT_EXPOSE_INVESTOR_DATA
 --
--- Adversarial proof already run live against production 2026-09-01 (evidence, not
--- prediction): after a temporary in-transaction GRANT, all 5 tables returned a clean
--- empty result for anon (0 rows, no error) despite real data existing (companies has 18
--- real rows); a direct call to is_investor_viewer_of() with 3 real company UUIDs (CLIX
--- GPS, SEM Global Robotics, OpenSpot/Steppe AI) plus one random nonexistent UUID all
--- returned `false` with zero differentiation - proving the helper cannot be used to
+-- Proven live against production twice: first adversarially, pre-authorization, via a
+-- temporary in-transaction GRANT that was rolled back (zero residue confirmed); then
+-- again post-deploy against the real, permanent grant. Both runs: all 5 tables returned
+-- a clean empty result for anon (0 rows, no error) despite real data existing (companies
+-- has 18 real rows); direct calls to is_investor_viewer_of() with 3 real company UUIDs
+-- (CLIX GPS, SEM Global Robotics, OpenSpot/Steppe AI) plus two random nonexistent UUIDs
+-- all returned `false` with zero differentiation - proving the helper cannot be used to
 -- enumerate real vs. fake company IDs or investor relationships by an anonymous caller.
--- After ROLLBACK, has_function_privilege('anon', ...) confirmed false again (zero
--- residue) and the crash reproduced identically to before - the transaction had no
--- permanent effect. qa/scenarios-runner/investor_viewer_scope.sql (authenticated
--- investor_viewer path) re-run separately, unaffected, all_pass: true - this fix is
--- purely additive to `anon`, it does not touch the authenticated/founder/admin paths.
 --
--- Self-cleaning: the GRANT below is inside begin;...rollback;. Nothing is permanently
--- changed by running this file before the real migration is authorized and pushed.
-
-begin;
-
-grant execute on function public.is_investor_viewer_of(uuid) to anon;
+-- Other personas re-verified post-deploy, all unaffected (this fix is purely additive to
+-- `anon`): investor_viewer_scope.sql all_pass true (valid investor keeps intended
+-- access), sc056_cross_company_isolation.sql all_pass true (authenticated non-investor
+-- manager still sees 0 cross-company rows), factory_rpc_privilege_sweep.sql
+-- founder_canonical_path_works true (founder/admin intact). Both generic privilege
+-- sweeps (privileged_rpc_anon_public_grant_sweep.sql, factory_rpc_privilege_sweep.sql)
+-- correctly do NOT flag this grant - their `^(is_|has_|current_)` RLS-helper exclusion
+-- already covers it, so a future sweep will not try to revoke it again.
 
 set local role anon;
 select set_config('request.jwt.claims', json_build_object('role','anon')::text, true);
 
 select json_build_object(
   'scenario', 'is_investor_viewer_of anon grant fix',
+  -- RLS_HELPER_IS_INVESTOR_VIEWER_OF_CALLABLE_BY_ANON, asserted against the REAL
+  -- persistent grant - fails loudly if anything ever revokes it.
+  'grant_is_live_in_production', has_function_privilege('anon', 'public.is_investor_viewer_of(uuid)', 'EXECUTE'),
   -- ANON_COMPANIES_QUERY_DOES_NOT_CRASH / ANON_GOALS_.../ etc: a clean integer back (even
   -- 0) proves no insufficient_privilege error was raised - the query itself succeeded.
   'anon_companies_query_does_not_crash', (select count(*) from public.companies) is not null,
@@ -68,9 +74,3 @@ select json_build_object(
 ) as verdict;
 
 reset role;
-
--- Prepared-ahead note: rollback here because the real migration hasn't been authorized
--- yet. Once it has been pushed for real, re-run this exact script (still safe - GRANT is
--- idempotent, `grant ... to anon` a second time is a no-op) to confirm the live state,
--- and change this comment + the fix report to reflect that.
-rollback;
