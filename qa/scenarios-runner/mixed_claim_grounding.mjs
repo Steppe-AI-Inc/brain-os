@@ -1,3 +1,26 @@
+// ===================================================================================
+// SUPERSEDED 2026-09-01 — DOES NOT RUN. Kept as evidence, not deleted.
+//
+// This suite executed a PROSE-BASED truthfulness gate that no longer exists. Truth is
+// now derived from STRUCTURED CLAIMS verified against backend execution evidence keyed
+// by exact resource id (see qa/scenarios-runner/structured_claim_verification.mjs).
+// Three prose generations were independently rejected — #62, #64 and #65 — and the
+// ceiling was intrinsic: resource identity misattributes, instance identity is not
+// recoverable from prose at all, and intent read from command text is vocabulary- and
+// language-bound.
+//
+// It is retained because its CORPUS is real evidence: verbatim production
+// work_orders.output rows and the D13/G-series escape shapes. The fabrication and
+// truthful-reply corpora were carried forward into Section G of
+// structured_claim_verification.mjs, which covers the legacy prose fallback that still
+// runs when the model emits no structured claims.
+//
+// Do not re-point this at the new block: it asserts a per-claim/per-resource prose
+// mechanism that was deliberately removed. Read it for history, not for coverage.
+// ===================================================================================
+
+console.log("mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.");
+process.exit(0);
 // STRUCTURAL per-claim grounding — behavioral regression corpus.
 //
 // This is the acceptance suite for the 2026-09-01 structural fix that replaced the

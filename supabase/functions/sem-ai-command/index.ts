@@ -2829,6 +2829,28 @@ serve(async (req) => {
         const requestedRestoreIds = Array.isArray(result.restoreCompanyIds) ? result.restoreCompanyIds as unknown[] : [];
         const restoreCompanyIds = [...new Set(requestedRestoreIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
         const companyNameById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name]));
+
+        // ==================================================================================
+        // BACKEND-GENERATED EXECUTION EVIDENCE (2026-09-01, structured-claim architecture).
+        //
+        // The single canonical record of what THIS TURN actually changed, written at the
+        // real execution sites and keyed by EXACT resource id. It is the only thing a
+        // mutation claim may be grounded against.
+        //
+        // Backend-generated evidence is deliberately stronger than anything the model says
+        // about its own execution: the model proposes operations, the backend executes them
+        // and alone knows the real ids, results and postconditions. Nothing here is derived
+        // from prose, from entity resolution, or from the model's retelling.
+        //
+        // postconditionPassed is carried per row because "the RPC returned" is not proof:
+        // archive_company/restore_company re-read the row afterwards, and a mutation whose
+        // postcondition did not confirm must never support a success claim.
+        // ==================================================================================
+        const claimExecutionEvidence: Array<{ resourceType: string; action: string; id: string; postconditionPassed: boolean }> = [];
+        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean) => {
+          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({ resourceType, action, id, postconditionPassed });
+        };
+
         const archiveRestoreLines: string[] = [];
         const reasonText: Record<string, string> = {
           archived: 'archived', restored: 'restored',
@@ -2851,6 +2873,10 @@ serve(async (req) => {
             archiveRestoreLines.push(`${name}: archive attempted, but the persisted status did not confirm it afterward — treat as not archived.`);
             continue;
           }
+          // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
+          // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
+          // mutation performed this turn, so they must never support a mutation claim.
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true);
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreCompanyIds) {
@@ -2862,6 +2888,10 @@ serve(async (req) => {
             archiveRestoreLines.push(`${name}: restore attempted, but the persisted status did not confirm it afterward — treat as not restored.`);
             continue;
           }
+          // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
+          // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
+          // mutation performed this turn, so they must never support a mutation claim.
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true);
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         // Same reasoning as organizationGraphCheck below: when a real archive/restore was
@@ -3632,6 +3662,19 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
+        // Backend-generated evidence for creates and deletes. These come straight from the
+        // execution RPC and carry the REAL ids the database assigned, so a claim can be
+        // matched by exact id rather than by resource type alone. Creates are recorded with
+        // postconditionPassed=true because the row id existing IS the postcondition - the
+        // RPC only returns an id for a row it actually inserted.
+        for (const t of createdTasks) recordExecution('task', 'create', (t || {}).id, true);
+        for (const a of createdApprovals) recordExecution('approval', 'create', (a || {}).id, true);
+        for (const c of createdCompanies) recordExecution('company', 'create', (c || {}).id, true);
+        for (const pp of createdPeople) recordExecution('person', 'create', (pp || {}).id, true);
+        for (const pr of createdProjects) recordExecution('project', 'create', (pr || {}).id, true);
+        for (const g of createdGoals) recordExecution('goal', 'create', (g || {}).id, true);
+        for (const id of deletedTaskIds) recordExecution('task', 'delete', id, true);
+
         // Bugs 7/9 (2026-08-30 campaign): a person-assignment change touching BOTH the
         // legal employer and operating company (a real "reassign X entirely to Y"
         // confirmation) deserves the same full-replacement grounding as archive/restore,
@@ -4238,227 +4281,170 @@ serve(async (req) => {
         // (13/13 cases, including this one) before this pattern was ever wired in.
         const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
         // ==================================================================================
-        // PER-RESOURCE CLAIM GROUNDING (2026-09-01, second structural pass).
+        // STRUCTURED-CLAIM VERIFICATION (2026-09-01). Truth is no longer inferred from prose.
         //
-        // Response -> semantic claims -> resource/action identity -> SAME-RESOURCE canonical
-        // evidence -> claim verdict -> verified envelope -> identical persisted form.
+        //   canonical context + executable capabilities -> model structured response
+        //   -> structured claims -> backend execution -> canonical evidence
+        //   -> per-claim verification -> verified envelope -> founder-facing prose
         //
-        // WHY THE FIRST STRUCTURAL PASS (82bc28a) WAS REJECTED. It segmented claims but kept
-        // WHOLE-TURN grounding, and its segmentation was a punctuation list fitted to the
-        // six known escapes. Independent verification (#64) showed 12 shapes regressed vs
-        // deployed v92 — the false claim simply re-fused one delimiter away (", and" / ":" /
-        // " so " / a newline before the question). Splitting text was never the load-bearing
-        // part; RESOURCE IDENTITY is.
+        // WHY. Three prose-based generations were independently rejected (#62, #64, #65),
+        // each trading one error class for another. The ceiling is intrinsic: resource
+        // identity misattributes, INSTANCE identity is not recoverable from prose at all, and
+        // intent read from command text is vocabulary- and language-bound (the previous
+        // build's gate was simply OFF for Mongolian, a stated product requirement). Prose is
+        // now an OUTPUT of verified structure, never an input to determining truth.
         //
-        // WHAT THIS DOES DIFFERENTLY, and why it is robust to segmentation failure:
-        // it scans the WHOLE summary for EVERY completion assertion and resolves each one to
-        // a resource type. Fusing two clauses into one sentence no longer hides anything,
-        // because the scan is not per-sentence — it is per-assertion. An approval claim is
-        // grounded ONLY by approval evidence; a company claim ONLY by company evidence.
-        //
-        // Deliberately NOT used as evidence, per the verifier's findings:
-        //   * hasResolvedEntities / groundedOutcomeThisTurn — a whole-turn signal that
-        //     counts mere entity RESOLUTION as proof of MUTATION (#64). Resolution is not
-        //     execution; that is BUG-002's original invariant.
-        //   * pronouns — references to resolve, never evidence (#64/D17: "Per the
-        //     conversation history, THEY have been archived." laundered a fabrication, while
-        //     a genuine report without a pronoun was destroyed).
-        //   * punctuation-based segmentation as a safety boundary (#64/D16).
+        // The model proposes; the backend executes and alone knows the real ids and
+        // postconditions; claims are matched against that evidence by EXACT id.
         // ==================================================================================
 
-        // Resource identity. Each assertion and each fact line is resolved to one of these.
-        const RESOURCE_MATCHERS: Array<[string, RegExp]> = [
-          ['approval', /\bapprovals?\b/i],
-          ['company', /\b(compan(y|ies)|business unit|organi[sz]ation)s?\b/i],
-          ['task', /\btasks?\b/i],
-          ['goal', /\bgoals?\b/i],
-          ['project', /\bprojects?\b/i],
-          ['person', /\b(employees?|people|person|staff|technicians?)\b/i],
-          ['document', /\bdocuments?\b/i],
-          ['department', /\bdepartments?\b/i],
-          ['channel', /\bchannels?\b/i],
-          ['lead', /\b(leads?|sales lead)\b/i],
-          ['product', /\bproduct(\s+line)?s?\b/i],
-          ['spec', /\b(specs?|software spec)\b/i],
-          ['drawing', /\bdrawings?\b/i],
-        ];
-        function resourceOf(text: string): string | null {
-          for (const [name, re] of RESOURCE_MATCHERS) if (re.test(text)) return name;
-          return null;
+        // Evidence index keyed by EXACT resource identity. Only postcondition-confirmed rows
+        // are indexed, so an attempted-but-unconfirmed mutation can never support a claim.
+        const evidenceIndex = new Map();
+        for (const e of claimExecutionEvidence) {
+          if (!e.postconditionPassed) continue;
+          const key = e.resourceType + '|' + e.id;
+          if (!evidenceIndex.has(key)) evidenceIndex.set(key, new Set());
+          evidenceIndex.get(key).add(e.action);
         }
 
-        // Canonical execution evidence, per resource. Built ONLY from factLines — the real
-        // per-resource executed counts this function itself produced. A fact line counts as
-        // POSITIVE evidence only when it reports a non-zero success; every failure/pending
-        // shape is explicitly excluded so "0 of 3 created" can never support a claim.
-        const NEGATIVE_FACT_PATTERN = /\b(could not|couldn’t|couldn't|did not apply|didn’t apply|were not|was not|not created|not deleted|pending approval|failed|no matching)\b/i;
-        const executedResources = new Set();
-        for (const line of factLines) {
-          const text = String(line || '');
-          const res = resourceOf(text);
-          if (!res) continue;
-          // Read an EXPLICIT success count first, before any keyword judgement. A batch line
-          // reads "Task batch — Requested: 1. Succeeded: 1. Failed: 0." — genuine positive
-          // evidence that the word "Failed" must not veto. Judging by keyword first rejected
-          // it outright and made a truthful, fully-executed reply look ungrounded.
-          const succeeded = text.match(/Succeeded:\s*(\d+)/i);
-          if (succeeded) {
-            if (Number(succeeded[1]) > 0) executedResources.add(res);
-            continue;
-          }
-          // "Deleted 2 of 3 requested task(s)." -> 2 executed.
-          const nOfM = text.match(/\b(\d+)\s+of\s+\d+\b/);
-          if (nOfM) {
-            if (Number(nOfM[1]) > 0 && !NEGATIVE_FACT_PATTERN.test(text)) executedResources.add(res);
-            continue;
-          }
-          // No count at all: fall back to the keyword judgement, failing closed.
-          if (!NEGATIVE_FACT_PATTERN.test(text)) executedResources.add(res);
-        }
-
-        // Completion assertions, scanned across the WHOLE summary rather than per sentence.
-        // Each match carries its own local window, which is what the negation/question/
-        // future tests run against — so a negation attached to a DIFFERENT clause cannot
-        // exempt this one (that was #63/D13 and #64/D16).
-        const COMPLETION_VERB = '(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed|done)';
-        // Contractions are matched TIGHTLY and separately from the full auxiliaries. Putting
-        // ’s/’re in the main alternation with a 40-char gap made the scanner fire on
-        // POSSESSIVES: "No employee’s employment was actually ended..." matched starting at
-        // "’s", so the span excluded the leading "No" and Brain OS's own corrector was
-        // classified as a fabrication (the D6 class, reached by a different route). A
-        // contraction only reads as "is/are" when the completion verb follows almost
-        // immediately, which a possessive never does.
-        const ASSERTION_SCANNER = new RegExp(
-          // The gap must not cross ANOTHER auxiliary. Without that guard the scanner pairs a
-          // distant auxiliary with a later verb and drags an unrelated negation into the
-          // span: "The status is not draft (the goal has been archived)." matched from "is"
-          // all the way to "archived", swallowed the "not" that belongs to "draft", and the
-          // fabrication inside the parenthetical was exempted. Requiring the nearest
-          // auxiliary keeps each assertion to its own verb phrase.
-          '(?:\\b(?:has|have|had|was|were|is|are)\\b(?:(?!\\b(?:has|have|had|was|were|is|are)\\b)[^.!?;]){0,40}?\\b' + COMPLETION_VERB + '\\b)'
-          + '|(?:[\\w]+[’\']( ?s|re)\\s+(?:now\\s+|been\\s+|already\\s+){0,2}' + COMPLETION_VERB + '\\b)'
-          + '|(?:\\b' + COMPLETION_VERB + '\\s+successfully\\b)',
-          'gi'
-        );
-        const LOCAL_NEGATION = /\b(no|not|n['’]t|never|nothing|none|cannot|unable|couldn|wasn|weren|isn|aren|didn|won|haven|hasn)\b/i;
-        const HEDGE = /\b(may|might|could|can|should|would|if|whether|perhaps|possibly)\b/i;
-        const FUTURE = /\b(i['’]?ll|i will|going to|next|then i|shall i|would you like)\b/i;
-
-        // Did the FOUNDER ask for a mutation this turn?
-        //
-        // This MUST be derived from the request, never from execution evidence. Deriving it
-        // from factLines/hasExecutionEvidence is circular — "only check completion claims
-        // when something actually executed" exempts precisely the case BUG-002 is about: a
-        // mutation was requested, NOTHING executed, and the model claimed success anyway.
-        // An earlier draft of this block made that mistake and silently exempted every
-        // fabrication; it was caught because the behavioural corpus went red.
-        //
-        // This is also what the contract means by "read-only turns must not enter
-        // mutation-completion correction": if the founder only ASKED a question, a
-        // past-tense sentence in the answer is a report about history, not a claim that this
-        // turn changed anything — which is what protects the genuine recaps in real rows
-        // c1cab239 / 432f1a52, without ever treating a pronoun as evidence (#64/D17).
-        const MUTATION_REQUEST_PATTERN = /\b(approve|reject|decline|archive|unarchive|restore|delete|remove|rename|update|create|add|assign|reassign|move|end|complete|grant|confirm|set|change|edit|make)\b/i;
-        const READ_ONLY_REQUEST_PATTERN = /^\s*(what|who|which|when|where|why|how|show|list|tell|describe|summar|check|verify|did|does|do |is |are |was |were |can you tell)\b/i;
-        const requestText = String(command || '');
-        const founderRequestedMutation = MUTATION_REQUEST_PATTERN.test(requestText)
-          && !READ_ONLY_REQUEST_PATTERN.test(requestText);
-        // A deterministic execution path or a real proposed plan also means this turn was
-        // about doing something, regardless of how the request was phrased.
-        const turnAttemptedMutation = founderRequestedMutation || !!proposedPlan
-          || model === 'deterministic-plan-execution' || model === 'deterministic-confirmation';
-
-        type ClaimVerdict = { text: string; resource: string | null; verdict: 'supported' | 'contradicted' | 'not_a_claim'; reason: string };
-        const claimAudit: ClaimVerdict[] = [];
-        const contradicted: string[] = [];
-
-        const summaryText = String(result.summary || '');
-        let m;
-        ASSERTION_SCANNER.lastIndex = 0;
-        while ((m = ASSERTION_SCANNER.exec(summaryText)) !== null) {
-          const at = m.index;
-          const assertion = m[0];
-          // Local clause window: from the previous clause boundary to the next one. Used only
-          // to read modifiers attached to THIS assertion, never as a safety boundary.
-          const left = Math.max(0, summaryText.lastIndexOf('.', at) + 1, summaryText.lastIndexOf(';', at) + 1,
-            summaryText.lastIndexOf(',', at) + 1, summaryText.lastIndexOf(':', at) + 1, summaryText.lastIndexOf('\n', at) + 1);
-          const rightCandidates = ['.', ';', ',', ':', '\n', '?', '!'].map((ch) => summaryText.indexOf(ch, at + assertion.length)).filter((i) => i >= 0);
-          const right = rightCandidates.length ? Math.min(...rightCandidates) : summaryText.length;
-          const clause = summaryText.slice(left, right).trim();
-
-          // Negation is scoped to the ASSERTION ITSELF, never to a surrounding window.
-          // A window is what let "The task was not deleted so the task has been deleted."
-          // and "...was not rejected — it has been approved." escape: the negation belongs
-          // to a DIFFERENT verb phrase, and any window wide enough to catch legitimate
-          // modifiers is also wide enough to import someone else's "not". Because the
-          // scanner captures the whole auxiliary-to-verb span ("was not deleted" vs "has
-          // been deleted"), testing the match itself attaches the negation to exactly the
-          // verb it modifies — grammar, not proximity, and immune to punctuation shape.
-          // Negation attaches either INSIDE the verb phrase ("was not deleted") or as the
-          // subject's own determiner immediately before it ("NO company was archived" —
-          // Brain OS's own corrector output). The second form sits outside the matched span,
-          // so it needs a strictly ADJACENT left check: a negator followed by at most two
-          // words before the auxiliary. That adjacency is what keeps it from importing a
-          // negation belonging to an earlier clause — in "The task was not deleted so the
-          // task has been deleted." the "not" is separated from "has been deleted" by an
-          // intervening verb and several words, so it correctly does NOT exempt it.
-          const leftAdjacent = summaryText.slice(Math.max(0, at - 40), at);
-          // [\w'’-]+ rather than \w+ so possessives and hyphenated nouns count as ONE word.
-          // Brain OS's own corrector says "No employee’s employment was actually ended..." —
-          // with \w+ the apostrophe split that into three words, overflowed the 2-word
-          // adjacency budget, and the corrector cannibalised itself (the D6 class).
-          const subjectNegated = /(^|[\s(])(no|none|nothing|not|never)\s+([\w'’-]+\s+){0,2}$/i.test(leftAdjacent);
-          if (LOCAL_NEGATION.test(assertion) || subjectNegated) { claimAudit.push({ text: assertion, resource: null, verdict: 'not_a_claim', reason: 'negated — a truthful failure report' }); continue; }
-          // Hedges ("may have been archived") sit immediately BEFORE the auxiliary, so this
-          // one needs a short left context — bounded to 24 chars so it cannot reach into a
-          // neighbouring clause.
-          const hedgeScope = summaryText.slice(Math.max(left, at - 24), at + assertion.length);
-          if (HEDGE.test(hedgeScope)) { claimAudit.push({ text: assertion, resource: null, verdict: 'not_a_claim', reason: 'hedged — not an assertion of fact' }); continue; }
-          if (FUTURE.test(clause)) { claimAudit.push({ text: clause, resource: null, verdict: 'not_a_claim', reason: 'future action or offer, not an execution claim' }); continue; }
-          // A question asks whether something happened; it does not assert that it did.
-          if (right < summaryText.length && summaryText[right] === '?') { claimAudit.push({ text: clause, resource: null, verdict: 'not_a_claim', reason: 'question' }); continue; }
-          if (!turnAttemptedMutation) { claimAudit.push({ text: clause, resource: null, verdict: 'not_a_claim', reason: 'read-only turn — reporting, not claiming execution' }); continue; }
-
-          const resource = resourceOf(clause) || resourceOf(summaryText);
-          if (resource && executedResources.has(resource)) {
-            claimAudit.push({ text: clause, resource, verdict: 'supported', reason: 'same-resource execution evidence in factLines' });
-          } else {
-            claimAudit.push({ text: clause, resource, verdict: 'contradicted', reason: resource ? `no execution evidence for resource "${resource}" this turn` : 'no resolvable resource and no execution evidence' });
-            contradicted.push(assertion);
+        // Fresh canonical read for CURRENT_STATE claims: contextPack was built from the
+        // database at the start of THIS turn, so it is a real read, not the model's memory.
+        const canonicalById = new Map();
+        for (const [bucket, type] of [['companies', 'company'], ['people', 'person'], ['projects', 'project'], ['tasks', 'task'], ['goals', 'goal'], ['approvals', 'approval'], ['departments', 'department']]) {
+          for (const row of (contextPack || {})[bucket] || []) {
+            if (row && typeof row.id === 'string') canonicalById.set(type + '|' + row.id, row);
           }
         }
 
-        const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
-          && !claimsFutureActionWithNoPlan
-          && contradicted.length > 0;
+        const rawClaims = Array.isArray(result.claims) ? result.claims : null;
+        const verifiedClaims = [];
+        const rejectedClaims = [];
 
-        if (claimsPastCompletionWithNoGrounding) {
-          // Correct the false claims WITHOUT discarding the rest of the reply (#62/D3-FP).
-          // Every contradicted assertion is struck from the prose; the surrounding sentence
-          // structure, any truthful claim, and any pending prompt all survive.
-          let corrected = summaryText;
-          for (const a of contradicted) corrected = corrected.split(a).join('[not executed]');
-          const notice = 'Nothing was actually changed — I can’t execute that from chat. Please use the relevant page in the app, or rephrase using an action I can execute.';
+        function verifyStructuredClaim(claim) {
+          const type = typeof claim.type === 'string' ? claim.type : '';
+          const resourceType = typeof claim.resourceType === 'string' ? claim.resourceType : '';
+          const resourceId = typeof claim.resourceId === 'string' ? claim.resourceId : null;
+          const action = typeof claim.action === 'string' ? claim.action : null;
+          const key = resourceType + '|' + resourceId;
 
-          const pa = result.pendingAction as { question?: unknown; summary?: unknown; options?: unknown } | null | undefined;
-          const pendingPrompt = [pa?.question, pa?.summary]
-            .map((v) => (typeof v === 'string' ? v.trim() : ''))
-            .find((v) => v.length > 0) || '';
-          const rawOptions = pa && Array.isArray(pa.options) ? (pa.options as Array<{ label?: unknown }>) : [];
-          const paOptions = rawOptions
-            .map((o) => (o && typeof o.label === 'string' ? o.label.trim() : ''))
-            .filter((l) => l.length > 0);
+          if (type === 'mutation_result' || type === 'assignment') {
+            // Requires an executable operation that ACTUALLY RAN against this EXACT id, with
+            // a matching action and a confirmed postcondition. Deliberately fails closed:
+            // a missing id, an id we never touched, or a different action on the same
+            // resource type are all UNSUPPORTED. This is the clause every prose generation
+            // could not satisfy — "same resource type but wrong UUID must not support it".
+            if (!resourceId) return { verdict: 'unsupported', reason: 'mutation claim carries no canonical resource id' };
+            const actions = evidenceIndex.get(key);
+            if (!actions) return { verdict: 'unsupported', reason: 'no execution evidence for ' + resourceType + ' ' + resourceId + ' this turn' };
+            if (action && !actions.has(action)) return { verdict: 'unsupported', reason: 'executed ' + [...actions].join('/') + ' on this resource, not ' + action };
+            return { verdict: 'supported', reason: 'backend execution evidence with confirmed postcondition' };
+          }
+
+          if (type === 'current_state' || type === 'approval_state' || type === 'existence' || type === 'count') {
+            // Verified against the fresh canonical read, never against the model's assertion.
+            if (!resourceId) return { verdict: 'unknown', reason: 'state claim carries no canonical resource id' };
+            const row = canonicalById.get(key);
+            if (!row) return { verdict: 'unknown', reason: 'resource not present in this turn’s canonical read' };
+            const predicate = typeof claim.predicate === 'string' ? claim.predicate : null;
+            if (!predicate) return { verdict: 'supported', reason: 'resource exists in the canonical read' };
+            const actual = row[predicate];
+            if (claim.expectedValue === undefined) return { verdict: 'unknown', reason: 'no expected value supplied for predicate ' + predicate };
+            if (String(actual) === String(claim.expectedValue)) return { verdict: 'supported', reason: predicate + '=' + String(actual) + ' in the canonical read' };
+            return { verdict: 'contradicted', reason: predicate + ' is ' + String(actual) + ', not ' + String(claim.expectedValue) };
+          }
+
+          if (type === 'historical_event') {
+            // Current state does NOT prove a historical occurrence. Without an indexed audit
+            // trail this is honestly UNKNOWN - reported as such rather than blessed. It is
+            // not an execution claim about this turn, so it is not failed closed either.
+            return { verdict: 'unknown', reason: 'no indexed audit trail for prior-turn events (see issue #5 A/C/D/E, still open)' };
+          }
+
+          if (type === 'verification_state') return { verdict: 'supported', reason: 'informational verification state' };
+          return { verdict: 'unknown', reason: 'unrecognised claim type: ' + (type || '(none)') };
+        }
+
+        if (rawClaims) {
+          for (const claim of rawClaims) {
+            if (!claim || typeof claim !== 'object') continue;
+            const outcome = verifyStructuredClaim(claim);
+            const row = { claim, verdict: outcome.verdict, reason: outcome.reason };
+            if (outcome.verdict === 'supported') verifiedClaims.push(row);
+            else if (outcome.verdict === 'unsupported' || outcome.verdict === 'contradicted') rejectedClaims.push(row);
+            else verifiedClaims.push(row);
+          }
+        }
+
+        // Questions and proposed actions are NOT factual execution claims and are never
+        // subject to grounding. They pass through untouched.
+        const envelopeQuestions = Array.isArray(result.questions) ? result.questions.filter((q) => typeof q === 'string' && q.trim().length > 0) : [];
+        const envelopeProposedActions = Array.isArray(result.proposedActions) ? result.proposedActions.filter((a) => typeof a === 'string' && a.trim().length > 0) : [];
+
+        const hasRejectedClaims = rejectedClaims.length > 0;
+
+        // Legacy safety net, defense-in-depth ONLY. When the model emits no structured
+        // claims at all, fall back to the deployed v92 whole-summary behaviour so this build
+        // is never WORSE than production on an unstructured response. It is deliberately not
+        // consulted when structured claims exist - structured verification is primary, and
+        // re-deriving truth from prose afterwards is exactly what #65 forbids.
+        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const legacyProseFallback = !rawClaims
+          && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+          && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+          && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
+
+        const claimsPastCompletionWithNoGrounding = hasRejectedClaims || legacyProseFallback;
+
+        if (hasRejectedClaims) {
+          // VERIFIED STRUCTURE -> PROSE. The reply is re-rendered from what was actually
+          // verified, so an unsupported claim is never displayed as success and the prose is
+          // never parsed to decide what to keep. Supported claims, questions and any pending
+          // prompt all survive - a single false claim must not discard a truthful reply.
+          const supportedLines = verifiedClaims
+            .filter((v) => v.verdict === 'supported')
+            .map((v) => {
+              const c = v.claim;
+              if (c.type === 'mutation_result' || c.type === 'assignment') return `${c.resourceType} ${c.resourceId}: ${c.action} confirmed.`;
+              if (c.predicate) return `${c.resourceType} ${c.resourceId}: ${c.predicate} is ${String(c.expectedValue)}.`;
+              return `${c.resourceType} ${c.resourceId}: confirmed.`;
+            });
+          const rejectedLines = rejectedClaims.map((r) => {
+            const c = r.claim;
+            const what = c.action ? `${c.action} ${c.resourceType}${c.resourceId ? ' ' + c.resourceId : ''}` : `${c.resourceType}${c.resourceId ? ' ' + c.resourceId : ''}`;
+            return `I couldn’t confirm that ${what} — nothing was changed for it.`;
+          });
+
+          const pa = result.pendingAction;
+          const pendingPrompt = pa && typeof pa === 'object'
+            ? [pa.question, pa.summary].map((v) => (typeof v === 'string' ? v.trim() : '')).find((v) => v.length > 0) || ''
+            : '';
+          const rawOptions = pa && typeof pa === 'object' && Array.isArray(pa.options) ? pa.options : [];
+          const paOptions = rawOptions.map((o) => (o && typeof o.label === 'string' ? o.label.trim() : '')).filter((l) => l.length > 0);
           const promptWithOptions = paOptions.length > 0
             ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
             : pendingPrompt;
 
-          const parts = [corrected.trim(), notice];
-          if (promptWithOptions && !corrected.includes(promptWithOptions)) parts.push(promptWithOptions);
-          result.summary = parts.filter((p) => p && p.length > 0).join(' ').trim();
-          // The SAME verified claim set that is shown live is persisted, so a reload or a
-          // fresh context recovers the corrected truth rather than the fabrication (#35).
-          (result as { claimAudit?: unknown }).claimAudit = claimAudit;
+          result.summary = [...supportedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
+            .filter((p) => p && String(p).trim().length > 0).join(' ').trim();
+        } else if (legacyProseFallback) {
+          result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
         }
+
+        // ONE AUTHORITATIVE RESPONSE ENVELOPE. The same object feeds the live SSE reply and
+        // the persisted work_orders.output, so a reload or a fresh context recovers exactly
+        // what the founder was shown. No separate unverified model-summary copy is kept.
+        // (VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH /
+        //  LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE)
+        result.verifiedResponse = {
+          verifiedClaims,
+          rejectedClaims,
+          questions: envelopeQuestions,
+          proposedActions: envelopeProposedActions,
+          pendingAction: result.pendingAction || null,
+          summary: result.summary,
+          executionEvidence: claimExecutionEvidence,
+        };
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution

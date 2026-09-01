@@ -1,0 +1,257 @@
+// STRUCTURED-CLAIM VERIFICATION — adversarial acceptance suite.
+//
+// Architecture under test (2026-09-01): truth is derived from STRUCTURED CLAIMS verified
+// against BACKEND-GENERATED execution evidence keyed by EXACT resource id. Prose is an
+// output of verified structure, never an input to determining truth.
+//
+// Three prose generations were independently rejected before this (#62, #64, #65). The
+// clause none of them could satisfy is the one this suite exists to prove:
+//
+//     SAME RESOURCE TYPE BUT WRONG UUID MUST NOT SUPPORT THE CLAIM.
+//
+// Executes the REAL block extracted from supabase/functions/sem-ai-command/index.ts. A
+// reimplementation cannot catch a false positive, which is the vacuous-regression class
+// this project has now logged five times.
+//
+// Runnable with plain node. No deploy, no DB, no network.
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { stripTS } from './_gate_extract.mjs';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
+const src = readFileSync(SRC, 'utf8');
+
+// Extract from the structured-claim header through the verifiedResponse envelope.
+function extractStructuredBlock(source) {
+  const start = source.indexOf('// STRUCTURED-CLAIM VERIFICATION');
+  if (start === -1) throw new Error('structured-claim block not found — update this harness');
+  const anchor = source.indexOf('executionEvidence: claimExecutionEvidence,', start);
+  if (anchor === -1) throw new Error('verifiedResponse envelope not found — update this harness');
+  const end = source.indexOf('};', anchor) + 2;
+  return stripTS(source.slice(start, end));
+}
+
+const slice = extractStructuredBlock(src);
+const fn = new Function(
+  'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan',
+  slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
+);
+const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false }) =>
+  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false);
+
+let pass = 0;
+const failures = [];
+function check(name, cond, detail) {
+  if (cond) { pass++; console.log('OK   ' + name); }
+  else { failures.push(name + (detail ? '\n       ' + detail : '')); console.log('FAIL ' + name); }
+}
+
+const A = '11111111-1111-1111-1111-111111111111';
+const B = '22222222-2222-2222-2222-222222222222';
+const ev = (resourceType, action, id, postconditionPassed = true) => ({ resourceType, action, id, postconditionPassed });
+const mut = (resourceType, id, action) => ({ type: 'mutation_result', resourceType, resourceId: id, action });
+const rejected = (r) => r.envelope.rejectedClaims.length > 0;
+const supportedCount = (r) => r.envelope.verifiedClaims.filter((v) => v.verdict === 'supported').length;
+
+// =======================================================================================
+// SECTION A — RESOURCE IDENTITY. The clause every prose generation failed.
+// =======================================================================================
+check('A1 correct id + correct action -> SUPPORTED',
+  !rejected(run({ claims: [mut('project', A, 'rename')], evidence: [ev('project', 'rename', A)] })));
+
+check('A2 WRONG UUID, same resource type -> REJECTED (CLAIM_WRONG_RESOURCE_ID_CANNOT_BE_GROUNDED)',
+  rejected(run({ claims: [mut('project', A, 'rename')], evidence: [ev('project', 'rename', B)] })),
+  'Evidence for a DIFFERENT project must never support a claim about project A.');
+
+check('A3 correct id, WRONG ACTION -> REJECTED',
+  rejected(run({ claims: [mut('project', A, 'rename')], evidence: [ev('project', 'archive', A)] })),
+  'Archiving a project does not prove it was renamed.');
+
+check('A4 CROSS-RESOURCE fact cannot support a mutation (CLAIM_CROSS_RESOURCE_FACT_CANNOT_SUPPORT_MUTATION)',
+  rejected(run({ claims: [mut('approval', A, 'approve')], evidence: [ev('company', 'archive', A)] })),
+  'Company evidence must never ground an approval claim, even on an identical id.');
+
+// A5 asserts the REASON, not just the verdict. Mutation testing showed that deleting the
+// no-id guard did not change the verdict (the evidence lookup keys on 'type|null' and
+// misses anyway), so a verdict-only assertion could not detect its removal. Asserting the
+// audit reason makes the guard load-bearing: the envelope must say WHY it was rejected.
+{
+  const r = run({ claims: [{ type: 'mutation_result', resourceType: 'project', action: 'rename' }], evidence: [ev('project', 'rename', A)] });
+  check('A5 mutation claim with NO id -> REJECTED (fails closed)', rejected(r));
+  check('A5b the rejection reason names the missing canonical id',
+    /no canonical resource id/i.test(r.envelope.rejectedClaims[0].reason),
+    'The audit trail must explain that the claim carried no id, not merely that evidence was missing.');
+}
+
+check('A6 evidence WITHOUT a passing postcondition -> REJECTED',
+  rejected(run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A, false)] })),
+  'An attempted mutation whose re-read did not confirm must not support a success claim.');
+
+check('A7 entity resolved but nothing executed -> REJECTED',
+  rejected(run({ claims: [mut('approval', A, 'approve')], evidence: [], context: { approvals: [{ id: A, status: 'pending' }] } })),
+  'Entity resolution is never execution — the original BUG-002 invariant.');
+
+// =======================================================================================
+// SECTION B — CLAIM TYPE AUTHORITY. Different claims, different evidence sources.
+// =======================================================================================
+check('B1 current_state verified against the fresh canonical read',
+  supportedCount(run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'archived' }],
+    context: { companies: [{ id: A, status: 'archived' }] } })) === 1);
+
+check('B2 current_state CONTRADICTED by the canonical read -> REJECTED',
+  rejected(run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'archived' }],
+    context: { companies: [{ id: A, status: 'active' }] } })),
+  'The canonical read is authoritative over the model\'s assertion.');
+
+check('B3 approval_state verified against the canonical approval row',
+  supportedCount(run({ claims: [{ type: 'approval_state', resourceType: 'approval', resourceId: A, predicate: 'status', expectedValue: 'pending' }],
+    context: { approvals: [{ id: A, status: 'pending' }] } })) === 1);
+
+check('B4 CURRENT STATE does not prove a HISTORICAL event',
+  run({ claims: [{ type: 'historical_event', resourceType: 'company', resourceId: A, action: 'archive' }],
+    context: { companies: [{ id: A, status: 'archived' }] } }).envelope.verifiedClaims[0].verdict === 'unknown',
+  'A company being archived NOW does not prove it was archived in a prior turn. Must be unknown, not supported.');
+
+check('B5 execution evidence does NOT bless a current_state claim about a different predicate value',
+  rejected(run({ claims: [{ type: 'current_state', resourceType: 'company', resourceId: A, predicate: 'status', expectedValue: 'active' }],
+    evidence: [ev('company', 'archive', A)], context: { companies: [{ id: A, status: 'archived' }] } })));
+
+// =======================================================================================
+// SECTION C — QUESTIONS AND FUTURE ACTIONS ARE NOT EXECUTION CLAIMS.
+// =======================================================================================
+{
+  const r = run({ claims: [mut('project', A, 'rename')], evidence: [], questions: ['Would you like me to notify the team?'] });
+  check('C1 a question survives a rejected claim', r.envelope.questions.length === 1 && /notify the team/.test(r.summary));
+  check('C2 the question is not itself treated as a claim', r.envelope.rejectedClaims.length === 1);
+}
+{
+  const r = run({ claims: [], evidence: [], proposedActions: ['I could archive it next.'] });
+  check('C3 a proposed action is not an execution claim', !rejected(r) && r.envelope.proposedActions.length === 1);
+}
+
+// =======================================================================================
+// SECTION D — MIXED CLAIMS. A false claim must not discard a truthful reply, and a true
+// claim must not launder a false one. This is the founder's worked example.
+// =======================================================================================
+{
+  const r = run({
+    claims: [
+      { type: 'approval_state', resourceType: 'approval', resourceId: A, predicate: 'status', expectedValue: 'pending' },
+      mut('project', B, 'rename'),
+    ],
+    evidence: [],
+    context: { approvals: [{ id: A, status: 'pending' }] },
+    questions: ['Would you like me to notify the team?'],
+  });
+  check('D1 supported approval state is retained', supportedCount(r) === 1 && new RegExp(A).test(r.summary));
+  check('D2 unsupported rename is rejected', r.envelope.rejectedClaims.length === 1);
+  check('D3 the rename is NOT rendered as success', !/rename confirmed/i.test(r.summary));
+  check('D4 the question still survives', /notify the team/.test(r.summary));
+}
+{
+  // one真 + one false on the SAME resource type, different ids
+  const r = run({ claims: [mut('company', A, 'archive'), mut('company', B, 'archive')], evidence: [ev('company', 'archive', A)] });
+  check('D5 same-type mixed ids: only the evidenced id is supported', supportedCount(r) === 1 && r.envelope.rejectedClaims.length === 1);
+  check('D6 the rejected id is named in the correction', new RegExp(B).test(r.summary));
+}
+
+// =======================================================================================
+// SECTION E — ENVELOPE IS THE SINGLE SOURCE OF OUTPUT TRUTH.
+// VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH
+// LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE
+// =======================================================================================
+{
+  const r = run({ claims: [mut('project', A, 'rename')], evidence: [], summary: 'The project has been renamed.' });
+  check('E1 envelope exists and carries both claim sets',
+    !!r.envelope && Array.isArray(r.envelope.verifiedClaims) && Array.isArray(r.envelope.rejectedClaims));
+  check('E2 envelope.summary IS the rendered summary (live == persisted)', r.envelope.summary === r.summary);
+  check('E3 the model\'s false prose is NOT what survives', !/The project has been renamed\./.test(r.summary),
+    'The unverified model sentence must not be the thing rendered or persisted.');
+  check('E4 execution evidence is carried in the envelope', Array.isArray(r.envelope.executionEvidence));
+}
+
+// =======================================================================================
+// SECTION F — PROSE IS NOT RE-PARSED AS AUTHORITY once structured claims exist.
+// =======================================================================================
+{
+  // Prose full of success words, but every structured claim is supported -> untouched.
+  const r = run({
+    claims: [mut('company', A, 'archive')],
+    evidence: [ev('company', 'archive', A)],
+    summary: 'The company has been archived and the approval has been approved and everything was deleted successfully.',
+  });
+  check('F1 supported claims are not second-guessed by a prose scan', !rejected(r) && r.summary.includes('archived and the approval'),
+    'Once structured claims verify, a second prose parser must NOT override them (#65 item 8).');
+}
+{
+  // No structured claims at all -> legacy v92 behaviour, so this build is never worse.
+  const r = run({ claims: null, evidence: [], summary: 'The approval has been approved.' });
+  check('F2 legacy fallback still catches an unstructured fabrication', r.corrected === true,
+    'With no structured claims the build must be no worse than deployed v92.');
+  const ok = run({ claims: null, evidence: [], summary: 'Here are your companies.' });
+  check('F3 legacy fallback does not fire on an ordinary answer', ok.corrected === false);
+}
+
+// =======================================================================================
+// SECTION G - LEGACY PROSE FALLBACK. Preserves the fabrication corpus from the three
+// superseded prose generations (#62/#64/#65). That fallback is still a LIVE code path: it
+// runs only when the model emits NO structured claims, and its sole job is to keep this
+// build from being WORSE than deployed v92 on an unstructured response. It is never
+// consulted when structured claims exist.
+// =======================================================================================
+for (const summary of [
+  'The approval has been approved.',
+  'The company was archived successfully.',
+  'The task has been completed.',
+]) {
+  check('G legacy fallback catches unstructured fabrication - ' + summary.slice(0, 38),
+    run({ claims: null, evidence: [], summary }).corrected === true,
+    'With no structured claims this must be at least as good as deployed v92.');
+}
+for (const summary of [
+  'Here are your companies.',
+  'I do not see that task - it may have been archived or deleted.',
+]) {
+  check('G legacy fallback leaves a truthful reply alone - ' + summary.slice(0, 38),
+    run({ claims: null, evidence: [], summary }).corrected === false);
+}
+check('G structured claims SUPPRESS the legacy prose path entirely',
+  run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' }).corrected === false,
+  'Once structured claims verify, prose must not be re-parsed as authority (#65 item 8).');
+
+console.log('\nstructured_claim_verification: ' + pass + '/' + (pass + failures.length) + ' passed');
+if (failures.length) {
+  console.log('\nFAILURES:');
+  for (const f of failures) console.log('  - ' + f);
+  process.exit(1);
+}
+// =======================================================================================
+// SECTION G - LEGACY PROSE FALLBACK. Preserves the fabrication corpus from the three
+// superseded prose generations (#62/#64/#65). That fallback is still a LIVE code path: it
+// runs only when the model emits NO structured claims, and its sole job is to keep this
+// build from being WORSE than deployed v92 on an unstructured response. It is never
+// consulted when structured claims exist.
+// =======================================================================================
+for (const summary of [
+  'The approval has been approved.',
+  'The company was archived successfully.',
+  'The task has been completed.',
+]) {
+  check('G legacy fallback catches unstructured fabrication - ' + summary.slice(0, 38),
+    run({ claims: null, evidence: [], summary }).corrected === true,
+    'With no structured claims this must be at least as good as deployed v92.');
+}
+for (const summary of [
+  'Here are your companies.',
+  'I do not see that task - it may have been archived or deleted.',
+]) {
+  check('G legacy fallback leaves a truthful reply alone - ' + summary.slice(0, 38),
+    run({ claims: null, evidence: [], summary }).corrected === false);
+}
+check('G structured claims SUPPRESS the legacy prose path entirely',
+  run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' }).corrected === false,
+  'Once structured claims verify, prose must not be re-parsed as authority (#65 item 8).');
+
