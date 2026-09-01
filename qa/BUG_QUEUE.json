@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T05:57:29Z",
+  "last_updated": "2026-09-01T06:02:00Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -102,7 +102,7 @@
       "bug_id": "BUG-002",
       "title": "Brain Chat fabricates success for unsupported operations (entity resolves + capability absent) - PRODUCT-WIDE CLASS, confirmed on approvals, departments, projects",
       "severity": "P1",
-      "status": "REGRESSION_CREATED",
+      "status": "REOPENED",
       "ai_truth_classification": "FALSE_SUCCESS",
       "discovered_by": "fable-qa-director:C001:W3-chat-parity",
       "discovered_at": "2026-08-31T11:05:00Z",
@@ -158,7 +158,15 @@
         "people: permanent delete (documented limitation -> correct refusal)"
       ],
       "class_sweep_result": "3 of 4 resolvable-but-unsupported operations fabricate. people is the sole correct refusal and its text is specific enough to indicate the system prompt documents that one case explicitly - which is why the fix must be structural (zero-operations-executed guard) rather than per-operation prose.",
-      "affects_real_records": true
+      "affects_real_records": true,
+      "work_pc_retest_verdict": "PARTIALLY FIXED - REOPENED. First live acceptance evidence for this fix (neither Main-PC nor the independent verifier could produce it; both hit the user-JWT wall).",
+      "retested_against": "sem-ai-command v92 (ezbr_sha256 33255b31...)",
+      "retested_at": "2026-09-01T06:02:00Z",
+      "what_the_fix_DOES_close": "Bare unsupported-mutation requests now refuse truthfully and explicitly. Project rename -> \"I cannot actually do that from chat - nothing was changed.\" Department delete -> \"I do not have a way to permanently delete a department from chat ... requires the admin interface.\" Both previously fabricated success. Verified live, DB unchanged.",
+      "what_the_fix_does_NOT_close": "D3 bypass CONFIRMED LIVE, exactly as the independent verifier predicted (KNOWN_FAILURE_MODES #61 / D3). claimsPastCompletionWithNoGrounding is short-circuited by the condition [ && !result.pendingAction ], so a fabricated completion claim PAIRED WITH a follow-up question sails straight through. Reproduced on both paths: \"Done. Project renamed to QA-C002-D3. What would you like to rename next?\" and \"Department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST deleted. ... Would you like me to create a task...\". DB verified untouched: project title and updated_at still 2026-08-24, department row still present, zero projects named QA-C002-D3.",
+      "work_pc_severity_note": "The bypass is not an exotic edge case - it is arguably the COMMON case. Conversational assistants naturally end turns with a follow-up question, so the phrasing that defeats the gate is the phrasing the product most often produces. The fix protects the rarer bare-claim form and misses the more natural one. Severity stays P1.",
+      "per_verifier_instruction": "Logged as known evidence under BUG-002 rather than filed as a fresh bug, per the verifier D3 note. No duplicate bug id created.",
+      "d3_short_circuit_condition": "&& !result.pendingAction"
     },
     {
       "bug_id": "BUG-003",

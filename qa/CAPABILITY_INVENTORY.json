@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T05:57:54Z",
+  "generated_at": "2026-09-01T06:02:00Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1438,6 +1438,48 @@
       "status": "FAIL",
       "bug_id": "BUG-005",
       "evidence": "NEW sub-finding: Brain offered pending actions from UNRELATED conversations as confirmation candidates (SEM Global Robotics subsidiary task 1e70d5b3-...). Pending-action candidates bleed across channel boundaries - the same misbinding risk that caused the original issue."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-bug002-retest"
+      ],
+      "capability_id": "CAP-BUG002-BARE-UNSUPPORTED-REFUSES",
+      "domain": "brain-chat",
+      "resource": "any",
+      "operation": "bare_unsupported_mutation_refuses_truthfully",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-002",
+      "evidence": "Project rename and department delete both refused explicitly and stated nothing was changed. DB verified unchanged. First live proof of the BUG-002 fix."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-bug002-retest"
+      ],
+      "capability_id": "CAP-BUG002-D3-CLAIM-PLUS-QUESTION-BYPASS",
+      "domain": "brain-chat",
+      "resource": "any",
+      "operation": "completion_claim_with_followup_question",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-002",
+      "evidence": "D3 bypass reproduced live on both paths. Fabricated completion + trailing question defeats claimsPastCompletionWithNoGrounding via the && !result.pendingAction short-circuit. DB verified untouched. Predicted by the independent verifier before the test - a correct prediction, now empirically confirmed."
     }
   ]
 }

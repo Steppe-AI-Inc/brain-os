@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-08-31T12:02:29Z",
+  "last_updated": "2026-09-01T06:03:40Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "8521b0e",
   "product_commit_tested_short": "8521b0e",
@@ -11,11 +11,11 @@
   "_qa_artifact_commit_note": "Set to the qa/work-pc commit carrying campaign C001 results (pushed to origin).",
   "qa_artifact_branch": "qa/work-pc",
   "home_pc_handoff_branch": "qa/home-pc-handoff",
-  "campaign_id": "C001",
-  "campaign_state": "CHECKPOINTED_SESSION_END",
+  "campaign_id": "C002",
+  "campaign_state": "RUNNING",
   "_campaign_state_note": "Work-PC session ended (founder leaving office, internet cut). All evidence committed and pushed to qa/work-pc. Campaign C001 resumable from repository state alone - no chat history required. Next session: read qa/runner/QA_DIRECTOR_BOOT.md.",
   "open_p0": 0,
-  "open_p1": 2,
+  "open_p1": 3,
   "open_p2": 2,
   "open_p3": 0,
   "ready_for_implementation": [
@@ -29,13 +29,13 @@
   "retesting": [],
   "closed": [],
   "coverage": {
-    "required_capabilities": 63,
-    "pass": 22,
-    "fail": 9,
+    "required_capabilities": 71,
+    "pass": 24,
+    "fail": 15,
     "flaky": 1,
     "blocked": 4,
     "not_tested": 27,
-    "coverage_percentage": 50.8,
+    "coverage_percentage": 56.3,
     "release_state": "FAILED",
     "_source": "Computed by qa/runner/compute-coverage.mjs."
   },
@@ -47,7 +47,7 @@
     "DISTINCT BROWSER PERSONAS UNAVAILABLE (pending investigation): no service-role key to mint synthetic logins. Product-supported paths (public signup, workspace-admin creation, invitePerson() + safe email sink) have NOT yet been investigated - the charter requires that investigation before accepting this as final."
   ],
   "next_required_actor": "HOME_PC",
-  "next_action": "Home PC priority order: BUG-004 (P1 security, unauthorized write into AI memory substrate) -> BUG-002 (P1, product-wide fabrication class, needs STRUCTURAL zero-ops guard) -> BUG-003 (P2, one-line dashboard filter) -> BUG-001 (P2, 24-join-site failure class).",
+  "next_action": "1) D3 gate fix: remove the short-circuit [ && !result.pendingAction ] from claimsPastCompletionWithNoGrounding. Work-PC evidence shows this is the COMMON phrasing, not an edge case - assistants naturally end turns with a question. 2) issue #5 Classes A/C/D/E: all four confirmed failing live. Needs the structured channel_state design. Work PC additionally found pending-action candidates crossing channel boundaries (Class E, new sub-finding). 3) Check whether BUG-002's persist-condition is suppressing work_orders persistence and thereby AMPLIFYING Class A continuity loss. This is a Work-PC hypothesis, explicitly unproven - Work PC did not read that code path.",
   "home_pc_instructions": {
     "_doc": "How a Home-PC session consumes this handoff. No chat history required.",
     "1_fetch": "git fetch origin qa/work-pc && git show origin/qa/work-pc:qa/HANDOFF_STATE.json",
@@ -58,7 +58,6 @@
     "6_never": "Never set CLOSED. Only an independent Work-PC retest closes a defect."
   },
   "work_pc_resume_instructions": "Read qa/runner/QA_DIRECTOR_BOOT.md, then qa/HANDOFF_STATE.json, qa/BUG_QUEUE.json, qa/CAPABILITY_INVENTORY.json. Remaining C001: Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands, remaining cascade attacks, reload/fresh-session truth. Then supervisor implementation.",
-
   "main_pc_implementation_state": {
     "_doc": "IMPLEMENTATION-OWNED block, added by the Main-PC implementation session 2026-09-01. Deliberately additive and namespaced: every Work-PC-owned field above is left byte-identical, because this file declares itself single-writer Work-PC-owned AND the handoff instruction was to not overwrite Work-PC canonical QA evidence. Those two constraints conflict with 'also update HANDOFF_STATE.json', so this block is the reconciliation - Work-PC is free to ignore, relocate, or delete it. It sets NO bug status; bug status remains exclusively Work-PC's via qa/BUG_QUEUE.json.",
     "written_by": "main-pc-implementation-session",
@@ -82,8 +81,26 @@
       "qa/home-pc-handoff/fixes/ISSUE-5.json",
       "qa/home-pc-handoff/fixes/ANON-INVESTOR-RLS-HELPER.json"
     ],
-    "deployed_and_ready_for_retest": ["BUG-004", "BUG-003", "BUG-001 (3 of ~24 surfaces only)", "multi-org", "own-company", "organization-selector", "manager-column-read-only", "anon-investor-rls-helper", "BUG-002 (NEW - deployed c9dfab5)", "ISSUE-5-class-B (NEW - deployed c9dfab5)"],
-    "NOT_ready_for_retest": ["ISSUE-5-classes-A-C-D-E", "brain-chat-org-awareness", "model-health-registry", "messaging-adapters", "BUG-001 remaining ~18 surfaces", "manager-set-UI"],
+    "deployed_and_ready_for_retest": [
+      "BUG-004",
+      "BUG-003",
+      "BUG-001 (3 of ~24 surfaces only)",
+      "multi-org",
+      "own-company",
+      "organization-selector",
+      "manager-column-read-only",
+      "anon-investor-rls-helper",
+      "BUG-002 (NEW - deployed c9dfab5)",
+      "ISSUE-5-class-B (NEW - deployed c9dfab5)"
+    ],
+    "NOT_ready_for_retest": [
+      "ISSUE-5-classes-A-C-D-E",
+      "brain-chat-org-awareness",
+      "model-health-registry",
+      "messaging-adapters",
+      "BUG-001 remaining ~18 surfaces",
+      "manager-set-UI"
+    ],
     "single_blocking_authorization": "RESOLVED 2026-09-01 - the founder authorized ALLOW_FUNCTIONS_DEPLOY=1 and both Edge Function fixes shipped together in c9dfab5. No Edge Function work is currently queued behind an authorization.",
     "live_http_acceptance_gap": "Neither BUG-002 nor issue #5 Class B has had a live HTTP acceptance test. sem-ai-command requires a genuine authenticated user JWT (auth.getUser(), never service-role). BOTH the Main-PC session AND the independent verifier hit this wall - the verifier reported all three paths unavailable (no browser tools, session minting blocked by the auto-mode classifier, outbound HTTP denied) and explicitly did not work around any of it. All 8 named regressions remain UNVERIFIED; the adversarial variants (do it / that one / sure) were never exercised live. Both fixes are CODE INSPECTED + UNIT VERIFIED only. Work-PC is now the ONLY path to this evidence.",
     "independent_verification_result": {
@@ -103,5 +120,12 @@
     ],
     "next_required_actor_per_main_pc": "WORK_PC",
     "suggested_next_action": "Run P0 security retest first (BUG-004, anon RLS helper, signup/invite, global memory poisoning, cross-org isolation). Then P1: the issue #5 exact founder transcript - it must now FAIL to archive the company - and the BUG-002 unsupported-mutation reproduction, plus adversarial confirmation variants (yes / do it / that one / sure). Both fixes are live as of c9dfab5."
-  }
+  },
+  "work_pc_live_acceptance_delivered": "The live-HTTP acceptance gap that BOTH the Main-PC session and the independent verifier reported is now CLOSED for BUG-002 and issue #5 Class B. Work PC produced real-browser evidence for both. This was the blocker the verifier described as 'Work-PC is now the ONLY path to this evidence'.",
+  "retest_results_c002": {
+    "ISSUE-5 Class B": "VERIFIED FIXED (safety property). Bare 'yes' sent 3x on assign-type clarifications; target company stayed active, updated_at unchanged, zero companies archived. Residual defect: the assign flow is now a dead loop - 'yes' repeats the same question verbatim and no employee is ever created.",
+    "ISSUE-5 Classes A/C/D/E": "ALL FOUR CONFIRMED FAILING by live reproduction. Class E is worse than originally reported: pending-action candidates from unrelated conversations are offered as confirmation targets.",
+    "BUG-002": "PARTIALLY FIXED -> REOPENED. Bare unsupported requests now refuse truthfully. The D3 claim-plus-question bypass reproduced live on both tested paths, DB verified untouched."
+  },
+  "branch_ownership_reconciled": "qa/home-pc-handoff branch created from the current qa/work-pc state - no history rewrite, all existing evidence preserved. Home-PC fix reports should be published there going forward; qa/work-pc returns to Work-PC-owned as the ownership model specifies."
 }
