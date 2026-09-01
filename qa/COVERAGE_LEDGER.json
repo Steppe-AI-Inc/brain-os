@@ -1,19 +1,19 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-01T06:13:13Z",
+  "generated_at": "2026-09-01T06:59:26Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
-  "required_capabilities": 74,
-  "executed_capabilities": 43,
-  "coverage_percentage": 58.1,
+  "required_capabilities": 79,
+  "executed_capabilities": 48,
+  "coverage_percentage": 60.8,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 27,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 31,
-    "FAIL": 11,
+    "PASS": 33,
+    "FAIL": 14,
     "BLOCKED": 4,
     "FLAKY": 1
   },
@@ -22,7 +22,7 @@
       "NOT_TESTED": 3,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 6,
+      "PASS": 7,
       "FAIL": 0,
       "BLOCKED": 0,
       "FLAKY": 0
@@ -103,8 +103,8 @@
       "NOT_TESTED": 4,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 7,
-      "FAIL": 6,
+      "PASS": 8,
+      "FAIL": 9,
       "BLOCKED": 0,
       "FLAKY": 1
     },
@@ -168,8 +168,8 @@
       "NOT_TESTED": 13,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 12,
-      "FAIL": 9,
+      "PASS": 14,
+      "FAIL": 12,
       "BLOCKED": 0,
       "FLAKY": 1
     },
@@ -256,11 +256,6 @@
       "bug_id": "BUG-005"
     },
     {
-      "capability_id": "CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION",
-      "domain": "brain-chat",
-      "bug_id": "BUG-005"
-    },
-    {
       "capability_id": "CAP-BUG002-D3-CLAIM-PLUS-QUESTION-BYPASS",
       "domain": "brain-chat",
       "bug_id": "BUG-002"
@@ -268,7 +263,27 @@
     {
       "capability_id": "CAP-ARCHIVED-PARENT-CLASS-REMAINDER",
       "domain": "relationships",
-      "bug_id": "BUG-001"
+      "bug_id": "BUG-006"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-E-PROSE-SCOPING-LEAK",
+      "domain": "brain-chat",
+      "bug_id": "BUG-005"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-CONFIRMATION-BINDS-CORRECT-ACTION",
+      "domain": "brain-chat",
+      "bug_id": "BUG-005"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-A-TURN-RESPONSE-ALIGNMENT",
+      "domain": "brain-chat",
+      "bug_id": "BUG-005"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-C-PENDING-SURVIVES-INTERRUPTION",
+      "domain": "brain-chat",
+      "bug_id": "BUG-005"
     }
   ],
   "flaky_capabilities": [
@@ -280,5 +295,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 74 | PASS: 31 | FAIL: 11 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
+  "headline": "Required capabilities: 79 | PASS: 33 | FAIL: 14 | FLAKY: 1 | BLOCKED: 4 | NOT TESTED: 27 -> FAILED"
 }

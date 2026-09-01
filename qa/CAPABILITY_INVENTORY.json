@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T06:50:48Z",
+  "generated_at": "2026-09-01T06:59:26Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1332,7 +1332,7 @@
       ],
       "status": "PASS",
       "bug_id": "BUG-005",
-      "evidence": "Bare \"yes\" sent 3x on assign-type clarifications. Target company status stayed active, updated_at unchanged, 0 companies archived in 20min. The actionType||archive coercion is closed."
+      "evidence": "Bare \"yes\" sent 3x on assign-type clarifications. Target company status stayed active, updated_at unchanged, 0 companies archived in 20min. The actionType||archive coercion is closed. | CORRECTED: still PASS for the archive-coercion vector specifically (no company archived by any bare confirmation), but see CAP-ISSUE5-B-CONFIRMATION-BINDS-CORRECT-ACTION which FAILS - a bare 'yes' bound to an unrelated real-entity plan."
     },
     {
       "required_roles": [
@@ -1435,9 +1435,9 @@
         "AI",
         "PERMISSION"
       ],
-      "status": "FAIL",
+      "status": "PASS",
       "bug_id": "BUG-005",
-      "evidence": "NEW sub-finding: Brain offered pending actions from UNRELATED conversations as confirmation candidates (SEM Global Robotics subsidiary task 1e70d5b3-...). Pending-action candidates bleed across channel boundaries - the same misbinding risk that caused the original issue."
+      "evidence": "CORRECTED C002: cross-channel EXECUTION isolation holds. A new channel refused a bare 'yes' and also refused an explicit 'confirm that restore I just asked about', with DB confirming zero cross-channel mutations. My earlier 'worse than reported' claim overstated the structural risk and is retracted."
     },
     {
       "required_roles": [
@@ -1543,6 +1543,109 @@
         "C002-p2-retest"
       ],
       "evidence": "23 bare companies(name) selects remain on origin/master 607cdaa, including tasks.ts and goals.ts. Reassigned from BUG-001 to the dedicated class-level defect BUG-006 so the fixed surfaces (departments, people) and the unfixed class surfaces are accounted separately in the ledger."
+    },
+    {
+      "capability_id": "CAP-ISSUE5-E-PROSE-SCOPING-LEAK",
+      "domain": "brain-chat",
+      "resource": "channel_state",
+      "operation": "no_cross_channel_references_in_prose",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-classE-matrix"
+      ],
+      "evidence": "Brain references other conversations' work in a channel with no relationship to them ('did you mean yes to something else from a prior conversation?', and naming unrelated task 1e70d5b3-...). Information-scoping/usability defect. Binding itself is isolated - see CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION (PASS)."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-AL-suite"
+      ],
+      "capability_id": "CAP-ISSUE5-B-CONFIRMATION-BINDS-CORRECT-ACTION",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "confirmation_binds_to_intended_action",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB",
+        "RELATIONSHIP"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Bare 'yes' after two QA-C002 requests replied 'Confirmed. Executing the plan to reassign CLIX GPS projects and people to SEM LLC ... establish SEM Global Robotics Technologies LLC as a 100% subsidiary'. Bound to an unrelated plan about REAL companies never mentioned in that channel. DB verified: zero projects moved, zero people moved, zero relationships created - a fabricated execution claim, not a real mutation."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-AL-suite"
+      ],
+      "capability_id": "CAP-ISSUE5-A-TURN-RESPONSE-ALIGNMENT",
+      "domain": "brain-chat",
+      "resource": "channel_state",
+      "operation": "reply_answers_current_turn",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Replies lag one turn: 'how many companies' returned the prior turn's restore confirmation, and the following 'yes' returned '20 companies in total' (correct answer to the PREVIOUS question; 20 matches DB). Points at prompt-construction/retrieval ordering rather than model recall."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-AL-suite"
+      ],
+      "capability_id": "CAP-ISSUE5-C-PENDING-SURVIVES-INTERRUPTION",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "pending_survives_unrelated_question",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Test C: request -> unrelated informational question -> 'yes'. The 'yes' did not resolve the original pending action; it returned the answer to the interrupting question instead. Pending state neither survived explicitly nor was explicitly invalidated."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "sem-ai-command-v92",
+      "scenario_ids": [
+        "C002-issue5-AL-suite"
+      ],
+      "capability_id": "CAP-ARCHIVED-COMPANY-RENAME-VIA-CHAT",
+      "domain": "companies",
+      "resource": "company",
+      "operation": "rename_archived_company",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "DB",
+        "AI"
+      ],
+      "status": "PASS",
+      "evidence": "Chat renamed an ARCHIVED company (QA-C002-CLASSB-TARGET -> QA-C002-RENAMED-X) and the rename genuinely persisted (DB-verified). Consistent with the earlier C001 finding that editing an existing archived-parent descendant is permitted while creation under it is blocked. Recorded as PASS (claim matched reality) - whether editing archived entities SHOULD be allowed remains the open product question already logged in BUG-001."
     }
   ]
 }
