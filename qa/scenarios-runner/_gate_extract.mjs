@@ -20,6 +20,25 @@
 export function stripTypeAssertions(text) {
   let out = '', i = 0;
   while (i < text.length) {
+    // Skip over string and template literals verbatim. Added 2026-09-01 (#67): prose
+    // inside a real product string contains " as " all the time - the live example that
+    // exposed it is the archive-postcondition warning line ending "... treat as not
+    // archived." inside a template literal, where the assertion-stripper ate the rest of
+    // the template AND the call's closing paren, producing a SyntaxError far from the
+    // cause. Exactly the same failure class the full-line-comment strip below already
+    // fixed once; string literals are the other half. A backtick template is skipped to
+    // its next unescaped backtick, which correctly carries nested ${...} expressions
+    // containing ordinary quotes along with it.
+    const q = text[i];
+    if (q === '"' || q === "'" || q === '`') {
+      let j = i + 1;
+      while (j < text.length) {
+        if (text[j] === '\\') { j += 2; continue; }
+        if (text[j] === q) { j++; break; }
+        j++;
+      }
+      out += text.slice(i, j); i = j; continue;
+    }
     if (text.startsWith(' as ', i)) {
       let j = i + 4;
       const d = { '{': 0, '<': 0, '[': 0, '(': 0 };
