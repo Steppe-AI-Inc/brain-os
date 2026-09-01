@@ -4327,3 +4327,91 @@ ITS 2 DISCLOSED SURFACES WITH AN ACCURATELY-SCOPED, TRACKED, STILL-REAL REMAINDE
 new defect found; no DB push required; nothing left running. Full evidence in
 `qa/verification/CURRENT_CAMPAIGN.json` (campaign
 `verify-31579cd-bug001-bug003-independent-recheck`).
+
+## 58. Overnight multi-org milestone, Priority 1 — `create_own_company()` pushed to production and live isolation acceptance test run against real data (LIVE VERIFIED — CREATE_OWN_COMPANY ISOLATION PROVEN, ONE UNRELATED FINDING, 2026-09-01)
+
+Founder-authorized push of `202609010001_create_own_company.sql` only (explicitly not
+BUG-002's Edge Function deploy, not Anthropic provider toggling). Verified genuinely live
+before trusting it — `supabase migration list` alone was NOT trusted (this project's own
+established gotcha: it can show a version as applied without the body having actually
+landed). Confirmed instead via direct `pg_get_functiondef` (function body byte-identical
+to the committed migration) and `information_schema.role_routine_grants` (`EXECUTE` on
+`authenticated`/`service_role`/`postgres` only, correctly absent from `anon`/`public`).
+
+**Live isolation acceptance test**, run immediately after (not deferred), real personas,
+zero synthetic/mocked RLS — `qa/scenarios-runner/sc081_create_own_company_full_isolation.sql`
++ `qa/scenarios-runner/sc081_anon_persona_isolated.sql`, both self-cleaning
+(`begin;...rollback;`, re-confirmed zero leftover rows via a direct post-run count).
+Personas: **creator/employee** (real EMPLOYEE fixture, given a temp pre-existing
+`role_in_company='employee'` membership at CLIX GPS as its "employer" for the test);
+**unrelated employee** (a second real profile/auth pair, given a temp coworker membership
+at the SAME employer); **employer company-level manager** (same second profile, role
+upgraded to `'manager'` at the employer — the real "employer admin" boundary, deliberately
+distinct from the platform FOUNDER account, which intentionally bypasses per-company RLS
+by design and was not the boundary under test); **unrelated company user** (same second
+profile, membership moved to a third, wholly unconnected company); **unauthenticated
+(anon)**, tested separately.
+
+All pass, live:
+- Creator becomes `role_in_company='owner'` of exactly the new company; their pre-existing
+  employer membership is untouched (still exactly one row, `role_in_company='employee'`);
+  no `company_relationships` row links the new company to the employer (not a
+  subsidiary); `is_company_manager(employer)` is still false for the creator (no
+  authority gained at the employer by owning a separate company elsewhere).
+- Creator's owner authority is functional, not decorative: real rows were inserted into
+  `people`, `projects`, `tasks`, `goals`, `memories`, `documents` scoped to the new
+  company using the creator's own (non-superuser) impersonated session, and are visible
+  back to them.
+- "Reload" persistence proven without leaving permanent data: `getOrganizationContext()`
+  has no caching layer (plain uncached `await supabase.from(...)` every call), so a
+  second independent `SELECT` against `company_memberships` inside the same transaction
+  — which a Next.js Server Component reload would produce identically, since it shares no
+  query cache across requests either — confirmed the new membership row is genuinely
+  queryable, not just present in the RPC's own return value.
+- Unrelated employee (real coworker at the same employer): 0 rows across company record,
+  membership, people, projects, tasks, goals, memories, documents for the new company.
+- Employer company-level manager (confirmed `is_company_manager(employer) = true` for
+  this persona, so the negative result isn't just "not a member anywhere"): still 0 rows
+  across every one of the same eight surfaces. Being a real manager at the employer grants
+  no access to an employee's separate personal company.
+- Unrelated company user (member of a third, unconnected company): 0 rows on company
+  record, membership, tasks, memories.
+- Unauthenticated (anon), tested in isolation on `tasks` only (see finding below for why
+  not `companies`): 0 rows, correctly denied.
+
+**Brain Chat / entity grounding**: not exercised at the HTTP/Edge-Function level — that
+needs a real signed Supabase Auth session JWT (`auth.getUser()` inside `sem-ai-command`),
+which the `request.jwt.claims` SQL-level impersonation trick used throughout
+`qa/scenarios-runner/` cannot produce. What's actually verified: `sem-ai-command` always
+queries with the caller's own JWT via the anon key, never service-role (independently
+confirmed during the BUG-004 campaign, #52/#56), so Brain Chat retrieval necessarily
+inherits the isolation proven above at the data layer. Disclosed as inherited, not
+independently re-exercised — do not read this entry as an HTTP-level Brain Chat proof.
+
+**One new, unrelated finding, disclosed not fixed**: testing the anon persona against
+`public.companies` directly (not just `tasks`) crashed with `permission denied for
+function is_investor_viewer_of` instead of cleanly returning zero rows. Root cause: the
+pre-existing `companies_select_member` policy is `has_company_access(id) OR
+is_investor_viewer_of(id)`, and `is_investor_viewer_of()` has `EXECUTE` granted to
+`authenticated`/`service_role`/`postgres` only — never to `anon`. This is a real,
+pre-existing robustness gap (an anonymous request against `companies` fails with a hard
+SQL error rather than a clean empty result) — unrelated to this migration, not introduced
+by it, and not fixed here: a grant fix needs its own migration and was outside tonight's
+authorization (`create_own_company` only). Tracked here as a genuine finding for a future
+authorized fix, not silently absorbed or fixed without authorization.
+
+**Permanent regressions added**: `EMPLOYEE_CAN_CREATE_ISOLATED_PERSONAL_ORGANIZATION`,
+`PERSONAL_ORG_CREATOR_BECOMES_FOUNDER_ONLY_THERE`,
+`PERSONAL_ORG_CREATION_DOES_NOT_CHANGE_EMPLOYER_MEMBERSHIP`,
+`EMPLOYER_CANNOT_INHERIT_ACCESS_TO_PERSONAL_ORG`,
+`PERSONAL_ORG_AUTHORITY_DOES_NOT_ESCALATE_EMPLOYER_ACCESS`,
+`ORG_CREATION_DOES_NOT_IMPLY_PARENT_SUBSIDIARY_RELATIONSHIP` — all six proven live above,
+not just asserted by the migration's own code comments.
+
+**Status**: `LIVE VERIFIED — CREATE_OWN_COMPANY ISOLATION PROVEN FOR REVIEWED SURFACES`.
+Not independently re-verified by a separate session yet (this was the implementing
+session's own live test, run immediately per explicit founder instruction — a separate
+`brain-os-verifier` re-check is still owed before this counts as fully closed under this
+project's own "implementer never self-certifies" rule). No production data left behind
+(confirmed via direct post-rollback count). "Create Organization" UI still not built —
+the RPC is live and proven, but nothing in the product surfaces it yet.
