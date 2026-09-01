@@ -4415,3 +4415,120 @@ session's own live test, run immediately per explicit founder instruction — a 
 project's own "implementer never self-certifies" rule). No production data left behind
 (confirmed via direct post-rollback count). "Create Organization" UI still not built —
 the RPC is live and proven, but nothing in the product surfaces it yet.
+
+## 59. Independent verification of #58 and the full overnight multi-org milestone (e620438..a905df5) — every #58 claim re-derived and confirmed true live, one real cross-page scoping gap found and fixed (Board page), one disclosed finding's blast radius expanded from 1 table to 5 (INDEPENDENTLY VERIFIED, ONE NEW DEFECT FOUND+FIXED, 2026-09-01)
+
+A separate verifier session (no memory of the implementing session) re-derived #58's
+`create_own_company()` claims from scratch against live production, then independently
+code-inspected the rest of the milestone's own later commits (real org selector,
+org-scoping across People/Projects/Tasks/Goals/Documents/Memory/KPI/Dashboard, Create
+Organization UI, per-org Manager column on People) rather than trusting any of it
+secondhand. Full evidence in `qa/verification/CURRENT_CAMPAIGN.json` (campaign
+`verify-a905df5-multiorg-milestone-independent-recheck`).
+
+**`create_own_company()` genuinely live in production**: confirmed directly, not via
+`supabase migration list` (this project's own documented gotcha) —
+`pg_get_functiondef('public.create_own_company(text,text,text,text)')` returned a body
+byte-identical to the committed migration, and `information_schema.role_routine_grants`
+confirmed `EXECUTE` for `authenticated`/`postgres`/`service_role` only, correctly absent
+from `anon`/`public`. Matches #58 exactly.
+
+**Live isolation acceptance test, re-run unmodified**:
+`sc081_create_own_company_full_isolation.sql` and `sc081_anon_persona_isolated.sql`
+re-run byte-for-byte against production — every persona verdict (creator/employee,
+unrelated coworker at the same employer, employer company-level manager, unrelated
+third-company user, unauthenticated anon) returned identical results to #58's claims:
+creator becomes sole owner with functional authority across people/projects/tasks/goals/
+memories/documents, employer membership untouched, no subsidiary relationship created,
+and every unauthorized persona — including a real company-level manager at the
+employer — sees zero rows across every surface. Zero residue confirmed by direct
+post-run query for `SC-081%`/`SC-081b%` company names and by id for every fixture row.
+
+**`is_investor_viewer_of`/anon finding — confirmed pre-existing, blast radius expanded
+from 1 table to 5**: independently reproduced the exact crash
+(`permission denied for function is_investor_viewer_of`, 42501) on a fresh
+anon-impersonated query against `companies`. Provenance confirmed: the function and its
+`revoke ... from public, anon; grant execute ... to authenticated` were introduced in
+`202608280004_investor_viewer_scope.sql` (2026-08-28) — three days before
+`202609010001_create_own_company.sql` (2026-09-01) — genuinely pre-existing and
+unrelated to tonight's migration, as #58 claimed. **New, this session**: performed the
+systemic same-defect-class search the constitution requires — grepped every function
+`revoke`d from `public`/`anon` across all migrations, cross-referenced against every RLS
+policy that calls it. `is_investor_viewer_of` is the *only* one embedded inside a table's
+SELECT policy this way (every other revoked function is a direct RPC, where a revoke
+produces a clean "permission denied" at the call site, not an accidental crash on an
+ordinary table read) — but it's referenced in **five** tables' SELECT policies from that
+same migration, not just `companies`: `companies`, `goals`, `financial_reports`,
+`documents`, `memories`. Live-confirmed all five independently throw the identical 42501
+for anon. Severity is unchanged (robustness/error-handling gap, not a data leak — no row
+content is ever returned, only a hard error instead of a clean empty result), but the
+founder should know the real scope is 5 tables, not 1. Documented with the exact safe fix
+(`grant execute on function public.is_investor_viewer_of(uuid) to anon` — safe because the
+function's own body still requires a real `auth.uid()` match, so granting `EXECUTE` alone
+cannot leak data to an anonymous caller) in
+`qa/scenarios-runner/anon_companies_investor_viewer_permission_denied_gap.sql`. Not fixed
+here — needs its own migration and founder authorization, outside this campaign's scope,
+same as #58's own disclosure.
+
+**Real gap found and fixed live: Board page was never scoped to the active
+organization**. Code-inspecting all 7 org-scoped data files
+(`web/lib/data/{people,projects,tasks,goals,documents,memory,kpi}.ts`) and every
+`page.tsx` caller confirmed a consistent pattern — each function takes an optional
+`activeOrganizationId` and every caller computes it identically
+(`organizations.memberships.length > 1 && organizations.activeOrganizationId !==
+ALL_ORGANIZATIONS_ID ? organizations.activeOrganizationId : null`), sourced once from
+`getOrganizationContext()` in `web/app/(app)/layout.tsx`. But
+`web/app/(app)/board/page.tsx` — a second, drag-and-drop Kanban view of the exact same
+`goals` entity the (correctly-scoped) Goals page already covers — called `getGoals()`
+with **no** `activeOrganizationId` argument at all: a genuine canonical-graph
+inconsistency (the same entity scoped differently depending on which page renders it)
+that this milestone's own commit series (`25c0c48 Extend organization selector scoping to
+Projects, Tasks, Goals, Documents`) missed. **Fixed live** (within fix authority — a
+`web/` file, no DB involved): Board now fetches `getOrganizationContext()` and applies
+the identical `scopeToActiveOrg` pattern before calling `getGoals(scopeToActiveOrg)`.
+
+**Manager column (per-organization, `web/lib/data/people.ts`) — RLS policy re-verified
+live, not trusted from text, with real fixtures because production had none**: confirmed
+`person_assignments_select_scope` is genuinely live via direct `pg_policy` introspection
+(byte-identical to the migration). Discovered production currently has **zero** of its 4
+total `person_assignments` rows with `manager_person_id` set — the new Manager column has
+never actually been exercised against real data, so trusting the policy text alone would
+not have been a real test. Built `qa/scenarios-runner/sc082_manager_column_cross_company_isolation.sql`:
+2 companies, 4 people, 2 manager-assignment pairs (one per company), then impersonated a
+real employee persona who is a member of Company A only. Confirmed: the manager name
+resolves correctly for Company A via `getPeople()`'s exact join shape, AND — the real
+test, not just "the app doesn't ask for it" — the persona gets **zero** rows for Company
+B's assignment even when directly queried by its exact `person_id`, proving the isolation
+is enforced by RLS on `person_assignments` itself. Zero residue confirmed post-rollback.
+
+**Code inspection, all 7 files + dashboard + every page.tsx caller**: all wiring
+consistent and correct beyond the one Board gap above. `getProjects()`/
+`getDepartments()`/`getCompaniesForSelection()` being called unscoped inside
+document/goal/project *create-forms* is intentional (full-catalog parent-picker
+selectors, consistent across every page) — not a scoping omission.
+
+**Static checks, re-run fresh at this campaign's own starting commit** (not trusted from
+the implementer's claim): fresh isolated `git worktree`, `npm run build` clean (all 45
+routes including `/board`), `npx tsc --noEmit` clean, `npx eslint .` clean except 1
+pre-existing unrelated warning (`lib/pdf/simple-pdf.ts`, not touched by this milestone) —
+all run against this session's own Board fix included.
+
+**Coverage gap, disclosed plainly, not silently absorbed**: `mcp__claude-in-chrome__*`
+browser tools were not available via `ToolSearch` in this session (same gap #57 already
+disclosed) — no actual authenticated browser render of the sidebar org switcher, the
+Create Organization dialog, or the People Manager column was possible. Compensated with
+full source inspection plus live-DB queries mirroring each function's exact shape. This
+is CODE INSPECTED + LIVE VERIFIED (query-shape-and-live-data level), not full E2E
+VERIFIED via a live page render — stated plainly, not marked verified.
+
+**Regression tests added**: `qa/scenarios-runner/create_own_company_live_state_check.sql`
+(reusable live function-body + grants check), `qa/scenarios-runner/sc082_manager_column_cross_company_isolation.sql`
+(cross-company manager-relationship isolation, fixture-based since production had no real
+data), `qa/scenarios-runner/anon_companies_investor_viewer_permission_denied_gap.sql`
+(expanded from companies-only to document and reproduce all 5 affected tables).
+
+**Status**: `INDEPENDENTLY VERIFIED — CREATE_OWN_COMPANY ISOLATION RE-CONFIRMED TRUE,
+ONE NEW DEFECT FOUND AND FIXED LIVE (BOARD PAGE ORG-SCOPING GAP), ONE PRE-EXISTING
+DISCLOSED FINDING'S BLAST RADIUS CORRECTED FROM 1 TABLE TO 5`. No DB push required for
+anything found this session (the investor-viewer grant fix remains BLOCKED — DB PUSH,
+prepared as documentation only, same as #58's own disclosure — not pushed).
