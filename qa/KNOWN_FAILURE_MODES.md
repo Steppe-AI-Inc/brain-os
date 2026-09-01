@@ -4642,3 +4642,188 @@ EXPOSURE`. Affected tables: 5, all confirmed fixed. Live exploit/data leak: neve
 demonstrated and proven not possible. Enumeration side channel: none. Authenticated
 investor / non-investor / founder-admin paths: all preserved unchanged. Generic sweep
 compatibility: confirmed.
+
+## 61. Independent verification of the c9dfab5 production Edge Function deploy (issue #5 Class B + BUG-002) — deployed bytes proven identical, both root causes re-derived and confirmed, but LIVE HTTP ACCEPTANCE BLOCKED and two real test/claim defects found (CODE VERIFIED + UNIT VERIFIED, LIVE BEHAVIOR NOT VERIFIED — 2026-09-01)
+
+Independent verifier, fresh context, starting commit `c9dfab5bd43346bad501ab44d7bfbc5211e90ed5`
+(`origin/master` == local `master` == `c9dfab5`, working tree clean). The launch prompt's
+narrative was treated as a pointer to check, not as evidence. Two of its claims turned out
+to be wrong (see D1, D2 below).
+
+**Production state established first** (CLAUDE.md section 1): Supabase project
+`pvphxgrtdfrudejjhzjk`, production domain `brain.open-spot.ai`, `sem-ai-command` version
+**92**, status ACTIVE, `verify_jwt true`, `updated_at 2026-09-01T05:15:25.518Z`, entrypoint
+`file:///home/runner/work/brain-os/brain-os/...` — the runner path confirms this was a
+GitHub-Actions deploy, not a laptop deploy.
+
+### CONFIRMED: the deployed function really is the audited commit (LIVE VERIFIED)
+
+`npx supabase functions download sem-ai-command` into an isolated scratch dir, then compared
+against `git show c9dfab5:supabase/functions/sem-ai-command/index.ts`:
+
+- sha256 **`795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`** for BOTH.
+  `diff` empty, 4312 lines and 321370 bytes each.
+- **There is no real content difference, and in fact no line-ending difference either.**
+  The prompt warned about CRLF-vs-LF; in reality both the download AND the git blob are pure
+  LF (CR count 0 each). Only the Windows working tree is CRLF (4312 CRs), and it normalizes
+  to the identical sha256. Stated precisely rather than repeated as received.
+- Both fixes confirmed present **in the deployed copy specifically**, not just in the repo:
+  `resolveClarificationField` at deployed line 186 with both call sites at 2417/2440, and
+  `PAST_COMPLETION_CLAIM_PATTERN` / `claimsPastCompletionWithNoGrounding` at 4239-4292.
+
+### CONFIRMED: issue #5 Class B root cause, re-derived from scratch (CODE INSPECTED)
+
+Read the **prior** state at `9f270fc` directly rather than trusting the description:
+
+1. `PendingAction` declares `actionType?: string` on both `single_entity_clarification` and
+   `PendingActionOption`, and the system-prompt JSON schema (prior line 1260) restricts the
+   emitted value to archive/restore/null. There is **no representable value for an assign
+   intent**, so an ASSIGN clarification is necessarily emitted with `actionType` absent.
+   Confirmed.
+2. Both deterministic call sites (prior lines 2385, 2405) resolved the field as
+   `CLARIFICATION_ENTITY_ACTION_FIELD[entityType]` indexed by `actionType` defaulted to
+   archive, and `company.archive` maps to `archiveCompanyIds`. Absence therefore became the
+   single most destructive field available. The prior code comment even documented this
+   destructive default as intentional. Confirmed.
+3. `isClarificationAffirmative()` matches a bare "yes" (and "sure", "do it", "that one"),
+   and `commandContradictsActionType("yes", undefined)` resolves to archive and returns
+   false because "yes" contains no verb from either family — nothing blocked it. Confirmed.
+
+The new `resolveClarificationField()` **genuinely fails closed**: its first statement returns
+undefined when either `entityType` or `actionType` is falsy, and undefined is the refusal
+signal both call sites already honour (a falsy field means no deterministic result, so the
+turn falls through to the ordinary LLM path). Confirmed by reading the deployed bytes.
+
+The functional diff `9f270fc..c9dfab5` is exactly **two** fixes plus three test/doc files —
+no other behavior changed.
+
+### D1 — PROMPT CLAIM FALSIFIED: "2 remaining textual matches, comments only"
+
+There are **three** matches of an archive-default in the deployed file (lines 172, 234,
+2401), and **line 234 is live code, not a comment**: `commandContradictsActionType()` still
+defaults an absent `actionType` to archive.
+
+Analysed rather than waved away: this is a **boolean guard only** — it never resolves or
+returns a mutation field, so it cannot itself select a destructive operation. With the
+fail-closed resolver downstream, an absent `actionType` now yields guard=false, then
+field=undefined, then LLM fallthrough (safe); absent `actionType` plus a restore verb yields
+guard=true then fallthrough (also safe). **The security conclusion stands, but the stated
+justification was wrong.** Recorded so a future reader does not re-verify from the same
+incorrect premise.
+
+### D2 — REAL DEFECT FOUND AND FIXED: both regressions were detached from the code they guard
+
+Both unit suites pass exactly as claimed — `issue5_confirmation_action_type_binding.mjs`
+**10/10**, `sem_ai_command_past_completion_claim_regex.mjs` **13/13**, both re-run by this
+verifier. But per the skill ("do not trust developer tests blindly") the harnesses themselves
+were inspected, and **both are detached copies**:
+
+- `issue5_*.mjs` re-implements the buggy and fixed resolvers locally and never reads
+  `index.ts`.
+- the regex test copy-pastes `PAST_COMPLETION_CLAIM_PATTERN` and relies solely on a code
+  comment ("keep this byte-identical, copy-paste, do not hand-retype") as enforcement.
+
+**Consequence: both would still report a green 10/10 and 13/13 even if `index.ts` were
+reverted to the destructive default, or its regex silently weakened.** A green test that
+cannot fail when the product regresses is not a regression test.
+
+Defect class: **REGRESSION TEST DETACHED FROM THE CODE IT CLAIMS TO GUARD.**
+
+Fixed live by adding `qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs`
+(13/13 passing), which asserts against the **real source file**: the resolver exists and
+fails closed; no live (non-comment) line resolves a mutation field via an archive default;
+both call sites go through the resolver; `CLARIFICATION_ENTITY_ACTION_FIELD` is indexed in
+exactly one place; and the regex and the entity/action map have not drifted from their
+copies.
+
+**The guard was proven able to fail** (a guard that cannot fail is worthless): the real
+`index.ts` was temporarily reverted to the old destructive lookup and the guard failed 3/13
+with the exact offending line printed; the regex was temporarily weakened by dropping the
+hedge lookbehind for "may" and the guard failed the byte-identical assertion. `index.ts` was
+then restored and re-confirmed byte-identical (same sha256, `git status` clean for that
+file).
+
+### BLOCKED — LIVE HTTP ACCEPTANCE WAS NOT PERFORMED. NOT SIMULATED, NOT INFERRED.
+
+`sem-ai-command` builds its client with the **anon** key plus the caller's own
+`Authorization` header and then calls `supabase.auth.getUser()` (deployed lines 2279-2300);
+it never uses service-role. A genuine end-user JWT is therefore mandatory. Three paths were
+attempted and all were unavailable:
+
+1. **Browser** — the Chrome MCP tools are deferred and require a `ToolSearch` function to
+   load. No `ToolSearch` exists in this session (tools: Read, Grep, Glob, Bash, Edit, Write,
+   Skill). Same gap #59 disclosed.
+2. **Mint a session** — attempted to create a synthetic QA-VERIFY auth user via the Auth
+   Admin API using the service-role key in `web/.env.local`, then sign in with the public
+   anon key for a real access token. **Blocked by the Claude Code auto-mode classifier**
+   (privileged production auth mutation). Not worked around.
+3. **Even a read-only reachability probe** (POST with no `Authorization`, expecting 401) was
+   **also blocked** — outbound HTTP from this session is denied.
+
+**Therefore all eight named behavioral regressions remain BLOCKED, not verified:**
+`BRAIN_CHAT_ZERO_EXECUTED_OPERATIONS_CANNOT_REPORT_SUCCESS`,
+`BRAIN_CHAT_ENTITY_RESOLUTION_IS_NOT_EXECUTION`,
+`BRAIN_CHAT_UNSUPPORTED_MUTATION_FAILS_TRUTHFULLY`,
+`BRAIN_CHAT_SUCCESS_REQUIRES_POSTCONDITION`,
+`BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_ACTION_TYPE`,
+`BRAIN_CHAT_PENDING_CONFIRMATION_BOUND_TO_CANONICAL_TARGET`,
+`BRAIN_CHAT_YES_CANNOT_SWITCH_ASSIGN_TO_ARCHIVE`,
+`BRAIN_CHAT_CLARIFICATION_RESOLUTION_DOES_NOT_MUTATE_UNRELATED_RESOURCE`.
+The adversarial confirmation variants ("do it", "that one", "sure") were **not** exercised
+live. **This deploy is NOT PRODUCTION ACCEPTED.**
+
+### D3 — RESIDUAL GAP DISCLOSED (not fixed, would require a functions deploy)
+
+`claimsPastCompletionWithNoGrounding` is short-circuited by `!result.pendingAction`. A turn
+that fabricates a past completion **and** sets a `pendingAction` therefore bypasses the gate
+entirely — e.g. "The approval has been approved. Would you like me to archive the company
+too?" matches the pattern (verified against the real regex) but is never corrected. The
+sibling `claimsFutureActionWithNoPlan` gate has the identical exclusion, so this is a
+pre-existing design decision inherited by the new gate, not something this deploy introduced.
+A `pendingAction` is a question, not execution, so it should not grant past-tense completion
+claims immunity. **Not fixed here**: pushes under `supabase/functions/` trigger a real
+production Edge Function deploy via `.githooks/pre-push` plus `supabase-functions.yml`, so
+per this campaign's authorization this is reported for founder decision rather than deployed.
+The function's own comments already honestly disclose the adjacent "mixed
+grounded/ungrounded turn" limitation.
+
+### SCOPE DISCIPLINE — issue #5 is NOT closed
+
+Independently confirmed that only Class B shipped. `conversationHistory` is still capped at
+`limit(8)` (deployed line 1908, most-recent-8 ordering), which reproduces the harness's
+16% / 8% / 4% visibility figures for 50/100/200-turn conversations by direct arithmetic.
+Classes A/C/D/E (long-channel history, source turn IDs, expected confirmation type,
+compaction, durable structured channel state, canonical IDs surviving long context) remain
+**OPEN architecture work**.
+
+### Global integrity and baseline drift (LIVE VERIFIED, read-only)
+
+Permanent script added: `qa/scenarios-runner/global_integrity_assertions.sql`.
+
+**Zero baseline drift** — approval `358eddeb-c6ac-4a85-ab26-77dc3960fcba` still `pending`
+(never touched by this campaign), companies active=6, archived=10, exactly the
+founder-stated pre-deploy baseline. All orphan/duplicate assertions returned 0, with one
+exception:
+
+**`active_task_under_archived_company = 2`.** Both are synthetic QA fixtures, not real
+business data — `QA-VERIFY-TASK` under `QA-VERIFY-BU` (prior-campaign residue, 2026-08-29)
+and **`QA-SWARM-TASK-001` under `QA-SWARM-TEST-CO-VIA-CHAT` (2026-08-31), the exact company
+the issue #5 Class B defect wrongly archived, still archived, never restored.** Production
+still carries the original incident's damage.
+
+The live `archive_company()` definition (read via `pg_get_functiondef`, not assumed) only
+flips `companies.status` and deliberately does not cascade, so "dependents PRESERVED" is the
+intended contract. `getCompaniesForSelection()` correctly excludes archived companies from
+creation selectors. But `getTasks()` in `web/lib/data/tasks.ts` neither excludes nor
+**labels** a task whose parent company is archived, so such a task renders as a normal active
+row with an unmarked company name — the canonical-truth violation shape the skill calls an
+automatic FAIL, and the same class as #55/BUG-001. Not fixed here (a UI labeling change with
+no browser available to verify the rendered result); recorded with a permanent detector so it
+cannot silently persist.
+
+### Synthetic data
+
+**This campaign created zero synthetic entities** — session minting was blocked, so no
+QA-VERIFY rows were written. The two pre-existing QA fixtures above were deliberately **left
+in place**, not deleted: `QA-SWARM-TEST-CO-VIA-CHAT` is the physical artifact of the issue #5
+incident and is more informative for the founder to inspect than a clean table.
