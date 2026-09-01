@@ -82,14 +82,45 @@ check(
 );
 
 // --- The correction must not strand a live pending question ---
+// Slice to the block's real closing brace, not a magic character count. The original
+// `src.slice(i, i + 1600)` silently truncated mid-block once the D7 follow-up patch grew
+// the correction body, making two assertions fail for a reason that had nothing to do
+// with the invariant they test. Brace-matching keeps this correct as the block changes.
 const correctionBlock = (() => {
   const i = src.indexOf('if (claimsPastCompletionWithNoGrounding)');
-  return i === -1 ? '' : src.slice(i, i + 1600);
+  if (i === -1) return '';
+  const open = src.indexOf('{', i);
+  if (open === -1) return '';
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    if (src[j] === '{') depth++;
+    else if (src[j] === '}') { depth--; if (depth === 0) return src.slice(i, j + 1); }
+  }
+  return '';
 })();
+// LOOSENED 2026-09-01 (Main-PC): this previously hardcoded the variable name
+// `pendingPrompt` and the exact shape `result.summary = pendingPrompt ? ...`, which broke
+// the moment the D7 follow-up patch introduced `promptWithOptions` — a rename, not a
+// regression. Asserting on an implementation variable name is the same brittleness class
+// the verifier flagged as D2/D5. Now asserts the BEHAVIOUR: the correction must read a
+// pending prompt out of pendingAction and conditionally concatenate it onto the summary.
+// The real behavioural coverage lives in past_completion_gate_behavior.mjs (Section C);
+// this is the cheap source-level guard that the mechanism has not been deleted outright.
 check(
   'correction preserves a real pending prompt instead of destroying it',
-  /pendingPrompt/.test(correctionBlock) && /result\.summary\s*=\s*pendingPrompt\s*\?/.test(correctionBlock),
-  'Now that the gate can fire on a turn WITH a pendingAction, blindly overwriting result.summary would leave a live pendingAction with no visible question. The correction must re-attach pendingAction.question/summary.'
+  /pendingAction/.test(correctionBlock)
+    && /(question|summary)/.test(correctionBlock)
+    && /result\.summary\s*=\s*\w+\s*\?/.test(correctionBlock)
+    && /\$\{correction\}/.test(correctionBlock),
+  'Now that the gate can fire on a turn WITH a pendingAction, blindly overwriting result.summary would leave a live pendingAction with no visible question. The correction must re-attach pendingAction.question/summary (and, since D7, disambiguation option labels).'
+);
+// D7 (qa/KNOWN_FAILURE_MODES.md #62): a disambiguation is only answerable if the option
+// LABELS survive - matchDisambiguationOption() resolves a reply only when it CONTAINS a
+// label, so restoring question-only leaves a live pendingAction the user cannot answer.
+check(
+  'D7: disambiguation option labels are re-attached, not just the question',
+  /options/.test(correctionBlock) && /label/.test(correctionBlock),
+  'Restoring only pendingAction.question strands a disambiguation turn: the user cannot type back an option label that is no longer displayed.'
 );
 check(
   'correction still states plainly that nothing was changed',

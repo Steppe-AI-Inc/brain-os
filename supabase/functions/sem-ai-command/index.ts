@@ -4257,8 +4257,13 @@ serve(async (req) => {
         // independently of whether a question is pending. Grounding is still required
         // (!groundedOutcomeThisTurn) and every deterministic mode is still excluded, so
         // no legitimately-executed turn is affected.
+        const PAST_CLAIM_NEGATED = /\b(was|were|has|have|had|is|are)\s+(not|never)\b|\bdid\s+not\b|\bno\s+(company|task|goal|employee|approval|project|department|person)\b|\bcould(n’t| not)\s+confirm\b/i;
+        const PAST_CLAIM_ATTRIBUTED_ELSEWHERE = /\b(prior turn|previous turn|earlier turn|last turn|conversation history|history shows)\b/i;
         const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+          && lifecycleMismatchCorrections.length === 0
+          && !PAST_CLAIM_NEGATED.test(String(result.summary || ''))
+          && !PAST_CLAIM_ATTRIBUTED_ELSEWHERE.test(String(result.summary || ''))
           && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
         if (claimsPastCompletionWithNoGrounding) {
           const correction = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
@@ -4274,7 +4279,15 @@ serve(async (req) => {
           const pendingPrompt = [pa?.question, pa?.summary]
             .map((v) => (typeof v === 'string' ? v.trim() : ''))
             .find((v) => v.length > 0) || '';
-          result.summary = pendingPrompt ? `${correction}\n\n${pendingPrompt}` : correction;
+          const paOptions = Array.isArray((pa as { options?: unknown[] } | null | undefined)?.options)
+            ? ((pa as { options?: Array<{ label?: unknown }> }).options as Array<{ label?: unknown }>)
+                .map((o) => (o && typeof o.label === 'string' ? o.label.trim() : ''))
+                .filter((l) => l.length > 0)
+            : [];
+          const promptWithOptions = paOptions.length > 0
+            ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
+            : pendingPrompt;
+          result.summary = promptWithOptions ? `${correction}\n\n${promptWithOptions}` : correction;
         }
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving

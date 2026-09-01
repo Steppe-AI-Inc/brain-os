@@ -261,8 +261,14 @@ for (const [name, summary, pa] of FALSE_POSITIVE_CORPUS) {
 // already reachable on the DEPLOYED c9dfab5 / v92 build - this one is NOT introduced by
 // D3.
 //
-// Asserted in the still-broken direction on purpose: when D6 is fixed this flips to FAIL
-// and forces whoever fixed it to update this file and close the #62 entry.
+// INVERTED 2026-09-01 (Main-PC), exactly as this section's own failure message
+// instructed. D6 was deliberately asserted in the still-broken direction so that fixing
+// it would force this file to be updated rather than silently drifting. The verifier's
+// proposed patch (qa/verification/proposed/d3-followup-detector-tightening.patch) adds
+// `&& lifecycleMismatchCorrections.length === 0` to the PAST gate, which fixes D6: Brain
+// OS's own truthful lifecycle-mismatch corrector is no longer overwritten by a less
+// accurate message that additionally claims, falsely, that chat cannot do the action.
+// Now asserted in the FIXED direction, so a regression re-breaks this test.
 // ======================================================================================
 const SELF_CANNIBALIZED = [
   'Couldn’t confirm that. No company was actually archived or restored this turn.',
@@ -272,9 +278,9 @@ const SELF_CANNIBALIZED = [
 ];
 for (const s of SELF_CANNIBALIZED) {
   check(
-    'D1 KNOWN-OPEN D6: gate still cannibalises its own corrector - ' + s.slice(30, 62),
-    overwritten(run('gpt', s, null, false)),
-    'D6 appears to be FIXED - good. Update qa/KNOWN_FAILURE_MODES.md #62 and invert this assertion.'
+    'D6 FIXED: gate no longer cannibalises its own corrector - ' + s.slice(30, 62),
+    !overwritten(run('gpt', s, null, false)),
+    "D6 has REGRESSED: Brain OS's own truthful lifecycle-mismatch corrector is being overwritten by the PAST gate again. The `lifecycleMismatchCorrections.length === 0` guard is missing or ineffective."
   );
 }
 
