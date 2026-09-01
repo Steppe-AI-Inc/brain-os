@@ -1,0 +1,75 @@
+{
+  "campaign_id": "verify-82bc28a-per-claim-grounding",
+  "base_commit": "82bc28a6d612ab4c7932d4e22cec5423f4724390",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run4-start",
+  "last_checkpoint_at": "2026-09-01T-run4-final",
+  "completed_at": "2026-09-01T-run4-final",
+  "verifier": "independent verifier #4 (fresh context)",
+  "prior_campaign": "verify-606cfa8-d3-followup-detector-narrowing archived to qa/verification/archive/campaign-606cfa8-d3-followup.json. DIFFERENT base_commit (606cfa8 != 82bc28a) - prior evidence treated as UNVERIFIED and re-derived from the real source, the real corpus and the real deployed bytes.",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "production_state_established": {
+    "sem_ai_command": "version 92 ACTIVE verify_jwt=true updated_at 1788239725518 = 2026-09-01T05:15:25.518Z - UNCHANGED",
+    "deployed_LF_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc == git show c9dfab5:supabase/functions/sem-ai-command/index.ts",
+    "branch_not_deployed_proof_1": "grep -c claimAudit on the DOWNLOADED deployed source = 0",
+    "branch_not_deployed_proof_2": "work_orders rows with output ? 'claimAudit' = 0",
+    "deployed_gate_line_4241": "still '&& !result.pendingAction && !groundedOutcomeThisTurn' - D3 IS LIVE IN PRODUCTION as a defect",
+    "worktree_index_ts_raw_sha256": "d270b01ddbd1efab9fd9909ef37b002a982c726f774aaef94bc140f2cabfc1e8",
+    "worktree_index_ts_LF_sha256": "28c16ce196dee2e6ffab70b67c00c9c37b447cc48f68e627f52b140dce8db8e7",
+    "github_master": "607cdaa; the pending branch has NEVER been pushed (git ls-remote --heads returns nothing)",
+    "git_diff_HEAD_supabase": "0 lines at campaign close; index.ts restored byte-identical after all 14 mutations"
+  },
+  "scenarios": {
+    "1_per_claim_grounding_real": {"status": "PARTIAL - typing/segmentation real, GROUNDING still whole-turn", "evidence": "turnHasRealExecutionEvidence is ONE boolean applied to every MUTATION_SUCCESS claim, and groundedOutcomeThisTurn includes hasResolvedEntities (line 4177). Proven: run('gpt','The company was archived. The approval has been approved.',null,grounded=true) -> NOT corrected. The block's own comment 'entity resolution alone is never support' is false of the code. D20."},
+    "2_D3_D5_D6_D7_D10_D11_D12_D13": {"status": "PASS - all closed, each mutation-proven", "evidence": "14 mutations of the real index.ts, all suites run, file restored byte-identical each time. D3: gate no longer references result.pendingAction (behaviourally confirmed). D5: M13 (drop the term from the persist condition) turns the d3_ suite red. D6/D11: kill-switch gone from the gate, corrector text protected at claim level (E1b). D7/D12: M14 (pendingPrompt instead of promptWithOptions) turns mixed_claim_grounding F2 red. D13: all six escapes independently re-run and CORRECTED. D10 class recurs as D19."},
+    "3_false_positive_hunt_production_corpus": {"status": "FAIL - NEW FALSE POSITIVE CLASS (D15, P0)", "evidence": "433-row differential, both blocks executed from real source: bothCorrect=16 onlyDeployedCorrects=21 onlyBranchCorrects=20 neither=376. onlyDeployedCorrects=21 reproduces #63 exactly (the branch does fix those). >=18 of the 20 onlyBranchCorrects are TRUTHFUL read-only status answers destroyed by PRESENT_COMPLETION_PATTERN. Entity truth re-checked live: test3/test9/QA-C002-RENAMED-X archived, test8worker/test3 employee active=false."},
+    "4_anaphora_discriminator_attack": {"status": "FAIL - D17", "evidence": "'Looking at the conversation history, it has been approved.' and 'Per the conversation history, they have been archived.' ESCAPE the branch and are CORRECTED by deployed v92. The concrete-subject control is still caught. Mirror failure: 'In the prior turn the company was archived.' (genuine report, no pronoun) is DESTROYED."},
+    "5_mutation_test_all_six_suites": {"status": "FAIL - two guards with ZERO coverage (D19), now closed", "evidence": "M3 (question classification) IS genuinely detected now - that #63 hole is closed. But M10 (CLAIM_VERIFICATION_STATE) and M11 (FUTURE_ACTION) left ALL SIX suites green while genuinely changing behaviour. mixed_claim_grounding E6 was itself vacuous (a disjunction, on an input that never reaches the branch it names). FOURTH recurrence of the class."},
+    "6_sectionG_E1_inversion_audit": {"status": "PASS - both inversions correct", "evidence": "All six Section G shapes independently re-derived as CORRECTED. E1's claim (kill-switch removed) is true of the code; E1b adds real coverage. overwritten() gained '|| r.past === true', which weakens positive assertions but did not manufacture any green - the correction marker alone suffices in G."},
+    "7_persistence_claimAudit": {"status": "PASS - CODE VERIFIED, mutation-proven", "evidence": "result.claimAudit set inside the correction branch; work_orders.output = whole result written AFTER correction; persist guard names claimsPastCompletionWithNoGrounding (M13 red). web/lib/data/chat-history.ts reads only output.summary, so claimAudit is inert on the read path. Cannot be LIVE VERIFIED - branch not deployed and must not be."},
+    "8_production_unchanged": {"status": "PASS - LIVE VERIFIED", "evidence": "supabase functions list -> v92 ACTIVE; functions download -> LF sha256 795c20c8... identical to c9dfab5; zero claimAudit occurrences in the deployed source and zero in work_orders."},
+    "9_incident_evidence_readonly": {"status": "PASS - LIVE VERIFIED, zero writes", "evidence": "QA-SWARM-TEST-CO-VIA-CHAT 7ba01ff2 status=active updated_at 2026-09-01 06:50:55.540698+00 - bit-identical to what #63 recorded. Approval 358eddeb pending / decided_at NULL. Not re-archived, not touched."},
+    "10_live_browser_acceptance": {"status": "BLOCKED", "evidence": "No ToolSearch tool in this session type -> mcp__claude-in-chrome__* unloadable. No session minting, no outbound HTTP. FIFTH consecutive campaign blocked."},
+    "11_recommendation": {"status": "DO NOT DEPLOY 82bc28a AS WRITTEN", "evidence": "Removes 21 live FPs but introduces ~18 new ones on the same real corpus, and re-opens 12 fabrication-escape shapes v92 catches (including #61/D3 itself when the fabricated sentence lacks terminal punctuation). BUG-002 stays OPEN."}
+  },
+  "corpus_differential_433_rows": {
+    "bothCorrect": 16,
+    "onlyDeployedCorrects": 21,
+    "onlyBranchCorrects": 20,
+    "neither": 376,
+    "note": "onlyDeployedCorrects reproduces #63's figure exactly (same 21 truthful rows, fixed by the branch). onlyBranchCorrects: >=18 TRUTHFUL rows newly destroyed; only 79896fd5 (Bug 11) and arguably 3918b412 are correct new catches."
+  },
+  "global_integrity": {
+    "orphan_task_company": 0,
+    "orphan_person_company": 0,
+    "duplicate_active_company_names": 0,
+    "companies_active": 8,
+    "companies_archived": 10,
+    "active_task_under_archived_company": 1,
+    "active_person_under_archived_company": 3,
+    "active_person_detail": "QA-VERIFY-EMPLOYEE under QA-VERIFY-BU; QA-LIFECYCLE-EMPLOYEE and QA-LIFECYCLE-EMPLOYEE2 under QA-LIFECYCLE-BU - pre-existing QA fixtures, known #61/D4 + #55/BUG-001 class, not created or altered by this campaign",
+    "work_orders_with_claimAudit": 0,
+    "BASELINE_approval_358eddeb": "pending",
+    "AI_vs_DB": "NOT CHECKABLE THIS CAMPAIGN - no live AI path available (see scenario 10)",
+    "UI_vs_DB": "NOT CHECKABLE THIS CAMPAIGN - no browser tooling (see scenario 10)"
+  },
+  "defects_found": [
+    {"id": "D15", "severity": "P0 accuracy - blocks deploy", "title": "PRESENT_COMPLETION_PATTERN destroys truthful read-only status answers", "status": "OPEN - pinned by new Section I, NOT fixed (index.ts change is out of scope: no deploy, no push of supabase/functions)"},
+    {"id": "D16", "severity": "P1 accuracy - regression vs live v92", "title": "CLAIM_SPLIT_PATTERN is corpus-fitted; 12 mixed-claim/question-fusion shapes escape that v92 catches, including #61/D3 itself without terminal punctuation", "status": "OPEN - pinned by new Sections H/H2"},
+    {"id": "D17", "severity": "P1 accuracy - regression vs live v92", "title": "Anaphora discriminator launderable by one pronoun; genuine prior-turn reports destroyed without one", "status": "OPEN - pinned by new Sections J/K"},
+    {"id": "D19", "severity": "P2 test-quality, FOURTH recurrence of the vacuous-coverage class", "title": "CLAIM_VERIFICATION_STATE and FUTURE_ACTION had zero mutation coverage; mixed_claim_grounding E6 was a vacuous disjunction", "status": "FIXED LIVE in qa/ (new Sections M/N + E6/E6b), mutation-proven"},
+    {"id": "D20", "severity": "P2 claim accuracy", "title": "Grounding is whole-turn, not per-claim; groundedOutcomeThisTurn includes hasResolvedEntities, so the commit's 'entity resolution is never support' / 'fails CLOSED' claims are false of the code. The BUG-002 limitation index.ts discloses at line 4226 is NOT closed", "status": "OPEN - pinned by new Section L"},
+    {"id": "D21", "severity": "P3 cosmetic", "title": "Em-dash/joint split drops the separator, so a corrected reply reads 'The approval was not rejected Nothing was actually changed - ...'", "status": "REPORTED, not fixed"}
+  ],
+  "regressions_added": [
+    "qa/scenarios-runner/claim_segmentation_and_present_tense_fp.mjs (NEW) - Sections H, H2, J, K, I, L, M, N. 29/29 on the per-claim build, 26/26 on the deployed v92 build (build-aware). Non-vacuity mutation-proven against M1/M2/M4/M7/M10/M11.",
+    "qa/scenarios-runner/mixed_claim_grounding.mjs - E6 de-vacuumed and split into E6/E6b (42/42 -> 43/43); E6b is what now catches M11."
+  ],
+  "pending_db_pushes": [],
+  "prepared_fixes": [{"id": "82bc28a structural per-claim grounding", "status": "FIX PREPARED - NOT RECOMMENDED FOR DEPLOY AS WRITTEN. See D15/D16/D17/D20."}],
+  "live_verified_fixes": [],
+  "known_failure_modes_entries_created": [64],
+  "synthetic_entities_created_by_this_campaign": {"none": "ZERO. No QA-VERIFY-* rows created; every DB interaction was a read-only SELECT. Nothing to clean up. Pre-existing QA-VERIFY-*/QA-LIFECYCLE-* fixtures from earlier campaigns were left exactly as found (read-only constraint + they are referenced incident/fixture state)."},
+  "verdict": "PARTIALLY VERIFIED - STRUCTURAL FIX PREPARED, DO NOT DEPLOY AS WRITTEN, BUG-002 NOT CLOSED.",
+  "blocked_scenarios": ["Live HTTP/browser acceptance", "UI <-> DB truth checks", "verifier-driven fresh-channel AI <-> DB checks", "deploying 82bc28a (by instruction, and by verdict)"]
+}

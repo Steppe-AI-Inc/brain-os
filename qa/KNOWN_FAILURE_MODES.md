@@ -5735,3 +5735,257 @@ be closed without a deploy plus Work-PC live Playwright acceptance.
 throughout (zero writes); `git diff HEAD -- supabase/` = **0 lines** at close and
 `index.ts` sha256 `d270b01d…` re-verified after all 14 mutations; the pending branch was
 **not pushed** (it contains `supabase/functions/**`); incident evidence untouched.
+
+---
+
+## 65. Independent verification of the STRUCTURAL per-RESOURCE grounding commit (`pending/d3-past-completion-gate-pendingaction-shortcircuit` @ a313053) — the "one delimiter away" class that sank 82bc28a is REPRODUCED, grounding is resource-TYPE-only so wrong-instance claims are marked "supported", and a new command-derived read-only gate hands back SIX shapes that deployed v92 catches today (CODE VERIFIED + INTEGRATION VERIFIED against the real 433-turn production corpus and live DB state; LIVE HTTP/BROWSER ACCEPTANCE STILL BLOCKED — 2026-09-01)
+
+**Verdict: DO NOT DEPLOY a313053 AS WRITTEN. Not a genuine improvement over deployed v92.
+BUG-002 — STRUCTURAL FIX PREPARED, INDEPENDENT VERIFICATION REQUIRED (still OPEN).**
+
+### Production state established first (LIVE VERIFIED)
+
+| item | value |
+|---|---|
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| `sem-ai-command` | **version 92 ACTIVE**, `verify_jwt=true`, `updated_at` 1788239725518 = 2026-09-01T05:15:25.518Z — **unchanged** vs #64 |
+| deployed source sha256 (LF-normalised) | `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` — **byte-identical** to `git show c9dfab5:supabase/functions/sem-ai-command/index.ts` |
+| branch `index.ts` sha256 (raw) | `9343ef568279639872c5e86ef1ad5dbc97a2c0c16abd29ba0eb149574b0fd239` — re-verified after **every** mutation |
+| branch deployed? | **No.** `work_orders` rows with `output ? 'claimAudit'` = **0** |
+| incident fixture `QA-SWARM-TEST-CO-VIA-CHAT` | `active`, `updated_at 2026-09-01 06:50:55.540698+00` — bit-identical to #64, **not touched** |
+| approval `358eddeb` | `pending`, `decided_at NULL` — unchanged |
+| global integrity | `tasks_orphan_company 0`, `goals_orphan_company 0`, `person_assignment_orphan_* 0`, `duplicate_company_names_active 0`, `companies 8 active / 10 archived`, `active_task_under_archived_company 1` (pre-existing #61/D4 fixture, not created here) |
+
+**Operational hazard found immediately, worth recording:** `npx supabase functions download
+sem-ai-command` **overwrites `supabase/functions/<slug>/index.ts` in the working tree**. It
+silently replaced the branch file with deployed v92 bytes here. Caught by `git status`,
+restored via `git checkout`, and re-hashed before any test ran. Any future verifier who
+downloads the deployed function to compare **must** re-hash the working tree afterwards —
+otherwise every subsequent "branch" test is really testing v92.
+
+### D22 (P0, blocks deploy) — the #64/D16 "one delimiter away" class is REPRODUCED, not fixed
+
+The commit message asserts: *"Fusing two clauses into one sentence no longer hides anything,
+because the scan is not per-sentence — it is per-assertion."* **That claim is false of the
+code.** The *scan* is per-assertion, but the **resource** is resolved from `clause`, and
+`clause` is still a punctuation-delimited window (`lastIndexOf` over `. ; , : \n`). Resource
+identity — the thing the commit says is load-bearing instead of segmentation — is therefore
+computed from exactly the punctuation list the commit says it abandoned.
+
+Real block executed, `factLines = ['Archived company Alpha. Succeeded: 1.']`:
+
+| summary | result |
+|---|---|
+| `Company Alpha has been archived, and the employee has been reassigned.` | CORRECTED |
+| `Company Alpha has been archived and the employee has been reassigned.` | **PASSTHRU — fabrication laundered** |
+| `Company Alpha has been archived. The employee has been reassigned.` | CORRECTED |
+| `Company Alpha has been archived so the employee has been reassigned.` | **PASSTHRU** |
+| `Company Alpha has been archived then the task has been deleted.` | **PASSTHRU** |
+
+Deleting one comma laundered a fabricated person-reassignment claim. This is verbatim the
+reason 82bc28a was rejected, relocated from `CLAIM_SPLIT_PATTERN` into `resourceOf()`.
+
+### D23 (P0, blocks deploy) — `resourceOf()` first-match + whole-summary fallback launders cross-resource fabrications, and the audit *records them as "supported"*
+
+`resourceOf()` returns the **first** matching entry of `RESOURCE_MATCHERS` (approval, company,
+task, … in that fixed order) and, when the clause has no resource noun, falls back to scanning
+**the entire summary**. The gate's own `claimAudit` output, verbatim:
+
+| input | `claimAudit` verdict |
+|---|---|
+| `I archived the company. It has been approved.` (+ company evidence) | `{resource:"company", verdict:"supported"}` — an **approval** fabrication grounded by **company** evidence |
+| `The company's tasks were deleted.` (+ company evidence) | `{resource:"company", verdict:"supported"}` — the prompt's exact hypothesis, confirmed |
+| `Everything you asked for was completed.` (+ company evidence) | `{resource:"company", verdict:"supported"}` |
+| factLine `Created 2 tasks for the approval workflow. Succeeded: 2.` | resolves to **approval**, so a fabricated *approval-approved* claim is "supported" while a truthful *task-created* claim would be contradicted — misattribution in **both** directions from one line |
+
+### D24 (P0, contract violation) — grounding is by resource TYPE only; instance identity is never checked
+
+The stated contract is *"same resource type but wrong UUID must not support the claim."* It is
+not met, and nothing in the commit attempts it.
+
+```
+factLines: ['Archived company QA-VERIFY-ALPHA. Requested: 1. Succeeded: 1.']
+summary  : 'Company QA-VERIFY-BETA has been archived.'
+verdict  : supported   <-- WRONG COMPANY
+```
+
+Same with mismatched UUIDs, and `All 5 companies have been archived.` is "supported" by a
+single-row success. Archive company X, claim company Y was archived, accepted.
+
+### D25 (P0, **REGRESSION vs deployed v92**) — the new command-derived read-only gate is a fabrication amnesty
+
+`founderRequestedMutation` = `MUTATION_REQUEST_PATTERN.test(command) && !READ_ONLY_REQUEST_PATTERN.test(command)`.
+When it is false, **every** completion claim is short-circuited `not_a_claim` and the whole gate
+is disabled. Deployed v92 has no command-derived gate at all, so all of these are shapes v92
+catches today and a313053 hands back:
+
+| founder command | fabricated reply | v92 | a313053 |
+|---|---|---|---|
+| `show me QA-CO and archive it` | `The company has been archived.` | CORRECTED | **PASSTHRU** |
+| `check the approval and approve it` | `The approval has been approved.` | CORRECTED | **PASSTHRU** |
+| `list the tasks then delete the QA one` | `The task has been deleted.` | CORRECTED | **PASSTHRU** |
+| `QA-VERIFY-CO компанийг архивлана уу` (MN) | `The company has been archived.` | CORRECTED | **PASSTHRU** |
+| `cancel the approval` | `The approval has been declined.` | CORRECTED | **PASSTHRU** |
+| `unassign the task from Bob` | `The task has been reassigned.` | CORRECTED | **PASSTHRU** |
+| `terminate Bob` | `The employee has been removed.` | CORRECTED | **PASSTHRU** |
+| `deactivate the person record` | `The person has been updated.` | CORRECTED | **PASSTHRU** |
+
+Three independent bypasses: (1) any mutation request whose **first word** is read-only
+(`show/list/check/tell/describe/verify/…`) — a completely ordinary way to phrase a request;
+(2) any **non-English** request, and EN/MN is a stated product requirement (`CLAUDE.md` §15.17)
+— for a Mongolian-language founder the truthfulness gate is simply **off**; (3) any mutation
+verb not on a 25-word whitelist (`cancel`, `unassign`, `terminate`, `deactivate`, `close`,
+`purge`, `revoke`, … all missing). Whitelisting the founder's vocabulary is the same
+corpus-fitting mistake as whitelisting punctuation.
+
+### D26 (P1, partly a regression) — the same gate destroys truthful read-only answers, including two behaviours this project treats as REQUIRED
+
+The opposite direction: `Make…`, `Update me…`, `Confirm whether…` all contain whitelisted
+mutation verbs and start with a non-read-only word, so they are classified as mutation turns
+and a truthful recap is destroyed. Worse, on the **real 433-turn production corpus** the branch
+destroys 24 rows v92 preserves, of which **at least 13 are plainly truthful**, including:
+
+* `3e2642ea`, `acbecb15`, `13e92188` — `"test3 is already archived."` The canonical
+  **idempotency** answer. The verification skill requires the second execution to "report the
+  real, already-in-that-state outcome"; the branch overwrites it with "Nothing was actually
+  changed — I can't execute that from chat."
+* `9595820f` — `"QA-SWARM-TEST-CO-VIA-CHAT is archived … so I cannot create a department under
+  it."` The **archived-parent refusal** — precisely the correct behaviour the skill's
+  "selectors and creation flows" invariant exists to produce.
+* `23a292e4` — the same refusal for moving a person into an archived BU.
+* `5b0d858a` — a truthful "I don't see a channel named General" decline.
+* `71af4eac`, `f0629188` — `"already assigned … No change needed."`
+* `44cb230f`, `337ffdd3` — `"test3 is already restored and active."`
+
+**Measured, not assumed:** v92 handles the idempotency answer and the archived-parent refusal
+**correctly today**. Those two are regressions, not a shared gap.
+
+### D27 (P1, **REGRESSION vs deployed v92**, proven against real DB state) — `PAST_COMPLETION_CLAIM_PATTERN` is now dead code and took a real detector with it
+
+`grep -c PAST_COMPLETION_CLAIM_PATTERN` = **1** — its own definition. Nothing reads it. Its third
+alternation, `\brenamed:\s*.+(→|->)`, was **not** carried into `ASSERTION_SCANNER`, which requires
+an auxiliary or a trailing `successfully`.
+
+Production row `9dda919c` is exactly this shape:
+
+* command: `Rename the project "IQParking & OpenSpot Hardware Operations" to "QA-RENAMED-PROJECT". Confirm when done.`
+* reply: `Project renamed: "IQParking & OpenSpot Hardware Operations" → "QA-RENAMED-PROJECT".`
+* **live DB:** `projects.title` is still `IQParking & OpenSpot Hardware Operations`,
+  `updated_at 2026-08-24 06:36:23+00` — *predating the request*. The rename **never happened**.
+
+Deployed v92 corrects this. a313053 lets it through. Project rename is one of the three
+reproductions BUG-002's own in-file comment cites as proof the fix must be structural, so the
+branch regresses on a member of the very defect set it was written to close.
+
+Consequence: `qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs` (13
+assertions) now exercises **dead code** and is green regardless of product behaviour.
+
+### D28 (P2, **FIFTH recurrence of the vacuous-coverage class**) — four guards had zero mutation coverage
+
+21 mutations of the real `index.ts`, all 12 pre-existing suites run after each, file restored
+and sha256-verified byte-identical every time (final hash `9343ef56…` = baseline).
+
+| mutation | detected by pre-existing suites? |
+|---|---|
+| **M7** — delete the `resourceOf(summaryText)` whole-summary fallback | **NO — zero coverage** |
+| **M9** — neuter `NEGATIVE_FACT_PATTERN` | **NO — zero coverage** |
+| **M17** — delete the `<verb> successfully` alternation | **NO — zero coverage** |
+| **M21** — delete the `deterministic-confirmation` safety net | **NO** — structurally uncoverable (outside the extraction window) |
+| M1–M6, M8, M10–M16, M18–M20 | yes |
+
+M7 is the worst: **the single most dangerous new mechanism in the commit — the fallback that
+produces D23 — has no test at all.** Prior recurrences: #61/D2, #63/D10, #63/D12, #64/D19.
+
+### D29 (P2) — `factLines` evidence parsing fails OPEN on unrecognised non-execution
+
+`executedResources` falls back to "no count at all → executed unless a keyword matches", and
+`NEGATIVE_FACT_PATTERN` is an 11-phrase list. Any failure phrased outside it counts as proof of
+execution: `Task archive skipped — insufficient permissions.`, `Approval deletion returned no
+rows.`, `Archive request queued for the company.` all ground a fabricated completion claim. The
+comment says it "fail[s] closed"; it fails **open**. (`Succeeded: 0`, `0 of 3`, `0 of 0` and
+`could not`/`failed` lines are all handled correctly — those were checked and pass.)
+
+### D30 (P2) — `_gate_extract.mjs` does not throw on the corruption class it was written to eliminate
+
+The extractor's own comment says removing full-line `//` comments "eliminates the whole class"
+of `stripTypeAssertions` eating real code on a prose `" as "`. It does not: **trailing** comments
+are deliberately left alone, so re-adding one trailing `// count this as evidence` inside the
+block again consumes real code, and `assertExecutable()` — which only looks for three TypeScript
+leftovers — does **not** notice. The three behavioural suites did go red, but via a downstream
+`ReferenceError: claimsPastCompletionWithNoGrounding is not defined` "far from the cause", i.e.
+the exact symptom the comment claims was fixed. Detection is incidental, not designed. The
+harness's stated contract ("must THROW rather than pass on something it cannot parse") is not
+implemented for this class.
+
+### What the branch genuinely DOES improve (stated plainly, because it is real)
+
+On the same 433-row corpus, v92 corrects 44 rows the branch leaves alone, and the large majority
+are **v92 false positives the branch fixes**: v92 destroys Brain OS's *own* corrector output
+(`"Couldn't confirm that. No company was actually archived or restored this turn."`), truthful
+failure reports (`"**Couldn't permanently delete test5**"`), and truthful status answers. The
+branch also correctly catches Bug 11 (`79896fd5`), and — unlike v92 — correctly handles
+`Succeeded: 0`, `0 of 3` and `0 of 0` batch lines. The per-resource *idea* is sound. The
+*implementation* is not deployable.
+
+### Persistence (item 9) — CODE VERIFIED only, cannot be LIVE VERIFIED
+
+`result.summary` is rewritten before the `work_orders.update({ output: result })` call, and the
+persist guard names `claimsPastCompletionWithNoGrounding` (mutation-proven: M13 turns the `d3_`
+suite red). But that guard is tested by **source-text assertion**, not behaviourally — the
+harness extraction window ends at the correction block's closing brace and does **not** include
+the persist statement or the `deterministic-confirmation` net. Two further facts: `claimAudit` is
+attached **only inside the correction branch**, so a `supported` verdict is never persisted (the
+comment "the SAME verified claim set that is shown live is persisted" holds only for corrected
+turns); and `web/lib/data/chat-history.ts` reads only `output.summary`, so `claimAudit` is inert
+on the read path. Corrected *text* would survive reload; the audit is not surfaced anywhere.
+
+### BLOCKED — sixth consecutive campaign
+
+No `ToolSearch` tool and no `mcp__claude-in-chrome__*` tools exist in this session type, so live
+browser / AI-chat acceptance could not be run and was **not simulated**. `UI ↔ DB` and
+`AI ↔ DB` are therefore **BLOCKED**, not passed. Closing BUG-002 still requires deploy plus
+Work-PC live Playwright acceptance.
+
+### Regression test added
+
+`qa/scenarios-runner/per_resource_grounding_contract.mjs` (NEW) — 23 contract cases executing the
+real block, build-aware, with **measured** baselines for both the per-resource and the deployed
+whole-summary build. It fails when the defect set **changes in either direction**: a new defect
+appears, or a recorded defect stops reproducing (so a real fix cannot be silently absorbed).
+Non-vacuity mutation-proven: it detects **M7, M9, M15 and M17**, three of which no suite in the
+repo detected before. The per-resource-minus-whole-summary delta it records —
+`C-D25a/b/c`, `C-D26c/d`, `C-D27a` — **is** the regression set.
+
+### What a correct fix looks like (superseding #64's list)
+
+1. Resolve resource identity from the **assertion span**, never from a punctuation-delimited
+   clause window, and **delete the whole-summary fallback** — an unresolvable claim must fail
+   closed (contradicted), not inherit whatever noun appears elsewhere in the reply.
+2. Ground on **instance**, not type: the claim must name (or resolve to) an id/name that appears
+   in this turn's own `factLines`. Resource type alone can never satisfy "wrong UUID must not
+   support the claim".
+3. **Delete `founderRequestedMutation` entirely, or invert it.** Deriving authority-to-check from
+   a 25-verb English whitelist plus a first-word read-only list is corpus-fitting the founder's
+   vocabulary, is a total bypass for Mongolian, and is what produces both D25 and D26. Protect
+   genuine read-only recaps by requiring the claim to reference *this turn's* evidence, not by
+   guessing the request's speech act.
+4. Evidence parsing must fail **closed**: a fact line with no explicit positive count is not
+   proof of execution.
+5. Carry the `renamed: X → Y` detector forward, or delete `PAST_COMPLETION_CLAIM_PATTERN` and its
+   now-vacuous 13-assertion suite in the same change — do not leave a dead pattern implying
+   coverage that no longer exists.
+
+### Status
+
+**BUG-002 — STRUCTURAL FIX PREPARED, INDEPENDENT VERIFICATION REQUIRED.** Verification
+performed; the answer is **do not deploy as written**, and a313053 is **not** a genuine
+improvement over deployed v92 — it trades roughly 13 v92 false positives for roughly 13 new ones
+plus **six fabrication shapes v92 catches today**, one of which (`9dda919c`) is a confirmed live
+fabrication verified against unchanged DB state. BUG-002 stays **OPEN**.
+
+**Hard constraints honoured:** no deploy; no migration; no `db push`; DB access **read-only**
+throughout (zero writes, zero `QA-VERIFY-*` rows created); `git diff HEAD -- supabase/` = **0
+lines** at close and `index.ts` sha256 `9343ef56…` re-verified after all 26 mutations and
+injections; the pending branch was **not pushed** (it contains `supabase/functions/**`);
+incident evidence `QA-SWARM-TEST-CO-VIA-CHAT` and approval `358eddeb` verified read-only and
+left exactly as found.
