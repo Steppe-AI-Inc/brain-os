@@ -21,7 +21,11 @@ type GoalRow = {
   departments: { name: string } | null;
 };
 
-const STATUS_FILTERS = ["all", "active", "draft", "paused", "achieved", "archived"] as const;
+// BUG-008 (Work-PC C002): "archived" was a tab here, but getGoals() routes archived
+// goals to /goals/archived — so the tab always read "Archived 0" and rendered an empty
+// view while the sibling page held the real rows. The dead tab is gone; the archived
+// count lives on the /goals/archived link the page header already provides.
+const STATUS_FILTERS = ["all", "active", "draft", "paused", "achieved"] as const;
 
 function dueLabel(dueAt: string | null): string | null {
   if (!dueAt) return null;
