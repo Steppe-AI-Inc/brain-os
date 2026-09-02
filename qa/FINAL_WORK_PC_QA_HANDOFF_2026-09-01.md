@@ -471,3 +471,16 @@ Production remains Edge Function v92. The structured-claim branch is at `e8678ec
 attempt 1 was BLOCKED — PROVIDER SESSION LIMIT (recorded in
 `qa/verification/CURRENT_CAMPAIGN.json`, NOT a pass), attempt 2 is in progress. Nothing
 new to retest in Brain Chat until a deploy is authorized after verifier #8 passes.
+
+### F. `2e2fff3` — Pending-invitations list + revoke on /access: `QA RETEST REQUIRED`
+List + revoke for company_invitations (token column never selected — it is a bearer
+credential; verify it does NOT appear in page source). Retest: founder and company
+manager see only their scope; revoke works on pending, refuses already-accepted;
+non-manager employee sees an empty list.
+
+### G. `3a2a139` — /models "Actually served" card: `QA RETEST OPTIONAL (P3)`
+Row-derived from model_usage only — verify numbers match direct table queries and that
+a configured-but-unserved active model produces the explicit gap notice, never a badge.
+
+### H. `15f46a9` + `5d84042` + `202609020003/2` — messaging foundation + clear-manager RPC: `PREPARED — DO NOT RETEST`
+Migrations committed as source only; nothing live. Same rule as addendum D.
