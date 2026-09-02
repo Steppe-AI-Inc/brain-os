@@ -427,3 +427,47 @@ mutation-proven in three layers: page must pass the scope, reader must apply it,
 **Work-PC retest ask**: as the multi-membership founder persona, switch active org and
 confirm each of the ten pages narrows server-side (view-source/network, not just DOM
 filtering); switch to "All organizations" and confirm the full portfolio returns.
+
+---
+
+## ADDENDUM 2026-09-02 — further overnight commits (all `FIX PREPARED / QA RETEST REQUIRED`, none LIVE VERIFIED)
+
+### C. `b5ed853` — Manager set-UI (closes the "read-only, no set-UI" row): `QA RETEST REQUIRED`
+
+The Manager cell on /people is now the set-manager control (current employees of the
+person's own company only). Writes go through the SAME canonical
+`set_person_assignment()` RPC chat uses — authority enforced inside the RPC; the server
+action re-verifies same-company/self/ended-employment against a real read. Honest limit,
+by design: a manager can be SET or CHANGED but not CLEARED (the RPC coalesces
+`p_manager_person_id`; clearing needs a gated RPC migration). Drift guard:
+`qa/scenarios-runner/manager_set_ui_canonical_write.mjs` (6/6, mutation-proven).
+
+**Retest ask**: as founder and as a company manager — set a manager, change it, confirm
+the Manager column updates and `person_assignments` carries the change; as a non-manager
+employee confirm the RPC refuses (clear error, no change); confirm cross-company people
+never appear in the picker; expect "clear manager" to be impossible (that is scope, not
+a bug).
+
+### D. `3527244` — Issue #5 durable channel-state migration: `PREPARED — DO NOT RETEST YET`
+
+`supabase/migrations/202609020001_chat_channel_state_durable_conversation.sql` is
+committed as SOURCE ONLY. It is NOT applied to production; there is nothing live to
+test. It becomes testable only after the founder authorizes `supabase db push`; its
+post-apply acceptance test is `qa/scenarios-runner/chat_channel_state_rls_personas.sql`.
+Do not file "table missing" as a defect before then.
+
+### E. `3527244` — Factory PROVIDER_CAPACITY_BLOCKED classification: `QA RETEST OPTIONAL (P3)`
+
+Real 2026-09-02 incident: a verifier dispatch exited 0 with only "You've hit your
+session limit" as output. `classifyProviderOutput()` + typed startRun error + scheduler
+heartbeat sweep now classify that shape as a retryable `blocked` run with the real
+`blocked_reason`, never silent success or anonymous staleness. Regression:
+`scripts/factory-runner/provider.regression.test.mjs` (11/11).
+
+### BUG-002 status for Work-PC (unchanged production)
+
+Production remains Edge Function v92. The structured-claim branch is at `e8678ec`
+(run7's D50–D54 closed, mutation-proven, full battery green); independent verifier #8
+attempt 1 was BLOCKED — PROVIDER SESSION LIMIT (recorded in
+`qa/verification/CURRENT_CAMPAIGN.json`, NOT a pass), attempt 2 is in progress. Nothing
+new to retest in Brain Chat until a deploy is authorized after verifier #8 passes.
