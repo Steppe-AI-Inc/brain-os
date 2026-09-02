@@ -81,7 +81,7 @@ const fn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno', 'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
   // run7/D50-D51: the deterministic report state is computed above the window in
   // index.ts and only its two derived values are referenced inside — injected here.
-  'summaryIsFullyDeterministic', 'deterministicPrefix',
+  'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',
   slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
 // The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
@@ -91,8 +91,9 @@ const DENO_STUB = { env: { get: () => undefined } };
 // so the harness supplies them. They are the 'last known safe label' source that lets a
 // resource this turn archived still be named instead of falling back to a typed reference.
 const mk = (o) => new Map(Object.entries(o || {}));
+const mkRuntime = (o) => new Map(Object.entries(o || {}));
 const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '' }) =>
-  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal), fullyDeterministic, deterministicPrefix);
+  fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_STUB, mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal), fullyDeterministic, deterministicPrefix, mkRuntime(labels.runtime));
 
 const A = '11111111-1111-1111-1111-111111111111';
 const B = '22222222-2222-2222-2222-222222222222';

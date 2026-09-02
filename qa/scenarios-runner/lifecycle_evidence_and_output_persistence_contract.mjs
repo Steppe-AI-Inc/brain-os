@@ -69,6 +69,7 @@ const unconfirmed = { data: { changed: true, authorized: true, postconditionPass
 const rpcError = { data: null, error: { message: 'boom' } };
 const ID = 'abcd1234-ab12-cd34-ef56-abcdef123456';
 const mkMap = (o) => new Map(Object.entries(o));
+const mkRuntime = (o) => new Map(Object.entries(o || {}));
 
 export { pass };
 
@@ -211,13 +212,13 @@ const runClaims = new Function('result', 'claimExecutionEvidence', 'contextPack'
   'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
   // run7/D50-D51: the deterministic report state is computed above the window in
   // index.ts and only its two derived values are referenced inside — injected here.
-  'summaryIsFullyDeterministic', 'deterministicPrefix',
+  'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',
   CLAIM_SLICE + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };');
 const DENO_OFF = { env: { get: () => undefined } };
 const claims = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '' }) =>
   runClaims({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO_OFF,
     mkMap(labels.company || {}), mkMap(labels.task || {}), mkMap(labels.person || {}), mkMap(labels.goal || {}),
-    fullyDeterministic, deterministicPrefix);
+    fullyDeterministic, deterministicPrefix, mkRuntime(labels.runtime));
 
 const M = (rt, id, action) => ({ type: 'mutation_result', resourceType: rt, resourceId: id, action });
 const EV = (rt, action, id, okFlag = true) => ({ resourceType: rt, action, id, postconditionPassed: okFlag });
@@ -259,16 +260,44 @@ check('R5 a rejected-claim turn is FLAGGED as needing persistence (claimsPastCom
 }
 
 // =======================================================================================
-// SECTION S — EVIDENCE SITES EXIST IN SOURCE (run7/D50 coverage half).
+// SECTION S — EVIDENCE SITES EXIST IN LIVE SOURCE, WITH THEIR SUCCESS GUARDS.
 //
-// Honesty note, learned from run7's scenario-9 finding: this harness re-executes the
-// structured-claim WINDOW with synthetic evidence, so no windowed case can detect a
-// recording site being deleted from the execution paths OUTSIDE the window — a synthetic-
-// evidence test relabelled as covering the sites would be exactly the F1/F2 overstatement
-// run7 called out. These checks are therefore explicitly SOURCE-LEVEL: each asserts the
-// literal recordExecution call at its real write site. Mutation-proven: deleting the
-// end_employment site fails S below while every windowed case stays green.
+// run7's honesty note still applies: the windowed cases feed synthetic evidence and can
+// never see a recording site deleted from the execution paths outside the window.
+// run8/D63 hardened the form twice over: the previous src.includes(literal) was
+// satisfiable by a COMMENTED-OUT site, and it never asserted the guard that keeps a
+// denied/not_found/no-op result from recording evidence. Comment lines are stripped
+// first (LIVE code only), and the guard-carrying sites are asserted WITH their guards.
 // =======================================================================================
+const liveSrc = src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+{
+  const GUARDED_SITES = [
+    ["person end_employment (guarded)", "if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true)"],
+    ["person restore_employment (guarded)", "if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true)"],
+    ["company archive (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true)"],
+    ["company restore (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true)"],
+    ["task archive (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true)"],
+    ["task restore (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true)"],
+    ["goal archive (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true)"],
+    ["goal restore (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true)"],
+    ["ai_provider activate (row-gated)", "if (activatedAiProvider) recordExecution('ai_provider', 'activate', activateAiProviderId, true)"],
+    ["spec ticket task create (run8/D66)", "if (ticket) { recordExecution('task', 'create', ticket.id, true);"],
+    ["release approval create (run8/D66)", "if (releaseApproval) { recordExecution('approval', 'create', releaseApproval.id, true);"],
+    ["pricing approval create (run8/D66)", "if (pricingApproval) { recordExecution('approval', 'create', pricingApproval.id, true);"],
+    ["provider deactivate sweep (run8/D66)", "for (const row of deactivated || []) recordExecution('ai_provider', 'deactivate', row.id, true)"],
+    ["plan-outcome evidence fold (run8/D66)", "if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true)"],
+    ["plan fold excludes already_* no-ops", "if (detail.startsWith('already_')) continue"],
+  ];
+  for (const [label, literal] of GUARDED_SITES) {
+    check('S live guarded site: ' + label, liveSrc.includes(literal),
+      'Site missing, commented out, or its success guard changed — a no-op could record evidence, or a real mutation could record none (run7/D50, run8/D63/D66).');
+  }
+  // Negative control: the permanent-delete evidence must sit INSIDE the reason==='deleted'
+  // branch — evidence outside it would record for refused deletions.
+  const iPD = liveSrc.indexOf("recordExecution('company', 'permanent_delete', id, true)");
+  const jPD = liveSrc.lastIndexOf("r.reason === 'deleted'", iPD);
+  check('S permanent_delete evidence is inside the deleted branch', iPD > 0 && jPD > 0 && iPD - jPD < 1200);
+}
 {
   const SITE_LITERALS = [
     ["person end_employment", "recordExecution('person', 'end_employment', id, true)"],
@@ -299,8 +328,8 @@ check('R5 a rejected-claim turn is FLAGGED as needing persistence (claimsPastCom
     ["factory work_order create", "recordExecution('work_order', 'create', data as string, true)"],
   ];
   for (const [label, literal] of SITE_LITERALS) {
-    check('S evidence site exists in source: ' + label, src.includes(literal),
-      'The write path for "' + label + '" no longer records per-id evidence — truthful claims about it become unverifiable (run7/D50).');
+    check('S live evidence site: ' + label, liveSrc.includes(literal),
+      'The write path for "' + label + '" no longer records per-id evidence in LIVE code — truthful claims about it become unverifiable (run7/D50, run8/D63).');
   }
 }
 
