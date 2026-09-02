@@ -139,6 +139,7 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
   const runs = result.rows ?? [];
   const refreshed = [];
   const wentStale = [];
+  const capacityBlocked = [];
   for (const run of runs) {
     const live = await provider.getRunStatus(run.provider_run_id);
     if (live) {
@@ -149,11 +150,35 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
       // heartbeat. agent_runs_with_live_status will correctly age this into STALE on
       // its own once 10 minutes pass with no refresh - never forced to STALE/FAILED
       // here directly, since a session can legitimately be mid-restart.
-      wentStale.push(run.id);
+      //
+      // ONE exception, and it is evidence-driven, not a guess (2026-09-02 incident: a
+      // verifier dispatch exited 0 with only "You've hit your session limit" as output):
+      // if the vanished session's own last log output classifies as a provider
+      // capacity/quota error, this run did not stall — the PROVIDER refused to keep
+      // serving it. Mark it 'blocked' with the real reason so it reads as retryable
+      // provider capacity, never as an anonymous stale worker and NEVER as success.
+      let capacity = null;
+      try {
+        capacity = provider.classifyProviderOutput(await provider.getLogs(run.provider_run_id));
+      } catch {
+        // Logs may be gone with the session; anonymous staleness is then the honest
+        // classification and the existing STALE path already covers it.
+      }
+      if (capacity) {
+        await runSql(`
+update public.agent_runs
+   set status = 'blocked'::work_status,
+       blocked_reason = ${sqlEscape(`${capacity.classification}: ${capacity.matched} — retryable; provider quota, not a Factory failure`)},
+       last_event = ${sqlEscape(capacity.classification)}
+ where id = ${sqlEscape(run.id)}::uuid;`);
+        capacityBlocked.push(run.id);
+      } else {
+        wentStale.push(run.id);
+      }
     }
   }
   const notified = await notifyStaleAgents();
-  return { refreshed, wentStale, notified };
+  return { refreshed, wentStale, capacityBlocked, notified };
 }
 
 // Real, canonical-state-driven notification path (never LLM-prose-driven): reads the
