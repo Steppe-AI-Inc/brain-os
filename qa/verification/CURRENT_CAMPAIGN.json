@@ -1,116 +1,181 @@
 {
-  "campaign_id": "verify-25af3b0-laundering-closure-and-f5",
-  "base_commit": "25af3b00e71cd6cd8d9f4398d4ac43359cb485d4",
-  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
-  "started_at": "2026-09-01T-run7-start",
-  "last_checkpoint_at": "2026-09-01T-run7-final",
-  "verifier": "independent verifier #7 (fresh context, campaign #67)",
-  "prior_campaign": "verify-72dabe6-structured-claim-architecture archived to qa/verification/archive/campaign-72dabe6-structured-claim.json. DIFFERENT base_commit -> ALL prior evidence treated as UNVERIFIED and re-derived from the real source, the real RPC definitions and live DB state.",
-  "project_ref": "pvphxgrtdfrudejjhzjk",
-  "index_ts_sha256": "15c8e63c7bafc95cfaac6b52fa3f447a4fe0fc8e46532ce2d7865637e2b8bab3",
-  "index_ts_restored_after_all_28_mutations": true,
-  "verdict": "DO NOT DEPLOY 25af3b0 AS WRITTEN. All eleven #66 laundering shapes are genuinely closed and the model can no longer switch its own truth gate off with an empty claims array - a real, large improvement over 72dabe6 and over all three rejected prose builds. It is still not safe against deployed v92, for a DIFFERENT reason: the claim-rewrite path discards backend ground truth and tells the founder 'nothing was changed for it' about mutations that really happened (D50), and silently drops real mutations the model did not claim (D51). BUG-002 - STRUCTURED-CLAIM ARCHITECTURE PREPARED, INDEPENDENTLY VERIFIED, LIVE PLAYWRIGHT ACCEPTANCE STILL REQUIRED (OPEN).",
-  "scenarios": {
-    "1_laundering_shapes_reattacked": {
-      "status": "PASS - CODE VERIFIED",
-      "evidence": "All 11 #66 shapes now corrected. 29/29 in structured_claim_laundering_contract.mjs against the REAL block. Mutation M06 (revert to !rawClaims) is CAUGHT, so the additive check is load-bearing. NEW attack found on the additive logic itself: see D52."
-    },
-    "2_resource_identity": {
-      "status": "PASS - CODE VERIFIED",
-      "evidence": "Independent battery: wrong uuid+right action, right id+wrong action, action-less, action null/123/empty/UPPERCASE/trailing-space, cross-type evidence on an identical id, hex-case difference, leading whitespace, pipe-injected resourceId, postconditionPassed=false - ALL fail closed. Rejection reason for the action-less case now asserted (new suite R6)."
-    },
-    "3_stale_reads_both_directions": {
-      "status": "PASS - CODE VERIFIED",
-      "evidence": "A resource mutated this turn yields unknown for state claims in BOTH directions. Defensible: unknown claims are not rendered and a real lifecycle turn's summary is the deterministic report. Mutation M05 CAUGHT by two suites."
-    },
-    "4_lifecycle_evidence_recording": {
-      "status": "PARTIAL - the four new sites are correct; ~17 mutating paths still record nothing (D50, P0)",
-      "evidence": "LIVE VERIFIED against production pg_get_functiondef: all six archive/restore RPCs return changed:true only on a genuine transition, postconditionPassed from a real re-read, already_archived returns changed:false. New suite executes all six loops with stubbed RPC results: real change RECORDS evidence; already/denied/not_found/unconfirmed/rpc-error record NOTHING (36 checks)."
-    },
-    "5_envelope_order_and_persistence": {
-      "status": "PASS on equality - CODE VERIFIED; the single-source-of-output-truth claim is nominal (D57)",
-      "evidence": "Envelope built after every summary override; the SAME result object is sent in the SSE done event and written by work_orders.update({output: result}). Mutations M20/M27/M30 all CAUGHT. But grep -rn verifiedResponse web/ = 0 hits, so the envelope is inert payload."
-    },
-    "6_f5_uuid_leakage": {
-      "status": "FAIL - three bypasses (D54, P1)",
-      "evidence": "displayName() is correct across all four of its own branches. But resourceType, action and predicate+expectedValue are interpolated RAW into founder-facing prose; expectedValue leaks a REAL canonical id from the context pack with no smuggling required."
-    },
-    "7_readonly_and_historical_prose": {
-      "status": "PARITY with v92, not a regression (D56, P2)",
-      "evidence": "6 of 9 truthful read-only/historical answers blanket-replaced. Identical to deployed v92. historical_event is unverifiable by construction, so the architecture gives zero benefit here."
-    },
-    "8_mutation_test_quality": {
-      "status": "FAIL then CLOSED - SEVENTH recurrence (D55, P1)",
-      "evidence": "28 mutations, 10 undetected before this campaign. After adding the new suite: 1 undetected, provably an EQUIVALENT mutation. index.ts sha256 restored and verified after every mutation."
-    },
-    "9_test_bookkeeping_honesty": {
-      "status": "MOSTLY HONEST, two overstatements",
-      "evidence": "L2-L12, F3, F4, F6 flips are real and mutation-proven. F1/F2 were relabelled as testing the evidence-recording fix but feed synthetic evidence into a window that does not contain archive_task/archive_goal. F5's CONTRACT title claims an invariant three sibling branches violate."
-    },
-    "10_issue5_no_regression": {
-      "status": "PASS - CODE VERIFIED",
-      "evidence": "resolveClarificationField() still fail-closed on absent entityType OR actionType; no destructive default on any mutation path. drift guard 13/13, past-completion regex 13/13."
-    },
-    "11_production_and_incident_readonly": {
-      "status": "PASS - LIVE VERIFIED, zero writes",
-      "evidence": "sem-ai-command v92 ACTIVE updated_at 1788239725518 unchanged; work_orders with verifiedResponse/claims = 0; QA-SWARM-TEST-CO-VIA-CHAT active/2026-09-01 06:50:55.540698+00 untouched; approval 358eddeb pending/decided_at NULL; global_integrity_assertions.sql unchanged from baseline."
-    },
-    "12_new_defects_found": {
-      "status": "FAIL - two P0 and three P1",
-      "evidence": "D50, D51, D52, D53, D54 - see defects_found."
-    },
-    "13_live_browser_acceptance": {
-      "status": "BLOCKED",
-      "evidence": "No ToolSearch tool and no mcp__claude-in-chrome__* tools exist in this session type. EIGHTH consecutive campaign. Not simulated."
-    }
+ "campaign_id": "verify-e8678ec-run7-defect-closure",
+ "base_commit": "e8678ec13695dfc7b349dffb1e9504f6038ff4b9",
+ "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit (no upstream on origin — local only)",
+ "started_at": "2026-09-01T22:40:00+08:00",
+ "last_checkpoint_at": "2026-09-02 attempt2 FINAL (all 9 scenarios dispositioned; verdict recorded)",
+ "commit_status": "NOT COMMITTED — `git add qa/verification/` was also refused by the permission layer. Everything from this campaign lives uncommitted under qa/verification/ (CURRENT_CAMPAIGN.json, archive/campaign-25af3b0-structured-claim-hardening.json, proposed/v8_*, scratch/v8_*). Next session: `git add qa/verification/ && git commit` (touches no supabase/functions/** path, so no deploy workflow or pre-push hook fires). index.ts sha re-checked at the end: 61256b6e… unchanged; `git diff --quiet HEAD -- supabase/` clean.",
+ "verifier": "independent verifier #8 (fresh context, campaign #68)",
+ "prior_campaign": "verify-25af3b0 (run7) archived faithfully to qa/verification/archive/campaign-25af3b0-structured-claim-hardening.json (attempt 2 re-verified: sha256 of archive == sha256 of `git show HEAD:qa/verification/CURRENT_CAMPAIGN.json` = 10a76b4f8bf3df8ed7e151a7bcc3116ef8bad688070a9696e27bf45c272a75e7; NOT destroyed). Different base_commit -> all run7 evidence about e8678ec treated as UNVERIFIED; re-derived here.",
+ "project_ref": "pvphxgrtdfrudejjhzjk",
+ "index_ts_sha256_at_e8678ec": "61256b6e1728dca70f660f40f78b844bd7aadda7f6c95d78eeba673334fc72ba",
+ "index_ts_sha_self_computed": true,
+ "index_ts_sha_recomputed_attempt2": "61256b6e1728dca70f660f40f78b844bd7aadda7f6c95d78eeba673334fc72ba (== `git show HEAD:...` sha 98adc4f8… is the git-CRLF-normalised blob; working tree == HEAD for supabase/ and tracked qa/scenarios-runner/, `git diff --quiet` verified)",
+ "working_tree_note": "web/ has 34 unrelated uncommitted modifications (company-ref work) + 2 untracked qa/scenarios-runner/*.mjs predating this campaign; untouched by me. e8678ec alone touches: index.ts (+201/-x), 3 suites in qa/scenarios-runner/. Nothing outside qa/verification/** was written by this campaign.",
+ "environment_blocker": {
+  "status": "EXECUTION BLOCKED — permission layer",
+  "detail": "In this session every script-execution form is refused by the tool permission layer with 'This command requires approval': `node <file>` (relative and absolute), `node -e`, `node --input-type=module -e`, `node --test <file>`, `npx --no-install node`, `sh <script>`, `git log -S…`, and `npx supabase functions list`. Only `node --version` and read-only shell (git status/diff/show, sed, grep, sha256sum, cat) succeed. Instruction is not to stop for approval, so every suite run / mutation test / harness attack is executed as a deterministic CODE TRACE of the extracted window (the window is pure — no I/O, no async — so a trace is exact, but it is still CODE INSPECTED, never UNIT VERIFIED). The production v92 read-only check is BLOCKED. Stated as a real coverage gap, not silently downgraded.",
+  "what_a_resumed_attempt_with_execution_must_do": [
+   "node qa/verification/scratch/v8_run_suites.mjs   (full .mjs battery on e8678ec; expect all PASS per the commit's claim — unverified here)",
+   "run every attack in qa/verification/proposed/v8_attack_cases.mjs against the REAL extracted window (it reuses structured_claim_verification.mjs's extractor); each case states the traced expected output — a divergence means my trace was wrong, record it",
+   "mutation-test Section S by commenting out one recordExecution site (copy of index.ts under scratch/) — expected: S still passes (D63)",
+   "npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk  (v92 ACTIVE, read-only) and scripts/safe-function-download.sh sem-ai-command to diff v92 vs e8678ec"
+  ]
+ },
+ "scenarios": {
+  "1_d50_coverage_every_mutating_path": {
+   "status": "PARTIALLY VERIFIED — CODE INSPECTED",
+   "method": "Enumerated every `supabase.from(...).insert|update|delete` and every mutating `supabase.rpc(...)` in index.ts (grep, 46 sites) and matched each against a recordExecution call at the same write site, checking the success guard.",
+   "sites_with_correct_success_gated_evidence": {
+    "archive/restore task (2654/2668)": "changed===true && postconditionPassed!==false",
+    "channel delete (2735) / approval delete (2763)": "per returned deleted row",
+    "company update (2858)": "per returned matched row (records 'update' even for a value-identical patch — acceptable, the statement executed)",
+    "archive/restore company (2916/2931)": "changed===true && postconditionPassed===true",
+    "permanent fixture delete company + cascaded people (2991/2992)": "inside the reason==='deleted' branch only",
+    "end/restore employment (3074/3082)": "gated on r.reason==='employment_ended' / 'restored' — VERIFIED against migration 202608290008 lines 92/138: those are the exact strings the RPC returns; already_inactive/already_active/denied/not_found never record",
+    "archive/restore goal (3195/3206)": "changed===true && postconditionPassed!==false",
+    "deleteByIds family (3474)": "per returned deleted row, 6 tables mapped (product_line, product_spec, drawing, ai_provider, mcp_connector, proposal)",
+    "RPC creates: task/approval/company/person/project/goal/task-delete/company_relationship/person_assignment/memory (3728-3737)": "from the RPC's own returned id arrays",
+    "factory work_order (3851), department create/update (3860/3870), lead create/update (3892/3904), document (3915), product_line create/update (3931/3942), product_spec create/update (3969/4000), drawing (4021), ai_provider create/activate (4027/4034), proposal create/update (4042/4051)": "each inside its own !error && data / data.length>0 branch"
+   },
+   "paths_that_still_record_nothing (commit says 'EVERY mutating path')": [
+    "executeOneAction (lines 250-307): restore/end employment, set_person_assignment, tasks.update (assign_task), archive/restore company/task/goal — 10 real mutating operations on the deterministic-plan-execution path. Low impact today (no model turn => no claims), but the record is also what a future per-turn audit reads.",
+    "product_specs ticket template: tasks.insert (3982) and approvals.insert (3987) — up to 6 real task rows + an approval per spec, no evidence",
+    "product_lines pricing audit: approvals.insert (3953) — no evidence",
+    "ai_providers.update({is_active:false}).neq(id) (4031) — every OTHER provider is mutated, no evidence",
+    "product_costs.insert (3929) — child row, no evidence"
+   ],
+   "verdict": "Coverage is far better than 13/30 and every recorded site is success-gated (no denied/not_found/no-op path records). The 'EVERY mutating path' claim is overstated (D66, P3)."
   },
-  "defects_found": [
-    { "id": "D50", "severity": "P0", "title": "Truthful mutation denied as 'nothing was changed' - evidence recorded at 13 of ~30 mutating paths, and the rewrite replaces the correct deterministic report with a false denial.", "status": "OPEN" },
-    { "id": "D51", "severity": "P0", "title": "The claim rewrite discards the deterministic backend lifecycle report; real mutations the model did not claim vanish from the founder's reply.", "status": "OPEN" },
-    { "id": "D52", "severity": "P1 - narrow REGRESSION vs deployed v92", "title": "One supported mutation claim disarms the drift check for unrelated fabricated completion prose, in the ungrounded-execution window (successful task/approval/project creates).", "status": "OPEN" },
-    { "id": "D53", "severity": "P1", "title": "questions[] and the pendingAction prompt/options are an ungated model-authored prose channel spliced into the CORRECTED founder-facing summary.", "status": "OPEN" },
-    { "id": "D54", "severity": "P1", "title": "Three interpolations bypass the single F5 formatter (resourceType, action, predicate/expectedValue); the third leaks a real canonical uuid with no smuggling.", "status": "OPEN" },
-    { "id": "D55", "severity": "P1 - SEVENTH recurrence", "title": "10 of 28 guard mutations survived every suite; F1/F2 relabelled as testing a fix they structurally cannot reach.", "status": "CLOSED by qa/scenarios-runner/lifecycle_evidence_and_output_persistence_contract.mjs" },
-    { "id": "D56", "severity": "P2 - parity with v92, not a regression", "title": "6 of 9 truthful read-only/historical answers still blanket-replaced; historical_event is unverifiable by construction.", "status": "OPEN" },
-    { "id": "D57", "severity": "P2", "title": "#66/D45, #66/D47 and #66/D48 all still open and unchanged.", "status": "OPEN" }
-  ],
-  "regressions_added": [
-    "qa/scenarios-runner/lifecycle_evidence_and_output_persistence_contract.mjs (NEW) - 49 contract checks + 9 measured section-X defect baselines. Executes the REAL archive/restore loops (stubbed supabase.rpc with LIVE-VERIFIED production payload shapes), the REAL rewrite path and the REAL work_orders.output persist condition. Mutation-proven: takes the undetected count from 10/28 to 1/28.",
-    "qa/scenarios-runner/_gate_extract.mjs - stripTypeAssertions() is now string/template-literal aware; it previously ate everything after any ' as ' inside a product string literal. All pre-existing suites re-run unchanged (41/41, 29/29)."
-  ],
-  "pending_db_pushes": [],
-  "prepared_fixes": [
-    { "id": "25af3b0 laundering closure + F5", "status": "FIX PREPARED - NOT RECOMMENDED FOR DEPLOY AS WRITTEN. See D50-D54." }
-  ],
-  "live_verified_fixes": [],
-  "remaining_scenarios": [],
-  "global_integrity": {
-    "tasks_orphan_company": 0,
-    "goals_orphan_company": 0,
-    "person_assignment_orphan_company": 0,
-    "person_assignment_orphan_person": 0,
-    "person_assignment_orphan_manager": 0,
-    "tasks_orphan_owner_person": 0,
-    "work_orders_orphan_channel": 0,
-    "duplicate_company_names_active": 0,
-    "companies_active": 8,
-    "companies_archived": 10,
-    "active_task_under_archived_company": 1,
-    "active_task_note": "pre-existing #61/D4 fixture, not created or altered by this campaign",
-    "work_orders_with_verifiedResponse": 0,
-    "BASELINE_approval_358eddeb": "pending",
-    "AI_vs_DB": "BLOCKED - no live AI path available in this session type",
-    "UI_vs_DB": "BLOCKED - no browser tooling available in this session type"
+  "2_d50_wording_no_false_denials": {
+   "status": "FAILED — CODE INSPECTED (one denial path fixed, two remain and one is the DEFAULT path for every create)",
+   "fixed": "rejectedLines (4650-4662): unsupported => 'I can’t confirm from this turn’s execution record that X was <safeActionPast>.' ; contradicted => 'Actually, …'. Non-denial wording confirmed.",
+   "still_denies": [
+    "legacyProseFallback text (4700) 'I can’t actually do that from chat — nothing was changed.' fires when !hasSupportedMutationClaim && !groundedOutcomeThisTurn && !pendingAction && LEGACY regex. groundedOutcomeThisTurn (4283-4285) = factLines || orgGraph || lifecycleReports || stateClaimCorrections || hasResolvedEntities(companies/people/goals only, 3792-3806) || hasExecutionEvidence(factory work orders ONLY, 4115-4119) || plan modes. A successful task/project/department/lead/document/product_line/spec/drawing/provider/proposal/memory create sets NONE of these. The system prompt (1297-1299) tells the model not to emit a mutation_result without the canonical id, and for a create the id does not exist when the model writes — so the prompt-compliant create turn has claims:null. Trace: command 'create a task Fix login' -> RPC creates task (evidence recorded) -> model prose 'The task was created.' -> LEGACY matches 'was … created' -> summary := 'I can’t actually do that from chat — nothing was changed.' -> claimsPastCompletionWithNoGrounding true -> persisted. A real create is durably denied. => D58(a), P0.",
+    "deterministic-confirmation && !groundedOutcomeThisTurn (4714-4716) 'nothing was changed' — a bulk_confirmation whose stored action creates tasks/leads/etc. executes real rows and is then denied. Same root cause (evidence never grounds). => D58(c), P2 shape of the same root."
+   ],
+   "root_cause": "groundedOutcomeThisTurn, legacyProseFallback and rewriteFromStructure never consult claimExecutionEvidence — the very record D50 just completed. Mutation truth is known to the backend and ignored by the gate."
   },
-  "synthetic_entities_created_by_this_campaign": {
-    "none": "ZERO. Every DB interaction was a read-only SELECT / pg_get_functiondef read. No QA-VERIFY-* rows created. The pre-existing archived fixture QA-VERIFY-BU (d4d366e0, created 2026-08-29) and the incident fixture were left exactly as found."
+  "3_d51_deterministic_report_survives_rewrite": {
+   "status": "PARTIALLY VERIFIED — CODE INSPECTED",
+   "classification_audit": "Every result.summary assignment above the window was checked against summaryIsFullyDeterministic (4359-4362): 4170 factLines+prose (NOT deterministic; prefix=factLines — correct), 4182 orgGraph (flag ✓), 4273 proposedPlan (✓), 4274 plan-execution (✓, summary set at 2515), 4277 lifecycleReports (✓), 4279 stateClaimCorrections (✓), 4281 lifecycleMismatchCorrections (✓), 4307 claimsFutureActionWithNoPlan (✓). deterministic-confirmation 'Confirmed — <stored summary>' is correctly NOT classified deterministic (it is model-authored from the prior turn). No branch is misclassified in either direction.",
+   "harness_faithfulness": "Both harnesses inject summaryIsFullyDeterministic/deterministicPrefix as parameters with defaults (false, ''). X3 passes (true, REPORT) exactly as index.ts would for a lifecycle turn ✓. X2 passes grounded:true, fullyDeterministic:false for an end_employment turn — in index.ts that turn is fully deterministic (personLifecycleReport) and supportedLines are omitted, so X2's `/QA Person/` passes for a different reason than in production; not a product bug, a test-realism gap (noted under 7).",
+   "deterministic_content_still_lost": [
+    "Lifecycle full replacement (4277) runs AFTER the factLines prepend (4170) and overwrites it: 'archive ACME and delete these 2 approvals' -> summary 'ACME: archived.' — 'Deleted 2 of 2 requested approval(s).' is gone before the window, and deterministicPrefix = result.summary cannot recover it. Pre-existing (v92 parity). => D64",
+    "On a fully-deterministic turn unclaimedLines are deliberately omitted (4695-4697) — but the lifecycle report never mentions department/lead/product/… creates, so 'archive ACME and create department Sales' -> 'ACME: archived.' with the real department creation absent from the reply (and the model's own prose about it already discarded at 4277). Only work_order/person_assignment creates are genuinely restated by lifecycle reports. => D64 (P2)",
+    "Deletion-failure notes appended to result.summary (2732, 2760, 3470) are not in factLines; on a rewrite turn only 'Deleted 0 of N …' survives, the error text is lost. => D66 (P3)",
+    "unclaimedLines name created rows as bare typed references ('the task: created.' ×N) because the label maps are contextPack-only (2635, 2872, 3059, 3185) and the RPC returns createdTasks as {id, company_id} (migration 202608280012 line 125) — truthful but nameless. => D67 (P3)"
+   ]
   },
-  "blocked_scenarios": [
-    "Live HTTP/browser acceptance",
-    "UI vs DB truth checks",
-    "fresh-channel AI vs DB checks",
-    "deploying 25af3b0 (by instruction AND by verdict)"
-  ],
-  "known_failure_modes_entries_created": [67],
-  "completed_at": "2026-09-01T-run7-final"
+  "4_d52_any_mutation_claim_triggers_rewrite": {
+   "status": "FAILED — CODE INSPECTED (the fix works for the claimed shape; three shapes still ship fabricated completion prose)",
+   "fixed_shape_trace": "claims:[task create ID], evidence:[task create ID], summary 'Task created. Approval X has been approved.' -> hasMutationShapedClaim true -> rewrite -> summary 'the task: created — confirmed.' (fabrication gone) ✓ matches X1.",
+   "shapes_that_still_ship": [
+    "A (evidence, no claims, resolved-entity turn): 'create a task for ACME' -> hasResolvedEntities? NO (task creates don't count) — but 'add a goal for ACME' / any company-or-person-or-goal create or archive DOES ground the turn. Trace: createdGoals=[G] (evidence), claims:null, prose 'Goal created. Approval X has been approved.' -> rewriteFromStructure false (no mutation-shaped claim, no rejections) ; legacyProseFallback false (groundedOutcomeThisTurn true via hasResolvedEntities) -> raw prose ships, persisted. The rewrite trigger (4621-4624) is MODEL-CONTROLLED: omit mutation claims and the truth gate is off. => D58(b), P1 face of D58.",
+    "B (state-only claims + fabricated mutation prose on a grounded turn): claims:[existence ACME] supported, prose 'ACME has been archived.' -> no rewrite, legacy off (grounded) -> ships. Ungrounded variant is caught by legacy (L7-L10) only because those cases pass grounded:false. => D58(b).",
+    "C (pendingAction present, no claims): prose 'The approval has been approved. Should I also archive ACME?' + pendingAction open_question -> legacyProseFallback carries `&& !result.pendingAction` (4610) -> off ; no rewrite ; lifecycleMismatch correctors suppressed by modelProposedPendingAction (2707, 3044, …) -> ships. This is exactly D3 (KNOWN_FAILURE_MODES 4777), removed at 606cfa8 (5169) on THIS branch, re-introduced by c0b6fc0's legacyProseFallback (run6 recorded it as 'byte-equivalent to v92 gate' i.e. v92 parity). The branch is named for the D3 fix and its head regresses it. => D59, P1.",
+    "D (deterministic-confirmation turn): 'Confirmed — ${pendingAction.summary}' (2421) / '${pendingAction.question}' (2446) / option label (2469) replay the PRIOR turn's raw, never-gated pendingAction text (see 5). If the confirmed action is a factLines-type action (delete tasks/channels/approvals) the raw text survives after the fact line; no claims on a deterministic turn -> no rewrite ; legacy off (model is deterministic-confirmation). => D60."
+   ],
+   "evidence_without_claims_ungrounded_variant": "claims:null, evidence:[task create], grounded:false, prose 'The task was created.' -> legacy blanket denial (D58(a)); X1b asserts corrected===true for a close cousin and never looks at the denial text, so the suite is green on a false denial."
+  },
+  "5_d53_question_channel_gated": {
+   "status": "FAILED — CODE INSPECTED",
+   "what_is_gated": "safeProseFragment (4494-4501) = trim non-empty && !UUID_IN_TEXT && !PAST_COMPLETION_CLAIM_PATTERN, applied to questions[] (4580), proposedActions (4582), pa.question/pa.summary (4684), option labels (4687) — but ONLY for the text spliced into the corrected summary and for envelope.questions/proposedActions.",
+   "regex_bypasses_traced (PAST_COMPLETION_CLAIM_PATTERN 4386 requires 'has been|have been|was|were … <verb>' OR '<verb> successfully' OR 'renamed: … ->')": [
+    "'The company is now archived. Anything else?'  -> no aux verb, no '<verb> successfully' -> PASSES the gate -> spliced into the corrected summary",
+    "'I archived ACME and deleted its 3 tasks. Next?' -> passes",
+    "'Done — ACME deleted, approval approved. Continue?' -> passes",
+    "'Successfully archived ACME. Continue?' -> adverb precedes the verb -> passes",
+    "'**ACME deleted.** Next?' (markdown, rendered by ReactMarkdown in chat-client.tsx:760) -> passes",
+    "'ACME компанийг архивласан. Өөр юу хийх вэ?' (Mongolian, a stated product requirement) -> passes",
+    "'I’ll archive ACME right away — ok?' (future promise) -> passes; claimsFutureActionWithNoPlan only scans result.summary and is off when pendingAction is set",
+    "'ACME has been archived.' / 'deleted successfully' -> correctly DROPPED"
+   ],
+   "persisted_envelope_not_gated": "result.verifiedResponse.pendingAction = result.pendingAction || null (4728) is the RAW object; work_orders.output = result (4765) carries raw result.pendingAction, raw result.questions, raw result.proposedActions, raw result.claims. buildContext reads lastTurnOutput.pendingAction (2092-2101) and the confirm path renders `Confirmed — ${pendingAction.summary}` / `.question` / option label verbatim (2421/2446/2469). So the persisted channel is NOT gated and it IS founder-facing one turn later. The UI itself (chat-client.tsx 758-763, chat-history.ts) renders only output.summary and counts — envelope.questions/proposedActions are not rendered anywhere (#66/D45 still true).",
+   "defects": ["D60 (P1) persisted/replayed pendingAction text ungated", "D61 (P1) safeProseFragment is a past-tense regex allowlist-by-omission — the same intrinsic ceiling (#62/#64/#65) the architecture rejected for prose; the question channel remains a model-controlled prose path for any completion phrasing outside that regex"]
+  },
+  "6_d54_sanitizers_and_reason_strings": {
+   "status": "PARTIALLY VERIFIED — CODE INSPECTED (uuid leakage closed on all four; free-text laundering through expectedValue/predicate open)",
+   "uuid_attacks_traced": {
+    "resourceType='company|<uuid>' or '<uuid>'": "TYPED_FALLBACK miss -> /^[a-z][a-z_]{0,29}$/ fails (digits/hyphens) -> 'the record' ✓",
+    "action='archive <uuid>'": "ACTION_PAST miss -> 'changed' ✓ (and evidenceIndex lookup fails -> unsupported)",
+    "predicate='<uuid>'": "hyphens fail /^[a-zA-Z0-9_]{1,40}$/ -> null -> 'Actually, the records show otherwise for X.' ✓",
+    "expectedValue='<uuid>' / 'AAAAAAAA-BBBB-…' (uppercase)": "UUID_IN_TEXT is [0-9a-fA-F] -> 'the referenced record' ✓",
+    "resourceId": "never interpolated (displayName renders label or typed fallback only; DEBUG_RESOURCE_IDS env-gated) ✓",
+    "questions/options/pa.summary carrying a uuid": "dropped from the splice ✓ (but persisted raw — D60)",
+    "spaced/hyphenless 32-hex forms": "not matched — not a resolvable id, accepted as out of scope"
+   },
+   "free_text_laundering_still_open": "contradicted line (4653-4657): `Actually, ${subject}’s ${predicate} is not ${safeValueText(expectedValue)} in the current records.` Trace: claim {type:'current_state', resourceType:'company', resourceId:ACME, predicate:'status', expectedValue:'archived. The approval has been approved and all 12 tasks were deleted'} with ACME status 'active' in contextPack -> verifyStructuredClaim: row present, no evidence on ACME, predicate string, expectedValue defined, 'active' !== expected -> CONTRADICTED -> rejected -> rewrite -> founder reads 'Actually, ACME’s status is not archived. The approval has been approved and all 12 tasks were deleted in the current records.' Only uuids are scrubbed; predicate itself is a 40-char [A-Za-z0-9_] free field (row[garbage] is undefined -> always contradicted -> always rendered). => D62 (P1). Fix: render the CANONICAL actual value, never the model's expected one.",
+   "reason_strings_decision": "verifyStructuredClaim reasons (4520-4561) carry raw resourceType, resourceId, String(actual), String(expectedValue), raw claim type. They live only in result.verifiedResponse.{verifiedClaims,rejectedClaims} -> work_orders.output. Not rendered by the UI, not read by chat-history.ts, not fed to the next turn (buildContext uses output.summary/pendingAction/resolvedEntities/deletedEntities only). DECISION: envelope reasons are an audit artifact, NOT founder-facing; canonical ids in them are appropriate and desirable. Not a defect."
+  },
+  "7_mutation_test_quality": {
+   "status": "PARTIALLY VERIFIED — static analysis only (mutation runs BLOCKED)",
+   "findings": [
+    "Section S (lifecycle suite 272-306) asserts `src.includes(literal)` on the RAW source. Vacuity: a site commented out (`// … recordExecution('person', 'end_employment', id, true);`) still satisfies S; no windowed case can see the site; so the exact 'commented-out evidence site' mutation survives the whole battery. S also never asserts the SUCCESS GUARD (`r.reason === 'employment_ended'`, `changed === true`, the reason==='deleted' branch), so 'record evidence on denied/not_found' survives every suite. S omits the pre-existing sites (task/goal/company archive-restore, the ten RPC-create loops). => D63 (P2). Fix: strip comment lines before includes (the drift guard's liveCode pattern) and assert guard+call literals together.",
+    "X-section flips are honest: X1 (corrected && no fabrication), X2b (non-denial wording), X3 (report survives + correction appended), X4/X4b/X4c (dropped), X5-X7 (no uuid) all fail on 25af3b0's window and pass on e8678ec's — by construction, not by relabelling. X2 is tautological w.r.t. the window (it passed on 25af3b0 too: the window always supported a claim given matching evidence); the real D50 site fix is guarded only by S.",
+    "X1b asserts corrected===true for claims:null+evidence+ungrounded and never inspects the summary — it is green on the D58(a) false denial.",
+    "laundering F5 uuid regex is lowercase-only (`/[0-9a-f]{8}-[0-9a-f]{4}-/`); an uppercase leak would pass F5. lifecycle UUID_RE has /i.",
+    "The commit's own mutation-test claims (8 mutations) could not be reproduced here — UNVERIFIED."
+   ]
+  },
+  "8_full_regression_battery": {
+   "status": "BLOCKED — script execution refused by the permission layer (node <file>, node -e, node --test, npx node, sh all refused)",
+   "note": "Runner prepared at qa/verification/scratch/v8_run_suites.mjs. The harnesses' extractor was read and is structurally sound for e8678ec (the two new params are declared; PAST_COMPLETION_CLAIM_PATTERN was moved inside the window so the extracted slice is self-contained)."
+  },
+  "9_production_readonly_v92": {
+   "status": "BLOCKED — `npx supabase functions list` refused by the permission layer",
+   "writes_from_this_session": "ZERO — no Supabase command of any kind executed; no DB connection attempted.",
+   "deploy_path_check": ".github/workflows/supabase-functions.yml deploys only on push to master touching supabase/functions/**; this branch has no upstream and nothing was pushed."
+  }
+ },
+ "defects_found": [
+  { "id": "D58", "severity": "P0", "title": "Backend mutation evidence never feeds the truth gate: a prompt-compliant create turn (no id-bearing claim) is either blanket-DENIED ('nothing was changed', persisted) on an unresolved-entity turn, or ships raw prose with any fabrication on a resolved-entity turn; the D52 rewrite trigger is model-controlled (omit mutation claims => gate off).", "lines": "4283-4285 (groundedOutcomeThisTurn), 4608-4611 (legacyProseFallback), 4621-4624 (rewriteFromStructure), 4714-4716 (confirmation denial)", "class": "D50 wording + D52 laundering, one root cause", "status": "OPEN — FIX PREPARED (unexecuted) in qa/verification/proposed/v8_prepared_fix_index.patch", "v92_parity": "face (a)/(c) are v92 parity; face (b) is the residual of D52; the architecture makes (a) the DEFAULT for every create" },
+  { "id": "D59", "severity": "P1", "title": "D3 regression on the D3 branch: legacyProseFallback carries `&& !result.pendingAction`, so a fabricated past completion + any pendingAction + no claims ships uncorrected and persists (606cfa8 removed this; c0b6fc0 re-added it inside legacyProseFallback).", "lines": "4610; correctors 2707/3044/3131/3214 also suppressed by modelProposedPendingAction", "status": "OPEN — FIX PREPARED (unexecuted)", "v92_parity": "yes (D3 is live in v92) — but this branch exists to close D3" },
+  { "id": "D60", "severity": "P1", "title": "D53 incomplete: result.pendingAction (summary/question/options) is persisted and streamed RAW (envelope 4728, output 4765) and replayed verbatim next turn as 'Confirmed — …' (2421/2446/2469); founder-facing after a factLines-type confirmation.", "status": "OPEN — FIX PREPARED (unexecuted)" },
+  { "id": "D61", "severity": "P1", "title": "safeProseFragment is a past-tense regex allowlist-by-omission; present-tense, simple-past, imperative, reordered-adverb, markdown and Mongolian completion assertions pass through questions[]/pendingAction into the corrected summary.", "lines": "4386, 4494-4501", "status": "OPEN — design gap; structural gate proposed (questions must be interrogative, labels bounded)" },
+  { "id": "D62", "severity": "P1", "title": "Contradicted-state correction interpolates the model's own predicate (40 alnum chars) and expectedValue (unbounded, only uuid-scrubbed) — a free-text laundering channel through the correction line.", "lines": "4653-4657, 4483-4488", "status": "OPEN — FIX PREPARED (unexecuted): render canonical actual, never expected" },
+  { "id": "D63", "severity": "P2", "title": "Section S source-literal checks are satisfiable by a commented-out site and never assert the success guards; the ten pre-existing sites are not covered at source level.", "status": "OPEN — proposed test rewrite in qa/verification/proposed/" },
+  { "id": "D64", "severity": "P2 (v92 parity)", "title": "Mixed-intent turns lose real mutations: lifecycle full replacement (4277) overwrites factLines (4170), and fully-deterministic turns omit unclaimedLines, so 'archive ACME and create department Sales' reads 'ACME: archived.'", "status": "OPEN — FIX PREPARED (unexecuted)" },
+  { "id": "D65", "severity": "P2", "title": "An id-less create claim (the only prompt-compliant create claim) renders as a self-contradiction: 'the task: created. I can’t confirm from this turn’s execution record that the task was created.' (unclaimedLines precede rejectedLines, 4697)", "status": "OPEN — FIX PREPARED (unexecuted)" },
+  { "id": "D66", "severity": "P3", "title": "'EVERY mutating path' overstated: executeOneAction (10 ops), spec ticket tasks/approvals (3982/3987), pricing approval (3953), provider deactivation (4031), product_costs (3929) record nothing; deletion-failure notes (2732/2760/3470) are lost on rewrite.", "status": "OPEN" },
+  { "id": "D67", "severity": "P3", "title": "Created rows render as bare typed references ('the task: created.') — label maps are contextPack-only and the RPC returns {id, company_id}; titles are available positionally from the request.", "status": "OPEN" }
+ ],
+ "run7_defect_closure_status": {
+  "D50": "PARTIALLY CLOSED — coverage ✓ (with P3 gaps), rejectedLines wording ✓, but the legacy/confirmation denial paths still deny real creates (D58) — NOT closed as a class",
+  "D51": "PARTIALLY CLOSED — the deterministic report survives the rewrite ✓ (classification correct, harness faithful); mixed-intent losses remain (D64)",
+  "D52": "PARTIALLY CLOSED — fixed for the claimed shape; the trigger remains model-controlled (D58(b)), pendingAction shape (D59) and confirmation replay (D60) still ship fabrications",
+  "D53": "PARTIALLY CLOSED — splice gated ✓; persisted/replayed channel ungated (D60); regex gate bypassable (D61)",
+  "D54": "CLOSED for uuids on all four fields ✓; free-text laundering via expectedValue/predicate open (D62); envelope reasons ruled not founder-facing"
+ },
+ "regressions_added": ["qa/verification/proposed/v8_attack_cases.mjs — UNEXECUTED; every case carries its traced expected output; must be run and, if confirmed, moved into qa/scenarios-runner/ (working tree outside qa/verification/** was off-limits this run)"],
+ "pending_db_pushes": [],
+ "prepared_fixes": ["qa/verification/proposed/v8_prepared_fix_index.patch — UNEXECUTED, untested; a specification of the minimal changes for D58/D59/D60/D62/D64/D65, NOT a verified fix"],
+ "live_verified_fixes": [],
+ "remaining_scenarios": ["8 (battery execution)", "9 (v92 read-only check)", "re-execution of every CODE INSPECTED trace"],
+ "synthetic_entities_created_by_this_campaign": { "none": "none — no DB access this session" },
+ "global_integrity_assertions": "NOT RUN (no DB access). AI false execution claims: 4 shapes traced that still produce them (D58b, D59, D60, D61/D62) — AI ↔ DB contradiction class remains reachable => FAIL by the skill's own rule.",
+ "verdict": "DO NOT DEPLOY",
+ "verdict_reasons": [
+  "D58 (P0): a real create is durably denied as 'nothing was changed' on the default (no-id-claim) create path; the same root cause leaves the D52 rewrite trigger in the model's hands.",
+  "D59 (P1): D3 short-circuit regressed on the branch named for it — fabricated completion + pendingAction ships.",
+  "D60 (P1): D53 not closed for the persisted/replayed pendingAction channel.",
+  "D61 (P1): D53's gate is a bypassable past-tense regex.",
+  "D62 (P1): a new free-text laundering channel through the contradicted-state correction.",
+  "Regression battery and v92 production check are BLOCKED in this session — even absent the defects above, DEPLOY GATE OPEN could not be declared on this evidence."
+ ],
+ "attempts": [
+  {
+   "attempt": 1,
+   "started": "2026-09-01 (overnight)",
+   "outcome": "BLOCKED — PROVIDER SESSION LIMIT",
+   "detail": "Verifier CLI process exited 0 but its only output was: \"You’ve hit your session limit · resets 1am (Asia/Ulaanbaatar)\". Exit code 0 + provider error text is NOT a successful Agent Run — classified PROVIDER_CAPACITY_BLOCKED, not PASS, not FAIL, not VERIFIED. No scenario was executed; all 9 remain.",
+   "classification": "PROVIDER_CAPACITY_BLOCKED"
+  },
+  {
+   "attempt": 2,
+   "started": "2026-09-02",
+   "outcome": "COMPLETED WITH BLOCKED COVERAGE — verdict DO NOT DEPLOY on CODE INSPECTED evidence; execution-dependent scenarios (8, 9) BLOCKED by the permission layer",
+   "detail": "Resumed from attempt-1 record (base_commit matched, index.ts sha re-verified). Full source audit of the e8678ec diff + surrounding execution paths + both harnesses + web render path. 10 new defects (D58-D67) recorded with line-level traces; prepared (unexecuted) fix + attack-case suite under qa/verification/proposed/."
+  }
+ ]
 }

@@ -1,0 +1,168 @@
+PROPOSED FIX SPECIFICATION — NOT APPLIED, NOT TESTED, NOT COMMITTED TO supabase/functions/**, NOT DEPLOYED.
+Produced 2026-09-02 by independent verifier #8 (campaign verify-e8678ec-run7-defect-closure)
+against supabase/functions/sem-ai-command/index.ts @ e8678ec
+(sha256 61256b6e1728dca70f660f40f78b844bd7aadda7f6c95d78eeba673334fc72ba).
+
+The verifier's session could not execute node, so this is a written specification with
+exact hunks, NOT a verified patch. Whoever applies it must run the full battery
+(qa/verification/scratch/v8_run_suites.mjs) plus qa/verification/proposed/v8_attack_cases.mjs
+with the LAUNDERING/FALSENEG expected values flipped, and mutation-test each guard.
+
+ROOT CAUSE being fixed (D58, D59, D64, D65): the truth gate never consults
+claimExecutionEvidence — the backend's own per-id mutation record — so a mutation turn is
+gated by MODEL-controlled signals (did it emit a mutation claim? did it set a
+pendingAction?) instead of by what actually executed. D60/D62 are output-side: model text
+reaches the founder through channels the D53/D54 sanitizers did not cover.
+
+------------------------------------------------------------------------------------------
+HUNK 1 — evidence grounds the turn (D58 a/c). Replace lines 4283-4285:
+
+-        const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
+-          || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
+-          || model === 'deterministic-plan-execution' || !!proposedPlan;
++        // run8/D58: a confirmed backend mutation grounds the turn. Before this, a real task/
++        // project/department/lead/... create set NO grounding flag, so the legacy gate could
++        // blanket-deny it ("nothing was changed") and the confirmation safety net could deny
++        // a confirmed create the same way.
++        const hasConfirmedMutationEvidence = claimExecutionEvidence.some((e) => e.postconditionPassed);
++        const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
++          || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
++          || hasConfirmedMutationEvidence
++          || model === 'deterministic-plan-execution' || !!proposedPlan;
+
+  NOTE: hasConfirmedMutationEvidence must be declared ABOVE the structured-claim window
+  (like summaryIsFullyDeterministic) and injected into the three harnesses as a parameter,
+  OR computed inside the window from claimExecutionEvidence (already a window input) — the
+  latter needs no harness change and is preferred for hunk 2; hunk 1 needs it above.
+
+------------------------------------------------------------------------------------------
+HUNK 2 — the rewrite is triggered by EVIDENCE, not only by model claims (D58 b). Replace
+lines 4621-4624:
+
+-        const hasMutationShapedClaim = rawClaims
+-          ? rawClaims.some((c) => c && typeof c === 'object' && (c.type === 'mutation_result' || c.type === 'assignment'))
+-          : false;
+-        const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim;
++        const hasMutationShapedClaim = rawClaims
++          ? rawClaims.some((c) => c && typeof c === 'object' && (c.type === 'mutation_result' || c.type === 'assignment'))
++          : false;
++        // run8/D58: the model must not hold the switch. If the backend confirmed ANY mutation
++        // this turn, the founder-facing prose is re-rendered from verified structure whether
++        // or not the model chose to claim it (creates cannot carry an id at claim time, so a
++        // prompt-compliant create turn has NO mutation claim — that was the open door).
++        const hasConfirmedMutationEvidenceInWindow = claimExecutionEvidence.some((e) => e.postconditionPassed);
++        const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim || hasConfirmedMutationEvidenceInWindow;
+
+  Read-only turns (no evidence, no claims) are unaffected. With this, unclaimedLines carry
+  every create/update/activate and factLines/lifecycle reports carry every delete/lifecycle
+  transition, so the model's narrative is never the vehicle for a completion.
+
+------------------------------------------------------------------------------------------
+HUNK 3 — remove the D3 short-circuit from the legacy gate (D59). Line 4610:
+
+-          && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
++          && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+
+  This is exactly what 606cfa8 did for the prose-era gate (KNOWN_FAILURE_MODES 5169) and
+  the reason this branch exists. The FUTURE gate (4303-4305) keeps its pendingAction
+  exclusion — a future promise WITH a pending question is honest. Expect the D3-era
+  false-positive discussion (5593) to resurface: a truthful clarification turn whose
+  summary happens to contain "was … created" about a PRIOR turn will now be replaced; the
+  structural answer is that such statements belong in claims (historical_event) not prose,
+  and the replacement text must be the non-denial wording (hunk 6), never "nothing was changed".
+
+------------------------------------------------------------------------------------------
+HUNK 4 — gate the pendingAction object itself before it is persisted or replayed (D60).
+After line 4690 (promptWithOptions) and BEFORE result.verifiedResponse is built, add
+(outside the `if (rewriteFromStructure)` block so it runs on every turn):
+
++        // run8/D60: the pendingAction object is persisted (work_orders.output) and replayed
++        // next turn verbatim as "Confirmed — <summary>" — gate it in place, not only where it
++        // is spliced into this turn's summary. A pendingAction whose prompt fails the gate
++        // keeps its structure (kind/action/candidateIds/options ids) so the confirmation
++        // mechanism still works; only the model-authored TEXT is dropped.
++        if (result.pendingAction && typeof result.pendingAction === 'object') {
++          const pa = result.pendingAction;
++          pa.summary = safeProseFragment(pa.summary);
++          pa.question = safeProseFragment(pa.question);
++          if (Array.isArray(pa.options)) {
++            for (const o of pa.options) if (o && typeof o === 'object') o.label = safeProseFragment(o.label) || '';
++          }
++        }
++        result.questions = envelopeQuestions;
++        result.proposedActions = envelopeProposedActions;
+
+  And in the confirm/clarify/disambiguate replay (2421 / 2446 / 2469) the stored text is
+  already the gated text after this; still, defensively render 'Confirmed.' when the
+  stored summary/question is null.
+
+------------------------------------------------------------------------------------------
+HUNK 5 — the contradicted correction renders the CANONICAL value, never the model's
+(D62). Replace lines 4653-4657:
+
+-            if (r.verdict === 'contradicted') {
+-              const predicate = safePredicate(c.predicate);
+-              return predicate
+-                ? `Actually, ${subject}’s ${predicate} is not ${safeValueText(c.expectedValue)} in the current records.`
+-                : `Actually, the records show otherwise for ${subject}.`;
+-            }
++            if (r.verdict === 'contradicted') {
++              // run8/D62: expectedValue is model-authored free text — it was the last raw
++              // interpolation. The correction states what the canonical read actually holds.
++              const predicate = safePredicate(c.predicate);
++              const row = canonicalById.get(c.resourceType + '|' + c.resourceId);
++              const actual = row && predicate && Object.prototype.hasOwnProperty.call(row, predicate) ? row[predicate] : undefined;
++              return predicate && actual !== undefined
++                ? `Actually, ${subject}’s ${predicate} is ${safeValueText(actual)} in the current records.`
++                : `Actually, the records show otherwise for ${subject}.`;
++            }
+
+  And in verifyStructuredClaim, a predicate that is not an OWN property of the canonical
+  row must return 'unknown' (not 'contradicted'), so a garbage predicate cannot force a
+  rendered correction:
+
+-            const actual = row[predicate];
++            if (!Object.prototype.hasOwnProperty.call(row, predicate)) return { verdict: 'unknown', reason: 'predicate not present in the canonical read' };
++            const actual = row[predicate];
+
+  The SUPPORTED state line is safe as-is (equality with the canonical value is required).
+
+------------------------------------------------------------------------------------------
+HUNK 6 — mixed-intent turns keep every real outcome (D64) and an id-less create claim is
+folded into the evidence report instead of contradicting it (D65). Replace 4695-4697:
+
+-          const claimParts = summaryIsFullyDeterministic
+-            ? [deterministicPrefix, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
+-            : [deterministicPrefix, ...supportedLines, ...unclaimedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions];
++          // run8/D64: lifecycle reports only ever restate archive/restore/end-employment/
++          // permanent-delete/work_order/person_assignment outcomes; creates and updates of
++          // every other type are NOT in them, so they are appended even on a fully-
++          // deterministic turn (work_order/person_assignment excluded to avoid restating).
++          const RESTATED_BY_LIFECYCLE_REPORT = new Set(['work_order', 'person_assignment']);
++          const unclaimedNotRestated = summaryIsFullyDeterministic
++            ? unclaimedLines.filter((_, i) => !RESTATED_BY_LIFECYCLE_REPORT.has(unclaimedTypes[i]))
++            : unclaimedLines;
++          const claimParts = summaryIsFullyDeterministic
++            ? [deterministicPrefix, ...unclaimedNotRestated, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
++            : [deterministicPrefix, ...supportedLines, ...unclaimedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions];
+
+  (keep a parallel `unclaimedTypes` array when building unclaimedLines.) For D65, in
+  rejectedLines skip an unsupported mutation claim whose resourceId is null when
+  claimExecutionEvidence contains a postcondition-passed row with the same resourceType and
+  action — the evidence line already reports it, and "I can't confirm … the task was
+  created. the task: created." is a self-contradiction.
+
+  And ABOVE the window, for the factLines loss: at 4277 use
+    result.summary = [factLines.join(' '), lifecycleReports.join(' ')].filter(Boolean).join(' ')
+  (same for 4279/4281) so deletion counts survive a lifecycle full replacement.
+
+------------------------------------------------------------------------------------------
+NOT ADDRESSED HERE (design decisions for the founder / implementer):
+  * D61 — safeProseFragment is a regex. A structural gate for the question channel:
+    questions[] entries and pa.question must contain '?'; option labels ≤ 60 chars with no
+    sentence-terminal punctuation; pa.summary ≤ 200 chars and must not contain a
+    completion verb from ACTION_PAST's value set in ANY tense — still heuristic, but it
+    stops being "allowlist by omission of one tense".
+  * D66/D67 — evidence for executeOneAction, spec ticket tasks/approvals, pricing approval,
+    provider deactivation; labels for created rows (positional titles from the request).
+  * Section S (D63) — see qa/verification/proposed/v8_section_s_rewrite.md.
