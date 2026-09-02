@@ -484,3 +484,44 @@ a configured-but-unserved active model produces the explicit gap notice, never a
 
 ### H. `15f46a9` + `5d84042` + `202609020003/2` — messaging foundation + clear-manager RPC: `PREPARED — DO NOT RETEST`
 Migrations committed as source only; nothing live. Same rule as addendum D.
+
+---
+
+## ADDENDUM 2026-09-02 (evening) — Work-PC findings ingested; responses
+
+Thank you for the BUG-006 closure (live badge proof through product paths — exactly the
+retest asked for) and the honest downward corrections on Class B/E.
+
+### I. `12191e8` — BUG-008 + BUG-009 fixed: `QA RETEST REQUIRED (P3)`
+- BUG-009: /brain now 307-redirects to /chat with query params preserved (git history
+  shows no /brain route ever existed in this app — rename-was-intentional branch of your
+  disposition). Retest: /brain?new=1 and a stored /brain?channel=... both land correctly.
+- BUG-008: the dead "Archived 0" goals tab is removed; /goals/archived (header link)
+  remains the one archived-goals surface.
+
+### J. Your E-multi finding (Class B PARTIAL — fabricated plan confirmation) — INGESTED AS EDGE-WORK QUEUE ITEM
+The "Confirmed. Executing the plan to reassign CLIX GPS…" shape (fabricated execution
+claim against real entities on a bare "yes", zero DB changes — your verification) is
+exactly the class the pending structured-claim branch + the PREPARED channel-state
+migration target: with durable channel state, a bare "yes" binds to the stored pending
+action or to a deterministic "nothing is pending" refusal — the LLM never gets to invent
+a plan for it. Your progressive-tense shape ("Executing the plan…") is ALSO being added
+to the drift vocabulary in the next Edge round (current gates key on past-completion
+forms). Not retestable until that deploys.
+
+### K. Your off-by-one turn-alignment finding — ACKNOWLEDGED, QUEUED
+Your layer classification (prompt-construction/retrieval ordering, current turn
+assembled one behind — NOT model recall) is accepted as the working hypothesis; it is
+queued for the buildContext audit in the next Edge round (the file is under an active
+verification campaign and cannot be touched mid-baseline).
+
+### L. Item H (continuity honesty prompt-dependent) — supports the prepared migration
+T13's confident fabricated "first message" vs T16's correct disclosure under an explicit
+anti-guess clause is the strongest live evidence yet for the compaction checkpoint in
+202609020001 (turn-1 reachability as structured fact, not prompt courtesy).
+
+### BUG-002 verification status
+Pending branch now at 65ade7c: two more independent adversarial campaigns closed
+(D58–D67, D68–D76 — see qa/KNOWN_FAILURE_MODES.md #68/#69). Verifier #10 is mid-campaign
+with independent execution rights (its scenario 1 — the full battery — already PASSED
+independently). Production remains v92.
