@@ -1,0 +1,13 @@
+<anonymous_script>:288
+; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding, pendingAction: result.pendingAction, paChanged: pendingActionGatingChanged, LEGACY: LEGACY_PAST_COMPLETION, PCP: PAST_COMPLETION_CLAIM_PATTERN, safeQuestionFragment, safeOptionLabel, safeDisplayLabel, displayName, rewrite: rewriteFromStructure, legacy: legacyProseFallback, drift: structuredProseDrift };
+                                                                                                                                                                       ^
+
+ReferenceError: pendingActionGatingChanged is not defined
+    at eval (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v10_attacks.mjs:18:12), <anonymous>:288:168)
+    at run (file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v10_attacks.mjs:26:3)
+    at file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v10_attacks.mjs:53:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async importModuleDynamicallyWrapper (node:internal/vm/module:525:15)
+
+Node.js v24.19.0

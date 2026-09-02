@@ -6673,3 +6673,37 @@ persist condition (suite P8); safeDisplayLabel bounds/scrubs/de-asserts every la
 displayName renders; Section S strips block+trailing comments; the dead duplicate is
 deleted (42/42 unchanged proves it never counted). run8 suite extended to 40/40 with
 the run9 section; all six new guards mutation-proven with sha-verified restores.
+
+
+## #70 — 65ade7c verified by #10 (FIRST fully-executed campaign): DO NOT DEPLOY — two run9 fixes regressed run8 protections
+
+Verifier #10, campaign #70: battery executed independently (attempt 1, checkpointed,
+survived a PROVIDER_CAPACITY_BLOCKED exit; attempt 2 resumed from scenario 2 exactly as
+designed), mutations executed twice, v92 LIVE-verified read-only. Findings D77–D84:
+the D70 abbreviation guard's DIRECTION was inverted (any lowercase/digit after a period
+read as abbreviation — re-opening run8 D61 for "I archived ACME. ok?"); the D72 label
+repair silently dropped the completion check ("ACME deleted" rendered and replayed —
+and the #69 postscript claimed the opposite); safeDisplayLabel erased REAL identities
+("Was Archived Holdings" → "the company", twin options collapsing identically); the
+D68 arm floored truthful history on resolution-grounded turns; ASCII '?' was missing
+from the cut set (pre-existing); the extended word list refused legitimate imperative
+summaries while their destructive payload stayed armed; a flag false-positive.
+
+**CLOSURE POSTSCRIPT (implementing session, same day):** all closed, executed +
+mutation-proven (8 guards, sha-verified restores): guard direction corrected ('.' is a
+boundary unless the token BEFORE it is a known abbreviation/single letter, or
+digit.digit); ASCII '?' cuts; label completion-vocabulary refusal restored with a
+Title-Case name-shape discriminator (refuse→derived, never blank, never accept);
+assertion-shaped NAMES render QUOTED (identity + uniqueness kept; compound
+aux-assertions still collapse; uuid labels always collapse); the drift arm requires
+something structural (deterministic report/evidence/claims array) so truthful history
+ships; imperative-led summaries allowed with head-clause + tail participle refusals;
+flag normalized. Work-PC's live E-multi shape (progressive execution fabrication,
+founder item 4) joined the drift vocabulary in the SAME commit — defense-in-depth only,
+evidence stays primary — with explicit EMULTI cases. Verifier #10's case file promoted
+as run10_defect_closure_contract.mjs (43/43; one disclosed adaptation: D79.taskTitle
+expects the QUOTED render). TWO tooling defects found en route, both fixed: the QA
+extractor did not skip REGEX literals (a quote inside a character class opened a
+phantom string — third member of the comment/string class), and the promoted suite
+initially reported failures with exit 0 (decorative-suite class; exit guard restored,
+which is what made mutations Q1–Q3/Q6 catchable at all).

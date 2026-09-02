@@ -39,6 +39,36 @@ export function stripTypeAssertions(text) {
       }
       out += text.slice(i, j); i = j; continue;
     }
+    // Skip REGEX literals verbatim (run10 — third member of the class after full-line
+    // comments and string literals): a quote character inside a regex character class
+    // (/['’]/ is all over the drift patterns) read as a string OPENING here, and the
+    // phantom string swallowed everything to the next real quote, leaving a later
+    // ` as string[]` unstripped — a SyntaxError far from its cause, again. A `/` opens
+    // a regex when the previous non-space character cannot end an expression; character
+    // classes are tracked because `/` inside [...] is a literal slash, and a newline
+    // bails (regex literals cannot span lines) so division never mis-skips.
+    if (q === '/' && text[i + 1] !== '/' && text[i + 1] !== '*') {
+      let p = i - 1;
+      while (p >= 0 && (text[p] === ' ' || text[p] === '\t')) p--;
+      const prev = p >= 0 ? text[p] : '';
+      const prevWord = text.slice(Math.max(0, p - 6), p + 1);
+      if (prev === '' || '=(,[!&|?:;{}\n'.includes(prev) || /\b(return|typeof|case|of|do)$/.test(prevWord)) {
+        let j = i + 1, inClass = false, valid = false;
+        while (j < text.length) {
+          const c = text[j];
+          if (c === '\\') { j += 2; continue; }
+          if (c === '[') { inClass = true; j++; continue; }
+          if (c === ']') { inClass = false; j++; continue; }
+          if (c === '/' && !inClass) { j++; valid = true; break; }
+          if (c === '\n') break;
+          j++;
+        }
+        if (valid) {
+          while (j < text.length && /[a-z]/i.test(text[j])) j++;
+          out += text.slice(i, j); i = j; continue;
+        }
+      }
+    }
     if (text.startsWith(' as ', i)) {
       let j = i + 4;
       const d = { '{': 0, '<': 0, '[': 0, '(': 0 };

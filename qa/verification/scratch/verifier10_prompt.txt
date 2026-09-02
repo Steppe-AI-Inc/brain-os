@@ -1,0 +1,18 @@
+INDEPENDENT ADVERSARIAL VERIFICATION — campaign verify-65ade7c-run9-defect-closure (verifier #10, campaign #70).
+
+Repo: C:/Users/Dell/dev/brain-os, branch pending/d3-past-completion-gate-pendingaction-shortcircuit, commit 65ade7c ("Close run9 D68-D76"). Production remains sem-ai-command v92 — you must NOT deploy anything. Your session HAS narrow execution rights this time: Bash(node ...), Bash(sha256sum ...), read-only git, and `npx supabase functions list` — USE THEM; the last two campaigns were static-only and this one must not be. You do NOT have db-query access; DB-level scenarios are out of scope this round.
+
+Archive the current qa/verification/CURRENT_CAMPAIGN.json (campaign #68/#69 combined record) to qa/verification/archive/campaign-6ed3834-run8-run9-closure.json, then start your own record in CURRENT_CAMPAIGN.json, checkpointing scenario-by-scenario. If you hit a provider/session limit, checkpoint FIRST; verdict stays PENDING/BLOCKED.
+
+History (do not trust, do verify): #8 found D58-D67 (static), implementing session fixed + mutation-proved; #9 found D68-D76 (static), implementing session fixed + mutation-proved (run8_defect_closure_contract.mjs now 40/40 incl. the run9 section; lifecycle suite 92/92 incl. P8; Section S comment-stripped; dead Section G deleted). KNOWN_FAILURE_MODES #68/#69 record both cycles.
+
+Scenarios:
+1. EXECUTE the full battery yourself on 65ade7c exactly as committed (structured_claim_verification, structured_claim_laundering_contract, lifecycle_evidence_and_output_persistence_contract, run8_defect_closure_contract, issue5_confirmation_action_type_binding, all sem_ai_command_* truth suites, sem_ai_command_source_invariants_drift_guard). Any failure = report, do not fix.
+2. MUTATION-TEST the run8+run9 guards yourself — do not trust the implementing session's mutation claims. sha256 the file before/after every mutation; byte-identical restores required. Target especially: structuredProseDrift's groundedOutcomeThisTurn arm, the terminator loop (each terminator char), the abbreviation guard direction (does it skip too much? craft a question where the guard WRONGLY protects an assertion: "ACME was archived. and now?" — lowercase after period!), safeDisplayLabel each clause, pendingActionGatingChanged each contributing site, the option-label fallback chain.
+3. ATTACK the run9 fixes' seams: lowercase-after-period assertions surviving the abbreviation guard; assertions ending in '…' vs the cut order; labels exactly 80/81 chars; PAST_COMPLETION-shaped labels in canonical company names (does a REAL company named with an assertion collapse to "the company" everywhere, and is that acceptable degradation or a new denial-of-name defect?); pendingActionGatingChanged false-negatives (fields equal but arrays reordered); the D68 honest-floor text itself matching LEGACY_PAST_COMPLETION (loop risk?); structuredProseDrift on deterministic-clarification/disambiguation models (excluded from legacyProseFallback but not from rewriteFromStructure — is a truthful clarification turn now corrupted?).
+4. Confirm production v92 ACTIVE and untouched (`npx supabase functions list`); zero writes from your session.
+5. Bookkeeping honesty: KNOWN_FAILURE_MODES #69 postscript accuracy, run9 section expectations, the "42/42 unchanged proves the duplicate never counted" claim.
+
+Record defects with ids D77+. End with an explicit verdict: DEPLOY GATE OPEN (all P0/P1 from runs 7-9 closed, no new P0/P1, battery+mutations independently executed) or DO NOT DEPLOY with exact reasons.
+
+Standing safety rules: no deploys, no production writes, scripts/safe-function-download.sh for any deployed-copy need, working-tree writes only under qa/verification/**.

@@ -1,0 +1,13 @@
+PASS CRITICAL: a person named directly in the command is present in merged context even when outside the base capped list (the real test4-shaped incident, for a person)
+PASS merge adds exactly the one new person, not a duplicate of anything already capped
+PASS a person already present in the capped list is never duplicated by the named lookup merge
+PASS exactly one copy of the already-capped person survives the merge
+PASS a distinctive name token ("test4") is extracted from the command text
+PASS a generic stopword ("active") is filtered out, same as the company-name fix
+PASS a memory about a currently-active person is annotated "active"
+PASS a memory about a currently-inactive (ended employment) person is annotated "inactive"
+PASS CRITICAL: a memory about a PERMANENTLY DELETED person (no longer in people at all) is annotated "not_found", never left to free-text inference — the exact defect class 15e868a closed for companies, closed here for people
+PASS a company-tagged memory is not given a (meaningless) personCurrentStatus
+PASS a person-tagged memory with no entity_id at all is not given a fabricated status either
+
+ALL REGRESSIONS PASSED

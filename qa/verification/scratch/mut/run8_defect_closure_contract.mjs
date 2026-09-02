@@ -18,10 +18,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS } from '../../../scenarios-runner/_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
+const SRC = process.env.SEM_INDEX_SRC ? resolve(process.cwd(), process.env.SEM_INDEX_SRC) : resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
 const src = readFileSync(SRC, 'utf8');
 
 function extractStructuredBlock(source) {
@@ -196,9 +196,9 @@ check('D73 the envelope carries the GATED pendingAction, assertion stripped, que
     return r.envelope.pendingAction.summary === null && r.envelope.pendingAction.question === 'Which company did you mean?'; })());
 
 // D74: a model-authored runtime label cannot smuggle an assertion or a uuid into prose.
-check('D74 an assertion-shaped runtime label renders QUOTED - identity kept, statement-reading removed (run10/D79 refinement)',
+check('D74 an assertion-shaped runtime label collapses to the typed reference',
   run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false, summary: 'The task was created.',
-    runtime: { ['task|' + ID]: 'ACME has been archived' } }).summary === '“ACME has been archived”: created.');
+    runtime: { ['task|' + ID]: 'ACME has been archived' } }).summary === 'the task: created.');
 check('D74b a uuid-bearing label collapses to the typed reference',
   run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false, summary: 'The task was created.',
     runtime: { ['task|' + ID]: 'task ' + ACME } }).summary === 'the task: created.');

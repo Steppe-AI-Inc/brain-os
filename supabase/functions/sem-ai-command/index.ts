@@ -4530,13 +4530,31 @@ serve(async (req) => {
         // are scrubbed, length is bounded, and a label that reads as a completion
         // assertion ("ACME has been archived") collapses to the typed reference — the
         // F5 invariant holds against label-smuggling, not only claim fields.
+        // run10/D79: run9's collapse-on-assertion erased real identities — a company
+        // genuinely named "Was Archived Holdings" became "the company" on its OWN
+        // supported line, and two such disambiguation options collapsed to IDENTICAL
+        // labels (a dead-ended flow). The F5 concern (label-smuggled assertions) is
+        // answered by QUOTING instead of erasing: an assertion-shaped label renders as
+        // "Was Archived Holdings" — framed as a NAME exactly the way the lifecycle
+        // lines have always framed titles (Task "NAME": archived) — keeping identity
+        // and uniqueness while making the text unmistakably a label, not a statement.
+        // uuid-bearing labels still collapse to the typed reference: an id is never a
+        // name under any framing.
         const safeDisplayLabel = (raw: unknown): string | null => {
           if (typeof raw !== 'string') return null;
           let label = raw.trim();
           if (label.length === 0) return null;
           if (UUID_IN_TEXT.test(label)) return null;
           if (label.length > 80) label = label.slice(0, 77) + '…';
-          if (PAST_COMPLETION_CLAIM_PATTERN.test(label)) return null;
+          if (PAST_COMPLETION_CLAIM_PATTERN.test(label) || COMPLETION_WORD.test(label)) {
+            // A COMPOUND assertion (aux-completion plus a conjunction/comma clause —
+            // "ACME has been archived and all tasks were deleted") is a sentence, not
+            // a name, under any framing: it collapses to the typed reference. A short
+            // assertion-shaped NAME ("Was Archived Holdings", a task titled "Verify
+            // the contract was approved by legal") keeps its identity, quoted.
+            if (PAST_COMPLETION_CLAIM_PATTERN.test(label) && /(\band\b|,|;)/i.test(label)) return null;
+            return `“${label}”`;
+          }
           return label;
         };
         const displayName = (resourceType: string, id: string): string => {
@@ -4605,8 +4623,16 @@ serve(async (req) => {
         // ASCII one; matching only ASCII was a real bypass (run8, future-promise case).
         const FUTURE_PROMISE_IN_QUESTION = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
         const safeQuestionFragment = (s: unknown): string | null => {
-          const t = safeProseFragment(s);
-          if (t === null) return null;
+          // run10 (R10.paQuestion): the base gate runs on the SURVIVING question, not
+          // the raw input — pre-rejecting the whole string for an assertion in its
+          // preamble threw away the genuine question the structural cut exists to
+          // rescue ("ACME has been archived. Which did you mean?" must yield "Which
+          // did you mean?", not null). Only the uuid check applies to the whole input:
+          // an id anywhere means the fragment was never founder-safe.
+          if (typeof s !== 'string') return null;
+          const t = s.trim();
+          if (t.length === 0) return null;
+          if (UUID_IN_TEXT.test(t)) return null;
           if (!t.includes('?')) return null; // the question channel carries questions
           const lastQ = t.lastIndexOf('?');
           const head = t.slice(0, lastQ);
@@ -4614,13 +4640,26 @@ serve(async (req) => {
           // and newlines, not only . ! ？), while a '.' followed by a lowercase letter or
           // digit is an abbreviation/decimal ("Acme Inc. still interested?", "1.5"), not
           // a boundary — cutting there corrupted legitimate questions.
+          // run10/D77+D83: the '.' guard direction was INVERTED in run9 — "any lowercase
+          // /digit after the period" treated EVERY mid-sentence continuation as an
+          // abbreviation, so "I archived ACME. ok?" survived whole (re-opening run8
+          // D61 for lowercase continuations). A '.' is a boundary UNLESS the token
+          // BEFORE it is abbreviation-shaped (a known abbreviation or a single letter)
+          // or it sits between digits (a decimal). And an ASCII '?' inside the head IS
+          // a cut point (D83): in "I archived ACME, right? Continue?" the tag question
+          // must not shield the assertion in front of it.
+          const KNOWN_ABBREVIATION = /^(inc|ltd|co|corp|llc|plc|gmbh|dr|mr|mrs|ms|jr|sr|st|no|nr|vs|etc|approx|dept|div)$/i;
           let cut = -1;
           for (let k = head.length - 1; k >= 0; k--) {
             const ch = head[k];
-            if (ch === '!' || ch === ';' || ch === ':' || ch === '…' || ch === '。' || ch === '！' || ch === '？' || ch === '—' || ch === '\n') { cut = k; break; }
+            if (ch === '!' || ch === '?' || ch === ';' || ch === ':' || ch === '…' || ch === '。' || ch === '！' || ch === '？' || ch === '—' || ch === '\n') { cut = k; break; }
             if (ch === '.') {
+              const beforeWordMatch = head.slice(0, k).match(/([A-Za-z0-9.]+)$/);
+              const beforeWord = beforeWordMatch ? beforeWordMatch[1].replace(/\.+$/, '') : '';
               const next = head[k + 1] === ' ' ? head[k + 2] : head[k + 1];
-              if (next !== undefined && /[a-z0-9]/.test(next)) continue; // abbreviation/decimal
+              const decimal = /[0-9]$/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
+              const abbreviation = /^[A-Za-z]$/.test(beforeWord) || KNOWN_ABBREVIATION.test(beforeWord);
+              if (decimal || abbreviation) continue;
               cut = k; break;
             }
           }
@@ -4651,6 +4690,26 @@ serve(async (req) => {
           if (t.length === 0) return null;
           if (t.length > 80) t = t.slice(0, 77) + '…';
           if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return null;
+          // run10/D78: run9's repair over-corrected — dropping the completion check let
+          // every non-aux completion shape ("ACME deleted", "I archived ACME", "Done:
+          // ACME deleted") render under "Options:" and replay as "Confirmed — ACME
+          // deleted." Restored with a NAME-SHAPE discriminator instead of the old
+          // blanket word test: a label carrying completion vocabulary is refused
+          // (falling back to the derived canonical reference — never blank, never
+          // accepted) UNLESS it is Title-Cased throughout the way real names are.
+          // "Closed Loop Systems" survives as itself; "ACME deleted" cannot — the
+          // lowercase participle is sentence syntax, not name casing, in any bicameral
+          // script (Cyrillic included).
+          if (COMPLETION_WORD.test(t)) {
+            const NAME_CONNECTOR = /^(of|to|in|at|on|by|for|and|or|the|a|an|de|von|van|&)$/i;
+            // Quote characters are handled via charCode, never inside a regex class —
+            // a literal quote in a class breaks the QA extractor's string-skipper
+            // (it reads it as a string opening and swallows the rest of the window).
+            const QUOTE_CODES = [34, 39, 8220, 8216];
+            const words = t.split(/\s+/).map((w) => (QUOTE_CODES.includes(w.charCodeAt(0)) ? w.slice(1) : w));
+            const titleCasedName = words.every((w) => /^[\p{Lu}0-9(&[-]/u.test(w) || NAME_CONNECTOR.test(w));
+            if (!titleCasedName) return null;
+          }
           return t;
         };
         // A pendingAction summary describes what WOULD happen — it is replayed next
@@ -4660,7 +4719,29 @@ serve(async (req) => {
           const t = safeProseFragment(s);
           if (t === null) return null;
           if (t.length > 200) return null;
-          if (COMPLETION_WORD.test(t)) return null;
+          // run10/D84: the blanket word test refused LEGITIMATE imperative summaries
+          // ("Mark 3 tasks as done", "Archive ACME (currently closed)"), silently
+          // dropping the visible prompt while the destructive action payload stayed
+          // armed — worse than what it prevented. A pending summary describes what
+          // WOULD happen: an imperative-led summary is exactly that shape and is
+          // allowed; what is refused is an ASSERTION — the aux-verb shapes, or a
+          // completion participle as the summary's final content word ("ACME deleted"),
+          // which replays as "Confirmed — ACME deleted."
+          const IMPERATIVE_LEAD = /^(archive|restore|create|delete|update|assign|reassign|mark|set|move|end|add|remove|rename|close|clear|send|grant|decline|approve|reject|complete|activate|deactivate|make|change)\b/i;
+          if (!IMPERATIVE_LEAD.test(t)) {
+            // run10 (R10.paSummaryWord): an assertion-LED compound ("ACME deleted —
+            // also purge its tasks") hides the participle behind a continuation, so
+            // the HEAD clause is tested the same way as the tail.
+            const headClause = t.split(/[—;,.\n]/)[0].trim();
+            if (/\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined|done)$/i.test(headClause)) return null;
+            // Trailing closers (incl. quote chars, stripped via charCode — a literal
+            // quote in a regex class breaks the QA extractor's string-skipper) are
+            // peeled before the participle-tail test.
+            let tail = t;
+            const CLOSER_CODES = [34, 39, 8221, 8217, 41, 93, 46, 33, 32];
+            while (tail.length > 0 && CLOSER_CODES.includes(tail.charCodeAt(tail.length - 1))) tail = tail.slice(0, -1);
+            if (/\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined|done)$/i.test(tail)) return null;
+          }
           return t;
         };
 
@@ -4767,7 +4848,10 @@ serve(async (req) => {
         let pendingActionGatingChanged = false;
         if (result.pendingAction && typeof result.pendingAction === 'object') {
           const paObj = result.pendingAction;
-          const beforeSummary = paObj.summary, beforeQuestion = paObj.question;
+          // run10/D80: normalized to null BEFORE comparing — an absent key is the same
+          // gated outcome as an explicit null, and undefined !== null was flagging a
+          // spurious re-persist on most clarification turns.
+          const beforeSummary = paObj.summary ?? null, beforeQuestion = paObj.question ?? null;
           paObj.summary = safePendingSummary(paObj.summary);
           paObj.question = safeQuestionFragment(paObj.question);
           if (paObj.summary !== beforeSummary || paObj.question !== beforeQuestion) pendingActionGatingChanged = true;
@@ -4814,6 +4898,8 @@ serve(async (req) => {
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
         const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+
+        const EXECUTION_IN_PROGRESS = /\b(executing (?:the )?(?:plan|request|action|changes?)|i['’]?m (?:now )?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining)|now (?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting))\b/i;
         // A supported mutation/assignment claim is the only thing that can account for
         // completion wording. State, existence, historical and verification claims cannot —
         // that asymmetry is exactly what L7/L8/L9/L10 exploited.
@@ -4830,7 +4916,7 @@ serve(async (req) => {
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
-          && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
+          && (LEGACY_PAST_COMPLETION.test(String(result.summary || '')) || EXECUTION_IN_PROGRESS.test(String(result.summary || '')));
 
         // run7/D52: a single supported mutation claim used to disarm the drift check
         // entirely, so the model could pair one real create with fabricated completion
@@ -4864,9 +4950,23 @@ serve(async (req) => {
         // Unaccounted completion prose on ANY grounded turn now re-renders; ungrounded
         // turns keep hitting the legacy gate. Truthful read-only answers are unaffected
         // (no grounding, or no completion wording).
+        // run10 (Work-PC E-multi live case + founder item 4): "Confirmed. Executing the
+        // plan to reassign CLIX GPS…" — a PROGRESSIVE execution fabrication on a bare
+        // "yes", zero DB changes. Past-completion regexes never saw it. Progressive/
+        // present-continuous execution claims join the drift vocabulary — defense-in-
+        // depth only, evidence remains primary: with matching execution evidence the
+        // turn re-renders from that evidence anyway; without it, no execution-progress
+        // claim may survive.        // run10/D81: the drift arm keyed on bare groundedOutcomeThisTurn floored
+        // TRUTHFUL history ("ACME was created on 2026-03-01…") on resolution-grounded
+        // read-only turns — a truth DEGRADATION. The arm now requires something
+        // STRUCTURAL to re-render from (a deterministic report, execution evidence, or
+        // the model's own claims array); a resolution-only grounded turn keeps its
+        // prose (v92-parity on that narrow shape, disclosed), while the D68
+        // factLines-only case stays caught via deterministicPrefix.
         const unaccountedCompletionProse = !hasSupportedMutationClaim
-          && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
-        const structuredProseDrift = unaccountedCompletionProse && (rawClaims !== null || groundedOutcomeThisTurn);
+          && (LEGACY_PAST_COMPLETION.test(String(result.summary || '')) || EXECUTION_IN_PROGRESS.test(String(result.summary || '')));
+        const structuredProseDrift = unaccountedCompletionProse
+          && (rawClaims !== null || deterministicPrefix.length > 0 || claimExecutionEvidence.length > 0);
         const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim || hasConfirmedMutationEvidenceInWindow || structuredProseDrift;
         const claimsPastCompletionWithNoGrounding = rewriteFromStructure || legacyProseFallback;
 

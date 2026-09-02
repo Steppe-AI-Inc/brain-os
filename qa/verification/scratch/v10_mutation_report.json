@@ -1,0 +1,383 @@
+{
+ "index_ts_sha256_before": "0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006",
+ "index_ts_sha256_after": "0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006",
+ "untouched": true,
+ "baseline_exits": {
+  "structured_claim_verification": 0,
+  "structured_claim_laundering_contract": 0,
+  "lifecycle_evidence_and_output_persistence_contract": 0,
+  "run8_defect_closure_contract": 0
+ },
+ "mutants": [
+  {
+   "id": "M01",
+   "desc": "D68: drop the groundedOutcomeThisTurn arm of structuredProseDrift",
+   "result": "KILLED",
+   "expectation": "KILL (D68)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D68 factLines-only grounding no longer shields pre-written completion prose"
+   ]
+  },
+  {
+   "id": "M02",
+   "desc": "D68: remove the honest non-empty floor",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (no test renders an all-gated re-render)",
+   "killed_by": []
+  },
+  {
+   "id": "M03.1",
+   "desc": "D69: drop terminator \"!\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.2",
+   "desc": "D69: drop terminator \";\"",
+   "result": "KILLED",
+   "expectation": "KILL (D69)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D69 semicolon-joined assertion is cut from the question"
+   ]
+  },
+  {
+   "id": "M03.3",
+   "desc": "D69: drop terminator \":\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.4",
+   "desc": "D69: drop terminator \"…\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.5",
+   "desc": "D69: drop terminator \"。\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.6",
+   "desc": "D69: drop terminator \"！\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.7",
+   "desc": "D69: drop terminator \"？\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.8",
+   "desc": "D69: drop terminator \"—\"",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M03.9",
+   "desc": "D69: drop the newline terminator",
+   "result": "KILLED",
+   "expectation": "KILL (D69b)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D69b newline-joined assertion is cut"
+   ]
+  },
+  {
+   "id": "M04",
+   "desc": "D70: remove the abbreviation/decimal guard (always cut at \".\")",
+   "result": "KILLED",
+   "expectation": "KILL (D70/D70b)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D70 an abbreviation period does NOT truncate a legitimate question | FAIL D70b a decimal does NOT truncate a legitimate question"
+   ]
+  },
+  {
+   "id": "M05",
+   "desc": "D70: widen the guard to any letter (skip uppercase continuations too)",
+   "result": "KILLED",
+   "expectation": "KILL (D61 present tense)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D61 present tense assertion never reaches the corrected summary | FAIL D61 simple past assertion never reaches the corrected summary | FAIL D61 imperative/done assertion never reaches the corrected summary"
+   ]
+  },
+  {
+   "id": "M06",
+   "desc": "D69c: remove the belt over the surviving question",
+   "result": "SURVIVED",
+   "expectation": "KILL (D69c)",
+   "killed_by": []
+  },
+  {
+   "id": "M07",
+   "desc": "question channel: drop the \"must contain ?\" rule",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M08",
+   "desc": "question channel: drop the future-promise refusal",
+   "result": "SURVIVED",
+   "expectation": "KILL (D61 future promise)",
+   "killed_by": []
+  },
+  {
+   "id": "M09",
+   "desc": "D74: safeDisplayLabel drops the uuid scrub",
+   "result": "KILLED",
+   "expectation": "KILL (D74b)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D74b a uuid-bearing label collapses to the typed reference"
+   ]
+  },
+  {
+   "id": "M10",
+   "desc": "D74: safeDisplayLabel drops the length bound",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M11",
+   "desc": "D74: safeDisplayLabel drops the assertion collapse",
+   "result": "KILLED",
+   "expectation": "KILL (D74)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D74 an assertion-shaped runtime label collapses to the typed reference"
+   ]
+  },
+  {
+   "id": "M12",
+   "desc": "D74: canonical-name arm bypasses safeDisplayLabel",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE? (canonical arm untested)",
+   "killed_by": []
+  },
+  {
+   "id": "M13",
+   "desc": "D74: empty/whitespace label not refused",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M14",
+   "desc": "D73: flag site 1 (summary/question) never set",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (flag unobserved)",
+   "killed_by": []
+  },
+  {
+   "id": "M15",
+   "desc": "D73: flag site 2 (option label) never set",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (flag unobserved)",
+   "killed_by": []
+  },
+  {
+   "id": "M16",
+   "desc": "D73: flag site 3 (arrays) never set",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (flag unobserved)",
+   "killed_by": []
+  },
+  {
+   "id": "M17",
+   "desc": "D73: flag removed from the persist condition",
+   "result": "KILLED",
+   "expectation": "KILL (P8)",
+   "killed_by": [
+    "lifecycle_evidence_and_output_persistence_contract: FAIL P8 a gated-pendingAction turn IS persisted (run9/D73)"
+   ]
+  },
+  {
+   "id": "M18",
+   "desc": "D72: fallback uses \"option N\" instead of the derived canonical reference",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (D72 only asserts non-blank)",
+   "killed_by": []
+  },
+  {
+   "id": "M19",
+   "desc": "D72: fallback blanks the label again",
+   "result": "KILLED",
+   "expectation": "KILL (D72)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D72 an assertion-shaped label falls back to a derived reference, never blank"
+   ]
+  },
+  {
+   "id": "M20",
+   "desc": "D72: trailing-punctuation repair removed",
+   "result": "KILLED",
+   "expectation": "KILL (D72b)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D72b a legitimate name with a trailing period is REPAIRED, not blanked"
+   ]
+  },
+  {
+   "id": "M21",
+   "desc": "D72: option-label truncation removed",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE?",
+   "killed_by": []
+  },
+  {
+   "id": "M22",
+   "desc": "D72: post-repair assertion test removed in safeOptionLabel",
+   "result": "SURVIVED",
+   "expectation": "expect SURVIVE (redundant with safeProseFragment)",
+   "killed_by": []
+  },
+  {
+   "id": "M23",
+   "desc": "D58: evidence no longer arms the rewrite",
+   "result": "KILLED",
+   "expectation": "KILL (D58a)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D58a a REAL create with claims:null is REPORTED, never denied | FAIL D58a2 the runtime label names the created row when the write site captured one | FAIL D74 an assertion-shaped runtime label collapses to the typed reference"
+   ]
+  },
+  {
+   "id": "M24",
+   "desc": "D58b3: drift arm dropped entirely",
+   "result": "KILLED",
+   "expectation": "KILL (D58b3/D68)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D58b3 state-only claims + fabricated mutation prose is re-rendered (structured-mode prose drift) | FAIL D68 factLines-only grounding no longer shields pre-written completion prose"
+   ]
+  },
+  {
+   "id": "M25",
+   "desc": "D59: re-add the pendingAction short-circuit to the legacy gate",
+   "result": "KILLED",
+   "expectation": "KILL (D59)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D59 pendingAction no longer shields a fabricated completion from the legacy gate"
+   ]
+  },
+  {
+   "id": "M26",
+   "desc": "D60: in-place pendingAction summary gating removed",
+   "result": "KILLED",
+   "expectation": "KILL (D60)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D60 envelope.pendingAction.summary never carries a completion assertion | FAIL D73 the envelope carries the GATED pendingAction, assertion stripped, question intact"
+   ]
+  },
+  {
+   "id": "M27",
+   "desc": "D60: in-place pendingAction question gating removed",
+   "result": "SURVIVED",
+   "expectation": "KILL (D73 check)",
+   "killed_by": []
+  },
+  {
+   "id": "M28",
+   "desc": "D60: safePendingSummary completion-word refusal removed",
+   "result": "SURVIVED",
+   "expectation": "KILL (D60)",
+   "killed_by": []
+  },
+  {
+   "id": "M29",
+   "desc": "D62: render the model expectedValue instead of the canonical actual",
+   "result": "KILLED",
+   "expectation": "KILL (D62)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D62 the correction quotes the canonical actual, not model-authored expectedValue"
+   ]
+  },
+  {
+   "id": "M30",
+   "desc": "D62b: absent predicate is contradicted again",
+   "result": "KILLED",
+   "expectation": "KILL (D62b)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D62b a predicate absent from the canonical row is UNKNOWN — no rendered correction"
+   ]
+  },
+  {
+   "id": "M31",
+   "desc": "D64: unclaimed lines dropped on fully-deterministic turns",
+   "result": "KILLED",
+   "expectation": "KILL (D64)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D64 a fully-deterministic turn appends the unclaimed department create"
+   ]
+  },
+  {
+   "id": "M32",
+   "desc": "D65: id-less create claim fold removed",
+   "result": "KILLED",
+   "expectation": "KILL (D65)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D65 id-less create claim renders once, as the evidence line"
+   ]
+  },
+  {
+   "id": "M33",
+   "desc": "D67: runtime labels ignored",
+   "result": "KILLED",
+   "expectation": "KILL (D58a2/D74c)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D58a2 the runtime label names the created row when the write site captured one | FAIL D74c an honest label still renders"
+   ]
+  },
+  {
+   "id": "M34",
+   "desc": "D75/D63: evidence site commented out with a BLOCK comment",
+   "result": "KILLED",
+   "expectation": "KILL (Section S)",
+   "killed_by": [
+    "lifecycle_evidence_and_output_persistence_contract: FAIL S live guarded site: person end_employment (guarded) | FAIL S live evidence site: person end_employment"
+   ]
+  },
+  {
+   "id": "M35",
+   "desc": "D75/D63: evidence site guard weakened (records on any reason)",
+   "result": "KILLED",
+   "expectation": "KILL (Section S guarded)",
+   "killed_by": [
+    "lifecycle_evidence_and_output_persistence_contract: FAIL S live guarded site: person end_employment (guarded)"
+   ]
+  },
+  {
+   "id": "M36",
+   "desc": "D75: evidence site neutralised via a trailing comment",
+   "result": "KILLED",
+   "expectation": "KILL (Section E + S)",
+   "killed_by": [
+    "lifecycle_evidence_and_output_persistence_contract: FAIL E company-archive: a REAL confirmed change RECORDS evidence | FAIL S live guarded site: company archive (guarded)"
+   ]
+  },
+  {
+   "id": "M37",
+   "desc": "D61: structural cut disabled (keep whole text)",
+   "result": "KILLED",
+   "expectation": "KILL (D61)",
+   "killed_by": [
+    "run8_defect_closure_contract: FAIL D61 present tense assertion never reaches the corrected summary | FAIL D61 simple past assertion never reaches the corrected summary | FAIL D61 imperative/done assertion never reaches the corrected summary"
+   ]
+  },
+  {
+   "id": "M38",
+   "desc": "F5/D54: safeValueText uuid scrub removed",
+   "result": "KILLED",
+   "expectation": "KILL (D54/X7)",
+   "killed_by": [
+    "lifecycle_evidence_and_output_persistence_contract: DRIFT X7   [CONTRACT] a real canonical uuid arriving via predicate/expectedValue never reaches founder prose (run7/D54 FIXED)"
+   ]
+  }
+ ]
+}
