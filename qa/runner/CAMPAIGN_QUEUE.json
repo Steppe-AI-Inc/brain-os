@@ -2,19 +2,25 @@
   "_doc": "The supervisor's explicit work queue for named test suites - the things a coverage percentage cannot express (a 200-turn conversation is one capability but many hours). The scheduler reads this AFTER ready-for-retest bugs and BEFORE generic untested coverage. Directors update item status; they must not delete items. This file is what lets the node resume the exact in-flight campaign after a crash or reboot instead of restarting completed evidence.",
   "schema_version": 1,
   "campaign_id": "C002",
-  "last_updated": "2026-09-01T00:00:00Z",
-  "status_values": ["QUEUED", "IN_PROGRESS", "PARTIAL", "DONE", "BLOCKED"],
+  "last_updated": "2026-09-02T09:25:21Z",
+  "status_values": [
+    "QUEUED",
+    "IN_PROGRESS",
+    "PARTIAL",
+    "DONE",
+    "BLOCKED"
+  ],
   "_status_rule": "PARTIAL requires a partial_reason naming exactly what was and was not covered. DONE requires evidence recorded in CAPABILITY_INVENTORY.json. A director may never mark DONE to clear the queue.",
-
   "items": [
     {
       "id": "C002-ISSUE5-H-50TURN",
       "order": 10,
       "priority": "P1",
-      "status": "IN_PROGRESS",
+      "status": "PARTIAL",
       "title": "Issue #5 item H - 50-turn continuity run (resume from turn 13)",
-      "progress": "12 of 50 turns complete in channel 937eedf9. Anchor code ZEBRA-7714 was planted at turn 1 and must be probed near turn 50.",
-      "directive": "Resume the 50-turn Brain Chat continuity run in the EXISTING channel 937eedf9 - do not start a new channel, that would discard 12 turns of valid evidence. Continue from turn 13. Near turn 50, probe the anchor planted at turn 1 by asking Brain to recall the code ZEBRA-7714 without restating it. Record: (a) whether the anchor survives, (b) whether the off-by-one reply lag already observed at turns 8 and 10 persists or worsens, (c) whether any pending action becomes bindable. Update BUG-005 class A and D evidence. If the channel is unreachable, record why and start a fresh run with a NEW anchor rather than silently substituting one."
+      "progress": "17 turns exercised in channel 937eedf9; findings recorded to BUG-005 item_H_50turn_findings.",
+      "directive": "Resume the 50-turn Brain Chat continuity run in the EXISTING channel 937eedf9 - do not start a new channel, that would discard 12 turns of valid evidence. Continue from turn 13. Near turn 50, probe the anchor planted at turn 1 by asking Brain to recall the code ZEBRA-7714 without restating it. Record: (a) whether the anchor survives, (b) whether the off-by-one reply lag already observed at turns 8 and 10 persists or worsens, (c) whether any pending action becomes bindable. Update BUG-005 class A and D evidence. If the channel is unreachable, record why and start a fresh run with a NEW anchor rather than silently substituting one.",
+      "partial_reason": "Item H produced its decision-useful result early: default-prompt continuity questions fabricate out-of-window history (T13 named turn 3 as turn 1) while explicit anti-guess prompts disclose the limit honestly (T17); the visible window is renumbered from T1. Root class = truncation-without-metadata, same as BUG-007. The mechanical march to literal turn 50 is deprioritised - it would re-demonstrate the same limit(8) behaviour without adding signal. The anchor-at-turn-50 sub-test is superseded (the anchor was never persisted to turn 1; DB-proven). Remaining long-run value shifts to the 100/200-turn item for compaction-boundary behaviour."
     },
     {
       "id": "C002-BUG007-CLASS-SWEEP",

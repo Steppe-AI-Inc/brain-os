@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-02T09:19:16Z",
+  "last_updated": "2026-09-02T09:25:21Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -310,7 +310,7 @@
         "A": {
           "title": "Same-channel history continuity - Brain loses/denies recent history, claims current message is first in channel",
           "status": "OPEN - NOT IMPLEMENTED (architecture gap)",
-          "work_pc_disposition": "CONFIRMED FAILING (live reproduction)",
+          "work_pc_disposition": "REPRODUCED at browser level and EXPLAINED. Default-prompt continuity questions about out-of-window history are answered with confident fabrications (T13 named turn 3 as turn 1); the same questions with an explicit anti-guess instruction are answered honestly (T17). Root cause is truncation-without-metadata on conversationHistory, the same class as BUG-007. Parent BUG-005 stays OPEN pending C/E disposition.",
           "home_pc_measurement": "history retrieval is a hard limit(8). At 50/100/200 turns only 8 turns visible (16%/8%/4%), first turn unreachable, ZERO canonical IDs in window. Longest real production channel to date is 7 turns, so this has never fired in production yet - guaranteed to at 50+.",
           "work_pc_evidence": "Single clean channel 44dafd9a, 3 consecutive user turns, only 1 work_orders row persisted. This is NOT the limit(8) retrieval window the Home PC measured - at 3 turns that window cannot apply. Turns are not being WRITTEN, which is a different mechanism from not being READ.",
           "hypothesis_for_home_pc": "UNPROVEN, needs Home-PC confirmation: BUG-002 fix wired claimsPastCompletionWithNoGrounding into the SAME work_orders.output persist-condition as claimsFutureActionWithNoPlan. If that condition suppresses persistence for turns whose text trips the pattern, then the BUG-002 fix may be AMPLIFYING the Class A continuity defect. Work PC did not read that code path and is not asserting this - flagged as the highest-value thing for Home PC to check first.",
@@ -411,7 +411,28 @@
         "detail": "Pending clarifications survive both navigating away/back and a hard reload, re-asking the SAME question about the SAME entity. No target or action switching. This is a meaningful narrowing of the diagnosis: context survives; binding does not.",
         "invalid_first_attempt_disclosed": "The first G1 run was INVALID and is not counted: the channel URL was captured before it resolved from ?new=1 to a real channel id, so 'returning' actually opened a fresh channel. Re-run with a URL-resolution wait before trusting it. Recorded so the discarded attempt is not silently dropped."
       },
-      "home_pc_structural_fix_status": "PREPARED, NOT APPLIED: master 3527244 adds the durable channel-state migration (the actionType persistence shape this bug needs) plus review record 2bc8542, explicitly gated on founder DB authorization. Deployed edge fn still v92. BUG-005 stays OPEN; no retest is possible until the migration is applied and a new function version ships."
+      "home_pc_structural_fix_status": "PREPARED, NOT APPLIED: master 3527244 adds the durable channel-state migration (the actionType persistence shape this bug needs) plus review record 2bc8542, explicitly gated on founder DB authorization. Deployed edge fn still v92. BUG-005 stays OPEN; no retest is possible until the migration is applied and a new function version ships.",
+      "item_H_50turn_findings": {
+        "channel": "937eedf9-01d7-4b19-a3e1-392142546a57",
+        "persisted_turns_note": "The user text persists in work_orders.command (NOT input.*). Ground-truth turn 1 = 'How many companies do we have?'. 15 user turns persisted; earlier the UI showed 12 turns for 10 persisted rows, reproducing the Class A persistence loss at scale.",
+        "finding_1_prompt_dependent_honesty": {
+          "verdict": "THE decision-useful result of item H.",
+          "without_meta_instruction": "T13 'what was my very first message?' -> Brain answered CONFIDENTLY and WRONGLY: 'Which company has the most people?' - which is turn 3, not turn 1. No hedge, no disclosure of a window limit.",
+          "with_meta_instruction": "T16/T17 'say so if you cannot see it' -> Brain disclosed correctly: 'I cannot confirm this is your absolute first message', and correctly reported the ZEBRA anchor as not in visible history. So the honesty is available but PROMPT-DEPENDENT, not structural.",
+          "why_it_matters": "A founder will not append 'and admit it if you cannot see' to normal questions. In the default case Brain fabricates a plausible wrong continuity answer. Per CLAUDE.md 6, presenting unavailable history as known is itself a defect."
+        },
+        "finding_2_window_relabeled_as_T1": {
+          "verbatim": "Brain: 'The conversation history shows 8 prior turns (T1 through T15...)'.",
+          "interpretation": "The limit(8) retrieval window is renumbered to START at T1. The earliest VISIBLE turn is always presented as the channel's first turn. This is the exact mechanism behind the issue #5 symptom 'Brain claims the current/earliest message is the first in the channel' - it is not model amnesia, it is the window being handed over with no 'showing last 8 of N' metadata."
+        },
+        "finding_3_root_class_unification": {
+          "class": "TRUNCATION WITHOUT METADATA (CLAUDE.md 6 and 12).",
+          "statement": "This is the SAME root class as BUG-007. BUG-007: entity arrays ship a Total with no Shown, so the model cannot know the array was truncated. This: conversationHistory ships the last 8 turns with no visible-vs-total-turns pair, so the model cannot know the history was truncated and renumbers the window from T1. One fix pattern addresses both: every truncated collection - entity lists AND conversation history - must carry {shown,total,isTruncated}.",
+          "home_pc_implication": "The prepared durable channel-state migration (master 3527244) addresses actionType persistence (Class D). It does NOT by itself address this: even with perfect persistence, if the retrieval still hands over 8 turns labelled T1.. with no truncation metadata, T13-style fabrication recurs. The context-pack builder needs a turns_total / turns_shown / history_truncated triple, mirrored in the system prompt, exactly like the entity Shown/Total fix."
+        },
+        "anchor_test_disposition": "SUPERSEDED / inconclusive as originally framed. The planted ZEBRA-7714 is NOT in the persisted turn-1 command (DB proof), so 'does the anchor survive 50 turns' cannot be measured on this channel - the anchor never entered durable history (itself consistent with Class A loss). The direct turn-1 recall probe above is a stronger test of the same property and does not depend on the anchor.",
+        "off_by_one_lag": "Not reproduced in the T13-T17 batch (T13/T15 aligned correctly). Yesterday it appeared at turns 8 and 10. So the lag is intermittent, not deterministic - downgrade any claim that it is constant."
+      }
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",

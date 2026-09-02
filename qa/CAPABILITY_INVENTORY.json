@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-02T09:19:16Z",
+  "generated_at": "2026-09-02T09:25:21Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1953,6 +1953,86 @@
       "status": "FAIL",
       "bug_id": "BUG-009",
       "evidence": "/brain?new=1 -> HTTP 404 today; chat is at /chat. 2026-09-01 evidence recorded working sessions under /brain."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "v92-edge",
+      "scenario_ids": [
+        "C002-50turn-H"
+      ],
+      "capability_id": "CAP-CHAT-HISTORY-TRUNCATION-DISCLOSED",
+      "domain": "brain-chat",
+      "resource": "conversation_history",
+      "operation": "out_of_window_history_question_discloses_limit_by_default",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "T13 (no meta-instruction): 'your very first message was \"Which company has the most people?\"' - actually turn 3, stated with no hedge. The default path fabricates rather than disclosing the limit(8) window."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "v92-edge",
+      "scenario_ids": [
+        "C002-50turn-H"
+      ],
+      "capability_id": "CAP-CHAT-HISTORY-HONEST-WHEN-ASKED",
+      "domain": "brain-chat",
+      "resource": "conversation_history",
+      "operation": "discloses_history_limit_when_explicitly_instructed",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "PASS",
+      "bug_id": "BUG-005",
+      "evidence": "T16/T17 with an explicit anti-guess instruction: 'I cannot confirm this is your absolute first message' and correctly reported the ZEBRA anchor as not visible. Honesty exists but is prompt-dependent - recorded PASS so the FAIL above is not misread as 'the model always fabricates'."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "v92-edge",
+      "scenario_ids": [
+        "C002-50turn-H"
+      ],
+      "capability_id": "CAP-CHAT-HISTORY-WINDOW-NOT-RENUMBERED",
+      "domain": "brain-chat",
+      "resource": "conversation_history",
+      "operation": "visible_window_not_relabeled_as_channel_start",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-005",
+      "evidence": "Brain describes '8 prior turns (T1 through T15)': the limit(8) window is renumbered from T1, so the earliest visible turn always looks like the channel's first. This is the mechanism behind the issue #5 'this is the first message' symptom."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "v92-edge",
+      "scenario_ids": [
+        "C002-50turn-H"
+      ],
+      "capability_id": "CAP-CHAT-COMPANY-ACTIVE-COUNT-ACCURATE",
+      "domain": "brain-chat",
+      "resource": "companies",
+      "operation": "active_company_count_matches_db",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "AGGREGATION"
+      ],
+      "status": "PASS",
+      "evidence": "T14 'how many companies are active?' -> '9'; DB active=9. Correct. Note vs BUG-007: the active count is right; BUG-007 concerns the archived/total split reported from the window, which remains the open defect."
     }
   ]
 }
