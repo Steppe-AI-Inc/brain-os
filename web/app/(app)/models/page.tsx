@@ -3,10 +3,12 @@ import { BarChart3, Settings2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getAiProviders } from "@/lib/data/ai-providers";
+import { getModelActivity } from "@/lib/data/usage";
 import { ModelBudgetAnalyzer } from "./model-budget-analyzer";
+import { ModelActivityCard } from "./model-activity-card";
 
 export default async function ModelsPage() {
-  const providers = await getAiProviders();
+  const [providers, activity] = await Promise.all([getAiProviders(), getModelActivity()]);
   const activeModel = providers.find((provider) => provider.is_active)?.model ?? null;
 
   return (
@@ -22,6 +24,7 @@ export default async function ModelsPage() {
           </Link>
         }
       />
+      <ModelActivityCard activity={activity} configuredModel={activeModel} />
       <ModelBudgetAnalyzer activeModel={activeModel} />
     </div>
   );
