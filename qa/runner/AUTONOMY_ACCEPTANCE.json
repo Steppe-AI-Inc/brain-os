@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-09-01T08:42:54Z",
+  "_doc": "Autonomy acceptance results. A and H are recorded by the live supervisor run, not by this harness - they require an actually-running director to kill.",
+  "results": [
+    {
+      "id": "F",
+      "title": "Duplicate supervisor is refused leadership",
+      "status": "PASS",
+      "evidence": "second instance exit=4; LEASE DENIED - another supervisor holds leadership. Standing down. {\"supervisor_id\":\"b37a347e-26ba-4956-b0f0-6840e1ef75a0\",\"pid\":6244,\"host\":\"DESKTOP-8P5HVAO\",\"acquired_at\":\"2026-09-01T08:42:50Z\",\"renewed_at\":\"2026-09-01T08:42:50Z\"}"
+    },
+    {
+      "id": "E",
+      "title": "Unchanged SHA + NOT_TESTED still produces work",
+      "status": "PASS",
+      "evidence": "kind=untested_coverage hasWork=true label=\"1 NOT_TESTED capabilities remain (CAP-SECURITY-TENANT-ISOLATION first)\"",
+      "note": "The high-risk-first ordering also put the security capability at the head of the batch."
+    },
+    {
+      "id": "D",
+      "title": "Fix report -> severity-ordered retest, gated on the build actually shipping",
+      "status": "PASS",
+      "evidence": "severity order picked B-P0 (expected B-P0); undeployed-fix state = WAITING_FOR_DEPLOYMENT",
+      "note": "The second half is the important one: retesting a fix against a build that predates it is a FALSE_SUCCESS."
+    },
+    {
+      "id": "C",
+      "title": "New deployment is detected and provenance re-established",
+      "status": "PASS",
+      "evidence": "detected=true; recorded edge version now = 92 (live probe, source: supabase functions list (live))"
+    },
+    {
+      "id": "G",
+      "title": "Shared synthetic world is gated by a fixture registry",
+      "status": "PASS",
+      "evidence": "4 fixtures, all carrying an access_scope; 4 shared-scope",
+      "note": "Proves the SAFETY GATE exists and every fixture is scoped. It does NOT by itself prove concurrent specialists were run - that is campaign evidence and is tracked separately."
+    },
+    {
+      "id": "B",
+      "title": "Windows restart -> auto-start -> campaign restored",
+      "status": "NOT_EXECUTED",
+      "evidence": "Scheduled task installed: false",
+      "note": "A reboot cannot be performed from this session, and the auto-start task registration was refused by the permission layer. This is the single remaining founder-visible acceptance step."
+    }
+  ],
+  "counts": {
+    "pass": 5,
+    "fail": 0,
+    "not_executed": 1
+  }
+}

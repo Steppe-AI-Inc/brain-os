@@ -1,0 +1,92 @@
+{
+  "_doc": "The supervisor's explicit work queue for named test suites - the things a coverage percentage cannot express (a 200-turn conversation is one capability but many hours). The scheduler reads this AFTER ready-for-retest bugs and BEFORE generic untested coverage. Directors update item status; they must not delete items. This file is what lets the node resume the exact in-flight campaign after a crash or reboot instead of restarting completed evidence.",
+  "schema_version": 1,
+  "campaign_id": "C002",
+  "last_updated": "2026-09-01T00:00:00Z",
+  "status_values": ["QUEUED", "IN_PROGRESS", "PARTIAL", "DONE", "BLOCKED"],
+  "_status_rule": "PARTIAL requires a partial_reason naming exactly what was and was not covered. DONE requires evidence recorded in CAPABILITY_INVENTORY.json. A director may never mark DONE to clear the queue.",
+
+  "items": [
+    {
+      "id": "C002-ISSUE5-H-50TURN",
+      "order": 10,
+      "priority": "P1",
+      "status": "IN_PROGRESS",
+      "title": "Issue #5 item H - 50-turn continuity run (resume from turn 13)",
+      "progress": "12 of 50 turns complete in channel 937eedf9. Anchor code ZEBRA-7714 was planted at turn 1 and must be probed near turn 50.",
+      "directive": "Resume the 50-turn Brain Chat continuity run in the EXISTING channel 937eedf9 - do not start a new channel, that would discard 12 turns of valid evidence. Continue from turn 13. Near turn 50, probe the anchor planted at turn 1 by asking Brain to recall the code ZEBRA-7714 without restating it. Record: (a) whether the anchor survives, (b) whether the off-by-one reply lag already observed at turns 8 and 10 persists or worsens, (c) whether any pending action becomes bindable. Update BUG-005 class A and D evidence. If the channel is unreachable, record why and start a fresh run with a NEW anchor rather than silently substituting one."
+    },
+    {
+      "id": "C002-BUG007-CLASS-SWEEP",
+      "order": 20,
+      "priority": "P2",
+      "status": "QUEUED",
+      "title": "BUG-007 class sweep - the other four entities missing a Shown counterpart",
+      "directive": "BUG-007 established that companies, people, projects, goals and inventory ship a Total with no Shown field, so the system prompt's truncation rule cannot fire for them. Companies is proven. Per CLAUDE.md #13, prove the CLASS rather than the instance: for projects, goals and inventory, create enough synthetic fixtures to exceed each entity's context window, then ask Brain a counting question and compare against DB truth. people is a special case - it currently answers correctly ONLY because the real total sits under its limit(30) window, so push it past 30 and confirm the defect is latent rather than absent. A green answer below the window is NOT evidence of a fix."
+    },
+    {
+      "id": "C002-ISSUE5-A-EXACT-TRANSCRIPT",
+      "order": 30,
+      "priority": "P1",
+      "status": "QUEUED",
+      "title": "Issue #5 item A - exact founder transcript replay",
+      "directive": "Replay the founder's exact reported sequence against a REGISTERED synthetic company: add employee -> Brain asks which company -> reply with a PARTIAL company name -> Brain asks 'did you mean X?' -> reply with a bare 'yes'. Assert the company's status is unchanged in the database immediately afterwards. This repro is destructive by design when it misfires (it archives a company), so it runs only against a registered synthetic fixture, never a real one."
+    },
+    {
+      "id": "C002-ISSUE5-B-CONFIRMATION-MATRIX",
+      "order": 40,
+      "priority": "P1",
+      "status": "QUEUED",
+      "title": "Issue #5 item B - confirmation variant matrix",
+      "directive": "Class B previously PASSED on a bare 'yes' but was corrected to PARTIAL PASS after a bare 'yes' bound to an unrelated restructuring plan. Run the full variant matrix - 'yes', 'yeah', 'do it', 'that one', 'sure', 'ok', 'go ahead', 'confirm' - each against a fresh registered fixture, and assert no destructive operation occurs for any of them. Record each variant as its own capability so a single passing variant can never stand in for the class."
+    },
+    {
+      "id": "C002-ISSUE5-CD-MATRICES",
+      "order": 50,
+      "priority": "P1",
+      "status": "QUEUED",
+      "title": "Issue #5 Classes C and D - dedicated matrices",
+      "directive": "Classes C (stale grounding / contradictory execution claims) and D (execution-state continuity) still lack dedicated matrices. Build them. For D specifically, remember the measured fact: 0 of 51 persisted pending actions carry an actionType, so continuity cannot hold structurally - design the matrix to demonstrate that at the browser level rather than re-deriving it from SQL. The parent defect stays OPEN until all of A-E have independent Work-PC disposition; passing one class must never produce CLOSED for the parent."
+    },
+    {
+      "id": "C002-ISSUE5-IJK",
+      "order": 60,
+      "priority": "P2",
+      "status": "QUEUED",
+      "title": "Issue #5 items I/J/K - 100-turn, 200-turn and compaction-boundary runs",
+      "directive": "Run the 100-turn (I) and 200-turn (J) continuity sweeps and the compaction-boundary test (K). These are long; checkpoint evidence every ~25 turns so a crash costs at most one block. The Home PC measured only 8 turns visible at 50/100/200 turns (16%/8%/4%) with zero canonical IDs in the window - the Work PC's job is the browser-level consequence of that, not to re-derive the measurement."
+    },
+    {
+      "id": "C002-ISSUE5-L-MUTATION-CLAIM-PARITY",
+      "order": 70,
+      "priority": "P1",
+      "status": "QUEUED",
+      "title": "Issue #5 item L - mutation result must equal final claim",
+      "directive": "For every mutating command, assert that what the database actually did equals what Brain finally claimed it did. This is the generic guard behind BUG-002: it must reason structurally about the operations actually executed, not about how the response is phrased or what it ends with. Build it as a reusable check other suites call, not a one-off."
+    },
+    {
+      "id": "C001-REMAINING-CRUD",
+      "order": 80,
+      "priority": "P2",
+      "status": "QUEUED",
+      "title": "C001 remainder - Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands",
+      "directive": "Finish the C001 coverage that was paused when issue #5 arrived: Organisation Business Units in both models, Projects CRUD, Goals, Tasks editing, and multi-action commands. Missing UI edit controls count as defects, not as untestable. Continue probing whether descendants of archived companies remain operationally actionable rather than merely displayed incorrectly."
+    },
+    {
+      "id": "C002-TEAM-READY-SECURITY",
+      "order": 90,
+      "priority": "P1",
+      "status": "QUEUED",
+      "title": "TEAM-READY security - persona matrix, tenant and group isolation",
+      "directive": "Run the persona x resource matrix from qa/SECURITY_MATRIX.md against production with SQL impersonation, plus cross-company and cross-group isolation. Per the constitution, no role may be called secure on the strength of one passing test, and every security claim must state its exact verified scope. Test the underlying tables directly, not only the safe views, and confirm the AI context path leaks nothing the direct query denies."
+    },
+    {
+      "id": "C002-SYNTHETIC-WORLDS",
+      "order": 100,
+      "priority": "P3",
+      "status": "QUEUED",
+      "title": "Randomised synthetic digital-twin worlds",
+      "directive": "Generate randomised synthetic worlds per the digital-twin charter and run business-acceptance scenarios end to end. Every fixture must be REGISTERED in FIXTURE_REGISTRY.json before any mutation, and every synthetic person must carry the real-name synthetic marker so no synthetic record can be mistaken for a real one."
+    }
+  ]
+}

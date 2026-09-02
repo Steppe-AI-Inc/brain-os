@@ -2,3 +2,9 @@
 supabase/.temp/
 node_modules/
 .env
+
+# Work-PC autonomous QA supervisor runtime files (machine-local, never committed)
+qa/runner/logs/
+qa/runner/.supervisor.lock
+qa/runner/SUPERVISOR_STATE.json.tmp
+qa/runner/SUPERVISOR_STATE.json.corrupt-*

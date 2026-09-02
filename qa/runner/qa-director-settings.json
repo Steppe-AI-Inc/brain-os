@@ -1,0 +1,29 @@
+{
+  "_doc": "Safety settings for the UNATTENDED QA Director. The deny list is defence in depth; the PreToolUse hook is the actual barrier because it inspects the real command string rather than matching a prefix. See CLAUDE.md #22 for the incident that motivated it.",
+  "permissions": {
+    "deny": [
+      "Bash(supabase db push:*)",
+      "Bash(supabase db reset:*)",
+      "Bash(supabase migration up:*)",
+      "Bash(supabase migration repair:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(vercel promote:*)",
+      "Bash(vercel rollback:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\DELL\\My Drive\\17.4. R&D CLAUDE CODE\\brain-os-sem-brain-v1\\qa\\runner\\hooks\\block-destructive.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
