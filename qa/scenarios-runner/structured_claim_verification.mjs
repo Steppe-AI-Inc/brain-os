@@ -290,37 +290,3 @@ if (failures.length) {
   for (const f of failures) console.log('  - ' + f);
   process.exit(1);
 }
-// =======================================================================================
-// SECTION G - LEGACY PROSE FALLBACK. Preserves the fabrication corpus from the three
-// superseded prose generations (#62/#64/#65). That fallback is still a LIVE code path: it
-// runs only when the model emits NO structured claims, and its sole job is to keep this
-// build from being WORSE than deployed v92 on an unstructured response. It is never
-// consulted when structured claims exist.
-// =======================================================================================
-for (const summary of [
-  'The approval has been approved.',
-  'The company was archived successfully.',
-  'The task has been completed.',
-]) {
-  check('G legacy fallback catches unstructured fabrication - ' + summary.slice(0, 38),
-    run({ claims: null, evidence: [], summary }).corrected === true,
-    'With no structured claims this must be at least as good as deployed v92.');
-}
-for (const summary of [
-  'Here are your companies.',
-  'I do not see that task - it may have been archived or deleted.',
-]) {
-  check('G legacy fallback leaves a truthful reply alone - ' + summary.slice(0, 38),
-    run({ claims: null, evidence: [], summary }).corrected === false);
-}
-// run7/D52 CONTRACT CHANGE (intentional, same commit as the fix): 'corrected' is now
-// TRUE here because a mutation-claim turn is re-rendered from verified structure and the
-// re-rendered summary must persist. The load-bearing assertion is that the fabricated
-// approval sentence does not survive - prose is re-rendered, never re-parsed (#65 item 8).
-{
-  const g = run({ claims: [mut('company', A, 'archive')], evidence: [ev('company', 'archive', A)], summary: 'The approval has been approved.' });
-  check('G a mutation-claim turn is re-rendered; the fabricated sentence does not survive (run7/D52)',
-    g.corrected === true && !/approval has been approved/.test(g.summary),
-    'One supported claim must not disarm the truth gate for unrelated fabricated prose.');
-}
-

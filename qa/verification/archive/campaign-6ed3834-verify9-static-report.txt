@@ -1,0 +1,33 @@
+recorded verifier9 attempt 1 as blocked
+  "1_battery": {"status": "BLOCKED (execution); run8 27/27 hand-traced consistent (CODE INSPECTED)"},
+  "2_attacks": {"status": "FAILED", "defects": ["D68","D69","D70","D71","D72","D73","D74"]},
+  "3_mutation": {"status": "BLOCKED (execution); static kill-analysis: hasConfirmedMutationEvidenceInWindow→D58a, structuredProseDrift→D58b3, pendingAction short-circuit→D59, in-place gating→D60, structural cut→D61 loop, canonical-actual render→D62, hasOwnProperty→D62b, RESTATED filter→D64, fold→D65"},
+  "4_section_s": {"status": "PARTIALLY VERIFIED — CRLF ok, // form caught; block/trailing comments and string literals still satisfy (D75)"},
+  "5_production_v92": {"status": "BLOCKED — npx refused; writes from this session: ZERO"},
+  "6_bookkeeping": {"status": "PARTIALLY VERIFIED — run8 expectations honest; D60 closure overstated (D73); duplicated uncounted Section G (D76)"}
+ },
+ "defects_found": [
+  {"id":"D68","severity":"P1","title":"factLines-only-grounded turn (failure/zero-count lines) ships and persists pre-written completion prose with claims:null — structuredProseDrift requires a claims array, evidence trigger needs a success","lines":"4348-4351, 4794-4797"},
+  {"id":"D69","severity":"P2","title":"safeQuestionFragment cut misses ; newline … 。 ！ : — ; 'I archived ACME; anything else?' ships","lines":"4596-4599"},
+  {"id":"D70","severity":"P2","title":"cut truncates legitimate questions at 'Inc.'/'1.5' periods — truthful-reply corruption persisted into pendingAction.question","lines":"4598"},
+  {"id":"D71","severity":"P3","title":"COMPLETION_WORD gaps (ended/moved/added/granted/confirmed/renamed/declined/closed/done/cleared/sent, non-English)","lines":"4606"},
+  {"id":"D72","severity":"P2","title":"safeOptionLabel blanks legitimate names (trailing '.', >80, completion words in names); blanked option unselectable via matchDisambiguationOption","lines":"4607-4614, 4726, 412-420"},
+  {"id":"D73","severity":"P2","title":"in-place gating not durable: p_output (3729) snapshot is raw and re-persist (4975) does not fire on a plain pendingAction turn; comment 4718 and KFM #68 'D60 closed' overstated","lines":"3729, 4720-4731, 4975"},
+  {"id":"D74","severity":"P2","title":"displayName renders model-authored runtime labels (and canonical names) raw — no uuid scrub, no bound, unquoted: 'ACME has been archived: created.'; F5 breach via label","lines":"2641-2645, 4514-4532"},
+  {"id":"D75","severity":"P3","title":"Section S liveSrc filter is line-prefix based; block-comment bodies, trailing comments, string literals satisfy it","lines":"lifecycle suite 272"},
+  {"id":"D76","severity":"P3","title":"structured_claim_verification.mjs duplicated Section G after exit guard (since 72dabe6) — 6 uncounted checks that cannot fail the suite","lines":"293-325"}
+ ],
+ "regressions_added": [], "regressions_to_add": "see final report (D68, D69, D73, D74 check() lines)",
+ "pending_db_pushes": [], "prepared_fixes": [], "live_verified_fixes": [],
+ "synthetic_entities_created": "none", "production_writes": "ZERO",
+ "global_integrity_assertions": "NOT RUN (no DB access); AI false execution claims: D68 shape reachable → AI ↔ DB contradiction class open → FAIL",
+ "verdict": "DO NOT DEPLOY",
+ "verdict_reasons": ["battery/mutation/v92 checks BLOCKED — no independent execution", "D68 P1 open", "D72/D73/D74 P2 open"]
+}
+```
+
+## Founder-approval section
+* No DB migrations pending. No deploys performed.
+* **Decision needed:** grant verifiers `node qa/scenarios-runner/*` execution and `qa/verification/**` write permission; otherwise the next verifier (#10) will produce the same CODE-INSPECTED-only result.
+
+[exited with code 0]

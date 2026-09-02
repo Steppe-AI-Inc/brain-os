@@ -6641,3 +6641,35 @@ gained the typographic apostrophe the models actually emit — the ASCII-only fo
 never matched a curly-quoted "I'll" since the day it shipped. Permanent suite:
 qa/scenarios-runner/run8_defect_closure_contract.mjs (27/27), all guards mutation-proven
 including the D63 negative control (a commented-out evidence site now FAILS Section S).
+
+
+## #69 — 6ed3834 (run8 closure) verified by #9 (static): DO NOT DEPLOY — grounding could still shield prose, and the new gates had real seams
+
+Verifier #9, 2026-09-02, campaign #69 on 6ed3834. Attempt 1 PROVIDER_CAPACITY_BLOCKED;
+attempt 2 ran but its permission layer refused ALL script execution even with the agent's
+own permissionMode:auto (second consecutive static-only campaign — the dispatch-tooling
+gap is now its own tracked issue). Findings D68-D76, all CODE INSPECTED; full report:
+qa/verification/archive/campaign-6ed3834-verify9-static-report.txt.
+
+D68 (P1): a factLines-only-grounded turn (failed/zero-count deletions) shipped
+pre-written completion prose with claims:null — grounding switched the legacy gate off
+while nothing switched the rewrite on. D69/D70: the structural question cut missed
+; : … 。 ！ em-dash and newlines, and truncated legitimate questions at "Inc."/"1.5".
+D71: COMPLETION_WORD gaps. D72: a blanked option label made its disambiguation option
+unselectable. D73: the in-place pendingAction gating was not durable — the RPC's raw
+p_output snapshot survived on plain clarification turns ("D60 closed" was overstated).
+D74: displayName rendered model-authored labels raw (the implementing session had
+flagged this same channel to #9 for adjudication — confirmed as an F5 breach). D75:
+Section S's liveSrc filter was line-prefix only. D76: a duplicated Section G ran
+uncounted after the exit guard since 72dabe6.
+
+**CLOSURE POSTSCRIPT (implementing session, same day):** all nine closed —
+unaccounted completion prose on ANY grounded turn now re-renders (with a non-empty
+honest floor); the cut knows the full terminator set with an abbreviation/decimal
+guard plus a belt over assertion-shaped questions; COMPLETION_WORD extended (still
+lexical + English-only for labels/summaries — disclosed); refused labels REPAIR or
+fall back to a derived safe reference, never ''; pendingActionGatingChanged joins the
+persist condition (suite P8); safeDisplayLabel bounds/scrubs/de-asserts every label
+displayName renders; Section S strips block+trailing comments; the dead duplicate is
+deleted (42/42 unchanged proves it never counted). run8 suite extended to 40/40 with
+the run9 section; all six new guards mutation-proven with sha-verified restores.

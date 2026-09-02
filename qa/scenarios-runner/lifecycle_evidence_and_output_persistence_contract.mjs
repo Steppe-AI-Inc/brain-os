@@ -162,6 +162,8 @@ const PERSIST_SLICE = slice(
 
 const runPersist = new AsyncFunction('supabase', 'result', 'workOrder', 'groundedOutcomeThisTurn',
   'lifecycleMismatchCorrections', 'model', 'claimsFutureActionWithNoPlan', 'claimsPastCompletionWithNoGrounding',
+  // run9/D73: the persist condition gained pendingActionGatingChanged — injected here.
+  'pendingActionGatingChanged',
   PERSIST_SLICE);
 
 async function persisted(opts) {
@@ -169,9 +171,16 @@ async function persisted(opts) {
   const sb = { from: () => ({ update: (payload) => ({ eq: async () => { wrote = payload; } }) }) };
   await runPersist(sb, { summary: opts.summary ?? 'corrected text' }, { id: 'wo-1' },
     opts.grounded ?? false, opts.mismatch ?? [], opts.model ?? 'gpt',
-    opts.future ?? false, opts.pastCompletion ?? false);
+    opts.future ?? false, opts.pastCompletion ?? false, opts.paGated ?? false);
   return wrote;
 }
+
+// run9/D73: a plain clarification turn whose pendingAction TEXT was gated must
+// re-persist (the RPC's p_output snapshot predates the gating), while P6's ordinary
+// uncorrected turn stays un-repersisted.
+check('P8 a gated-pendingAction turn IS persisted (run9/D73)',
+  (await persisted({ paGated: true })) !== null,
+  'Without this, the raw pendingAction snapshot is what a reload and the next-turn replay read back.');
 
 check('P1 a CORRECTED past-completion turn is persisted',
   (await persisted({ pastCompletion: true })) !== null,
@@ -269,7 +278,17 @@ check('R5 a rejected-claim turn is FLAGGED as needing persistence (claimsPastCom
 // denied/not_found/no-op result from recording evidence. Comment lines are stripped
 // first (LIVE code only), and the guard-carrying sites are asserted WITH their guards.
 // =======================================================================================
-const liveSrc = src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+// run9/D75: block comments are stripped as BLOCKS first (a line-prefix filter left
+// /* ... */ bodies in), then full-line // comments, then trailing // comments (the
+// [^:] guard keeps URLs like https:// intact). A literal inside a string in index.ts
+// would still satisfy this — accepted residual: such a string would itself be code
+// under review, and a false NEGATIVE here fails loudly rather than passing vacuously.
+const liveSrc = src
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n')
+  .filter((l) => !/^\s*\/\//.test(l))
+  .map((l) => l.replace(/([^:])\/\/.*$/, '$1'))
+  .join('\n');
 {
   const GUARDED_SITES = [
     ["person end_employment (guarded)", "if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true)"],

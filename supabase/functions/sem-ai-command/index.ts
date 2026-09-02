@@ -4524,11 +4524,26 @@ serve(async (req) => {
             : null;
           return typeof fromMap === 'string' && fromMap.length > 0 ? fromMap : null;
         };
+        // run9/D74: EVERY label displayName renders is ultimately writable by the model
+        // (runtime labels come from result.* request fields; canonical names were
+        // themselves created through requests). A label is a NAME, not a channel: uuids
+        // are scrubbed, length is bounded, and a label that reads as a completion
+        // assertion ("ACME has been archived") collapses to the typed reference — the
+        // F5 invariant holds against label-smuggling, not only claim fields.
+        const safeDisplayLabel = (raw: unknown): string | null => {
+          if (typeof raw !== 'string') return null;
+          let label = raw.trim();
+          if (label.length === 0) return null;
+          if (UUID_IN_TEXT.test(label)) return null;
+          if (label.length > 80) label = label.slice(0, 77) + '…';
+          if (PAST_COMPLETION_CLAIM_PATTERN.test(label)) return null;
+          return label;
+        };
         const displayName = (resourceType: string, id: string): string => {
           const row = canonicalById.get(resourceType + '|' + id);
           const canonical = row && (row.name || row.title || row.full_name);
-          const label = (typeof canonical === 'string' && canonical.length > 0 ? canonical : null)
-            || lastKnownLabel(resourceType, id);
+          const label = safeDisplayLabel(typeof canonical === 'string' && canonical.length > 0 ? canonical : null)
+            || safeDisplayLabel(lastKnownLabel(resourceType, id));
           if (label) return DEBUG_RESOURCE_IDS ? `${label} (${id})` : label;
           // No safe label exists. Use a neutral typed reference — never the raw id, and
           // never a fabricated name. The resourceType itself is MODEL-AUTHORED text on a
@@ -4595,21 +4610,47 @@ serve(async (req) => {
           if (!t.includes('?')) return null; // the question channel carries questions
           const lastQ = t.lastIndexOf('?');
           const head = t.slice(0, lastQ);
-          const cut = Math.max(head.lastIndexOf('.'), head.lastIndexOf('!'), head.lastIndexOf('？'));
+          // run9/D69+D70: the cut recognises the full terminator set (; : … 。 ！ em-dash
+          // and newlines, not only . ! ？), while a '.' followed by a lowercase letter or
+          // digit is an abbreviation/decimal ("Acme Inc. still interested?", "1.5"), not
+          // a boundary — cutting there corrupted legitimate questions.
+          let cut = -1;
+          for (let k = head.length - 1; k >= 0; k--) {
+            const ch = head[k];
+            if (ch === '!' || ch === ';' || ch === ':' || ch === '…' || ch === '。' || ch === '！' || ch === '？' || ch === '—' || ch === '\n') { cut = k; break; }
+            if (ch === '.') {
+              const next = head[k + 1] === ' ' ? head[k + 2] : head[k + 1];
+              if (next !== undefined && /[a-z0-9]/.test(next)) continue; // abbreviation/decimal
+              cut = k; break;
+            }
+          }
           const q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
           if (q.length === 0 || q.length > 200) return null;
           if (FUTURE_PROMISE_IN_QUESTION.test(q)) return null;
+          // Belt over the structural cut (run9): a completion assertion phrased AS the
+          // question itself ("Did you know ACME has been archived?") is still laundering.
+          if (PAST_COMPLETION_CLAIM_PATTERN.test(q)) return null;
           return q;
         };
         // Option labels are NAMES, never sentences: short, no terminal punctuation, no
         // completion vocabulary in any form the executor could be quoted with.
-        const COMPLETION_WORD = /\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed)\b/i;
+        // run9/D71: extended with the rest of the executor's completion vocabulary.
+        // Disclosed limitation: lexical and English-only — the structural question cut
+        // carries the load for questions; labels/summaries remain lexical.
+        const COMPLETION_WORD = /\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|ended|moved|added|granted|confirmed|renamed|declined|closed|done|cleared|sent)\b/i;
+        // run9/D72: a REPAIRING gate, not a blanking one — a blanked label made its
+        // disambiguation option unselectable (matchDisambiguationOption matches on the
+        // label the founder can see and type). Trailing punctuation is stripped, an
+        // over-long name is truncated, and only a label that asserts a completion or
+        // fails the base gate returns null — the CALLER then substitutes a safe derived
+        // label instead of an empty string.
         const safeOptionLabel = (s: unknown): string | null => {
-          const t = safeProseFragment(s);
+          let t = safeProseFragment(s);
           if (t === null) return null;
-          if (t.length > 80) return null;
-          if (/[.!?]$/.test(t)) return null;
-          if (COMPLETION_WORD.test(t)) return null;
+          t = t.replace(/[.!?\s]+$/, '').trim();
+          if (t.length === 0) return null;
+          if (t.length > 80) t = t.slice(0, 77) + '…';
+          if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return null;
           return t;
         };
         // A pendingAction summary describes what WOULD happen — it is replayed next
@@ -4717,15 +4758,40 @@ serve(async (req) => {
         // so the confirmation mechanism keeps working; only model-authored TEXT is
         // gated. The gated arrays also replace the raw ones on result itself, so the
         // persisted output never carries an ungated copy.
+        // run9/D73: the RPC already persisted a RAW snapshot of result as p_output
+        // BEFORE this gating ran, and the corrected re-persist below only fired on
+        // correction turns — so a plain clarification turn kept the ungated
+        // pendingAction durably. Tracked here: any field the gating actually changed
+        // forces the re-persist, closing the raw-snapshot window on exactly the turns
+        // that need it.
+        let pendingActionGatingChanged = false;
         if (result.pendingAction && typeof result.pendingAction === 'object') {
           const paObj = result.pendingAction;
+          const beforeSummary = paObj.summary, beforeQuestion = paObj.question;
           paObj.summary = safePendingSummary(paObj.summary);
           paObj.question = safeQuestionFragment(paObj.question);
+          if (paObj.summary !== beforeSummary || paObj.question !== beforeQuestion) pendingActionGatingChanged = true;
           if (Array.isArray(paObj.options)) {
-            for (const o of paObj.options) {
-              if (o && typeof o === 'object') o.label = safeOptionLabel(o.label) || '';
+            // run9/D72: never blank a label — an empty label makes the option
+            // unselectable in the disambiguation flow. A refused label falls back to a
+            // safe DERIVED reference from the option's own canonical identity.
+            for (let oi = 0; oi < paObj.options.length; oi++) {
+              const o = paObj.options[oi];
+              if (!o || typeof o !== 'object') continue;
+              const beforeLabel = o.label;
+              o.label = safeOptionLabel(o.label)
+                || (typeof o.id === 'string' && o.id ? displayName(typeof o.entityType === 'string' ? o.entityType : 'record', o.id) : `option ${oi + 1}`);
+              if (o.label !== beforeLabel) pendingActionGatingChanged = true;
             }
           }
+        }
+        // Same run9/D73 durability rule for the arrays: a dropped/reduced question or
+        // proposed action means the persisted copy must be the gated one, not the RPC's
+        // raw snapshot.
+        if ((Array.isArray(result.questions) ? result.questions.length : 0) !== envelopeQuestions.length
+          || (Array.isArray(result.proposedActions) ? result.proposedActions.length : 0) !== envelopeProposedActions.length
+          || envelopeQuestions.some((q, qi) => q !== (result.questions || [])[qi])) {
+          pendingActionGatingChanged = true;
         }
         result.questions = envelopeQuestions;
         result.proposedActions = envelopeProposedActions;
@@ -4791,8 +4857,16 @@ serve(async (req) => {
         // prose is accountable: completion wording with no supported mutation claim
         // behind it forces the re-render. Prose is still never PARSED for truth — the
         // re-render comes entirely from verified structure.
-        const structuredProseDrift = rawClaims !== null && !hasSupportedMutationClaim
+        // run9/D68 widened this from "claims array present" to "the turn is grounded at
+        // all": a turn grounded ONLY by factLines (a failed or zero-count deletion, a
+        // batch gap notice) shipped pre-written completion prose with claims:null —
+        // grounding switched the legacy gate off while nothing switched the rewrite on.
+        // Unaccounted completion prose on ANY grounded turn now re-renders; ungrounded
+        // turns keep hitting the legacy gate. Truthful read-only answers are unaffected
+        // (no grounding, or no completion wording).
+        const unaccountedCompletionProse = !hasSupportedMutationClaim
           && LEGACY_PAST_COMPLETION.test(String(result.summary || ''));
+        const structuredProseDrift = unaccountedCompletionProse && (rawClaims !== null || groundedOutcomeThisTurn);
         const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim || hasConfirmedMutationEvidenceInWindow || structuredProseDrift;
         const claimsPastCompletionWithNoGrounding = rewriteFromStructure || legacyProseFallback;
 
@@ -4898,6 +4972,12 @@ serve(async (req) => {
             ? [deterministicPrefix, ...unclaimedNotRestated, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
             : [deterministicPrefix, ...supportedLines, ...unclaimedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions];
           result.summary = claimParts.filter((p) => p && String(p).trim().length > 0).join(' ').trim();
+          // run9/D68: a drift-triggered re-render on a turn with nothing structural to
+          // say (grounded only by entity resolution, every fragment gated away) must not
+          // ship an EMPTY reply — the non-denial correction is the honest floor.
+          if (result.summary.length === 0) {
+            result.summary = 'I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app.';
+          }
         } else if (legacyProseFallback) {
           // run8/D59: with the pendingAction short-circuit removed, a genuine
           // clarification turn whose prose ALSO fabricated a completion lands here —
@@ -4972,7 +5052,11 @@ serve(async (req) => {
         // even carried two raw entity UUIDs directly in that never-corrected stored text -
         // the exact "no raw UUIDs in founder-facing text" invariant this campaign
         // otherwise holds elsewhere. Same fix shape as the rest of this comment.
-        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding) {
+        // run9/D73: pendingActionGatingChanged joins the persist condition — the RPC's
+        // p_output snapshot predates the gating, so a plain clarification turn whose
+        // pendingAction text WAS gated must re-persist or the raw text is what a reload
+        // and the next turn's "Confirmed — …" replay read back.
+        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding || pendingActionGatingChanged) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
 

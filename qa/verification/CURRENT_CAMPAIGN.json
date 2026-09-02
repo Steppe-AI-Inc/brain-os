@@ -3,7 +3,7 @@
  "base_commit": "e8678ec13695dfc7b349dffb1e9504f6038ff4b9",
  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit (no upstream on origin — local only)",
  "started_at": "2026-09-01T22:40:00+08:00",
- "last_checkpoint_at": "2026-09-02T-attempt2-defects-fixed",
+ "last_checkpoint_at": "2026-09-02T-run9-defects-fixed",
  "commit_status": "NOT COMMITTED — `git add qa/verification/` was also refused by the permission layer. Everything from this campaign lives uncommitted under qa/verification/ (CURRENT_CAMPAIGN.json, archive/campaign-25af3b0-structured-claim-hardening.json, proposed/v8_*, scratch/v8_*). Next session: `git add qa/verification/ && git commit` (touches no supabase/functions/** path, so no deploy workflow or pre-push hook fires). index.ts sha re-checked at the end: 61256b6e… unchanged; `git diff --quiet HEAD -- supabase/` clean.",
  "verifier": "independent verifier #8 (fresh context, campaign #68)",
  "prior_campaign": "verify-25af3b0 (run7) archived faithfully to qa/verification/archive/campaign-25af3b0-structured-claim-hardening.json (attempt 2 re-verified: sha256 of archive == sha256 of `git show HEAD:qa/verification/CURRENT_CAMPAIGN.json` = 10a76b4f8bf3df8ed7e151a7bcc3116ef8bad688070a9696e27bf45c272a75e7; NOT destroyed). Different base_commit -> all run7 evidence about e8678ec treated as UNVERIFIED; re-derived here.",
@@ -248,5 +248,25 @@
    "detail": "Resumed from attempt-1 record (base_commit matched, index.ts sha re-verified). Full source audit of the e8678ec diff + surrounding execution paths + both harnesses + web render path. 10 new defects (D58-D67) recorded with line-level traces; prepared (unexecuted) fix + attack-case suite under qa/verification/proposed/."
   }
  ],
- "trace_confirmation": "All 21 hand traces executed by the implementing session BEFORE any fix: 21/21 matched. After fixes: every LAUNDERING/FALSENEG case flipped to the fixed value (promoted suite records them as contracts)."
+ "trace_confirmation": "All 21 hand traces executed by the implementing session BEFORE any fix: 21/21 matched. After fixes: every LAUNDERING/FALSENEG case flipped to the fixed value (promoted suite records them as contracts).",
+ "verifier9_attempts": [
+  {
+   "attempt": 1,
+   "outcome": "BLOCKED — PROVIDER SESSION LIMIT",
+   "detail": "CLI exited 0; only output: \"You've hit your session limit · resets 2:20pm (Asia/Ulaanbaatar)\". Nothing ran. Classified PROVIDER_CAPACITY_BLOCKED — not PASS, not FAIL, not VERIFIED.",
+   "classification": "PROVIDER_CAPACITY_BLOCKED"
+  },
+  {
+   "attempt": 2,
+   "outcome": "COMPLETED — STATIC ONLY (execution refused by permission layer despite agent permissionMode:auto)",
+   "verdict": "DO NOT DEPLOY (D68 P1; D72/D73/D74 P2; battery unexecuted)",
+   "report": "qa/verification/archive/campaign-6ed3834-verify9-static-report.txt",
+   "defects": "D68-D76"
+  }
+ ],
+ "run9_closure": {
+  "status": "ALL D68-D76 FIXED by the implementing session, executed + mutation-proven (6 guards, sha-verified restores)",
+  "suite": "run8_defect_closure_contract.mjs run9 section (40/40), lifecycle P8, Section S hardened, dead Section G removed",
+  "note": "NOT self-certified — verifier #10 required; the execution-permission gap must be solved for #10 or it will be static-only again"
+ }
 }

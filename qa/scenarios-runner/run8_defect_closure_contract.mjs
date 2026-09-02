@@ -144,6 +144,68 @@ check('D65 id-less create claim renders once, as the evidence line',
 check('D65b the id-less claim is still REJECTED in the envelope (it never grounds)',
   run({ claims: [M('task', null, 'create')], evidence: [EV('task', 'create', ID)], summary: 'x' }).envelope.rejectedClaims.length === 1);
 
+// =======================================================================================
+// RUN9 SECTION — verifier #9 (static campaign #69 on 6ed3834) findings D68-D76, closed
+// in the same commit that adds these checks. Expectations are the FIXED behavior.
+// =======================================================================================
+
+// D68: a factLines-only-grounded turn (failure/zero-count lines) with claims:null must
+// re-render — grounding must never switch the legacy gate off while nothing switches
+// the rewrite on.
+{
+  const r = run({ claims: null, evidence: [], grounded: true, deterministicPrefix: 'Deleted 0 of 3 requested task(s).',
+    summary: 'Deleted 0 of 3 requested task(s). The tasks have been deleted successfully.' });
+  check('D68 factLines-only grounding no longer shields pre-written completion prose',
+    !/have been deleted/.test(r.summary) && /Deleted 0 of 3/.test(r.summary) && r.corrected === true);
+}
+check('D68b a truthful grounded read-only reply without completion wording is untouched',
+  run({ claims: null, evidence: [], grounded: true, summary: 'Here are your companies.' }).summary === 'Here are your companies.');
+
+// D69/D70: the structural cut knows the full terminator set AND does not butcher
+// abbreviations/decimals.
+check('D69 semicolon-joined assertion is cut from the question',
+  !run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['I archived ACME; anything else?'] }).summary.includes('archived ACME'));
+check('D69b newline-joined assertion is cut',
+  !run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['ACME deleted\nContinue?'] }).summary.includes('ACME deleted'));
+check('D70 an abbreviation period does NOT truncate a legitimate question',
+  run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['Is Acme Inc. still interested?'] }).summary.includes('Is Acme Inc. still interested?'));
+check('D70b a decimal does NOT truncate a legitimate question',
+  run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['Should the 1.5 allocation stay?'] }).summary.includes('Should the 1.5 allocation stay?'));
+check('D69c a completion assertion phrased AS the question is dropped entirely',
+  !run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['Did you know ACME has been archived?'] }).summary.includes('has been archived'));
+
+// D72: a refused option label falls back to a safe derived reference, never ''.
+{
+  const r = run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x',
+    pendingAction: { kind: 'disambiguation', question: 'Which one?', options: [
+      { label: 'ACME has been archived', id: ACME, entityType: 'company' },
+      { label: 'ACME Services.', id: ID, entityType: 'company' },
+    ] } });
+  const opts = r.envelope.pendingAction.options;
+  check('D72 an assertion-shaped label falls back to a derived reference, never blank',
+    opts[0].label.length > 0 && !/has been archived/.test(opts[0].label));
+  check('D72b a legitimate name with a trailing period is REPAIRED, not blanked',
+    opts[1].label === 'ACME Services');
+}
+
+// D73: gated pendingAction text is observable in the envelope (the re-persist flag
+// itself lives outside the window; the gated object is what it persists).
+check('D73 the envelope carries the GATED pendingAction, assertion stripped, question intact',
+  (() => { const r = run({ claims: null, evidence: [], grounded: false, summary: null,
+    pendingAction: { kind: 'single_entity_clarification', question: 'Which company did you mean?', summary: 'The company has been archived already' } });
+    return r.envelope.pendingAction.summary === null && r.envelope.pendingAction.question === 'Which company did you mean?'; })());
+
+// D74: a model-authored runtime label cannot smuggle an assertion or a uuid into prose.
+check('D74 an assertion-shaped runtime label collapses to the typed reference',
+  run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false, summary: 'The task was created.',
+    runtime: { ['task|' + ID]: 'ACME has been archived' } }).summary === 'the task: created.');
+check('D74b a uuid-bearing label collapses to the typed reference',
+  run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false, summary: 'The task was created.',
+    runtime: { ['task|' + ID]: 'task ' + ACME } }).summary === 'the task: created.');
+check('D74c an honest label still renders',
+  run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: false, summary: 'The task was created.',
+    runtime: { ['task|' + ID]: 'QA sweep task' } }).summary === 'QA sweep task: created.');
+
 console.log(`\nrun8_defect_closure_contract: ${pass}/${pass + failures.length} passed`);
 if (failures.length) {
   console.log('\nFAILURES:');
