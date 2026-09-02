@@ -1,7 +1,7 @@
 {
   "_doc": "Persistent supervisor state for the Work-PC autonomous QA node. Survives Claude process crashes, supervisor crashes, and Windows restarts - a fresh Fable QA Director invocation reads this FIRST to decide what to do, with zero dependence on conversational memory. NEVER contains secrets, tokens, cookies, storageState, or credentials.",
   "schema_version": 1,
-  "supervisor_state": "STOPPED_BY_POLICY",
+  "supervisor_state": "QA_CHECKPOINTING",
   "_supervisor_states": [
     "STARTING",
     "WATCHING",
@@ -18,18 +18,18 @@
     "STOPPED_BY_POLICY",
     "BOOTSTRAP"
   ],
-  "supervisor_pid": null,
-  "qa_director_pid": null,
-  "qa_director_session_id": null,
-  "campaign_id": "C001",
+  "supervisor_pid": 17568,
+  "qa_director_pid": 24260,
+  "qa_director_session_id": "39835bc8-96fa-4655-9f65-6d0ed0a52cf5",
+  "campaign_id": "C002",
   "latest_origin_master_sha": "15f46a92edfa697d53d7564c74b67852428f92c1",
   "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
   "last_tested_deployed_sha": null,
   "qa_artifact_sha": null,
-  "last_heartbeat": "2026-09-02T09:00:04Z",
-  "last_director_start": "2026-08-31T09:03:00Z",
+  "last_heartbeat": "2026-09-02T11:22:53Z",
+  "last_director_start": "2026-09-02T11:22:36Z",
   "last_successful_checkpoint": null,
-  "next_action": "FOUNDER GATE: start the node once. Either install auto-start (powershell -ExecutionPolicy Bypass -File qa/runner/install-autostart.ps1) or run node qa/runner/supervisor.mjs in a terminal. This session is not permitted to launch an unattended bypass-permissions agent itself. Until then the interactive session continues C002 manually.",
+  "next_action": "Reconcile 3 regression(s) still EXPECTED_FAIL on a CLOSED bug",
   "retry_count": 0,
   "last_error": null,
   "last_error_at": null,
@@ -50,9 +50,13 @@
     "vercel_cli_auth": "persisted OS-level credential (authenticated 2026-08-31 for deployment provenance)",
     "browser_session": "founder session already authenticated in the Playwright-controlled browser; storageState is exported to a LOCAL, GIT-IGNORED path only - never committed, never logged"
   },
-  "supervisor_lease_id": "0755c8fc-095c-4587-b3e0-30cb71acb51d",
-  "supervisor_started_at": "2026-09-02T08:52:21Z",
+  "supervisor_lease_id": "d4436b86-0fea-4ea3-a986-c3196db0012f",
+  "supervisor_started_at": "2026-09-02T11:22:32Z",
   "deployed_edge_function_version": 92,
   "deployed_build_source": "supabase functions list (live)",
-  "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness all implemented and tested (commit 79cdb2c)"
+  "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness all implemented and tested (commit 79cdb2c)",
+  "current_work_kind": "regression_reconcile",
+  "current_work_label": "Reconcile 3 regression(s) still EXPECTED_FAIL on a CLOSED bug",
+  "qa_director_browser_available": true,
+  "qa_director_tool_count": 51
 }
