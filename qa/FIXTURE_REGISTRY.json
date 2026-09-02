@@ -108,6 +108,32 @@
       "cleanup_status": "PENDING",
       "retained_for_regression": false,
       "notes": "Created VIA BRAIN CHAT (proving chat task-create works). priority=low, status=queued. Fell outside the 15-of-25 task context window, which is how the truncation-reporting behavior got tested."
+    },
+    {
+      "fixture_id": "FX-BUG006-GOAL",
+      "kind": "goal",
+      "name": "QA-BUG006-GOAL",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "campaign_id": "C002",
+      "purpose": "Active goal under an archived company - the exact case ArchivedCompanyBadge exists for. Built through product paths only: restore QA-VERIFY-BU, create goal, re-archive QA-VERIFY-BU.",
+      "cleanup": "RETAINED while BUG-006 regression needs a live archived-parent goal; archive via UI when retired.",
+      "registered_at": "2026-09-02T09:08:47Z",
+      "created_via": "product UI",
+      "entity_id": "6b85d2c2-f520-43a4-aeb3-76a311a89278"
+    },
+    {
+      "fixture_id": "FX-BUG006-PROJECT",
+      "kind": "project",
+      "name": "QA-BUG006-PROJECT",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "campaign_id": "C002",
+      "purpose": "Active project under an archived company, same badge case for the /projects surface.",
+      "cleanup": "RETAINED while BUG-006 regression needs it; archive via UI when retired.",
+      "registered_at": "2026-09-02T09:08:47Z",
+      "created_via": "product UI"
     }
-  ]
+  ],
+  "last_updated": "2026-09-02T09:19:16Z"
 }

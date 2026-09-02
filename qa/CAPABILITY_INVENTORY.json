@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-01T07:15:32Z",
+  "generated_at": "2026-09-02T09:19:16Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -1811,6 +1811,148 @@
       ],
       "status": "PASS",
       "evidence": "Brain said '16 people total in the workspace'; DB people_total = 16. Exact match. Noted because people is one of the five types missing a Shown field - it happens to be correct here only because the real total is below the .limit(30) window, so the defect is latent for people rather than absent."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-UI-GOALS-ARCHIVED-PARENT-BADGE",
+      "domain": "goals",
+      "resource": "goal",
+      "operation": "archived_parent_company_badged",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "QA-BUG006-GOAL (draft) under archived QA-VERIFY-BU renders \"QA-VERIFY-BU Archived\" on /goals. Fixture manufactured through product paths (restore, create, re-archive)."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-UI-PROJECTS-ARCHIVED-PARENT-BADGE",
+      "domain": "projects",
+      "resource": "project",
+      "operation": "archived_parent_company_badged",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "QA-BUG006-PROJECT (active) under archived QA-VERIFY-BU renders \"QA-VERIFY-BU Archived\" on /projects."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-UI-TASKS-ARCHIVED-PARENT-BADGE",
+      "domain": "tasks",
+      "resource": "task",
+      "operation": "archived_parent_company_badged",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "QA-VERIFY-TASK under archived QA-VERIFY-BU renders \"QA-VERIFY-BU Archived\" on /tasks. This render also proves af6a4f4 is the deployed web build - the badge on this surface exists only in that commit."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-UI-COMPANY-RESTORE-ROUNDTRIP",
+      "domain": "companies",
+      "resource": "company",
+      "operation": "restore_then_rearchive_via_product_paths",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "Restore via /companies/archived (trusted click required - a native DOM click does not fire the React handler), re-archive via Brain chat; both DB-confirmed. Round trip ended in the original archived state."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-CHAT-DIRECT-ARCHIVE-EXECUTES",
+      "domain": "brain-chat",
+      "resource": "company",
+      "operation": "direct_unambiguous_archive_executes_and_claim_matches_db",
+      "surface": "BRAIN_CHAT",
+      "required_truth_axes": [
+        "AI",
+        "DB"
+      ],
+      "status": "PASS",
+      "evidence": "\"Archive the company QA-VERIFY-BU\" -> \"QA-VERIFY-BU: archived.\" -> DB status archived. Claim equals DB truth (the BUG-002 axis). Observation, not a defect: no confirmation step was requested for this reversible destructive action - consistent with the design for explicit unambiguous commands; routed to the risk-policy review rather than filed."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-UI-GOALS-ARCHIVED-TAB-COUNT",
+      "domain": "goals",
+      "resource": "goal",
+      "operation": "archived_filter_tab_reflects_reality",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI",
+        "DB",
+        "AGGREGATION"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-008",
+      "evidence": "Tab says Archived 0; DB has 1 archived goal; the dedicated /goals/archived page lists it. The tab is structurally always 0."
+    },
+    {
+      "required_roles": [
+        "founder"
+      ],
+      "tested_against_sha": "af6a4f4-web+v92-edge",
+      "scenario_ids": [
+        "C002-bug006-retest"
+      ],
+      "capability_id": "CAP-ROUTE-BRAIN-CHAT-STABLE-URL",
+      "domain": "brain-chat",
+      "resource": "route",
+      "operation": "chat_deep_links_survive",
+      "surface": "UI",
+      "required_truth_axes": [
+        "UI"
+      ],
+      "status": "FAIL",
+      "bug_id": "BUG-009",
+      "evidence": "/brain?new=1 -> HTTP 404 today; chat is at /chat. 2026-09-01 evidence recorded working sessions under /brain."
     }
   ]
 }

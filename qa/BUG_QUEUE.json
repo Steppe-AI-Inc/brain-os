@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-01T07:15:32Z",
+  "last_updated": "2026-09-02T09:19:16Z",
   "updated_by": "fable-qa-director",
   "status_values": [
     "OPEN",
@@ -29,10 +29,10 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 2,
-    "open_p2": 2,
-    "open_p3": 0,
-    "total_open": 4,
-    "total_closed": 4
+    "open_p2": 1,
+    "open_p3": 2,
+    "total_open": 5,
+    "total_closed": 5
   },
   "bugs": [
     {
@@ -410,7 +410,8 @@
         "verdict": "PASS on the safety axis, FAIL on completion",
         "detail": "Pending clarifications survive both navigating away/back and a hard reload, re-asking the SAME question about the SAME entity. No target or action switching. This is a meaningful narrowing of the diagnosis: context survives; binding does not.",
         "invalid_first_attempt_disclosed": "The first G1 run was INVALID and is not counted: the channel URL was captured before it resolved from ?new=1 to a real channel id, so 'returning' actually opened a fresh channel. Re-run with a URL-resolution wait before trusting it. Recorded so the discarded attempt is not silently dropped."
-      }
+      },
+      "home_pc_structural_fix_status": "PREPARED, NOT APPLIED: master 3527244 adds the durable channel-state migration (the actionType persistence shape this bug needs) plus review record 2bc8542, explicitly gated on founder DB authorization. Deployed edge fn still v92. BUG-005 stays OPEN; no retest is possible until the migration is applied and a new function version ships."
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -436,7 +437,7 @@
       "bug_id": "BUG-006",
       "title": "ARCHIVED_PARENT_NOT_SURFACED class remainder - 23 company joins still omit companies.status",
       "severity": "P2",
-      "status": "OPEN",
+      "status": "CLOSED",
       "_relationship_to_bug_001": "BUG-001 covered the two originally-reported manifestations (/departments, /people), both now VERIFIED FIXED and CLOSED. This entry carries the CLASS so closing those two surfaces cannot be mistaken for closing the failure class. Split per founder instruction option B.",
       "campaign_id": "C002",
       "discovered_by": "fable-qa-director:C002 source audit",
@@ -457,7 +458,25 @@
       "home_pc_tracking": "Canonical Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0",
       "false_positive_warning": "A naive /archiv/i page-text check matches on /tasks and /goals because those pages carry an 'Archived' NAV LINK, not a badge. Any future retest must settle this from source or from a badge-specific selector, never from page text.",
       "implementation_recommendation": "Apply the same companies(name, status) + shared ArchivedCompanyBadge pattern already proven on departments/people across the remaining joins. The shared component already exists at web/components/archived-company-badge.tsx.",
-      "_qa_boundary": "QA does not implement fixes."
+      "_qa_boundary": "QA does not implement fixes.",
+      "fix_commit_sha": "af6a4f4092efb5253f4b40784dfcc9684000406d",
+      "fix_ingested_from": "master commit message only - NO machine-readable fix report was pushed to qa/home-pc-handoff/fixes/. Ingested by the Work PC from git log. The fix claims: canonical web/lib/data/company-ref.ts helper, all 24 join sites now select companies(name,status) including the named-FK documents join a literal sweep missed, ArchivedCompanyBadge added to Projects/Goals/Tasks.",
+      "fix_includes_home_pc_authored_qa_artifact": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs (drift guard) was authored by the HOME PC and shipped with the fix. Noted for the ownership ledger: regression-with-fix is what CLAUDE.md 12 requires, but the file lives in the Work-PC-owned tree; the Work PC will run it independently rather than trusting it.",
+      "deployment_note": "Web-surface fix (Vercel), so supabase functions list cannot prove deployment. The browser retest itself is the deployment probe: live rows attached to archived companies exist (2 tasks, 1 goal per the fix commit), so the badge is either there or it is not.",
+      "closed_at": "2026-09-02T09:19:16Z",
+      "closed_by": "work-pc-qa (independent retest, campaign C002)",
+      "verified_against": "web build containing af6a4f4 (proven deployed: the tasks badge only exists in that commit); edge fn v92",
+      "closure_evidence": {
+        "live_badges": {
+          "tasks": "QA-VERIFY-TASK row: \"QA-VERIFY-BU Archived\" - PASS",
+          "goals": "QA-BUG006-GOAL row: \"QA-VERIFY-BU Archived Ephemeral Draft\" - PASS",
+          "projects": "QA-BUG006-PROJECT row: \"QA-VERIFY-BU Archived active\" - PASS"
+        },
+        "fixture_build": "The active-row-under-archived-company state did not exist in production, so it was manufactured through PRODUCT PATHS ONLY: restored QA-VERIFY-BU via /companies/archived Restore, created the goal via the /goals dialog and the project via the /projects inline form, then re-archived via Brain chat (channel 7ea60731; claim 'QA-VERIFY-BU: archived' DB-confirmed). No SQL writes.",
+        "drift_guard": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs run INDEPENDENTLY by the Work PC against a clean origin/master worktree: 8/8 pass, 30 canonical joins, 0 bare joins.",
+        "scope_statement": "Live pixel proof covers tasks, goals, projects (this retest) plus departments and people (BUG-001 closure). The remaining join sites are source-and-guard verified, not individually pixel-verified. Closure is on the defect class as filed: no bare companies(name) join remains, and every high-value surface renders the archived marker."
+      },
+      "regression_state": "EXPECTED_PASS"
     },
     {
       "bug_id": "BUG-007",
@@ -493,6 +512,34 @@
         "qa/bugs/BUG-007.md"
       ],
       "_qa_boundary": "QA did not implement the fix."
+    },
+    {
+      "bug_id": "BUG-008",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "/goals status tab \"Archived 0\" is dead UI - archived goals are routed to /goals/archived, so the tab can never be non-zero",
+      "discovered_by": "work-pc-qa:C002 BUG-006 retest",
+      "discovered_at": "2026-09-02T09:19:16Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "expected": "Either the Archived tab reflects the real archived-goal count (DB had 1 at observation time) or it does not exist alongside a separate Archived page.",
+      "actual": "Main /goals shows \"Archived 0\" while /goals/archived lists QA-VERIFY-GOAL; clicking the tab renders \"No goals in this view\" unconditionally.",
+      "blast_radius": "Cosmetic/confusing only; no data issue. The dedicated page is correct.",
+      "ai_truth_classification": "UI-vs-UI internal inconsistency (same page contradicts its sibling page)"
+    },
+    {
+      "bug_id": "BUG-009",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "/brain returns 404 with no redirect; Brain chat now lives at /chat",
+      "discovered_by": "work-pc-qa:C002",
+      "discovered_at": "2026-09-02T09:19:16Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "expected": "If the chat route was renamed, the old route should redirect; Work-PC session evidence from 2026-09-01 recorded working chat sessions under /brain.",
+      "actual": "GET /brain?new=1 -> HTTP 404 (empty main). Nav labels \"Speak with Brain OS\" -> /chat, which works.",
+      "note_for_home_pc": "If the rename was intentional in the overnight multi-org commits, downgrade to WONTFIX-with-redirect-added; if not intentional, find what dropped the route. Founder bookmarks and stored deep links to /brain?channel=... are broken either way.",
+      "blast_radius": "Broken deep links/bookmarks; chat itself is reachable via nav."
     }
   ]
 }
