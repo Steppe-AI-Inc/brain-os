@@ -46,34 +46,11 @@ Edge deploy gate.
   (--allowedTools narrow list; exit 0 + capacity text = PROVIDER_CAPACITY_BLOCKED).
 
 ## NEXT EXECUTABLE ACTIONS (in order)
-1. Fix D77 (cut-guard direction: '.' is a boundary unless the token BEFORE it is a
-   known abbreviation/single letter, or digit.digit), D83 (ASCII '?' is a cut point in
-   the head), D78 (restore completion-word refusal on option labels, falling back to
-   the derived canonical reference — never blank, never accept), D79 (assertion-shaped
-   labels render QUOTED instead of collapsing — canonical names and runtime titles keep
-   identity; uuid labels still collapse), D81 (drift trigger arm: deterministicPrefix
-   OR evidence OR claims-array — NOT bare groundedOutcomeThisTurn, so truthful history
-   on resolution-grounded turns ships), D84 (pending summaries: refuse assertions/
-   end-anchored participles, allow imperative-led summaries), D80 (undefined→null
-   normalize on the gating-changed flag).
-2. Same commit: progressive-execution fabrication patterns ("Executing the plan…",
-   "I'm archiving/assigning/…") join the drift vocabulary (defense-in-depth; evidence
-   remains primary), per founder item 4 + Work-PC E-multi.
-3. Promote v10_regression_additions cases into run8 suite (run10 section), flip DEFECT
-   expectations to fixed, keep contracts; run full battery; mutation-prove new guards
-   (sha-verified restores).
-4. Investigate off-by-one turn bug in buildContext (founder item 5; invariant
-   CURRENT_USER_COMMAND_IS_PRESENT_EXACTLY_ONCE_AND_IS_LATEST_CONTEXT_TURN) + continuity
-   metadata (item 6: historyIsComplete/windowStart/windowEnd/compactionCheckpoint) +
-   feature-gated chat_channel_state runtime integration (item 7; table-absence = no
-   durable state, never an error).
-5. Commit ONE final SHA; update KNOWN_FAILURE_MODES #70; dispatch verifier #11 per the
-   runbook (fresh campaign, archive #70's record first).
-6. After #11: if PASS → dispatch DB/security verifier for the three migrations
-   (separate verdict per migration), then and only then the two founder questions:
-   "Approve production DB migration?" and "ALLOW_FUNCTIONS_DEPLOY=1?" (exact final SHA).
-7. Work-PC retest list post-deploy: bare yes, E-multi, progressive wording, off-by-one,
-   continuity honesty, reload, durable pending state, 50/100/200-turn.
+1. Verifier #11 runs against the FINAL SHA (run10 closure + off-by-one/continuity/
+   durable-runtime commit; index.ts sha 66fa821d…ddded). On PASS: DB/security verifier
+   for the three migrations, then the two founder questions. On findings: fix cycle.
+2. Work-PC retest list post-deploy unchanged (bare yes, E-multi, progressive wording,
+   off-by-one, continuity honesty, reload, durable pending state, 50/100/200-turn).
 
 ## Authorization state (survives restarts; never inferred forward)
 - NOTHING is currently authorized. Prior ALLOW_FUNCTIONS_DEPLOY=1 was consumed by

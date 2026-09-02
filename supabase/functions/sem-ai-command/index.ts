@@ -1199,6 +1199,18 @@ Rules:
   alongside createCompanyRelationships/updateCompanies in the same turn — check first, let
   the founder act on the real findings next turn, don't guess-fix in the same breath as
   auditing.
+- THE COMMAND YOU ARE ANSWERING is context.currentTurn.command — the FINAL entry in this
+  context, with its absolute turn number. conversationHistory entries are PRIOR turns
+  (each carries its own turn number); never treat the last history entry as the message
+  being answered, and never answer a previous turn instead of currentTurn.
+- CONTINUITY HONESTY (context.continuity, non-negotiable): you see turns
+  historyWindowStart..historyWindowEnd of totalPriorTurns. If historyIsComplete is
+  false, earlier turns EXIST but are NOT visible to you — you must say so when asked
+  about them ("I can see turns N..M of this conversation; earlier turns aren't in my
+  view") and must NEVER state, guess, or reconstruct what the first message or any
+  out-of-window turn said. "Your very first message was X" is only ever sayable when
+  historyIsComplete is true AND turn 1 is in the window. No anti-guess clause from the
+  founder is required for this — it applies to every question, every time.
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation, and refer back to it naturally when relevant.
   CRITICAL LIMIT (2026-08-30, real incident: a founder was told "the conversation history
@@ -1933,11 +1945,19 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const conversationHistoryQuery = channelId
     ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
+  // run10 (Work-PC item H + off-by-one, founder items 5-6): the model can only be honest
+  // about continuity if it KNOWS how much history it is looking at. One cheap head-count
+  // alongside the window query gives absolute turn numbers, window bounds and the
+  // is-this-everything bit — without it, "your very first message was …" is a guess
+  // dressed as a fact (confirmed live at T13 of the 50-turn run).
+  const conversationCountQuery = channelId
+    ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
+    : Promise.resolve({ count: 0, error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
   const [companies, namedCompanyLookup, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
-    archivedTasks] = await Promise.all([
+    archivedTasks, conversationCount] = await Promise.all([
     supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
     namedCompanyLookupQuery,
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
@@ -2054,11 +2074,50 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // nothing to resolve from without this separate, small, recent-archived query. Goals
     // need no equivalent: context.goals already carries no status filter.
     supabase.from('tasks').select('id,company_id,title').eq('status','archived').order('updated_at',{ascending:false}).limit(15),
+    conversationCountQuery,
   ]);
   // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
   // fetch above deliberately went newest-first so LIMIT kept the right 8 rows.
   const conversationRowsChronological = conversationRows.data ? [...conversationRows.data].reverse() : conversationRows.data;
-  const conversationHistory = (conversationRowsChronological || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
+  // run10 (off-by-one + continuity, founder items 5-6): every history entry carries its
+  // ABSOLUTE turn number (1 = the channel's first turn ever, not the window's first),
+  // and the pack states exactly what window the model is looking at. The current
+  // command's own turn number is total+1 — the pending row for THIS turn is inserted
+  // AFTER this context is built (create_pending_work_order below), so the window can
+  // never self-include the current turn.
+  // Issue #5 durable state, FEATURE-GATED on the 202609020001 table's existence: any
+  // error (incl. relation-not-found before the migration is approved/applied) yields
+  // null — behavior is then byte-identical to today. When present, the durable row
+  // supplies a pending action that SURVIVES beyond the last turn — but only a FULLY
+  // TYPED one (explicit action type + unexpired + source turn recorded): the Class-B
+  // rule that absence must never resolve to a destructive default is enforced by the
+  // reader too, not just the table's whole-or-nothing constraint.
+  let durableChannelState: Record<string, unknown> | null = null;
+  if (channelId) {
+    try {
+      const { data: dcs, error: dcsError } = await supabase
+        .from('chat_channel_state')
+        .select('pending_action, pending_action_action_type, pending_action_target_ids, pending_action_source_work_order_id, pending_action_expected_confirmation, pending_action_expires_at, focus_stack, resolved_entities, last_successful_mutation, compacted_summary, compacted_turn_count, version')
+        .eq('channel_id', channelId)
+        .maybeSingle();
+      if (!dcsError && dcs) durableChannelState = dcs as Record<string, unknown>;
+    } catch { /* table absent or unreadable: durable state simply does not exist */ }
+  }
+  const totalPriorTurns = conversationCount.count ?? (conversationRowsChronological || []).length;
+  const historyWindowStart = totalPriorTurns - (conversationRowsChronological || []).length + 1;
+  const conversationHistory = (conversationRowsChronological || []).map((r:any, idx:number) => ({ turn: historyWindowStart + idx, command: r.command, summary: r.output?.summary || null }));
+  const continuity = {
+    totalPriorTurns,
+    historyWindowStart: (conversationRowsChronological || []).length > 0 ? historyWindowStart : null,
+    historyWindowEnd: (conversationRowsChronological || []).length > 0 ? totalPriorTurns : null,
+    historyIsComplete: totalPriorTurns <= (conversationRowsChronological || []).length,
+    // Filled from the durable channel-state row when 202609020001 is live; null is an
+    // honest "no compaction checkpoint exists", never a guess.
+    compactionCheckpoint: durableChannelState && durableChannelState.compacted_summary
+      ? { summary: durableChannelState.compacted_summary, turnsCompacted: durableChannelState.compacted_turn_count ?? 0 }
+      : null,
+    channelStateVersion: durableChannelState ? (durableChannelState.version ?? null) : null,
+  };
   const counts = {
     tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
     approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
@@ -2095,10 +2154,16 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     resolvedEntities?: ResolvedEntities | null;
   } | undefined;
   const legacyPendingConfirmation = lastTurnOutput?.pendingConfirmation;
+  const durablePendingActionValid = !!(durableChannelState
+    && durableChannelState.pending_action
+    && typeof durableChannelState.pending_action_action_type === 'string'
+    && durableChannelState.pending_action_source_work_order_id
+    && typeof durableChannelState.pending_action_expires_at === 'string'
+    && new Date(String(durableChannelState.pending_action_expires_at)).getTime() > Date.now());
   const pendingAction: PendingAction | null = lastTurnOutput?.pendingAction
     ?? (legacyPendingConfirmation && typeof legacyPendingConfirmation === 'object'
       ? { kind: 'bulk_confirmation', summary: legacyPendingConfirmation.summary, action: legacyPendingConfirmation.action }
-      : null);
+      : (durablePendingActionValid ? durableChannelState!.pending_action as PendingAction : null));
   // Workstream 3c: real id+name of anything created LAST turn, so a compound follow-up
   // command ("create QA-CONTINUITY-CO and add a new employee there") can thread the real
   // id straight through instead of the model re-deriving it from its own prior prose.
@@ -2281,7 +2346,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       : null,
   }));
 
-  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
+  // run10 (Work-PC off-by-one, founder item 5): `command` used to be the pack's FIRST
+  // key with conversationHistory serialized after it — positionally, the most recent
+  // thing the model read was the PREVIOUS turn, and recency-weighted attention answered
+  // T(n-1). The current command is now `currentTurn`, the pack's FINAL key, carrying
+  // its absolute turn number — present exactly once, and the latest thing in context
+  // (CURRENT_USER_COMMAND_IS_PRESENT_EXACTLY_ONCE_AND_IS_LATEST_CONTEXT_TURN). Nothing
+  // else ever read pack.command (verified by grep across functions/web/migrations
+  // before the move).
+  const pack = { continuity, companies:packCompanies, projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
@@ -5159,6 +5232,56 @@ serve(async (req) => {
         if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding || pendingActionGatingChanged) {
           await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
         }
+
+        // Issue #5 durable channel state — the WRITE half, FEATURE-GATED like the read:
+        // any error (incl. relation-not-found before 202609020001 is approved/applied)
+        // is swallowed and this turn behaves exactly as today. What gets durable:
+        //   * the (already-gated) pendingAction — but ONLY when it is FULLY TYPED
+        //     (explicit actionType); an untyped pendingAction stores NULL pending state,
+        //     so a later bare "yes" can never bind to it — the Class-B fail-closed rule,
+        //     enforced at write time as well as by the table constraint and the reader;
+        //   * the focus stack (top of resolvedEntities from this turn, bounded);
+        //   * the last successful mutation, from backend evidence, never prose.
+        // Optimistic CAS on version; a lost race means the OTHER concurrent turn's
+        // state stands — never a blind overwrite.
+        try {
+          if (channelId) {
+            const paDurable = result.pendingAction && typeof result.pendingAction === 'object' && typeof (result.pendingAction as any).actionType === 'string'
+              ? result.pendingAction : null;
+            const CONFIRMATION_KIND: Record<string, string> = {
+              bulk_confirmation: 'confirmation', multi_action_plan: 'confirmation',
+              disambiguation: 'choice', single_entity_clarification: 'choice', open_question: 'free_text_answer',
+            };
+            const lastMutation = [...claimExecutionEvidence].reverse().find((e) => e.postconditionPassed) || null;
+            const focusEntries: Array<Record<string, unknown>> = [];
+            for (const [ftype, list] of [['company', (result.resolvedEntities || {}).companies], ['person', (result.resolvedEntities || {}).people], ['goal', (result.resolvedEntities || {}).goals]] as Array<[string, any]>) {
+              for (const ent of Array.isArray(list) ? list.slice(0, 3) : []) {
+                if (ent && typeof ent.id === 'string') focusEntries.push({ resourceType: ftype, id: ent.id, label: typeof ent.name === 'string' ? ent.name : null, sourceWorkOrderId: workOrder.id, at: new Date().toISOString() });
+              }
+            }
+            const stateWrite = {
+              pending_action: paDurable,
+              pending_action_action_type: paDurable ? (paDurable as any).actionType : null,
+              pending_action_target_ids: paDurable && Array.isArray((paDurable as any).candidateIds)
+                ? (paDurable as any).candidateIds.map((cid: unknown) => ({ resourceType: (paDurable as any).entityType || 'record', id: cid })) : null,
+              pending_action_source_work_order_id: paDurable ? workOrder.id : null,
+              pending_action_expected_confirmation: paDurable ? (CONFIRMATION_KIND[String((paDurable as any).kind)] || 'confirmation') : null,
+              pending_action_created_at: paDurable ? new Date().toISOString() : null,
+              pending_action_expires_at: paDurable ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null,
+              last_successful_mutation: lastMutation ? { resourceType: lastMutation.resourceType, id: lastMutation.id, action: lastMutation.action, workOrderId: workOrder.id, at: new Date().toISOString() } : undefined,
+              updated_at: new Date().toISOString(),
+            } as Record<string, unknown>;
+            if (focusEntries.length > 0) stateWrite.focus_stack = focusEntries;
+            const priorVersionRaw = (contextPack as any)?.continuity?.channelStateVersion;
+            const priorVersion = typeof priorVersionRaw === 'number' ? priorVersionRaw : null;
+            if (priorVersion !== null) {
+              await supabase.from('chat_channel_state').update({ ...stateWrite, version: priorVersion + 1 })
+                .eq('channel_id', channelId).eq('version', priorVersion);
+            } else {
+              await supabase.from('chat_channel_state').insert({ channel_id: channelId, ...stateWrite });
+            }
+          }
+        } catch { /* durable state unavailable: identical behavior to pre-migration */ }
 
         await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, companiesPermanentFixtureDeleteAttempted:permanentDeleteFixtureCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
