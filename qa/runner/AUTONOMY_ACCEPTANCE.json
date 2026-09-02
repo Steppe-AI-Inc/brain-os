@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T08:42:54Z",
+  "generated_at": "2026-09-02T09:00:04Z",
   "_doc": "Autonomy acceptance results. A and H are recorded by the live supervisor run, not by this harness - they require an actually-running director to kill.",
   "results": [
     {
@@ -41,11 +41,31 @@
       "status": "NOT_EXECUTED",
       "evidence": "Scheduled task installed: false",
       "note": "A reboot cannot be performed from this session, and the auto-start task registration was refused by the permission layer. This is the single remaining founder-visible acceptance step."
+    },
+    {
+      "id": "A",
+      "title": "Kill Fable mid-QA -> supervisor recovers and relaunches",
+      "status": "NOT_EXECUTED",
+      "evidence": "Requires the LIVE supervisor. Both live-launch forms (background daemon and a single --once foreground cycle) were refused by the session permission layer, which does not permit this session to start an unattended agent with bypassed permissions.",
+      "note": "The RECOVERING path itself is implemented and unit-exercised (abnormal-exit branch); what is missing is the end-to-end kill observation, which requires the founder-started supervisor."
+    },
+    {
+      "id": "H",
+      "title": "Fable invocation ends -> next invocation starts without founder input",
+      "status": "NOT_EXECUTED",
+      "evidence": "Same launch boundary as A. The re-consult-scheduler-on-clean-exit branch is implemented and the scheduler is proven to always return work (test E), but the end-to-end observation needs the live supervisor.",
+      "note": "Once the founder starts the supervisor (or installs the scheduled task), A and H are observable within the first shift: kill the director PID from SUPERVISOR_STATE.json for A; let a shift end for H."
     }
   ],
   "counts": {
     "pass": 5,
     "fail": 0,
-    "not_executed": 1
-  }
+    "not_executed": 3
+  },
+  "founder_start_commands": {
+    "install_autostart": "powershell -ExecutionPolicy Bypass -File qa\runnerinstall-autostart.ps1",
+    "start_now_foreground": "node qa\runnersupervisor.mjs",
+    "verify_task": "powershell -ExecutionPolicy Bypass -File qa\runnerinstall-autostart.ps1 -Verify"
+  },
+  "classification": "PARTIALLY VERIFIED - C,D,E,F,G PASS; A,H,B blocked on the founder-gated live start (permission layer refuses this session launching an unattended bypass-permissions agent)"
 }

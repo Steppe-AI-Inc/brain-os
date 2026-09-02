@@ -26,10 +26,10 @@
   "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
   "last_tested_deployed_sha": null,
   "qa_artifact_sha": null,
-  "last_heartbeat": "2026-09-02T08:52:25Z",
+  "last_heartbeat": "2026-09-02T09:00:04Z",
   "last_director_start": "2026-08-31T09:03:00Z",
   "last_successful_checkpoint": null,
-  "next_action": "Reconcile 3 regression(s) still EXPECTED_FAIL on a CLOSED bug",
+  "next_action": "FOUNDER GATE: start the node once. Either install auto-start (powershell -ExecutionPolicy Bypass -File qa/runner/install-autostart.ps1) or run node qa/runner/supervisor.mjs in a terminal. This session is not permitted to launch an unattended bypass-permissions agent itself. Until then the interactive session continues C002 manually.",
   "retry_count": 0,
   "last_error": null,
   "last_error_at": null,
@@ -53,5 +53,6 @@
   "supervisor_lease_id": "0755c8fc-095c-4587-b3e0-30cb71acb51d",
   "supervisor_started_at": "2026-09-02T08:52:21Z",
   "deployed_edge_function_version": 92,
-  "deployed_build_source": "supabase functions list (live)"
+  "deployed_build_source": "supabase functions list (live)",
+  "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness all implemented and tested (commit 79cdb2c)"
 }
