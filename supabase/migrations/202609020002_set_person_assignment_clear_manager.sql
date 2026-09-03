@@ -15,16 +15,32 @@
 -- today's semantics, so every existing call site keeps working unchanged); clear=true
 -- with a non-null manager id is CONTRADICTORY and raises rather than guessing.
 --
--- BODY PROVENANCE (a real near-miss caught during preparation, recorded so review
--- checks it): the function was defined in 202608280011 and REDEFINED in
--- 202608280013 with two load-bearing hardenings — `set search_path = ''` and
--- schema-qualified enum casts. A first draft of this migration copied the OLDER 0011
--- body and would have silently reverted that hardening. This file is based on the
--- 0013 body, and the live production definition was confirmed read-only before
--- writing it (pg_proc.proconfig = search_path="" on 2026-09-02). Reviewer: diff this
--- body against live `pg_get_functiondef` again at review time; the ONLY intended
--- deltas are the new parameter, the contradiction guard, and the two `case when
+-- BODY PROVENANCE — CORRECTED at DB review round 2 (finding R-B1). The earlier version
+-- of this header was WRONG, and the way it was wrong is the point:
+--
+--   It said the function was defined in 202608280011, redefined in 202608280013, and
+--   that this file was based on the 0013 body. It was. But `set_person_assignment` was
+--   redefined a THIRD time, in 202608290008 (person lifecycle / end employment), one
+--   full migration AFTER 0013 — and THAT is the live definition. Basing this file on
+--   0013 silently DELETED the cross-company department guard 202608290008 added.
+--
+--   The pre-write verification step named in the old header is what let this through.
+--   It checked ONE ATTRIBUTE — `pg_proc.proconfig = search_path=""` — and inferred the
+--   whole body from it. Both 0013 and 202608290008 set `search_path = ''`, so proconfig
+--   is INCAPABLE of distinguishing them. The proxy could not detect the exact drift it
+--   was chosen to detect. That is the same failure shape as the 0011-vs-0013 near-miss
+--   the old header narrated catching, one migration further along.
+--
+-- This file is now based on the 202608290008 body. The cross-company department guard
+-- is restored verbatim below. The ONLY intended deltas from 202608290008 are the new
+-- `p_clear_manager` parameter, the contradiction guard, and the two `case when
 -- p_clear_manager` expressions.
+--
+-- REVIEWER, do not repeat the mistake: verify by diffing this body against the FULL
+-- live `pg_get_functiondef('public.set_person_assignment'::regproc)` output. Do not
+-- verify by checking proconfig, the migration filename, or any other single attribute.
+-- Only a full-body diff can catch a redefinition in a migration you did not think to
+-- look at.
 --
 -- The old signature is DROPPED, not overloaded: `create or replace` with an added
 -- defaulted parameter creates a second overload and makes every existing fewer-args
@@ -63,6 +79,19 @@ begin
   if p_state not in ('current', 'planned', 'historical') then
     raise exception 'Unknown state %', p_state;
   end if;
+  -- RESTORED VERBATIM from 202608290008 (DB review round 2, R-B1). Basing this file on
+  -- 202608280013 dropped this guard. The independent BEFORE INSERT OR UPDATE trigger
+  -- `person_assignments_enforce_department_company` still rejects the same reference, so
+  -- no cross-company hole was ever open — but 202608290008's own comment calls this check
+  -- "not instead of the trigger", and losing it drops defense-in-depth from two layers to
+  -- one and degrades a specific error message to a generic one.
+  if p_department_id is not null and not exists (
+    select 1 from public.departments d where d.id = p_department_id and d.company_id = p_operating_company_id
+  ) then
+    raise exception 'set_person_assignment: department % does not belong to company % (cross-company department reference rejected)', p_department_id, p_operating_company_id
+      using errcode = '23514';
+  end if;
+
   -- Contradictory instruction: refusing beats guessing (the coerced-default class).
   if p_clear_manager and p_manager_person_id is not null then
     raise exception 'p_clear_manager=true with a non-null p_manager_person_id is contradictory - pass one or the other';
@@ -101,6 +130,11 @@ begin
   ) values (
     p_person_id, p_operating_company_id, p_legal_employer_company_id, p_department_id,
     p_job_title,
+    -- R-B5: this expression is provably EQUIVALENT to plain `p_manager_person_id` today
+    -- — the contradiction guard above rejects clear=true with a non-null manager id, so
+    -- when clear=true the value is already null. Stated explicitly so no future reader
+    -- mistakes it for the load-bearing clear (the UPDATE path is where clearing happens).
+    -- Kept, not deleted, so the INSERT path stays correct if that guard is ever relaxed.
     case when p_clear_manager then null else p_manager_person_id end,
     coalesce(p_employment_type, 'full_time')::public.employment_type,
     p_allocation_pct, p_responsibilities, p_is_primary, p_state::public.assignment_state, public.current_profile_id()
@@ -122,6 +156,12 @@ revoke execute on function public.set_person_assignment(uuid, uuid, uuid, uuid, 
 
 commit;
 
--- ROLLBACK STRATEGY (for the reviewer; not executed by this file): drop the 12-arg
--- version and re-apply the 11-arg body from 202608280013 (the hardened one — NOT
--- 202608280011) with its original grant. No table shape changes; no data written.
+-- ROLLBACK STRATEGY (for the reviewer; not executed by this file) — CORRECTED at DB
+-- review round 2 (R-B1): drop the 12-arg version and re-apply the 11-arg body from
+-- 202608290008, which is the LIVE definition. The previous text named 202608280013, and
+-- rolling back to 0013 would have re-introduced exactly the defect this round found:
+-- it would drop the cross-company department guard a second time, this time under the
+-- banner of restoring safety. NOT 202608280013, and NOT 202608280011.
+--
+-- No table shape changes; no data written. Verify the rollback the same way as the
+-- forward migration: full `pg_get_functiondef` diff, never a single attribute.
