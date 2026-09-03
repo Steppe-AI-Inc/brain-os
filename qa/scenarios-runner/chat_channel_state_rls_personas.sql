@@ -36,6 +36,11 @@ grant select, insert on t_verdicts to authenticated, anon;
 -- action, both owned by the creator persona. ----------------------------------------
 insert into public.chat_channels (id, name, company_id, created_by_profile_id)
 values ('dddd0001-0000-0000-0000-000000000001', 'CCS-QA personal channel', null,
+        '66ef2052-d002-4592-b841-82cd2171b51a'),
+-- R-ART2: a SECOND, state-less fixture channel exists solely so the half-written pending
+-- action test below inserts a row that does not already exist. Without it that INSERT hit
+-- the PRIMARY KEY on channel_id first and never reached the CHECK constraint at all.
+       ('dddd0002-0000-0000-0000-000000000001', 'CCS-QA constraint-probe channel', null,
         '66ef2052-d002-4592-b841-82cd2171b51a');
 
 -- ---- Persona 1: creator — full lifecycle on their own channel's state. -------------
@@ -88,12 +93,20 @@ end $$;
 do $$
 begin
   begin
+    -- R-ART2. This previously inserted for channel dddd0001, whose state row was already
+    -- created above; channel_id is the PRIMARY KEY, so the INSERT failed with
+    -- unique_violation (23505) BEFORE the CHECK was ever the deciding factor - and the
+    -- handler caught `check_violation or unique_violation`, recording a pass either way.
+    -- The test would have reported PASS with chat_channel_state_pending_action_whole
+    -- DELETED FROM THE MIGRATION ENTIRELY. That is worse than D8's accidental fixture tie:
+    -- this handler explicitly enumerated the wrong error code beside the right one.
+    -- Fixed on both sides: a distinct fixture channel, and ONLY check_violation caught.
     insert into public.chat_channel_state (channel_id, pending_action)
     select id, '{"kind":"bulk_confirmation"}'::jsonb from public.chat_channels
-      where id = 'dddd0001-0000-0000-0000-000000000001';
+      where id = 'dddd0002-0000-0000-0000-000000000001';
     insert into t_verdicts values (json_build_object('persona','creator',
       'HALF_WRITTEN_PENDING_ACTION_WAS_ACCEPTED_DEFECT', true));
-  exception when check_violation or unique_violation then
+  exception when check_violation then
     insert into t_verdicts values (json_build_object('persona','creator',
       'half_written_pending_action_refused', true, 'sqlstate', SQLSTATE));
   end;
@@ -182,5 +195,29 @@ end $$;
 
 reset role;
 select jsonb_pretty(jsonb_agg(verdict)) as chat_channel_state_rls_personas from t_verdicts;
+
+
+-- ---- R-ART8: MACHINE-DECIDED VERDICT ------------------------------------------------
+-- Every one of these files previously ended by printing a raw JSON blob for a human to
+-- eyeball. Eyeballing is how a vacuous pass survives: three of the four scripts in this
+-- batch were reported as passing when one aborted before its assertions ran, one was
+-- refused by a PRIMARY KEY rather than the CHECK it tested, and one by a FOREIGN KEY
+-- rather than the RLS it tested. A file must state its own verdict.
+--
+-- Convention: any key whose name is SHOUTED (upper-case) is a DEFECT marker - true means
+-- something bad is present. Any other boolean key is an EXPECTATION - false means the
+-- property this file exists to prove does not hold.
+select
+  count(*) filter (where defect_present)  as defect_markers_true,
+  count(*) filter (where expectation_failed) as expectations_false,
+  case when count(*) filter (where defect_present or expectation_failed) = 0
+       then 'PASS' else 'FAIL' end        as verdict,
+  jsonb_agg(kv.key) filter (where defect_present or expectation_failed) as failing_keys
+from t_verdicts v,
+     lateral jsonb_each(v.verdict) as kv(key, val),
+     lateral (select
+       (kv.key = upper(kv.key) and kv.key ~ '[A-Z]{4}' and kv.val = 'true'::jsonb) as defect_present,
+       (kv.key <> upper(kv.key) and jsonb_typeof(kv.val) = 'boolean' and kv.val = 'false'::jsonb) as expectation_failed
+     ) f;
 
 rollback;

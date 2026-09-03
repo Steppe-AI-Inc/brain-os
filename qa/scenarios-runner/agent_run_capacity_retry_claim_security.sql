@@ -60,38 +60,54 @@ alter table public.agent_runs add column if not exists fallback_reason text;
 alter table public.agent_runs add column if not exists claimed_by text;
 alter table public.agent_runs add column if not exists claimed_at timestamptz;
 
-create or replace function public.claim_blocked_run_for_retry(p_claimed_by text)
-returns table (
-  id uuid, canonical_work_order_id uuid, task_id uuid, agent_id uuid,
-  checkpoint_location text, source_sha text, branch text, worktree text,
-  last_completed_scenario text, remaining_scenarios jsonb, verification_campaign_id text,
-  attempt_count integer, requested_provider text, requested_model text
-)
-language plpgsql security definer set search_path = '' as $$
-declare v_id uuid;
+-- ================== R-ART9: THIS FILE NO LONGER DEFINES THE FUNCTION ==================
+-- It used to. A round-1-era version of this script did `create or replace function
+-- public.claim_blocked_run_for_retry(p_claimed_by text)` right here, followed by
+-- `grant execute ... to authenticated` — and both are now the OPPOSITE of what shipped.
+-- Migration 202609030001 revoked `authenticated` (D7), and the function takes three
+-- parameters, not one (D1's attempt cap and R-D4's stale-claim window are real parameters
+-- of the claim, not unreachable JS constants).
+--
+-- Two things were wrong with leaving that in place, and the second is the worse one:
+--   * a permanent regression artifact that ASSERTS THE PRE-FIX STATE is worse than no
+--     regression artifact, because it turns a known vulnerability into a green check;
+--   * `create or replace` with the old 1-arg signature does not replace the shipped 3-arg
+--     function - it creates a SECOND OVERLOAD. Every 1-arg call below would then have
+--     bound to the local stale copy, so this file would have tested ITSELF rather than the
+--     migration, while appearing to test the migration.
+--
+-- This file now exercises THE SHIPPED FUNCTION. The 1-arg calls below stay valid because
+-- p_max_attempts and p_stale_claim_after are DEFAULTED; a call site probing a specific cap
+-- or window passes it explicitly.
+--
+-- Precondition: refuse to run at all unless the shipped state is what we think it is. A
+-- suite that runs against the wrong schema reports confidently about the wrong thing.
+do $precondition$
+declare
+  v_args text;
+  v_oid oid;
+  v_authenticated_has_execute boolean;
 begin
-  if not public.is_founder_or_admin() then
-    raise exception 'Only the founder or an admin can claim a blocked Agent Run for retry';
+  select p.oid, pg_get_function_identity_arguments(p.oid) into v_oid, v_args
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'claim_blocked_run_for_retry';
+
+  if v_args is null then
+    raise exception 'claim_blocked_run_for_retry does not exist - migration 202609030001 is not applied; this suite has nothing to test';
   end if;
-  select ar.id into v_id from public.agent_runs ar
-   where ar.status = 'blocked'::public.work_status
-     and ar.retry_after is not null and ar.retry_after <= now() and ar.claimed_by is null
-   order by ar.retry_after for update skip locked limit 1;
-  if v_id is null then return; end if;
-  update public.agent_runs ar
-     set status = 'in_progress'::public.work_status, claimed_by = p_claimed_by,
-         claimed_at = now(), attempt_count = ar.attempt_count + 1,
-         last_heartbeat_at = now(), last_event = 'resumed_after_provider_capacity_block'
-   where ar.id = v_id;
-  return query
-    select ar.id, ar.canonical_work_order_id, ar.task_id, ar.agent_id,
-           ar.checkpoint_location, ar.source_sha, ar.branch, ar.worktree,
-           ar.last_completed_scenario, ar.remaining_scenarios, ar.verification_campaign_id,
-           ar.attempt_count, ar.requested_provider, ar.requested_model
-      from public.agent_runs ar where ar.id = v_id;
-end; $$;
-revoke execute on function public.claim_blocked_run_for_retry(text) from anon, public;
-grant execute on function public.claim_blocked_run_for_retry(text) to authenticated;
+  if v_args <> 'text, integer, interval' then
+    raise exception 'claim_blocked_run_for_retry has signature (%), expected (text, integer, interval). Either the migration is not applied, or a stale overload exists.', v_args;
+  end if;
+
+  -- D7 is a shipped security decision: the real caller is the server-side supervisor on a
+  -- direct superuser connection, which needs no grant at all. If `authenticated` regains
+  -- EXECUTE, that decision has been reverted and this suite must not paper over it.
+  select has_function_privilege('authenticated', v_oid, 'EXECUTE') into v_authenticated_has_execute;
+  if v_authenticated_has_execute then
+    raise exception 'D7 REGRESSION: authenticated has EXECUTE on claim_blocked_run_for_retry; the migration revokes it';
+  end if;
+end;
+$precondition$;
 
 -- ================== Fixtures — synthetic only, never real factory runs ==================
 -- Every other blocked+retryable run is parked out of the way first, so `order by

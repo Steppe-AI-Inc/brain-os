@@ -46,7 +46,16 @@ insert into t_verdicts values (jsonb_build_object(
 -- ---- 2. GRANTS on the privileged RPC -------------------------------------------------
 insert into t_verdicts values (jsonb_build_object(
   'check', 'grants',
-  'authenticated_can_execute', has_function_privilege('authenticated',
+  -- R-ART4: this asserted `authenticated_can_execute` - the PRE-D7 state. D7 revoked
+  -- EXECUTE from `authenticated` precisely because the real caller is the server-side
+  -- supervisor on a direct superuser connection, which needs no grant at all. Left as it
+  -- was, this file would have reported the shipped, hardened migration as FAILING, and a
+  -- correctly-narrowed grant as the defect. An acceptance script must encode the decision
+  -- that shipped, not the one it replaced.
+  'authenticated_cannot_execute', not has_function_privilege('authenticated',
+    (select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public' and p.proname='claim_blocked_run_for_retry' limit 1), 'EXECUTE'),
+  'service_role_can_execute', has_function_privilege('service_role',
     (select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.proname='claim_blocked_run_for_retry' limit 1), 'EXECUTE'),
   'anon_cannot_execute', not has_function_privilege('anon',
@@ -67,6 +76,11 @@ do $$
 declare v_err text; v_claimed boolean := false;
 begin
   begin
+    -- R-ART4 follow-on: with D7 shipped, `authenticated` has no EXECUTE at all, so this
+    -- now fails at the GRANT (42501) rather than reaching the RPC's own founder check.
+    -- Both are correct refusals and the test records WHICH, so that "an employee cannot
+    -- claim a run" can never again be satisfied by an error that has nothing to do with
+    -- authority - the R-ART7 failure shape.
     perform * from public.claim_blocked_run_for_retry('attacker-supervisor');
     v_claimed := true;
   exception when others then
@@ -148,5 +162,29 @@ end $$;
 
 reset role;
 select jsonb_pretty(jsonb_agg(verdict)) as post_apply_202609030001 from t_verdicts;
+
+
+-- ---- R-ART8: MACHINE-DECIDED VERDICT ------------------------------------------------
+-- Every one of these files previously ended by printing a raw JSON blob for a human to
+-- eyeball. Eyeballing is how a vacuous pass survives: three of the four scripts in this
+-- batch were reported as passing when one aborted before its assertions ran, one was
+-- refused by a PRIMARY KEY rather than the CHECK it tested, and one by a FOREIGN KEY
+-- rather than the RLS it tested. A file must state its own verdict.
+--
+-- Convention: any key whose name is SHOUTED (upper-case) is a DEFECT marker - true means
+-- something bad is present. Any other boolean key is an EXPECTATION - false means the
+-- property this file exists to prove does not hold.
+select
+  count(*) filter (where defect_present)  as defect_markers_true,
+  count(*) filter (where expectation_failed) as expectations_false,
+  case when count(*) filter (where defect_present or expectation_failed) = 0
+       then 'PASS' else 'FAIL' end        as verdict,
+  jsonb_agg(kv.key) filter (where defect_present or expectation_failed) as failing_keys
+from t_verdicts v,
+     lateral jsonb_each(v.verdict) as kv(key, val),
+     lateral (select
+       (kv.key = upper(kv.key) and kv.key ~ '[A-Z]{4}' and kv.val = 'true'::jsonb) as defect_present,
+       (kv.key <> upper(kv.key) and jsonb_typeof(kv.val) = 'boolean' and kv.val = 'false'::jsonb) as expectation_failed
+     ) f;
 
 rollback;
