@@ -93,10 +93,16 @@ export function computeRetryAfter(providerOutput, attemptCount, now = new Date()
 }
 
 /**
- * A run is eligible for restart ONLY when it is genuinely blocked on provider capacity,
- * its retry window has passed, nobody has claimed it, and it has attempts left.
- * Deliberately conservative: an unclassified failure is NOT auto-restarted — a real bug
- * would just loop.
+ * NOT THE GATE. run13/R-D5: this encoded the full eligibility rule while having ZERO call
+ * sites, so a reader could reasonably believe it was enforcing something. The real gate is
+ * the WHERE clause of claim_blocked_run_for_retry (migration 202609030001) — status,
+ * blocked_reason, retry_after, claim staleness and attempt_count are all filtered in SQL,
+ * because that is where the claim actually happens.
+ *
+ * This function is retained ONLY as an executable statement of the same rule for the
+ * regression suite to pin, so a divergence between the documented policy and the SQL is
+ * visible in review. MAX_ATTEMPTS is passed explicitly to the RPC by pollOnce rather than
+ * relying on the SQL default, so the constant cannot silently drift from the enforced cap.
  */
 export function isRetryEligible(run, now = new Date()) {
   if (!run) return false;
@@ -265,7 +271,9 @@ update public.agent_runs
 export async function pollOnce(supervisorId, currentSourceSha) {
   let claimed;
   try {
-    claimed = await runSql(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)});`);
+    // run13/R-D5: the cap is PASSED explicitly, so the exported constant and the SQL
+    // default can never drift into two silent copies of the same rule.
+    claimed = await runSql(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)}, ${Number(MAX_ATTEMPTS)});`);
   } catch (e) {
     // run12/D4: these were collapsed into ONE "not available" answer, so a permission
     // DENIAL reported itself as "migration not applied" — an operator would conclude the
@@ -293,9 +301,34 @@ export async function pollOnce(supervisorId, currentSourceSha) {
   // execFile with an ARGV ARRAY (never exec, never shell:true) — no shell metacharacter
   // in any DB-controlled string can become a command. cwd is allowlist-validated so a
   // tampered worktree cannot point the session at a foreign checkout.
-  await execFileAsync('claude', ['--agent', 'brain-os-verifier', '--permission-mode', 'auto', '--bg', prompt], {
-    cwd: safeWorktree(run.worktree), maxBuffer: 10 * 1024 * 1024,
-  });
+  // run13/R-D4: this spawn was NOT wrapped, and it is reachable — a missing `claude` on
+  // PATH, an unreadable cwd, a killed supervisor. A throw here left the row claimed and
+  // in_progress with nothing to release it, i.e. permanently unclaimable: the very
+  // stranding this file exists to prevent. The DB-side reclaim window is the real
+  // backstop (a process cannot be relied on to clean up after its own death), but an
+  // immediate release on a failure we DID observe returns the run to the queue now
+  // rather than in thirty minutes.
+  try {
+    await execFileAsync('claude', ['--agent', 'brain-os-verifier', '--permission-mode', 'auto', '--bg', prompt], {
+      cwd: safeWorktree(run.worktree), maxBuffer: 10 * 1024 * 1024,
+    });
+  } catch (spawnError) {
+    try {
+      await runSql(`
+update public.agent_runs
+   set status = 'blocked'::work_status,
+       claimed_by = null,
+       claimed_at = null,
+       last_event = 'resume_spawn_failed_claim_released'
+ where id = ${sqlEscape(run.id)}::uuid;`);
+    } catch { /* the reclaim window still recovers it */ }
+    return {
+      available: true,
+      restarted: null,
+      cause: 'resume_spawn_failed',
+      reason: String(spawnError?.message || spawnError).slice(0, 300),
+    };
+  }
   return { available: true, restarted: run.id, plan, prompt };
 }
 

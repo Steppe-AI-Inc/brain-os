@@ -164,9 +164,16 @@ test('SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: an unrecorded sha is 
 test('TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN: the claim is atomic in SQL', () => {
   assert.match(MIGRATION, /for update skip locked/i,
     'row-level claim must use FOR UPDATE SKIP LOCKED — two supervisors take different rows or none');
-  assert.match(MIGRATION, /and ar\.claimed_by is null/i);
-  assert.match(MIGRATION, /set status = 'in_progress'::public\.work_status,\s*\n\s*claimed_by = p_claimed_by/i,
-    'claiming must flip status and stamp the claimant in the same transaction');
+  // run13/R-D4: an unclaimed row is no longer the ONLY claimable state — a claim older
+  // than the reclaim window counts as abandoned, because a process cannot be relied on
+  // to release its own claim after it dies. Double-claiming is still prevented by
+  // FOR UPDATE SKIP LOCKED, which the reviewer independently confirmed.
+  assert.match(MIGRATION, /ar\.claimed_by is null or ar\.claimed_at < now\(\) - p_stale_claim_after/i,
+    'a stranded claim must age out, or a spawn failure permanently orphans the Work Order');
+  assert.match(MIGRATION, /set status = 'in_progress'::public\.work_status/i,
+    'claiming must flip the status');
+  assert.match(MIGRATION, /claimed_by = p_claimed_by/,
+    'and stamp the claimant, in the same transaction as the row selection');
 });
 
 test('TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN: status never goes BLOCKED -> COMPLETED on restart', () => {
@@ -183,7 +190,7 @@ test('AUTHORIZATION_STATE_SURVIVES_RESTART_WITH_EXACT_SCOPE: restarting is found
   // requirement itself is unchanged: no anonymous, employee, or manager path exists.
   assert.match(MIGRATION, /if not \(public\.is_founder_or_admin\(\)/,
     'claiming a production Agent Run for restart is real factory authority');
-  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer\) from anon, public, authenticated;/);
+  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated;/);
   assert.match(MIGRATION, /security definer[\s\S]*set search_path = ''/i);
   // The resume prompt must not carry or imply any deployment authorization.
   const prompt = buildResumePrompt(blockedRun(), planResume(blockedRun(), '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
@@ -309,7 +316,7 @@ test('D3 re-blocking RELEASES the claim, so a second capacity block is still rec
 });
 
 test('D4 the supervisor identity is explicit, and denial is distinguished from not-migrated', () => {
-  assert.match(MIGRATION, /current_user in \('postgres', 'service_role', 'supabase_admin'\)/,
+  assert.match(MIGRATION, /session_user in \('postgres', 'supabase_admin'\)/,
     'the direct-connection caller must be recognised explicitly, not left to fail the founder check');
   assert.ok(!/auth\.uid\(\) is null/.test(MIGRATION),
     'auth.uid() IS NULL must NOT be the test — anon carries a JWT with a null sub and would pass it');
@@ -334,7 +341,69 @@ test('D6 a provider/model substitution cannot be RECORDED without a stated reaso
 });
 
 test('D7 EXECUTE is narrowed to the demonstrated caller', () => {
-  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer\) from anon, public, authenticated;/,
+  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated;/,
     'granting EXECUTE to every logged-in user was broader than the demonstrated need');
-  assert.match(MIGRATION, /grant execute on function public\.claim_blocked_run_for_retry\(text, integer\) to service_role;/);
+  assert.match(MIGRATION, /grant execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) to service_role;/);
+});
+
+// ============================================================================
+// RUN13 — independent DB/security review round 2 (R-D1..R-D8). The headline finding
+// is worth stating plainly: a guard can be present, reviewed, and completely inert.
+// `current_user` inside a SECURITY DEFINER function is the function OWNER, so the
+// trigger's bypass was unconditionally true and every comparison under it was dead.
+// ============================================================================
+
+test('R-D1 SECURITY DEFINER functions use session_user, never current_user, to detect the direct caller', () => {
+  assert.ok(!/current_user in/.test(MIGRATION),
+    'current_user is rebound to the function OWNER inside SECURITY DEFINER — as an identity test it is always true');
+  assert.match(MIGRATION, /session_user in \('postgres', 'supabase_admin'\)/);
+  // Two independent sites had the same bug: the claim RPC and the column guard.
+  assert.equal((MIGRATION.match(/session_user in \('postgres', 'supabase_admin'\)/g) || []).length, 2,
+    'both the claim function and the column-guard trigger must use the corrected primitive');
+  assert.ok(!/service_role/.test(MIGRATION.split('grant execute')[0] || ''),
+    'service_role must not appear in an identity test — a service_role request still arrives as authenticator');
+});
+
+test('R-D2 every column the claim RETURNS or SELECTS ON is guarded', () => {
+  for (const col of ['worktree', 'checkpoint_location', 'source_sha', 'branch', 'retry_after',
+                     'claimed_by', 'claimed_at', 'attempt_count', 'blocked_reason', 'blocked_at',
+                     'status', 'remaining_scenarios', 'last_completed_scenario',
+                     'verification_campaign_id', 'fallback_reason']) {
+    assert.ok(new RegExp('new\.' + col + ' is distinct from old\.' + col).test(MIGRATION),
+      `${col} steers a resumed unattended session (or gates the claim) and must be guarded`);
+  }
+});
+
+test('R-D4 a stranded claim ages out, and an observed spawn failure releases it immediately', () => {
+  assert.match(MIGRATION, /p_stale_claim_after interval default/);
+  const spawn = SUPERVISOR_SRC.slice(SUPERVISOR_SRC.indexOf("execFileAsync('claude'"));
+  assert.match(spawn, /catch \(spawnError\)/,
+    'the spawn was unwrapped; a throw left the run claimed and permanently unclaimable');
+  assert.match(spawn, /resume_spawn_failed_claim_released/);
+});
+
+test('R-D5 the JS eligibility helper is documented as NOT the gate, and the cap is passed explicitly', () => {
+  assert.match(SUPERVISOR_SRC, /NOT THE GATE/,
+    'an unreferenced copy of the rule must not read as if it enforces something');
+  assert.match(SUPERVISOR_SRC, /claim_blocked_run_for_retry\(\$\{sqlEscape\(supervisorId\)\}, \$\{Number\(MAX_ATTEMPTS\)\}\)/,
+    'passing the cap explicitly stops the exported constant and the SQL default drifting apart');
+});
+
+test('R-D6 the FULL provider output reaches computeRetryAfter, not just the matched phrase', () => {
+  const SCHEDULER = readFileSync(resolve(here, 'scheduler.mjs'), 'utf8');
+  assert.match(SCHEDULER, /recordCapacityBlock\(run\.id, capacityRaw \|\| capacity\.matched/,
+    'the stated reset time sits AFTER the matched phrase — passing only the match stripped it');
+  // And prove the consequence directly: the match alone cannot yield a stated reset.
+  const full = "You've hit your session limit · resets 3:40am (Asia/Ulaanbaatar)";
+  const matchedOnly = classifyProviderOutput(full).matched;
+  assert.equal(computeRetryAfter(full, 1).source, 'provider_stated_reset');
+  assert.equal(computeRetryAfter(matchedOnly, 1).source, 'bounded_backoff',
+    'this is exactly what the old call site produced: every block silently fell back');
+});
+
+test('R-D8 the documented rollback names the ACTUAL signature', () => {
+  assert.match(MIGRATION_RAW, /drop function if exists public\.claim_blocked_run_for_retry\(text, integer, interval\);/,
+    'DROP FUNCTION IF EXISTS with a non-matching arity is a silent no-op — in the rollback path, which nobody tests');
+  assert.match(MIGRATION_RAW, /drop trigger if exists agent_runs_guard_retry_columns/);
+  assert.match(MIGRATION_RAW, /drop function if exists public\.guard_agent_run_retry_columns\(\)/);
 });

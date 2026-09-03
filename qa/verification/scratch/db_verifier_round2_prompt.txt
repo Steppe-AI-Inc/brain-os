@@ -1,0 +1,69 @@
+INDEPENDENT DB/SECURITY VERIFICATION — ROUND 2 (campaign db-review-round2).
+
+Worktree: C:/Users/Dell/dev/brain-os-bug006, branch master. `git pull origin master` FIRST — the tree moves between rounds and a stale checkout previously caused a reviewer to report an existing migration as non-existent (run12/D96).
+
+ROUND 1 (record: qa/verification/DB_REVIEW_202609020001-3.json) reviewed ONLY 202609030001 and returned FAIL — CHANGES REQUIRED with D1-D8. It explicitly marked the other three migrations NOT_REVIEWED_IN_THIS_SESSION and stated that absence of a verdict is not a pass. This round must produce the three missing verdicts AND re-verify the amended fourth.
+
+YOUR FOUR VERDICTS (each stands alone; PASS on one implies NOTHING about another):
+
+A. 202609020001_chat_channel_state_durable_conversation.sql — NOT YET REVIEWED.
+   Verify: chat_channel_state adds no authority beyond chat_channels (the EXISTS-under-RLS
+   select policy cannot widen visibility in either direction); anon denied; authenticated-
+   but-uninvited denied; read vs write tiers correct (a channel READER must not be able to
+   plant a pending destructive action — the write policy is spelled out rather than
+   delegated precisely because SELECT visibility is the weaker tier: confirm that reasoning
+   holds); pending action structurally complete-or-NULL; explicit action type; source
+   turn/work-order binding, incl. what ON DELETE SET NULL means for a reader that must
+   treat a null source as expired (check the runtime honours it); expected confirmation
+   type constrained; expiry enforced by the READER not just stored; CAS/version semantics
+   (writer-driven, no trigger interference); cross-org isolation via the channel;
+   focus_stack/resolved_entities can never become an authority source;
+   last_successful_mutation is evidence-derived; indexes/FKs/constraints; rollback safe;
+   and the FEATURE-GATED runtime safe both BEFORE and AFTER the table exists.
+B. 202609020002_set_person_assignment_clear_manager.sql — NOT YET REVIEWED.
+   Verify: the old 11-arg signature is dropped (no ambiguous overload); existing callers
+   remain compatible (the 11-positional call in 202608280012, and web setPersonManager's
+   named params); p_clear_manager explicit; NULL never implicitly clears; clear=true with a
+   non-null manager rejects; search_path='' preserved from 202608280013 (the file documents
+   a caught near-miss where a draft was based on the older 0011 body — verify the shipped
+   body is the hardened one); schema-qualified casts preserved; authority unchanged;
+   cross-org manager assignment impossible through this path (note the RPC itself does NOT
+   same-company-check the manager — the web action does; judge whether that split is
+   acceptable and RECORD the judgement); anon/public grants; rollback restores the 0013
+   body not the 0011 one.
+C. 202609020003_messaging_transport_foundation.sql — NOT YET REVIEWED.
+   Verify: chat_channels remains the canonical conversation layer (bindings reference, never
+   replace); no parallel business truth; explicit company/channel binding, NOT NULL; unknown
+   external identity receives ZERO employee authority; the identity-binding tier is
+   founder/admin ONLY and that restriction is intentional and correct; cross-org isolation;
+   outbound queue unusable by a read-only viewer; a disabled binding blocks sends; duplicate
+   webhook/idempotency design; no secrets stored in ordinary tables; anon denied; rollback
+   order safe.
+D. 202609030001_agent_run_capacity_retry.sql — AMENDED since your round-1 FAIL.
+   The implementing session claims D1-D8 closed: attempt cap and blocked_reason filter moved
+   INTO the claim SELECT; p_max_attempts parameter + max_attempts returned; claimed_by/
+   claimed_at released on re-block; server-side identity recognised explicitly (current_user
+   in postgres/service_role/supabase_admin — with auth.uid() IS NULL deliberately NOT used
+   because anon would pass it); pollOnce distinguishes 42883 from authority denial; a
+   column-scoped BEFORE UPDATE trigger guards the retry/checkpoint columns against
+   manager-tier writes; CHECK constraints make a provider/model substitution unrecordable
+   without a fallback_reason; EXECUTE narrowed to service_role. Re-verify ALL of it, and
+   specifically attack: the trigger's own bypass condition (is it the same identity set as
+   the claim? can a manager evade it via a column you did not list?), whether the CHECK
+   constraints can be satisfied vacuously, whether narrowing EXECUTE to service_role breaks
+   any real caller, and whether the amended claim can still be starved or double-claimed.
+
+ALSO: re-review scripts/factory-runner/supervisor.mjs + scheduler.mjs + provider.mjs, and
+re-run your adversarial pass on checkpoint_location / worktree / branch / source_sha /
+provider-model string injection. Round 1 flagged that pollOnce spawns a session inheriting
+the machine's credentials — state plainly whether the current hardening makes that
+acceptable or not.
+
+Post-apply acceptance SQL now exists for all four (qa/scenarios-runner/post_apply_*.sql and
+chat_channel_state_rls_personas.sql). Review them as ARTIFACTS: would they actually catch
+the defects they claim to? Round 1 found one of them contained a planner-dependent vacuous
+tie (D8) — look for more of that class.
+
+Write to qa/verification/DB_REVIEW_ROUND2.json. Do NOT overwrite the round-1 record. No
+db push, no DDL, no production writes. If you cannot execute SQL, say so explicitly and
+mark every affected item CODE INSPECTED rather than verified.

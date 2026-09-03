@@ -72,7 +72,9 @@ create index if not exists agent_runs_retry_eligible_idx
 create or replace function public.claim_blocked_run_for_retry(
   p_claimed_by text,
   -- run12/D1: the cap is a real parameter of the CLAIM, not an unreachable JS constant.
-  p_max_attempts integer default 6
+  p_max_attempts integer default 6,
+  -- run13/R-D4: how long a claim may sit before it is treated as abandoned.
+  p_stale_claim_after interval default interval '30 minutes'
 )
 returns table (
   id uuid,
@@ -108,7 +110,15 @@ begin
   -- but it is stated, not inferred. auth.uid() IS NULL is deliberately NOT used as the
   -- test: anon carries a JWT with a null sub and would pass it.
   if not (public.is_founder_or_admin()
-          or current_user in ('postgres', 'service_role', 'supabase_admin')) then
+          -- run13/R-D1: `current_user` is the WRONG primitive inside a SECURITY DEFINER
+          -- function — PostgreSQL rebinds it to the function's OWNER, so this test was
+          -- ALWAYS TRUE and the authority check above it was unreachable. `session_user`
+          -- is the actually-connected role and is NOT rebound: it is 'postgres' for a
+          -- direct superuser connection (the supervisor's transport) and 'authenticator'
+          -- for every PostgREST request, whatever role it later SETs — so anon and
+          -- authenticated can never satisfy it. service_role is deliberately absent: a
+          -- service_role request still arrives as 'authenticator'.
+          or session_user in ('postgres', 'supabase_admin')) then
     raise exception 'Only the founder, an admin, or the server-side supervisor identity can claim a blocked Agent Run for retry';
   end if;
 
@@ -117,7 +127,14 @@ begin
    where ar.status = 'blocked'::public.work_status
      and ar.retry_after is not null
      and ar.retry_after <= now()
-     and ar.claimed_by is null
+     -- run13/R-D4: a claim previously had NO expiry, and release happened only in
+     -- JavaScript (recordCapacityBlock). Any path that claimed a run and then died before
+     -- re-blocking it — a spawn failure, a killed supervisor — left the row
+     -- in_progress with claimed_by set and PERMANENTLY unclaimable. A claim older than
+     -- the reclaim window is now treated as abandoned, so recovery cannot depend on a
+     -- process surviving long enough to clean up after itself. (Double-claiming stays
+     -- impossible: FOR UPDATE SKIP LOCKED still serialises concurrent supervisors.)
+     and (ar.claimed_by is null or ar.claimed_at < now() - p_stale_claim_after)
      -- run12/D2: the CLASSIFICATION must gate the claim in SQL. It previously lived only
      -- in supervisor.isRetryEligible(), which has zero call sites — so any blocked row
      -- carrying a retry_after was claimable, and a genuinely crashed agent would be
@@ -161,8 +178,8 @@ $$;
 -- supervisor (direct superuser connection, which needs no grant) so `authenticated` is
 -- revoked too; service_role covers a future PostgREST-side caller. Narrowing here costs
 -- nothing today because no authenticated client calls this function.
-revoke execute on function public.claim_blocked_run_for_retry(text, integer) from anon, public, authenticated;
-grant execute on function public.claim_blocked_run_for_retry(text, integer) to service_role;
+revoke execute on function public.claim_blocked_run_for_retry(text, integer, interval) from anon, public, authenticated;
+grant execute on function public.claim_blocked_run_for_retry(text, integer, interval) to service_role;
 
 -- run12/D5: claim AUTHORITY was founder-only, but authority over the claim's INPUTS was
 -- not — agent_runs_update_scope lets a company manager UPDATE rows for their company,
@@ -179,17 +196,36 @@ security definer
 set search_path = ''
 as $$
 begin
-  if public.is_founder_or_admin() or current_user in ('postgres', 'service_role', 'supabase_admin') then
+  -- run13/R-D1 (CRITICAL, the same defect as above and the reason this trigger blocked
+  -- NOBODY): SECURITY DEFINER rebinds `current_user` to the function owner, so this
+  -- bypass was unconditionally true and every comparison below it was dead code — the
+  -- manager escalation it was written to stop stayed fully open behind a guard that
+  -- read as closed. `session_user` is not rebound.
+  if public.is_founder_or_admin() or session_user in ('postgres', 'supabase_admin') then
     return new;
   end if;
+  -- run13/R-D2: the first list omitted the columns that most directly steer a resumed,
+  -- unattended session — remaining_scenarios and last_completed_scenario (which decide
+  -- what the resumed run SKIPS as already-certified), verification_campaign_id (which is
+  -- interpolated into its prompt), status (the claim's primary gate — flipping it makes a
+  -- run re-claimable or hides it), claimed_at and fallback_reason. Every column the claim
+  -- RETURNS or SELECTS ON is now guarded; a partial list here is the same shape of defect
+  -- as a guard that never runs.
   if new.worktree is distinct from old.worktree
      or new.checkpoint_location is distinct from old.checkpoint_location
      or new.source_sha is distinct from old.source_sha
      or new.branch is distinct from old.branch
      or new.retry_after is distinct from old.retry_after
      or new.claimed_by is distinct from old.claimed_by
+     or new.claimed_at is distinct from old.claimed_at
      or new.attempt_count is distinct from old.attempt_count
      or new.blocked_reason is distinct from old.blocked_reason
+     or new.blocked_at is distinct from old.blocked_at
+     or new.status is distinct from old.status
+     or new.remaining_scenarios is distinct from old.remaining_scenarios
+     or new.last_completed_scenario is distinct from old.last_completed_scenario
+     or new.verification_campaign_id is distinct from old.verification_campaign_id
+     or new.fallback_reason is distinct from old.fallback_reason
      or new.requested_provider is distinct from old.requested_provider
      or new.requested_model is distinct from old.requested_model
      or new.actual_provider is distinct from old.actual_provider
@@ -229,7 +265,14 @@ alter table public.agent_runs add constraint agent_runs_no_silent_model_fallback
 commit;
 
 -- ROLLBACK STRATEGY (for the reviewer; not executed by this file):
---   drop function if exists public.claim_blocked_run_for_retry(text);
+--   drop function if exists public.claim_blocked_run_for_retry(text, integer, interval);
+--   drop trigger if exists agent_runs_guard_retry_columns on public.agent_runs;
+--   drop function if exists public.guard_agent_run_retry_columns();
+--   alter table public.agent_runs drop constraint if exists agent_runs_no_silent_provider_fallback;
+--   alter table public.agent_runs drop constraint if exists agent_runs_no_silent_model_fallback;
+--   (run13/R-D8: the signature MUST match exactly — DROP FUNCTION IF EXISTS with the
+--    wrong arity is a silent no-op that leaves the function live while the operator
+--    believes it is gone.)
 --   drop index if exists public.agent_runs_retry_eligible_idx;
 --   alter table public.agent_runs drop column if exists <each column added above>;
 -- Purely additive; the supervisor is feature-gated on the claim function existing, so

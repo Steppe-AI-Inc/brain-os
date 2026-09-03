@@ -159,8 +159,14 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
       // serving it. Mark it 'blocked' with the real reason so it reads as retryable
       // provider capacity, never as an anonymous stale worker and NEVER as success.
       let capacity = null;
+      // run13/R-D6: the FULL log text must survive — the provider's stated reset time
+      // ('… resets 3:40am') sits AFTER the matched phrase, so passing only
+      // capacity.matched stripped the very thing computeRetryAfter parses, and every
+      // block silently fell back to the generic backoff.
+      let capacityRaw = '';
       try {
-        capacity = provider.classifyProviderOutput(await provider.getLogs(run.provider_run_id));
+        capacityRaw = await provider.getLogs(run.provider_run_id);
+        capacity = provider.classifyProviderOutput(capacityRaw);
       } catch {
         // Logs may be gone with the session; anonymous staleness is then the honest
         // classification and the existing STALE path already covers it.
@@ -173,7 +179,7 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
         // without the dead session's participation. Falls back to the inline write if
         // the retry columns are not migrated yet — never loses the classification.
         try {
-          await supervisor.recordCapacityBlock(run.id, capacity.matched, { attemptCount: 1 });
+          await supervisor.recordCapacityBlock(run.id, capacityRaw || capacity.matched, { attemptCount: 1 });
         } catch {
           await runSql(`
 update public.agent_runs
