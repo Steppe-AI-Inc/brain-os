@@ -67,6 +67,15 @@ jobs:
         # others, and this job must never be collapsed into a single combined PASS that
         # could hide a failing migration.
 
+      - name: RLS persona enforcement (per-migration security verdicts)
+        working-directory: qa/dbtest
+        run: node personas.mjs
+        # Proves policies REFUSE A REAL CALLER, not merely that they exist. PGlite runs as
+        # superuser by default (which bypasses RLS), so this suite SET ROLEs down to
+        # `authenticated`/`anon` and SELF-CHECKS that enforcement is actually happening
+        # before asserting anything — otherwise every "denied" result could be a typo or a
+        # missing grant, and the run would report airtight security while proving nothing.
+
       - name: Publish reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -75,15 +84,14 @@ jobs:
           path: |
             qa/dbtest/apply-report.json
             qa/dbtest/acceptance-report.json
+            qa/dbtest/personas-report.json
           if-no-files-found: warn
 
       - name: State what this run does NOT prove
         if: always()
         run: |
-          echo "This job proves: SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED."
-          echo "It does NOT prove RLS ENFORCEMENT per persona: PGlite runs single-user as"
-          echo "superuser, so policies are proven to exist and be attached, not to refuse a"
-          echo "real caller."
+          echo "This job proves: SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED +"
+          echo "RLS ENFORCEMENT VERIFIED (policies refuse a real non-superuser caller)."
           echo "It does NOT prove anything about production data, and it is NOT a"
           echo "substitute for the post-apply verification performed against the live"
           echo "database after an authorized push."

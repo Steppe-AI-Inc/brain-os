@@ -150,6 +150,20 @@ begin
   end if;
 end $$;
 
+-- ---- 4b. DEFAULT PRIVILEGES, as Supabase provisions them. ------------------------------
+-- Supabase grants the API roles access to public tables and then relies on RLS to do the
+-- actual restricting; project migrations REVOKE explicitly where a table must be narrower
+-- (the anon-grant sweep discipline, 202608310004). Without this, every table created below
+-- has no grants at all, `authenticated` gets "permission denied for table chat_channels",
+-- and the persona suite would report airtight security produced by a MISSING GRANT rather
+-- than by a policy — the most flattering possible way to be wrong.
+--
+-- Faithful direction matters here: this makes the harness MORE permissive by default, so a
+-- migration that forgets to revoke is CAUGHT rather than hidden.
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+
 -- ---- 5. Grants (LAST — every role and schema above now exists). ------------------------
 grant usage on schema public to anon, authenticated, service_role;
 grant usage on schema auth to anon, authenticated, service_role;
