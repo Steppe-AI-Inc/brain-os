@@ -48,8 +48,19 @@ async function runSql(sql) {
   const file = join(tmpdir(), `supervisor-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
   writeFileSync(file, sql, 'utf8');
   try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT, shell: true, maxBuffer: 10 * 1024 * 1024,
+    // R-D9 (DB review round 2): this carried `shell: true`, which contradicts this file's
+    // own security rule that DB-controlled strings never reach a shell. No database value
+    // is passed here today — the SQL travels via a harness-generated temp FILE and the argv
+    // is fixed — so it was not exploitable. It was still wrong to leave: `shell: true` means
+    // the argv is re-parsed by cmd.exe, so the day anyone adds a DB-derived argument the
+    // injection is silent and total. The guarantee has to hold by CONSTRUCTION, not because
+    // nobody has edited this line yet.
+    //
+    // `shell: true` was there because bare `npx` is not directly executable on Windows;
+    // naming the real `npx.cmd` keeps argv semantics with no shell anywhere in the path.
+    const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+    const { stdout } = await execFileAsync(npxBin, ['supabase', 'db', 'query', '--linked', '-f', file], {
+      cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024,
     });
     const jsonStart = stdout.indexOf('{');
     if (jsonStart === -1) throw new Error(`no JSON in db query output: ${stdout}`);
