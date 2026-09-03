@@ -1,5 +1,5 @@
 # DURABLE SESSION CHECKPOINT — Main-PC implementation session
-Updated: 2026-09-03 (campaign #73 closed, verifier #14 dispatched and RUNNING, all four
+Updated: 2026-09-03 (campaign #74 CLOSED, verifier #15 dispatched and RUNNING, all four
 DB migrations' round-2 findings closed). A completely fresh Claude Code session must be
 able to resume from this file without asking the founder for context.
 
@@ -13,10 +13,10 @@ SHA, dispatches a fresh verifier on that SHA. No step is skipped and none is ask
 ## Current state (exact)
 - Branch: `pending/d3-past-completion-gate-pendingaction-shortcircuit` @ `C:/Users/Dell/dev/brain-os`
   (main tree; hot file `supabase/functions/sem-ai-command/index.ts` — ONE writer only).
-- **HEAD `f1722f2`**, `index.ts` sha256 **`10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a`**.
-- **VERIFIER #14 (campaign #74) IS RUNNING AGAINST THAT EXACT SHA.** Windows PID 23172,
-  dispatched 2026-09-03 11:57 local, output buffers to
-  `qa/verification/scratch/verifier14_output.log` (empty until it exits — `-p` buffers).
+- **HEAD `d724d8c`**, `index.ts` sha256 **`1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64`**.
+- **VERIFIER #15 (campaign #75) IS RUNNING AGAINST THAT EXACT SHA.** Windows PID 22980,
+  dispatched 2026-09-03 12:44 local, output buffers to
+  `qa/verification/scratch/verifier15_output.log` (empty until it exits — `-p` buffers).
   **DO NOT MODIFY `index.ts` UNTIL IT RETURNS.** It asserts the SHA before and after every
   temporary edit; a change from this side invalidates the whole campaign.
 - `master` @ `C:/Users/Dell/dev/brain-os-bug006` worktree — **PULL FIRST** (run12/D96: a
@@ -38,33 +38,26 @@ SHA, dispatches a fresh verifier on that SHA. No step is skipped and none is ask
 - Capacity-resilience pattern proven: #10 scenario 1 checkpoint survived a
   PROVIDER_CAPACITY_BLOCKED exit and attempt 2 resumed from scenario 2 without rerun.
 
-## VERIFIER #14 INTERIM RESULT — FAIL, and one of them is a P1 I caused
-Read its live checkpoint in `qa/verification/CURRENT_CAMPAIGN.json` (`scenarios{}`).
-S1 PASS; S2–S6 FAIL; S7 pending at the time of writing.
+## VERIFIER #14 (campaign #74) — VERDICT FAIL, CLOSED in `d724d8c`
+Three of its four source defects were MINE, shipped in `f1722f2`. Full record:
+`qa/KNOWN_FAILURE_MODES.md` #74 + closure postscript;
+`qa/verification/archive/campaign-f1722f2-verify14.json`.
 
-- **D105 (P1, MY REGRESSION)** — the D102 raw-label fallback **mis-binds**. Options
-  `[Smith, Smith's Bakery]` + reply `smiths bakery` → binds **Smith**, and the wrong entity
-  is armed into a destructive pending action. Every earlier label defect could only cause a
-  dead end; this one causes a mis-bind, which is the Class-B failure the whole design
-  exists to prevent. **FIX IS PREPARED AND VALIDATED** (12/12 on the real matcher, against
-  a COPY, because the SHA is locked): `qa/verification/proposed/v14_d105_matcher_fix.patch.md`
-  with its probe `v14_d105_matcher_probe.mjs`. Root cause: the fallback had no notion of
-  SPECIFICITY and searched every option rather than only the normalisation-tied set.
-- **D114 (P2, REGRESSION vs `ace9b6a`)** — FIX-3b **replaced** run12's FIRST_PERSON
-  completion belt instead of adding to it, reopening that class: 13/20 leaks vs `ace9b6a`'s
-  0/20 on interrogative-led first-person assertions ("Did I mention I archived ACME
-  already?"). **This is the THIRD consecutive campaign in which one direction of the
-  question belt was closed by reopening the other** — the exact failure run13's own header
-  warns against. The fix must ADD to the belt, not swap axes again.
-- **D112 (P2, NEW)** — `CONFIRMED_COMPLETION` has no negation or predicate anchoring, so
-  it destroys truthful answers: "Confirmed — the company is not archived.", "Confirmed —
-  you have 3 archived companies." 9/16 measured NEW on `f1722f2`, 0/16 on `ace9b6a`.
-- **D113 (P2)** — D100 corroboration is **gated on the very COMPLETION_WORD test it was
-  written to replace**, so labels outside the 24-word English list ("Terminated Bob Smith")
-  or using a Cyrillic confusable are never corroborated and ship verbatim.
-- **D106–D111** — surviving mutants: arm 2 of the drift predicate, the replay site (ZERO
-  coverage), the D78/D86/D91 sub-guards, the D102 uniqueness requirement, and several
-  guard LIMITS.
+- **D106 (P1)** — the D102 raw fallback could bind a founder's reply to the WRONG entity
+  and arm `archiveCompanyIds` with it. Fixed with SPECIFICITY + a RESIDUAL-MENTION guard +
+  the raw tie-break confined to the tied set. **The applied fix is verifier #14's, not the
+  one I prepared** — mine guessed on multi-mention replies, and my own probe contained no
+  multi-mention case, which is why my self-validation read clean.
+- **D114** — FIX-3b REPLACED run12's first-person belt rather than adding to it. Both axes
+  now present, first-person carrying a clause-position lookbehind.
+- **D112** — `CONFIRMED_COMPLETION` destroyed truthful answers; now negation- and
+  determiner-aware.
+- **D113** — the corroboration gate was itself lexical. Now two rules, only the second
+  lexical. Ends D78 → D86 → D91 → D100 → D113 at five campaigns.
+- **D107–D111** (eleventh vacuous-guard recurrence) — remedied by `run14` (68 cases), no
+  source change. **D115** ledger corruption deleted.
+
+Battery: 25 suites, 0 failures, 690 checks. Mutation proof 10/10 including LIMITS.
 
 ## WHAT must not be repeated / broken
 - **Never derive PASS from an exit code.** exit 0 + provider-capacity text ⇒
@@ -88,14 +81,14 @@ S1 PASS; S2–S6 FAIL; S7 pending at the time of writing.
   `qa/verification/DISPATCH_RUNBOOK.md` (narrow `--allowedTools`).
 
 ## NEXT EXECUTABLE ACTIONS (in order)
-1. **WAIT** for verifier #14 to exit (a Monitor is armed on PID 23172; it reports the exit
-   and greps the log for verdict/capacity text). Do not touch `index.ts` before then.
-2. Read its final verdict and `v14_regression_additions.mjs`. Classify exactly as
+1. **WAIT** for verifier #15 to exit (a Monitor is armed on PID 22980). Do not touch
+   `index.ts` before then.
+2. Read its final verdict and `v15_regression_additions.mjs`. Classify exactly as
    PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — OTHER.
-3. Apply the prepared **D105** fix first (it is P1 and already validated), then D114, D112,
-   D113, then the D106–D111 coverage gaps.
-4. Promote `run14_defect_closure_contract.mjs`, mutation-prove every new guard **including
-   its limits**, append ledger entry #74, ONE new SHA, dispatch **verifier #15**.
+3. Fix in severity order, sweeping the class each time. Anything that can select a
+   DIFFERENT entity is P1 and goes first.
+4. Promote `run15_defect_closure_contract.mjs`, mutation-prove every new guard **including
+   its limits**, append ledger entry #75, ONE new SHA, dispatch **verifier #16**.
 5. DB side: an independent **round-3** review of all four migrations, each with its OWN
    verdict. See `qa/verification/DB_REVIEW_ROUND3_RESPONSE.json` for what changed and what
    round 3 should attack hardest.
@@ -113,8 +106,9 @@ S1 PASS; S2–S6 FAIL; S7 pending at the time of writing.
   triggers in this batch. Everything on the DB side is **CODE INSPECTED**, never LIVE
   VERIFIED. Migration C is additionally **ahead of its own gate** (the standing guardrail
   is no messaging work before Phase 11 acceptance, which has not run).
-- **`ALLOW_FUNCTIONS_DEPLOY=1`: NOT AUTHORIZED, and NOT YET REQUESTED.** Verifier #14
-  returned FAIL including a P1 mis-bind. There is nothing certifiable to deploy.
+- **`ALLOW_FUNCTIONS_DEPLOY=1`: NOT AUTHORIZED, and NOT YET REQUESTED.** `d724d8c` has had
+  NO independent verification — #15 is still running. Nothing is certifiable to deploy, and
+  the last four campaigns each found a defect in the previous one's "clean" state.
 - The two approvals are separate and must never be combined into one request.
 - **BUG-002 and GitHub issue #5 remain OPEN/PARTIAL.** Closure requires
   IMPLEMENTED → INDEPENDENTLY VERIFIED → DEPLOYED → LIVE VERIFIED → WORK-PC E2E VERIFIED.
