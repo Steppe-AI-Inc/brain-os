@@ -1,0 +1,29 @@
+{
+ "ran_at": "2026-09-03T03:26:27.356Z",
+ "results": [
+  {
+   "id": "M2.d91.determinerRule",
+   "applied": true,
+   "verdict": "KILLED",
+   "restore_byte_identical": true,
+   "tail": [
+    "  1  run12_defect_closure_contract                              OK= 67 FAIL=3",
+    "TOTAL OK=558 FAIL=3",
+    "ALL EXIT ZERO: false"
+   ]
+  },
+  {
+   "id": "M15.combined.anchorMoved",
+   "anchor_moved_only": {
+    "continuity_exit": 1,
+    "run11_exit": 1
+   },
+   "anchor_moved_plus_guard_removed": {
+    "continuity_exit": 0,
+    "run11_exit": 1
+   },
+   "restore_index_identical": true,
+   "restore_cont_identical": true
+  }
+ ]
+}

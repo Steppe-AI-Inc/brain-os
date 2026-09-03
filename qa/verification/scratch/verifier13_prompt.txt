@@ -1,0 +1,57 @@
+INDEPENDENT ADVERSARIAL VERIFICATION — campaign verify-ace9b6a-run12-closure (verifier #13, campaign #73).
+
+Repo: C:/Users/Dell/dev/brain-os, branch pending/d3-past-completion-gate-pendingaction-shortcircuit, commit ace9b6a. index.ts sha256 MUST be 021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786 — verify with sha256sum FIRST; a mismatch means the baseline moved: stop and record. Production remains sem-ai-command v92; no deploys, production access read-only (`npx supabase functions list` only). You HAVE execution rights (node, sha256sum, read-only git) — USE them.
+
+Archive qa/verification/CURRENT_CAMPAIGN.json (campaign #71, verifier #11's record incl. its DEPLOY GATE OPEN verdict for the PRIOR sha and defects D85-D89) to qa/verification/archive/campaign-f4763ef-verify12.json, then start your own record. Checkpoint after EVERY scenario; on a provider limit, checkpoint FIRST and leave the verdict PENDING/BLOCKED.
+
+WHY THIS CAMPAIGN EXISTS: #11 opened the gate for fdb4564 and simultaneously reported five defects (D85 vacuous guards/8th recurrence, D86 Title-Case label bypass, D87 progressive-vocabulary omission, D88 assertion-before-trailing-question/4th instance, D89 bookkeeping). The implementing session closed all five, which invalidated #11's certification by design. You certify the NEW sha. Treat every closure claim as unverified.
+
+Scenarios:
+1. sha baseline, then EXECUTE the full battery (every qa/scenarios-runner suite, including the newly promoted run11_defect_closure_contract.mjs at 46 cases).
+2. MUTATION-TEST the run11 fixes yourself, sha-verified byte-identical restores: the D86 POSITION rule (completionIdx>0 refusal AND the leading-participle+named-object refusal), the D87 shared PROGRESS_VERBS list feeding all arms, the D88 comma-clause reduction AND its completion-in-question belt, the shared callback-arrow strip in _gate_extract.mjs, and the ordering-check anchor guards. The implementing session recorded ONE equivalent mutant (removing `iCtx >= 0 && iPending >= 0` while both anchors exist) — confirm or refute that classification rather than accepting it.
+3. ATTACK the new rules — this is the important scenario:
+   - D86: find a label that is an assertion yet passes the position rule (completion word first, no ALL-CAPS token after: e.g. "Deleted the project", "Archived everything", "Removed all people"), and any REAL name the rule now wrongly refuses. Decide whether the derived-canonical fallback makes each acceptable, and say so explicitly.
+   - D88: assertions joined by something other than a comma or a terminator (" - ", " and ", " so ", parenthetical, newline-free run-ons); an assertion whose last comma-clause still asserts; a legitimate multi-clause question wrongly truncated.
+   - D87: progressive shapes still outside the vocabulary (non-English, "about to", "in the process of", "kicking off", passive "is being archived").
+   - The interaction of the D88 belt with genuine questions: does any legitimate clarification now get dropped wholesale? (Two committed cases pin "ok?" survival — try to find one that does not.)
+4. Production read-only: v92 ACTIVE unchanged; zero writes.
+5. Bookkeeping honesty: KNOWN_FAILURE_MODES #71 postscript accuracy (incl. the equivalent-mutant disclosure), the run11 exit-guard hardening, and whether SESSION_CHECKPOINT.md's corrected migration-location statement is now accurate (the four prepared migrations live on branch master in the C:/Users/Dell/dev/brain-os-bug006 worktree — verify, do not assume).
+
+Record defects D90+. Verdict: DEPLOY GATE OPEN (battery + mutations independently executed on this exact sha, no new P0/P1) or DO NOT DEPLOY with exact reasons. The founder-facing Edge deploy question depends on your verdict alone.
+
+Standing rules: no deploys, no production writes, working-tree writes only under qa/verification/**.
+
+=== CAMPAIGN #73 SPECIFICS (supersede the #72 scenario text where they conflict) ===
+
+#12 returned DO NOT DEPLOY on f4763ef with D90-D97, TWO of which (D92, D93) were
+regressions the implementing session had introduced one campaign earlier. All eight are
+claimed closed in ace9b6a and its cases are promoted as
+qa/scenarios-runner/run12_defect_closure_contract.mjs (70 cases). Treat every closure as
+unverified and attack the NEW rules specifically:
+
+1. D92's replacement belt is now a FIRST-PERSON past-tense pattern
+   (/\b(i|we)\s+(?:just|already)?\s*(archived|deleted|…)\b/). Find (a) an assertion it
+   misses that the old blanket belt caught and that no other gate covers — third person
+   ("ACME archived everything B. ok?"), passive, imperative, non-English; and (b) any
+   legitimate clarification it still drops.
+2. D93 is fixed in matchDisambiguationOption by stripping presentation characters from
+   BOTH sides. Attack: a label whose stripped form now matches MORE than one option (was
+   distinguishable only by quoting), a label that becomes empty after stripping, unicode
+   quote variants not in the strip set, and whether stripping widens matching enough to
+   select the WRONG option.
+3. D91's rule is now an ADJECTIVAL_COMPLETION allowlist (closed|completed|restored|
+   advanced|integrated) for the leading position. Attack both directions: an assertion
+   led by one of those five ("Restored The Backup" — is the determiner rule enough?), and
+   a REAL company name led by a completion word outside the five.
+4. D95 numbers colliding fallback labels. Attack: does numbering ever make a REAL
+   duplicate-named pair selectable-but-wrong? Is the numbering stable across turns (the
+   label is persisted and replayed — an unstable number would rebind a confirmation to a
+   different option)? THIS IS THE HIGHEST-RISK ITEM IN THIS CAMPAIGN.
+5. D90's Title-Case gate now has two observing cases. Confirm the gate is genuinely
+   non-redundant (the implementing session claims it is the only rule refusing a
+   lowercase adjectival-leading assertion) or show that it is dead code.
+6. D94 residual is disclosed, not closed — verify the disclosure matches reality.
+
+Also re-check, because they were asserted rather than proven: the KNOWN_FAILURE_MODES #72
+entry was appended WITHOUT a PROPOSED preamble (the #71 mistake), and SESSION_CHECKPOINT
+no longer pins a stale master SHA.

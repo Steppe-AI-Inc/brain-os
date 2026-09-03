@@ -109,8 +109,10 @@ C('D90.titlecase.observed', 'DEFECT', 'D90: a lowercase adjectival-leading asser
   () => label('completed migration') !== 'completed migration');
 C('D90.titlecase.observed2', 'DEFECT', 'D90: a lowercase name-shaped label with a completion word is refused rather than shown as a claim',
   () => label('restored backup archive') !== 'restored backup archive');
-C('D91.hold.d72', 'CONTRACT', 'D72 control: "Closed Loop Systems" must still survive as a real name',
-  () => label('Closed Loop Systems') === 'Closed Loop Systems');
+C('D91.hold.d72', 'CONTRACT', 'D72 control: "Closed Loop Systems" survives when the canonical read CONFIRMS it (run13/D100 changed this contract: an uncorroborated label carrying completion vocabulary now falls back to the derived reference)',
+  () => label('Closed Loop Systems', 'Closed Loop Systems') === 'Closed Loop Systems');
+C('D100.uncorroborated', 'CONTRACT', 'run13/D100: the SAME label with NO canonical row behind it falls back to the derived reference rather than showing an unverifiable model claim as a name',
+  () => label('Closed Loop Systems') !== 'Closed Loop Systems');
 
 // =====================================================================================
 // D92 — DEFECT (P1 REGRESSION vs fdb4564). The run11/D88 belt drops any question that

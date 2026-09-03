@@ -1,0 +1,312 @@
+{
+ "verifier": 13,
+ "campaign": 73,
+ "index_ts_sha256_before": "9775cd4a4688a5ad9dc27a32f19bf756f51359025fecc1657592d061d197b981",
+ "index_ts_sha256_after": "9775cd4a4688a5ad9dc27a32f19bf756f51359025fecc1657592d061d197b981",
+ "unchanged_during_run": true,
+ "ran_at": "2026-09-03T03:25:25.024Z",
+ "node": "v24.19.0",
+ "suites": 23,
+ "total_ok": 559,
+ "total_fail": 2,
+ "all_exit_zero": false,
+ "zero_assertion_suites": [
+  "claim_segmentation_and_present_tense_fp",
+  "d3_past_completion_gate_not_shortcircuited_by_pending_action",
+  "issue5_confirmation_action_type_binding",
+  "mixed_claim_grounding",
+  "past_completion_gate_behavior",
+  "per_resource_grounding_contract"
+ ],
+ "results": [
+  {
+   "suite": "claim_segmentation_and_present_tense_fp",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 64,
+   "tail": [
+    "claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+   ]
+  },
+  {
+   "suite": "company_ref_no_bare_name_join",
+   "exit": 0,
+   "ok": 8,
+   "fail": 0,
+   "assertionLines": 8,
+   "ms": 121,
+   "tail": [
+    "OK   every ArchivedCompanyBadge is fed a real .status expression, never a literal",
+    "",
+    "company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)"
+   ]
+  },
+  {
+   "suite": "current_turn_and_continuity_contract",
+   "exit": 0,
+   "ok": 17,
+   "fail": 0,
+   "assertionLines": 17,
+   "ms": 62,
+   "tail": [
+    "OK   last_successful_mutation comes from backend evidence, never prose",
+    "",
+    "current_turn_and_continuity_contract: 17/17 passed"
+   ]
+  },
+  {
+   "suite": "d3_past_completion_gate_not_shortcircuited_by_pending_action",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 54,
+   "tail": [
+    "d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+   ]
+  },
+  {
+   "suite": "issue5_confirmation_action_type_binding",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 54,
+   "tail": [
+    "  -> resolves to \"archiveCompanyIds\"  <-- ARCHIVES THE COMPANY",
+    "  after fix:",
+    "  -> resolves to undefined  <-- refuses, falls through to the LLM path"
+   ]
+  },
+  {
+   "suite": "lifecycle_evidence_and_output_persistence_contract",
+   "exit": 0,
+   "ok": 103,
+   "fail": 0,
+   "assertionLines": 103,
+   "ms": 81,
+   "tail": [
+    "",
+    "lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match the recorded baseline",
+    "DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source."
+   ]
+  },
+  {
+   "suite": "mixed_claim_grounding",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 54,
+   "tail": [
+    "mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+   ]
+  },
+  {
+   "suite": "org_selector_scoping_coverage",
+   "exit": 0,
+   "ok": 5,
+   "fail": 0,
+   "assertionLines": 5,
+   "ms": 70,
+   "tail": [
+    "OK   scoped readers exist in bulk (>= 15)",
+    "",
+    "org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)"
+   ]
+  },
+  {
+   "suite": "past_completion_gate_behavior",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 56,
+   "tail": [
+    "past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+   ]
+  },
+  {
+   "suite": "per_resource_grounding_contract",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "assertionLines": 0,
+   "ms": 59,
+   "tail": [
+    "per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+   ]
+  },
+  {
+   "suite": "run10_defect_closure_contract",
+   "exit": 0,
+   "ok": 43,
+   "fail": 0,
+   "assertionLines": 43,
+   "ms": 83,
+   "tail": [
+    "OK   EMULTI.legit-hold      [CONTRACT] ordinary prose containing the word executing in a non-claim shape is untouched",
+    "",
+    "v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)"
+   ]
+  },
+  {
+   "suite": "run11_defect_closure_contract",
+   "exit": 0,
+   "ok": 46,
+   "fail": 0,
+   "assertionLines": 46,
+   "ms": 85,
+   "tail": [
+    "OK   D88.preserves.longer       [CONTRACT] the same, with a longer trailing question",
+    "",
+    "v11_regression_additions: 46 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+   ]
+  },
+  {
+   "suite": "run12_defect_closure_contract",
+   "exit": 1,
+   "ok": 68,
+   "fail": 2,
+   "assertionLines": 70,
+   "ms": 78,
+   "tail": [
+    "OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched",
+    "",
+    "v12_regression_additions: 68 pass, 2 fail (2 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+   ]
+  },
+  {
+   "suite": "run8_defect_closure_contract",
+   "exit": 0,
+   "ok": 40,
+   "fail": 0,
+   "assertionLines": 40,
+   "ms": 80,
+   "tail": [
+    "OK   D74c an honest label still renders",
+    "",
+    "run8_defect_closure_contract: 40/40 passed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_company_restore_truth",
+   "exit": 0,
+   "ok": 51,
+   "fail": 0,
+   "assertionLines": 51,
+   "ms": 62,
+   "tail": [
+    "PASS an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design)",
+    "",
+    "ALL REGRESSIONS PASSED"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_confirmation_truth",
+   "exit": 0,
+   "ok": 38,
+   "fail": 0,
+   "assertionLines": 38,
+   "ms": 52,
+   "tail": [
+    "PASS an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix)",
+    "",
+    "ALL REGRESSIONS PASSED"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_execution_plan_truth",
+   "exit": 0,
+   "ok": 25,
+   "fail": 0,
+   "assertionLines": 25,
+   "ms": 54,
+   "tail": [
+    "PASS no pendingAction at all is completely unaffected by this override",
+    "",
+    "ALL REGRESSIONS PASSED"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_factory_verification_selection",
+   "exit": 0,
+   "ok": 7,
+   "fail": 0,
+   "assertionLines": 7,
+   "ms": 50,
+   "tail": [
+    "PASS Zero runs: correctly reports unverified/zero, never falsely true",
+    "",
+    "ALL REGRESSIONS PASSED"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_named_person_lookup_truth",
+   "exit": 0,
+   "ok": 11,
+   "fail": 0,
+   "assertionLines": 11,
+   "ms": 52,
+   "tail": [
+    "PASS a person-tagged memory with no entity_id at all is not given a fabricated status either",
+    "",
+    "ALL REGRESSIONS PASSED"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_past_completion_claim_regex",
+   "exit": 0,
+   "ok": 13,
+   "fail": 0,
+   "assertionLines": 13,
+   "ms": 58,
+   "tail": [
+    "OK   [no match] hedged \"could have been\"",
+    "",
+    "13 passed, 0 failed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_source_invariants_drift_guard",
+   "exit": 0,
+   "ok": 13,
+   "fail": 0,
+   "assertionLines": 13,
+   "ms": 67,
+   "tail": [
+    "OK   company.archive still maps to archiveCompanyIds (the field the issue #5 repro wrongly reached)",
+    "",
+    "13 passed, 0 failed"
+   ]
+  },
+  {
+   "suite": "structured_claim_laundering_contract",
+   "exit": 0,
+   "ok": 29,
+   "fail": 0,
+   "assertionLines": 29,
+   "ms": 77,
+   "tail": [
+    "",
+    "structured_claim_laundering_contract: 29/29 match the recorded baseline",
+    "DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present."
+   ]
+  },
+  {
+   "suite": "structured_claim_verification",
+   "exit": 0,
+   "ok": 42,
+   "fail": 0,
+   "assertionLines": 42,
+   "ms": 76,
+   "tail": [
+    "OK   H6 a SUPPORTED claim is also rendered without a raw uuid",
+    "",
+    "structured_claim_verification: 42/42 passed"
+   ]
+  }
+ ]
+}

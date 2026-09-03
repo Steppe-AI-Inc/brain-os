@@ -80,8 +80,9 @@ for (const [tag, label] of [['simple past', 'ACME deleted'], ['first person', 'I
   C('D78.' + tag, 'DEFECT', 'D78: sentence-shaped option label ' + JSON.stringify(label) + ' is not rendered/persisted as a label',
     () => { const r = run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label, id: ACME, entityType: 'company' }, { label: 'ACME Services', id: ID, entityType: 'company' }] } }); return !r.summary.includes(label) && r.envelope.pendingAction.options[0].label !== label; });
 }
-C('D78.legit', 'CONTRACT', 'D72 still holds: a legit name with a completion WORD ("Closed Loop Systems") survives as a label',
-  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'Closed Loop Systems', id: ID, entityType: 'company' }] } }).envelope.pendingAction.options[0].label === 'Closed Loop Systems');
+C('D78.legit', 'CONTRACT', 'D72 still holds: a CANONICALLY-CORROBORATED name with a completion word ("Closed Loop Systems") survives as a label (run13/D100: uncorroborated ones no longer do)',
+  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'Closed Loop Systems', id: ID, entityType: 'company' }] },
+    context: { companies: [{ id: ID, name: 'Closed Loop Systems' }] } }).envelope.pendingAction.options[0].label === 'Closed Loop Systems');
 C('D79.taskTitle', 'DEFECT', 'D79: a legitimate task title containing "was approved" keeps its name in the evidence line',
   () => run({ claims: null, evidence: [EV('task', 'create', ID)], summary: 'ok', runtime: { ['task|' + ID]: 'Verify the contract was approved by legal' } }).summary === '“Verify the contract was approved by legal”: created.');
 C('D79.twinOptions', 'DEFECT', 'D79: two options whose real names are assertion-shaped do not collapse to IDENTICAL labels',

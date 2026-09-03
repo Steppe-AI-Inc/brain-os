@@ -202,8 +202,9 @@ for (const [tag, label] of [
     () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label, id: ACME, entityType: 'company' }] },
       context: { companies: [{ id: ACME, name: 'ACME Holdings' }] } }).envelope.pendingAction.options[0].label !== label);
 }
-C('D86.hold.d72', 'CONTRACT', 'D72 control: "Closed Loop Systems" must still survive as a real name',
-  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'Closed Loop Systems', id: ID, entityType: 'company' }] } }).envelope.pendingAction.options[0].label === 'Closed Loop Systems');
+C('D86.hold.d72', 'CONTRACT', 'D72 control: "Closed Loop Systems" survives when the canonical read CONFIRMS it (run13/D100 changed this contract: an uncorroborated label carrying completion vocabulary now falls back to the derived reference)',
+  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'Closed Loop Systems', id: ID, entityType: 'company' }] },
+    context: { companies: [{ id: ID, name: 'Closed Loop Systems' }] } }).envelope.pendingAction.options[0].label === 'Closed Loop Systems');
 C('D86.hold.d79', 'CONTRACT', 'D79 control: twin assertion-shaped REAL names must stay distinct',
   () => { const r = run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [
       { label: 'Was Archived Holdings', id: ACME, entityType: 'company' }, { label: 'Was Created Studio', id: ID, entityType: 'company' }] },

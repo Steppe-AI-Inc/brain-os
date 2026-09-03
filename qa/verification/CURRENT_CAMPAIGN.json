@@ -1,175 +1,167 @@
 {
- "campaign_id": "verify-f4763ef-run11-closure",
- "campaign_number": 72,
- "verifier": 12,
- "base_commit": "f4763ef3b9a8e3a1569f94ca650f70764c61f6ef",
+ "campaign_id": "verify-ace9b6a-run12-closure",
+ "campaign_number": 73,
+ "verifier": 13,
+ "base_commit": "ace9b6a1c944d49e32c8743d7ae3e98dca1cae43",
  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "started_at": "2026-09-03T00:00:00Z",
- "last_checkpoint_at": "2026-09-03T03:06:34.653Z",
+ "last_checkpoint_at": "2026-09-03T03:38:59.057Z",
  "project_ref": "pvphxgrtdfrudejjhzjk",
- "index_ts_sha256_required": "1db385790f42286497540187c7c18e5661d59742eec67dc61cc978e8c8b369ec",
- "index_ts_sha256_observed_at_start": "1db385790f42286497540187c7c18e5661d59742eec67dc61cc978e8c8b369ec",
+ "index_ts_sha256_required": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786",
+ "index_ts_sha256_observed_at_start": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786",
  "sha_baseline_match": true,
- "prior_campaign_archived": "qa/verification/archive/campaign-fdb4564-verify11.json (sha256 d79f5a333dc72a1410942d769a7728887116c92f66e39e1b816fdc90ad4fcbb0, byte-identical copy of campaign #71)",
- "working_tree_state": "clean except untracked qa/verification/scratch/verifier12_prompt.txt",
- "commit_composition_note": "f4763ef diff vs parent fdb4564 spans 118 files; 48 of them are web/+scripts/ and are BYTE-IDENTICAL to branch master (verified: git diff --name-only master f4763ef -- web/ is empty). That portion is an undisclosed master catch-up, not new unverified product work. The commit message describes only the D85-D89 closure. Recorded as a bookkeeping observation, severity TBD.",
+ "prior_campaign_archived": "qa/verification/archive/campaign-f4763ef-verify12.json (sha256 e7c7aba5d5e513e6446bd707595397c9f528256bb251e600c570e086e80883eb, byte-identical copy of campaign #72, verifier #12, verdict DO NOT DEPLOY on f4763ef with D90-D97)",
+ "working_tree_state": "clean except untracked qa/verification/scratch/verifier13_prompt.txt",
  "scenarios": {
   "1_sha_and_full_battery": {
    "status": "PASS",
-   "evidence": "qa/verification/scratch/v12_battery_summary.json — own runner v12_run_battery.mjs, 22 suites discovered from filesystem, ALL exit 0, TOTAL OK=491 FAIL=0. run11_defect_closure_contract OK=46 (matches the claimed 46 cases). index.ts sha256 unchanged pre/post run. 5 suites are self-declared SUPERSEDED no-op stubs (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract); issue5_confirmation_action_type_binding passes 7/7 but MODELS the fix locally instead of executing index.ts — product code confirmed fail-closed by inspection at index.ts:186-189 + call sites 2516/2539. RE-CONFIRMED at end of campaign: battery re-run on the restored tree, 22/22 exit 0, TOTAL OK=491 FAIL=0, sha unchanged.",
+   "evidence": "Own runner qa/verification/scratch/v13_run_battery.mjs (written fresh, enumerates suites from the filesystem, asserts sha before AND after, and flags zero-assertion suites). 23 .mjs suites discovered, ALL exit 0, TOTAL OK=561 FAIL=0. run12_defect_closure_contract OK=70 (matches the claimed 70). index.ts sha256 021c8989… unchanged pre/post. 5 suites are self-declared SUPERSEDED prose-era no-op stubs (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract) — they print one SUPERSEDED line and exit 0. issue5_confirmation_action_type_binding prints 10/10 in a non-OK-prefixed format (hence 0 in my counter) — counted separately. SQL suites in qa/scenarios-runner/*.sql were NOT run (no DB writes allowed this campaign) — recorded as a coverage gap.",
    "defects_found": [],
    "regressions_added": []
   },
-  "2_mutation_test_run11_fixes": {
-   "status": "PASS_WITH_DEFECT",
-   "evidence": "qa/verification/scratch/v12_mutation_report.json + v12_mutation_report2.json. 11 mutants applied to REAL sources (index.ts, _gate_extract.mjs, current_turn_and_continuity_contract.mjs), the whole committed battery re-run per mutant, every restore sha256-verified byte-identical to 1db38579 (final sha confirmed identical after both runs). KILLED: M1 D86 completionIdx>0 rule, M2 D86 leading-participle+ALL-CAPS rule, M3 D87 shared PROGRESS_VERBS reaching arm 3, M4 D88 comma-clause reduction, M5 D88 completion-in-question belt, M6 ordering anchor moved, M7 shared callback-arrow strip in _gate_extract.mjs, M9 (M6+M8 combined). SURVIVED: M8 (the one the implementing session disclosed), M10, M11.",
-   "defects_found": [
-    "D90"
-   ],
+  "2_mutation_test_run12_fixes": {
+   "status": "PASS",
+   "evidence": "qa/verification/scratch/v13_mutate.mjs + v13_mutate2.mjs; reports qa/verification/scratch/v13/v13_mutation_report.json and v13_mutation_report2.json. 15 mutants applied to REAL sources (index.ts, _gate_extract.mjs, current_turn_and_continuity_contract.mjs), the WHOLE 23-suite battery re-run per mutant, every restore sha256-verified byte-identical (index.ts back to 021c8989…, _gate_extract 595f70ca…, continuity c76eecb1…). KILLED 14/15: M1 D91 adjectival allowlist, M2 D91 determiner/ALL-CAPS rule, M3 D90 Title-Case gate, M4 D86 completionIdx>0, M5 D92 first-person belt, M6 D88 comma-clause cut, M7 D93 matcher stripping, M8 D95 collision numbering, M9/M10/M11 the three new D94 arms, M12 D87 shared PROGRESS_VERBS, M13 shared callback-arrow strip in _gate_extract.mjs. SURVIVED 1/15: M14 (the anchor-existence conjunct in current_turn_and_continuity_contract.mjs) — the ONE mutant the implementing session disclosed. INDEPENDENTLY CONFIRMED via M15: with the buildContext anchor renamed, the continuity suite exits 1 WITH the guard and exits 0 (fail-OPEN) WITHOUT it, while run11_defect_closure_contract exits 1 in both cases. So the guard is genuinely load-bearing and the single mutation is equivalent only because run11 duplicates the existence check. #12s classification and its corrected rationale are CONFIRMED, not merely accepted. D90 specifically: M3 is KILLED by run12_defect_closure_contract only — the Title-Case gate is observed and is NOT dead code.",
+   "defects_found": [],
    "regressions_added": []
   },
   "3_attack_new_rules": {
    "status": "FAIL",
-   "evidence": "Attacks executed against the REAL gate slice extracted from index.ts (qa/verification/scratch/v12_probe.mjs) and the REAL matchDisambiguationOption. A/B against the prior SHA fdb4564 (qa/verification/scratch/v12_index_fdb4564.ts, extracted via git show) separates regressions from pre-existing limits. D86: 17 assertion labels pass the position rule; 10 real names wrongly refused (fallback covers the refusals, does NOT cover the acceptances). D88: no assertion leaked on any of 10 alternate-join shapes (belt holds), but 12/20 legitimate clarifications are destroyed. D87: 15 progressive shapes escape, all pre-existing. Question-belt interaction: the two committed \"ok?\" survival cases pin ONLY the comma shape — changing the comma to \" - \", \" and \", \" so \", \"(\", or nothing drops the whole fragment including the real question.",
+   "evidence": "Harnesses: qa/verification/scratch/v13_probe.mjs (REAL gate slice + REAL matchDisambiguationOption executed out of index.ts), v13_attack.mjs, v13_ab.mjs, v13_labelprobe.mjs. Outputs: qa/verification/scratch/v13/v13_attack_output.txt, v13_ab_output.json. Three-way A/B on one corpus (20 assertion shapes / 27 clarifications): fdb4564 leaks=20/20 dropped=1/27 truncated=0/27; f4763ef leaks=0/20 dropped=21/27 truncated=4/27; ace9b6a leaks=18/20 dropped=7/27 truncated=4/27. D91: 9 adjectival-led assertion labels accepted verbatim; 13 real names outside the allowlist refused but ALL still selectable via the quoted derived-canonical fallback (fallback adequate for the refusals, NOT for the acceptances). D93: no wrong-option selection found on any probe; failure mode is dead-ending. D95: numbering stable across the confirmation turn (matcher reads the persisted numbered object) but non-unique against a replayed numbered label, index-based rather than entity-based, and applied exactly to options whose ids provably cannot execute.",
    "defects_found": [
-    "D90",
-    "D91",
-    "D92",
-    "D93",
-    "D94",
-    "D95"
+    "D98",
+    "D99",
+    "D100",
+    "D101",
+    "D102",
+    "D103"
    ],
    "regressions_added": [
-    "qa/verification/proposed/v12_regression_additions.mjs (pending promotion)"
+    "qa/verification/proposed/v13_regression_additions.mjs (59 cases; 47 DEFECT rows reproduce, 0 CONTRACT failures on ace9b6a)"
    ]
   },
   "4_production_read_only": {
    "status": "PASS",
-   "evidence": "`npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk` (read-only). sem-ai-command: status ACTIVE, version 92, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 — byte-for-byte the fingerprint verifiers #10 and #11 recorded. All six functions ACTIVE and unchanged. ZERO writes performed: no deploy, no db push, no db query, no migration.",
+   "evidence": "npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk (read-only, the ONLY production call this campaign made). sem-ai-command: version 92, status ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 — byte-identical to the fingerprint #10/#11/#12 each recorded. Zero writes, zero deploys, zero db push, zero db query.",
    "defects_found": [],
    "regressions_added": []
   },
   "5_bookkeeping_honesty": {
-   "status": "PASS_WITH_DEFECT",
-   "evidence": "VERIFIED TRUE: (a) run11 exit-guard hardening is real — `if (fail > 0) process.exit(1)` with no kind-based carve-out; (b) run11_defect_closure_contract is 46/46 and the 18 #11 DEFECT rows (D86 x5, D87 x7, D88 x6) all reproduce as fixed; (c) the equivalent-mutant disclosure is honest and its classification is CONFIRMED, with the correction recorded in mutation_survivor_classification; (d) D89 is genuinely closed at BRANCH level — `git log master -- supabase/migrations/` shows all four prepared migrations on master (202609020001 @3527244, 202609020002 @5d84042, 202609020003 @15f46a9, 202609030001 @2e3445c). DEFECT D96: SESSION_CHECKPOINT.md line 20 pins the master worktree at 12191e8 and lines 22-27 claim all four live there, but 202609030001_agent_run_capacity_retry.sql is ABSENT at 12191e8 (verified by git cat-file -e); it landed with 2e3445c, two commits later. Lines 18 and 31 are also stale (still name #10 / 65ade7c). Additional bookkeeping finding: the #71 promotion pasted its own \"# PROPOSED entry for qa/KNOWN_FAILURE_MODES.md\" preamble verbatim into the canonical ledger at line 6710.",
+   "status": "FAIL",
+   "evidence": "(a) KNOWN_FAILURE_MODES #72 append: FALSE as claimed. The #71 pasted preamble WAS removed (git diff f4763ef ace9b6a confirms the 8-line deletion at 6707), but the #72 append re-committed the class with a worse cut — qa/KNOWN_FAILURE_MODES.md:6931-6935 now reads a mangled heading followed by four lines of #12s promotion note and a stray ---, creating a DUPLICATE ## #72 heading before the real one at 6939, while the commit message asserts #72 was appended preamble-stripped. Recorded as D104. (b) run12 exit guard: CONFIRMED intact, run12_defect_closure_contract.mjs:210-212 if (fail>0) process.exit(1), no kind-based carve-out; 70/70 cases execute. (c) SESSION_CHECKPOINT migration-location statement: LIVE VERIFIED TRUE — master HEAD ead2226, the C:/Users/Dell/dev/brain-os-bug006 worktree is checked out at that same SHA, and 202609020001/202609020002/202609020003/202609030001 exist both on disk in that worktree and in git ls-tree master. The stale-SHA pin is genuinely gone. But the rest of the file is three campaigns stale (D105). (d) D94 residual disclosure: ACCURATE — its substantive claim was executed and holds (a residual progressive shape on an evidence-bearing turn is re-rendered as the company: archived — confirmed).",
    "defects_found": [
-    "D96"
+    "D104",
+    "D105"
    ],
    "regressions_added": []
   }
  },
  "defects_found": [
   {
-   "id": "D90",
+   "id": "D98",
    "severity": "P2",
-   "title": "Vacuous guard, NINTH recurrence: the Title-Case name-shape gate is unobserved by the whole committed battery",
-   "evidence": "v12_mutation_report2.json M11. Neutralising `if (!titleCasedName) return null;` (index.ts:4802) leaves all 22 suites exit 0, yet it changes real behaviour on 8/10 probed inputs. The D86 POSITION rule does NOT subsume it: an all-lowercase assertion label (\"deleted acme\", \"removed all people\") has completionIdx===0 and no ALL-CAPS token after it, so both position checks pass and only the Title-Case gate refuses it.",
-   "product_code_correct": true,
-   "regression_vs_prior_sha": false,
-   "status": "REGRESSION TEST PREPARED (qa/verification/proposed/v12_regression_additions.mjs)"
+   "regression_vs": "fdb4564",
+   "title": "run12/D92 is NARROWED, not closed: 7 of 27 legitimate clarifications are still dropped wholesale, each leaving an armed pendingAction with a null question",
+   "evidence": "v13_ab_output.json + v13_attack_output.txt sections B/B2. All 7 carry a first-person completion in a SUBORDINATE clause (\"the company I archived last week\", \"the report we created yesterday\"). paQ() returns null for all 7 while action.archiveCompanyIds stays populated — the run10/D84 shape. f4763ef 21/27, fdb4564 1/27, ace9b6a 7/27. The closure claims 12/22 -> 0/22.",
+   "status": "FLAGGED — fix prepared and validated (FIX-3b), not applied"
   },
   {
-   "id": "D91",
+   "id": "D99",
    "severity": "P2",
-   "title": "D86 is only NARROWED, not closed: Title-Cased leading-participle assertion labels are still accepted verbatim",
-   "evidence": "18 probed labels; 17 clear assertions accepted VERBATIM and rendered to the founder under \"Options: …\" (index.ts:5178), replaying next turn as \"Confirmed — <assertion>\": \"Deleted The Project\", \"Archived Everything\", \"Removed All People\", \"Completed The Migration\", \"Closed All Accounts\", \"Restored The Company\", \"Approved The Request\", \"Sent The Invoice\", \"Cleared All Data\", \"Moved The Team\", \"Ended The Contract\", \"Granted Full Access\", \"Added Three People\", \"Renamed The Unit\", \"Confirmed The Order\", \"Assigned The Tasks\", \"Deleted Everything\". They satisfy the position rule because the participle is FIRST and the following object is Title-Case (not ALL-CAPS).",
-   "derived_canonical_fallback_verdict": "DOES NOT RESCUE THESE — explicitly checked. The fallback only fires on REFUSAL; an accepted label is emitted verbatim and never reaches displayName(). So the commit message's \"the derived-canonical fallback remains the real safety net\" is true for refusals and IRRELEVANT to this escape.",
-   "regression_vs_prior_sha": false,
-   "status": "PRE-EXISTING on fdb4564 too (A/B confirmed) — D86 closure claim is OVERSTATED, not falsified"
+   "regression_vs": "f4763ef",
+   "title": "The D92 replacement belt gives up 18 of 20 assertion shapes and matches only the two shapes its own committed cases pin; the source comment’s exhaustiveness claim is measurably false",
+   "evidence": "v13_ab_output.json: leaks 18/20 on ace9b6a vs 0/20 on f4763ef. Third person, named subject, bare participle, adverbial passive and collective subject all leak — and so do first-person shapes with any adverb other than just/already (\"I successfully archived ACME ok?\", \"I have archived ACME ok?\", \"We finally deleted the project ok?\"). index.ts:4771-4775 asserts the belt was load-bearing for exactly ONE shape and that that shape and only that shape is what it now matches.",
+   "status": "FLAGGED — fix prepared and validated (FIX-3b), not applied"
   },
   {
-   "id": "D92",
-   "severity": "P1",
-   "title": "REGRESSION introduced by f4763ef: the D88 completion-in-question belt silently drops 60% of legitimate clarification questions",
-   "evidence": "`if (COMPLETION_WORD.test(q)) return null;` (index.ts:4762) drops any question that MENTIONS completion vocabulary, not one that ASSERTS a completion. Measured 12/20 on a realistic clarification corpus, including \"Who should the task be assigned to?\", \"Which goal should this task be assigned to?\", \"Which archived company did you mean?\", \"Do you want the deleted document recovered?\". A/B PROVEN NEW: identical inputs survive on fdb4564 and return [] on f4763ef. Applies on ORDINARY turns, not only correction turns (result.questions = envelopeQuestions runs unconditionally, index.ts:4986), and also nulls pendingAction.question (4962) while the action payload stays armed — the exact run10/D84 shape (\"silently dropping the visible prompt while the destructive action payload stayed armed — worse than what it prevented\"). On correction turns envelopeQuestions is spliced straight into founder-facing text (5193/5194), so the founder gets the correction preamble and NO question at all.",
-   "load_bearing_analysis": "The blanket belt is load-bearing for exactly ONE committed case — D88.single-letter-shield (\"I archived ACME B. ok?\"), where the abbreviation shield blocks the terminator cut. Verified by neutralising the belt and running the suite: that is the only FAIL.",
-   "regression_vs_prior_sha": true,
-   "status": "FIX PREPARED AND VALIDATED (not applied — write scope is qa/verification/** only)"
+   "id": "D100",
+   "severity": "P2",
+   "regression_vs": null,
+   "title": "run12/D91 is the THIRD narrowing of the label-assertion class: 9 assertions led by closed|completed|restored still render verbatim and replay as \"Confirmed — <assertion>.\"",
+   "evidence": "v13_labelprobe.mjs: 9/9 accepted verbatim (\"Restored Bob Smith\", \"Restored Three Companies\", \"Closed Five Deals\", \"Completed Final Migration\", ...). The second-word test covers determiners/pronouns/ALL-CAPS but not spelled-out cardinals, ordinary adjectives or proper nouns. corrected(\"Confirmed — Restored Bob Smith.\") === false, executed. Labels reach founder prose at index.ts:5241 and replay at 2549. The 13 REAL names outside the allowlist are all refused and all stay selectable via the quoted derived-canonical fallback, so the refusal direction is acceptable — the acceptance direction is not.",
+   "status": "FLAGGED, not fixed (direction recorded in v13_fixes.patch.md, deliberately NOT presented as validated — as written it turns 3 committed suites red)"
   },
   {
-   "id": "D93",
+   "id": "D101",
    "severity": "P2",
-   "title": "REGRESSION introduced by f4763ef: real company names carrying a non-leading completion word become UNSELECTABLE in disambiguation",
-   "evidence": "A/B vs fdb4564: \"Advanced Closed Systems\", \"Closed Loop AG\", \"Closed Loop BV\", \"Closed Loop LLC\", \"Closed Loop Systems UK\", \"Global Closed Loop\", \"First Closed Circuit\", \"Applied Closed Systems\", \"Blue Closed Systems\", \"Open Closed Design\" rendered verbatim on fdb4564 and now render as the curly-quoted canonical form (“Advanced Closed Systems”). matchDisambiguationOption (index.ts:412-420) matches by `normalizedCommand.includes(label.toLowerCase())`, so a founder typing the plain name does NOT match the quoted label — EXECUTED against the real matcher: NOT SELECTABLE. web/ contains zero references to pendingAction, so there is no click path; typing is the only selection route. This is the run9/D72 dead-ended-disambiguation class reintroduced via a new route.",
-   "regression_vs_prior_sha": true,
+   "regression_vs": null,
+   "title": "VACUOUS GUARD, TENTH RECURRENCE — advanced|integrated in ADJECTIVAL_COMPLETION are unreachable dead alternatives, added by the same commit that closed the ninth recurrence",
+   "evidence": "Neither word is in COMPLETION_WORD; the enclosing block only runs when COMPLETION_WORD matched, and the allowlist is only consulted when completionIdx===0 (i.e. words[0] is itself a completion word). PROVEN by mutation, not argued: removing both alternatives leaves the whole battery green at 561/561 — a SURVIVING mutant.",
    "status": "FLAGGED, not fixed"
   },
   {
-   "id": "D94",
-   "severity": "P3",
-   "title": "D87 progressive vocabulary remains substantially incomplete, and the gap is not disclosed",
-   "evidence": "Escaping uncorrected with claims=null and no evidence: \"ACME is being archived.\", \"The company is being deleted right now.\", \"ACME is getting archived.\", \"I am about to archive ACME.\", \"I am in the process of archiving ACME.\", \"Kicking off the archive of ACME.\", \"Going ahead and archiving ACME.\", \"Proceeding to archive ACME.\", \"Starting the archive of ACME now.\", \"Let me archive ACME for you.\", \"Archiving ACME as we speak.\", \"Busy archiving ACME.\", \"Setting about archiving ACME.\", plus non-English (\"Пока архивирую ACME.\", \"ACME-г архивлаж байна.\"). Passive voice (\"is being archived\") is the notable structural gap — no arm handles it.",
-   "regression_vs_prior_sha": false,
-   "status": "PRE-EXISTING (A/B identical on fdb4564); run11 strictly IMPROVED coverage. Recorded because the closure text does not disclose the residual."
+   "id": "D102",
+   "severity": "P2",
+   "regression_vs": "f4763ef and fdb4564",
+   "title": "Seam between the two run12 fixes: D93 matches on the STRIPPED label while D95 detects collisions on the RAW label, so two options identical after stripping are neither numbered nor selectable",
+   "evidence": "v13_attack_output.txt sections D.1/D.2/D.5b. Rendered [\"Closed Loop Systems\",\"“Closed Loop Systems”\"] -> numbered=false, match(\"closed loop systems\")=null. Same for genuinely distinct names differing only by an apostrophe (Founders Fund / Founders’ Fund). Both prior SHAs selected the plain-named option. run9/D72 dead-ended-disambiguation class, new route, third time.",
+   "status": "FLAGGED — fix prepared and validated (FIX-1+2), not applied"
   },
   {
-   "id": "D95",
-   "severity": "P3",
-   "title": "Two disambiguation options whose entities are absent from contextPack collapse to identical \"the company\"",
-   "evidence": "Both labels refused -> displayName() has no canonical row and no runtime label -> TYPED_FALLBACK \"the company\" for both. matchDisambiguationOption then finds 2 matches and returns null (matches.length !== 1) — the option set is dead-ended. The committed D79 control only covers the in-contextPack case.",
-   "regression_vs_prior_sha": false,
-   "status": "FLAGGED, not fixed"
+   "id": "D103",
+   "severity": "P2",
+   "regression_vs": null,
+   "title": "run12/D95 numbering guarantees neither uniqueness nor identity, and applies exactly to options whose ids provably cannot execute",
+   "evidence": "(a) three options [\"the company\",\"the company\",\"the company (option 1)\"] render (option 1)/(option 2)/(option 1) — the fix mints a collision. (b) the number is the array index, carrying no identifying information: the founder choosing between \"the company (option 1)\" and \"(option 2)\" has nothing to choose on. (c) the typed fallback fires iff the id is absent from contextPack.companies (canonicalById 4550-4552, companyNameById 2996), and archive/restore filter on contextCompanyIds built from the SAME array (2896, 2993-2995) — so a numbered fallback option cannot execute, yet selecting it yields \"Confirmed — the company (option 1).\" (2549) which the gate ships uncorrected (executed). Scoped honestly: the false-confirmation path pre-exists for any out-of-context option with a distinct label; D95 did not create it, but it is the change that made it reachable in the one case where the founder cannot tell the options apart.",
+   "status": "FLAGGED — (a) closed by prepared FIX-1+2; (b)/(c) direction only"
   },
   {
-   "id": "D96",
+   "id": "D104",
    "severity": "P3",
-   "title": "The D89 correction is right about the branch and wrong about the worktree commit",
-   "evidence": "SESSION_CHECKPOINT.md:20 pins master@C:/Users/Dell/dev/brain-os-bug006 at 12191e8; :22-27 claim all four prepared migrations live there; :28 instructs dispatching any DB verifier against that worktree. git cat-file -e confirms 202609020001/2/3 exist at 12191e8 but 202609030001_agent_run_capacity_retry.sql does NOT (added by 2e3445c, later). A verifier following line 28 without pulling finds three of four. Lines 18 and 31 are stale (#10 / 65ade7c).",
-   "regression_vs_prior_sha": false,
-   "status": "FLAGGED, not fixed"
+   "regression_vs": null,
+   "title": "The D97 closure re-committed the class it closed: a mangled duplicate \"## #72\" heading carrying four lines of #12’s promotion note now sits in the canonical ledger, while the commit message asserts the entry was appended preamble-stripped",
+   "evidence": "qa/KNOWN_FAILURE_MODES.md:6931-6937 + git diff f4763ef ace9b6a. The #71 preamble deletion at 6707 is genuine; the #72 append is not. Second consecutive campaign in which the ledger promotion corrupted the canonical ledger.",
+   "status": "FLAGGED, not fixed (write authority is qa/verification/** this campaign). Structural remedy adopted here: the v13 promotion note lives in a SEPARATE file so there is nothing to mis-cut."
   },
   {
-   "id": "D97",
+   "id": "D105",
    "severity": "P3",
-   "title": "The #71 ledger promotion pasted its own PROPOSED-file preamble into the canonical ledger",
-   "evidence": "qa/KNOWN_FAILURE_MODES.md:6710 now begins \"# PROPOSED entry for qa/KNOWN_FAILURE_MODES.md — verifier #11, campaign #71\" followed by \"(Placed under qa/verification/proposed/ because this campaign's write authority is qa/verification/** only … Append verbatim after entry #70.)\" — an instruction-to-self, inside the permanent ledger, asserting that the entry is proposed and lives elsewhere.",
-   "regression_vs_prior_sha": false,
+   "regression_vs": null,
+   "title": "SESSION_CHECKPOINT.md’s stale master SHA is fixed and its migration-location claim is live-verified true, but the rest of the file is three campaigns stale",
+   "evidence": "Line 2 \"Updated: 2026-09-02 (after verifier #10 verdict)\"; 18-19 pin #10 at 65ade7c; 35-38 describe CURRENT_CAMPAIGN.json as \"Verifier #10 campaign record\" (it was #12’s and is now #13’s); 59-61 still dispatch verifier #11 against index.ts sha 66fa821d. #12 flagged the staleness; only the migration lines were corrected.",
    "status": "FLAGGED, not fixed"
   }
  ],
  "pending_db_pushes": [],
  "prepared_fixes": [
   {
-   "defect": "D92",
-   "file": "supabase/functions/sem-ai-command/index.ts:4762",
-   "change": "Replace the blanket `if (COMPLETION_WORD.test(q)) return null;` with a SUBJECT+PARTICIPLE assertion test (a completion participle is only a claim when a subject precedes it, or when it leads the fragment).",
-   "validation": "Applied temporarily, full battery re-run: all 22 suites exit 0 (including the 46-case run11 contract and its D88.single-letter-shield case). Attack corpus: legitimate questions dropped 12/22 -> 0/22; assertion leaks 0/10 -> 0/10. File restored and sha256-verified byte-identical (1db38579…). Patch text: qa/verification/proposed/v12_d92_fix.patch.md",
+   "defect": "D98 + D99",
+   "file": "supabase/functions/sem-ai-command/index.ts:4776-4777",
+   "change": "Replace the FIRST_PERSON_COMPLETION belt with an INTERROGATIVE_LEAD test: drop a completion-carrying fragment unless it opens with a wh-word or an auxiliary.",
+   "validation": "Applied to the REAL source; full battery 23 suites TOTAL OK=561 FAIL=0, all exit 0; A/B leaks 18/20 -> 0/20 AND dropped 7/27 -> 0/27 simultaneously — strictly better than ace9b6a, f4763ef AND fdb4564 on both axes. Closes 32 of the 47 proposed run13 defect rows with 0 CONTRACT failures. File restored and sha256-verified byte-identical (021c8989…). Patch: qa/verification/proposed/v13_fixes.patch.md FIX-3b.",
    "applied": false,
-   "reason_not_applied": "This run's standing rule limits working-tree writes to qa/verification/**; product edits are the implementing session's to land."
+   "reason_not_applied": "This run’s standing rule limits working-tree writes to qa/verification/**; product edits are the implementing session’s to land."
+  },
+  {
+   "defect": "D102 + D103a",
+   "file": "supabase/functions/sem-ai-command/index.ts:5009-5020",
+   "change": "Key the collision map on the SAME normalized form matchDisambiguationOption compares, strip any pre-existing \"(option N)\" suffix, and number by the option’s own index instead of a running counter.",
+   "validation": "Applied to the REAL source; battery 561/561, all exit 0. The quoted-twin pair now renders distinguishably; the three-option replay case renders (option 1)/(option 2)/(option 3) instead of (option 1)/(option 2)/(option 1). File restored and sha256-verified byte-identical. Patch: v13_fixes.patch.md FIX-1+2.",
+   "applied": false,
+   "reason_not_applied": "Same standing rule."
   }
  ],
  "live_verified_fixes": [],
  "remaining_scenarios": [],
  "synthetic_entities_created_by_this_campaign": [],
- "verdict": "DO NOT DEPLOY — f4763ef / index.ts sha256 1db385790f42286497540187c7c18e5661d59742eec67dc61cc978e8c8b369ec",
- "verdict_basis": "The battery (22 suites, 491 checks) and 11 independent source mutations were executed on this exact SHA and the five run11 fixes are all real and load-bearing. The gate is nevertheless CLOSED because the closure introduced NEW defects that #11 did not have to weigh: D92 (P1) silently destroys 12 of 20 realistic clarification questions on ordinary and correction turns and nulls pendingAction.question while the action stays armed — the run10/D84 shape the same closure cites as \"worse than what it prevented\" — and D93 (P2) makes real company names carrying a non-leading completion word unselectable in disambiguation, the run9/D72 dead-end class via a new route. Both are A/B-proven regressions against fdb4564, the SHA #11 certified, so f4763ef is NOT strictly better than its predecessor on the shapes measured — the exact standard #11 used to open the previous gate. D92 has a prepared, validated, single-hunk fix (battery stays 22/22 green; drops 12/22 -> 0/22; leaks 0/10 -> 0/10) that needs no DB push.",
+ "verdict": "DO NOT DEPLOY — ace9b6a / index.ts sha256 021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786",
+ "verdict_basis": "The battery (23 suites, 561 checks) and 16 independent source mutations were executed on this exact SHA. All five run12 guards are real and load-bearing; D90 is genuinely closed and genuinely non-redundant; D96 is closed and live-verified on disk; the D94 disclosure is accurate. The gate is nevertheless CLOSED for three reasons. (1) The P1 that closed the previous gate is not closed — D92 goes from 21/27 to 7/27 legitimate clarifications destroyed, each still nulling the visible prompt while the destructive action stays armed. (2) The same rule change gave up 18 of 20 assertion shapes f4763ef caught, so the belt now matches exactly the two shapes its own tests pin, and the source comment states the opposite as fact. On the shapes measured, ace9b6a is NOT strictly better than fdb4564 (leaks 18 vs 20, drops 7 vs 1, truncations 4 vs 0) — the exact standard #11 and #12 both applied. (3) The closure again introduced a regression of its own (D102) and again added a vacuous guard (D101, tenth recurrence) in the very commit that closed the ninth. Two validated single-hunk fixes exist, both leaving the battery at 561/561 and neither needing a DB push; with FIX-3b applied this SHA becomes strictly better than every predecessor on both measured axes, so shipping ace9b6a as-is is worse than an available, tested alternative.",
  "coverage_gaps_explicit": [
-  "BLOCKED: no browser/UI tooling available in this session — live UI truth is not verified, only asserted absent (web/ has zero pendingAction references, grep-verified).",
-  "BLOCKED: no live AI chat turn executed against the deployed function — all AI-behaviour findings are from the REAL gate slice executed out of index.ts, not from a live model round-trip.",
-  "BLOCKED: no database access exercised — RLS, lifecycle and relationship truth are outside this campaign.",
-  "Production remains v92, which is older than both fdb4564 and f4763ef; every A/B in this campaign is f4763ef vs fdb4564, not vs deployed v92."
+  "BLOCKED: no browser/UI tooling was available in this session type (no ToolSearch and no mcp__claude-in-chrome__* tools were present). Live UI truth is NOT verified — a real coverage gap, stated rather than silently skipped.",
+  "BLOCKED: no live AI chat turn was executed against the deployed function. Every AI-behaviour finding comes from the REAL gate slice and the REAL matchDisambiguationOption executed out of index.ts, not from a model round-trip.",
+  "BLOCKED: no database access was exercised (campaign scope: production read-only, zero writes). The qa/scenarios-runner/*.sql suites were NOT run; RLS, lifecycle and relationship truth are outside this campaign.",
+  "Production remains v92, older than fdb4564, f4763ef and ace9b6a. Every A/B here is source-level between branch SHAs, not against deployed v92.",
+  "6 of the 23 .mjs suites contribute no assertions: 5 are self-declared SUPERSEDED prose-era stubs that print one line and exit 0, and issue5_confirmation_action_type_binding passes 10/10 in a non-OK-prefixed format. The 561 checks come from the other 17."
  ],
- "mutation_survivor_classification": {
-  "M8.anchorExistenceGuard": "CONFIRMED EQUIVALENT — but the implementing session under-stated the reason. Removing the anchor-existence conjunct from current_turn_and_continuity_contract.mjs is unobservable ONLY because run11_defect_closure_contract.mjs V11.order.failClosed carries its own duplicate existence check. Proof: M9 (buildContext anchor renamed AND the existence conjunct removed) was killed by run11_defect_closure_contract ONLY — current_turn_and_continuity_contract did NOT kill it, i.e. the fail-open is real and that guard IS load-bearing; redundancy in a second suite is the only thing that makes the single mutation equivalent. Classification CONFIRMED, rationale corrected.",
-  "M10.pastCompletionBeltInQuestionPath": "GENUINELY EQUIVALENT — structurally proven, not merely sampled. Every word in PAST_COMPLETION_CLAIM_PATTERN vocabulary is also in COMPLETION_WORD (computed: zero uncovered), and both belts return null, so the run11/D88 belt at index.ts:4762 strictly subsumes the run9 belt at 4758. 0 distinguishing inputs across 10 targeted probes. Not a defect.",
-  "M11.titleCaseGate": "NOT EQUIVALENT — GENUINE SURVIVING MUTANT (defect D90). Neutralising the Title-Case name-shape gate at index.ts:4802 changes real behaviour on 8 of 10 probed inputs (label \"deleted acme\" renders verbatim instead of falling back to the derived canonical \"ACME Holdings\"), yet the entire committed battery stays green. The D86 POSITION rule does NOT subsume it: an all-lowercase assertion label (\"deleted acme\", \"removed all people\") has completionIdx===0 and no ALL-CAPS token after it, so both position checks pass and only the Title-Case gate refuses it. Product code is CORRECT; the guard is unobserved by any committed case. Ninth recurrence of the vacuous-guard class (D85 lineage)."
- },
- "global_integrity_assertions": {
-  "note": "This campaign is source/executable-logic level on an Edge Function; no DB or UI mutation was performed, so the entity-graph rows are N/A rather than PASS.",
-  "orphan canonical references": "N/A — no DB access exercised",
-  "active child -> invalid/nonexistent parent": "N/A — no DB access exercised",
-  "duplicate relationships": "N/A — no DB access exercised",
-  "AI false execution claims": "FAIL-ADJACENT — 17 assertion labels (D91) and 15 progressive shapes (D94) still reach founder-facing text uncorrected; no NEW false-claim path introduced by f4763ef",
-  "UI <-> DB contradictions": "BLOCKED — no browser tooling in this session",
-  "AI <-> DB contradictions": "BLOCKED — no live AI chat turn was run",
-  "index.ts byte integrity": "PASS — sha256 1db38579…b369ec asserted at start, after all 11 mutations, after the candidate-fix validation, and after the final battery"
- },
- "verdict_conditions": [
-  "Land qa/verification/proposed/v12_d92_fix.patch.md (D92, P1) — validated, single hunk, no DB push.",
-  "Decide D93: either exempt a refused label from quoting for selection purposes, or make matchDisambiguationOption strip quote characters before comparing.",
-  "Promote qa/verification/proposed/v12_regression_additions.mjs (46 defect rows, 22 contract rows, 0 contract failures) into qa/scenarios-runner/ with its exit guard intact.",
-  "Append only the \"## #72\" section of qa/verification/proposed/v12_known_failure_modes_entry_72.md to the ledger, and remove the stray #71 PROPOSED preamble at qa/KNOWN_FAILURE_MODES.md:6710 (D97).",
-  "Correct SESSION_CHECKPOINT.md lines 18-31 (D96): the master worktree at 12191e8 has three of the four prepared migrations, not four."
- ],
- "cleanup": "No QA-VERIFY-* synthetic data was created: this campaign performed zero database and zero UI mutations. All source mutation was in-place-and-restored with sha256 proof; the only working-tree changes are under qa/verification/**."
+ "cleanup": "No QA-VERIFY-* synthetic data was created: this campaign performed zero database and zero UI mutations, so there is nothing to clean up and nothing left in an archived/restored state. All source mutation was in-place-and-restored with sha256 proof (index.ts 021c8989…, _gate_extract.mjs 595f70ca…, current_turn_and_continuity_contract.mjs c76eecb1…). The only working-tree changes are under qa/verification/**.",
+ "mutation_summary": {
+  "mutants_attempted": 16,
+  "applied": 15,
+  "killed": 14,
+  "survived": 1,
+  "anchor_not_found_then_retried_successfully": 1,
+  "survivor": "M14 — the iCtx >= 0 && iPending >= 0 conjunct in current_turn_and_continuity_contract.mjs, the ONE mutant the implementing session disclosed. CONFIRMED EQUIVALENT, with #12’s corrected rationale independently reproduced (M15: with the buildContext anchor renamed, the continuity suite exits 1 WITH the guard and exits 0 fail-OPEN without it, while run11_defect_closure_contract catches it either way).",
+  "extra_survivor_used_as_proof": "Removing advanced|integrated from ADJECTIVAL_COMPLETION also survives (battery 561/561). That survival IS defect D101, not a passing guard.",
+  "all_restores_byte_identical": true
+ }
 }

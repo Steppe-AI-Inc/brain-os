@@ -1,0 +1,183 @@
+{
+ "base_sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786",
+ "index_sha_final": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786",
+ "gate_sha_final": "595f70ca6a0513b45c0a5ca0e3e85a42680417be1004b3959ba19cf00d1bb262",
+ "cont_sha_final": "c76eecb12c3f4077884bc83b804f4b9f1fdbdd1b121c90f1ad47cfba5e6393be",
+ "ran_at": "2026-09-03T03:25:42.891Z",
+ "results": [
+  {
+   "id": "M1.d91.adjectivalAllowlist",
+   "why": "run12/D91: neutralise the leading-participle refusal (allow every leading completion word)",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=559"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M2.d91.determinerRule",
+   "applied": false,
+   "note": "ANCHOR NOT FOUND — mutation not applied",
+   "why": "run12/D91: neutralise the determiner/ALL-CAPS second-word refusal"
+  },
+  {
+   "id": "M3.d90.titleCaseGate",
+   "why": "run12/D90: neutralise the Title-Case name-shape gate (the claimed-non-redundant guard)",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=559"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M4.d91.positionRule",
+   "why": "run11/D86 POSITION rule: neutralise completionIdx>0 refusal",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract",
+    "OK=557"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M5.d92.firstPersonBelt",
+   "why": "run12/D92: neutralise the first-person completion belt over the question cut",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract",
+    "run12_defect_closure_contract",
+    "OK=556"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M6.d88.commaClauseCut",
+   "why": "run11/D88: neutralise the last-comma-clause reduction",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract",
+    "run12_defect_closure_contract",
+    "OK=553"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M7.d93.matcherStrip",
+   "why": "run12/D93: revert the matcher to a literal comparison (drop presentation stripping)",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=558"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M8.d95.collisionNumbering",
+   "why": "run12/D95: neutralise the colliding-fallback numbering",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=560"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M9.d94.passiveProgressive",
+   "why": "run12/D94: remove the passive-progressive arm",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=558"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M10.d94.imminentArms",
+   "why": "run12/D94: remove the imminent/polite arms (about to / in the process of / let me / kicking off)",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=559"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M11.d94.bareGerundLead",
+   "why": "run12/D94: remove the bare-gerund-leading arm",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run12_defect_closure_contract",
+    "OK=560"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M12.d87.sharedProgressVerbs",
+   "why": "run11/D87: shrink the shared PROGRESS_VERBS list back to the pre-run11 short arm-3 list",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract",
+    "run12_defect_closure_contract",
+    "OK=546"
+   ],
+   "restore_byte_identical": true,
+   "sha": "021c8989de675035709f48e438d590b2e417677a9625f80a9708cd2dd8a4b786"
+  },
+  {
+   "id": "M13.gate.callbackArrowStrip",
+   "why": "run11/D85: remove the shared callback-arrow strip from the QA extractor",
+   "applied": true,
+   "battery_green": false,
+   "verdict": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract"
+   ],
+   "restore_byte_identical": true,
+   "sha": "595f70ca6a0513b45c0a5ca0e3e85a42680417be1004b3959ba19cf00d1bb262"
+  },
+  {
+   "id": "M14.cont.anchorGuard",
+   "why": "run11: remove the ordering-check anchor existence guard (the mutant #12 classified EQUIVALENT)",
+   "applied": true,
+   "battery_green": true,
+   "verdict": "SURVIVED (unobserved guard)",
+   "killed_by": [],
+   "restore_byte_identical": true,
+   "sha": "c76eecb12c3f4077884bc83b804f4b9f1fdbdd1b121c90f1ad47cfba5e6393be"
+  }
+ ]
+}
