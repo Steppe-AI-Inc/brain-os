@@ -32,6 +32,12 @@
 
 begin;
 
+-- R-A10: `if not exists` on a NEW table masks divergence — if a table of this name already
+-- existed with a different shape (a hand-made one, or a partially-applied earlier attempt),
+-- this migration would succeed and silently leave the wrong columns in place, and every
+-- constraint and trigger below would be attached to a table that is not the one described
+-- here. Kept for re-runnability, but no longer trusted: the guard immediately after the
+-- CREATE fails loudly if the table this migration ends up with is not the table it means.
 create table if not exists public.chat_channel_state (
   -- Channel/session identity. One row per channel: this is a PROJECTION of the
   -- conversation ("where were we"), not a log — history stays in work_orders.
@@ -81,11 +87,40 @@ create table if not exists public.chat_channel_state (
       and pending_action_created_at is not null
       and pending_action_expires_at is not null)
   ),
+  -- R-A4 (DB review round 2). The constraint above refused a half-written action TYPE and
+  -- then permitted a half-written TARGET: `action_type='archive'` with NULL target_ids was
+  -- a legal row, directly contradicting the comment four lines up ("binds to EXACTLY these
+  -- ids or to nothing"). That is the Class-B shape again — an absent field available to be
+  -- coerced into a destructive default at read time. A 'confirmation' is the destructive
+  -- kind and must name its targets. 'choice' and 'free_text_answer' legitimately have no
+  -- bound target yet, so they stay unconstrained DELIBERATELY, not by omission.
+  constraint chat_channel_state_confirmation_binds_targets check (
+    pending_action_expected_confirmation is distinct from 'confirmation'
+    or pending_action_target_ids is not null
+  ),
+  -- R-A3: these columns are read as collections. A scalar planted in any of them breaks
+  -- the reader, so the shape is refused at write time rather than defended at read time.
+  constraint chat_channel_state_jsonb_shapes check (
+    jsonb_typeof(focus_stack) = 'array'
+    and jsonb_typeof(resolved_entities) = 'array'
+    and jsonb_typeof(compacted_canonical_ids) = 'array'
+    and (pending_action_target_ids is null or jsonb_typeof(pending_action_target_ids) = 'array')
+  ),
 
   -- ---- Durable reference resolution. ------------------------------------------------
   -- Most-recent-first canonical entity references the conversation is "about":
   -- [{resourceType, id, label, sourceWorkOrderId, at}]. Pronoun resolution reads THIS,
   -- never prose. The writer keeps it bounded (a stack, not a log).
+  -- R-A3: focus_stack and resolved_entities stay CLIENT-WRITABLE by design — they are a
+  -- convenience projection, not evidence. That is safe only under two obligations the
+  -- reader owes, stated here because they are invariants, not preferences:
+  --   1. Every id read from these columns is UNTRUSTED. Re-derive authorization on it at
+  --      mutation time (the archive_company/archive_task family already does).
+  --   2. Never render the stored `label`. Re-label from the canonical row. A planted label
+  --      is a UI-spoofing primitive ("CCS-QA Co" displayed for an id that is something
+  --      else) even when the mutation itself is correctly denied.
+  -- This is SAFE-BY-DELEGATION, not safe-by-construction. If either obligation is ever
+  -- dropped, these columns must move behind the trusted-write trigger like the others.
   focus_stack jsonb not null default '[]'::jsonb,
   -- Entities resolved in recent turns (the durable home of what today lives one turn
   -- deep in work_orders.output.recentlyResolvedEntities). Same element shape as
@@ -94,6 +129,11 @@ create table if not exists public.chat_channel_state (
   -- The last mutation that actually executed with a confirmed postcondition:
   -- {resourceType, id, action, workOrderId, at}. "Undo that" / "what did you just do"
   -- answers from here — backend-written execution fact, never model prose.
+  -- R-A2: that sentence was previously a CLAIM the grants contradicted — the column was
+  -- writable straight from PostgREST, so a user could plant a mutation that never happened
+  -- and have the AI read it back as fact. It is now TRUE by enforcement: see the
+  -- trusted-column trigger and record_chat_channel_mutation() below. Do not weaken the
+  -- trigger without deleting this sentence in the same commit.
   last_successful_mutation jsonb,
 
   -- ---- Compaction checkpoint. -------------------------------------------------------
@@ -118,6 +158,47 @@ create index if not exists chat_channel_state_pending_expiry_idx
   on public.chat_channel_state (pending_action_expires_at)
   where pending_action is not null;
 
+-- R-A9: both FKs point at work_orders, which receives deletes. An unindexed referencing
+-- column forces a sequential scan of this table on every such delete, and the ON DELETE
+-- SET NULL action makes that scan mandatory rather than incidental. Partial, because a
+-- null pointer is never what the delete is looking for.
+create index if not exists chat_channel_state_pending_source_wo_idx
+  on public.chat_channel_state (pending_action_source_work_order_id)
+  where pending_action_source_work_order_id is not null;
+create index if not exists chat_channel_state_compacted_through_wo_idx
+  on public.chat_channel_state (compacted_through_work_order_id)
+  where compacted_through_work_order_id is not null;
+
+-- R-A10 guard. Every column this migration's constraints, triggers and RPCs depend on must
+-- actually be present on the table we ended up with. If `if not exists` above adopted a
+-- pre-existing table of a different shape, this raises instead of leaving a half-wired
+-- object behind that reads as correctly migrated.
+do $$
+declare
+  v_missing text;
+begin
+  select string_agg(c.expected, ', ')
+    into v_missing
+    from (values
+      ('channel_id'), ('pending_action'), ('pending_action_action_type'),
+      ('pending_action_target_ids'), ('pending_action_source_work_order_id'),
+      ('pending_action_expected_confirmation'), ('pending_action_created_at'),
+      ('pending_action_expires_at'), ('focus_stack'), ('resolved_entities'),
+      ('last_successful_mutation'), ('compacted_summary'), ('compacted_canonical_ids'),
+      ('compacted_through_work_order_id'), ('compacted_turn_count'), ('version'),
+      ('updated_at')
+    ) as c(expected)
+   where not exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'chat_channel_state'
+        and ic.column_name = c.expected
+   );
+  if v_missing is not null then
+    raise exception 'chat_channel_state exists with a different shape; missing column(s): %. Refusing to attach constraints and triggers to a table this migration did not create.', v_missing;
+  end if;
+end;
+$$;
+
 alter table public.chat_channel_state enable row level security;
 
 -- READ mirrors the channel: the EXISTS subquery runs under the caller's own RLS on
@@ -131,10 +212,31 @@ create policy "chat_channel_state_select_scope" on public.chat_channel_state for
 );
 
 -- WRITE requires the channel's WRITE tier (creator / company manager / founder-admin),
--- not merely read visibility: someone who can read a manager's channel must not be able
--- to plant a pending destructive action in it. Spelled out (rather than delegating to
--- chat_channels' own RLS row-visibility) because SELECT visibility is the WEAKER tier —
--- delegating the way the select policy does would grant writes to every reader.
+-- not merely read visibility.
+--
+-- R-A1 (DB review round 2) CORRECTED THE STATED REASON. The previous comment justified
+-- spelling this out rather than delegating by claiming "SELECT visibility is the WEAKER
+-- tier — delegating the way the select policy does would grant writes to every reader."
+-- That is FALSE on the live schema: chat_channels_select_scope and
+-- chat_channels_write_scope are byte-identical predicates (schema-v0.7-production-core.sql
+-- 3272-3287). There is no reader-who-cannot-write on chat_channels today.
+--
+-- The DECISION to spell it out is still right — it future-proofs against a later widening
+-- of the select scope (e.g. a channel-membership model letting any company member read).
+-- But it is right for that reason, not the one previously stated. Recording the correction
+-- rather than quietly swapping the justification: an author who believed there was a
+-- read/write gap that does not exist had an inaccurate model of the surface being extended,
+-- and that is the finding.
+--
+-- The real escalation R-A1 exposed is closed BELOW, not here. Because this tier includes
+-- is_company_manager(), a manager of company X could write the state row of ANY channel
+-- scoped to company X — including a channel created by the FOUNDER — and plant a
+-- pending_action with an 'archive' type and target ids. If the founder then answered a
+-- bare "yes", the confirmation would bind to the planted action and execute under FOUNDER
+-- authority: manager-tier input, founder-tier execution, by confused deputy. Narrowing
+-- this policy alone would not have been enough, because the same columns were also
+-- directly writable by the channel's own creator via PostgREST. The trusted columns are
+-- therefore made SERVER-ONLY by trigger below, which closes R-A1 and R-A2 together.
 drop policy if exists "chat_channel_state_write_scope" on public.chat_channel_state;
 create policy "chat_channel_state_write_scope" on public.chat_channel_state for all using (
   public.is_founder_or_admin()
@@ -162,12 +264,365 @@ create policy "chat_channel_state_write_scope" on public.chat_channel_state for 
 revoke all on public.chat_channel_state from anon, public;
 grant select, insert, update, delete on public.chat_channel_state to authenticated;
 
+-- =====================================================================================
+-- TRUSTED COLUMNS ARE SERVER-ONLY (DB review round 2: closes R-A1 and R-A2)
+--
+-- R-A2: `last_successful_mutation` is commented "backend-written execution fact, never
+-- model prose", and the AI answers "what did you just do" / "undo that" from it. But the
+-- grants above plus the write policy let the END USER write that jsonb directly through
+-- PostgREST. A user could plant a fabricated mutation that never happened and have it read
+-- back as authoritative execution fact. That is the false-execution-claim failure class
+-- with the fabrication moved INTO the database — strictly worse than model prose, because
+-- the database is the layer this system trusts to CORRECT the model. The same applies to
+-- the pending_action_* block (R-A1's confused-deputy plant) and the compaction checkpoint.
+--
+-- THE RULE ENFORCED HERE: a client may CLEAR trusted state but may never ASSERT it.
+-- Clearing cannot fabricate anything — it can only lose state the system will re-derive —
+-- so expiry sweeps, "forget this", and the FK's own ON DELETE SET NULL all keep working
+-- without any privileged path. Setting a trusted column to a non-null value requires the
+-- transaction-local flag below, which only a SECURITY DEFINER RPC can set.
+--
+-- FLAG SCOPING, STATED PRECISELY (the imprecise version of this comment was itself a bug
+-- caught while writing it). `set_config(..., is_local => true)` discards the flag at
+-- TRANSACTION end — NOT at function end. So it does not leak across transactions, and
+-- under PostgREST every RPC call is its own transaction. But inside one transaction it
+-- WOULD stay on after the RPC returned, leaving a direct table write in that same
+-- transaction trusted. Each RPC therefore turns the flag off explicitly when it is done,
+-- and the is_local scoping is the backstop for the path where the write raises and the
+-- explicit reset never runs. Neither mechanism alone is sufficient; both are here on
+-- purpose. Do not remove the explicit reset as redundant — it is not.
+-- =====================================================================================
+
+create or replace function public.chat_channel_state_guard_trusted_columns()
+returns trigger
+language plpgsql
+security invoker           -- deliberately NOT definer: this reads a GUC, never an identity.
+set search_path = ''
+as $$
+declare
+  -- R-D1's lesson, applied pre-emptively: authority here is the transaction-local flag and
+  -- NOTHING else. `current_user` is rebound inside SECURITY DEFINER and would make any
+  -- role-name comparison silently always-true; `session_user` is not rebound but is still
+  -- the wrong question. The only question is "did a trusted RPC open this write?".
+  v_trusted boolean := coalesce(
+    current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on';
+  v_asserts boolean;
+begin
+  if v_trusted then
+    return new;
+  end if;
+
+  -- An ASSERTION is a trusted column arriving non-null and different from what is already
+  -- stored. Nulling, or leaving a value untouched, is not an assertion.
+  v_asserts :=
+       (new.pending_action is not null
+          and new.pending_action is distinct from old.pending_action)
+    or (new.pending_action_action_type is not null
+          and new.pending_action_action_type is distinct from old.pending_action_action_type)
+    or (new.pending_action_target_ids is not null
+          and new.pending_action_target_ids is distinct from old.pending_action_target_ids)
+    or (new.pending_action_source_work_order_id is not null
+          and new.pending_action_source_work_order_id is distinct from old.pending_action_source_work_order_id)
+    or (new.pending_action_expected_confirmation is not null
+          and new.pending_action_expected_confirmation is distinct from old.pending_action_expected_confirmation)
+    or (new.pending_action_created_at is not null
+          and new.pending_action_created_at is distinct from old.pending_action_created_at)
+    or (new.pending_action_expires_at is not null
+          and new.pending_action_expires_at is distinct from old.pending_action_expires_at)
+    or (new.last_successful_mutation is not null
+          and new.last_successful_mutation is distinct from old.last_successful_mutation)
+    or (new.compacted_summary is not null
+          and new.compacted_summary is distinct from old.compacted_summary)
+    or (new.compacted_through_work_order_id is not null
+          and new.compacted_through_work_order_id is distinct from old.compacted_through_work_order_id)
+    or (coalesce(new.compacted_turn_count, 0) <> 0
+          and coalesce(new.compacted_turn_count, 0) is distinct from coalesce(old.compacted_turn_count, 0))
+    or (new.compacted_canonical_ids is not null and new.compacted_canonical_ids <> '[]'::jsonb
+          and new.compacted_canonical_ids is distinct from old.compacted_canonical_ids);
+
+  if v_asserts then
+    raise exception 'chat_channel_state: pending_action_*, last_successful_mutation and compacted_* are server-written only; use the chat_channel_state RPCs (a client may clear them, never assert them)'
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+-- INSERT is guarded by the same rule with an all-null OLD, so a row cannot be BORN holding
+-- a fabricated pending action or mutation record either. (The first defect of this class in
+-- this repo was an INSERT path that a guard written only for UPDATE never saw.)
+create or replace function public.chat_channel_state_guard_trusted_columns_ins()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if coalesce(current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on' then
+    return new;
+  end if;
+  if new.pending_action is not null
+     or new.pending_action_action_type is not null
+     or new.pending_action_target_ids is not null
+     or new.pending_action_source_work_order_id is not null
+     or new.pending_action_expected_confirmation is not null
+     or new.pending_action_created_at is not null
+     or new.pending_action_expires_at is not null
+     or new.last_successful_mutation is not null
+     or new.compacted_summary is not null
+     or new.compacted_through_work_order_id is not null
+     or coalesce(new.compacted_turn_count, 0) <> 0
+     or coalesce(new.compacted_canonical_ids, '[]'::jsonb) <> '[]'::jsonb then
+    raise exception 'chat_channel_state: a row may not be created holding server-written state (pending_action_*, last_successful_mutation, compacted_*); insert the empty row, then use the RPCs'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists chat_channel_state_guard_trusted_ins on public.chat_channel_state;
+create trigger chat_channel_state_guard_trusted_ins
+  before insert on public.chat_channel_state
+  for each row execute function public.chat_channel_state_guard_trusted_columns_ins();
+
+drop trigger if exists chat_channel_state_guard_trusted_upd on public.chat_channel_state;
+create trigger chat_channel_state_guard_trusted_upd
+  before update on public.chat_channel_state
+  for each row execute function public.chat_channel_state_guard_trusted_columns();
+
+-- R-A6: `updated_at` had a default and no trigger, so it fired on INSERT only and silently
+-- lied after every UPDATE unless each writer remembered to set it — developer convention,
+-- which is exactly what this project's standing pattern rejects in favour of DB
+-- enforcement. Explicitly NOT done for `version`: a trigger bumping the version underneath
+-- the writer would break the compare-and-set the column exists for.
+create or replace function public.chat_channel_state_touch_updated_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists chat_channel_state_touch_updated_at on public.chat_channel_state;
+create trigger chat_channel_state_touch_updated_at
+  before update on public.chat_channel_state
+  for each row execute function public.chat_channel_state_touch_updated_at();
+
+-- R-A7: `compacted_through_work_order_id ON DELETE SET NULL` un-anchored the compaction
+-- checkpoint silently — the pointer went NULL while compacted_summary, _turn_count and
+-- _canonical_ids stayed populated, so the row claimed "N turns are compacted" with no
+-- record of through where, and a reader could not tell whether re-compacting would
+-- double-count. The checkpoint now invalidates AS A UNIT: lose the anchor, lose the
+-- checkpoint, re-compact from the beginning. This trigger fires on the FK's own SET NULL
+-- update, and because it only ever NULLS things, the trusted-column guard permits it.
+create or replace function public.chat_channel_state_invalidate_unanchored_compaction()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.compacted_through_work_order_id is null and old.compacted_through_work_order_id is not null then
+    new.compacted_summary := null;
+    new.compacted_turn_count := 0;
+    new.compacted_canonical_ids := '[]'::jsonb;
+  end if;
+  return new;
+end;
+$$;
+
+-- Name ordering matters: PostgreSQL fires BEFORE triggers in alphabetical order, so this
+-- must run before `chat_channel_state_guard_trusted_upd` sees the row. `chat_channel_state_a_`
+-- sorts ahead of `chat_channel_state_g`. Do not rename it without re-checking that.
+drop trigger if exists chat_channel_state_a_invalidate_compaction on public.chat_channel_state;
+create trigger chat_channel_state_a_invalidate_compaction
+  before update on public.chat_channel_state
+  for each row execute function public.chat_channel_state_invalidate_unanchored_compaction();
+
+-- =====================================================================================
+-- THE ONLY WAY TO ASSERT TRUSTED STATE
+--
+-- Each RPC checks authority itself, raises the transaction-local flag, writes, and lowers
+-- the flag again before returning. See the scoping note above the guard trigger for why
+-- BOTH the explicit reset and the is_local scoping are needed: is_local alone survives to
+-- the end of the TRANSACTION, not the end of the function, so it would leave a direct
+-- table write in the same transaction trusted.
+--
+-- AUTHORITY IS NARROWER HERE THAN THE TABLE'S WRITE POLICY, ON PURPOSE (R-A1). The RLS
+-- write tier includes company managers because a manager legitimately maintains channels
+-- in their own company. But planting a PENDING DESTRUCTIVE ACTION in a channel someone
+-- else will confirm is not maintenance — it is the confused-deputy escalation. So the
+-- pending-action writer is the channel's own CREATOR plus founder/admin, and no one else.
+-- =====================================================================================
+
+create or replace function public.set_chat_channel_pending_action(
+  p_channel_id uuid,
+  p_pending_action jsonb,
+  p_action_type text,
+  p_target_ids jsonb,
+  p_expected_confirmation text,
+  p_expires_at timestamptz,
+  p_source_work_order_id uuid default null
+) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not (
+    public.is_founder_or_admin()
+    or exists (
+      select 1 from public.chat_channels c
+      where c.id = p_channel_id
+        and c.created_by_profile_id = public.current_profile_id()
+    )
+  ) then
+    raise exception 'set_chat_channel_pending_action: only the channel creator or a founder/admin may arm a pending action on channel %', p_channel_id
+      using errcode = '42501';
+  end if;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'on', true);
+
+  insert into public.chat_channel_state as s (
+    channel_id, pending_action, pending_action_action_type, pending_action_target_ids,
+    pending_action_expected_confirmation, pending_action_created_at, pending_action_expires_at,
+    pending_action_source_work_order_id
+  ) values (
+    p_channel_id, p_pending_action, p_action_type, p_target_ids,
+    p_expected_confirmation, now(), p_expires_at, p_source_work_order_id
+  )
+  on conflict (channel_id) do update set
+    pending_action = excluded.pending_action,
+    pending_action_action_type = excluded.pending_action_action_type,
+    pending_action_target_ids = excluded.pending_action_target_ids,
+    pending_action_expected_confirmation = excluded.pending_action_expected_confirmation,
+    pending_action_created_at = excluded.pending_action_created_at,
+    pending_action_expires_at = excluded.pending_action_expires_at,
+    pending_action_source_work_order_id = excluded.pending_action_source_work_order_id,
+    version = s.version + 1;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'off', true);
+end;
+$$;
+
+-- Recording what actually executed. This is the column the AI answers "what did you just
+-- do" from, so it is the single most important one to keep un-forgeable (R-A2).
+create or replace function public.record_chat_channel_mutation(
+  p_channel_id uuid,
+  p_mutation jsonb
+) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not (
+    public.is_founder_or_admin()
+    or exists (
+      select 1 from public.chat_channels c
+      where c.id = p_channel_id
+        and c.created_by_profile_id = public.current_profile_id()
+    )
+  ) then
+    raise exception 'record_chat_channel_mutation: not authorized for channel %', p_channel_id
+      using errcode = '42501';
+  end if;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'on', true);
+
+  insert into public.chat_channel_state as s (channel_id, last_successful_mutation)
+  values (p_channel_id, p_mutation)
+  on conflict (channel_id) do update set
+    last_successful_mutation = excluded.last_successful_mutation,
+    version = s.version + 1;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'off', true);
+end;
+$$;
+
+create or replace function public.set_chat_channel_compaction(
+  p_channel_id uuid,
+  p_summary text,
+  p_canonical_ids jsonb,
+  p_through_work_order_id uuid,
+  p_turn_count integer
+) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not (
+    public.is_founder_or_admin()
+    or exists (
+      select 1 from public.chat_channels c
+      where c.id = p_channel_id
+        and c.created_by_profile_id = public.current_profile_id()
+    )
+  ) then
+    raise exception 'set_chat_channel_compaction: not authorized for channel %', p_channel_id
+      using errcode = '42501';
+  end if;
+  -- The anchor is what makes the checkpoint meaningful (R-A7). A summary without one is
+  -- the un-anchored state the invalidation trigger exists to prevent, so refuse to create
+  -- it deliberately in the first place.
+  if p_summary is not null and p_through_work_order_id is null then
+    raise exception 'set_chat_channel_compaction: a compaction summary requires its through-work-order anchor'
+      using errcode = '23514';
+  end if;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'on', true);
+
+  insert into public.chat_channel_state as s (
+    channel_id, compacted_summary, compacted_canonical_ids,
+    compacted_through_work_order_id, compacted_turn_count
+  ) values (
+    p_channel_id, p_summary, coalesce(p_canonical_ids, '[]'::jsonb),
+    p_through_work_order_id, coalesce(p_turn_count, 0)
+  )
+  on conflict (channel_id) do update set
+    compacted_summary = excluded.compacted_summary,
+    compacted_canonical_ids = excluded.compacted_canonical_ids,
+    compacted_through_work_order_id = excluded.compacted_through_work_order_id,
+    compacted_turn_count = excluded.compacted_turn_count,
+    version = s.version + 1;
+
+  perform set_config('app.chat_channel_state_trusted_write', 'off', true);
+end;
+$$;
+
+revoke execute on function public.set_chat_channel_pending_action(uuid, jsonb, text, jsonb, text, timestamptz, uuid) from anon, public;
+revoke execute on function public.record_chat_channel_mutation(uuid, jsonb) from anon, public;
+revoke execute on function public.set_chat_channel_compaction(uuid, text, jsonb, uuid, integer) from anon, public;
+grant execute on function public.set_chat_channel_pending_action(uuid, jsonb, text, jsonb, text, timestamptz, uuid) to authenticated;
+grant execute on function public.record_chat_channel_mutation(uuid, jsonb) to authenticated;
+grant execute on function public.set_chat_channel_compaction(uuid, text, jsonb, uuid, integer) to authenticated;
+
 commit;
 
 -- ROLLBACK STRATEGY (for the reviewer; not executed by this file):
---   This migration is purely ADDITIVE — one new table, no changes to any existing
---   object, no data migration, nothing reads it until the feature-gated application
---   code ships. Rollback is `drop table public.chat_channel_state;` with zero effect
---   on any existing feature; the application code is written to treat the table's
---   absence as "no durable state" (see web/Edge integration notes), so rollback does
---   not require an application rollback.
+--   This migration is purely ADDITIVE — one new table plus its own triggers and RPCs, no
+--   changes to any existing object, no data migration. Rollback is
+--   `drop table public.chat_channel_state cascade;` plus dropping the three RPCs, with
+--   zero effect on any existing feature.
+--
+--   R-A5 CORRECTION. The previous text said "the application code is written to treat the
+--   table's absence as 'no durable state' (see web/Edge integration notes)". THERE IS NO
+--   SUCH CODE AND NO SUCH FEATURE GATE. A repo-wide search for `chat_channel_state`
+--   returns only this migration, a comment reference in 202609020003, the acceptance SQL,
+--   and review records. Zero application code, in web/ or supabase/functions/.
+--
+--   The rollback IS safe, but for the OPPOSITE reason to the one claimed: nothing reads
+--   the table because no reader exists, not because a gate handles its absence.
+--
+--   WHAT THE FOUNDER MUST BE TOLD PLAINLY BEFORE AUTHORIZING THIS PUSH: applying this
+--   migration closes NONE of issue #5 Classes A/C/D/E and delivers NO behaviour change.
+--   Expiry is "enforced by the READER" and there is no reader; null-source-means-expired
+--   is a reader obligation and there is no reader. This is a schema down-payment and
+--   inert storage until the Edge Function is written against it. It should be authorized
+--   on that basis or not at all — not as a fix.
