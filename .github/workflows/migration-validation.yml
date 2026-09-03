@@ -1,0 +1,89 @@
+name: Validate migrations (real PostgreSQL)
+
+# WHY THIS EXISTS
+#
+# Three consecutive independent DB review rounds were forced to return the verdict
+# "CODE INSPECTED" — not because the reviewers were lax, but because the implementing
+# machine had no psql, no docker and no db-query access, so NOTHING had ever been parsed
+# or executed. Round 2 raised it as cross-cutting finding CC5. Careful reading cannot tell
+# you whether SQL parses, whether a trigger fires in the right order, or whether a CHECK
+# actually refuses a row.
+#
+# The standing rule is now: NO MIGRATION REACHES PRODUCTION AUTHORIZATION ON STATIC REVIEW
+# ALONE. This workflow is what makes that rule enforceable rather than aspirational.
+#
+# It runs the same two harnesses the implementing session runs locally, so a green CI run
+# and a green local run mean the same thing:
+#   qa/dbtest/apply-migrations.mjs  — applies the WHOLE chain, per-file verdicts
+#   qa/dbtest/acceptance.mjs        — exercises behaviour, per-migration verdicts
+#
+# PGlite (real PostgreSQL compiled to WASM) is used rather than a `services: postgres`
+# container, deliberately: it is the identical engine the local harness uses, so CI cannot
+# disagree with local for environmental reasons. If this ever needs Supabase-specific
+# behaviour that PGlite lacks, ADD a second job against a real Supabase container — do not
+# replace this one and lose local/CI parity.
+#
+# STATUS LADDER this workflow moves a migration along:
+#   CODE INSPECTED -> SQL PARSED -> INTEGRATION VERIFIED -> (security/persona) -> READY
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'qa/dbtest/**'
+      - '.github/workflows/migration-validation.yml'
+  push:
+    branches: [ master ]
+    paths:
+      - 'supabase/migrations/**'
+      - 'qa/dbtest/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the validation harness
+        working-directory: qa/dbtest
+        run: npm ci || npm install
+
+      - name: Apply the full migration chain to a disposable database
+        working-directory: qa/dbtest
+        run: node apply-migrations.mjs
+        # Exits non-zero if ANY file fails to parse or execute. The report names the file
+        # and distinguishes PARSE_FAILED from EXECUTE_FAILED, because "does not parse" and
+        # "parses but the schema disagrees" are different findings with different owners.
+
+      - name: Behavioural acceptance (per-migration verdicts)
+        working-directory: qa/dbtest
+        run: node acceptance.mjs
+        # Each migration gets its OWN verdict. A pass on one implies nothing about the
+        # others, and this job must never be collapsed into a single combined PASS that
+        # could hide a failing migration.
+
+      - name: Publish reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-validation-reports
+          path: |
+            qa/dbtest/apply-report.json
+            qa/dbtest/acceptance-report.json
+          if-no-files-found: warn
+
+      - name: State what this run does NOT prove
+        if: always()
+        run: |
+          echo "This job proves: SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED."
+          echo "It does NOT prove RLS ENFORCEMENT per persona: PGlite runs single-user as"
+          echo "superuser, so policies are proven to exist and be attached, not to refuse a"
+          echo "real caller."
+          echo "It does NOT prove anything about production data, and it is NOT a"
+          echo "substitute for the post-apply verification performed against the live"
+          echo "database after an authorized push."
