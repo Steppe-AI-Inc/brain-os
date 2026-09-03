@@ -1,199 +1,32 @@
 {
- "campaign_id": "verify-f1722f2-run13-closure",
- "campaign_number": 74,
- "verifier": 14,
- "base_commit": "f1722f255b47157182b158ecb3cd36554bb33f08",
+ "campaign_id": "verify-d724d8c-run14-closure",
+ "campaign_number": 75,
+ "verifier": 15,
+ "base_commit": "d724d8c",
  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
- "started_at": "2026-09-03T12:00:00",
- "last_checkpoint_at": "2026-09-03T04:31:53.809Z",
+ "started_at": null,
+ "last_checkpoint_at": null,
  "project_ref": "pvphxgrtdfrudejjhzjk",
- "index_ts_sha256_required": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
- "index_ts_sha256_observed_at_start": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
- "sha_baseline_match": true,
- "prior_campaign_archived": "qa/verification/archive/campaign-ace9b6a-verify13.json (sha256 c54439207f9111c14728e26877b9153e065cb4a266d08d920d82773fd989057f, campaign #73, verifier #13, verdict DO NOT DEPLOY on ace9b6a with D98-D103, all twelve closed in f1722f2)",
- "working_tree_state": "clean at dispatch",
- "status": "COMPLETE",
- "what_changed_since_73": [
-  "FIX-3b: safeQuestionFragment drops a completion-word fragment only when no INTERROGATIVE_LEAD precedes it (closes D98+D99 on one axis).",
-  "D100: completion-shaped option labels are CORROBORATED against the canonical read; a label that does not match the canonical display name for that id is replaced by it. Ends the D78->D86->D91->D100 grammar-narrowing sequence.",
-  "D101: ADJECTIVAL_COMPLETION alternatives unreachable via COMPLETION_WORD removed.",
-  "D102: matchDisambiguationOption falls back to RAW label comparison when the presentation-stripped pass is ambiguous (two names differing only by an apostrophe were mutually unselectable).",
-  "D103a: collision numbering keyed by labelKey so an already-numbered label cannot collide.",
-  "D100.replay/D103c: readsAsCompletion() now backs BOTH drift arms (legacyProseFallback and unaccountedCompletionProse previously held private copies of the pattern list). Adds CONFIRMED_COMPLETION and REFERENCELESS_CONFIRMATION.",
-  "Disambiguation replay site renders a quoted CHOICE, or a neutral acknowledgement when the stored label names nothing checkable.",
-  "New committed suite run13_defect_closure_contract.mjs (60 cases) and mutation proof v13_mutation_proof.mjs (7 mutations)."
+ "index_ts_sha256_required": "1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64",
+ "index_ts_sha256_observed_at_start": null,
+ "sha_baseline_match": null,
+ "prior_campaign_archived": "qa/verification/archive/campaign-f1722f2-verify14.json (sha256 48ad6e71a927e88e81cb89e0ddab56453bc2921d92c13ddfa561f4b9eba3f2f9, campaign #74, verifier #14, verdict FAIL on f1722f2 with D105-D115)",
+ "status": "DISPATCHED",
+ "what_changed_since_74": [
+  "D106 (P1): matchDisambiguationOption uses SPECIFICITY (longest matched label wins) plus a RESIDUAL-MENTION guard, and the raw tie-break is confined to the normalisation-tied set. Closes the wrong-entity bind while keeping multi-mention replies dead-ending.",
+  "D112: CONFIRMED_COMPLETION gains a negation lookahead and determiner/cardinal lookbehinds, so it no longer destroys truthful answers.",
+  "D114: the first-person completion belt is RESTORED ALONGSIDE the interrogative-lead rule, with a clause-position lookbehind.",
+  "D113: the corroboration gate is no longer lexical where the canonical read knows the entity. Two rules: read knows it and label disagrees -> replace; read does not know it AND label reads as a completion -> replace.",
+  "run14_defect_closure_contract.mjs promoted (68 cases). D115 ledger corruption deleted."
  ],
- "what_verifier_14_must_independently_establish": [
-  "Assert index.ts sha256 10db5838…a70d2a BEFORE and AFTER every temporary edit; any mismatch invalidates the run.",
-  "Run the full .mjs battery and count failures from OUTPUT, never from exit code. exit 0 + provider-capacity text => BLOCKED, never PASS.",
-  "Mutation-test the SEVEN new guards independently of v13_mutation_proof.mjs — do not re-run my harness and call that verification. Cover each guard’s LIMITS as well as its coverage (this is how the tenth vacuous-guard recurrence was found).",
-  "Attack the new belts: CONFIRMED_COMPLETION / REFERENCELESS_CONFIRMATION for both false negatives (completion prose that still ships) and false positives (legitimate confirmations destroyed).",
-  "Attack the D100 corroboration path: can a fabricated label survive by matching a canonical name it does not belong to, or by exploiting a missing/absent canonical read?",
-  "Attack matchDisambiguationOption’s raw fallback for MIS-BINDING (D102’s fix is the first change that can select a DIFFERENT option rather than none).",
-  "Re-check the run10/run11/run12 D72-class contracts still hold and that no prior closure was reopened — run11->run12 reopened D98/D99 in both directions."
+ "what_verifier_15_must_independently_establish": [
+  "Assert sha256 1b291f37…ef64 before and after EVERY temporary edit. Any mismatch invalidates the run.",
+  "Classify from OUTPUT TEXT, never exit code. exit 0 + provider-capacity text => BLOCKED — PROVIDER_CAPACITY.",
+  "Write your OWN mutation battery; do not run v14_mutation_proof.mjs and call that verification. Cover every guard’s LIMITS — eleven vacuous guards have now shipped and the last two were found only by limit mutants.",
+  "ATTACK THE D106 MATCHER HARDEST. It is the only change here that can select a DIFFERENT entity. Probe: three or more options, nested/overlapping labels, labels differing only by case or unicode, replies naming an option inside a longer phrase, replies with negation (“not acme”), and any path where the residual-mention guard can be evaded.",
+  "Attack the D113 two-rule gate: can a fabricated label reach the founder through the ABSENT branch by avoiding COMPLETION_WORD? That branch is still lexical BY DESIGN — measure how much it lets through and whether any of it is dangerous given such options cannot execute (run13/D103).",
+  "Re-measure BOTH question-belt axes on your own corpora. This is the fourth campaign in a row where that belt changed; confirm neither direction reopened.",
+  "Verify run8/D72b, run10/D78, run11/D86, run12/D91+D100, run13 all still hold — the D113 change touched the code path all of them depend on."
  ],
- "scenarios": {
-  "S1_sha_and_full_battery": {
-   "status": "PASS",
-   "evidence": "25 .mjs enumerated from filesystem; all exit 0; 0 failure lines in OUTPUT TEXT across all 25. _gate_extract.mjs is a library (no output). 5 suites are explicit SUPERSEDED stubs asserting nothing (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract). 19 asserting suites, ~622 enumerated checks. sem_ai_command_execution_plan_truth summaryFail=1 was a FALSE PARSE of prose ('the failing dependency'); its own last line is 'ALL REGRESSIONS PASSED'. No provider-capacity text anywhere. *.sql suites NOT run - DB/RLS/lifecycle truth OUT OF SCOPE for this campaign.",
-   "defects_found": [],
-   "regressions_added": []
-  },
-  "S2_independent_mutation_test": {
-   "status": "FAIL",
-   "evidence": "Own harness (qa/verification/scratch/v14_mutations.mjs + v14_mutate_run.mjs), 34 mutants across all 7 guards, COVERAGE and LIMIT. Real source mutated; full 25-suite battery per mutant; restored byte-identically each cycle; final sha256 10db5838...a70d2a MATCH. 18 killed, 16 SURVIVED.",
-   "defects_found": [
-    "D106 (P2): G6.arm.unaccountedPrivateCopy is a SURVIVING COVERAGE mutant - reverting arm 2 (unaccountedCompletionProse) to its private pattern copy leaves the whole battery green, so the commit's headline 'one predicate, both arms' claim is only half-observed.",
-    "D107 (P2): guard 7 (the disambiguation replay site) has ZERO executable coverage - reverting it to the pre-fix 'Confirmed - <label>.' leaves the battery green (G7.cov.revertReplaySummary + 3 LIMIT survivors).",
-    "D108 (P3): the D78/D86/D91 sub-guards inside safeOptionLabel (title-case, position rule, determiner test) are now entirely unobserved - all three can be deleted with no failing case, because D100 corroboration subsumes their fabrication-suppression role.",
-    "D109 (P2): the D102 raw fallback's uniqueness requirement is unobserved (G4.lim.firstNotUnique survived) - nothing pins 'a genuinely ambiguous reply still resolves to nothing' through the RAW path.",
-    "D110 (P3): D100 corroboration's equality is unobserved in both dangerous loosenings (substring containment; corroborating against ANY option's canonical name rather than this id's).",
-    "D111 (P3): CONFIRMED_COMPLETION and REFERENCELESS_CONFIRMATION start anchors unobserved; INTERROGATIVE_LEAD trailing word-boundary unobserved; labelKey over-broadening unobserved."
-   ],
-   "regressions_added": []
-  },
-  "S3_attack_drift_belts": {
-   "status": "FAIL",
-   "evidence": "34 completion-shaped + 30 legitimate summaries, A/B ace9b6a vs f1722f2 (v14_drift_ab.mjs), plus a 16-case negation/status corpus (v14_negation_fp.mjs). FALSE NEGATIVES: candidate 14/34 vs ace9b6a 26/34 (12 closed, 0 NEW) - genuine improvement; residuals are the long-disclosed LEGACY lexical gaps (finished/wiped/converted/terminated/'ACME archived.'/'Task deleted.'). FALSE POSITIVES: 1 new in the general corpus, and 9 NEW of 16 in the targeted negation/status corpus, ALL attributable to CONFIRMED_COMPLETION alone.",
-   "defects_found": [
-    "D112 (P2, NEW): CONFIRMED_COMPLETION = /^\\s*confirmed\\s*[—–-]\\s*.*\\b(archived|deleted|...)\\b/i has NO negation handling and no predicate anchoring, so its `.*` matches a completion word used in a NEGATION ('Confirmed - the company is not archived.'), a NOUN ('Confirmed - the archived list is empty.', 'Confirmed - you have 3 archived companies.') or an explicit NON-completion ('Confirmed - the approval is still pending, not approved.'). All are truthful founder-facing answers; all are destroyed and replaced with 'I can't actually do that from chat - nothing was changed', which is itself false. 9/16 measured NEW on f1722f2 (0/16 of these fire on ace9b6a)."
-   ],
-   "notes": "The source comment at index.ts:5178 claims 'Genuine deterministic-* turns are excluded below, so a legitimate imperative confirmation summary is unaffected.' MEASURED FALSE: only arm 1 (legacyProseFallback) excludes deterministic-* models; arm 2 (structuredProseDrift) has no model exclusion and fires whenever rawClaims!==null || deterministicPrefix || evidence. Separately verified that on a real deterministic turn resultText carries no claims key, so rawClaims is null there - the comment is still wrong as written, but the specific deterministic-turn exposure is narrower than the comment's error suggests."
-  },
-  "S4_attack_d100_corroboration": {
-   "status": "FAIL",
-   "evidence": "12 probes (v14_d100_attack.mjs). HOLDS CORRECTLY: cross-id name match is replaced by the right canonical name (corroboration is properly id-bound); absent id -> 'the company'; empty canonical read -> 'the company'; entityType mismatch -> 'the company'; quoted fabrication -> replaced; trailing period repaired; a genuinely completion-shaped canonical name survives. LEAKS FOUND: (7) unicode confusables and (8) out-of-vocabulary completion verbs bypass corroboration entirely.",
-   "defects_found": [
-    "D113 (P2, NEW-in-kind): the D100 corroboration is GATED ON the lexical COMPLETION_WORD test it was written to replace. Its own comment says the grammar axis 'was always wrong' and that the real test is 'whether the DATABASE agrees the entity is called that' - but the database check only runs when the discredited grammar test fires. Labels using completion vocabulary outside the 24-word English list ('Terminated Bob Smith', 'Wiped All Data', 'Revoked Access') or spelled with a Cyrillic confusable ('Сlosed Loop Systems') are never corroborated and ship VERBATIM as selectable options whose ids resolve to entities with completely different canonical names - the founder can select 'Terminated Bob Smith' and archive 'ACME Holdings'."
-   ],
-   "notes": "Probe 9 (corroboration satisfied by the model-writable runtimeLabels map) is REACHABLE but low severity: runtimeLabels only holds labels for rows created THIS turn from the request's own fields, and such an id is absent from contextPack so the mutation field filter rejects it. Probe 9b (companyNameById) is NOT reachable in production - index.ts:3019 builds companyNameById from contextPack.companies, the same array canonicalById is built from, so my harness injected a divergence production cannot produce. Reported as harness-only, not counted as a defect."
-  },
-  "S5_attack_d102_raw_fallback_misbinding": {
-   "status": "FAIL",
-   "evidence": "CONFIRMED MIS-BINDING. matchDisambiguationOption A/B across fdb4564 / ace9b6a / f1722f2 (qa/verification/scratch/v14_ab_matcher.mjs). On f1722f2, options [Smith, Smith's Bakery] + founder reply 'smiths bakery' binds to SMITH (the wrong entity, id aaaaaaaa...). Same for [Fund, Founders' Fund] + 'founders fund' -> Fund, and [OBrien, O'Brien Logistics, Zeta] + 'obrien logistics' -> OBrien. ace9b6a returned null (safe dead end) for all three; fdb4564 mis-bound identically. D102's raw fallback therefore REOPENS a mis-binding class that D93's normalisation had closed. The bound option's actionType resolves a DESTRUCTIVE field (archiveCompanyIds) with no LLM in the loop, and commandContradictsActionType cannot fire (the reply carries no opposite-family verb). Additionally the fix does not even solve its own stated case: typing the EXACT name \"smith's bakery\" still dead-ends.",
-   "defects_found": [
-    "D105 (P1): D102 raw-label fallback mis-binds a founder's disambiguation reply to a DIFFERENT entity and arms a destructive field with it."
-   ],
-   "regressions_added": [],
-   "defect_id_final": "D106 (renumbered from D105, which was already taken by campaign #73)"
-  },
-  "S6_no_prior_closure_reopened": {
-   "status": "FAIL",
-   "evidence": "Independent corpora (v14_question_axis.mjs: 25 assertions + 27 clarifications, all my own; v14_reopen_curated.mjs: 20 curated interrogative-led first-person assertions), A/B across fdb4564 / ace9b6a / f1722f2. AGGREGATE: assertion leaks 22 -> 17 -> 3 of 25; clarification drops 3 -> 6 -> 5 of 27, and all 5 residual drops are pre-existing at ace9b6a (0 NEW). run10/run11/run12/run8 committed D72-class contracts all pass in the full battery.",
-   "defects_found": [
-    "D114 (P2, REGRESSION vs ace9b6a): FIX-3b REPLACED run12's FIRST_PERSON_COMPLETION belt instead of adding to it, and thereby REOPENS the exact class that belt existed to close. On a curated 20-case corpus of natural, interrogative-word-LED FIRST-PERSON completion assertions ('Did I mention I archived ACME already?', 'If it helps, I already deleted the duplicates ok?', 'May I add that I renamed the business unit?'), ace9b6a leaks 0/20 and f1722f2 leaks 13/20. 13 reopened, 0 newly closed on this class. The commit message and the source comment at index.ts:4805 both assert 'Measured 0/20 leaks and 0/27 drops - strictly better on BOTH axes than any previous build, which neither run11 nor run12 achieved.' That claim is corpus-dependent and, on this sub-class, measurably FALSE. This is the third consecutive campaign in which one direction of the question belt was closed by reopening the other - the precise failure the commit's own header warns against."
-   ],
-   "notes": "The two axes are complementary, not alternatives: an interrogative LEAD is evidence of a question; a first-person past-tense COMPLETION is evidence of an assertion. Dropping on (FIRST_PERSON_COMPLETION) OR (COMPLETION_WORD && !INTERROGATIVE_LEAD) is the obvious strictly-better belt - tested separately, see prepared fix."
-  },
-  "S7_ledger_bookkeeping_truth": {
-   "status": "FAIL",
-   "evidence": "CURRENT_CAMPAIGN.json is ACCURATE on every checkable claim - base commit f1722f2, required index.ts sha256 10db5838...a70d2a, branch, project_ref pvphxgrtdfrudejjhzjk (cross-checked web/CLAUDE.md:29), prior-campaign archive sha256 c5443920...89057f - all four independently recomputed and matching. run13_defect_closure_contract.mjs's header sha for ace9b6a (021c8989...8a4b786) is also correct. The commit's '24 suites' count is right (25 .mjs minus the shared library). The three edits f1722f2 made to run10/run11/run12 committed contracts are HONEST: each renames the case stating what changed and why, and run12 ADDS a new D100.uncorroborated CONTRACT rather than merely deleting the old assertion - no test-weakening found.",
-   "defects_found": [
-    "D115 (P3, bookkeeping): D104's ledger corruption is STILL LIVE. qa/KNOWN_FAILURE_MODES.md:6931-6936 still contains a malformed '## #72 ...` section below**,' heading plus four lines of #12's promotion note and a stray '---', creating a duplicate '## #72' heading before the real entry at 6939. #13 diagnosed it as D104 and adopted the right structural remedy (separate promotion file) but never removed the corruption; the f1722f2 closure did not either. Two campaigns of recorded-not-fixed. Also: two ledger/comment claims do not match the code - the '0/20 leaks and 0/27 drops, strictly better on BOTH axes' claim (see D114) and the 'Genuine deterministic-* turns are excluded below' comment at index.ts:5178 (only arm 1 excludes them)."
-   ]
-  }
- },
- "base_commit_observed": "f1722f255b47157182b158ecb3cd36554bb33f08",
- "verifier_14_notes": "Independent verifier #14. Not running v13_mutation_proof.mjs as evidence.",
- "mjs_suites_enumerated_from_filesystem": [
-  "_gate_extract.mjs",
-  "claim_segmentation_and_present_tense_fp.mjs",
-  "company_ref_no_bare_name_join.mjs",
-  "current_turn_and_continuity_contract.mjs",
-  "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
-  "issue5_confirmation_action_type_binding.mjs",
-  "lifecycle_evidence_and_output_persistence_contract.mjs",
-  "mixed_claim_grounding.mjs",
-  "org_selector_scoping_coverage.mjs",
-  "past_completion_gate_behavior.mjs",
-  "per_resource_grounding_contract.mjs",
-  "run10_defect_closure_contract.mjs",
-  "run11_defect_closure_contract.mjs",
-  "run12_defect_closure_contract.mjs",
-  "run13_defect_closure_contract.mjs",
-  "run8_defect_closure_contract.mjs",
-  "sem_ai_command_company_restore_truth.mjs",
-  "sem_ai_command_confirmation_truth.mjs",
-  "sem_ai_command_execution_plan_truth.mjs",
-  "sem_ai_command_factory_verification_selection.mjs",
-  "sem_ai_command_named_person_lookup_truth.mjs",
-  "sem_ai_command_past_completion_claim_regex.mjs",
-  "sem_ai_command_source_invariants_drift_guard.mjs",
-  "structured_claim_laundering_contract.mjs",
-  "structured_claim_verification.mjs"
- ],
- "prepared_fixes": {
-  "FIX-A2_D114_clause_position_belt": "VALIDATED, NOT APPLIED (rule 1 forbids changing index.ts this run). Adds FIRST_PERSON_MAIN_CLAUSE_COMPLETION ahead of the INTERROGATIVE_LEAD belt, using a variable-length lookbehind so a first-person completion inside a NOUN PHRASE (reduced relative: 'the tasks we completed') is legitimate while a MAIN-CLAUSE one is an assertion. Measured: reopened class 13/20 -> 1/20; my assertion corpus 3/25 -> 1/25; clarification drops unchanged at 5/27 (0 new); ALL 25 COMMITTED SUITES GREEN. Evidence: qa/verification/scratch/v14_fixA2_test.mjs.",
-  "FIX-B_D112_negation_aware_CONFIRMED_COMPLETION": "VALIDATED, NOT APPLIED. Adds a negator lookahead and determiner/cardinal lookbehinds so the belt fires only on an affirmative predicate use. Measured: new negation/status false positives 9/16 -> 0/16; all committed suites green. Evidence: qa/verification/scratch/v14_prepared_fix_test.mjs.",
-  "FIX-C_D105_misbind_safe_raw_fallback": "VALIDATED, NOT APPLIED. Restricts the raw fallback to the ALREADY-MATCHING set and requires whole-label equality instead of containment: `const exact = matches.filter((o) => o.label.trim().toLowerCase() === command.trim().toLowerCase());`. Measured: all three mis-bindings (A, C, H) become safe dead ends AND cases B, D, E, F now resolve correctly - strictly better than BOTH prior SHAs on every probe; ambiguous case J still resolves to nothing; all committed suites green.",
-  "note": "Candidate source with A(naive)+B+C applied is saved for review at qa/verification/proposed/v14_prepared_fixes_candidate.ts.txt. Do NOT take that file as the recommended patch - it carries the NAIVE FIX-A which breaks 8 committed D98 cases. The recommended belt is FIX-A2."
- },
- "verdict": "FAIL",
- "verdict_detail": "DO NOT DEPLOY f1722f2. One P1 (D106 wrong-entity binding), five P2 (D107, D108, D112, D113, D114), four P3 (D109, D110, D111, D115).",
- "index_ts_sha256_observed_at_end": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
- "sha_final_match": true,
- "temporary_source_edits": "39 total (34 mutation-battery mutants + 3 prepared-fix trials + 1 naive-FIX-A trial + 1 FIX-A2 trial). Every one written to the REAL index.ts, restored from a pristine byte copy in a finally block, sha-asserted after each cycle; runner aborts on mismatch. Final sha MATCHES the required value.",
- "production_read_only": {
-  "function": "sem-ai-command",
-  "version": 92,
-  "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
-  "updated_at": "2026-09-01T05:15:25.518Z",
-  "origin_master": "80074c2bdcae915a73aad348023b104673e96216",
-  "branch_ahead_of_master_by": 28,
-  "note": "Nothing on this branch is live. Byte-level prod-vs-candidate diff deliberately NOT performed: `supabase functions download` writes into supabase/functions/sem-ai-command/ and would have destroyed the sha discipline (commit 4b173a3 already makes this a standing repo rule). Recorded as a scoped, deliberate gap."
- },
- "defects_found_this_campaign": [
-  "D106 (P1) — D102's raw fallback binds a founder's disambiguation reply to a DIFFERENT entity and arms a destructive field with it. Regression vs ace9b6a. Does not even close its own stated case.",
-  "D107 (P2) — ELEVENTH vacuous-guard recurrence: arm 2 of the drift gate can revert to a private pattern copy with the whole battery green; 'one predicate, both arms' unobserved.",
-  "D108 (P2) — the disambiguation replay site has ZERO executable coverage, and it is the ONLY protection on the deterministic-* path that actually emits the string; the committed D100.replay/D103.falseConfirmation cases test model='gpt', a path that cannot emit it.",
-  "D109 (P3) — D78/D86/D91 sub-guards are subsumed by D100's corroboration and observed by nothing.",
-  "D110 (P3) — corroboration equality and collision-key precision unobserved.",
-  "D111 (P3) — CONFIRMED_COMPLETION ^, REFERENCELESS_CONFIRMATION ^, INTERROGATIVE_LEAD \\b all unobserved.",
-  "D112 (P2, NEW) — CONFIRMED_COMPLETION destroys truthful negation/noun/status answers and replaces them with a false refusal. 9/16 new; 0/16 on ace9b6a.",
-  "D113 (P2) — D100's corroboration is GATED ON the lexical COMPLETION_WORD test it was written to replace; out-of-vocabulary and confusable labels ship verbatim as selectable, executable options.",
-  "D114 (P2) — FIX-3b REPLACED run12's first-person belt and reopened it: curated corpus ace9b6a 0/20 leak, f1722f2 13/20 leak, 0 newly closed. Third consecutive campaign closing one direction by reopening the other.",
-  "D115 (P3, bookkeeping) — D104's ledger corruption still un-remediated; two ledger/comment claims contradict the code."
- ],
- "regressions_added": [
-  "qa/verification/proposed/v14_regression_additions.mjs — 63 cases (34 pass, 29 fail on f1722f2; 0 CONTRACT failures). Same two-kind convention and the same exit guard as run13, no kind-based carve-out. Mutation-proven: all 16 mutants that survived the committed battery are killed by this file (16/16, evidence qa/verification/scratch/v14_mutate_verify_additions.mjs)."
- ],
- "prepared_fixes_validated_not_applied": [
-  "FIX-C / D106 — one line; strictly better than BOTH prior SHAs on all 10 matcher probes; all 25 suites green.",
-  "FIX-B / D112 — negation-aware CONFIRMED_COMPLETION; new FPs 9/16 -> 0/16; all 25 suites green.",
-  "FIX-A2 / D114 — clause-position first-person belt AHEAD of the lead belt; reopened class 13/20 -> 1/20; 0 new clarification drops; all 25 suites green. The NAIVE variant was measured and REJECTED (breaks 8 committed D98 cases).",
-  "A2+B+C together: v14_regression_additions 34/29 -> 59/4 (only D113 remains), all 25 committed suites green."
- ],
- "not_fixed_and_why": "No source change was made at all: campaign rule 1 requires index.ts to end at the required sha256, which forbids applying any fix this run. D113 additionally needs a product decision (corroborate ALL labels vs keep a lexical gate), not a patch. D107-D111 are observability defects whose remedy IS the regression file. D115 is a six-line ledger deletion deliberately left to the promoting session.",
- "db_pushes_pending": "NONE. No migration was written, needed, or prepared; this campaign never touched the database.",
- "synthetic_data_created": "NONE. No QA-VERIFY-* entities were created; every check ran against extracted source slices, three git-extracted historical copies of index.ts, and one read-only `supabase functions list`. Nothing was written to production.",
- "remaining_scenarios": [],
- "concurrent_session_artifact_verified": {
-  "files": [
-   "qa/verification/proposed/v14_d105_matcher_fix.patch.md",
-   "qa/verification/proposed/v14_d105_matcher_probe.mjs"
-  ],
-  "note": "These appeared in the working tree DURING this campaign, written by the implementing session, not by me. Its own validation was not accepted as evidence; the diff was applied to the real source and measured (qa/verification/scratch/v14_verify_concurrent_fix.mjs), then restored with a sha assertion.",
-  "verdict": "BETTER THAN MY FIX-C, BUT INCOMPLETE. Its 'most specific match wins' rule closes all three D106 mis-bindings and resolves four cases both ace9b6a and an equality-only repair dead-end; all 25 committed suites green; all six of my D106 cases pass. HOWEVER it GUESSES whenever a reply mentions more than one option label, picking the longest even when the reply explicitly excludes it ('archive acme, leave acme holdings alone' -> Acme Holdings). f1722f2 correctly returns null for all three such replies today, so applying it as written would introduce a NEW defect of the run9/D32 'the reply's own words say otherwise' class. Its 12-case probe contains no multi-mention case, which is why its self-validation reads clean. Its 'D105' number also collides with the existing D105 (P3, bookkeeping) in ledger entry #73.",
-  "recommended_form": "FIX-C2 = its specificity rule + a residual-mention guard (after removing the winning label, no OTHER option label may remain in the reply). Measured 13/13 adversarial cases correct, all 25 committed suites green. Evidence qa/verification/scratch/v14_fixC2_test.mjs; diff in qa/verification/proposed/v14_fixes.patch.md.",
-  "regressions_added_for_it": [
-   "D106.hold.mentionsBothEntities",
-   "D106.hold.replyExcludesTheLongest",
-   "D106.hold.mentionsTwoDistinctOptions"
-  ]
- },
- "final_assertions": {
-  "index_ts_sha256_at_end": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
-  "sha_matches_required": true,
-  "git_status_supabase": "clean — byte-identical to f1722f2",
-  "temporary_source_edits_total": 40,
-  "final_battery": "25/25 suites exit 0, 0 failure lines in output text",
-  "v14_regression_additions_on_f1722f2": "37 pass, 29 fail (29 open #74 DEFECTs, 0 CONTRACT failures) — exits 1 by design",
-  "v14_additions_mutation_proof": "16/16 previously-surviving mutants now killed, 0 still unobserved"
- },
- "deliverables": [
-  "qa/verification/proposed/v14_known_failure_modes_entry_74.md — the '## #74 —' ledger section, no preamble",
-  "qa/verification/proposed/v14_PROMOTION_NOTE.md — promotion instructions, kept OUT of the ledger entry",
-  "qa/verification/proposed/v14_regression_additions.mjs — 66 cases, run13 convention, exit guard, no carve-out",
-  "qa/verification/proposed/v14_fixes.patch.md — FIX-A2 / FIX-B / FIX-C2, each validated against the real source and restored"
- ]
+ "scenarios": {}
 }
