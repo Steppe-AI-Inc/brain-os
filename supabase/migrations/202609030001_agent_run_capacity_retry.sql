@@ -69,7 +69,11 @@ create index if not exists agent_runs_retry_eligible_idx
 --
 -- SECURITY DEFINER + founder/admin check: restarting a production Agent Run is real
 -- factory authority, never something an ordinary member may trigger.
-create or replace function public.claim_blocked_run_for_retry(p_claimed_by text)
+create or replace function public.claim_blocked_run_for_retry(
+  p_claimed_by text,
+  -- run12/D1: the cap is a real parameter of the CLAIM, not an unreachable JS constant.
+  p_max_attempts integer default 6
+)
 returns table (
   id uuid,
   canonical_work_order_id uuid,
@@ -83,6 +87,7 @@ returns table (
   remaining_scenarios jsonb,
   verification_campaign_id text,
   attempt_count integer,
+  max_attempts integer,
   requested_provider text,
   requested_model text
 )
@@ -93,8 +98,18 @@ as $$
 declare
   v_id uuid;
 begin
-  if not public.is_founder_or_admin() then
-    raise exception 'Only the founder or an admin can claim a blocked Agent Run for retry';
+  -- run12/D4: the supervisor's ONLY implemented transport is `npx supabase db query
+  -- --linked`, a direct superuser connection with no request.jwt.claims — so auth.uid()
+  -- is null and is_founder_or_admin() returns FALSE. The founder check alone made this
+  -- function uncallable by its own intended caller (and the failure surfaced as
+  -- "migration not applied", worse than a denial). The direct-connection path is now
+  -- EXPLICIT rather than accidental: someone holding superuser/service credentials
+  -- already has unrestricted DB access, so recognising them here grants nothing new —
+  -- but it is stated, not inferred. auth.uid() IS NULL is deliberately NOT used as the
+  -- test: anon carries a JWT with a null sub and would pass it.
+  if not (public.is_founder_or_admin()
+          or current_user in ('postgres', 'service_role', 'supabase_admin')) then
+    raise exception 'Only the founder, an admin, or the server-side supervisor identity can claim a blocked Agent Run for retry';
   end if;
 
   select ar.id into v_id
@@ -103,6 +118,17 @@ begin
      and ar.retry_after is not null
      and ar.retry_after <= now()
      and ar.claimed_by is null
+     -- run12/D2: the CLASSIFICATION must gate the claim in SQL. It previously lived only
+     -- in supervisor.isRetryEligible(), which has zero call sites — so any blocked row
+     -- carrying a retry_after was claimable, and a genuinely crashed agent would be
+     -- relaunched on a timer instead of escalated. That is the precise failure this
+     -- migration's own comments say must not happen.
+     and ar.blocked_reason like 'PROVIDER_CAPACITY_BLOCKED%'
+     -- run12/D1: the attempt cap was INCREMENTED but never COMPARED, so the loop was
+     -- unbounded in SQL; the JS cap was likewise unreachable. A permanently
+     -- capacity-limited campaign would have restarted forever, burning quota with no
+     -- terminal state.
+     and ar.attempt_count < p_max_attempts
    order by ar.retry_after
    for update skip locked
    limit 1;
@@ -124,14 +150,81 @@ begin
     select ar.id, ar.canonical_work_order_id, ar.task_id, ar.agent_id,
            ar.checkpoint_location, ar.source_sha, ar.branch, ar.worktree,
            ar.last_completed_scenario, ar.remaining_scenarios, ar.verification_campaign_id,
-           ar.attempt_count, ar.requested_provider, ar.requested_model
+           ar.attempt_count, p_max_attempts, ar.requested_provider, ar.requested_model
       from public.agent_runs ar
      where ar.id = v_id;
 end;
 $$;
 
-revoke execute on function public.claim_blocked_run_for_retry(text) from anon, public;
-grant execute on function public.claim_blocked_run_for_retry(text) to authenticated;
+-- run12/D7: the grant was broader than the demonstrated need — EXECUTE to every logged-in
+-- user, with only the internal check stopping them. The real caller is the server-side
+-- supervisor (direct superuser connection, which needs no grant) so `authenticated` is
+-- revoked too; service_role covers a future PostgREST-side caller. Narrowing here costs
+-- nothing today because no authenticated client calls this function.
+revoke execute on function public.claim_blocked_run_for_retry(text, integer) from anon, public, authenticated;
+grant execute on function public.claim_blocked_run_for_retry(text, integer) to service_role;
+
+-- run12/D5: claim AUTHORITY was founder-only, but authority over the claim's INPUTS was
+-- not — agent_runs_update_scope lets a company manager UPDATE rows for their company,
+-- i.e. write worktree / checkpoint_location / source_sha / branch / retry_after /
+-- claimed_by / attempt_count / blocked_reason: every field the supervisor consumes when
+-- it spawns an unattended session. That is an escalation between privileged tiers (not
+-- an anonymous hole — inserts are founder-only), and the smaller fix is a column-scoped
+-- guard rather than rewriting the table policy, mirroring the lifecycle-guard pattern
+-- already used in this schema.
+create or replace function public.guard_agent_run_retry_columns()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if public.is_founder_or_admin() or current_user in ('postgres', 'service_role', 'supabase_admin') then
+    return new;
+  end if;
+  if new.worktree is distinct from old.worktree
+     or new.checkpoint_location is distinct from old.checkpoint_location
+     or new.source_sha is distinct from old.source_sha
+     or new.branch is distinct from old.branch
+     or new.retry_after is distinct from old.retry_after
+     or new.claimed_by is distinct from old.claimed_by
+     or new.attempt_count is distinct from old.attempt_count
+     or new.blocked_reason is distinct from old.blocked_reason
+     or new.requested_provider is distinct from old.requested_provider
+     or new.requested_model is distinct from old.requested_model
+     or new.actual_provider is distinct from old.actual_provider
+     or new.actual_model is distinct from old.actual_model then
+    raise exception 'Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists agent_runs_guard_retry_columns on public.agent_runs;
+create trigger agent_runs_guard_retry_columns
+  before update on public.agent_runs
+  for each row execute function public.guard_agent_run_retry_columns();
+
+-- run12/D6: NO_SILENT_PROVIDER_FALLBACK was a schema-only guarantee — five columns that
+-- nothing wrote and nothing enforced, so a substitution would have left them all null and
+-- been invisible while the guarantee "read as met". A substitution now cannot be RECORDED
+-- without a stated reason. (Populating requested_* at dispatch is application work,
+-- tracked separately; this constraint is what makes the omission detectable rather than
+-- silent.)
+alter table public.agent_runs drop constraint if exists agent_runs_no_silent_provider_fallback;
+alter table public.agent_runs add constraint agent_runs_no_silent_provider_fallback check (
+  actual_provider is null
+  or requested_provider is null
+  or actual_provider = requested_provider
+  or fallback_reason is not null
+);
+alter table public.agent_runs drop constraint if exists agent_runs_no_silent_model_fallback;
+alter table public.agent_runs add constraint agent_runs_no_silent_model_fallback check (
+  actual_model is null
+  or requested_model is null
+  or actual_model = requested_model
+  or fallback_reason is not null
+);
 
 commit;
 

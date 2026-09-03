@@ -88,32 +88,62 @@ set local role authenticated;
 -- Three fixture runs: one genuinely eligible, one whose window has not arrived, one
 -- blocked for an UNCLASSIFIED reason (must never auto-restart — that would loop on a
 -- real bug rather than recover from a quota).
-insert into public.agent_runs (id, status, execution_provider, blocked_reason, retry_after, attempt_count, source_sha)
+-- run12/D8 (the reviewer's finding against THIS file): two fixtures originally shared a
+-- byte-identical retry_after, so "the second supervisor did not get the same row" was a
+-- planner-dependent tie that could pass vacuously. Every retry_after is now distinct and
+-- ordered, so the claim order is deterministic and the assertion means something.
+-- A fourth fixture covers the attempt cap (D1) and a fifth the second-block recovery (D3).
+insert into public.agent_runs (id, status, execution_provider, blocked_reason, retry_after, attempt_count, source_sha, claimed_by)
 values
+  -- eligible, oldest window -> must be claimed FIRST
   ('eeee0001-0000-0000-0000-000000000001','blocked'::work_status,'claude_code_background',
-   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() - interval '5 minutes', 1, 'deadbeef'),
+   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() - interval '30 minutes', 1, 'deadbeef', null),
+  -- window has not arrived
   ('eeee0002-0000-0000-0000-000000000001','blocked'::work_status,'claude_code_background',
-   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() + interval '2 hours', 1, 'deadbeef'),
+   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() + interval '2 hours', 1, 'deadbeef', null),
+  -- UNCLASSIFIED failure: never auto-restart (a real bug must escalate, not loop)
   ('eeee0003-0000-0000-0000-000000000001','blocked'::work_status,'claude_code_background',
-   'agent crashed: TypeError', now() - interval '5 minutes', 1, 'deadbeef');
+   'agent crashed: TypeError', now() - interval '20 minutes', 1, 'deadbeef', null),
+  -- at the attempt cap: eligible in every other respect, must NOT be claimable (D1)
+  ('eeee0004-0000-0000-0000-000000000001','blocked'::work_status,'claude_code_background',
+   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() - interval '25 minutes', 6, 'deadbeef', null),
+  -- already claimed by another supervisor: not re-claimable
+  ('eeee0005-0000-0000-0000-000000000001','blocked'::work_status,'claude_code_background',
+   'PROVIDER_CAPACITY_BLOCKED: retryable provider quota', now() - interval '15 minutes', 2, 'deadbeef', 'supervisor-Z');
 
 do $$
-declare v_first uuid; v_second uuid; v_status text; v_attempts int;
+declare v_first uuid; v_second uuid; v_status text; v_attempts int; v_reclaim uuid;
 begin
   select id into v_first from public.claim_blocked_run_for_retry('supervisor-A');
-  -- A second supervisor claiming immediately must NOT get the same row back.
+  -- A second supervisor claiming immediately must NOT get the same row back. With
+  -- distinct, ordered retry_after values this is a real assertion, not a planner tie.
   select id into v_second from public.claim_blocked_run_for_retry('supervisor-B');
   select status::text, attempt_count into v_status, v_attempts
     from public.agent_runs where id = 'eeee0001-0000-0000-0000-000000000001';
   insert into t_verdicts values (jsonb_build_object(
     'check','claim_semantics',
-    'eligible_run_was_claimed', v_first = 'eeee0001-0000-0000-0000-000000000001'::uuid,
+    'oldest_eligible_run_claimed_first', v_first = 'eeee0001-0000-0000-0000-000000000001'::uuid,
     'second_supervisor_did_not_get_same_row', v_second is distinct from v_first,
-    'future_retry_after_not_claimed', v_second is distinct from 'eeee0002-0000-0000-0000-000000000001'::uuid,
-    'unclassified_failure_not_claimed', v_second is distinct from 'eeee0003-0000-0000-0000-000000000001'::uuid,
+    'future_retry_after_never_claimed', v_second is distinct from 'eeee0002-0000-0000-0000-000000000001'::uuid,
+    'unclassified_failure_never_claimed', v_second is distinct from 'eeee0003-0000-0000-0000-000000000001'::uuid,
+    -- D1: at the cap, eligible in every other respect, still not claimable.
+    'attempt_cap_enforced', v_second is distinct from 'eeee0004-0000-0000-0000-000000000001'::uuid,
+    -- Already claimed by supervisor-Z.
+    'claimed_run_never_reclaimed', v_second is distinct from 'eeee0005-0000-0000-0000-000000000001'::uuid,
     -- BLOCKED -> RUNNING, never BLOCKED -> COMPLETED.
     'status_became_in_progress', v_status = 'in_progress',
     'attempt_count_incremented', v_attempts = 2));
+
+  -- D3: a run capacity-blocked a SECOND time must be recoverable again. Simulate the
+  -- re-block the supervisor performs (claim released) and confirm it is claimable.
+  update public.agent_runs
+     set status = 'blocked'::work_status, claimed_by = null, claimed_at = null,
+         retry_after = now() - interval '1 minute'
+   where id = 'eeee0001-0000-0000-0000-000000000001';
+  select id into v_reclaim from public.claim_blocked_run_for_retry('supervisor-C');
+  insert into t_verdicts values (jsonb_build_object(
+    'check','second_block_recovery',
+    'reblocked_run_is_claimable_again', v_reclaim = 'eeee0001-0000-0000-0000-000000000001'::uuid));
 end $$;
 
 reset role;

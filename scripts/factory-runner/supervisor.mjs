@@ -235,6 +235,16 @@ update public.agent_runs
    set status = 'blocked'::work_status,
        blocked_reason = ${sqlEscape(reason)},
        blocked_at = now(),
+       -- run12/D3: claimed_by/claimed_at MUST be released when a run is re-blocked.
+       -- Nothing anywhere reset them, and the claim requires claimed_by IS NULL — so a
+       -- run capacity-blocked a SECOND time became permanently unclaimable, sitting in
+       -- in_progress with a fresh heartbeat so it never even aged into STALE for the
+       -- notification path to catch. The exact incident this file exists to prevent,
+       -- recurring on the second occurrence. Same class as the lifecycle-GUC bug: state
+       -- set before an operation and never reset after it — invisible until a REPEATED
+       -- operation is tested rather than a single one.
+       claimed_by = null,
+       claimed_at = null,
        retry_after = ${sqlEscape(retryAfter.toISOString())}::timestamptz,
        checkpoint_location = coalesce(${sqlEscape(checkpoint.checkpointLocation)}, checkpoint_location),
        source_sha = coalesce(${sqlEscape(checkpoint.sourceSha)}, source_sha),
@@ -257,8 +267,20 @@ export async function pollOnce(supervisorId, currentSourceSha) {
   try {
     claimed = await runSql(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)});`);
   } catch (e) {
-    // Migration not applied (function absent) or DB unreachable: change nothing.
-    return { available: false, restarted: null, reason: String(e?.message || e).slice(0, 200) };
+    // run12/D4: these were collapsed into ONE "not available" answer, so a permission
+    // DENIAL reported itself as "migration not applied" — an operator would conclude the
+    // push had never happened while the feature was actually dead on arrival. 42883 =
+    // undefined_function (genuinely not migrated); 42501 or the function's own raise are
+    // authority problems and must say so, loudly and differently.
+    const msg = String(e?.message || e);
+    const notMigrated = /42883/.test(msg) || /does not exist/i.test(msg);
+    const denied = /42501/.test(msg) || /permission denied/i.test(msg) || /can claim a blocked Agent Run/i.test(msg);
+    return {
+      available: false,
+      restarted: null,
+      cause: notMigrated ? 'migration_not_applied' : denied ? 'authority_denied' : 'db_error',
+      reason: msg.slice(0, 300),
+    };
   }
   const run = claimed.rows?.[0];
   if (!run) return { available: true, restarted: null, reason: 'no eligible blocked run' };
