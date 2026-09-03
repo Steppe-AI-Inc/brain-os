@@ -23,6 +23,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import * as provider from './provider.mjs';
+import * as supervisor from './supervisor.mjs';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
@@ -165,12 +166,22 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
         // classification and the existing STALE path already covers it.
       }
       if (capacity) {
-        await runSql(`
+        // 2026-09-03: classification alone recovered NOTHING — the run sat blocked
+        // forever because no retry_after existed for a supervisor to act on. Delegated
+        // to supervisor.recordCapacityBlock, which persists the provider's own stated
+        // reset time (or a bounded backoff) so the external supervisor can restart it
+        // without the dead session's participation. Falls back to the inline write if
+        // the retry columns are not migrated yet — never loses the classification.
+        try {
+          await supervisor.recordCapacityBlock(run.id, capacity.matched, { attemptCount: 1 });
+        } catch {
+          await runSql(`
 update public.agent_runs
    set status = 'blocked'::work_status,
        blocked_reason = ${sqlEscape(`${capacity.classification}: ${capacity.matched} — retryable; provider quota, not a Factory failure`)},
        last_event = ${sqlEscape(capacity.classification)}
  where id = ${sqlEscape(run.id)}::uuid;`);
+        }
         capacityBlocked.push(run.id);
       } else {
         wentStale.push(run.id);
