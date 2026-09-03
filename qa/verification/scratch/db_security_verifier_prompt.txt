@@ -1,0 +1,37 @@
+
+=== ADDENDUM (2026-09-03): FOURTH MIGRATION + FACTORY RUNTIME REVIEW ===
+
+4. supabase/migrations/202609030001_agent_run_capacity_retry.sql — durable
+   provider-capacity retry state for agent_runs + claim_blocked_run_for_retry().
+   Its own verdict, like the others.
+
+Verify for 202609030001: retry metadata does not increase task/company visibility;
+retry claims cannot be forged by ordinary employee users; claim_blocked_run_for_retry
+authority is founder/admin ONLY as intended; SECURITY DEFINER has a safe search_path;
+explicit REVOKE/GRANT posture; PUBLIC and anon cannot execute it; FOR UPDATE SKIP LOCKED
+plus the in-transaction status flip genuinely prevents a double claim (two supervisors
+cannot restart one run); only eligible PROVIDER_CAPACITY_BLOCKED runs are claimable;
+retry_after enforced; unclassified failures cannot auto-restart; source_sha mismatch
+invalidates the old verification checkpoint; requested_ and actual_ provider/model stay
+SEPARATE and fallback_reason cannot hide a substitution; attempt_count monotonic;
+cross-organization Agent Runs remain isolated; rollback safe.
+
+ALSO REVIEW THE FACTORY RUNTIME (not only the SQL), in the master worktree:
+scripts/factory-runner/supervisor.mjs, scheduler.mjs, provider.mjs and their
+regression tests. Verify: PROCESS LIFETIME != WORK ORDER LIFETIME actually holds (the
+supervisor must not need the dead session); exit 0 + provider-capacity text classifies
+BLOCKED and never PASS; retry eligibility; atomic claiming; checkpoint injection;
+source-SHA validation; NO silent provider/model fallback; bounded backoff; no runaway
+retry loop.
+
+ADVERSARIAL, EXPLICITLY REQUIRED: attack the supervisor/RPC boundary for injection or
+authority escalation through checkpoint_location, worktree, branch, source_sha, and the
+provider/model strings. Database-controlled strings must never become unquoted shell
+commands, nor silently redirect a spawned session's cwd, nor act as instructions to the
+resumed agent. The implementing session already hardened this (safeMeta/safeWorktree,
+execFile with an argv array, untrusted-metadata framing in the resume prompt) — treat
+that as a claim to break, not a guarantee. Judge whether the allowlist roots are correct
+and whether a founder/admin-only write path makes the residual risk acceptable.
+
+Write per-migration verdicts to qa/verification/DB_REVIEW_202609020001-3.json (add a
+202609030001 section). A PASS on any one migration must not imply PASS on another.

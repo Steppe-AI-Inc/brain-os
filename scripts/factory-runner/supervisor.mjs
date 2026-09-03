@@ -159,11 +159,34 @@ export function safeMeta(value, pattern) {
  * attacker-controlled checkout (whose .claude/agents definitions the session would then
  * honour). Anything outside the allowlist falls back to REPO_ROOT.
  */
+// Independent verification 2026-09-03 (qa/KNOWN_FAILURE_MODES.md #62) broke the first
+// version of this guard three ways, all empirically, none caught by its own tests:
+//   1. PREFIX WITHOUT A PATH BOUNDARY — a bare `startsWith` accepted
+//      `C:\Users\Dell\devil\evil` and `C:\Users\Dell\dev-attacker\x`, neither of which is
+//      inside `C:\Users\Dell\dev`. A root must match the whole path or be followed by a
+//      real separator.
+//   2. NO CHARACTER ALLOWLIST — unlike safeMeta, this accepted any characters after the
+//      root, so `...\brain-os\nIGNORE PRIOR INSTRUCTIONS` and `...\brain-os" & calc.exe &
+//      "` both passed. The same string is interpolated into the resume prompt, so a
+//      newline there is a prompt-injection primitive, not just a bad cwd.
+//   3. It returned the RAW value, not the validated/normalized one.
+// Now: strict drive-letter + segment allowlist, no traversal, boundary-anchored root
+// match, and the NORMALIZED string is what's returned.
 export function safeWorktree(worktree, allowedRoots = [REPO_ROOT, 'C:\\Users\\Dell\\dev']) {
-  if (typeof worktree !== 'string' || worktree.length === 0 || worktree.includes('..')) return REPO_ROOT;
-  const normalized = worktree.replace(/\//g, '\\');
-  const ok = allowedRoots.some((root) => normalized.toLowerCase().startsWith(root.replace(/\//g, '\\').toLowerCase()));
-  return ok ? worktree : REPO_ROOT;
+  if (typeof worktree !== 'string' || worktree.length === 0) return REPO_ROOT;
+  const normalized = worktree.replace(/\//g, '\\').replace(/\\+$/, '');
+  // Drive letter, then backslash-separated segments of safe characters only. Anything
+  // with a quote, space, newline, control character or shell metacharacter is rejected
+  // outright rather than sanitized.
+  if (!/^[A-Za-z]:(\\[A-Za-z0-9._-]+)+$/.test(normalized)) return REPO_ROOT;
+  if (normalized.includes('..')) return REPO_ROOT;
+  const candidate = normalized.toLowerCase();
+  const ok = allowedRoots.some((root) => {
+    const r = root.replace(/\//g, '\\').replace(/\\+$/, '').toLowerCase();
+    // Boundary-anchored: the root itself, or a genuine child of it. Never a mere prefix.
+    return candidate === r || candidate.startsWith(r + '\\');
+  });
+  return ok ? normalized : REPO_ROOT;
 }
 
 /**
