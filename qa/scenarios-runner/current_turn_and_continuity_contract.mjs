@@ -42,8 +42,16 @@ function check(name, cond, detail) {
     'currentTurn must be the latest thing the model reads — recency-weighted attention answers it.');
   check('history entries carry ABSOLUTE turn numbers',
     liveSrc.includes('turn: historyWindowStart + idx'));
-  check('the current turn cannot self-include: pending row is inserted AFTER buildContext',
-    liveSrc.indexOf('const ctx = await buildContext(') < liveSrc.indexOf("supabase.rpc('create_pending_work_order'"));
+  // run11/D85: this was FAIL-OPEN — indexOf returns -1 for a missing anchor, and -1 is
+  // less than any real index, so deleting either call left the check passing. Both
+  // anchors must EXIST before their order means anything.
+  {
+    const iCtx = liveSrc.indexOf('const ctx = await buildContext(');
+    const iPending = liveSrc.indexOf("supabase.rpc('create_pending_work_order'");
+    check('the current turn cannot self-include: pending row is inserted AFTER buildContext',
+      iCtx >= 0 && iPending >= 0 && iCtx < iPending,
+      'Both anchors must be present — a missing one is a broken guard, not a passing order check.');
+  }
   check('continuity carries the honesty fields',
     ['totalPriorTurns', 'historyWindowStart', 'historyWindowEnd', 'historyIsComplete', 'compactionCheckpoint', 'channelStateVersion']
       .every((f) => packText.includes('continuity') && liveSrc.includes(f)));

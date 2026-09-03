@@ -37,7 +37,7 @@ export async function generateOnboardingPlan(personId: string): Promise<string |
   const supabase = await createClient();
   const { data: person, error: personError } = await supabase
     .from("people")
-    .select("id, full_name, role_title, company_id, companies(name)")
+    .select("id, full_name, role_title, company_id, companies(name, status)")
     .eq("id", personId)
     .single();
   if (personError || !person) return "Person not found.";

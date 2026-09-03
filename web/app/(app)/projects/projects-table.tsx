@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
+import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
 import { updateProject, deleteProject, type ProjectInput } from "@/lib/data/projects";
+import type { CompanyRef } from "@/lib/data/company-ref";
 
 type ProjectRow = {
   id: string;
@@ -19,7 +21,7 @@ type ProjectRow = {
   deadline: string | null;
   risk_score: number | null;
   company_id: string | null;
-  companies: { name: string } | null;
+  companies: CompanyRef;
 };
 
 export function ProjectsTable({
@@ -62,7 +64,12 @@ export function ProjectsTable({
             {projects.map((p) => (
               <TableRow key={p.id} className="group/row">
                 <TableCell className="font-medium">{p.title}</TableCell>
-                <TableCell>{p.companies?.name ?? "—"}</TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-2">
+                    {p.companies?.name ?? "—"}
+                    <ArchivedCompanyBadge status={p.companies?.status} />
+                  </span>
+                </TableCell>
                 <TableCell>
                   <Badge variant="secondary">{p.status}</Badge>
                 </TableCell>

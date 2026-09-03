@@ -1,6 +1,8 @@
 import { Wallet } from "lucide-react";
 import { getFinancialReports } from "@/lib/data/finance";
 import { getCompaniesForSelection } from "@/lib/data/companies";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { PageHeader } from "@/components/page-header";
 import { FinanceUploadForm } from "./finance-upload-form";
 import { FinanceDashboard } from "./finance-dashboard";
@@ -13,7 +15,12 @@ import { FinanceDashboard } from "./finance-dashboard";
 export const maxDuration = 120;
 
 export default async function FinancePage() {
-  const [reports, companies] = await Promise.all([getFinancialReports(), getCompaniesForSelection()]);
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
+  const [reports, companies] = await Promise.all([getFinancialReports(scopeToActiveOrg), getCompaniesForSelection()]);
 
   return (
     <div className="flex flex-col gap-6">

@@ -300,7 +300,7 @@ export async function getRecentWorkOrders(limit = 20): Promise<FactoryWorkOrderR
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("canonical_work_orders")
-    .select("id, title, objective, work_type, status, priority, company_id, goal_id, created_at, companies(name), goals(title), tasks(id)")
+    .select("id, title, objective, work_type, status, priority, company_id, goal_id, created_at, companies(name, status), goals(title), tasks(id)")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -353,7 +353,7 @@ export async function getWorkOrderDetail(id: string): Promise<FactoryWorkOrderDe
   const { data: wo, error: woError } = await supabase
     .from("canonical_work_orders")
     .select(
-      "id, title, objective, work_type, status, priority, company_id, goal_id, owner_agent_id, acceptance_criteria, created_at, companies(name), goals(title)"
+      "id, title, objective, work_type, status, priority, company_id, goal_id, owner_agent_id, acceptance_criteria, created_at, companies(name, status), goals(title)"
     )
     .eq("id", id)
     .maybeSingle();

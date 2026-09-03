@@ -127,6 +127,17 @@ export function stripTS(source) {
     '= (' + params.replace(/:\s*[^,)]+/g, '') + ') =>');
   s = s.replace(/=\s*\(([^)]*)\)\s*=>/g, (_m, params) =>
     '= (' + params.replace(/:\s*[^,)]+/g, '') + ') =>');
+  // CALLBACK arrows — `.map((r: any, idx: number) => …)` (run11/D85, found by verifier
+  // #11). The two rules above only handle arrows in an ASSIGNMENT position (`= (a: T) =>`);
+  // an arrow passed straight as an argument was left with its annotations, so any window
+  // containing one could not be executed at all. That is precisely why the committed
+  // continuity suite REIMPLEMENTED the turn math instead of running it — and a
+  // reimplementation cannot catch a product defect, the vacuous-test class this project
+  // has now logged eight times. Anchored on `(` preceded by a non-`=` character so the
+  // assignment forms above keep their own handling.
+  s = s.replace(
+    /\(([A-Za-z_$][\w$]*\s*:\s*[^),]+(?:,\s*[A-Za-z_$][\w$]*\s*:\s*[^),]+)*)\)\s*=>/g,
+    (_m, params) => '(' + params.split(',').map((p) => p.split(':')[0].trim()).join(', ') + ') =>');
   // Non-null assertions (`pa!.options`).
   s = s.replace(/(\w)!\./g, '$1.');
   s = stripTypeAssertions(s);

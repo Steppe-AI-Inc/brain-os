@@ -89,3 +89,39 @@ export async function getRecentUsage(limit = 20) {
   if (error) throw error;
   return data;
 }
+
+export type ModelActivity = {
+  modelName: string;
+  calls: number;
+  totalTokens: number;
+  costUsd: number;
+  lastUsedAt: string | null;
+};
+
+// P3 model reliability, the observable half: which models ACTUALLY served requests,
+// straight from model_usage rows the Edge Function writes per call — never a
+// configured-state badge. Rendered next to the configured active provider on /models,
+// so "requested provider/model vs actual provider/model" is visible: if the configured
+// model isn't the one appearing here (or others appear beside it), that is real,
+// row-derived drift evidence — exactly what a fake ONLINE badge would have hidden.
+export async function getModelActivity(days = 7): Promise<ModelActivity[]> {
+  const supabase = await createClient();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from("model_usage")
+    .select("model_name, input_tokens, output_tokens, estimated_cost_usd, created_at")
+    .gte("created_at", since);
+  if (error) throw error;
+
+  const byModel = new Map<string, ModelActivity>();
+  for (const row of data ?? []) {
+    const name = row.model_name || "(unrecorded)";
+    const bucket = byModel.get(name) ?? { modelName: name, calls: 0, totalTokens: 0, costUsd: 0, lastUsedAt: null };
+    bucket.calls += 1;
+    bucket.totalTokens += (row.input_tokens ?? 0) + (row.output_tokens ?? 0);
+    bucket.costUsd += Number(row.estimated_cost_usd ?? 0);
+    if (row.created_at && (!bucket.lastUsedAt || row.created_at > bucket.lastUsedAt)) bucket.lastUsedAt = row.created_at;
+    byModel.set(name, bucket);
+  }
+  return [...byModel.values()].sort((a, b) => b.calls - a.calls);
+}

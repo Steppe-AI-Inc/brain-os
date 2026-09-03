@@ -1,0 +1,15 @@
+OK   index.ts defines resolveClarificationField()
+OK   resolveClarificationField() fails closed on absent entityType OR actionType
+OK   no live code resolves a mutation field via an `actionType || archive` default
+OK   the only permitted actionType-default occurrence is the non-mutating guard in commandContradictsActionType()
+OK   both deterministic call sites (single_entity_clarification + disambiguation) use resolveClarificationField()
+OK   no call site indexes CLARIFICATION_ENTITY_ACTION_FIELD directly anymore
+OK   PAST_COMPLETION_CLAIM_PATTERN present in index.ts
+OK   PAST_COMPLETION_CLAIM_PATTERN present in its regression test
+OK   PAST_COMPLETION_CLAIM_PATTERN is byte-identical between index.ts and its regression test
+OK   CLARIFICATION_ENTITY_ACTION_FIELD present in index.ts
+OK   CLARIFICATION_ENTITY_ACTION_FIELD present in the binding regression test
+OK   CLARIFICATION_ENTITY_ACTION_FIELD has not drifted between index.ts and its regression test
+OK   company.archive still maps to archiveCompanyIds (the field the issue #5 repro wrongly reached)
+
+13 passed, 0 failed

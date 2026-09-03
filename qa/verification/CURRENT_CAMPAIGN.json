@@ -1,208 +1,160 @@
 {
- "campaign_id": "verify-65ade7c-run9-defect-closure",
- "campaign_number": 70,
- "verifier": "independent verifier #10 (fresh context)",
- "base_commit": "65ade7c9ac506616973cda3370462fc5316d186f",
- "head_at_attempt2": "e8a013979311c7cfc54ebf5cf047583b51313ccb (one commit past base: qa/verification/DISPATCH_RUNBOOK.md only; supabase/functions + qa/scenarios-runner byte-identical to 65ade7c — `git diff --quiet 65ade7c -- supabase/functions/sem-ai-command/index.ts` clean)",
+ "campaign_id": "verify-fdb4564-final-sha",
+ "campaign_number": 71,
+ "verifier": "independent verifier #11 (fresh context)",
+ "base_commit": "fdb456406d70ffadcb6663ef4621600d4fd392ac",
  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
- "started_at": "2026-09-02T(verifier10-start)+08:00",
- "last_checkpoint_at": "2026-09-02T-run10-defects-fixed",
- "project_ref": "pvphxgrtdfrudejjhzjk",
+ "started_at": "2026-09-02T(verifier11-start)",
+ "last_checkpoint_at": "2026-09-02T(verifier11-baseline)",
+ "project_ref": "pvphxgrtdfrudejjhzjk (from MASTER_CONTEXT.md; matches #70 record)",
+ "index_ts_sha256_required": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "index_ts_sha256_observed_at_start": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded — MATCH (sha256sum, working tree, before any execution)",
  "prior_campaign_archived": {
-  "path": "qa/verification/archive/campaign-6ed3834-run8-run9-closure.json",
-  "sha256": "069041aa8e376a23f102a0b996da5508c005fa0ab7c1b52f9dba919c0b55b024",
-  "equals_git_show_HEAD_blob": true,
-  "note": "byte-identical copy of the #68/#69 combined record as committed at 65ade7c"
+  "path": "qa/verification/archive/campaign-65ade7c-run9-closure-and-run10.json",
+  "sha256": "a84c4165f4293e590af089addb73d63087175d6184fdbd90a2fd17dedc043bb5",
+  "equals_git_show_HEAD_blob": true
  },
- "index_ts_sha256_at_65ade7c_working_tree": "0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006",
- "index_ts_sha256_reverified_attempt2": "0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006 — sha256sum at attempt-2 start AND after the mutation run AND after every probe execution; never changed. `git diff --quiet HEAD -- supabase qa/scenarios-runner qa/KNOWN_FAILURE_MODES.md scripts/verification` clean at the end.",
- "index_ts_6ed3834_comparison_copy": "qa/verification/scratch/mut/index_6ed3834.ts sha256 a138544f80c49c373036e5531b19b46080843c1c1ac95de6a045c8c6952f006c (git show, read-only baseline for regression classification)",
- "working_tree_state": "supabase/, qa/ (tracked), scripts/verification clean vs HEAD. web/ has 45 unrelated uncommitted modifications + 4 untracked web files + scripts/factory-runner 3 modified files (not mine, not under test, untouched).",
+ "working_tree_state": "supabase/ and qa/ tracked files clean vs HEAD at start. web/ has 45 unrelated uncommitted modifications + 4 untracked web files + scripts/factory-runner 3 modified files (not mine, not under test, untouched). Untracked qa/verification/scratch/verifier11_prompt.txt = this campaign's launch prompt.",
  "execution_rights_this_session": "node, sha256sum, read-only git, npx supabase functions list. NO db query. NO deploy. Working-tree writes only under qa/verification/**.",
+ "commits_under_test": {
+  "4de63e4": "Close run10 D77-D84 + E-multi progressive fabrication; fix two QA-tooling defects — index.ts: raw diff rewrites every line (-1,5079 +1,5179); with --ignore-space-at-eol it is +110/-10. Trailing-EOL byte change across the whole file is UNDER INVESTIGATION (CR count via grep -P reported 0 at both commits; git ls-files --eol reports i/-text w/-text).",
+  "fdb4564": "Off-by-one turn fix + continuity honesty + feature-gated durable channel-state runtime — index.ts +131 lines, current_turn_and_continuity_contract.mjs added, SESSION_CHECKPOINT.md rewritten."
+ },
  "scenarios": {
+  "0_sha_baseline": {
+   "status": "PASS — sha256 match, HEAD = fdb4564, branch correct"
+  },
   "1_execute_full_battery": {
-   "status": "PASS — UNIT VERIFIED (executed by verifier #10 attempt 1, node v24.19.0; attempt 2 re-verified index.ts sha256 unchanged before trusting)",
-   "runner": "qa/verification/scratch/v10_run_battery.mjs (DEPLOY_GATE=1); per-suite logs qa/verification/scratch/v10_battery_*.log; summary v10_battery_summary.json",
-   "index_ts_sha256_at_run": "0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006",
-   "results": {
-    "structured_claim_verification": "exit 0, 42/42",
-    "structured_claim_laundering_contract": "exit 0, 29/29 baseline, DEPLOY GATE 0 laundering + 0 truthful-reply corruptions",
-    "lifecycle_evidence_and_output_persistence_contract": "exit 0, 92/92 contract + 11/11 section-X, DEPLOY GATE 0 open #67",
-    "run8_defect_closure_contract": "exit 0, 40/40 (incl. run9 section D68-D74)",
-    "issue5_confirmation_action_type_binding": "exit 0, 10/10",
-    "sem_ai_command_factory_verification_selection": "exit 0",
-    "sem_ai_command_company_restore_truth": "exit 0",
-    "sem_ai_command_named_person_lookup_truth": "exit 0",
-    "sem_ai_command_execution_plan_truth": "exit 0",
-    "sem_ai_command_confirmation_truth": "exit 0",
-    "sem_ai_command_past_completion_claim_regex": "exit 0, 13/13",
-    "sem_ai_command_source_invariants_drift_guard": "exit 0, 13/13"
-   },
-   "note": "The implementing session's counts reproduce exactly. A green battery is not evidence the guards are load-bearing — see scenario 2; and the laundering suite's '0 truthful-reply corruptions' is corpus-bound: D81/D84 are truthful-reply corruptions its corpus does not contain."
+   "status": "PASS — EXECUTED by verifier11/attempt2 (own runner, filesystem-enumerated so no suite can be silently omitted)",
+   "runner": "qa/verification/scratch/v11a_run_battery.mjs",
+   "logs": "qa/verification/scratch/v11a_battery_*.log + v11a_battery_summary.json",
+   "result": "21 suites discovered, 21 exit 0, TOTAL OK=445 FAIL=0; index.ts sha256 identical before and after the run",
+   "named_targets": "run10_defect_closure_contract 43/43; current_turn_and_continuity_contract 17/17 — both counts match the campaign brief",
+   "zero_check_suites_investigated": "5 suites print SUPERSEDED and exit 0 with no checks (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract). Verified NOT neutered by the commits under test: all five were superseded at c0b6fc0 (2026-09-01, prose-era -> structured-claim architecture), which predates 4de63e4/fdb4564. Coverage carried into structured_claim_verification.mjs (42/42) + structured_claim_laundering_contract.mjs (29/29).",
+   "exit_guard_audit": "every non-superseded suite verified to carry a real nonzero-exit-on-failure path (process.exit(failed?1:0) or exit(1) under failures.length) — a suite cannot pass the gate by printing FAIL and exiting 0"
   },
-  "2_mutation_test_run8_run9_guards": {
-   "status": "COMPLETED — UNIT VERIFIED, EXECUTED TWICE (attempt 1 and attempt 2, identical results mutant-for-mutant: 46 mutants, 24 KILLED, 22 SURVIVED, 0 invalid, 0 result diffs)",
-   "method": "qa/verification/scratch/v10_mutate.mjs: each mutant written to scratch/mut/index.mutant.ts (index.ts NEVER written — sha256 0272f245… asserted identical before/after by the runner AND by sha256sum in the shell after the run); the four window suites executed as byte-derived copies (only the SRC line + _gate_extract import path changed, derivation count-checked) via SEM_INDEX_SRC; baseline through the copies = 4×exit 0. Every mutant find-string matched exactly once.",
-   "reports": "attempt 1: qa/verification/scratch/v10_mutation_report.attempt1.json; attempt 2: v10_mutation_report.json + v10_mutation_output.attempt2.txt",
-   "killed": "M01 M03.2 M03.9 M04 M05 M09 M11 M17 M19 M20 M23 M24 M25 M26 M29 M30 M31 M32 M33 M34 M35 M36 M37 M38",
-   "survived": "M02 M03.1 M03.3 M03.4 M03.5 M03.6 M03.7 M03.8 M06 M07 M08 M10 M12 M13 M14 M15 M16 M18 M21 M22 M27 M28",
-   "survived_that_the_runner_expected_to_die": [
-    "M06 — D69c 'belt' is dead code (safeProseFragment refuses the whole text first; the belt can be deleted)",
-    "M08 — FUTURE_PROMISE_IN_QUESTION untested: the run8 D61 promise case is now cut at the em-dash before the check runs",
-    "M27 — in-place pendingAction.question gating unpinned",
-    "M28 — the ENTIRE COMPLETION_WORD check in safePendingSummary can be deleted and the battery stays green: D71's word-list extension is not mutation-covered at all"
+  "2_mutation_test": {
+   "status": "EXECUTED — 33 mutants applied to the REAL index.ts, 26 KILLED, 7 SURVIVED",
+   "harnesses": ["qa/verification/scratch/v11a_mutate.mjs", "qa/verification/scratch/v11a_mutate2.mjs"],
+   "reports": ["qa/verification/scratch/v11a_mutation_report.json", "qa/verification/scratch/v11a_mutation_report2.json"],
+   "restore_integrity": "every mutant restored from the original Buffer and sha256-asserted; FINAL RESTORE MATCH=true on both runs; working-tree index.ts is byte-identical to fdb4564",
+   "killed_26": "M01 abbreviation-direction, M02 abbreviation-list-widened, M03 ASCII-? terminator, M05 label-completion-refusal, M06 Title-Case discriminator, M07 Title-Case inverted-to-blanket, M08 quoted-name-removed, M08b quoted-name-unquoted, M09 compound-collapse-removed, M10 D81-structural-arm-removed, M12 imperative-allowance-removed, M13 imperative-allowance-widened, M14 head-clause-removed, M15 EXECUTION_IN_PROGRESS(legacy arm), M16 command-first, M16b continuity-not-first, M17 currentTurn-not-last, M18 relative-turn-numbers, M20 currentTurn off-by-one, M22 prompt-prohibition, M23 prompt-currentTurn-naming, M24 untyped-bindable-reader, M25 reader-expiry, M27 untyped-storing-writer, M28 CAS-overwrite, M29 last_successful_mutation-from-prose",
+   "survivors_7": [
+    "M04 '…' dropped from the terminator set — R10.term.… passes via the PAST_COMPLETION belt, not the cut (vacuous-for-its-stated-reason)",
+    "M19 historyWindowStart +1 removed — THE off-by-one class the suite was written for; suite reimplements the math instead of executing the source",
+    "M21 historyIsComplete inverted — honesty field correctness unpinned",
+    "M26 pending_action_source_work_order_id binding requirement removed — foreign-source bind unpinned",
+    "M30 buildContext call-site renamed — ordering check is FAIL-OPEN (indexOf -1 < n is true)",
+    "M11 structuredProseDrift forced false — the D68/D81 arm has no covering case",
+    "M15b EXECUTION_IN_PROGRESS removed from the STRUCTURED arm — progressive vocabulary only pinned on the legacy arm"
    ],
-   "verdict": "run8 guards (D58-D65, D67, Section S incl. D75) are load-bearing — every run8 mutant died. run9 guards are PARTIALLY pinned: D68 arm ✓, D70 ✓ both directions, D72 blank/repair ✓, D73 persist-condition ✓, D74 uuid+assertion ✓; NOT pinned: D69 (6 of 9 terminators), D69c belt, D71 (M28), D72 derived-fallback, D73 flag computation (3 of 3 sites), D74 length/canonical arm, D68 floor. The postscript's 'all six new guards mutation-proven' is overstated (see scenario 5)."
+   "classification": "product code is CORRECT for all 7; these are GUARD-COVERAGE defects (vacuous/fail-open regression tests) — the repo's own recurring class (#61/D2, #63/D10, #63/D12, #64/D19). Tracked as D85."
   },
-  "3_attack_run9_seams": {
-   "status": "COMPLETED — UNIT VERIFIED on 65ade7c AND regression-classified against a 6ed3834 copy",
-   "probes": "qa/verification/scratch/v10_attacks.mjs (44 probes; attempt-1 script, re-executed attempt 2), v10_probe3.mjs (26 probes, both versions), v10_probe4_compat.mjs (12 probes, both versions), proposed/v10_regression_additions.mjs (40 cases)",
-   "regression_additions_results": {
-    "on_65ade7c": "20 pass / 20 fail — 17 DEFECT reproductions (D77×6, D78×4, D79×2, D81, D83×2, D84×2) + 3 CONTRACT misses (R10.term.: — ASCII '?' shielding, same root as D83; R10.flag.quiet — D80; R10.paQuestion — M27 shape)",
-    "on_6ed3834_copy": "23 pass / 17 fail — D77×6, D78×4, D79.taskTitle, D81, D84×2 PASS on the pre-run9 source (=> regressions introduced by 65ade7c); D79.twinOptions and D83×2 FAIL on both (pre-existing); the 14 CONTRACT failures there are the run9 features themselves being absent (expected)",
-    "logs": "qa/verification/scratch/v10_regression_additions_output.attempt2.txt, v10_regression_additions_on_6ed3834.txt"
-   },
-   "seam_by_seam": {
-    "lowercase_after_period": "D77 — LEAKS (regression)",
-    "assertion_ending_in_ellipsis_vs_cut_order": "OK — '…' is a terminator; 'I archived ACME… anything else?' -> 'anything else?'",
-    "labels_80_81_chars": "OK — 80 kept, 81 -> 77+'…' (runtime labels and option labels); an assertion positioned past char 77 is truncated before the assertion test, which is harmless (the truncated text no longer asserts)",
-    "past_completion_shaped_canonical_names": "D79 — collapses to the typed reference everywhere; acceptable degradation on evidence lines, NOT acceptable on disambiguation options (identical labels, unselectable)",
-    "pendingActionGatingChanged_false_negatives": "none found — map/filter preserve order so 'reordered arrays' cannot occur; only a whitespace-trim-only change to a proposedAction goes unflagged (harmless). FALSE POSITIVES found instead: D80",
-    "d68_floor_vs_LEGACY_loop": "OK — LEGACY.test(floor) === false and PAST_COMPLETION.test(floor) === false; feeding the floor back as a grounded claims:null summary leaves it unchanged (no loop)",
-    "structuredProseDrift_on_deterministic_models": "no truthful clarification turn corrupted (D82 observation): deterministic-clarification/disambiguation summaries are 'Confirmed — <question|label>.' whose text has already passed the question/label gates, and those tags always execute a field (index.ts:2443-2473) so the turn is grounded and the lifecycle report leads"
-   }
+  "3_attack_new_seams": {
+   "status": "EXECUTED — 3 attack harnesses against the REAL source slices",
+   "harnesses": ["qa/verification/scratch/v11a_attacks.mjs", "qa/verification/scratch/v11a_attacks2.mjs", "qa/verification/scratch/v11a_continuity_exec.mjs"],
+   "a_question_channel": "ESCAPE CONFIRMED (D88). The KNOWN_ABBREVIATION list is NOT the cause — the control shapes with no period at all escape identically. An assertion with NO sentence terminator before a trailing short question survives whole: 'I archived ACME, ok?' / 'ACME deleted everything, ok?' / 'Deleted ACME and its tasks, ok?' / 'ACME Inc. deleted everything, ok?' / 'The dept. removed 3 people, ok?'. The cut only fires on terminators; the PAST_COMPLETION belt only catches aux-verb shapes. Aux shapes ('ACME has been archived, ok?') and the D70 controls all behave correctly. 9 escapes / 20 probes.",
+   "a_ellipsis": "M04 CLEARED as a product concern and RECLASSIFIED as a vacuous committed case: '…' IS load-bearing ('ACME deleted everything… ok?' cuts to 'ok?'), but the committed R10.term.… case uses an aux-shaped assertion that the belt catches anyway, so the mutant survived.",
+   "b_title_case": "ESCAPE CONFIRMED (D86). 'ACME Deleted', 'ACME Archived', 'Project Completed', 'ACME Deleted Everything' and participle-LED 'Deleted ACME' are all accepted and persisted verbatim as option labels. Every committed D78 case is defeated by capitalising one letter. 'ACME Was Archived' correctly falls back to the derived canonical ('ACME Holdings') because the aux pattern still fires.",
+   "c_quoted_render": "HELD. Canonical-name-is-assertion renders as a quoted title; the evidence line renders '“ACME has been archived”: created.'; a quoted assertion inside an imperative pending summary is REFUSED (summary=null), as is an aux assertion in a trailing parenthetical. Replay path checked: option labels are not echoed into prose by the gate, and deterministic-confirmation replay produces the safe canned message. DECISION RECORDED: quoting is acceptable framing for a NAME; the residual risk is entirely in (b).",
+   "d_execution_in_progress": "ESCAPE CONFIRMED (D87 + D88b). Arm-3 verb list is a strict subset of arm-2's: 'Now removing/ending/renaming/closing/clearing/granting/declining X' all escape while \"I’m now X\" is caught for the same verb — an unambiguous omission. Broader vocabulary gaps also escape: 'Processing the request', 'Working on archiving', 'I am archiving' (no 'now'), 'Currently archiving', 'Starting the archive', 'Proceeding with', 'Applying the changes now', and the Mongolian progressive 'архивлаж байна'. 10 of 12 probes escaped. NOT a regression (v92 has no EXECUTION_IN_PROGRESS at all) but the E-multi closure is PARTIAL.",
+   "e_structured_drift_arm": "HELD on the real source — E1 (deterministic-prefix-grounded fabrication) and E3 (progressive on the structured arm) are both corrected. This proves M11/M15b are TEST-COVERAGE gaps only, and supplies the exact cases that kill them.",
+   "f_head_scans_quoted": "HELD — quoted text inside a question head does not break the scan.",
+   "continuity_turn_math": "25/25 PASS executing the REAL extracted expressions: 0 prior turns -> no window, current 1; 8 prior -> window 1..8 complete, current 9; 9 prior with an 8-row window -> window 2..9 INCOMPLETE, current 10, newest entry exactly current-1; 50 -> 43..50, current 51; count-query-null falls back consistently. No currentTurn duplication; no bare command key (independently grep-verified: NO consumer of pack.command anywhere in functions/web — the commit message's claim holds).",
+   "durable_runtime": "11/11 adversarial stubbed chat_channel_state shapes fail-closed through the REAL extracted reader: expired, no-expiry, non-string expiry, untyped, non-string action type, foreign-source (missing/empty source_work_order_id), null payload, garbage date, null row — none bind. A live last-turn pendingAction always takes precedence over durable state. Writer: paDurable requires a string actionType, so an untyped pending action stores NULL pending state. CAS: update is predicated on .eq('version', priorVersion); a lost race no-ops silently (intended). Insert branch on priorVersion===null would collide on a concurrent first write and is swallowed by the outer try/catch — fail-closed, byte-identical-to-today behaviour.",
+   "stale_command_source": "NONE. `command` has exactly one source (body.command at index.ts:2381); the deterministic short-circuit reads command.trim() and contextPack.pendingAction, never a history row."
   },
   "4_production_v92_readonly": {
-   "status": "LIVE VERIFIED (read-only), RE-CONFIRMED attempt 2 — sem-ai-command version 92, status ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 — identical to attempt 1's observation; untouched",
-   "command": "npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk --output json",
-   "other_functions": "embed-text v2, analyze-financial-document v2, sem-artifact-analyze v2, generate-technical-drawing v3, generate-onboarding-plan v2 — all ACTIVE, unchanged",
-   "writes_from_this_session": "ZERO — only `functions list` executed; no deploy, no db query, no db push"
+   "status": "LIVE VERIFIED (read-only) — UNCHANGED",
+   "evidence": "npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk => sem-ai-command version 92, status ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 (2026-09-01T05:15:25Z), verify_jwt true. Byte-for-byte identical to the fingerprint campaign #70 recorded.",
+   "writes_performed": "ZERO. No deploy, no db query, no migration. The only production call this campaign was `functions list`.",
+   "deployed_copy_byte_diff": "BLOCKED — scripts/safe-function-download.sh was not permitted to execute in this session. Not needed for the verdict: v92's updated_at (2026-09-01) predates both commits under test (2026-09-02 23:10 / 23:17), and the version number + ezbr hash are unchanged, so none of the code under test is live."
   },
   "5_bookkeeping_honesty": {
-   "status": "COMPLETED",
-   "42_42_unchanged_proves_duplicate_never_counted": "ACCURATE (verified by execution): qa/verification/scv_6ed3834_runnable.mjs = the 6ed3834 suite with only the _gate_extract import path changed, run against 65ade7c index.ts (log: scratch/v10_scv_6ed3834_on_65ade7c.log) — the tally 'structured_claim_verification: 42/42 passed' prints at line 44, the duplicate Section G's 6 checks print OK at lines 45-50 AFTER it, uncounted and unable to affect the exit code. 'Dead' is slightly loose (it executed) but 'never counted' is exactly right; the counted Section G (line 231 in the 6ed3834 file) is retained.",
-   "all_six_new_guards_mutation_proven": "OVERSTATED: D71 has no killing mutant (M28); D69 6/9 terminators unpinned; D69c belt dead; D73 flag computation 0/3 sites pinned; D74 length/canonical arm unpinned; D68 floor unpinned. Each of the six has at least one killing mutant EXCEPT D71.",
-   "COMPLETION_WORD_extended_for_labels_and_summaries": "INACCURATE: labels no longer use COMPLETION_WORD at all (removed from safeOptionLabel in 65ade7c; 6ed3834 applied it). The code comment at index.ts:4635-4636 still claims labels carry 'no completion vocabulary in any form'. This is the mechanism behind D78.",
-   "run9_section_expectations": "All 15 checks are genuine post-fix expectations and pass. D69c's check is misattributed (passes via safeProseFragment's whole-text refusal, not the belt it is named for). D73's check is envelope-only by disclosed design (the flag is outside the window; P8 in the lifecycle suite pins the persist condition — M17 killed). D68/D70/D72/D74 checks are load-bearing (M01/M04/M05/M19/M20/M09/M11 killed).",
-   "postscript_omissions": "The postscript does not disclose that the D70 abbreviation guard reopens D61 for lowercase/digit continuations (D77), that the D71 extension refuses legitimate imperative bulk summaries (D84), or that the D68 widening floors truthful historical statements on grounded turns (D81) — all three are behaviours 6ed3834 got right."
+   "status": "EXECUTED — one bookkeeping defect (D89), one open observation CLEARED, everything else accurate",
+   "kfm_70_postscript": "ACCURATE on every claim I mutation-checked (guard direction, ASCII ?, label refusal + discriminator, quoted names, compound collapse, D81 structural arm, imperative summaries, flag). One phrase to tighten: '(refuse->derived, never blank, never accept)' reads absolute, but the Title-Case allowance does accept — see D86.",
+   "d79_adaptation_disclosure": "HONEST AND COMPLETE. Line-level multiset diff of qa/verification/proposed/v10_regression_additions.mjs vs the promoted qa/scenarios-runner/run10_defect_closure_contract.mjs shows exactly ONE changed expectation (D79.taskTitle bare -> quoted), disclosed in the promoted file's header; plus path/import fixes, 3 new EMULTI cases, and the restored exit guard. NO other expectation was weakened — this was the specific thing an implementer could have quietly relaxed, and they did not.",
+   "qa_tooling_fix_1_regex_skip": "REAL — `git log -S \"Skip REGEX literals verbatim\"` shows first appearance in 4de63e4; the block is present at _gate_extract.mjs:42-71.",
+   "qa_tooling_fix_2_exit_guard": "REAL — run10_defect_closure_contract.mjs:122-124. Audited ALL 21 suites: every non-superseded suite has a genuine nonzero-exit-on-failure path.",
+   "session_checkpoint_accuracy": "D89 — SESSION_CHECKPOINT.md:22 claims migrations 202609020001/2/3 are 'PREPARED NOT PUSHED'. NO such file exists in supabase/migrations/ (newest is 202609010002); a repo-wide search finds chat_channel_state ONLY inside index.ts. Nothing exists for a founder or DB verifier to review, yet the checkpoint's step 1 dispatches a DB/security verifier at those three migrations. Runtime impact NONE (feature-gated, fail-closed).",
+   "eol_observation_from_attempt_1": "CLEARED, with two recorded costs. 65ade7c was pure LF (0 CRLF/5079 LF); 4de63e4 and fdb4564 are pure CRLF plus ONE lone CR at line 5032 (a comment-join artifact of a node-based edit, between two // comments). Cause: node-based edits on Windows; there is no .gitattributes. NOTHING IS HIDDEN: LF-normalized multiset diffs give 65ade7c->4de63e4 = 10 removed/111 added and 4de63e4->fdb4564 = 4 removed/127 added, matching the disclosed --ignore-space-at-eol figures, and ALL 14 removed lines across both commits were individually reviewed and are each accounted for by a disclosed change (no undisclosed removal — the exact check that would have caught run9's silent D78 removal). Behaviourally irrelevant for Deno (CRLF and lone CR are both ECMAScript line terminators; both sides of the lone CR are comments; ECMAScript normalizes CRLF/CR to LF inside template literals so the system prompt text is unchanged). COSTS: (1) the post-deploy `functions download` + diff byte-check will report every line differing if the platform returns LF — use --strip-trailing-cr or normalize both sides, or a real difference could be dismissed as 'just line endings'; (2) git diff/blame on the most security-sensitive file in the repo was destroyed for one commit. Recommend .gitattributes `supabase/functions/** text eol=lf`.",
+   "other": "run10_defect_closure_contract.mjs:7 still says 'NOT yet in qa/scenarios-runner/' although that is now its own path (stale comment). The 5 SUPERSEDED suites were superseded at c0b6fc0 (2026-09-01), predating the commits under test."
   }
  },
+ "regression_vs_prior_sha": {
+  "harness": "qa/verification/scratch/v11a_ab_prior_sha.mjs (A/B of the extracted gate slice, 65ade7c vs fdb4564)",
+  "result": "ZERO REGRESSIONS. D77 'I archived ACME. ok?' escapes on 65ade7c / cut to 'ok?' on fdb4564. D83 'ACME deleted, ok? Next?' escapes / cut to 'Next?'. D78 label 'ACME deleted' accepted / refused to derived canonical. E-multi 'Executing the plan…' ships / corrected. Every measured shape is strictly better; none regressed.",
+  "new_defects_classified": "D86, D87 and D88 all reproduce IDENTICALLY on 65ade7c — PRE-EXISTING gaps newly demonstrated, not introduced by these commits, and all three are also open on deployed v92 (which has no EXECUTION_IN_PROGRESS at all and no structural cut work)."
+ },
  "defects_found": [
-  {
-   "id": "D77",
-   "severity": "P1",
-   "class": "REGRESSION introduced by the D70 fix (reopens run8 D61/P1 for a sub-shape)",
-   "evidence": "UNIT VERIFIED — v10_attacks T02-T06c, v10_probe3 Q05/Q07, v10_probe4 T02/T05/T07 on 65ade7c leak; same inputs on the 6ed3834 copy are cut correctly ('I archived ACME. ok?' -> ['ok?'] on 6ed3834, -> ['I archived ACME. ok?'] on 65ade7c)",
-   "expected": "'I archived ACME. ok?' / 'ACME deleted. 3 tasks remain?' / 'ACME deleted (3 tasks). anything else?' reduce to the trailing question",
-   "actual": "the abbreviation/decimal guard treats ANY '.' followed by a lowercase letter or digit as a non-boundary, so the whole assertion survives into the corrected summary ('I can’t confirm … was archived. I archived ACME. ok?') AND into envelope.questions AND (T07) into the persisted pendingAction.question replayed as 'Confirmed — …'",
-   "user_impact": "self-contradicting founder reply carrying a fabricated completion; persisted for reload/replay",
-   "root_cause": "index.ts:4622-4623 guard direction — it should require the token AFTER the period to be abbreviation-shaped (single letter / known abbreviation / digit-after-digit), not merely lowercase/digit",
-   "same_class_elsewhere": "the identical guard is the only '.' handling in the question channel; pendingAction.question uses the same function (T07 persisted)",
-   "regression_test": "proposed/v10_regression_additions.mjs D77.* (6 cases; FAIL on 65ade7c, PASS on 6ed3834)",
-   "status": "FLAGGED, NOT FIXED (no write authority outside qa/verification)"
-  },
-  {
-   "id": "D78",
-   "severity": "P1",
-   "class": "REGRESSION introduced by the D72 fix (reopens D71/D53-class for the option-label channel), undisclosed in the #69 postscript",
-   "evidence": "UNIT VERIFIED — v10_attacks T08a-T08f, v10_probe4 T08a/b/c/e: 'ACME deleted', 'I archived ACME', 'Done: ACME deleted', 'ACME is now archived', 'ACME компанийг архивласан' all render under 'Options:' in the corrected summary and persist as labels on 65ade7c; on 6ed3834 the same labels were refused (blanked — the D72 bug — but NOT rendered); v10_probe3 L06/L07 ('ACME, deleted', 'ACME — deleted') accepted on 65ade7c, refused on 6ed3834",
-   "expected": "labels are names — a sentence-shaped completion label is refused and replaced by the derived reference (which D72 now makes possible)",
-   "actual": "safeOptionLabel on 65ade7c applies only PAST_COMPLETION_CLAIM_PATTERN (aux-verb shapes); the COMPLETION_WORD check 6ed3834 applied was deleted, so every non-aux completion shape passes; the label is then replayed next turn as 'Confirmed — ACME deleted.'",
-   "user_impact": "'I can’t confirm … was archived. Which one? Options: ACME deleted | ACME Services.' — a fabricated completion in founder prose on the correction turn itself",
-   "root_cause": "index.ts:4647-4655 dropped COMPLETION_WORD; the fix for 'blank label' (D72) over-corrected into 'accept any non-aux sentence'",
-   "same_class_elsewhere": "safePendingSummary still applies COMPLETION_WORD (summaries stricter than labels — inverted)",
-   "regression_test": "proposed/v10_regression_additions.mjs D78.* (4 cases) + D78.legit contract ('Closed Loop Systems' must still survive — the fix must be structural: fall back to the derived canonical reference when a completion word is present, rather than accepting any non-aux sentence)",
-   "status": "FLAGGED, NOT FIXED"
-  },
-  {
-   "id": "D79",
-   "severity": "P2",
-   "class": "NEW denial-of-name defect introduced by the D74 fix (safeDisplayLabel), partly pre-existing in another form",
-   "evidence": "UNIT VERIFIED — v10_attacks T09a/T09b/T09e, v10_probe4 T09a/T09e: a canonical company 'Was Archived Holdings' renders as 'the company' on its OWN supported archive line (6ed3834: 'Was Archived Holdings: archived — confirmed.'); a legitimate task title 'Verify the contract was approved by legal' renders as 'the task: created.' (6ed3834 rendered the title); TWO disambiguation options with such names collapse to IDENTICAL 'the company' labels and matchDisambiguationOption returns null for both 'the company' (2 matches) and the real name — unselectable (6ed3834: both blanked — also unselectable, so the twin case is pre-existing in a different form)",
-   "expected": "a real canonical name is a name — at minimum a disambiguation option must stay uniquely selectable",
-   "actual": "any name matching PAST_COMPLETION_CLAIM_PATTERN collapses to the typed fallback everywhere displayName is used",
-   "user_impact": "acceptable degradation on evidence lines (truthful, less specific); NOT acceptable on disambiguation options (identical labels = flow dead-ends)",
-   "root_cause": "index.ts:4539 applies the assertion regex to canonical names read from the database, not only to model-authored runtime labels",
-   "regression_test": "proposed/v10_regression_additions.mjs D79.taskTitle (regression), D79.twinOptions (pre-existing)",
-   "status": "FLAGGED, NOT FIXED"
-  },
-  {
-   "id": "D80",
-   "severity": "P3",
-   "class": "flag semantics — pendingActionGatingChanged false-positive",
-   "evidence": "UNIT VERIFIED — v10_attacks T16b, v10_probe3 F01/F03/F05: any pendingAction whose summary/question key is ABSENT flags true (undefined -> null !== undefined); F02/F04/F06 with explicit null do not",
-   "user_impact": "an extra work_orders UPDATE on most clarification/disambiguation turns; no truth impact (the gated object is the correct one to persist). Weakens the flag as a signal only",
-   "root_cause": "index.ts:4773 strict inequality on undefined vs null",
-   "regression_test": "proposed/v10_regression_additions.mjs R10.flag.quiet (FAILs on 65ade7c)",
-   "status": "FLAGGED"
-  },
-  {
-   "id": "D81",
-   "severity": "P2",
-   "class": "REGRESSION — truthful-reply corruption widened by the D68 fix",
-   "evidence": "UNIT VERIFIED — v10_attacks T13b, v10_probe4 T13b: claims:null, grounded, summary 'ACME was created on 2026-03-01 and has 12 active tasks.' -> replaced by the D68 floor on 65ade7c; on the 6ed3834 copy the same turn ships the sentence untouched. Present-tense state prose ('ACME is archived. Should I restore it?') is untouched on both (T13d)",
-   "expected": "a truthful historical read-only answer on a grounded turn ships",
-   "actual": "the lexical LEGACY regex ('was … created') now forces a re-render on every grounded turn; with nothing structural to render, the floor replaces a correct answer with 'I can’t confirm the completion my draft described … nothing verifiable was changed.'",
-   "user_impact": "'when was ACME created?' can be answered with a non-answer implying the founder asked for a mutation (CLAUDE.md §26). A truth DEGRADATION, not a false completion. Pre-existing on ungrounded turns (T13a, v92 legacy denial) — D68 extended it to grounded ones",
-   "root_cause": "index.ts:4869 structuredProseDrift arm 'groundedOutcomeThisTurn' with no distinction between completion CLAIMS and historical STATEMENTS; no claim type can truthfully carry a creation date (historical_event is always 'unknown')",
-   "regression_test": "proposed/v10_regression_additions.mjs D81.history (FAIL on 65ade7c, PASS on 6ed3834) + D81.state.hold",
-   "status": "FLAGGED"
-  },
-  {
-   "id": "D82",
-   "severity": "P3 (observation, not a confirmed defect)",
-   "class": "structuredProseDrift has no deterministic-model exclusion",
-   "evidence": "CODE INSPECTED + v10_attacks T15a-c: in the isolated window a fabricated 'Confirmed — ACME deleted.' ships when ungrounded (T15b), but in the real function deterministic-clarification/disambiguation tags always execute a resolveClarificationField field (index.ts:2443-2473) so the turn is grounded and the lifecycle report replaces the summary; the question/label gates already remove aux-verb shapes before persistence. No truthful clarification turn was found corrupted",
-   "status": "NO DEFECT CONFIRMED — would become one if a deterministic tag ever ran without executing a field; note it depends on D78-shaped labels NOT being replayed, which they now are"
-  },
-  {
-   "id": "D83",
-   "severity": "P2",
-   "class": "PRE-EXISTING seam of the run8 D61 structural cut (present identically on 6ed3834) — an ASCII '?' inside the head is not a cut point",
-   "evidence": "UNIT VERIFIED — v10_probe3 Q01-Q03 on BOTH versions: 'I archived ACME, right? Continue?' / 'ACME deleted, ok? Anything else?' survive whole into the corrected summary and envelope.questions",
-   "root_cause": "index.ts:4620 terminator set includes fullwidth '？' but not ASCII '?'; lastIndexOf('?') picks the LAST '?', so a tag question ('…, right?') shields the assertion in front of it",
-   "regression_test": "proposed/v10_regression_additions.mjs D83.* (2 cases; FAIL on both versions) — R10.term.: fails for the same reason",
-   "status": "FLAGGED — not a run9 regression, but an open seam in the guard run9 was repairing"
-  },
-  {
-   "id": "D84",
-   "severity": "P2",
-   "class": "REGRESSION introduced by the D71 word-list extension — legitimate bulk_confirmation summaries refused, prompt dropped while the action payload persists",
-   "evidence": "UNIT VERIFIED — v10_probe3 S01/S02 + additions D84.done/D84.closed: 'Mark 3 tasks as done' and 'Archive ACME (currently closed)' -> persisted summary null on 65ade7c, and on the rewrite path the confirmation prompt vanishes from the rendered reply ('I can’t confirm … was archived.' with NOTHING describing the pending action); the same summaries persist AND render on 6ed3834",
-   "user_impact": "a pending destructive action (archiveCompanyIds) stays armed with no visible prompt on the rewrite path; a subsequent short affirmative executes it as 'Confirmed.'; on reload the persisted summary is null",
-   "root_cause": "index.ts:4640 added done/closed/sent/moved/… to COMPLETION_WORD, applied lexically to a field that legitimately describes an action in imperative form",
-   "regression_test": "proposed/v10_regression_additions.mjs D84.* (2 cases; FAIL on 65ade7c, PASS on 6ed3834) + D84.hold (D60 still refuses an asserting summary on both)",
-   "status": "FLAGGED"
-  }
+  {"id": "D85", "severity": "P2", "class": "missing-coverage / vacuous regression test (8th recurrence)", "status": "REGRESSION TEST WRITTEN (qa/verification/proposed/v11_regression_additions.mjs), source untouched — no source-write authority this campaign", "summary": "7 of 33 guard mutations survived the entire committed battery. Product code CORRECT in all 7; the guards are decorative. Root causes: the continuity suite REIMPLEMENTS the turn math (because _gate_extract's stripper cannot strip an inline callback arrow, the shape the real expression uses); the ordering check is FAIL-OPEN (indexOf -1 < n); the durable source-work-order requirement, the structuredProseDrift arm and the '…' terminator have no non-vacuous case.", "proof": "7/7 mutants now exit 1 on the new suite while 7/7 still exit 0 on the committed suites — qa/verification/scratch/v11a_mutation_report3_new_suite.json"},
+  {"id": "D86", "severity": "P2", "class": "label laundering / discriminator bypass", "status": "PRE-EXISTING (identical on 65ade7c), NOT FIXED, 5 reproducing cases written", "summary": "The Title-Case name-shape discriminator is defeated by capitalising one letter: 'ACME Deleted', 'ACME Archived', 'Project Completed', 'ACME Deleted Everything' and participle-led 'Deleted ACME' are accepted and persisted verbatim as option labels. Labels are model-authored. D72/D79 controls still hold and the safe derived-canonical fallback already exists."},
+  {"id": "D87", "severity": "P3", "class": "vocabulary omission", "status": "PRE-EXISTING, NOT FIXED, 7 reproducing cases written", "summary": "EXECUTION_IN_PROGRESS arm 3 ('now <gerund>') omits removing|ending|renaming|closing|clearing|granting|declining, which arm 2 (\"i'm now <gerund>\") carries. 'Confirmed. Now removing ACME.' ships while 'Confirmed. I'm now removing ACME.' is corrected — same claim, different outcome. Broader progressive vocabulary also escapes ('Processing the request', 'Working on archiving', 'I am archiving' without 'now', 'Currently archiving', 'Starting the archive', 'Proceeding with', 'Applying the changes now', Mongolian 'архивлаж байна') — the E-multi closure is PARTIAL, correctly hedged in-source as defense-in-depth."},
+  {"id": "D88", "severity": "P2", "class": "assertion rides in front of a trailing question (4th instance: D61, D77, D83, D88)", "status": "PRE-EXISTING (identical on 65ade7c), NOT FIXED, 6 reproducing cases written", "summary": "An assertion with NO sentence terminator before a trailing short question survives whole: 'I archived ACME, ok?', 'ACME deleted everything, ok?', 'Deleted ACME and its tasks, ok?', 'I removed 3 people from ACME, ok?'. The cut only fires on terminators; the PAST_COMPLETION belt only catches AUX shapes. The reply becomes self-contradictory (correction preamble then the fabricated claim). The KNOWN_ABBREVIATION list is NOT the cause — the no-period controls escape identically. Closing this by adding ',' to the terminator set would be the 4th whack-a-mole; per CLAUDE.md §13 the class fix is structural (require the surviving fragment to be interrogative-shaped)."},
+  {"id": "D89", "severity": "P2", "class": "bookkeeping — 'PREPARED' with no artifact", "status": "RECORDED, no source-write authority to correct SESSION_CHECKPOINT.md this campaign", "summary": "SESSION_CHECKPOINT.md:22 records migrations 202609020001/2/3 as PREPARED NOT PUSHED; no such file exists in supabase/migrations/ and chat_channel_state appears only inside index.ts. Runtime impact none (feature-gated, fail-closed); review impact real — there is nothing to review and step 1 dispatches a DB verifier at them."}
  ],
- "regressions_proposed_not_applied": "qa/verification/proposed/v10_regression_additions.mjs (40 cases: 15 CONTRACT pins for surviving mutants + 25 DEFECT/hold cases) — promote DEFECT cases into run8_defect_closure_contract.mjs (run10 section) in the same commit as the fixes",
- "known_failure_modes_entry_proposed": "qa/verification/proposed/v10_known_failure_modes_entry_70.md (#70 draft; not applied — write authority is qa/verification/** only)",
  "pending_db_pushes": [],
- "prepared_fixes": [],
+ "prepared_fixes": [
+  {"path": "qa/verification/proposed/v11_regression_additions.mjs", "what": "26 CONTRACT cases executing the REAL continuity block / durable reader / gate slice (kills all 7 surviving mutants) + 18 DEFECT cases reproducing D86/D87/D88", "verified": "26 pass / 18 fail-by-design / 0 CONTRACT failures on fdb4564; 7/7 mutant kill proven"},
+  {"path": "qa/verification/proposed/v11_known_failure_modes_entry_71.md", "what": "proposed qa/KNOWN_FAILURE_MODES.md entry #71 (D85-D89 + the CLEARED EOL observation)"}
+ ],
  "live_verified_fixes": [],
  "remaining_scenarios": [],
  "synthetic_entities_created_by_this_campaign": {
-  "none": "no DB access this session; nothing to clean up"
+  "none": "no DB access this session"
  },
- "writes_outside_qa_verification": "NONE — verified at the end: `git diff --quiet HEAD -- supabase qa/scenarios-runner qa/KNOWN_FAILURE_MODES.md scripts/verification` clean; index.ts sha256 0272f245… unchanged after every execution; all new files are under qa/verification/**",
- "verdict": "DO NOT DEPLOY 65ade7c — (1) NEW P1 D77: the D70 abbreviation guard reopens run8 D61 for lowercase/digit-after-period assertions, rendered AND persisted (6ed3834 caught them); (2) NEW P1 D78: the D72 label repair silently dropped the COMPLETION_WORD label check, so sentence-shaped completion labels render as 'Options: ACME deleted | …' and are replayed as 'Confirmed — ACME deleted.' (6ed3834 refused them; the postscript claims the opposite); (3) three P2 regressions vs 6ed3834 (D79 name collapse, D81 truthful history floored, D84 legitimate confirmation prompts dropped with the action still armed) plus pre-existing P2 D83 in the same guard; (4) 'all six new guards mutation-proven' does not hold (D71 unpinned, D69/D73/D74 partially). What DOES hold, independently executed: full battery green as reported; every run8 guard (D58-D65/D67/S) mutation-proven; D68 arm, D70 both directions, D72 repair/fallback, D73 persist condition, D74 uuid+assertion pinned; production v92 untouched.",
+ "verdict": "DEPLOY GATE OPEN — fdb4564 / index.ts sha256 66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "verdict_basis": {
+  "battery_independently_executed_on_the_exact_sha": "YES — 21 suites / 445 checks / all exit 0, own filesystem-enumerated runner, sha asserted before and after",
+  "mutations_independently_executed": "YES — 33 mutants on the real source, 26 killed, 7 survivors all traced to test-coverage (D85) not product behaviour; every restore sha-verified byte-identical",
+  "no_new_P0_P1": "CONFIRMED — A/B against 65ade7c shows ZERO regressions; D86/D87/D88 reproduce identically on the prior SHA and are also open on deployed v92",
+  "runs_7_10_lineage_closed": "YES for D77-D84 + D79 (verified by killing a mutation of each guard, not by reading the commit message). E-multi progressive vocabulary is PARTIALLY closed (D87) — correctly hedged in-source as defense-in-depth with evidence primary, so this does not block.",
+  "net_effect_of_deploying": "strictly better than the currently-deployed v92 on every shape measured, and worse on none. Holding the gate closed would keep v92, which is the worse of the two."
+ },
+ "verdict_conditions": [
+  "Post-deploy byte-verification MUST normalize line endings (diff --strip-trailing-cr): the working tree is CRLF as of 4de63e4 while 65ade7c was LF, so a naive diff against a downloaded copy will show every line as different (see the CLEARED EOL finding).",
+  "The Work-PC live retest list is still REQUIRED and is NOT covered by this campaign: no DB access, no browser tooling, production read-only. Live UI truth, live AI-chat truth and live RLS are BLOCKED, not verified.",
+  "D89 must be corrected before any DB/security verifier is dispatched at 'the three prepared migrations' — they do not exist as files.",
+  "D86/D87/D88 should be scheduled for the next cycle; none of them is a regression and none blocks this deploy."
+ ],
+ "coverage_gaps_explicit": {
+  "database": "BLOCKED — no db-query access granted this session; zero synthetic entities created; nothing to clean up",
+  "ui": "BLOCKED — no browser tooling available in this session type",
+  "ai_chat_live": "BLOCKED — same; AI truth verified only at the extracted-gate-logic level against the real source",
+  "durable_channel_state_runtime": "CODE INSPECTED + UNIT VERIFIED via extracted reader/writer logic against 11 stubbed adversarial rows; the table does not exist in production and no migration for it exists in the repo (D89)"
+ },
  "attempts": [
   {
    "attempt": 1,
    "started": "2026-09-02",
-   "outcome": "BLOCKED — PROVIDER SESSION LIMIT mid-campaign (scenario 1, 2, 4 complete; 3 partially probed but not checkpointed; 5 not started)",
-   "classification": "PROVIDER_CAPACITY_BLOCKED"
+   "outcome": "IN PROGRESS"
+  },
+  {
+   "attempt": 1,
+   "outcome": "BLOCKED — PROVIDER_CAPACITY",
+   "detail": "exit 0 with only: You've hit your session limit · resets 3:40am (Asia/Ulaanbaatar). Baseline checkpoint (sha match + prior-campaign archive) completed; ZERO scenarios executed.",
+   "classification": "PROVIDER_CAPACITY_BLOCKED",
+   "retry_after": "2026-09-03T03:40+08:00",
+   "source_sha": "fdb4564",
+   "index_ts_sha256": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded"
   },
   {
    "attempt": 2,
-   "started": "2026-09-02",
-   "outcome": "COMPLETED — resumed from checkpoint after re-verifying index.ts sha256; scenario 2 re-executed (identical), 4 re-confirmed, 3 executed + regression-classified against 6ed3834, 5 verified by execution. Verdict: DO NOT DEPLOY."
+   "started": "2026-09-03",
+   "outcome": "COMPLETE — all 5 scenarios executed, verdict DEPLOY GATE OPEN",
+   "resumed_from": "baseline only (attempt 1 archived the prior campaign and matched the sha; zero scenarios had run)",
+   "sha_reconfirmed_at_start_and_end": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded (identical; git status for supabase/ clean at close)",
+   "artifacts": [
+    "qa/verification/scratch/v11a_run_battery.mjs + v11a_battery_*.log + v11a_battery_summary.json",
+    "qa/verification/scratch/v11a_mutate.mjs + v11a_mutation_report.json",
+    "qa/verification/scratch/v11a_mutate2.mjs + v11a_mutation_report2.json",
+    "qa/verification/scratch/v11a_mutate3_verify_new_suite.mjs + v11a_mutation_report3_new_suite.json",
+    "qa/verification/scratch/v11a_attacks.mjs, v11a_attacks2.mjs, v11a_continuity_exec.mjs, v11a_ab_prior_sha.mjs",
+    "qa/verification/scratch/mut/index_65ade7c.ts (prior-SHA copy for A/B; materialized under qa/verification/**, working tree untouched)",
+    "qa/verification/proposed/v11_regression_additions.mjs",
+    "qa/verification/proposed/v11_known_failure_modes_entry_71.md"
+   ],
+   "note": "The pre-existing qa/verification/scratch/v11_battery_*.log files (23:21, not written by this verifier) were NOT trusted or reused; every result in this record comes from the v11a_* artifacts this attempt produced."
   }
- ],
- "run10_closure": {
-  "status": "ALL D77-D84 FIXED, executed + mutation-proven (8 guards, sha-verified restores); E-multi progressive fabrication vocabulary added same commit",
-  "suite": "run10_defect_closure_contract.mjs 43/43; run8 40/40; lifecycle 92/92; laundering 29/29 GATE 0+0; verification 42/42",
-  "index_ts_sha256": "3f133bf8b0b534ec81679067deeeb67d582b47c538cc6ac95b3f64c22db01c20",
-  "note": "NOT self-certified — remaining same-SHA work (off-by-one investigation, continuity metadata, feature-gated channel-state runtime) then verifier #11 on the final SHA"
- }
+ ]
 }

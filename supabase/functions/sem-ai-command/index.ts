@@ -4736,12 +4736,30 @@ serve(async (req) => {
               cut = k; break;
             }
           }
-          const q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
+          let q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
+          // run11/D88 (4th instance of this class: D61, D77, D83, now D88): an assertion
+          // with NO sentence terminator in front of a trailing short question survived
+          // whole — "I archived ACME, ok?" has nothing to cut on. Terminator-based
+          // cutting can never see this shape, so the surviving fragment is additionally
+          // reduced to its LAST COMMA-DELIMITED clause whenever an earlier clause reads
+          // as a completion. A genuine multi-clause question ("If we archive it, does
+          // the team lose access?") keeps its clauses: only a clause carrying completion
+          // vocabulary triggers the reduction.
+          if (q.includes(',')) {
+            const clauses = q.split(',');
+            const tail = clauses[clauses.length - 1].trim();
+            const head = clauses.slice(0, -1).join(',');
+            if (tail.length > 0 && (COMPLETION_WORD.test(head) || PAST_COMPLETION_CLAIM_PATTERN.test(head))) q = tail;
+          }
           if (q.length === 0 || q.length > 200) return null;
           if (FUTURE_PROMISE_IN_QUESTION.test(q)) return null;
           // Belt over the structural cut (run9): a completion assertion phrased AS the
           // question itself ("Did you know ACME has been archived?") is still laundering.
           if (PAST_COMPLETION_CLAIM_PATTERN.test(q)) return null;
+          // run11/D88: and a question whose own surviving text still asserts a completion
+          // ("ACME deleted everything, ok?" reduced to a tail that still carries it) is
+          // dropped rather than shipped.
+          if (COMPLETION_WORD.test(q)) return null;
           return q;
         };
         // Option labels are NAMES, never sentences: short, no terminal punctuation, no
@@ -4782,6 +4800,21 @@ serve(async (req) => {
             const words = t.split(/\s+/).map((w) => (QUOTE_CODES.includes(w.charCodeAt(0)) ? w.slice(1) : w));
             const titleCasedName = words.every((w) => /^[\p{Lu}0-9(&[-]/u.test(w) || NAME_CONNECTOR.test(w));
             if (!titleCasedName) return null;
+            // run11/D86: Title-Case alone was defeated by capitalising one letter —
+            // "ACME Deleted", "Project Completed", "ACME Deleted Everything" and
+            // participle-led "Deleted ACME" all passed as names. The separating fact is
+            // POSITION, not case: a completion participle anywhere but the first word is
+            // predicate syntax ("<Subject> deleted"), while a leading one is adjectival
+            // in a real name ("Closed Loop Systems") UNLESS a named object follows it,
+            // which makes it a verb phrase ("Deleted ACME").
+            //
+            // Heuristic and stated as such — the real safety net is the caller's
+            // derived-canonical fallback, which replaces any refused label with the
+            // database's own name, so a genuinely-named entity always keeps a
+            // selectable, distinct option.
+            const completionIdx = words.findIndex((w) => COMPLETION_WORD.test(w));
+            if (completionIdx > 0) return null;
+            if (completionIdx === 0 && words.slice(1).some((w) => /^[\p{Lu}0-9]{2,}$/u.test(w))) return null;
           }
           return t;
         };
@@ -4972,7 +5005,22 @@ serve(async (req) => {
         // genuinely verified is unaffected.
         const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
 
-        const EXECUTION_IN_PROGRESS = /\b(executing (?:the )?(?:plan|request|action|changes?)|i['’]?m (?:now )?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining)|now (?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting))\b/i;
+        // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
+        // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
+        // ACME." was corrected — the same claim, two outcomes. One shared verb list now
+        // feeds every arm, plus the broader progressive shapes the narrow arms missed
+        // ("Processing the request", "Working on archiving", "I am archiving",
+        // "Currently archiving"). Still defense-in-depth: evidence remains primary.
+        const PROGRESS_VERBS = 'assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending';
+        const EXECUTION_IN_PROGRESS = new RegExp(
+          '\\b(' +
+          'executing (?:the )?(?:plan|request|action|changes?)' +
+          '|working on (?:' + PROGRESS_VERBS + ')' +
+          '|processing (?:the |your )?(?:plan|request|action|changes?)' +
+          '|i(?:\'|’)?m (?:now |currently )?(?:' + PROGRESS_VERBS + ')' +
+          '|i am (?:now |currently )?(?:' + PROGRESS_VERBS + ')' +
+          '|(?:now|currently) (?:' + PROGRESS_VERBS + ')' +
+          ')\\b', 'i');
         // A supported mutation/assignment claim is the only thing that can account for
         // completion wording. State, existence, historical and verification claims cannot —
         // that asymmetry is exactly what L7/L8/L9/L10 exploited.

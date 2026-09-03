@@ -1,12 +1,18 @@
 import { KeyRound } from "lucide-react";
 import { getProfiles, getMemberships } from "@/lib/data/access";
+import { getPendingInvitations } from "@/lib/data/invitations";
+import { InvitationsCard } from "./invitations-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 
 export default async function AccessPage() {
-  const [profiles, memberships] = await Promise.all([getProfiles(), getMemberships()]);
+  const [profiles, memberships, invitations] = await Promise.all([
+    getProfiles(),
+    getMemberships(),
+    getPendingInvitations(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,6 +90,7 @@ export default async function AccessPage() {
           </CardContent>
         </Card>
       </div>
+      <InvitationsCard invitations={invitations} />
     </div>
   );
 }

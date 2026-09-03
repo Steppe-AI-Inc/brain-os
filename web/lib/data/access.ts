@@ -17,7 +17,7 @@ export async function getMemberships() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("company_memberships")
-    .select("id, role_in_company, active, companies(name), profiles(full_name)")
+    .select("id, role_in_company, active, companies(name, status), profiles(full_name)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;

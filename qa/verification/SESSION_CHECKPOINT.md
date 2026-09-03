@@ -19,9 +19,15 @@ Edge deploy gate.
   ANY index.ts change invalidates that certification — expected; #11 re-certifies.
 - master @ C:/Users/Dell/dev/brain-os-bug006 worktree: 12191e8 (BUG-008/009 fixed).
 - Production: sem-ai-command v92 ACTIVE (LIVE re-verified read-only by #10 attempt 2).
-- Migrations PREPARED NOT PUSHED: 202609020001 (channel state), 202609020002
-  (clear-manager), 202609020003 (messaging foundation). Prepared ≠ approved. No DB push
-  authorization exists. No ALLOW_FUNCTIONS_DEPLOY authorization exists for any SHA.
+- Migrations PREPARED NOT PUSHED — **all four live on the `master` branch, in the
+  `C:/Users/Dell/dev/brain-os-bug006` worktree, NOT on this pending branch** (run8/D89:
+  a verifier working from the pending tree correctly found no such files and reported
+  the "PREPARED" claim as unbacked; the claim was true, the location was unstated):
+    202609020001 channel state · 202609020002 clear-manager RPC ·
+    202609020003 messaging transport foundation · 202609030001 agent-run capacity retry.
+  Review/dispatch any DB verifier against the master worktree, not this one.
+  Prepared ≠ approved. No DB push authorization exists. No ALLOW_FUNCTIONS_DEPLOY
+  authorization exists for any SHA.
 - Verifier #10 campaign record: qa/verification/CURRENT_CAMPAIGN.json (verdict DO NOT
   DEPLOY, D77-D84); its executable regression cases:
   qa/verification/proposed/v10_regression_additions.mjs (17 defect cases reproduce on

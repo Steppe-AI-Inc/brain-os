@@ -13,7 +13,7 @@ export async function getMemories(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("memories")
-    .select("id, fact, entity_type, sensitivity, confidence, created_at, company_id, companies(name)")
+    .select("id, fact, entity_type, sensitivity, confidence, created_at, company_id, companies(name, status)")
     .order("created_at", { ascending: false })
     .limit(50);
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);

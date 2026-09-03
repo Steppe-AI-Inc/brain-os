@@ -1,0 +1,7 @@
+OK   every org-switchable surface computes scopeToActiveOrg
+OK   every surface that computes the scope actually passes it to a reader
+OK   every scope expression treats ALL_ORGANIZATIONS_ID as unscoped
+OK   no reader accepts activeOrganizationId and then ignores it
+OK   scoped readers exist in bulk (>= 15)
+
+org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, UserPlus, CheckCircle2, RotateCcw } from "lucide-react";
+import { GraduationCap, UserPlus, CheckCircle2, RotateCcw, UserCog } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { updatePerson, endPersonEmployment, restorePersonEmployment, invitePerson, type PersonInput } from "@/lib/data/people";
+import { updatePerson, endPersonEmployment, restorePersonEmployment, invitePerson, setPersonManager, type PersonInput } from "@/lib/data/people";
 import { generateOnboardingPlan } from "@/lib/data/onboarding";
 
 type PersonRow = {
@@ -58,6 +58,8 @@ export function PeopleTable({
   const [inviteConfirm, setInviteConfirm] = useState<PersonRow | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [managerFor, setManagerFor] = useState<PersonRow | null>(null);
+  const [managerChoice, setManagerChoice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function restore(p: PersonRow) {
@@ -145,7 +147,25 @@ export function PeopleTable({
                     <ArchivedCompanyBadge status={p.companies?.status} />
                   </span>
                 </TableCell>
-                <TableCell>{p.manager_name ?? "—"}</TableCell>
+                <TableCell>
+                  <button
+                    type="button"
+                    // The manager cell doubles as the set-manager control — inline where
+                    // the value lives, same pattern as the row's other quick actions.
+                    // Disabled (plain text) for ended employment and company-less people:
+                    // the relationship is org-scoped, so there is nothing to scope it to.
+                    className={p.active !== false && p.company_id ? "flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-secondary/60" : "cursor-default"}
+                    disabled={p.active === false || !p.company_id}
+                    title={p.active === false ? undefined : !p.company_id ? "Assign a company first — managers are per-organization" : "Set manager"}
+                    onClick={() => {
+                      setManagerFor(p);
+                      setManagerChoice(null);
+                    }}
+                  >
+                    {p.manager_name ?? "—"}
+                    {p.active !== false && p.company_id && <UserCog className="h-3 w-3 text-muted-foreground opacity-0 group-hover/row:opacity-70" />}
+                  </button>
+                </TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -213,6 +233,55 @@ export function PeopleTable({
         {inviteMessage && <p className="border-t p-3 text-sm text-muted-foreground">{inviteMessage}</p>}
         {restoreMessage && <p className="border-t p-3 text-sm text-muted-foreground">{restoreMessage}</p>}
       </Card>
+
+      <EditSheet
+        open={!!managerFor}
+        onOpenChange={(open) => {
+          if (!open) {
+            setManagerFor(null);
+            setManagerChoice(null);
+          }
+        }}
+        title={`Set manager for ${managerFor?.full_name ?? ""}`}
+        saveDisabled={!managerChoice}
+        onSave={async () => {
+          if (!managerFor || !managerChoice) return null;
+          // EditSheet renders a returned string as its inline error and stays open;
+          // on null it closes — so a refused RPC (no authority, cross-company pick
+          // raced by an edit, ended employment) is shown right where it happened.
+          const result = await setPersonManager(managerFor.id, managerChoice);
+          if (!result) router.refresh();
+          return result;
+        }}
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="set-manager-select">Manager</Label>
+          <Select value={managerChoice ?? undefined} onValueChange={(v: unknown) => typeof v === "string" && setManagerChoice(v)}>
+            <SelectTrigger id="set-manager-select" className="w-full">
+              <SelectValue>
+                {() => people.find((c) => c.id === managerChoice)?.full_name ?? "Pick a manager"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {/* Org-scoped by construction: only CURRENT employees of the SAME company
+                  are offered — the server action re-checks both against a real read, so
+                  this filter is convenience, not the authority. */}
+              {people
+                .filter((c) => c.id !== managerFor?.id && c.company_id === managerFor?.company_id && c.active !== false)
+                .map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.full_name}
+                    {c.role_title ? ` — ${c.role_title}` : ""}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Manager relationships are per-organization. Changing it replaces {managerFor?.full_name}
+            &apos;s current manager in {managerFor?.companies?.name ?? "this company"}; it can&apos;t be cleared from here yet.
+          </p>
+        </div>
+      </EditSheet>
 
       <AlertDialog open={!!inviteConfirm} onOpenChange={(open) => !open && setInviteConfirm(null)}>
         <AlertDialogContent>

@@ -1,0 +1,468 @@
+{
+ "baseline_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "final_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "ran_at": "2026-09-03T02:21:00.688Z",
+ "results": [
+  {
+   "id": "M01 abbreviation-guard direction",
+   "desc": "restore run9 INVERTED direction (any lowercase/digit after \".\" = abbreviation)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 6,
+     "threw": false,
+     "failLines": [
+      "FAIL D77.lowercase-after-period [DEFECT] D77: \"I archived ACME. ok?\" must not reach the corrected summary",
+      "FAIL D77.present tense lc   [DEFECT] D77: \"The company is now archived. anything else?\" must not reach the corrected summary",
+      "FAIL D77.em-dash then lc    [DEFECT] D77: \"Done — ACME deleted. anything else?\" must not reach the corrected summary",
+      "FAIL D77.digit continuation [DEFECT] D77: \"ACME deleted. 3 tasks remain?\" must not reach the corrected summary",
+      "FAIL D77.e.g. continuation  [DEFECT] D77: \"Deleted ACME. e.g. also its tasks?\" must not reach the corrected summary",
+      "FAIL D77.persisted          [DEFECT] D77: the same shape via pendingAction.question is not persisted for replay"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M02 KNOWN_ABBREVIATION list widened",
+   "desc": "add \"acme\"-like arbitrary token to the abbreviation list (does any suite pin the list contents?)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 6,
+     "threw": false,
+     "failLines": [
+      "FAIL R10.paQuestion         [CONTRACT] an assertion-shaped pendingAction.question is gated in place (M27 survived)",
+      "FAIL D77.lowercase-after-period [DEFECT] D77: \"I archived ACME. ok?\" must not reach the corrected summary",
+      "FAIL D77.present tense lc   [DEFECT] D77: \"The company is now archived. anything else?\" must not reach the corrected summary",
+      "FAIL D77.em-dash then lc    [DEFECT] D77: \"Done — ACME deleted. anything else?\" must not reach the corrected summary",
+      "FAIL D77.digit continuation [DEFECT] D77: \"ACME deleted. 3 tasks remain?\" must not reach the corrected summary",
+      "FAIL D77.persisted          [DEFECT] D77: the same shape via pendingAction.question is not persisted for replay"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M03 ASCII-? terminator removed",
+   "desc": "drop `ch === '?'` from the terminator set (D83)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 3,
+     "threw": false,
+     "failLines": [
+      "FAIL R10.term.:             [CONTRACT] terminator \":\" cuts the assertion (mutant M03 survived: no suite covered it)",
+      "FAIL D83.tag-question       [DEFECT] D83 (pre-existing on 6ed3834 too): an ASCII \"?\" inside the head must be a cut point — \"I archived ACME, right? Continue?\"",
+      "FAIL D83.comma-ok           [DEFECT] D83 (pre-existing on 6ed3834 too): an ASCII \"?\" inside the head must be a cut point — \"ACME deleted, ok? Anything else?\""
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M04 ellipsis terminator removed",
+   "desc": "drop the '…' terminator",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": false,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M05 label completion refusal disabled",
+   "desc": "safeOptionLabel no longer inspects completion vocabulary (D78)",
+   "error": "ANCHOR NOT FOUND: \"          if (COMPLETION_WORD.test(t)) {\\n            const N\""
+  },
+  {
+   "id": "M06 Title-Case discriminator disabled",
+   "desc": "every completion-word label is accepted as a name (D78)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 4,
+     "threw": false,
+     "failLines": [
+      "FAIL D78.simple past        [DEFECT] D78: sentence-shaped option label \"ACME deleted\" is not rendered/persisted as a label",
+      "FAIL D78.first person       [DEFECT] D78: sentence-shaped option label \"I archived ACME\" is not rendered/persisted as a label",
+      "FAIL D78.done-colon         [DEFECT] D78: sentence-shaped option label \"Done: ACME deleted\" is not rendered/persisted as a label",
+      "FAIL D78.present tense      [DEFECT] D78: sentence-shaped option label \"ACME is now archived\" is not rendered/persisted as a label"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M07 Title-Case discriminator inverted to blanket refusal",
+   "desc": "run9 behaviour: any completion word refuses the label (D72/D78.legit must catch)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL D78.legit              [CONTRACT] D72 still holds: a legit name with a completion WORD (\"Closed Loop Systems\") survives as a label"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M08 quoted-name rendering removed (erase instead)",
+   "desc": "safeDisplayLabel collapses assertion-shaped names instead of quoting (D79)",
+   "error": "ANCHOR NOT FOUND: \"            if (PAST_COMPLETION_CLAIM_PATTERN.test(label) &&\""
+  },
+  {
+   "id": "M09 compound collapse removed (quote everything)",
+   "desc": "a compound aux-assertion name is quoted rather than collapsed (R10.label.canonical)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL R10.label.canonical    [CONTRACT] an assertion-shaped CANONICAL name collapses too (M12 survived)"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M10 D81 structural arm removed",
+   "desc": "drift arm keys on bare grounding again (floors truthful history)",
+   "error": "ANCHOR NOT FOUND: \"        const structuredProseDrift = unaccountedCompletionPr\""
+  },
+  {
+   "id": "M11 D81 arm always off",
+   "desc": "structured prose drift never fires (E-multi grounded case must catch)",
+   "error": "ANCHOR NOT FOUND: \"        const structuredProseDrift = unaccountedCompletionPr\""
+  },
+  {
+   "id": "M12 imperative-summary allowance removed",
+   "desc": "IMPERATIVE_LEAD never matches -> legitimate imperative bulk summaries dropped (D84)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 2,
+     "threw": false,
+     "failLines": [
+      "FAIL D84.done               [DEFECT] D84: a legitimate imperative bulk summary \"Mark 3 tasks as done\" persists AND renders on the rewrite path (6ed3834 kept it; 65ade7c drops it and leaves the action armed)",
+      "FAIL D84.closed             [DEFECT] D84: a legitimate imperative bulk summary \"Archive ACME (currently closed)\" persists AND renders on the rewrite path (6ed3834 kept it; 65ade7c drops it and leaves the action armed)"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M13 imperative-summary allowance widened to everything",
+   "desc": "IMPERATIVE_LEAD matches any string -> assertions ship as pending summaries (D60/D84.hold)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL R10.paSummaryWord      [CONTRACT] a bulk summary with completion vocabulary but no past-tense aux is refused (M28 survived)"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M14 head-clause test removed",
+   "desc": "assertion-LED compound pending summary is no longer head-tested (R10.paSummaryWord)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL R10.paSummaryWord      [CONTRACT] a bulk summary with completion vocabulary but no past-tense aux is refused (M28 survived)"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M15 EXECUTION_IN_PROGRESS dropped from legacy fallback",
+   "desc": "progressive fabrication vocabulary removed from the ungrounded arm (E-multi)",
+   "error": "ANCHOR NOT FOUND: \"          && (LEGACY_PAST_COMPLETION.test(String(result.summ\""
+  },
+  {
+   "id": "M16 command-first regression",
+   "desc": "reintroduce a bare top-level `command` key as the FIRST pack key (the measured off-by-one)",
+   "error": "ANCHOR NOT FOUND: \"        const pack = { continuity,\""
+  },
+  {
+   "id": "M17 currentTurn no longer last",
+   "desc": "move currentTurn out of the final position",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL currentTurn is the LAST key in the pack"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M18 absolute turn numbers -> window-relative",
+   "desc": "history entries numbered 1..n inside the window instead of absolutely",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL history entries carry ABSOLUTE turn numbers"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M19 OFF-BY-ONE in historyWindowStart",
+   "desc": "drop the +1 from the window start (the exact off-by-one class the suite exists for)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": false,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M20 OFF-BY-ONE in currentTurn number",
+   "desc": "current turn numbered totalPriorTurns instead of +1",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL currentTurn is the LAST key in the pack"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M21 historyIsComplete inverted",
+   "desc": "completeness claim reversed (honesty field lies)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": false,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M22 prompt prohibition removed",
+   "desc": "delete the never-reconstruct-out-of-window rule from the system prompt",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL prompt forbids reconstructing out-of-window turns"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M23 prompt currentTurn naming removed",
+   "desc": "the prompt no longer names currentTurn as the command being answered",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL prompt names currentTurn as THE command being answered"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M24 untyped-bindable reader",
+   "desc": "durable pending action binds without a typed actionType",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL bare-yes can only bind to a FULLY TYPED durable pending action (reader side)"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M25 expiry check removed (reader)",
+   "desc": "an EXPIRED durable pending action can bind",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL bare-yes can only bind to a FULLY TYPED durable pending action (reader side)"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M26 source-work-order check removed (reader)",
+   "desc": "a foreign-source durable pending action can bind",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": false,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M27 untyped-storing writer",
+   "desc": "the writer stores a pending action with no typed actionType",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL an untyped pendingAction stores NULL pending state (writer side fail-closed)"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M28 CAS overwrite",
+   "desc": "durable write becomes a blind overwrite (version predicate dropped)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL durable write uses optimistic CAS on version, never blind overwrite"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M29 last_successful_mutation from prose",
+   "desc": "backend-evidence derivation replaced by a prose-derived value",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 1,
+     "threw": false,
+     "failLines": [
+      "FAIL last_successful_mutation comes from backend evidence, never prose"
+     ]
+    }
+   },
+   "killed": true,
+   "restoreShaOk": true
+  },
+  {
+   "id": "M30 pending row inserted BEFORE buildContext",
+   "desc": "ordering guard: current turn could self-include in history",
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 0,
+     "fails": 0,
+     "threw": false,
+     "failLines": []
+    }
+   },
+   "killed": false,
+   "restoreShaOk": true
+  }
+ ]
+}

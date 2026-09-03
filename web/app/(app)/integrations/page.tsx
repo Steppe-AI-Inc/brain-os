@@ -1,5 +1,7 @@
 import { Plug } from "lucide-react";
 import { getIntegrationQueue } from "@/lib/data/integrations";
+import { getOrganizationContext } from "@/lib/data/organizations";
+import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +9,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageHeader } from "@/components/page-header";
 
 export default async function IntegrationsPage() {
-  const queue = await getIntegrationQueue();
+  const organizations = await getOrganizationContext();
+  const scopeToActiveOrg =
+    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
+      ? organizations.activeOrganizationId
+      : null;
+  const queue = await getIntegrationQueue(scopeToActiveOrg);
 
   return (
     <div className="flex flex-col gap-6">

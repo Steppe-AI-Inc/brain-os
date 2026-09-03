@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { defaultSensitivityForCategory } from "@/lib/data/document-categories";
 
 const DOCUMENT_SELECT =
-  "id, title, category, sensitivity, summary, mime_type, original_filename, file_size_bytes, storage_path, company_id, department_id, project_id, editable_source_status, created_at, companies!documents_company_id_fkey(name), departments(name), projects(title)";
+  "id, title, category, sensitivity, summary, mime_type, original_filename, file_size_bytes, storage_path, company_id, department_id, project_id, editable_source_status, created_at, companies!documents_company_id_fkey(name, status), departments(name), projects(title)";
 
 // Founder governance doc, section 1: "PDF-only delivery is insufficient for assets that
 // should remain editable." These are the categories where a reusable editable source

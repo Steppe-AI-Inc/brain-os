@@ -78,6 +78,33 @@ export function parseProviderRunId(combined) {
   return match[1];
 }
 
+// PROVIDER_CAPACITY_BLOCKED (overnight campaign 2026-09-02, real incident): an
+// independent-verifier dispatch exited with code 0 while its ONLY output was
+// "You've hit your session limit · resets 1am (Asia/Ulaanbaatar)". Nothing ran. The
+// founder's standing rule from that incident: exit code 0 + provider error text is NOT
+// a successful Agent Run — a provider quota/session-limit must classify as
+// PROVIDER_CAPACITY_BLOCKED (retryable, never silently successful, never a generic
+// unexplained failure). Pure and exported for the same reason parseProviderRunId is:
+// so provider.regression.test.mjs can pin the exact observed byte shape forever.
+export const PROVIDER_CAPACITY_BLOCKED = 'PROVIDER_CAPACITY_BLOCKED';
+const PROVIDER_CAPACITY_PATTERNS = [
+  /you'?ve hit your (session|usage) limit/i, // exact live shape 2026-09-02
+  /session limit[^\n.]{0,60}resets/i,
+  /usage limit reached/i,
+  /credit balance is too low/i,
+  /quota (has been )?exceeded/i,
+];
+// @param {string} combined - raw provider output (stdout+stderr or log tail).
+// @returns {{classification: string, matched: string} | null}
+export function classifyProviderOutput(combined) {
+  const clean = stripAnsi(String(combined ?? ''));
+  for (const pattern of PROVIDER_CAPACITY_PATTERNS) {
+    const match = clean.match(pattern);
+    if (match) return { classification: PROVIDER_CAPACITY_BLOCKED, matched: match[0] };
+  }
+  return null;
+}
+
 export async function startRun(agentName, task, cwd) {
   const { stdout, stderr } = await execFileAsync(
     'claude',
@@ -85,6 +112,19 @@ export async function startRun(agentName, task, cwd) {
     { cwd, maxBuffer: 10 * 1024 * 1024 }
   );
   const combined = stdout + stderr;
+  // Checked BEFORE the run-id parse: a capacity-blocked dispatch produces no run id, and
+  // the caller needs the real classification (mark blocked/retryable), not a generic
+  // "could not parse" error that reads like a Factory bug.
+  const capacity = classifyProviderOutput(combined);
+  if (capacity) {
+    const err = new Error(
+      `startRun: provider refused the dispatch — ${capacity.matched}. ` +
+      `Classified ${PROVIDER_CAPACITY_BLOCKED}: retryable, nothing was dispatched.`
+    );
+    err.classification = PROVIDER_CAPACITY_BLOCKED;
+    err.providerOutput = stripAnsi(combined);
+    throw err;
+  }
   const providerRunId = parseProviderRunId(combined);
   return { providerRunId, raw: combined };
 }
