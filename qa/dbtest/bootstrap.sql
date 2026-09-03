@@ -65,10 +65,21 @@ language sql stable as $$
   select auth.jwt() ->> 'email';
 $$;
 
+-- auth.users must carry the columns PROJECT TRIGGERS actually read, or the harness tests a
+-- shape production does not have. `handle_new_auth_user()` reads raw_user_meta_data, and
+-- the first acceptance run failed on exactly that — the shim being thinner than the real
+-- table is itself a finding, and the fix is to widen the shim, never to stop firing the
+-- trigger.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
-  created_at timestamptz not null default now()
+  raw_user_meta_data jsonb not null default '{}'::jsonb,
+  raw_app_meta_data jsonb not null default '{}'::jsonb,
+  encrypted_password text,
+  email_confirmed_at timestamptz,
+  last_sign_in_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- ---- 4. Storage schema (only what project migrations reference). ----------------------
