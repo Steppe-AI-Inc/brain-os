@@ -1,0 +1,133 @@
+[
+ {
+  "id": "G1.lim.dropWordBoundary",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D111.interrogativeLeadHasWordBoundary"
+  ]
+ },
+ {
+  "id": "G2.lim.substringCorroboration",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D113.hold.equalityNotContainment"
+  ]
+ },
+ {
+  "id": "G2.lim.corroborateAnyOption",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D113.hold.idBound"
+  ]
+ },
+ {
+  "id": "G3.lim.broadenAdjectivalReachable",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D108.adjectivalAllowlistStaysNarrow"
+  ]
+ },
+ {
+  "id": "G3.lim.dropPositionRule",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D108.positionRuleStillQuotes"
+  ]
+ },
+ {
+  "id": "G3.lim.dropTitleCase",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D108.titleCaseDiscriminatorStillApplies"
+  ]
+ },
+ {
+  "id": "G3.lim.dropDeterminer",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D108.determinerSecondWordStillQuotes"
+  ]
+ },
+ {
+  "id": "G4.lim.firstNotUnique",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D105.hold.ambiguousStaysNull"
+  ]
+ },
+ {
+  "id": "G5.lim.keyDropsAllPunctuation",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D110.punctuationIsNotCollapsedByTheKey"
+  ]
+ },
+ {
+  "id": "G6.lim.confirmedNoStartAnchor",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D111.confirmedCompletionIsStartAnchored"
+  ]
+ },
+ {
+  "id": "G6.lim.referencelessNoStartAnchor",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D111.referencelessIsStartAnchored"
+  ]
+ },
+ {
+  "id": "G6.arm.unaccountedPrivateCopy",
+  "kind": "COVERAGE",
+  "killed": true,
+  "newFails": [
+   "D106.bothArmsShareThePredicate"
+  ]
+ },
+ {
+  "id": "G7.cov.revertReplaySummary",
+  "kind": "COVERAGE",
+  "killed": true,
+  "newFails": [
+   "D107.replay.assertionLabelDegrades",
+   "D107.replay.typedFallbackDegrades",
+   "D107.replay.realNameIsQuotedAsACHOICE"
+  ]
+ },
+ {
+  "id": "G7.lim.dropTypedFallbackTest",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D107.replay.typedFallbackDegrades"
+  ]
+ },
+ {
+  "id": "G7.lim.dropAssertionTest",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D107.replay.assertionLabelDegrades"
+  ]
+ },
+ {
+  "id": "G7.lim.alwaysNeutral",
+  "kind": "LIMIT",
+  "killed": true,
+  "newFails": [
+   "D107.replay.realNameIsQuotedAsACHOICE",
+   "D107.replay.neverDegradesEverything"
+  ]
+ }
+]

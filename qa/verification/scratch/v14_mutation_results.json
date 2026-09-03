@@ -1,0 +1,611 @@
+[
+ {
+  "id": "G1.cov.remove",
+  "guard": "G1 FIX-3b",
+  "kind": "COVERAGE",
+  "what": "delete the completion-word question belt entirely",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run11_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D88.single-letter-shield   [DEFECT] D88: \"I archived ACME B. ok?\" — the assertion must not reach founder-facing text"
+    ]
+   },
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 4,
+    "sample": [
+     "FAIL D92.hold.single-letter-shield  [CONTRACT] no assertion leaks via \"I archived ACME B. ok?\"",
+     "FAIL D92.hold.dash-join             [CONTRACT] no assertion leaks via \"I archived ACME - ok?\"",
+     "FAIL D92.hold.and-join              [CONTRACT] no assertion leaks via \"I archived ACME and ok?\"",
+     "FAIL D92.hold.runon                 [CONTRACT] no assertion leaks via \"I archived ACME ok?\""
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 20,
+    "sample": [
+     "FAIL D99.thirdperson.runon            [DEFECT] D99: assertion \"ACME archived everything ok?\" must not reach the founder as a question",
+     "FAIL D99.thirdperson.abbrev           [DEFECT] D99: assertion \"ACME deleted everything B. ok?\" must not reach the founder as a question",
+     "FAIL D99.thirdperson.named            [DEFECT] D99: assertion \"ACME Holdings deleted all the tasks ok?\" must not reach the founder as a ques",
+     "FAIL D99.thirdperson.def              [DEFECT] D99: assertion \"The company deleted the tasks ok?\" must not reach the founder as a question",
+     "FAIL D99.thirdperson.person           [DEFECT] D99: assertion \"Bob removed 3 people from ACME ok?\" must not reach the founder as a question",
+     "FAIL D99.thirdperson.event            [DEFECT] D99: assertion \"The migration completed ok?\" must not reach the founder as a question"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G1.lim.dropNegation",
+  "guard": "G1 FIX-3b",
+  "kind": "LIMIT",
+  "what": "drop the !INTERROGATIVE_LEAD negation (belt becomes the run11 blanket test)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 13,
+    "sample": [
+     "FAIL D92.q1                         [DEFECT] D92: legitimate clarification \"Which archived company did you mean?\" must survive, not be dropp",
+     "FAIL D92.q2                         [DEFECT] D92: legitimate clarification \"Do you want me to restore the archived one?\" must survive, not b",
+     "FAIL D92.q3                         [DEFECT] D92: legitimate clarification \"Which of the completed tasks should I reopen?\" must survive, not",
+     "FAIL D92.q4                         [DEFECT] D92: legitimate clarification \"Do you mean the person whose employment ended?\" must survive, no",
+     "FAIL D92.q5                         [DEFECT] D92: legitimate clarification \"Should the removed member be re-invited?\" must survive, not be d",
+     "FAIL D92.q6                         [DEFECT] D92: legitimate clarification \"Which goal should this task be assigned to?\" must survive, not b"
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 18,
+    "sample": [
+     "FAIL D98.q1                           [DEFECT] D98: legitimate clarification \"Which of the tasks we completed should be reopened?\" must surv",
+     "FAIL D98.armed.2                      [DEFECT] D98: \"Which of the tasks we completed should be reopened?\" must not be nulled while the pendi",
+     "FAIL D98.q3                           [DEFECT] D98: legitimate clarification \"Do you want the ones I removed restored?\" must survive the fir",
+     "FAIL D98.armed.4                      [DEFECT] D98: \"Do you want the ones I removed restored?\" must not be nulled while the pendingAction st",
+     "FAIL D98.q5                           [DEFECT] D98: legitimate clarification \"Did you mean the company I archived last week?\" must survive t",
+     "FAIL D98.armed.6                      [DEFECT] D98: \"Did you mean the company I archived last week?\" must not be nulled while the pendingAct"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G1.lim.dropStartAnchor",
+  "guard": "G1 FIX-3b",
+  "kind": "LIMIT",
+  "what": "remove INTERROGATIVE_LEAD's ^ anchor (an interrogative word ANYWHERE counts as a lead)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 3,
+    "sample": [
+     "FAIL D99.participle.led2              [DEFECT] D99: assertion \"Removed the whole team ok?\" must not reach the founder as a question",
+     "FAIL D99.collective.subject           [DEFECT] D99: assertion \"The team archived ACME ok?\" must not reach the founder as a question",
+     "FAIL D99.firstperson.perfect          [DEFECT] D99: assertion \"I have archived ACME ok?\" must not reach the founder as a question"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G1.lim.dropWordBoundary",
+  "guard": "G1 FIX-3b",
+  "kind": "LIMIT",
+  "what": "remove INTERROGATIVE_LEAD's trailing \\b (prefix words like \"Whoever\"/\"Ismail\" count as leads)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G1.lim.addTheAlternative",
+  "guard": "G1 FIX-3b",
+  "kind": "LIMIT",
+  "what": "add a non-interrogative alternative (\"the\") to INTERROGATIVE_LEAD",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 3,
+    "sample": [
+     "FAIL D99.thirdperson.def              [DEFECT] D99: assertion \"The company deleted the tasks ok?\" must not reach the founder as a question",
+     "FAIL D99.thirdperson.event            [DEFECT] D99: assertion \"The migration completed ok?\" must not reach the founder as a question",
+     "FAIL D99.collective.subject           [DEFECT] D99: assertion \"The team archived ACME ok?\" must not reach the founder as a question"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G2.cov.noCorroboration",
+  "guard": "G2 D100",
+  "kind": "COVERAGE",
+  "what": "accept any safeOptionLabel without corroborating it against the canonical read",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D100.uncorroborated            [CONTRACT] run13/D100: the SAME label with NO canonical row behind it falls back to the derived referenc"
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 9,
+    "sample": [
+     "FAIL D100.restored.0                  [DEFECT] D100: adjectival-led assertion label \"Restored Three Companies\" must not be accepted verbatim",
+     "FAIL D100.closed.1                    [DEFECT] D100: adjectival-led assertion label \"Closed Five Deals\" must not be accepted verbatim",
+     "FAIL D100.restored.2                  [DEFECT] D100: adjectival-led assertion label \"Restored Full Access\" must not be accepted verbatim",
+     "FAIL D100.completed.3                 [DEFECT] D100: adjectival-led assertion label \"Completed Final Migration\" must not be accepted verbati",
+     "FAIL D100.restored.4                  [DEFECT] D100: adjectival-led assertion label \"Restored Backup Yesterday\" must not be accepted verbati",
+     "FAIL D100.completed.5                 [DEFECT] D100: adjectival-led assertion label \"Completed Migration\" must not be accepted verbatim"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G2.lim.alwaysDerived",
+  "guard": "G2 D100",
+  "kind": "LIMIT",
+  "what": "over-broaden: always replace the label with the derived canonical reference",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "lifecycle_evidence_and_output_persistence_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL R2 the pendingAction OPTIONS survive the claim rewrite"
+    ]
+   },
+   {
+    "suite": "run10_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 2,
+    "sample": [
+     "FAIL R10.flag.quiet         [CONTRACT] a pendingAction with nothing to gate does NOT set the flag (observed TRUE on 65ade7c — null !== undef",
+     "FAIL D78.legit              [CONTRACT] D72 still holds: a CANONICALLY-CORROBORATED name with a completion word (\"Closed Loop Systems\") survi"
+    ]
+   },
+   {
+    "suite": "run11_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D86.hold.d72               [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 chang"
+    ]
+   },
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D91.hold.d72                   [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 c"
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 3,
+    "sample": [
+     "FAIL D100.hold.closed                 [CONTRACT] \"Closed Loop Systems\" must still survive as a real name",
+     "FAIL D100.hold.completed              [CONTRACT] \"Completed Works Ltd\" must still survive as a real name",
+     "FAIL D100.hold.restored               [CONTRACT] \"Restored Timber Co\" must still survive as a real name"
+    ]
+   },
+   {
+    "suite": "run8_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D72b a legitimate name with a trailing period is REPAIRED, not blanked"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G2.lim.noBareNormalise",
+  "guard": "G2 D100",
+  "kind": "LIMIT",
+  "what": "compare raw instead of bare() (a canonical name safeDisplayLabel QUOTED no longer corroborates)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run10_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D78.legit              [CONTRACT] D72 still holds: a CANONICALLY-CORROBORATED name with a completion word (\"Closed Loop Systems\") survi"
+    ]
+   },
+   {
+    "suite": "run11_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D86.hold.d72               [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 chang"
+    ]
+   },
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D91.hold.d72                   [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 c"
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 3,
+    "sample": [
+     "FAIL D100.hold.closed                 [CONTRACT] \"Closed Loop Systems\" must still survive as a real name",
+     "FAIL D100.hold.completed              [CONTRACT] \"Completed Works Ltd\" must still survive as a real name",
+     "FAIL D100.hold.restored               [CONTRACT] \"Restored Timber Co\" must still survive as a real name"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G2.lim.substringCorroboration",
+  "guard": "G2 D100",
+  "kind": "LIMIT",
+  "what": "loosen equality to containment (a fabricated label that is a SUBSTRING of the canonical name is corroborated)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G2.lim.corroborateAnyOption",
+  "guard": "G2 D100",
+  "kind": "LIMIT",
+  "what": "corroborate against ANY canonical name in the read, not the one belonging to this id",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G3.cov.narrowAdjectival",
+  "guard": "G3 D101",
+  "kind": "COVERAGE",
+  "what": "narrow ADJECTIVAL_COMPLETION to closed only (a real \"Completed Works Ltd\" must lose its name)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 2,
+    "sample": [
+     "FAIL D100.hold.completed              [CONTRACT] \"Completed Works Ltd\" must still survive as a real name",
+     "FAIL D100.hold.restored               [CONTRACT] \"Restored Timber Co\" must still survive as a real name"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G3.lim.deadAlternatives",
+  "guard": "G3 D101",
+  "kind": "LIMIT",
+  "what": "restore the two dead alternatives D101 removed (advanced|integrated)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D101.deadAlternative             [DEFECT] D101: every alternative in ADJECTIVAL_COMPLETION must be reachable (i.e. must also be in COMP"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G3.lim.broadenAdjectivalReachable",
+  "guard": "G3 D101",
+  "kind": "LIMIT",
+  "what": "over-broaden ADJECTIVAL_COMPLETION with REACHABLE completion verbs (deleted|archived|removed|sent)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G3.lim.dropPositionRule",
+  "guard": "G3 D86",
+  "kind": "LIMIT",
+  "what": "drop run11/D86 position rule (a completion participle after the first word no longer refuses)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G3.lim.dropTitleCase",
+  "guard": "G3 D78",
+  "kind": "LIMIT",
+  "what": "drop run10/D78 Title-Case name-shape discriminator",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G3.lim.dropDeterminer",
+  "guard": "G3 D91",
+  "kind": "LIMIT",
+  "what": "drop run12/D91 determiner/ALL-CAPS second-word test",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G4.cov.removeFallback",
+  "guard": "G4 D102",
+  "kind": "COVERAGE",
+  "what": "remove the raw-label fallback entirely (back to ace9b6a)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D102.apostrophePair              [DEFECT] D102: matchDisambiguationOption alone must not make two names differing only by an apostrophe"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G4.lim.firstNotUnique",
+  "guard": "G4 D102",
+  "kind": "LIMIT",
+  "what": "over-broaden: return the FIRST raw match instead of requiring a unique one",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G4.lim.noTrimLower",
+  "guard": "G4 D102",
+  "kind": "LIMIT",
+  "what": "drop case-folding on the raw comparison",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D102.apostrophePair              [DEFECT] D102: matchDisambiguationOption alone must not make two names differing only by an apostrophe"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G5.cov.rawKeyRunningCounter",
+  "guard": "G5 D103a",
+  "kind": "COVERAGE",
+  "what": "revert to run12 numbering (raw label key + running counter)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 2,
+    "sample": [
+     "FAIL D102.quotedTwin                  [DEFECT] D102: two options identical only after presentation-stripping must be rendered distinguishabl",
+     "FAIL D103.uniqueness                  [DEFECT] D103a: numbering must produce a unique label set even when an already-numbered label is prese"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G5.cov.constantNumber",
+  "guard": "G5 D103a",
+  "kind": "COVERAGE",
+  "what": "number every colliding label (option 1) — numbering that does not disambiguate",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run12_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D95.distinctOutOfContext       [DEFECT] D95: two refused options with NO contextPack row must still render distinguishable labels"
+    ]
+   },
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 3,
+    "sample": [
+     "FAIL D102.quotedTwin                  [DEFECT] D102: two options identical only after presentation-stripping must be rendered distinguishabl",
+     "FAIL D103.uniqueness                  [DEFECT] D103a: numbering must produce a unique label set even when an already-numbered label is prese",
+     "FAIL D103.hold.numbered               [CONTRACT] the committed D95 case still holds: two out-of-context options render distinguishably"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G5.lim.collapseAllKeys",
+  "guard": "G5 D103a",
+  "kind": "LIMIT",
+  "what": "over-broaden labelKey to collide EVERY label (real distinct names get spuriously numbered)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run8_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D72b a legitimate name with a trailing period is REPAIRED, not blanked"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G5.lim.keyDropsAllPunctuation",
+  "guard": "G5 D103a",
+  "kind": "LIMIT",
+  "what": "over-broaden labelKey to ignore all non-alphanumerics (distinct real names collide)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G6.cov.dropConfirmedCompletion",
+  "guard": "G6 D103c",
+  "kind": "COVERAGE",
+  "what": "drop CONFIRMED_COMPLETION from readsAsCompletion",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D100.replay                      [DEFECT] D100: \"Confirmed — Restored Bob Smith.\" must not ship as a founder-facing completion"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G6.cov.dropReferenceless",
+  "guard": "G6 D103c",
+  "kind": "COVERAGE",
+  "what": "drop REFERENCELESS_CONFIRMATION from readsAsCompletion",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D103.falseConfirmation           [DEFECT] D103c: \"Confirmed — the company (option 1).\" must not ship as an unqualified completion"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G6.lim.referencelessNoEndAnchor",
+  "guard": "G6 D103c",
+  "kind": "LIMIT",
+  "what": "remove REFERENCELESS_CONFIRMATION's end anchor (swallows substantive confirmations)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 1,
+    "sample": [
+     "FAIL D103.hold.substantive            [CONTRACT] a confirmation that says something substantive must survive the referenceless belt"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G6.lim.confirmedNoStartAnchor",
+  "guard": "G6 D103c",
+  "kind": "LIMIT",
+  "what": "remove CONFIRMED_COMPLETION's ^ start anchor",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G6.lim.referencelessNoStartAnchor",
+  "guard": "G6 D103c",
+  "kind": "LIMIT",
+  "what": "remove REFERENCELESS_CONFIRMATION's ^ start anchor",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G6.arm.legacyPrivateCopy",
+  "guard": "G6 both-arms",
+  "kind": "COVERAGE",
+  "what": "legacyProseFallback reverts to its OWN private pattern copy (arm 1 left behind)",
+  "applied": true,
+  "killed": true,
+  "killers": [
+   {
+    "suite": "run13_defect_closure_contract.mjs",
+    "exit": 1,
+    "n": 2,
+    "sample": [
+     "FAIL D100.replay                      [DEFECT] D100: \"Confirmed — Restored Bob Smith.\" must not ship as a founder-facing completion",
+     "FAIL D103.falseConfirmation           [DEFECT] D103c: \"Confirmed — the company (option 1).\" must not ship as an unqualified completion"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "G6.arm.unaccountedPrivateCopy",
+  "guard": "G6 both-arms",
+  "kind": "COVERAGE",
+  "what": "unaccountedCompletionProse reverts to its OWN private pattern copy (arm 2 left behind)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G7.cov.revertReplaySummary",
+  "guard": "G7 replay",
+  "kind": "COVERAGE",
+  "what": "revert the replay summary to the pre-fix \"Confirmed — <label>.\"",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G7.lim.dropTypedFallbackTest",
+  "guard": "G7 replay",
+  "kind": "LIMIT",
+  "what": "drop the isTypedFallbackOnly degradation (a numbered typed fallback replays as a named choice)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G7.lim.dropAssertionTest",
+  "guard": "G7 replay",
+  "kind": "LIMIT",
+  "what": "drop the readsAsAssertion degradation",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "G7.lim.alwaysNeutral",
+  "guard": "G7 replay",
+  "kind": "LIMIT",
+  "what": "over-broaden: every replay degrades to the neutral acknowledgement (the founder never sees which option)",
+  "applied": true,
+  "killed": false,
+  "killers": []
+ }
+]

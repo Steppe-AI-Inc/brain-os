@@ -1,0 +1,8 @@
+{
+  "prepared_fixes": {
+    "FIX-A2_D114_clause_position_belt": "VALIDATED, NOT APPLIED (rule 1 forbids changing index.ts this run). Adds FIRST_PERSON_MAIN_CLAUSE_COMPLETION ahead of the INTERROGATIVE_LEAD belt, using a variable-length lookbehind so a first-person completion inside a NOUN PHRASE (reduced relative: 'the tasks we completed') is legitimate while a MAIN-CLAUSE one is an assertion. Measured: reopened class 13/20 -> 1/20; my assertion corpus 3/25 -> 1/25; clarification drops unchanged at 5/27 (0 new); ALL 25 COMMITTED SUITES GREEN. Evidence: qa/verification/scratch/v14_fixA2_test.mjs.",
+    "FIX-B_D112_negation_aware_CONFIRMED_COMPLETION": "VALIDATED, NOT APPLIED. Adds a negator lookahead and determiner/cardinal lookbehinds so the belt fires only on an affirmative predicate use. Measured: new negation/status false positives 9/16 -> 0/16; all committed suites green. Evidence: qa/verification/scratch/v14_prepared_fix_test.mjs.",
+    "FIX-C_D105_misbind_safe_raw_fallback": "VALIDATED, NOT APPLIED. Restricts the raw fallback to the ALREADY-MATCHING set and requires whole-label equality instead of containment: `const exact = matches.filter((o) => o.label.trim().toLowerCase() === command.trim().toLowerCase());`. Measured: all three mis-bindings (A, C, H) become safe dead ends AND cases B, D, E, F now resolve correctly - strictly better than BOTH prior SHAs on every probe; ambiguous case J still resolves to nothing; all committed suites green.",
+    "note": "Candidate source with A(naive)+B+C applied is saved for review at qa/verification/proposed/v14_prepared_fixes_candidate.ts.txt. Do NOT take that file as the recommended patch - it carries the NAIVE FIX-A which breaks 8 committed D98 cases. The recommended belt is FIX-A2."
+  }
+}

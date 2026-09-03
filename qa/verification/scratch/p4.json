@@ -1,0 +1,12 @@
+{
+  "scenarios": {
+    "S6_no_prior_closure_reopened": {
+      "status": "FAIL",
+      "evidence": "Independent corpora (v14_question_axis.mjs: 25 assertions + 27 clarifications, all my own; v14_reopen_curated.mjs: 20 curated interrogative-led first-person assertions), A/B across fdb4564 / ace9b6a / f1722f2. AGGREGATE: assertion leaks 22 -> 17 -> 3 of 25; clarification drops 3 -> 6 -> 5 of 27, and all 5 residual drops are pre-existing at ace9b6a (0 NEW). run10/run11/run12/run8 committed D72-class contracts all pass in the full battery.",
+      "defects_found": [
+        "D114 (P2, REGRESSION vs ace9b6a): FIX-3b REPLACED run12's FIRST_PERSON_COMPLETION belt instead of adding to it, and thereby REOPENS the exact class that belt existed to close. On a curated 20-case corpus of natural, interrogative-word-LED FIRST-PERSON completion assertions ('Did I mention I archived ACME already?', 'If it helps, I already deleted the duplicates ok?', 'May I add that I renamed the business unit?'), ace9b6a leaks 0/20 and f1722f2 leaks 13/20. 13 reopened, 0 newly closed on this class. The commit message and the source comment at index.ts:4805 both assert 'Measured 0/20 leaks and 0/27 drops - strictly better on BOTH axes than any previous build, which neither run11 nor run12 achieved.' That claim is corpus-dependent and, on this sub-class, measurably FALSE. This is the third consecutive campaign in which one direction of the question belt was closed by reopening the other - the precise failure the commit's own header warns against."
+      ],
+      "notes": "The two axes are complementary, not alternatives: an interrogative LEAD is evidence of a question; a first-person past-tense COMPLETION is evidence of an assertion. Dropping on (FIRST_PERSON_COMPLETION) OR (COMPLETION_WORD && !INTERROGATIVE_LEAD) is the obvious strictly-better belt - tested separately, see prepared fix."
+    }
+  }
+}

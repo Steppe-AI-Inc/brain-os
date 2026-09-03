@@ -1,0 +1,62 @@
+OK   D98.q1                           [DEFECT] D98: legitimate clarification "Which of the tasks we completed should be reopened?" must survive the first-person belt
+OK   D98.armed.2                      [DEFECT] D98: "Which of the tasks we completed should be reopened?" must not be nulled while the pendingAction stays armed
+OK   D98.q3                           [DEFECT] D98: legitimate clarification "Do you want the ones I removed restored?" must survive the first-person belt
+OK   D98.armed.4                      [DEFECT] D98: "Do you want the ones I removed restored?" must not be nulled while the pendingAction stays armed
+OK   D98.q5                           [DEFECT] D98: legitimate clarification "Did you mean the company I archived last week?" must survive the first-person belt
+OK   D98.armed.6                      [DEFECT] D98: "Did you mean the company I archived last week?" must not be nulled while the pendingAction stays armed
+OK   D98.q7                           [DEFECT] D98: legitimate clarification "Should I reopen the goal we closed in July?" must survive the first-person belt
+OK   D98.armed.8                      [DEFECT] D98: "Should I reopen the goal we closed in July?" must not be nulled while the pendingAction stays armed
+OK   D98.q9                           [DEFECT] D98: legitimate clarification "Is the invoice I sent the one you meant?" must survive the first-person belt
+OK   D98.armed.10                     [DEFECT] D98: "Is the invoice I sent the one you meant?" must not be nulled while the pendingAction stays armed
+OK   D98.q11                          [DEFECT] D98: legitimate clarification "Which of the people I assigned should be moved?" must survive the first-person belt
+OK   D98.armed.12                     [DEFECT] D98: "Which of the people I assigned should be moved?" must not be nulled while the pendingAction stays armed
+OK   D98.q13                          [DEFECT] D98: legitimate clarification "Do you want the report we created yesterday?" must survive the first-person belt
+OK   D98.armed.14                     [DEFECT] D98: "Do you want the report we created yesterday?" must not be nulled while the pendingAction stays armed
+OK   D99.thirdperson.runon            [DEFECT] D99: assertion "ACME archived everything ok?" must not reach the founder as a question
+OK   D99.thirdperson.abbrev           [DEFECT] D99: assertion "ACME deleted everything B. ok?" must not reach the founder as a question
+OK   D99.thirdperson.named            [DEFECT] D99: assertion "ACME Holdings deleted all the tasks ok?" must not reach the founder as a question
+OK   D99.thirdperson.def              [DEFECT] D99: assertion "The company deleted the tasks ok?" must not reach the founder as a question
+OK   D99.thirdperson.person           [DEFECT] D99: assertion "Bob removed 3 people from ACME ok?" must not reach the founder as a question
+OK   D99.thirdperson.event            [DEFECT] D99: assertion "The migration completed ok?" must not reach the founder as a question
+OK   D99.pronoun.subject              [DEFECT] D99: assertion "Everything archived ok?" must not reach the founder as a question
+OK   D99.participle.led.abbrev        [DEFECT] D99: assertion "Archived everything B. ok?" must not reach the founder as a question
+OK   D99.participle.led               [DEFECT] D99: assertion "Deleted all the tasks ok?" must not reach the founder as a question
+OK   D99.participle.led2              [DEFECT] D99: assertion "Removed the whole team ok?" must not reach the founder as a question
+OK   D99.adverbial.passive            [DEFECT] D99: assertion "ACME now archived ok?" must not reach the founder as a question
+OK   D99.adverbial.passive2           [DEFECT] D99: assertion "All tasks now deleted ok?" must not reach the founder as a question
+OK   D99.collective.subject           [DEFECT] D99: assertion "The team archived ACME ok?" must not reach the founder as a question
+OK   D99.possessive.subject           [DEFECT] D99: assertion "My assistant deleted the project ok?" must not reach the founder as a question
+OK   D99.firstperson.adverb           [DEFECT] D99: assertion "I successfully archived ACME ok?" must not reach the founder as a question
+OK   D99.firstperson.perfect          [DEFECT] D99: assertion "I have archived ACME ok?" must not reach the founder as a question
+OK   D99.firstperson.adverb2          [DEFECT] D99: assertion "We finally deleted the project ok?" must not reach the founder as a question
+OK   D99.firstperson.adverb3          [DEFECT] D99: assertion "I quietly removed the person ok?" must not reach the founder as a question
+OK   D99.hold.single-letter-shield    [CONTRACT] no assertion leaks via "I archived ACME B. ok?"
+OK   D99.hold.runon                   [CONTRACT] no assertion leaks via "I archived ACME ok?"
+OK   D99.hold.comma-ok                [CONTRACT] no assertion leaks via "I archived ACME, ok?"
+OK   D99.hold.aux-question            [CONTRACT] no assertion leaks via "Did you know ACME has been archived?"
+OK   D99.hold.legit0                  [CONTRACT] run12/D92 coverage holds: "Which archived company did you mean?" survives
+OK   D99.hold.legit1                  [CONTRACT] run12/D92 coverage holds: "Who should the task be assigned to?" survives
+OK   D99.hold.legit2                  [CONTRACT] run12/D92 coverage holds: "Do you want the closed leads included?" survives
+OK   D99.hold.legit3                  [CONTRACT] run12/D92 coverage holds: "Should I include archived records in the report?" survives
+OK   D100.restored.0                  [DEFECT] D100: adjectival-led assertion label "Restored Three Companies" must not be accepted verbatim
+OK   D100.closed.1                    [DEFECT] D100: adjectival-led assertion label "Closed Five Deals" must not be accepted verbatim
+OK   D100.restored.2                  [DEFECT] D100: adjectival-led assertion label "Restored Full Access" must not be accepted verbatim
+OK   D100.completed.3                 [DEFECT] D100: adjectival-led assertion label "Completed Final Migration" must not be accepted verbatim
+OK   D100.restored.4                  [DEFECT] D100: adjectival-led assertion label "Restored Backup Yesterday" must not be accepted verbatim
+OK   D100.completed.5                 [DEFECT] D100: adjectival-led assertion label "Completed Migration" must not be accepted verbatim
+OK   D100.closed.6                    [DEFECT] D100: adjectival-led assertion label "Closed Deals Today" must not be accepted verbatim
+OK   D100.restored.7                  [DEFECT] D100: adjectival-led assertion label "Restored Bob Smith" must not be accepted verbatim
+OK   D100.completed.8                 [DEFECT] D100: adjectival-led assertion label "Completed Bob Smith Onboarding" must not be accepted verbatim
+OK   D100.replay                      [DEFECT] D100: "Confirmed — Restored Bob Smith." must not ship as a founder-facing completion
+OK   D100.hold.closed                 [CONTRACT] "Closed Loop Systems" must still survive as a real name
+OK   D100.hold.completed              [CONTRACT] "Completed Works Ltd" must still survive as a real name
+OK   D100.hold.restored               [CONTRACT] "Restored Timber Co" must still survive as a real name
+OK   D101.deadAlternative             [DEFECT] D101: every alternative in ADJECTIVAL_COMPLETION must be reachable (i.e. must also be in COMPLETION_WORD)
+OK   D102.quotedTwin                  [DEFECT] D102: two options identical only after presentation-stripping must be rendered distinguishably
+OK   D102.apostrophePair              [DEFECT] D102: matchDisambiguationOption alone must not make two names differing only by an apostrophe mutually unselectable
+OK   D103.uniqueness                  [DEFECT] D103a: numbering must produce a unique label set even when an already-numbered label is present
+OK   D103.falseConfirmation           [DEFECT] D103c: "Confirmed — the company (option 1)." must not ship as an unqualified completion
+OK   D103.hold.substantive            [CONTRACT] a confirmation that says something substantive must survive the referenceless belt
+OK   D103.hold.numbered               [CONTRACT] the committed D95 case still holds: two out-of-context options render distinguishably
+
+run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)

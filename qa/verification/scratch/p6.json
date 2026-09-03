@@ -1,0 +1,52 @@
+{
+  "status": "COMPLETE",
+  "verdict": "FAIL",
+  "verdict_detail": "DO NOT DEPLOY f1722f2. One P1 (D106 wrong-entity binding), five P2 (D107, D108, D112, D113, D114), four P3 (D109, D110, D111, D115).",
+  "index_ts_sha256_observed_at_end": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
+  "sha_final_match": true,
+  "temporary_source_edits": "39 total (34 mutation-battery mutants + 3 prepared-fix trials + 1 naive-FIX-A trial + 1 FIX-A2 trial). Every one written to the REAL index.ts, restored from a pristine byte copy in a finally block, sha-asserted after each cycle; runner aborts on mismatch. Final sha MATCHES the required value.",
+  "production_read_only": {
+    "function": "sem-ai-command",
+    "version": 92,
+    "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+    "updated_at": "2026-09-01T05:15:25.518Z",
+    "origin_master": "80074c2bdcae915a73aad348023b104673e96216",
+    "branch_ahead_of_master_by": 28,
+    "note": "Nothing on this branch is live. Byte-level prod-vs-candidate diff deliberately NOT performed: `supabase functions download` writes into supabase/functions/sem-ai-command/ and would have destroyed the sha discipline (commit 4b173a3 already makes this a standing repo rule). Recorded as a scoped, deliberate gap."
+  },
+  "scenarios": {
+    "S5_attack_d102_raw_fallback_misbinding": { "defect_id_final": "D106 (renumbered from D105, which was already taken by campaign #73)" },
+    "S7_ledger_bookkeeping_truth": {
+      "status": "FAIL",
+      "evidence": "CURRENT_CAMPAIGN.json is ACCURATE on every checkable claim - base commit f1722f2, required index.ts sha256 10db5838...a70d2a, branch, project_ref pvphxgrtdfrudejjhzjk (cross-checked web/CLAUDE.md:29), prior-campaign archive sha256 c5443920...89057f - all four independently recomputed and matching. run13_defect_closure_contract.mjs's header sha for ace9b6a (021c8989...8a4b786) is also correct. The commit's '24 suites' count is right (25 .mjs minus the shared library). The three edits f1722f2 made to run10/run11/run12 committed contracts are HONEST: each renames the case stating what changed and why, and run12 ADDS a new D100.uncorroborated CONTRACT rather than merely deleting the old assertion - no test-weakening found.",
+      "defects_found": [
+        "D115 (P3, bookkeeping): D104's ledger corruption is STILL LIVE. qa/KNOWN_FAILURE_MODES.md:6931-6936 still contains a malformed '## #72 ...` section below**,' heading plus four lines of #12's promotion note and a stray '---', creating a duplicate '## #72' heading before the real entry at 6939. #13 diagnosed it as D104 and adopted the right structural remedy (separate promotion file) but never removed the corruption; the f1722f2 closure did not either. Two campaigns of recorded-not-fixed. Also: two ledger/comment claims do not match the code - the '0/20 leaks and 0/27 drops, strictly better on BOTH axes' claim (see D114) and the 'Genuine deterministic-* turns are excluded below' comment at index.ts:5178 (only arm 1 excludes them)."
+      ]
+    }
+  },
+  "defects_found_this_campaign": [
+    "D106 (P1) — D102's raw fallback binds a founder's disambiguation reply to a DIFFERENT entity and arms a destructive field with it. Regression vs ace9b6a. Does not even close its own stated case.",
+    "D107 (P2) — ELEVENTH vacuous-guard recurrence: arm 2 of the drift gate can revert to a private pattern copy with the whole battery green; 'one predicate, both arms' unobserved.",
+    "D108 (P2) — the disambiguation replay site has ZERO executable coverage, and it is the ONLY protection on the deterministic-* path that actually emits the string; the committed D100.replay/D103.falseConfirmation cases test model='gpt', a path that cannot emit it.",
+    "D109 (P3) — D78/D86/D91 sub-guards are subsumed by D100's corroboration and observed by nothing.",
+    "D110 (P3) — corroboration equality and collision-key precision unobserved.",
+    "D111 (P3) — CONFIRMED_COMPLETION ^, REFERENCELESS_CONFIRMATION ^, INTERROGATIVE_LEAD \\b all unobserved.",
+    "D112 (P2, NEW) — CONFIRMED_COMPLETION destroys truthful negation/noun/status answers and replaces them with a false refusal. 9/16 new; 0/16 on ace9b6a.",
+    "D113 (P2) — D100's corroboration is GATED ON the lexical COMPLETION_WORD test it was written to replace; out-of-vocabulary and confusable labels ship verbatim as selectable, executable options.",
+    "D114 (P2) — FIX-3b REPLACED run12's first-person belt and reopened it: curated corpus ace9b6a 0/20 leak, f1722f2 13/20 leak, 0 newly closed. Third consecutive campaign closing one direction by reopening the other.",
+    "D115 (P3, bookkeeping) — D104's ledger corruption still un-remediated; two ledger/comment claims contradict the code."
+  ],
+  "regressions_added": [
+    "qa/verification/proposed/v14_regression_additions.mjs — 63 cases (34 pass, 29 fail on f1722f2; 0 CONTRACT failures). Same two-kind convention and the same exit guard as run13, no kind-based carve-out. Mutation-proven: all 16 mutants that survived the committed battery are killed by this file (16/16, evidence qa/verification/scratch/v14_mutate_verify_additions.mjs)."
+  ],
+  "prepared_fixes_validated_not_applied": [
+    "FIX-C / D106 — one line; strictly better than BOTH prior SHAs on all 10 matcher probes; all 25 suites green.",
+    "FIX-B / D112 — negation-aware CONFIRMED_COMPLETION; new FPs 9/16 -> 0/16; all 25 suites green.",
+    "FIX-A2 / D114 — clause-position first-person belt AHEAD of the lead belt; reopened class 13/20 -> 1/20; 0 new clarification drops; all 25 suites green. The NAIVE variant was measured and REJECTED (breaks 8 committed D98 cases).",
+    "A2+B+C together: v14_regression_additions 34/29 -> 59/4 (only D113 remains), all 25 committed suites green."
+  ],
+  "not_fixed_and_why": "No source change was made at all: campaign rule 1 requires index.ts to end at the required sha256, which forbids applying any fix this run. D113 additionally needs a product decision (corroborate ALL labels vs keep a lexical gate), not a patch. D107-D111 are observability defects whose remedy IS the regression file. D115 is a six-line ledger deletion deliberately left to the promoting session.",
+  "db_pushes_pending": "NONE. No migration was written, needed, or prepared; this campaign never touched the database.",
+  "synthetic_data_created": "NONE. No QA-VERIFY-* entities were created; every check ran against extracted source slices, three git-extracted historical copies of index.ts, and one read-only `supabase functions list`. Nothing was written to production.",
+  "remaining_scenarios": []
+}

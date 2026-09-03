@@ -1,0 +1,24 @@
+{
+  "concurrent_session_artifact_verified": {
+    "files": ["qa/verification/proposed/v14_d105_matcher_fix.patch.md", "qa/verification/proposed/v14_d105_matcher_probe.mjs"],
+    "note": "These appeared in the working tree DURING this campaign, written by the implementing session, not by me. Its own validation was not accepted as evidence; the diff was applied to the real source and measured (qa/verification/scratch/v14_verify_concurrent_fix.mjs), then restored with a sha assertion.",
+    "verdict": "BETTER THAN MY FIX-C, BUT INCOMPLETE. Its 'most specific match wins' rule closes all three D106 mis-bindings and resolves four cases both ace9b6a and an equality-only repair dead-end; all 25 committed suites green; all six of my D106 cases pass. HOWEVER it GUESSES whenever a reply mentions more than one option label, picking the longest even when the reply explicitly excludes it ('archive acme, leave acme holdings alone' -> Acme Holdings). f1722f2 correctly returns null for all three such replies today, so applying it as written would introduce a NEW defect of the run9/D32 'the reply's own words say otherwise' class. Its 12-case probe contains no multi-mention case, which is why its self-validation reads clean. Its 'D105' number also collides with the existing D105 (P3, bookkeeping) in ledger entry #73.",
+    "recommended_form": "FIX-C2 = its specificity rule + a residual-mention guard (after removing the winning label, no OTHER option label may remain in the reply). Measured 13/13 adversarial cases correct, all 25 committed suites green. Evidence qa/verification/scratch/v14_fixC2_test.mjs; diff in qa/verification/proposed/v14_fixes.patch.md.",
+    "regressions_added_for_it": ["D106.hold.mentionsBothEntities", "D106.hold.replyExcludesTheLongest", "D106.hold.mentionsTwoDistinctOptions"]
+  },
+  "final_assertions": {
+    "index_ts_sha256_at_end": "10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a",
+    "sha_matches_required": true,
+    "git_status_supabase": "clean — byte-identical to f1722f2",
+    "temporary_source_edits_total": 40,
+    "final_battery": "25/25 suites exit 0, 0 failure lines in output text",
+    "v14_regression_additions_on_f1722f2": "37 pass, 29 fail (29 open #74 DEFECTs, 0 CONTRACT failures) — exits 1 by design",
+    "v14_additions_mutation_proof": "16/16 previously-surviving mutants now killed, 0 still unobserved"
+  },
+  "deliverables": [
+    "qa/verification/proposed/v14_known_failure_modes_entry_74.md — the '## #74 —' ledger section, no preamble",
+    "qa/verification/proposed/v14_PROMOTION_NOTE.md — promotion instructions, kept OUT of the ledger entry",
+    "qa/verification/proposed/v14_regression_additions.mjs — 66 cases, run13 convention, exit guard, no carve-out",
+    "qa/verification/proposed/v14_fixes.patch.md — FIX-A2 / FIX-B / FIX-C2, each validated against the real source and restored"
+  ]
+}

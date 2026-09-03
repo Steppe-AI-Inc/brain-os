@@ -1,0 +1,19 @@
+OK   pack leads with continuity and has NO top-level command key
+OK   currentTurn is the LAST key in the pack
+OK   history entries carry ABSOLUTE turn numbers
+OK   the current turn cannot self-include: pending row is inserted AFTER buildContext
+OK   continuity carries the honesty fields
+OK   prompt names currentTurn as THE command being answered
+OK   prompt forbids reconstructing out-of-window turns
+OK   prompt makes the rule unconditional (no anti-guess clause needed)
+OK   turn-numbering expression present
+OK   50-turn channel: window is turns 43..50, current is 51, incomplete
+OK   3-turn channel: window is 1..3, complete, current is 4
+OK   fresh channel: no window, current is turn 1
+OK   durable READ is feature-gated: any error yields null (pre-migration = today)
+OK   bare-yes can only bind to a FULLY TYPED durable pending action (reader side)
+OK   an untyped pendingAction stores NULL pending state (writer side fail-closed)
+OK   durable write uses optimistic CAS on version, never blind overwrite
+OK   last_successful_mutation comes from backend evidence, never prose
+
+current_turn_and_continuity_contract: 17/17 passed

@@ -429,39 +429,8 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   // founder who typed the exact name gets the exact option, and a genuinely ambiguous
   // reply still resolves to nothing.
   if (matches.length > 1) {
-    // run14/D106 (P1, MY OWN REGRESSION from the D102 fix above). The first version of this
-    // fallback filtered `options` rather than `matches`, and tested CONTAINMENT rather than
-    // equality — so a short label that was incidentally a raw substring of the reply beat
-    // the one the founder actually named. Options [Smith, Smith's Bakery] + reply "smiths
-    // bakery" bound to SMITH, and its actionType then armed archiveCompanyIds with no LLM
-    // in the loop. Every earlier defect in this family could only DEAD-END; this one
-    // archives the wrong company. It also failed its own goal: typing the exact name
-    // "smith's bakery" still dead-ended.
-    //
-    // Specificity first: when a reply contains several labels, the LONGEST is the one the
-    // founder named and a shorter one is contained only incidentally.
-    //
-    // But longest-wins ALONE guesses whenever a reply genuinely mentions more than one
-    // option — "archive acme, leave acme holdings alone" would select the very option the
-    // reply EXCLUDES. So the winner must be the only option still mentioned once its own
-    // text is removed. A reply naming several options is ambiguous and must dead-end,
-    // exactly as it did before D102. (That guard is verifier #14's, not mine: my own
-    // proposed fix had this hole, and its 12-case probe contained no multi-mention case,
-    // which is precisely why its self-validation read clean. A fix's own author is the
-    // worst judge of what it forgot.)
-    const specificity = (o: PendingActionOption) => forMatching(o.label).length;
-    const maxLen = Math.max(...matches.map(specificity));
-    const longest = matches.filter((o) => specificity(o) === maxLen);
-    if (longest.length === 1) {
-      const rest = normalizedCommand.split(forMatching(longest[0].label)).join(' ');
-      return matches.some((o) => o !== longest[0] && rest.includes(forMatching(o.label))) ? null : longest[0];
-    }
-    // Still tied => the labels differ ONLY in presentation (D102's apostrophe pair). This is
-    // the single situation the raw comparison exists for, and confining it to the tied set
-    // is what makes the D106 mis-bind unrepresentable rather than merely unlikely.
-    const rawCommand = command.replace(/\s+/g, ' ').trim().toLowerCase();
-    const exact = longest.filter((o) => o.label.trim().length > 0
-      && rawCommand.includes(o.label.replace(/\s+/g, ' ').trim().toLowerCase()));
+    const exact = options.filter((o) => usable(o) && o.label.trim().length > 0
+      && command.trim().toLowerCase().includes(o.label.trim().toLowerCase()));
     if (exact.length === 1) return exact[0];
   }
   return null;
@@ -4837,23 +4806,6 @@ serve(async (req) => {
           // Measured 0/20 leaks and 0/27 drops — strictly better on BOTH axes than any
           // previous build, which neither run11 nor run12 achieved.
           const INTERROGATIVE_LEAD = /^(please\s+)?(who|whom|whose|which|what|when|where|why|how|do|does|did|is|are|was|were|am|can|could|should|shall|will|would|may|might|have|has|had|if)\b/i;
-          // run14/D114: FIX-3b REPLACED run12's first-person belt rather than adding to it,
-          // and thereby reopened exactly the class that belt closed — 13 of 20 natural
-          // interrogative-led first-person assertions that ace9b6a caught began shipping
-          // again ("Did I mention I archived ACME already?"). The two axes are
-          // COMPLEMENTARY, NOT ALTERNATIVES. This was the third consecutive campaign to
-          // close one direction of this belt by reopening the other; keeping both is the
-          // only thing that ends that cycle.
-          //
-          // The first-person axis itself needs CLAUSE POSITION, not bare person: in every
-          // legitimate D98 clarification the completion sits inside a noun phrase ("the
-          // tasks we completed", "the ones I removed", "the company I archived"); in every
-          // assertion it is the main predicate. The lookbehind encodes that, and D98's seven
-          // committed cases are what observe it. A blanket re-add WITHOUT the lookbehind
-          // breaks eight of them — measured, not assumed, and D114.hold.0–6 exist to catch
-          // a fourth attempt at that swap.
-          const FIRST_PERSON_MAIN_CLAUSE_COMPLETION = /(?<!\b(?:the|a|an|all|any|some|those|these|our|your|my|their|both|each|every)\s\w{1,24}\s)\b(i|we)\s+(?:\w+ly\s+|just\s+|already\s+|have\s+|has\s+|had\s+){0,2}(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)\b/i;
-          if (FIRST_PERSON_MAIN_CLAUSE_COMPLETION.test(q)) return null;
           if (COMPLETION_WORD.test(q) && !INTERROGATIVE_LEAD.test(q)) return null;
           return q;
         };
@@ -5106,57 +5058,9 @@ serve(async (req) => {
                 : `option ${oi + 1}`;
               const safeLabel = safeOptionLabel(o.label);
               const bare = (v) => String(v).replace(/[“”‘’"']/g, '').trim().toLowerCase();
-              // run14/D113 — THE DECISION THAT ENDS THIS CLASS. The corroboration above was
-              // itself GATED ON `COMPLETION_WORD`, the very lexical test the comment three
-              // paragraphs up calls "always wrong". So the database check only ran when the
-              // discredited grammar test happened to fire, and any fabricated label using
-              // completion vocabulary outside the 24-word English list ("Terminated Bob
-              // Smith", "Wiped All Data", "Revoked Access") or spelled with a Cyrillic
-              // confusable was never corroborated at all — it shipped VERBATIM as a
-              // selectable option whose id resolves to an entity with a completely different
-              // canonical name. The founder could select "Terminated Bob Smith" and archive
-              // ACME Holdings.
-              //
-              // D78 -> D86 -> D91 -> D100 -> D113 is five campaigns of narrowing a lexical
-              // gate. The class does not end until the gate stops being lexical, so it is
-              // removed: when the id resolves against the canonical read, the CANONICAL NAME
-              // is what the founder sees. The model's label is used only when there is no
-              // canonical name to use instead.
-              //
-              // Accepted cost, stated plainly: a legitimate model paraphrase of a real name
-              // is now replaced by the canonical spelling. That is the correct trade. An
-              // option is a POINTER TO AN ENTITY, and the founder choosing between entities
-              // must see what those entities are actually called — a paraphrase is exactly
-              // the channel a fabricated label travels through, and no paraphrase is worth
-              // one wrong archive.
-              // TWO INDEPENDENT RULES, and only the second one is lexical:
-              //
-              //   1. The canonical read KNOWS this entity and the label disagrees with it
-              //      -> replace. No word list involved, so "Terminated Bob Smith" for an
-              //      entity actually called ACME Holdings is caught, and so is a Cyrillic
-              //      homoglyph of a real name. This is the rule that closes D113, and it is
-              //      the strong case: we are not guessing, we know what the row says.
-              //   2. The canonical read does NOT know this entity, and the label reads as a
-              //      completed action -> replace. Unverifiable AND assertion-shaped is the
-              //      D100 shape, and such an option cannot execute anyway (run13/D103, its
-              //      id fails the contextPack filter).
-              //
-              // A benign label for an entity the read simply does not contain SURVIVES,
-              // which is what run8/D72b pins ("ACME Holdings." keeps its repair). Removing
-              // the lexical test from rule 2 as well destroyed that case and two others —
-              // measured, then reverted. The lesson is that the gate was doing real work in
-              // the ABSENT branch; what was wrong was letting a word list decide the
-              // PRESENT branch, where the database already knows the answer.
-              const typedFallback = TYPED_FALLBACK[typeof o.entityType === 'string' ? o.entityType : 'record'] || 'the record';
-              const canonicalKnowsIt = !!derivedLabel
-                && bare(derivedLabel) !== bare(typedFallback)
-                && !/^option \d+$/.test(derivedLabel);
-              const agrees = !!safeLabel && bare(safeLabel) === bare(derivedLabel);
-              o.label = agrees
+              o.label = (safeLabel && (!COMPLETION_WORD.test(safeLabel) || bare(safeLabel) === bare(derivedLabel)))
                 ? safeLabel
-                : (canonicalKnowsIt || !safeLabel || COMPLETION_WORD.test(safeLabel))
-                  ? derivedLabel
-                  : safeLabel;
+                : derivedLabel;
               if (o.label !== beforeLabel) pendingActionGatingChanged = true;
             }
             // run12/D95: when two options both fall back to a bare TYPED reference (their
@@ -5272,16 +5176,7 @@ serve(async (req) => {
         // label names nothing), so this is defense-in-depth for any path that still could.
         // Genuine deterministic-* turns are excluded below, so a legitimate imperative
         // confirmation summary ("Confirmed — Archive ACME?") is unaffected.
-        // run14/D112: the original `.*` carried no negation handling and no part-of-speech
-        // constraint, so the belt fired on a completion word used in a NEGATION ("the
-        // company is not archived"), as a NOUN ("the archived list", "3 archived
-        // companies") or in an explicit not-done statement ("still pending, not approved") —
-        // nine truthful founder-facing answers of sixteen, each replaced with "I can't
-        // actually do that from chat", which is itself false. Destroying a true answer and
-        // substituting a false one is a worse outcome than the fabrication this belt exists
-        // to catch. A negator anywhere in the predicate disarms the belt, and a completion
-        // word directly preceded by a determiner or a cardinal is a noun, not a claim.
-        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*(?![^]*\b(?:not|never|no|nothing|none|without|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t)\b)[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
+        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*.*\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the

@@ -1,0 +1,136 @@
+You are VERIFIER #14, campaign #74. You are an INDEPENDENT verifier. The session that
+wrote the code under test is a different session. Do not trust its claims, its comments,
+its commit message, or its own test harnesses. Re-derive everything.
+
+REPO: C:/Users/Dell/dev/brain-os
+BRANCH: pending/d3-past-completion-gate-pendingaction-shortcircuit
+BASE COMMIT: f1722f255b47157182b158ecb3cd36554bb33f08
+REQUIRED index.ts sha256: 10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a
+  (file: supabase/functions/sem-ai-command/index.ts)
+
+Campaign record: qa/verification/CURRENT_CAMPAIGN.json (campaign 74). It lists exactly
+what changed since campaign #73 and what you must independently establish. Prior
+campaign: qa/verification/archive/campaign-ace9b6a-verify13.json. Ledger:
+qa/KNOWN_FAILURE_MODES.md (#73 entry + CLOSURE POSTSCRIPT at the end).
+
+=========================== NON-NEGOTIABLE RULES ===========================
+
+1. SHA DISCIPLINE. Assert the index.ts sha256 BEFORE you start, after EVERY temporary
+   source edit you make, and at the very end. If it does not match
+   10db5838…a70d2a at the end, your run is INVALID — say so, do not report a verdict.
+   Restore every temporary edit byte-identically and prove it with a hash.
+
+2. VERDICT CLASSIFICATION. Your final verdict must be exactly one of:
+     PASS
+     FAIL
+     BLOCKED — PROVIDER_CAPACITY
+     BLOCKED — OTHER
+   NEVER derive PASS from a process exit code. A suite that prints failures and exits 0
+   is a FAIL, not a PASS. exit 0 together with provider-capacity / session-limit text is
+   BLOCKED — PROVIDER_CAPACITY, never PASS. Count failures from OUTPUT TEXT.
+
+3. NO SELF-CERTIFICATION BY PROXY. qa/verification/proposed/v13_mutation_proof.mjs is the
+   IMPLEMENTING session's harness. Running it and reporting its result is NOT independent
+   verification. Write your own mutation harness from scratch.
+
+4. WRITE NOTHING to production. No DB writes, no function deploys. Read-only checks
+   against production are fine and encouraged (see step 6).
+
+======================== WHAT YOU ARE VERIFYING ========================
+
+Campaign #73 (verifier #13) returned DO NOT DEPLOY on ace9b6a with twelve defects across
+six IDs: D98, D99, D100, D101, D102, D103. The implementing session claims all twelve are
+closed in f1722f2. Your job is to decide whether that is true, and whether the closure
+introduced anything new.
+
+The changes, as claimed (verify each independently — the claim is not evidence):
+
+  A. FIX-3b — safeQuestionFragment drops a completion-word question fragment ONLY when no
+     INTERROGATIVE_LEAD precedes it. Claimed to close D98 and D99 together on one axis.
+  B. D100 — a completion-shaped disambiguation label is CORROBORATED against the canonical
+     read; when it does not match the canonical display name for that id, the canonical
+     name replaces it. Claimed to end the D78 -> D86 -> D91 -> D100 grammar-narrowing
+     sequence.
+  C. D101 — ADJECTIVAL_COMPLETION alternatives unreachable via COMPLETION_WORD removed.
+  D. D102 — matchDisambiguationOption falls back to RAW label comparison when the
+     presentation-stripped pass is ambiguous.
+  E. D103a — collision numbering keyed by labelKey.
+  F. D100.replay / D103c — readsAsCompletion() now backs BOTH drift arms
+     (legacyProseFallback AND unaccountedCompletionProse), which previously held private
+     copies of the pattern list. Adds CONFIRMED_COMPLETION and REFERENCELESS_CONFIRMATION.
+  G. The disambiguation replay site renders a quoted CHOICE, or a neutral acknowledgement
+     when the stored label names nothing checkable.
+
+======================== REQUIRED SCENARIOS ========================
+
+1. SHA + FULL BATTERY. Enumerate the .mjs suites in qa/scenarios-runner/ FROM THE
+   FILESYSTEM (do not use a hardcoded list — a suite that stops being run is how coverage
+   silently dies here). Run all of them. Report per-suite exit code AND failure count
+   parsed from output. Flag any suite that asserts nothing. State explicitly that the
+   *.sql suites were not run and that DB/RLS/lifecycle truth is therefore out of scope,
+   unless you have DB access.
+
+2. INDEPENDENT MUTATION TEST OF THE SEVEN NEW GUARDS. Write your own harness. For each
+   guard, mutate the REAL source and confirm some committed case fails. Critically:
+   MUTATE EACH GUARD'S LIMITS, NOT ONLY ITS COVERAGE. Over-broaden every belt (drop an
+   anchor, widen a character class, remove a negation) and confirm a CONTRACT case
+   catches it. This is exactly how the tenth vacuous-guard recurrence was found during
+   the closure — the belt's narrowness was unobserved while its coverage was well tested.
+   This project has now shipped ten vacuous guards. Assume an eleventh is present.
+
+3. ATTACK THE NEW DRIFT BELTS. Build a corpus of at least 25 completion-shaped summaries
+   and at least 25 legitimate non-completion summaries. Execute them through the REAL
+   gate slice extracted from index.ts. Report FALSE NEGATIVES (fabricated completion prose
+   that still ships to the founder uncorrected) and FALSE POSITIVES (truthful,
+   founder-useful replies destroyed). The previous two campaigns each traded one for the
+   other; check both directions and report both counts.
+
+4. ATTACK THE D100 CORROBORATION PATH. This is the first time label truth depends on a
+   canonical read rather than on grammar. Probe at least: a fabricated label that happens
+   to match a canonical name belonging to a DIFFERENT id; an id absent from the canonical
+   read; an empty/missing canonical read; a canonical name that is itself
+   completion-shaped; case and whitespace variants; unicode confusables. Can a fabricated
+   assertion label reach the founder verbatim by any of these?
+
+5. ATTACK THE D102 RAW FALLBACK FOR MIS-BINDING. This is the most dangerous change in the
+   set: every prior label fix could only cause a DEAD END (no option selected), but the
+   raw fallback can now select a DIFFERENT option. Prove or disprove that a founder reply
+   can bind to the wrong entity. Include substring-containment cases (one label contained
+   in another), and confirm an ambiguous reply still resolves to nothing rather than to a
+   guess.
+
+6. NO PRIOR CLOSURE REOPENED. run11 -> run12 reopened D98/D99 in BOTH directions across
+   consecutive campaigns. Re-run the D72-class contracts in run10/run11/run12 and confirm
+   each still holds on f1722f2. Separately, do a read-only production check of the
+   deployed sem-ai-command version and its ezbr_sha256 and record it, so the gap between
+   the candidate and production stays visible.
+
+7. LEDGER + BOOKKEEPING TRUTH. Verify the #73 entry and CLOSURE POSTSCRIPT in
+   qa/KNOWN_FAILURE_MODES.md describe what the code actually does, that no PROPOSED-file
+   preamble leaked in (that has happened twice: D97, D104), and that
+   qa/verification/CURRENT_CAMPAIGN.json accurately names the base commit and SHA. A
+   bookkeeping error that hides work from a reviewer is a real defect here, not a nit.
+
+======================== OUTPUT ========================
+
+Write your findings to qa/verification/proposed/v14_known_failure_modes_entry_74.md
+(as a `## #74 — …` section, NO promotion preamble inside it — put promotion notes in a
+SEPARATE file v14_PROMOTION_NOTE.md) and any new executable cases to
+qa/verification/proposed/v14_regression_additions.mjs using the same two-kind CONTRACT /
+DEFECT convention and the same exit guard as run13_defect_closure_contract.mjs (ANY
+failure exits nonzero; no kind-based carve-out). Update the scenarios{} block of
+qa/verification/CURRENT_CAMPAIGN.json as you go so the campaign is resumable if you are
+interrupted.
+
+Then state your verdict in the exact classification form from rule 2, followed by the
+exact index.ts sha256 you observed at the end.
+
+======================== IF YOU HIT A PROVIDER CAPACITY LIMIT ========================
+
+WRITE THE CHECKPOINT FIRST, before anything else. Into
+qa/verification/CURRENT_CAMPAIGN.json record: status BLOCKED_PROVIDER_CAPACITY, the
+scenarios already completed and their evidence, the exact base commit and index.ts
+sha256, the last completed scenario, and the remaining scenarios. A blocked attempt with
+a checkpoint resumes where it stopped; one without restarts from zero, and three
+campaigns have been lost that way. Do not attempt to restart yourself — retry ownership
+lives outside this session by design.
