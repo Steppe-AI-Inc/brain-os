@@ -17,7 +17,11 @@ Edge deploy gate.
   (main tree; hot file: supabase/functions/sem-ai-command/index.ts — ONE writer only).
 - Implementation SHA at #10's certification: 65ade7c (index.ts sha256 0272f245…8a5006).
   ANY index.ts change invalidates that certification — expected; #11 re-certifies.
-- master @ C:/Users/Dell/dev/brain-os-bug006 worktree: 12191e8 (BUG-008/009 fixed).
+- master @ C:/Users/Dell/dev/brain-os-bug006 worktree: PULL FIRST (run12/D96 — this line
+  used to pin 12191e8, which predates 202609030001; a reviewer following it without
+  pulling found only three of the four prepared migrations and reported the fourth as
+  non-existent). Do not pin a SHA here: `git -C C:/Users/Dell/dev/brain-os-bug006 pull
+  origin master` before reviewing or dispatching.
 - Production: sem-ai-command v92 ACTIVE (LIVE re-verified read-only by #10 attempt 2).
 - Migrations PREPARED NOT PUSHED — **all four live on the `master` branch, in the
   `C:/Users/Dell/dev/brain-os-bug006` worktree, NOT on this pending branch** (run8/D89:

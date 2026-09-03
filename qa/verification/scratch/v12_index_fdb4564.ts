@@ -410,18 +410,11 @@ function isClarificationAffirmative(command: string): boolean {
 // case-insensitive substring — zero matches or more than one match stays genuinely
 // ambiguous and falls through to the ordinary LLM call (step 5) rather than guessing.
 function matchDisambiguationOption(command: string, options: PendingActionOption[]): PendingActionOption | null {
-  // run12/D93: the F5 label formatter renders an assertion-shaped REAL name in quotes
-  // (“Advanced Closed Systems”) so it reads as a name rather than a statement. The
-  // founder still types the name plainly, so a literal comparison stopped matching and
-  // those options became unselectable — a REGRESSION caused by the display fix, not by
-  // the classifier. Both sides are compared with presentation characters removed, so
-  // how a label is DISPLAYED can never again decide whether it can be SELECTED.
-  const forMatching = (s: string) => s.replace(/[“”‘’"']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-  const normalizedCommand = forMatching(command);
+  const normalizedCommand = command.trim().toLowerCase();
   if (!normalizedCommand) return null;
   const matches = options.filter((o) =>
     o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string' &&
-    forMatching(o.label).length > 0 && normalizedCommand.includes(forMatching(o.label))
+    o.label.trim().length > 0 && normalizedCommand.includes(o.label.trim().toLowerCase())
   );
   return matches.length === 1 ? matches[0] : null;
 }
@@ -4743,38 +4736,12 @@ serve(async (req) => {
               cut = k; break;
             }
           }
-          let q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
-          // run11/D88 (4th instance of this class: D61, D77, D83, now D88): an assertion
-          // with NO sentence terminator in front of a trailing short question survived
-          // whole — "I archived ACME, ok?" has nothing to cut on. Terminator-based
-          // cutting can never see this shape, so the surviving fragment is additionally
-          // reduced to its LAST COMMA-DELIMITED clause whenever an earlier clause reads
-          // as a completion. A genuine multi-clause question ("If we archive it, does
-          // the team lose access?") keeps its clauses: only a clause carrying completion
-          // vocabulary triggers the reduction.
-          if (q.includes(',')) {
-            const clauses = q.split(',');
-            const tail = clauses[clauses.length - 1].trim();
-            const head = clauses.slice(0, -1).join(',');
-            if (tail.length > 0 && (COMPLETION_WORD.test(head) || PAST_COMPLETION_CLAIM_PATTERN.test(head))) q = tail;
-          }
+          const q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
           if (q.length === 0 || q.length > 200) return null;
           if (FUTURE_PROMISE_IN_QUESTION.test(q)) return null;
           // Belt over the structural cut (run9): a completion assertion phrased AS the
           // question itself ("Did you know ACME has been archived?") is still laundering.
           if (PAST_COMPLETION_CLAIM_PATTERN.test(q)) return null;
-          // run12/D92: this belt was `COMPLETION_WORD.test(q)`, which dropped any question
-          // that MENTIONS completion vocabulary rather than one that ASSERTS a completion —
-          // measured at 12 of 20 realistic clarifications lost ("Who should the task be
-          // assigned to?", "Which archived company did you mean?"). Those are the questions
-          // the structural cut exists to rescue, so the blanket test was worse than the
-          // hole it closed. It was load-bearing for exactly ONE shape: a first-person
-          // assertion shielded from the cut by the abbreviation rule ("I archived ACME B.
-          // ok?"). That shape — and only that shape — is what this now matches: a personal
-          // subject followed by a past-tense completion verb is a statement; the same verb
-          // used adjectivally or in a passive infinitive is ordinary question grammar.
-          const FIRST_PERSON_COMPLETION = /\b(i|we)\s+(?:just\s+|already\s+)?(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)\b/i;
-          if (FIRST_PERSON_COMPLETION.test(q)) return null;
           return q;
         };
         // Option labels are NAMES, never sentences: short, no terminal punctuation, no
@@ -4815,33 +4782,6 @@ serve(async (req) => {
             const words = t.split(/\s+/).map((w) => (QUOTE_CODES.includes(w.charCodeAt(0)) ? w.slice(1) : w));
             const titleCasedName = words.every((w) => /^[\p{Lu}0-9(&[-]/u.test(w) || NAME_CONNECTOR.test(w));
             if (!titleCasedName) return null;
-            // run11/D86: Title-Case alone was defeated by capitalising one letter —
-            // "ACME Deleted", "Project Completed", "ACME Deleted Everything" and
-            // participle-led "Deleted ACME" all passed as names. The separating fact is
-            // POSITION, not case: a completion participle anywhere but the first word is
-            // predicate syntax ("<Subject> deleted"), while a leading one is adjectival
-            // in a real name ("Closed Loop Systems") UNLESS a named object follows it,
-            // which makes it a verb phrase ("Deleted ACME").
-            //
-            // Heuristic and stated as such — the real safety net is the caller's
-            // derived-canonical fallback, which replaces any refused label with the
-            // database's own name, so a genuinely-named entity always keeps a
-            // selectable, distinct option.
-            const completionIdx = words.findIndex((w) => COMPLETION_WORD.test(w));
-            if (completionIdx > 0) return null;
-            // run12/D91: requiring an ALL-CAPS or determiner token after a LEADING
-            // participle still let 17 assertions through ("Granted Full Access", "Added
-            // Three People"). Chasing the object's shape is the wrong axis — the tell is
-            // the PARTICIPLE itself. Only a small set of completion words genuinely lead
-            // real names as adjectives ("Closed Loop Systems", "Completed Works Ltd");
-            // the rest are verbs, and a label starting with one is a sentence. Anything
-            // refused here still reaches the founder as the derived canonical name, so a
-            // genuinely-named entity loses nothing but its model-authored spelling.
-            const ADJECTIVAL_COMPLETION = /^(closed|completed|restored|advanced|integrated)$/i;
-            if (completionIdx === 0 && !ADJECTIVAL_COMPLETION.test(words[0])) return null;
-            const DETERMINER_OR_PRONOUN = /^(the|a|an|all|any|every|each|both|its|his|her|their|our|your|my|this|that|these|those|everything|everyone|anyone|nothing|it|them|us|me|him|files?|data)$/i;
-            if (completionIdx === 0 && words.length > 1
-                && (/^[\p{Lu}0-9]{2,}$/u.test(words[1]) || DETERMINER_OR_PRONOUN.test(words[1]))) return null;
           }
           return t;
         };
@@ -5000,24 +4940,6 @@ serve(async (req) => {
                 || (typeof o.id === 'string' && o.id ? displayName(typeof o.entityType === 'string' ? o.entityType : 'record', o.id) : `option ${oi + 1}`);
               if (o.label !== beforeLabel) pendingActionGatingChanged = true;
             }
-            // run12/D95: when two options both fall back to a bare TYPED reference (their
-            // entities are absent from the canonical read and carry no runtime label),
-            // they collapse to the identical "the company" — matchDisambiguationOption
-            // then finds two matches and returns null, dead-ending the flow with no way
-            // for the founder to answer. Colliding fallbacks are numbered so every option
-            // stays uniquely selectable. Real distinct names are untouched.
-            const labelCounts = new Map();
-            for (const o of paObj.options) {
-              if (o && typeof o.label === 'string') labelCounts.set(o.label, (labelCounts.get(o.label) || 0) + 1);
-            }
-            let collisionSeq = 0;
-            for (const o of paObj.options) {
-              if (o && typeof o.label === 'string' && labelCounts.get(o.label) > 1) {
-                collisionSeq++;
-                o.label = `${o.label} (option ${collisionSeq})`;
-                pendingActionGatingChanged = true;
-              }
-            }
           }
         }
         // Same run9/D73 durability rule for the arrays: a dropped/reduced question or
@@ -5050,40 +4972,7 @@ serve(async (req) => {
         // genuinely verified is unaffected.
         const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
 
-        // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
-        // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
-        // ACME." was corrected — the same claim, two outcomes. One shared verb list now
-        // feeds every arm, plus the broader progressive shapes the narrow arms missed
-        // ("Processing the request", "Working on archiving", "I am archiving",
-        // "Currently archiving"). Still defense-in-depth: evidence remains primary.
-        const PROGRESS_VERBS = 'assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending';
-        // run12/D94: the residual is now covered rather than left undisclosed —
-        // passive-progressive ("is being archived", "is getting archived"), imminent
-        // ("about to", "in the process of", "going ahead and", "proceeding to",
-        // "starting the", "kicking off"), and the polite first person ("let me archive").
-        // Still lexical and English-only: this is defense-in-depth, and evidence stays
-        // primary. A shape outside this list does not ship a fabricated completion on a
-        // turn that HAS execution evidence — it is re-rendered from that evidence.
-        const EXECUTION_IN_PROGRESS = new RegExp(
-          '\\b(' +
-          'executing (?:the )?(?:plan|request|action|changes?)' +
-          '|working on (?:' + PROGRESS_VERBS + ')' +
-          '|processing (?:the |your )?(?:plan|request|action|changes?)' +
-          '|i(?:\'|’)?m (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
-          '|i am (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
-          '|(?:now|currently) (?:' + PROGRESS_VERBS + ')' +
-          // Passive progressive takes PAST PARTICIPLES ("is being archived"), not the
-          // gerunds the other arms use — the original arm could never match it.
-          '|(?:is|are|was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)' +
-          // A bare gerund LEADING the reply is the same claim without a subject
-          // ("Archiving ACME as we speak.").
-          '|^(?:' + PROGRESS_VERBS + ') ' +
-          '|(?:about to|going to|proceeding to|starting to) (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate|add|send)' +
-          '|in the process of (?:' + PROGRESS_VERBS + ')' +
-          '|(?:going ahead and|kicking off) (?:the )?(?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
-          '|starting the (?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
-          '|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)' +
-          ')\\b', 'i');
+        const EXECUTION_IN_PROGRESS = /\b(executing (?:the )?(?:plan|request|action|changes?)|i['’]?m (?:now )?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining)|now (?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting))\b/i;
         // A supported mutation/assignment claim is the only thing that can account for
         // completion wording. State, existence, historical and verification claims cannot —
         // that asymmetry is exactly what L7/L8/L9/L10 exploited.
