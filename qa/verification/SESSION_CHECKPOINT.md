@@ -137,3 +137,20 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   **`cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb`**, worktree
   brain-os-verify-fbafded, watchdog pid 6595. DO NOT MODIFY index.ts until it returns.
 - DB round-4 independent reviewer (#401) still running on master 96e1309 (brain-os-verify-96e1309).
+
+## UPDATE 2026-09-04 ~15:45 local — DB round 4: A PASS, B PASS, C FAIL, D FAIL; round 5 pushed
+- Round-4 reviewer (#401, verify-96e1309-campaign4 @ b13173c) confirmed the round-3 P1s
+  closed and mutation-pinned. New: R4-1 (D guard omitted canonical_work_order_id/task_id/
+  agent_id — returned by the claim), R4-3 (C had no channel-ownership guard: plant / two-step
+  repoint onto the founder channel), R4-5 (persona session was a convention: superuser login
+  could SET SESSION AUTHORIZATION back), R4-2/4/6/7/8/9/10 recorded.
+- **Round 5 pushed as master `647c808`**: guard list pinned to the claim's return list by
+  `qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs` (+ liveness columns, 42501);
+  channel ownership on every binding INSERT / channel_id change; engine-enforced persona
+  connection (openPersonaDb as qa_authenticator on the real engine); R4-7 count corrected;
+  apply harness engine-aware. PGlite: personas 45/45, round-5 proof 9/9, round-4 proof 10/10.
+- CI run 33848913777 on 647c808 in progress (watched). When green: dispatch the round-5
+  reviewer ON 647c808 (no bookkeeping commit in between — R4-6), template
+  `qa/verification/scratch/db_review_round5_prompt_template.txt`, pinned GIT_HEAD.
+- Migration C stays split out of the A/B/D authorization batch (sequencing, C-1).
+- Verifier #18 (Edge, campaign #78) running on fbafded / cf4b6f4d…; index.ts frozen.
