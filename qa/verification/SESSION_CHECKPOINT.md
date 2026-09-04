@@ -158,3 +158,21 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   H.R4-5 OK, personas 45/45, all four SECURITY VERIFIED on the corrected harness,
   concurrency verified). **DB round-5 reviewer #501 dispatched ON 647c808** (same commit as
   CI, R4-6), worktree brain-os-verify-647c808, watchdog pid 7309. Awaiting its verdict.
+
+## UPDATE 2026-09-04 ~20:10 local — Edge #78 closed (verifier #19 running); DB round 5 FAIL closed by round 6
+- Edge: verifier #18 FAIL (D130 P1 + D131/D132/D133) closed at **`be9d94f`** (index.ts
+  `d050db20…`): negation vs the VERBAL completion (completionIsNegated); D131's 9-fabrication
+  residual documented + proven irreducible (each paired with a real name the same boundary
+  would destroy); prototype-key types fail closed; ordinal replies select by number. Battery
+  29/0; run18 promoted (56); v18 proof 12/12; deno 0 new. VERIFIER #19 running on rotation
+  commit `d34af15` (index.ts `d050db20…`), worktree brain-os-verify-d34af15.
+- DB: round-5 reviewer (verify-647c808-campaign5 @ 0843c3e) A PASS, B PASS, C FAIL, D FAIL.
+  **Round 6 pushed as master `4201a7e`**: new migration 202609040001 makes
+  chat_channels.created_by_profile_id immutable except founder/admin (R5-1 P1); C guards the
+  enabled-binding external-identity (R5-2) and DELETE (R5-3); D guards `id` (R5-4). personas
+  53/53; round6 proof 9/9. R5-7 recorded+deferred. A and B have passed TWO rounds. C stays
+  split out; 202609040001 authorized WITH C. CI run 33871917330 on 4201a7e (watched); when
+  green, dispatch the round-6 reviewer ON 4201a7e (R4-6),
+  template qa/verification/scratch/db_review_round6_prompt_template.txt, pinned GIT_HEAD.
+- Gates: still NOT ready. A/B/D authorization awaits the round-6 reviewer PASS on D (A/B
+  already 2x PASS). Edge deploy awaits verifier #19 PASS on the exact bytes.
