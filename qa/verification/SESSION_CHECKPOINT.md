@@ -280,3 +280,23 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   names). Collateral strictly better than baseline.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
   founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~04:20 local — Edge #84 FAIL → run24 (0e72ced); verifier #25 dispatched
+- Verifier #24 (campaign #84) FAIL on 89a1ac9: D158 (P2, FIX-A's evidential verbs disarmed the
+  belt when used PASSIVELY) + D158b/c/D159 (P3/P4). Confirmed D155/D156/D157 closed, both P1s hold.
+- **Closed at `0e72ced`** (index sha256 `e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834`):
+  D158 FIX-C (evidential verbs gated behind fixed-length lookbehinds excluding was/were/is/are/am/
+  be/been/being/has/have/had → active-complement only; the file already ships 12 such lookbehinds,
+  so Deno-safe, no (?-i:)). Corrected the stale D148 comment (D158c) and the collateral baseline
+  (vs 4476c92 not b32e0e4) and re-pointed run24's header (the #23/#24 papercut). Residuals
+  [RESIDUAL]: D158b, D154/D158c, D159, D156b, D153, D146b.
+  Evidence: run24 207/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  32/0 (run15 57/0, run23 retired, run24 added); deno 23 == baseline (npx deno@2); v24_mutation_proof 4/4.
+- **VERIFIER #25 dispatched** on bookkeeping commit `164b3ee` (index bytes identical), watchdog
+  pid 16542, monitor task on watchdog-verifier25_output.state.
+- Trajectory: #80→run20 … #84→run24 (FIVE iterations). The two P1s (D139 truthful-destruction,
+  D142/D148/D150 destructive-bind) have held across FIVE independent rounds. Severity is dropping
+  (last P2 was D158, now closed); remaining residuals are P3/P4 and disclosed. Belt is converging;
+  if #25 returns PASS or P4-only, `0e72ced` is the deploy-ready candidate pending ALLOW_FUNCTIONS_DEPLOY.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
