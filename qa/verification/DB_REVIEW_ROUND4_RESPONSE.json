@@ -166,5 +166,6 @@
   "production data; post-apply live verification after an authorized push",
   "the INDEPENDENT round-4 review has not returned — this file is the implementing session's response, not a verdict"
  ],
- "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-4 independent reviewer returns PASS on A, B and D on the corrected harness and the real-PostgreSQL job (including the concurrency step) is green on the reviewed commit."
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-4 independent reviewer returns PASS on A, B and D on the corrected harness and the real-PostgreSQL job (including the concurrency step) is green on the reviewed commit.",
+ "SUPERSEDED_BY": "DB_REVIEW_ROUND5_RESPONSE.json → ROUND6 → ROUND7. Round 6 (R6-8) found this file carried an unmarked \"closed\" claim on the agent_runs attestation columns; corrected: verification_status / head_commit are a SEPARATE open item (R6-8), recorded and deferred to the complete_work_order Work Order, not closed here."
 }

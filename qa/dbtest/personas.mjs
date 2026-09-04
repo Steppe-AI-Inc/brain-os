@@ -502,6 +502,20 @@ await T(MD, 'D.R5-4.managerCannotRekeyRun', 'R5-4 (P3): a manager cannot rewrite
     return refused && !rekeyed;
   }));
 
+// =========================================================================================
+// ROUND 6 (independent review) closures.
+// =========================================================================================
+await T(MC, 'C.R6-0.managerCannotRepointEnabledOntoOwnChannel', 'R6-0 (P1): a manager cannot repoint a founder-ENABLED binding onto their OWN channel (the untested hijack direction)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`update public.channel_transport_bindings set channel_id='${CH_MANAGER}' where external_conversation_id='conv-r5-enabled';`)));
+await T(MC, 'C.R6-1.managerCannotDisableFoundersBinding', 'R6-1 (P2): a manager cannot DISABLE a binding they did not create (defeats disable-then-delete)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`update public.channel_transport_bindings set enabled=false where external_conversation_id='conv-r5-enabled';`)));
+await T(MC, 'C.R6-1.managerCannotDeleteFoundersDisabledBinding', 'R6-1 (P2): a manager cannot DELETE a binding they did not create, even a disabled one', async () => {
+  await as(FOUNDER_AUTH, () => db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled) values ('telegram','conv-r6-founder-disabled','${CH_FOUNDER}','${CO_A}', false);`));
+  return as(MANAGER_A_AUTH, () => deniedWrite(`delete from public.channel_transport_bindings where external_conversation_id='conv-r6-founder-disabled';`));
+});
+await T(MC, 'C.R6-0.founderCanRepointEnabled', 'R6-0 LIMIT: the founder CAN repoint an enabled binding', async () =>
+  as(FOUNDER_AUTH, async () => { await db.exec(`update public.channel_transport_bindings set channel_id='${CH_MANAGER}' where external_conversation_id='conv-r5-enabled';`); await db.exec(`update public.channel_transport_bindings set channel_id='${CH_FOUNDER}' where external_conversation_id='conv-r5-enabled';`); return true; }));
+
 // ---- report -----------------------------------------------------------------------------
 const byMig = {};
 for (const r of R) (byMig[r.mig] ||= []).push(r);

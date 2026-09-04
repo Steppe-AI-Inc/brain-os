@@ -330,6 +330,28 @@ begin
         using errcode = '42501';
     end if;
   end if;
+  -- ROUND 6 / R6-0 (P1): the ownership check above validates the NEW channel's creator, and a
+  -- manager IS the creator of their own channel — so a manager could REPOINT a founder-ENABLED
+  -- binding onto their OWN channel (ownership passes) and hijack the founder's live external
+  -- conversation, in one still-enabled UPDATE, no founder action. Every round-5 test probed the
+  -- opposite direction (onto the founder's channel), the one the ownership check blocks.
+  -- REPOINTING AN ENABLED BINDING IS A FOUNDER/ADMIN ACT, regardless of where it points — the
+  -- round-4 rule round-5 dropped, restored here as an independent gate.
+  if tg_op = 'UPDATE' and old.enabled and new.channel_id is distinct from old.channel_id
+     and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: repointing an ENABLED binding requires the founder or an admin (regardless of the destination channel''s owner)'
+      using errcode = '42501';
+  end if;
+  -- ROUND 6 / R6-1 (P2): "disable then delete/edit" reproduced the redirect R5-3 claimed to
+  -- close, because DISABLE was ungated (R4-4) even on a binding the caller did not create. A
+  -- binding this caller did NOT create may only be disabled by the founder/admin — so a manager
+  -- can no longer neutralise, then delete-and-recreate, a founder's binding.
+  if tg_op = 'UPDATE' and old.enabled and not new.enabled
+     and old.created_by_profile_id is distinct from public.current_profile_id()
+     and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: disabling a binding you did not create requires the founder or an admin'
+      using errcode = '42501';
+  end if;
   -- ROUND 5 / R5-2 (P2): the gate watched enabled and channel_id but not the OTHER half of
   -- the destination — external_conversation_id / transport. A manager could rewrite those on
   -- an ALREADY-ENABLED binding and redirect the founder's outbound traffic without touching
@@ -361,8 +383,12 @@ security invoker
 set search_path = ''
 as $$
 begin
-  if old.enabled and not public.is_founder_or_admin() then
-    raise exception 'channel_transport_bindings: deleting an ENABLED transport binding requires the founder or an admin'
+  -- ROUND 6 / R6-1 (P2): deleting an ENABLED binding, OR a binding this caller did not create,
+  -- requires the founder/admin — so "disable (someone else's), then delete" no longer redirects
+  -- a live conversation. A manager may still delete a DISABLED binding they created themselves.
+  if (old.enabled or old.created_by_profile_id is distinct from public.current_profile_id())
+     and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: deleting an ENABLED binding, or one you did not create, requires the founder or an admin'
       using errcode = '42501';
   end if;
   return old;

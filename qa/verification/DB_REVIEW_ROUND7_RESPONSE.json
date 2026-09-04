@@ -1,0 +1,40 @@
+{
+ "artifact": "DB_REVIEW_ROUND7_RESPONSE",
+ "what_this_is": "Response to the independent DB review round 6 (DB_REVIEW_ROUND6_VERDICT.md, verify-4201a7e-campaign6 @ d67b147: A PASS, B PASS, D PASS, C FAIL). A RESPONSE, not a verdict.",
+ "authorization_batch": {
+  "A_202609020001": "PASS in rounds 4, 5 AND 6 — ready",
+  "B_202609020002": "PASS in rounds 4, 5 AND 6 — ready",
+  "D_202609030001": "PASS in round 6 (R5-4 closed and proven two ways) — ready",
+  "C_202609020003": "STILL SPLIT OUT. R6-0/R6-1 closed this round; C awaits its own round-7 independent review before it is authorized (with 202609040001), separately from A/B/D."
+ },
+ "findings": {
+  "R6-0 (P1, C)": {
+   "finding": "The ownership gate validated the NEW channel's creator, and a manager is the creator of their own channel — so a manager could REPOINT a founder-ENABLED binding onto their OWN channel and hijack the live conversation, one still-enabled UPDATE, no founder action. Every round-5 test probed the opposite direction.",
+   "change": "202609020003: repointing an ENABLED binding (any channel_id change while enabled) requires founder/admin, as an independent gate — the round-4 rule round-5 dropped.",
+   "observed_by": "personas C.R6-0.managerCannotRepointEnabledOntoOwnChannel + C.R6-0.founderCanRepointEnabled (LIMIT); migration_round7 M1/M2.",
+   "status": "CLOSED"
+  },
+  "R6-1 (P2, C)": {
+   "finding": "DISABLE was ungated (R4-4) even on a binding the caller did not create, so \"disable then delete/edit\" reproduced the R5-3 redirect.",
+   "change": "202609020003: disabling a binding you did not create requires founder/admin, and the DELETE gate refuses deleting an ENABLED binding OR one you did not create.",
+   "observed_by": "personas C.R6-1.managerCannotDisableFoundersBinding + C.R6-1.managerCannotDeleteFoundersDisabledBinding; migration_round7 M3/M4.",
+   "status": "CLOSED"
+  },
+  "R6-8 (P2, systemic, deferred)": {
+   "finding": "agent_runs.verification_status and head_commit are manager-forgeable inputs to complete_work_order's release gate. Written by complete_work_order/complete_agent_run (other migrations), not by this batch.",
+   "change": "RECORDED and DEFERRED to a dedicated Work Order on the release gate — guarding these belongs with complete_work_order, and adding them to migration D's retry guard risks blocking the legitimate SECURITY DEFINER writer. NOT a condition of authorizing A/B/D (which do not touch these columns).",
+   "status": "RECORDED / DEFERRED"
+  },
+  "ledger corrections (R6 requested, none is code)": {
+   "change": "\"R5-3 CLOSED\" withdrawn in the round-6 response; the round-4 response's unmarked attestation claim marked; DATA_CLASSIFICATION column count corrected.",
+   "status": "DONE"
+  }
+ },
+ "local_evidence_pglite_only": {
+  "personas": "57/57",
+  "apply": "81 files + shim / 0 failed",
+  "acceptance": "36/36",
+  "proofs": "migration_round7 4/4; round6 9/9; round5 9/9; round4 10/10; migration_a 8/8; migration_c 10/10"
+ },
+ "AUTHORIZATION_RECOMMENDATION": "A/B/D are ready: three independent review rounds (A/B PASS x3, D PASS in round 6), real-PostgreSQL CI SECURITY VERIFIED, all findings closed or (R6-8) deferred with a stated reason that does not touch A/B/D. The founder is now asked, exactly once, to approve the production DB migration of A, B and D. C (+ 202609040001) stays split out and will be authorized separately after its own round-7 review."
+}

@@ -31,7 +31,7 @@
    "finding": "DELETE was an unguarded, untriggered manager power — delete + re-create redirected a live conversation across a delete.",
    "change": "202609020003: a new BEFORE DELETE trigger refuses deleting an ENABLED binding unless founder/admin; a manager may still delete a DISABLED binding they own.",
    "observed_by": "personas C.R5-3.managerCannotDeleteEnabledBinding + .managerCanDeleteOwnDisabledBinding (LIMIT); migration_round6 M6-M8.",
-   "status": "CLOSED"
+   "status": "WITHDRAWN — round 6 (R6-1) showed the DELETE gate fell to \"disable then delete\"; re-closed in round 7 (see DB_REVIEW_ROUND7_RESPONSE.json). The round-6 \"CLOSED\" was premature."
   },
   "R5-7 (P2, pre-existing, out of scope)": {
    "finding": "agent_runs.verification_status/summary/error are manager-writable and rendered to the founder — a forgeable attestation, D-3's class on a column on the founder's screen. Written by complete_agent_run and sibling RPCs, not by this migration.",
@@ -67,5 +67,6 @@
   "R5-7 (agent_runs attestation columns) — deferred to its own Work Order",
   "the INDEPENDENT round-6 review has not returned — this file is a response, not a verdict"
  ],
- "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-6 independent reviewer returns PASS on A, B and D on a commit whose real-PostgreSQL CI run is green. C stays split out; the chat_channels immutability migration (202609040001) is authorized with C, not with A/B/D, because it changes a live table's behaviour and belongs to the messaging-transport story."
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-6 independent reviewer returns PASS on A, B and D on a commit whose real-PostgreSQL CI run is green. C stays split out; the chat_channels immutability migration (202609040001) is authorized with C, not with A/B/D, because it changes a live table's behaviour and belongs to the messaging-transport story.",
+ "ROUND6_REVIEW_OUTCOME": "A PASS, B PASS, D PASS, C FAIL (R6-0 P1 repoint-onto-own-channel; R6-1 P2 disable-then-delete). \"R5-3 CLOSED\" withdrawn. Round 7 closes R6-0/R6-1 in C; A/B/D unchanged and independently PASS."
 }
