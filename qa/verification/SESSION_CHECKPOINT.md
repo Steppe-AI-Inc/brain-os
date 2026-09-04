@@ -100,3 +100,25 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
 - **VERIFIER #17 (campaign #77) IS RUNNING** as TOP_LEVEL_ISOLATED_PROCESS on the rotation
   commit (index.ts sha in CURRENT_CAMPAIGN.json). DO NOT MODIFY index.ts until it returns.
 - DB round-3 reviewer #301 still running (worktree brain-os-verify-fbc5c79).
+
+## UPDATE 2026-09-04 ~15:00 local — DB round 3 FAIL closed by round 4; verifier #17 resumed after capacity block
+- DB round-3 independent review (verifier #301, verify-fbc5c79-campaign3 @ 3215ddd) returned
+  **FAIL on all four**. Load-bearing finding D-1 was the implementing session's: CI connected
+  as postgres and SET ROLE does not change session_user, so migration D's guards were never
+  exercised — the earlier SECURITY VERIFIED for D is WITHDRAWN. A-1: the trusted-write GUC
+  was forgeable by any role (same pattern LIVE in five pushed migrations — open class,
+  KNOWN_FAILURE_MODES DB-R3). Plus A-3, B-1, B-2 (R-B2 HIGH), C-2, C-3, D-2, D-3, A-6, X-1..X-3.
+- **Round 4 pushed as master `27a807d`**: qa_authenticator persona sessions (SET SESSION
+  AUTHORIZATION) with a self-check that refuses privileged session_user; two-part
+  trusted-write gate (flag AND definer context); manager tier removed from A's table policy;
+  B cross-company guards; C enable/repoint gate; D no EXECUTE grant, execution_mode guarded;
+  concurrency.mjs (SKIP LOCKED under two real connections, new CI step); governance rows +
+  invariants #8/#9; migration_round4_mutation_proof 10/10. Migration C is SPLIT OUT of the
+  A/B/D authorization batch (sequencing).
+- CI run 33845376254 on 27a807d in progress (watched). When green: dispatch the DB round-4
+  independent reviewer (template `qa/verification/scratch/db_review_round4_prompt_template.txt`,
+  pinned GIT_HEAD) and record its verdict; only then may `Approve production DB migration?`
+  (A/B/D) be asked, once.
+- Verifier #17 (Edge, campaign #77): attempt 1 BLOCKED — PROVIDER_CAPACITY (resets 2:20pm),
+  watchdog slept 11859s and re-dispatched attempt 2 at 14:22 on the unchanged SHA; running.
+  index.ts remains frozen at e5ccf63b… (closure f232975).
