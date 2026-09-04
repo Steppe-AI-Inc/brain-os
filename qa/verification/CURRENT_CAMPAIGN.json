@@ -1,41 +1,40 @@
 {
- "campaign": 85,
- "verifier": 25,
+ "campaign": 86,
+ "verifier": 26,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "0e72ced",
- "index_sha256": "e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834",
+ "closure_commit": "7c5e610",
+ "index_sha256": "3b5baa2c268ccb6c1ecb5e2eac0ac0f20ccfafc991af28af3b090416961f7602",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 84,
-  "verifier": 24,
+  "campaign": 85,
+  "verifier": 25,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-89a1ac9-verify24.json",
+  "archive": "qa/verification/archive/campaign-164b3ee-verify25.json",
   "defects": [
-   "D158 (P2)",
-   "D158b (P3)",
-   "D158c (P4)",
-   "D159 (P4)"
+   "D160 (P2)",
+   "D160b (P2)",
+   "D161 (P4)"
   ]
  },
- "what_changed_since_84": [
-  "D158 FIX-C: the twelve evidential verbs in completionIsNegated are gated behind fixed-length lookbehinds excluding was/were/is/are/am/be/been/being/has/have/had (active-complement only)",
-  "D158c: corrected the now-false run21/D148 comment (post-D157 lexicon unification)",
-  "bookkeeping: collateral baseline corrected (vs 4476c92 not b32e0e4); run24 header re-pointed at this candidate, \"green means broken\" line dropped",
-  "run23 retired, run24 promoted (207 cases)",
-  "residuals [RESIDUAL]: D158b, D154/D158c, D159, D156b, D153, D146b"
+ "what_changed_since_85": [
+  "D160/D160b FIX-D: evidential test runs on the LAST linker-delimited segment of the negator->verb span; the 11 FIX-C lookbehinds deleted (position, not voice)",
+  "D161 FIX-E: modal-hedge guard in readsAsCompletion drops may/might/could/can/would/should + (0-2 words) + have-been/be clauses",
+  "run24 retired, run25 promoted (440 cases)",
+  "bookkeeping: baseline claim corrected (run25 better than 4476c92 on both axes), D158d added to residuals, header pinned at this candidate",
+  "residuals [RESIDUAL]: D158b, D154/D158c, D156b, D153, D146b (D159 decorative)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run24": "207/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (strictly better than 4476c92)",
-  "battery": "32 suites / 0 failures (run15 57/0, run23 retired, run24 added)",
+  "run25": "440/0",
+  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed",
+  "battery": "32 suites / 0 failures (run15 57/0, run24 retired, run25 added)",
   "deno_check": "23 == baseline, 0 new (npx deno@2)",
-  "mutation_proof": "v24_mutation_proof 4/4",
-  "deploy_note": "no regexp modifier group shipped; only fixed-length lookbehinds (already 12 in the file)"
+  "mutation_proof": "v25_mutation_proof 4/4",
+  "deploy_note": "no regexp modifier group shipped; FIX-D removed the 11 FIX-C lookbehinds (position-based)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T20:25:10.373Z",
+ "opened_at": "2026-09-04T20:59:04.716Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }

@@ -1,0 +1,26 @@
+{
+ "campaign": 85,
+ "verifier": 25,
+ "candidate_sha": "164b3ee08b0f394eeda37a7e5dd39ff860616967",
+ "index_sha256": "e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834",
+ "verdict": "FAIL",
+ "defects": [
+  "D160 (P2, adverb/contraction/whitespace defeats FIX-C fixed-length lookbehind)",
+  "D160b (P2, active-intransitive evidential has no auxiliary to exclude)",
+  "D161 (P4, pre-existing, LEGACY modal lookbehind same class)"
+ ],
+ "confirmed_closed": [
+  "D158 #84 eleven cases",
+  "D155/D156/D157",
+  "no prior closure reopened",
+  "no modifier shipped",
+  "question belt byte-identical x4 SHAs"
+ ],
+ "root_cause": "FIX-C fixed the verbs VOICE with a fixed-length lookbehind (one token); the axis is POSITION",
+ "prepared_fixes": [
+  "FIX-D (adopted): evidential test on the last linker-delimited segment; deletes 11 lookbehinds",
+  "FIX-E (adopted): modal-hedge guard closes D161"
+ ],
+ "report": "qa/verification/scratch/verifier25_output.log",
+ "artifact_branch": "verify-164b3ee-campaign85 (751bff9)"
+}
