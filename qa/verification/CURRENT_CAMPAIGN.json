@@ -1,38 +1,39 @@
 {
- "campaign": 78,
- "verifier": 18,
+ "campaign": 79,
+ "verifier": 19,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "a559f8f",
- "closure_commit_note": "Close run17 D127-D129 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
- "index_sha256": "cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb",
+ "closure_commit": "be9d94f",
+ "index_sha256": "d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 77,
-  "verifier": 17,
+  "campaign": 78,
+  "verifier": 18,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-9535f0b-verify17.json",
+  "archive": "qa/verification/archive/campaign-fbafded-verify18.json",
   "defects": [
-   "D128 (P1)",
-   "D127 (P2)",
-   "D129 (P3)"
+   "D130 (P1)",
+   "D131 (P2)",
+   "D132 (P2)",
+   "D133 (P3)"
   ]
  },
- "what_changed_since_77": [
-  "D128: clause splitter back to [.!?,;\\n]; negation decided by ORDER against COMPLETION_VOCAB (negator must precede the completion verb); \"confirmed\" excluded from that vocabulary",
-  "D127: SELECTION_FILLER scoped — verbs from ACTION_FAMILY_VERBS[winner.actionType], nouns from ENTITY_NOUNS[winner.entityType]; RESTORE_VERB_PATTERN gains plain activate",
-  "D129: the winner's own \"(option N)\" / \"option N\" / \"#N\" is filler; bare digits and other options' numbers are not",
-  "D117 re-observed: run17 holds pin the clause split and comma boundary under the order rule",
-  "run17_defect_closure_contract.mjs promoted (43 cases)"
+ "what_changed_since_78": [
+  "D130: negation decided against the VERBAL completion (COMPLETION_VERB = auxiliary+participle), not any completion word; present-tense is/are excluded; completionIsNegated helper",
+  "D131: splitter is punctuation + colon-space only; and/but/dash stay inside names; \"without\" removed from negators; 9 fabrications are a DOCUMENTED, PROVEN-irreducible residual (catching them reopens D130), left to the evidence path",
+  "D132: prototype-key actionType/entityType fail closed via hasOwnProperty in the matcher AND resolveClarificationField",
+  "D133: an ordinal-only reply (\"option 2\", \"#2\", \"the second one\", bare \"2\") selects that option in range; a name+digit still dead-ends",
+  "run18_defect_closure_contract.mjs promoted (56 cases)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "28 suites / 0 failures (22 assertion-bearing)",
-  "mutation_proof": "v17_mutation_proof 14/14 (coverage + limits); v16 11/11 (+2 superseded); v15 8/8 (+6 superseded)",
-  "deno_check": "23 errors, identical set to d724d8c (0 new)"
+  "battery": "29 suites / 0 failures",
+  "mutation_proof": "v18 12/12; v17 7/7 (+7 superseded); v16 11/11 (+2); v15 4/4 (+10)",
+  "deno_check": "identical pre-existing errors to d724d8c, 0 new",
+  "documented_residual": "D131: 9 fabrications survive the belt; each proven inseparable from a required-survive real name; caught by the primary structured-evidence path, not the belt"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T07:10:45.278Z",
- "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes."
+ "opened_at": "2026-09-04T12:06:11.082Z",
+ "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once, only after an independent PASS on the exact bytes."
 }
