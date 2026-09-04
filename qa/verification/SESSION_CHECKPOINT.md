@@ -344,3 +344,24 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   returns PASS or only-documented-P4, `5db8603` is deploy-ready → ALLOW_FUNCTIONS_DEPLOY boundary.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
   `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~06:15 local — Edge #87 FAIL → run27 (b6cca5f); verifier #28 dispatched
+- Verifier #27 (campaign #87) FAIL on a9bf518: D163 (P2, FIX-G left the modal guard window
+  admitting an arbitrary subject — "I can confirm ACME has been archived." drops the clause),
+  D164 (P3, FIX-F's evidential rescue ignores whose subject), D165 (P3, pre-existing). Confirmed
+  D162a/D162b closed; also caught my #86 axis-claim self-contradiction.
+- **Closed at `291800b1…`** (commit b6cca5f): FIX-H (modal-hedge guard window anchored to a closed
+  HEDGING LEXICON, not [a-z]+) + FIX-I (negative lookahead: the evidential must belong to the
+  negated NP). Axis claim now stated PER-CORPUS (no self-contradiction). Residuals [RESIDUAL]:
+  D165, D158b, D154/D158c, D158d, D156b, D153, D146b.
+  Evidence: run27 161/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed (#20 corpus);
+  battery 32 files (31 executable + helper) / 0 failures (run15 57/0, run26 retired, run27 added);
+  deno 23 == baseline (npx deno@2); v27_mutation_proof 3/3.
+- **VERIFIER #28 dispatched** on bookkeeping commit `45d05cc` (index bytes identical), watchdog
+  pid 18557, monitor task on watchdog-verifier28_output.state.
+- Trajectory: #80→run20 … #87→run27 (EIGHT iterations). The two original P1s held across EIGHT
+  rounds. Each round now finds a narrower P2/P3 prose shape (adversarial asymptote); bookkeeping
+  discipline is now clean (2 consecutive clean passes). Belt is deploy-candidate-quality; the
+  founder may at some point weigh "good enough to deploy" vs chasing every exotic shape.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
