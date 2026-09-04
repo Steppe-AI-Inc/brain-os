@@ -154,3 +154,7 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   `qa/verification/scratch/db_review_round5_prompt_template.txt`, pinned GIT_HEAD.
 - Migration C stays split out of the A/B/D authorization batch (sequencing, C-1).
 - Verifier #18 (Edge, campaign #78) running on fbafded / cf4b6f4d…; index.ts frozen.
+- 15:34 — CI 33848913777 on 647c808 GREEN (real engine: persona connection ENGINE-ENFORCED,
+  H.R4-5 OK, personas 45/45, all four SECURITY VERIFIED on the corrected harness,
+  concurrency verified). **DB round-5 reviewer #501 dispatched ON 647c808** (same commit as
+  CI, R4-6), worktree brain-os-verify-647c808, watchdog pid 7309. Awaiting its verdict.
