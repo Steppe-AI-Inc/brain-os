@@ -5590,7 +5590,7 @@ serve(async (req) => {
           // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
           // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
           // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || /\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || /^(?!.*\b(?:the|a|an|this|that|these|those|our|its|his|her|their|my|your)\s+\w+\s+(?:show|prove|indicate|say|state|record|confirm|establish|suggest|report|mention|note)\w*\b)[^]*\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
             || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
@@ -5620,7 +5620,7 @@ serve(async (req) => {
         const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
           || (CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[.!?,\x3b\n]|:\s/).pop() ?? ''))
           || String(s).split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.trim()).some((c) => !completionIsNegated(c)
-            && !/\b(?:may|might|could|can|would|should)\s+(?:[a-z]+\s+){0,2}?(?:have been|has been|had been)\b/i.test(c)
+            && !/\b(?:may|might|could|can|would|should)\s+(?:(?:not|never|also|already|just|now|still|well|very|quite|really|truly|indeed|perhaps|possibly|probably|conceivably|previously|recently|actually|certainly|definitely|surely|maybe|in|fact|and|or|by|then|somehow|otherwise)\s+){0,3}(?:have been|has been|had been)\b/i.test(c)
             && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || /(?:^|\b[Cc]onfirmed\s*[—–-]\s*)(?:and |but |so |then )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:[A-Z]|company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)/.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
