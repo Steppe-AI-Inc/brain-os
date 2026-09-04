@@ -2726,9 +2726,12 @@ serve(async (req) => {
           // so "restore it" / "please restore" still armed the opposite field. The founder is
           // issuing a COMMAND when the reply carries a base/imperative opposite-family verb
           // (restore/unarchive/reactivate/activate vs a pending archive; archive/delete/remove/
-          // end vs a pending restore). Those word-boundary base forms never match the -ed/-ing
-          // forms in a real NAME ("Restored Furniture Co", "Reactivated Metals LLC"), so a
-          // participial-name selection is untouched while a genuine opposite command dead-ends
+          // end vs a pending restore — run23/D157 unified this with RESTORE/ARCHIVE_VERB_PATTERN,
+          // so the -ed/-ing forms and "bring back" are recognised too). What keeps a real NAME
+          // selectable is the LABEL-BARENESS gate above: a MULTI-word name leaves a non-empty
+          // remainder when its verb is stripped ("Restored Furniture Co", "Reactivated Metals LLC"
+          // both still select). A SINGLE-token participial name ("Restored", "Archived") IS bare
+          // and dead-ends — the D136 ambiguity answer (D158c). A genuine opposite command dead-ends
           // to the LLM (D136). commandContradictsActionType still catches an opposite verb left
           // OUTSIDE the matched name. Fail-closed: evaluated only when the actionType is known.
           const contradicted = !!matchedOption
@@ -5587,7 +5590,7 @@ serve(async (req) => {
           // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
           // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
           // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom|show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test(c.slice(n, m.index))
+          return n >= m.index || /\b(?:that|which|who|whom)\b|(?<!was )(?<!were )(?<!is )(?<!are )(?<!am )(?<!be )(?<!been )(?<!being )(?<!has )(?<!have )(?<!had )\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test(c.slice(n, m.index))
             || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
