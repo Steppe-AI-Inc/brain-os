@@ -460,6 +460,48 @@ await T(MD, 'D.R4-9.guardRaises42501', 'R4-9: the guard refusal carries SQLSTATE
     catch (e) { return e.code === '42501' || /42501/.test(String(e.message)) || (db.engine === 'pglite' && /may modify Agent Run retry\/checkpoint state/.test(String(e.message))); }
   }));
 
+// =========================================================================================
+// ROUND 5 (independent review) closures.
+// =========================================================================================
+// A founder-created ENABLED binding on the founder's own channel, for the R5-2/R5-3 probes.
+// Created AS THE FOUNDER (the enable gate checks is_founder_or_admin(), which a JWT-less
+// direct connection is not — enabling is a founder act by design).
+await as(FOUNDER_AUTH, () => db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+  values ('telegram','conv-r5-enabled','${CH_FOUNDER}','${CO_A}', true);`));
+
+await T(MC, 'C.R5-2.managerCannotRewriteEnabledExternalId', 'R5-2 (P2): a manager cannot change external_conversation_id on an ENABLED binding (redirect without touching enabled/channel_id)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`update public.channel_transport_bindings set external_conversation_id='ATTACKER-CHAT' where external_conversation_id='conv-r5-enabled';`)));
+await T(MC, 'C.R5-2.managerCannotRewriteEnabledTransport', 'R5-2 (P2): a manager cannot change transport on an ENABLED binding', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`update public.channel_transport_bindings set transport='whatsapp' where external_conversation_id='conv-r5-enabled';`)));
+await T(MC, 'C.R5-3.managerCannotDeleteEnabledBinding', 'R5-3 (P2): a manager cannot DELETE an ENABLED binding (delete+recreate redirect)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`delete from public.channel_transport_bindings where external_conversation_id='conv-r5-enabled';`)));
+await T(MC, 'C.R5-3.managerCanDeleteOwnDisabledBinding', 'R5-3 LIMIT: a manager may still DELETE a DISABLED binding on a channel they created', async () => {
+  await as(MANAGER_A_AUTH, () => db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+    values ('telegram','conv-r5-mgr-disabled','${CH_MANAGER}','${CO_A}', false);`));
+  await as(MANAGER_A_AUTH, () => db.exec(`delete from public.channel_transport_bindings where external_conversation_id='conv-r5-mgr-disabled';`));
+  return (await countVisible(`select count(*)::int c from public.channel_transport_bindings where external_conversation_id='conv-r5-mgr-disabled'`)) === 0;
+});
+await T(MC, 'C.R5-1.managerCannotTakeChannelOwnership', 'R5-1 (P1): a manager cannot rewrite chat_channels.created_by_profile_id (take ownership of the founder channel to defeat the binding gate)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`update public.chat_channels set created_by_profile_id='${MAP}' where id='${CH_FOUNDER}';`)));
+await T(MC, 'C.R5-1.ownershipStillFounderAfterAttempt', 'R5-1 (P1): the founder channel is still owned by the founder after the attempt (nothing persisted)', async () =>
+  (await asDirectSupervisor(() => countVisible(`select count(*)::int c from public.chat_channels where id='${CH_FOUNDER}' and created_by_profile_id='${FP}'`))) === 1);
+await T(MC, 'C.R5-1.founderCanReassignCreator', 'R5-1 LIMIT: the founder/admin CAN reassign a channel creator (a genuine change, so the guard actually sees it)', async () =>
+  as(FOUNDER_AUTH, async () => {
+    await db.exec(`update public.chat_channels set created_by_profile_id='${EP}' where id='${CH_MANAGER}';`);
+    const ok = (await countVisible(`select count(*)::int c from public.chat_channels where id='${CH_MANAGER}' and created_by_profile_id='${EP}'`)) === 1;
+    await db.exec(`update public.chat_channels set created_by_profile_id='${MAP}' where id='${CH_MANAGER}';`); // restore
+    return ok;
+  }));
+
+await T(MD, 'D.R5-4.managerCannotRekeyRun', 'R5-4 (P3): a manager cannot rewrite agent_runs.id (re-key an in-flight run and strand it)', async () =>
+  as(MANAGER_A_AUTH, async () => {
+    let refused = false;
+    await db.exec(`update public.agent_runs set id='ffff0000-0000-0000-0000-00000000000f' where id='dddd0000-0000-0000-0000-00000000000d';`)
+      .catch((e) => { refused = /may modify Agent Run retry\/checkpoint state/.test(String(e.message)); });
+    const rekeyed = (await asDirectSupervisor(() => countVisible(`select count(*)::int c from public.agent_runs where id='ffff0000-0000-0000-0000-00000000000f'`))) === 1;
+    return refused && !rekeyed;
+  }));
+
 // ---- report -----------------------------------------------------------------------------
 const byMig = {};
 for (const r of R) (byMig[r.mig] ||= []).push(r);

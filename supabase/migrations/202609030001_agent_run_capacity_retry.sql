@@ -264,7 +264,12 @@ begin
      -- ROUND 4 / R4-2: liveness signals a watchdog would trust; a forged heartbeat is a
      -- forged "still alive".
      or new.last_event is distinct from old.last_event
-     or new.last_heartbeat_at is distinct from old.last_heartbeat_at then
+     or new.last_heartbeat_at is distinct from old.last_heartbeat_at
+     -- ROUND 5 / R5-4 (P3): `id` is RETURNED by the claim RPC and identifies the resumed
+     -- run; a company manager re-keying an in-flight run strands it (complete_agent_run then
+     -- honestly returns not_found and the run is unclaimable). The primary key is never
+     -- legitimately updated, so guarding it costs nothing.
+     or new.id is distinct from old.id then
     -- ROUND 4 / R4-9: an AUTHORITY refusal carries 42501 like every other guard in this batch,
     -- so a client (and the persona suite) can tell it from a business-rule error by SQLSTATE.
     raise exception 'Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state'

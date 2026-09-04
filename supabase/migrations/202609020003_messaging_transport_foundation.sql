@@ -330,12 +330,49 @@ begin
         using errcode = '42501';
     end if;
   end if;
+  -- ROUND 5 / R5-2 (P2): the gate watched enabled and channel_id but not the OTHER half of
+  -- the destination — external_conversation_id / transport. A manager could rewrite those on
+  -- an ALREADY-ENABLED binding and redirect the founder's outbound traffic without touching
+  -- enabled or channel_id. Changing the external identity of an enabled binding is a
+  -- founder/admin act, same as repointing it.
+  if tg_op = 'UPDATE' and old.enabled and not public.is_founder_or_admin()
+     and (new.external_conversation_id is distinct from old.external_conversation_id
+          or new.transport is distinct from old.transport) then
+    raise exception 'channel_transport_bindings: changing the external identity of an ENABLED binding requires the founder or an admin'
+      using errcode = '42501';
+  end if;
   -- ROUND 4 / R4-4 (P3), ACCEPTED IN WRITING: a company manager MAY disable a founder-enabled
   -- binding on a channel they own (enabled true -> false is not gated). That is fail-safe in
   -- direction — it stops traffic, it cannot redirect it — and re-enabling remains founder/admin.
+  -- ROUND 5 / R5-3 tightens the neighbouring DELETE power (see the delete-gate below), so
+  -- "disable" is now the ONLY unredirecting manager power left on an enabled binding.
   return new;
 end;
 $$;
+
+-- ROUND 5 / R5-3 (P2): DELETE was a manager power (the RLS policy is FOR ALL) and no trigger
+-- saw it, so a manager could DELETE a founder-enabled binding and re-create the same external
+-- identity on their own channel — redirecting a live conversation across a delete. Deleting an
+-- ENABLED binding is now a founder/admin act; a manager may still delete a DISABLED one they own.
+create or replace function public.channel_transport_bindings_delete_requires_founder()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if old.enabled and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: deleting an ENABLED transport binding requires the founder or an admin'
+      using errcode = '42501';
+  end if;
+  return old;
+end;
+$$;
+revoke execute on function public.channel_transport_bindings_delete_requires_founder() from public, anon, authenticated;
+drop trigger if exists channel_transport_bindings_delete_gate on public.channel_transport_bindings;
+create trigger channel_transport_bindings_delete_gate
+  before delete on public.channel_transport_bindings
+  for each row execute function public.channel_transport_bindings_delete_requires_founder();
 
 drop trigger if exists channel_transport_bindings_enable_gate on public.channel_transport_bindings;
 create trigger channel_transport_bindings_enable_gate

@@ -1,0 +1,62 @@
+{
+ "artifact": "DB_REVIEW_ROUND6_RESPONSE",
+ "what_this_is": "The implementing session's response to the independent DB review round 5 (DB_REVIEW_ROUND5_VERDICT.md, verify-647c808-campaign5 @ 0843c3e: A PASS, B PASS, C FAIL, D FAIL). A RESPONSE, not a verdict.",
+ "responds_to": "DB_REVIEW_ROUND5_VERDICT.md (reviewed candidate 647c808)",
+ "authorization_batch": {
+  "A_202609020001": "PASS in rounds 4 AND 5 — ready on the merits",
+  "B_202609020002": "PASS in rounds 4 AND 5 — ready on the merits",
+  "D_202609030001": "in the batch; R5-4 (the only D finding) closed this round",
+  "C_202609020003": "STILL SPLIT OUT on sequencing (C-1). R5-1/R5-2/R5-3 are closed this round regardless; C is authorized separately when the Phase 11 gate passes."
+ },
+ "findings": {
+  "R5-4 (P3, D)": {
+   "finding": "id — a column the claim RPC RETURNS — was not in the retry-column guard, and the suite filtered it out with .filter(c=>c!=='id') while the SQL claimed the list was derived from the return list. A manager could re-key an in-flight run and strand it.",
+   "change": "202609030001: `new.id is distinct from old.id` added to the guard; the .filter(c=>c!=='id') removed from agent_run_guard_covers_claim_returns.mjs so the suite now requires id.",
+   "observed_by": "personas D.R5-4.managerCannotRekeyRun; agent_run_guard_covers_claim_returns (id now in the returned list); migration_round6 M9.",
+   "status": "CLOSED"
+  },
+  "R5-1 (P1, C)": {
+   "finding": "The R4-3 ownership gate reads chat_channels.created_by_profile_id, and chat_channels_write_scope (202608260008, FOR ALL, is_company_manager arm) let a manager WRITE that column — take ownership, plant the binding, hand ownership back. The gate was correct; its premise was writable.",
+   "change": "NEW migration 202609040001_chat_channels_creator_immutable.sql: a BEFORE UPDATE trigger on chat_channels refuses any change to created_by_profile_id unless the caller is founder/admin. Purely restrictive, additive, no policy/column change.",
+   "observed_by": "personas C.R5-1.managerCannotTakeChannelOwnership + .ownershipStillFounderAfterAttempt + .founderCanReassignCreator (LIMIT); migration_round6 M1-M3.",
+   "status": "CLOSED (the R4-3 gate now trusts an immutable premise). Note: this touches a LIVE table and is sequenced with C, outside the A/B/D batch."
+  },
+  "R5-2 (P2, C)": {
+   "finding": "The enable gate watched enabled and channel_id but not external_conversation_id/transport — a manager could redirect an ALREADY-ENABLED binding without touching either.",
+   "change": "202609020003: changing external_conversation_id or transport on an enabled binding now requires founder/admin.",
+   "observed_by": "personas C.R5-2.managerCannotRewriteEnabledExternalId/Transport; migration_round6 M4/M5.",
+   "status": "CLOSED"
+  },
+  "R5-3 (P2, C)": {
+   "finding": "DELETE was an unguarded, untriggered manager power — delete + re-create redirected a live conversation across a delete.",
+   "change": "202609020003: a new BEFORE DELETE trigger refuses deleting an ENABLED binding unless founder/admin; a manager may still delete a DISABLED binding they own.",
+   "observed_by": "personas C.R5-3.managerCannotDeleteEnabledBinding + .managerCanDeleteOwnDisabledBinding (LIMIT); migration_round6 M6-M8.",
+   "status": "CLOSED"
+  },
+  "R5-7 (P2, pre-existing, out of scope)": {
+   "finding": "agent_runs.verification_status/summary/error are manager-writable and rendered to the founder — a forgeable attestation, D-3's class on a column on the founder's screen. Written by complete_agent_run and sibling RPCs, not by this migration.",
+   "change": "RECORDED, deferred to a dedicated Work Order. Guarding them in THIS migration's retry-column guard risks blocking the legitimate SECURITY DEFINER RPC writers (whose session_user is authenticator under PostgREST, not postgres), so it needs its own analysis of the write path — not a same-commit change. Not a condition of authorizing A/B/D.",
+   "status": "RECORDED / DEFERRED"
+  },
+  "R5-5/R5-6/R5-8/R5-9": {
+   "finding": "Minor/recorded items in the round-5 verdict.",
+   "change": "Left as the reviewer recorded them; none blocks A/B/D.",
+   "status": "RECORDED"
+  }
+ },
+ "local_evidence_pglite_only": {
+  "wording": "PGlite = SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED + RLS ENFORCEMENT (PGlite emulation). NOT SECURITY VERIFIED.",
+  "apply": "81 migration files + bootstrap shim, 0 failed",
+  "acceptance": "36/36",
+  "personas": "53/53 (45 prior + 8 round-5 closure/limit cases)",
+  "suites": "agent_run_guard_covers_claim_returns (id now required); chat_channel_state_trusted_columns 51/51; messaging_transport 23/23; ancestor guards 0 dropped; migration_a 8/8; migration_c 10/10; migration_round4 10/10; migration_round5 9/9; migration_round6 9/9"
+ },
+ "real_postgresql_ci": "Read from the run on THIS commit (gh run list --commit <sha>); the round-6 reviewer is dispatched on that same commit (R4-6).",
+ "still_NOT_proven": [
+  "A-1(c): whether any API-reachable Supabase role is a member of postgres/supabase_admin — needs a disposable Supabase project",
+  "PostgREST refusing SET/set_config — still load-bearing for the four LIVE guard-defining migrations",
+  "R5-7 (agent_runs attestation columns) — deferred to its own Work Order",
+  "the INDEPENDENT round-6 review has not returned — this file is a response, not a verdict"
+ ],
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-6 independent reviewer returns PASS on A, B and D on a commit whose real-PostgreSQL CI run is green. C stays split out; the chat_channels immutability migration (202609040001) is authorized with C, not with A/B/D, because it changes a live table's behaviour and belongs to the messaging-transport story."
+}

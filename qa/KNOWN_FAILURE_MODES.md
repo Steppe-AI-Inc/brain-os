@@ -5089,3 +5089,18 @@ later). Round 5 closes both structurally: an ownership condition on every INSERT
 channel_id change, and a guard list pinned to the claim's return list by
 `qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs`; the persona suite now runs on an
 engine-enforced second connection on the real engine (R4-5).
+
+**ROUND 5 / R5 closures on the DB-R3 line (2026-09-04):** the independent DB review reached
+round 5 (A PASS, B PASS, C FAIL, D FAIL) and round 6 closed the findings. Two were the same
+class the whole DB sequence keeps surfacing — "the guard is correct, its premise is
+writable/partial": R5-1 (P1) the channel-binding ownership gate trusted
+chat_channels.created_by_profile_id, which a manager could rewrite via
+chat_channels_write_scope — fixed by a new BEFORE UPDATE trigger
+(202609040001) making that column immutable except to founder/admin; R5-4 (P3) the
+retry-column guard omitted `id`, the last column the claim RPC RETURNS, and the covers-suite
+filtered it out — fixed and the filter removed. R5-2/R5-3 (P2) closed the enabled-binding
+external-identity and DELETE redirect paths in migration C. R5-7 (agent_runs
+verification_status/summary/error manager-writable + rendered to the founder) is RECORDED
+and DEFERRED to its own Work Order (guarding it risks blocking the legitimate SECURITY
+DEFINER writers under PostgREST). A and B have now passed TWO independent rounds; C stays
+split out of the A/B/D authorization batch on Phase 11 sequencing.

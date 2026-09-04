@@ -22,11 +22,11 @@ const check = (name, ok, detail) => { console.log(`${ok ? 'OK  ' : 'FAIL'} ${nam
 // The claim's RETURN list: `select ar.<col>, ...` inside `return query`.
 const rq = live.match(/return query\s+select([\s\S]*?)\bfrom public\.agent_runs ar\b/i);
 check('the claim RPC has a parsable RETURN list', !!rq);
-const returned = rq ? [...rq[1].matchAll(/\bar\.([a-z_]+)/g)].map((m) => m[1]).filter((c) => c !== 'id') : [];
+const returned = rq ? [...rq[1].matchAll(/\bar\.([a-z_]+)/g)].map((m) => m[1]) : [];
 // Columns the claim's predicate reads.
 const predicate = live.match(/select ar\.id into v_id[\s\S]*?for update skip locked/i);
 check('the claim RPC has a parsable predicate', !!predicate);
-const read = predicate ? [...predicate[0].matchAll(/\bar\.([a-z_]+)/g)].map((m) => m[1]).filter((c) => c !== 'id') : [];
+const read = predicate ? [...predicate[0].matchAll(/\bar\.([a-z_]+)/g)].map((m) => m[1]) : [];
 // The guard's list.
 const guardBody = live.match(/create or replace function public\.guard_agent_run_retry_columns\(\)[\s\S]*?\$\$;/i);
 check('the guard function is present', !!guardBody);
