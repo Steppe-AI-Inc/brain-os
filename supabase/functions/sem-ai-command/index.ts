@@ -2734,7 +2734,16 @@ serve(async (req) => {
           const contradicted = !!matchedOption
             && (matchedOption.actionType === 'restore' || matchedOption.actionType === 'archive')
             && (commandContradictsActionType(commandForContradiction, matchedOption.actionType)
-              || (matchedOption.actionType === 'restore' ? /\b(?:archive|delete|remove|end)\b/i : /\b(?:restore|unarchive|reactivate|activate)\b/i).test(command));
+              // run22/D150: gate on the matched LABEL being a BARE opposite-family verb
+              // (stripping the opposite verb-pattern from the label leaves it empty) — a company
+              // named exactly "Restore"/"Archive"/"Delete". A real name that merely CONTAINS a
+              // base verb ("Restore Hardware Ltd", "West End Trading Co", "End Zone Inc") is not
+              // bare, so it stays selectable (D138); the imperative test then confirms the reply
+              // actually invokes that verb ("restore it"/"please restore" dead-end, D148 preserved).
+              || (typeof matchedOption.label === 'string'
+                && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(matchedOption.label)
+                && matchedOption.label.replace(new RegExp((matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).source, 'ig'), ' ').trim().length === 0
+                && (matchedOption.actionType === 'restore' ? /\b(?:archive|delete|remove|end)\b/i : /\b(?:restore|unarchive|reactivate|activate)\b/i).test(command)));
           // Same GitHub issue #5 class-B fail-closed fix as the single_entity_clarification
           // branch above: an option carrying no explicit actionType must refuse, not
           // default to this entity type's destructive field.
@@ -5401,7 +5410,7 @@ serve(async (req) => {
         // mutation claim accounts for? If so the reply has drifted from the verified
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|(?:^|\bconfirmed\s*[—–-]\s*)(?:and\s+|but\s+|so\s+|then\s+)?(?:i|we)\s+(?:just\s+|already\s+|also\s+|now\s+|recently\s+|successfully\s+|have\s+|had\s+)*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+\S|\brenamed:\s*.+(→|->)/i;
 
         // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
         // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
@@ -5494,7 +5503,7 @@ serve(async (req) => {
         // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
         // qualifier ("archived without incident") far more often than a genuine negation, and
         // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /\b(?:not|never|no|nothing|none|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
+        const NEGATED_CLAUSE = /\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the
@@ -5569,13 +5578,16 @@ serve(async (req) => {
           const rel = m[0].search(COMPLETION_PARTICIPLE);
           const p = m.index + (rel < 0 ? 0 : rel);
           if (n > p) return false;
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || !NEGATION_AUX.test(c.slice(0, n))
-            // run20/D139 (R-ZR2): a negator that already follows a finite auxiliary still
-            // scopes over the completion verb UNLESS a clause-linker sits between them. A
-            // coordinator counts only after a LOWERCASE token ("no errors and X was archived"
-            // links; "no record Salt and Pepper Co was archived" is name-internal); a
-            // subordinator links wherever it appears. "There is no record ACME was archived."
-            // (zero relativizer, no linker) is therefore the truthful negative it is.
+          // run22/D151 (R-ZR2, clause-initial free pass removed): a negator disarms the
+          // completion verb it precedes UNLESS a clause-linker sits between them. A coordinator
+          // (and/but) counts only after a LOWERCASE token ("no errors and X was archived" links;
+          // "no record Salt and Pepper Co was archived" is name-internal); a subordinator
+          // (although/though/however/therefore) links anywhere. The old third disjunct
+          // (!NEGATION_AUX before the negator => always disarm) is DELETED: it gave a
+          // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
+          // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
+          // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index))
             || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a

@@ -118,7 +118,7 @@ const beltSlice = stripTS([
 // (whole-summary, single-arm). Negation now lives in NEGATED_CLAUSE and is applied once,
 // per clause, inside readsAsCompletion. The guard pins THAT instead — the same rule as
 // before: refuse to report on a slice that is not the product.
-if (!beltSlice.includes("(?:not|never|no|nothing|none|pending|awaiting")) {
+if (!beltSlice.includes("(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting")) {
   throw new Error('the D117/D118 NEGATED_CLAUSE negator list did not survive extraction — refusing to report on a slice that is not the product');
 }
 if (beltSlice.includes('(?![^]*')) {
