@@ -1,40 +1,40 @@
 {
- "campaign": 86,
- "verifier": 26,
+ "campaign": 87,
+ "verifier": 27,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "7c5e610",
- "index_sha256": "3b5baa2c268ccb6c1ecb5e2eac0ac0f20ccfafc991af28af3b090416961f7602",
+ "closure_commit": "5db8603",
+ "index_sha256": "70161e8de8d221824d02c5ae27ae87e1169a7a111770ea5482992860c2ba5344",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 85,
-  "verifier": 25,
+  "campaign": 86,
+  "verifier": 26,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-164b3ee-verify25.json",
+  "archive": "qa/verification/archive/campaign-415fed3-verify26.json",
   "defects": [
-   "D160 (P2)",
-   "D160b (P2)",
-   "D161 (P4)"
+   "D162a (P2)",
+   "D162b (P3)",
+   "D162c (P4)"
   ]
  },
- "what_changed_since_85": [
-  "D160/D160b FIX-D: evidential test runs on the LAST linker-delimited segment of the negator->verb span; the 11 FIX-C lookbehinds deleted (position, not voice)",
-  "D161 FIX-E: modal-hedge guard in readsAsCompletion drops may/might/could/can/would/should + (0-2 words) + have-been/be clauses",
-  "run24 retired, run25 promoted (440 cases)",
-  "bookkeeping: baseline claim corrected (run25 better than 4476c92 on both axes), D158d added to residuals, header pinned at this candidate",
-  "residuals [RESIDUAL]: D158b, D154/D158c, D156b, D153, D146b (D159 decorative)"
+ "what_changed_since_86": [
+  "D162a FIX-G: delete the unanchored bare-be alternative from the modal-hedge guard",
+  "D162b FIX-F: the evidential last-segment split reuses the file name-vs-clause guard; leading pop null-safe (?? \"\") for deno",
+  "D162c: run25 vacuous detector retired; the shipped variable-length lookbehind disclosed",
+  "run25 retired, run26 promoted (145 cases); all 7 bookkeeping corrections landed",
+  "residuals [RESIDUAL]: D158b, D154/D158c, D158d, D156b, D153, D146b (D159 decorative)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run25": "440/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed",
-  "battery": "32 suites / 0 failures (run15 57/0, run24 retired, run25 added)",
-  "deno_check": "23 == baseline, 0 new (npx deno@2)",
-  "mutation_proof": "v25_mutation_proof 4/4",
-  "deploy_note": "no regexp modifier group shipped; FIX-D removed the 11 FIX-C lookbehinds (position-based)"
+  "run26": "145/0",
+  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed; vs 4476c92 truthful 4 vs 21, fabrications 0 vs 0",
+  "battery": "31 executable + _gate_extract helper / 0 failures (run15 57/0, run25 retired, run26 added)",
+  "deno_check": "23 == baseline via npx deno@2",
+  "mutation_proof": "v26_mutation_proof 5/5",
+  "deploy_note": "no modifier group shipped; a variable-length lookbehind IS shipped (disclosed, harmless)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T20:59:04.716Z",
+ "opened_at": "2026-09-04T21:35:06.413Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
