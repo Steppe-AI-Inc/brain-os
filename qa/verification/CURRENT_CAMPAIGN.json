@@ -1,41 +1,42 @@
 {
- "campaign": 81,
- "verifier": 21,
+ "campaign": 82,
+ "verifier": 22,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "54ebecc",
- "index_sha256": "c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2",
+ "closure_commit": "0969852",
+ "index_sha256": "272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 80,
-  "verifier": 20,
+  "campaign": 81,
+  "verifier": 21,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-b32e0e4-verify20.json",
+  "archive": "qa/verification/archive/campaign-0ba51a1-verify21.json",
   "defects": [
-   "D139 (P1)",
-   "D142 (P1)",
-   "D141 (P2)",
-   "D144 (P3)"
+   "D148 (P1)",
+   "D145 (P1)",
+   "D146 (P1/P2)",
+   "D147 (P2)",
+   "D149 (P2)"
   ]
  },
- "what_changed_since_80": [
-  "D139: R-ZR2 name-safe clause linker in completionIsNegated (0/75 truthful destroyed on the verifier corpus)",
-  "D142: D136 ambiguity dead-end carried to the label path, fail-closed, no actionType||archive default",
-  "D141: NEGATED_CLAUSE gained nobody/neither/nowhere/nor/few/hardly",
-  "D144: active-voice past-completion arm in LEGACY_PAST_COMPLETION (not PAST_COMPLETION_CLAIM_PATTERN)",
-  "run20 promoted (102 cases); v20_mutation_proof 6/6"
+ "what_changed_since_81": [
+  "D148: D142 rebuilt on an imperative-form opposite-verb test (base forms only); every phrasing of an opposite command dead-ends, participial names still select; no actionType||archive default",
+  "D146: R-ZR2 linkers narrowed to and|but + although|though|however|therefore (dropped or/so/yet/because/since/while/before/after)",
+  "D149: D141 reverted so run15 is 57/0 again; the false pre-existing-stub claim withdrawn",
+  "REVERTED as documented residuals: D141 (P2 lexicon), D144 active-voice/D145 (P1), D146b (P2 comma-list)",
+  "run20 retired, run21 promoted (136 cases, residuals pinned [RESIDUAL])"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run20": "102/0",
-  "collateral": "truthful destroyed 0/75, fabrications missed 6/50 (was 18/75, 7/50)",
-  "battery": "32 suites / 0 output-text failures (run15 exit-1 pre-existing stub)",
-  "deno_check": "23 errors == pre-existing baseline, 0 new, none in edited regions",
-  "mutation_proof": "v20_mutation_proof 6/6 (coverage x4 + limits for both P1s)",
-  "r_idiom": "NOT adopted (renames readsAsCompletion, would destabilise extraction); residual stays documented 6"
+  "run21": "136/0",
+  "collateral": "0/75 truthful destroyed, 7/50 fabrications missed (== b32e0e4 baseline)",
+  "battery": "32 suites / 0 failures (run15 57/0 restored, run20 removed, run21 added)",
+  "deno_check": "23 == baseline, 0 new",
+  "mutation_proof": "v21_mutation_proof 6/6 (D139/D146/D148/D149 coverage + D139/D146/D142 limits)",
+  "residuals": "D141, D144 active-voice, D146b — reverted/deferred, disclosed, pinned [RESIDUAL], not regressions vs b32e0e4"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T17:44:53.765Z",
+ "opened_at": "2026-09-04T18:30:00.504Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
