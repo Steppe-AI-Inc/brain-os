@@ -1,39 +1,38 @@
 {
- "campaign": 77,
- "verifier": 17,
+ "campaign": 78,
+ "verifier": 18,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "f232975",
- "closure_commit_note": "Close run16 D123-D126 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
- "index_sha256": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
+ "closure_commit": "a559f8f",
+ "closure_commit_note": "Close run17 D127-D129 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+ "index_sha256": "cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 76,
-  "verifier": 16,
+  "campaign": 77,
+  "verifier": 17,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-0a03127-verify16.json",
+  "archive": "qa/verification/archive/campaign-9535f0b-verify17.json",
   "defects": [
-   "D123 (P1)",
-   "D124 (P1)",
-   "D125 (P2)",
-   "D126 (test gap)"
+   "D128 (P1)",
+   "D127 (P2)",
+   "D129 (P3)"
   ]
  },
- "what_changed_since_76": [
-  "D123: NEGATED_MENTION word list REMOVED; matchDisambiguationOption binds only a CLEAN SELECTION (label + selection filler), on all three paths; \"acme, no rush\" now dead-ends (two holds inverted on the record)",
-  "D124: canonicalKnowsIt decided by the canonical read (canonicalById / lastKnownLabel); CANONICAL_TYPE_ALIAS resolves employee->person etc.; unlisted types dropped unless known",
-  "D125: clause splitter adds dashes (except the \"Confirmed —\" lead), colon, parentheses, newline, and/but/without",
-  "D126: run15 observes the drop through the real pipeline (7 new cases); run16 promoted (53 cases)",
-  "Factory: verifier allowlist gains git add/commit; dispatcher/watchdog take a pinned file; DB round-3 review dispatched as verifier #301"
+ "what_changed_since_77": [
+  "D128: clause splitter back to [.!?,;\\n]; negation decided by ORDER against COMPLETION_VOCAB (negator must precede the completion verb); \"confirmed\" excluded from that vocabulary",
+  "D127: SELECTION_FILLER scoped — verbs from ACTION_FAMILY_VERBS[winner.actionType], nouns from ENTITY_NOUNS[winner.entityType]; RESTORE_VERB_PATTERN gains plain activate",
+  "D129: the winner's own \"(option N)\" / \"option N\" / \"#N\" is filler; bare digits and other options' numbers are not",
+  "D117 re-observed: run17 holds pin the clause split and comma boundary under the order rule",
+  "run17_defect_closure_contract.mjs promoted (43 cases)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "27 suites / 0 failures (21 assertion-bearing, 5 SUPERSEDED stubs, 1 library)",
-  "mutation_proof": "qa/verification/proposed/v16_mutation_proof.mjs 13/13 (coverage + limits); v15 10/10 with 4 superseded",
+  "battery": "28 suites / 0 failures (22 assertion-bearing)",
+  "mutation_proof": "v17_mutation_proof 14/14 (coverage + limits); v16 11/11 (+2 superseded); v15 8/8 (+6 superseded)",
   "deno_check": "23 errors, identical set to d724d8c (0 new)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T02:55:26.630Z",
+ "opened_at": "2026-09-04T07:10:45.278Z",
  "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes."
 }
