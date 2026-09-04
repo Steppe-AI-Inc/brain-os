@@ -1,0 +1,781 @@
+validate-real-postgresql	Set up job	﻿2026-09-04T06:41:02.5819965Z Current runner version: '2.337.0'
+[Set up job] ##[group]Runner Image Provisioner
+[Set up job] Hosted Compute Agent
+[Set up job] Version: 20260819.586
+[Set up job] Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+[Set up job] Build Date: 2026-08-18T23:20:18Z
+[Set up job] Worker ID: {94bfe985-d200-483e-81ad-fa782f6cf413}
+[Set up job] Azure Region: northcentralus
+[Set up job] ##[endgroup]
+[Set up job] ##[group]Operating System
+[Set up job] Ubuntu
+[Set up job] 24.04.4
+[Set up job] LTS
+[Set up job] ##[endgroup]
+[Set up job] ##[group]Runner Image
+[Set up job] Image: ubuntu-24.04
+[Set up job] Version: 20260823.283.1
+[Set up job] Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260823.283/images/ubuntu/Ubuntu2404-Readme.md
+[Set up job] Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260823.283
+[Set up job] ##[endgroup]
+[Set up job] ##[group]GITHUB_TOKEN Permissions
+[Set up job] Contents: read
+[Set up job] Metadata: read
+[Set up job] Packages: read
+[Set up job] ##[endgroup]
+[Set up job] Secret source: Actions
+[Set up job] Prepare workflow directory
+[Set up job] Prepare all required actions
+[Set up job] Getting action download info
+[Set up job] Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+[Set up job] Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+[Set up job] Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+[Set up job] Complete job name: validate-real-postgresql
+validate-real-postgresql	Initialize containers	﻿2026-09-04T06:41:03.3689992Z ##[group]Checking docker version
+[Initialize containers] ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+[Initialize containers] '1.48'
+[Initialize containers] Docker daemon API version: '1.48'
+[Initialize containers] ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+[Initialize containers] '1.48'
+[Initialize containers] Docker client API version: '1.48'
+[Initialize containers] ##[endgroup]
+[Initialize containers] ##[group]Clean up resources from previous jobs
+[Initialize containers] ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=c00b78"
+[Initialize containers] ##[command]/usr/bin/docker network prune --force --filter "label=c00b78"
+[Initialize containers] ##[endgroup]
+[Initialize containers] ##[group]Create local container network
+[Initialize containers] ##[command]/usr/bin/docker network create --label c00b78 github_network_9d7ec055bbec4cd39f43c9d1bc59142e
+[Initialize containers] 04de7caff88e8987030a475ccc01f546191ae4b0cebc507efdbbeda623fa81d2
+[Initialize containers] ##[endgroup]
+[Initialize containers] ##[group]Starting postgres service container
+[Initialize containers] ##[command]/usr/bin/docker pull pgvector/pgvector:pg15
+[Initialize containers] pg15: Pulling from pgvector/pgvector
+[Initialize containers] 039e6f9f9752: Pulling fs layer
+[Initialize containers] 32a162df1425: Pulling fs layer
+[Initialize containers] d100bd361c59: Pulling fs layer
+[Initialize containers] ff16cf9d59a9: Pulling fs layer
+[Initialize containers] f4b681e14ff8: Pulling fs layer
+[Initialize containers] a8a8272ab698: Pulling fs layer
+[Initialize containers] 61c973a13167: Pulling fs layer
+[Initialize containers] a372a0a1082a: Pulling fs layer
+[Initialize containers] 9b67d5b246cf: Pulling fs layer
+[Initialize containers] 48e4f8decd0b: Pulling fs layer
+[Initialize containers] 2002cede1afd: Pulling fs layer
+[Initialize containers] b7ee84aa296e: Pulling fs layer
+[Initialize containers] a27daf2bc50e: Pulling fs layer
+[Initialize containers] 826b6767fbde: Pulling fs layer
+[Initialize containers] 9e15c66c4250: Pulling fs layer
+[Initialize containers] 8093c0a1135f: Pulling fs layer
+[Initialize containers] ff16cf9d59a9: Waiting
+[Initialize containers] f4b681e14ff8: Waiting
+[Initialize containers] a8a8272ab698: Waiting
+[Initialize containers] b7ee84aa296e: Waiting
+[Initialize containers] a27daf2bc50e: Waiting
+[Initialize containers] 9b67d5b246cf: Waiting
+[Initialize containers] 61c973a13167: Waiting
+[Initialize containers] 826b6767fbde: Waiting
+[Initialize containers] 48e4f8decd0b: Waiting
+[Initialize containers] 9e15c66c4250: Waiting
+[Initialize containers] 2002cede1afd: Waiting
+[Initialize containers] 8093c0a1135f: Waiting
+[Initialize containers] a372a0a1082a: Waiting
+[Initialize containers] 32a162df1425: Verifying Checksum
+[Initialize containers] 32a162df1425: Download complete
+[Initialize containers] d100bd361c59: Verifying Checksum
+[Initialize containers] d100bd361c59: Download complete
+[Initialize containers] ff16cf9d59a9: Verifying Checksum
+[Initialize containers] ff16cf9d59a9: Download complete
+[Initialize containers] 039e6f9f9752: Verifying Checksum
+[Initialize containers] 039e6f9f9752: Download complete
+[Initialize containers] f4b681e14ff8: Verifying Checksum
+[Initialize containers] f4b681e14ff8: Download complete
+[Initialize containers] a8a8272ab698: Verifying Checksum
+[Initialize containers] a8a8272ab698: Download complete
+[Initialize containers] 61c973a13167: Verifying Checksum
+[Initialize containers] 61c973a13167: Download complete
+[Initialize containers] a372a0a1082a: Download complete
+[Initialize containers] 48e4f8decd0b: Verifying Checksum
+[Initialize containers] 48e4f8decd0b: Download complete
+[Initialize containers] 2002cede1afd: Verifying Checksum
+[Initialize containers] 2002cede1afd: Download complete
+[Initialize containers] b7ee84aa296e: Verifying Checksum
+[Initialize containers] b7ee84aa296e: Download complete
+[Initialize containers] a27daf2bc50e: Verifying Checksum
+[Initialize containers] a27daf2bc50e: Download complete
+[Initialize containers] 826b6767fbde: Verifying Checksum
+[Initialize containers] 826b6767fbde: Download complete
+[Initialize containers] 9e15c66c4250: Verifying Checksum
+[Initialize containers] 9e15c66c4250: Download complete
+[Initialize containers] 8093c0a1135f: Verifying Checksum
+[Initialize containers] 8093c0a1135f: Download complete
+[Initialize containers] 9b67d5b246cf: Verifying Checksum
+[Initialize containers] 9b67d5b246cf: Download complete
+[Initialize containers] 039e6f9f9752: Pull complete
+[Initialize containers] 32a162df1425: Pull complete
+[Initialize containers] d100bd361c59: Pull complete
+[Initialize containers] ff16cf9d59a9: Pull complete
+[Initialize containers] f4b681e14ff8: Pull complete
+[Initialize containers] a8a8272ab698: Pull complete
+[Initialize containers] 61c973a13167: Pull complete
+[Initialize containers] a372a0a1082a: Pull complete
+[Initialize containers] 9b67d5b246cf: Pull complete
+[Initialize containers] 48e4f8decd0b: Pull complete
+[Initialize containers] 2002cede1afd: Pull complete
+[Initialize containers] b7ee84aa296e: Pull complete
+[Initialize containers] a27daf2bc50e: Pull complete
+[Initialize containers] 826b6767fbde: Pull complete
+[Initialize containers] 9e15c66c4250: Pull complete
+[Initialize containers] 8093c0a1135f: Pull complete
+[Initialize containers] Digest: sha256:a947c45cdc5906a1bc951f20a8709e321256343ee0f251e4ae00b5e7def4e6da
+[Initialize containers] Status: Downloaded newer image for pgvector/pgvector:pg15
+[Initialize containers] docker.io/pgvector/pgvector:pg15
+[Initialize containers] ##[command]/usr/bin/docker create --name 11b29fd03d334468896f649106f8c81e_pgvectorpgvectorpg15_6d206c --label c00b78 --network github_network_9d7ec055bbec4cd39f43c9d1bc59142e --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20 -e "POSTGRES_PASSWORD=dbtest" -e "POSTGRES_USER=postgres" -e "POSTGRES_DB=dbtest" -e GITHUB_ACTIONS=true -e CI=true pgvector/pgvector:pg15
+[Initialize containers] beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] ##[command]/usr/bin/docker start beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] ##[command]/usr/bin/docker ps --all --filter id=beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+[Initialize containers] beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff Up 1 second (health: starting)
+[Initialize containers] ##[command]/usr/bin/docker port beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] 5432/tcp -> 0.0.0.0:5432
+[Initialize containers] 5432/tcp -> [::]:5432
+[Initialize containers] ##[endgroup]
+[Initialize containers] ##[group]Waiting for all services to be ready
+[Initialize containers] ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] starting
+[Initialize containers] postgres service is starting, waiting 2 seconds before checking again.
+[Initialize containers] ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] starting
+[Initialize containers] postgres service is starting, waiting 4 seconds before checking again.
+[Initialize containers] ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Initialize containers] healthy
+[Initialize containers] postgres service is healthy.
+[Initialize containers] ##[endgroup]
+validate-real-postgresql	Run actions/checkout@v4	﻿2026-09-04T06:41:17.4811420Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+[Run actions/checkout@v4] ##[group]Run actions/checkout@v4
+[Run actions/checkout@v4] with:
+[Run actions/checkout@v4]   repository: Steppe-AI-Inc/brain-os
+[Run actions/checkout@v4]   token: ***
+[Run actions/checkout@v4]   ssh-strict: true
+[Run actions/checkout@v4]   ssh-user: git
+[Run actions/checkout@v4]   persist-credentials: true
+[Run actions/checkout@v4]   clean: true
+[Run actions/checkout@v4]   sparse-checkout-cone-mode: true
+[Run actions/checkout@v4]   fetch-depth: 1
+[Run actions/checkout@v4]   fetch-tags: false
+[Run actions/checkout@v4]   show-progress: true
+[Run actions/checkout@v4]   lfs: false
+[Run actions/checkout@v4]   submodules: false
+[Run actions/checkout@v4]   set-safe-directory: true
+[Run actions/checkout@v4]   allow-unsafe-pr-checkout: false
+[Run actions/checkout@v4] env:
+[Run actions/checkout@v4]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] Syncing repository: Steppe-AI-Inc/brain-os
+[Run actions/checkout@v4] ##[group]Getting Git version info
+[Run actions/checkout@v4] Working directory is '/home/runner/work/brain-os/brain-os'
+[Run actions/checkout@v4] [command]/usr/bin/git version
+[Run actions/checkout@v4] git version 2.55.0
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] Temporarily overriding HOME='/home/runner/work/_temp/87a2e73e-2258-4948-98d0-b4966b032919' before making global git config changes
+[Run actions/checkout@v4] Adding repository directory to the temporary git global config as a safe directory
+[Run actions/checkout@v4] [command]/usr/bin/git config --global --add safe.directory /home/runner/work/brain-os/brain-os
+[Run actions/checkout@v4] Deleting the contents of '/home/runner/work/brain-os/brain-os'
+[Run actions/checkout@v4] ##[group]Initializing the repository
+[Run actions/checkout@v4] [command]/usr/bin/git init /home/runner/work/brain-os/brain-os
+[Run actions/checkout@v4] hint: Using 'master' as the name for the initial branch. This default branch name
+[Run actions/checkout@v4] hint: will change to "main" in Git 3.0. To configure the initial branch name
+[Run actions/checkout@v4] hint: to use in all of your new repositories, which will suppress this warning,
+[Run actions/checkout@v4] hint: call:
+[Run actions/checkout@v4] hint:
+[Run actions/checkout@v4] hint: 	git config --global init.defaultBranch <name>
+[Run actions/checkout@v4] hint:
+[Run actions/checkout@v4] hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+[Run actions/checkout@v4] hint: 'development'. The just-created branch can be renamed via this command:
+[Run actions/checkout@v4] hint:
+[Run actions/checkout@v4] hint: 	git branch -m <name>
+[Run actions/checkout@v4] hint:
+[Run actions/checkout@v4] hint: Disable this message with "git config set advice.defaultBranchName false"
+[Run actions/checkout@v4] Initialized empty Git repository in /home/runner/work/brain-os/brain-os/.git/
+[Run actions/checkout@v4] [command]/usr/bin/git remote add origin https://github.com/Steppe-AI-Inc/brain-os
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] ##[group]Disabling automatic garbage collection
+[Run actions/checkout@v4] [command]/usr/bin/git config --local gc.auto 0
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] ##[group]Setting up auth
+[Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+[Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+[Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+[Run actions/checkout@v4] [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] ##[group]Fetching the repository
+[Run actions/checkout@v4] [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +27a807db44a71c06f2d5b7cbb07e0edaad1be58a:refs/remotes/origin/master
+[Run actions/checkout@v4] From https://github.com/Steppe-AI-Inc/brain-os
+[Run actions/checkout@v4]  * [new ref]         27a807db44a71c06f2d5b7cbb07e0edaad1be58a -> origin/master
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] ##[group]Determining the checkout info
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] [command]/usr/bin/git sparse-checkout disable
+[Run actions/checkout@v4] [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+[Run actions/checkout@v4] ##[group]Checking out the ref
+[Run actions/checkout@v4] [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+[Run actions/checkout@v4] Reset branch 'master'
+[Run actions/checkout@v4] branch 'master' set up to track 'origin/master'.
+[Run actions/checkout@v4] ##[endgroup]
+[Run actions/checkout@v4] [command]/usr/bin/git log -1 --format=%H
+[Run actions/checkout@v4] 27a807db44a71c06f2d5b7cbb07e0edaad1be58a
+validate-real-postgresql	Run actions/setup-node@v4	﻿2026-09-04T06:41:18.5246751Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+[Run actions/setup-node@v4] ##[group]Run actions/setup-node@v4
+[Run actions/setup-node@v4] with:
+[Run actions/setup-node@v4]   node-version: 22
+[Run actions/setup-node@v4]   always-auth: false
+[Run actions/setup-node@v4]   check-latest: false
+[Run actions/setup-node@v4]   token: ***
+[Run actions/setup-node@v4] env:
+[Run actions/setup-node@v4]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Run actions/setup-node@v4] ##[endgroup]
+[Run actions/setup-node@v4] Found in cache @ /opt/hostedtoolcache/node/22.23.2/x64
+[Run actions/setup-node@v4] (node:2699) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+[Run actions/setup-node@v4] (Use `node --trace-deprecation ...` to show where the warning was created)
+[Run actions/setup-node@v4] ##[group]Environment details
+[Run actions/setup-node@v4] node: v22.23.2
+[Run actions/setup-node@v4] npm: 10.9.8
+[Run actions/setup-node@v4] yarn: 1.22.22
+[Run actions/setup-node@v4] ##[endgroup]
+validate-real-postgresql	Install the validation harness	﻿2026-09-04T06:41:22.5705566Z ##[group]Run npm ci || npm install
+[Install the validation harness] ^[[36;1mnpm ci || npm install^[[0m
+[Install the validation harness] shell: /usr/bin/bash -e {0}
+[Install the validation harness] env:
+[Install the validation harness]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Install the validation harness] ##[endgroup]
+[Install the validation harness] 
+[Install the validation harness] added 15 packages in 7m
+validate-real-postgresql	Prove the engine is a real server and NOT production	﻿2026-09-04T06:48:24.9950834Z ##[group]Run psql "$DBTEST_PG_URL" -Atc "select version()"
+[Prove the engine is a real server and NOT production] ^[[36;1mpsql "$DBTEST_PG_URL" -Atc "select version()"^[[0m
+[Prove the engine is a real server and NOT production] ^[[36;1mpsql "$DBTEST_PG_URL" -Atc "select current_user, inet_server_addr(), current_database()"^[[0m
+[Prove the engine is a real server and NOT production] ^[[36;1mcase "$DBTEST_PG_URL" in *supabase*|*pvphxgrtdfrudejjhzjk*) echo "REFUSED: production host"; exit 9;; esac^[[0m
+[Prove the engine is a real server and NOT production] shell: /usr/bin/bash -e {0}
+[Prove the engine is a real server and NOT production] env:
+[Prove the engine is a real server and NOT production]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Prove the engine is a real server and NOT production] ##[endgroup]
+[Prove the engine is a real server and NOT production] PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Prove the engine is a real server and NOT production] postgres|172.18.0.2|dbtest
+validate-real-postgresql	Apply the full migration chain (real PostgreSQL)	﻿2026-09-04T06:48:25.2154360Z ##[group]Run node apply-migrations.mjs
+[Apply the full migration chain (real PostgreSQL)] ^[[36;1mnode apply-migrations.mjs^[[0m
+[Apply the full migration chain (real PostgreSQL)] shell: /usr/bin/bash -e {0}
+[Apply the full migration chain (real PostgreSQL)] env:
+[Apply the full migration chain (real PostgreSQL)]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Apply the full migration chain (real PostgreSQL)] ##[endgroup]
+[Apply the full migration chain (real PostgreSQL)] engine: real-postgresql — PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Apply the full migration chain (real PostgreSQL)] bootstrap: Supabase-compatible shim (roles, auth schema, auth.uid/jwt/role)
+[Apply the full migration chain (real PostgreSQL)] applying 80 migrations in filename order
+[Apply the full migration chain (real PostgreSQL)] 
+[Apply the full migration chain (real PostgreSQL)] APPLIED  *TARGET*  202609020001_chat_channel_state_durable_conversation.sql
+[Apply the full migration chain (real PostgreSQL)] APPLIED  *TARGET*  202609020002_set_person_assignment_clear_manager.sql
+[Apply the full migration chain (real PostgreSQL)] APPLIED  *TARGET*  202609020003_messaging_transport_foundation.sql
+[Apply the full migration chain (real PostgreSQL)] APPLIED  *TARGET*  202609030001_agent_run_capacity_retry.sql
+[Apply the full migration chain (real PostgreSQL)] 
+[Apply the full migration chain (real PostgreSQL)] ==============================================================================
+[Apply the full migration chain (real PostgreSQL)] applied 81/81; 0 failed
+[Apply the full migration chain (real PostgreSQL)] 
+[Apply the full migration chain (real PostgreSQL)] PER-TARGET VERDICT (each stands alone):
+[Apply the full migration chain (real PostgreSQL)]   SQL PARSED + DDL EXECUTED   202609020001_chat_channel_state_durable_conversation.sql
+[Apply the full migration chain (real PostgreSQL)]   SQL PARSED + DDL EXECUTED   202609020002_set_person_assignment_clear_manager.sql
+[Apply the full migration chain (real PostgreSQL)]   SQL PARSED + DDL EXECUTED   202609020003_messaging_transport_foundation.sql
+[Apply the full migration chain (real PostgreSQL)]   SQL PARSED + DDL EXECUTED   202609030001_agent_run_capacity_retry.sql
+[Apply the full migration chain (real PostgreSQL)] 
+[Apply the full migration chain (real PostgreSQL)] WHAT THIS RUN DOES NOT PROVE:
+[Apply the full migration chain (real PostgreSQL)]   * PGlite is single-user and superuser: RLS POLICY CREATION is validated here,
+[Apply the full migration chain (real PostgreSQL)]     but policy ENFORCEMENT per persona needs the role-switching suite, not this file.
+[Apply the full migration chain (real PostgreSQL)]   * The bootstrap shim defines auth.uid()/jwt()/role() and the Supabase roles. Any
+[Apply the full migration chain (real PostgreSQL)]     migration that passes only because the shim is more permissive than real
+[Apply the full migration chain (real PostgreSQL)]     Supabase is NOT validated. The shim is deliberately minimal for that reason.
+[Apply the full migration chain (real PostgreSQL)]   * Supabase extensions beyond pgcrypto, storage/realtime schemas, and PostgREST
+[Apply the full migration chain (real PostgreSQL)]     behaviour are absent.
+[Apply the full migration chain (real PostgreSQL)]   * This is SQL PARSED + INTEGRATION EXECUTED. It is not LIVE VERIFIED, and it
+[Apply the full migration chain (real PostgreSQL)]     says nothing about production data.
+[Apply the full migration chain (real PostgreSQL)] 
+[Apply the full migration chain (real PostgreSQL)] report: qa/dbtest/apply-report.json
+validate-real-postgresql	Behavioural acceptance (real PostgreSQL, per-migration verdicts)	﻿2026-09-04T06:48:25.7542799Z ##[group]Run node acceptance.mjs
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] ^[[36;1mnode acceptance.mjs^[[0m
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] shell: /usr/bin/bash -e {0}
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] env:
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] ##[endgroup]
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] engine: real-postgresql — PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] schema built: 81 migrations applied
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] fixtures: founder profile 94de4d74…, company 33333333…, work_order yes
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] ==============================================================================
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 202609020001  — 18/18 passed
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.table                            chat_channel_state exists with its key columns
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.rls                              RLS is enabled on the table (not merely policies written)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.policies                         both the select and write policies exist
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.guardPrecedesChecks              the trusted-column guard refuses a direct pending-action INSERT BEFORE any CHECK is consulted
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A4.confirmationNeedsTargets    R-A4: via the RPC, a confirmation with NULL target_ids is REFUSED by its own CHECK
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.wholeOrNothing                   via the RPC, a pending action missing its expiry is REFUSED by the whole-or-nothing CHECK
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.unknownActionType                via the RPC, an action type outside the vocabulary is REFUSED at write time
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.rpcHappyPath                     a well-formed pending action IS accepted through the RPC
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A3.jsonbShape                  R-A3: a SCALAR planted in focus_stack is REFUSED
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A2.insertGuard                 R-A2: a row may NOT be born holding a fabricated last_successful_mutation
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A2.updateGuard                 R-A2: last_successful_mutation may NOT be asserted by a later UPDATE either
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A2.clearIsAllowed              the guard permits CLEARING trusted state (a client may clear, never assert)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A2.rpcCanAssert                the SECURITY DEFINER RPC is the one path that CAN write execution evidence
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A2.flagLowered                 the RPC LOWERS the trusted-write flag before returning, so a later direct write in the same transaction is still refused
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A6.updatedAt                   R-A6: updated_at is maintained by the DATABASE on UPDATE, not by convention
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A6.versionNotTouched           version is NOT trigger-maintained (that would break the compare-and-set it exists for)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A7.compactionInvalidates       R-A7: losing the compaction anchor invalidates the whole checkpoint, not just the pointer
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   A.R-A5.noReaderExists              R-A5 (disclosure): NOTHING in the repo reads chat_channel_state — this migration is inert storage
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   VERDICT 202609020001: BEHAVIOURALLY VERIFIED (integration, not live)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 202609020002  — 5/5 passed
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   B.oldSignatureAbsent               the 11-arg overload is GONE (an overload would make every existing call ambiguous)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   B.R-ART5.newSignature              R-ART5: the new signature really carries p_clear_manager (the old assertion could never be true)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   B.R-B1.guardRestored               R-B1: the cross-company department guard 202608290008 added is PRESENT in the live body
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   B.searchPath                       search_path hardening survived the redefinition
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   B.grants                           authenticated may execute; anon may not
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   VERDICT 202609020002: BEHAVIOURALLY VERIFIED (integration, not live)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 202609020003  — 9/9 passed
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.tables                           all three tables exist with RLS enabled
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C5.oneLiveMapping              R-C5: uniqueness is PARTIAL (active only), so a revoked tombstone does not occupy the slot forever
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C5.revocationComplete          R-C5: status=revoked with a NULL revoked_at is REFUSED
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C1.bindingTrigger              R-C1: the channel/company agreement trigger is ATTACHED to the table
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C1.outboundTrigger             R-C1: the outbound binding/channel agreement trigger is ATTACHED
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C1.crossCompanyRefused         R-C1: binding a channel whose company DISAGREES is refused by the trigger, not by an FK
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C4.authorServerSet             R-C4: created_by_profile_id is set by the SERVER on all three tables
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.R-C3.idempotency                 R-C3: the queue carries a dedupe key, unique per binding when present
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   C.anonDenied                       anon has NO privileges on any of the three tables
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   VERDICT 202609020003: BEHAVIOURALLY VERIFIED (integration, not live)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 202609030001  — 4/4 passed
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   D.columns                          the retry columns exist on agent_runs
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   D.R-D1.sessionUserNotCurrentUser   R-D1: the guard uses session_user, NOT current_user (SECURITY DEFINER rebinds current_user to the owner)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   D.R-D7.grants                      R-D7 + ROUND 3/D-2: NO role holds EXECUTE on the claim RPC (direct-connection-only; the dead service_role grant is gone)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   OK   D.signature                        the claim RPC has the 3-arg signature (attempt cap and stale window are real parameters)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)]   VERDICT 202609030001: BEHAVIOURALLY VERIFIED (integration, not live)
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] ==============================================================================
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] acceptance: 36/36 passed
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] 
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] NOT PROVEN HERE: RLS ENFORCEMENT per persona. PGlite runs single-user as
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] superuser, so policies are proven to EXIST and to be attached, not to refuse a
+[Behavioural acceptance (real PostgreSQL, per-migration verdicts)] real caller. That is a separate suite and a separate verdict.
+validate-real-postgresql	Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)	﻿2026-09-04T06:48:26.4638123Z ##[group]Run node personas.mjs
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] ^[[36;1mnode personas.mjs^[[0m
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] shell: /usr/bin/bash -e {0}
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] env:
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] ##[endgroup]
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] engine: real-postgresql — PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] security self-check: {"engine":"real-postgresql","version":"PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit","role":"authenticated","login_user":"postgres","superuser_sees":2,"persona_session_user":"qa_authenticator","current_user":"authenticated","session_user":"qa_authenticator","row_security":"on","rolsuper":false,"rolbypassrls":false,"has_public_usage":true,"role_sees":1,"forbidden_op_sqlstate":"42501","forbidden_op_message":"new row violates row-level security policy for table \"_rls_selfcheck\"","ok":true}
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   current_user=authenticated session_user=qa_authenticator superuser=false bypassrls=false row_security=on
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   policy filter: login sees 2, authenticated sees 1; forbidden INSERT failed with 42501 — enforcement PROVEN on real-postgresql
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] ==============================================================================
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 202609020001 — 13/13
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.founderReads                         the founder can READ their own channel state
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.outsiderCannotRead                   an unrelated authenticated user sees NOTHING of the founder channel state
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.anonCannotRead                       anon cannot read channel state — refused at the grant, or sees nothing
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.outsiderCannotWrite                  an unrelated authenticated user cannot INSERT state for a channel they do not own
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R-A1.outsiderCannotArmPendingAction  R-A1 (the confused deputy): a non-owner cannot arm a pending action in the FOUNDER’s channel via the RPC
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R-A2.outsiderCannotForgeEvidence     R-A2: a non-owner cannot record execution evidence in the founder’s channel
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.founderCanArm                        the founder CAN arm a pending action in their own channel (the guard is not a blanket denier)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.rlsCannotExceedChannel               state visibility never exceeds channel visibility: a user who cannot see the CHANNEL cannot see its STATE
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R3-A1.clientCannotForgeViaFlag       A-1 (P1): an authenticated client that RAISES the trusted-write GUC itself is still refused (authority is the definer context, not the flag)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R3-A1.rpcStillWorks                  A-1 LIMIT: the SECURITY DEFINER RPC path still asserts trusted state (the gate is not a blanket denier)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R3-A3.managerCannotDeleteFounderState A-3 (P2): a manager of the SAME company cannot DELETE the founder channel state row
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R3-A3.managerCannotPlantFocusStack   A-3 (P2): a manager of the same company cannot write focus_stack into the founder channel row
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   A.R3.creatorStillWritesOwnRow          A-3 LIMIT: a channel creator can still update non-trusted columns of their OWN state row
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   VERDICT 202609020001: SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 202609020002 — 6/6
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.unauthorizedUserRefused              an ordinary employee cannot assign a person in a company they do not manage
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.anonRefused                          anon cannot call set_person_assignment at all
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.R-B1.crossCompanyDepartmentRefused   R-B1 ENFORCED, not merely present in the body: a department from another company is refused
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.R3-B2.crossCompanyManagerCannotEndEmployment B-2 (R-B2 HIGH): a manager of Co A cannot act on a person whose current company is Co B
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.R3-B1.crossCompanyManagerPersonRefused B-1 (P2): a manager_person_id from another company is refused as a data-integrity reference (not on authority)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   B.R3.sameCompanyManagerStillAssigns    B LIMIT: a manager of Co A can still assign a Co A person within Co A
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   VERDICT 202609020002: SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 202609020003 — 8/8
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.anonNoGrant                          anon cannot read any of the three transport tables
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.R-C6.ordinaryUserCannotBindIdentity  an ordinary employee cannot create an identity mapping (founder-only tier), refused on AUTHORITY not on an FK
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.founderCanBindIdentity               the founder CAN create an identity mapping
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.employeeCannotReadIdentityBindings   an employee cannot READ identity mappings either (founder-only for all)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.R3-C2.managerCannotEnableBinding     C-2 (P2): a company manager cannot switch a transport binding ON (post-review is founder/admin)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.R3-C2.managerCanCreateDisabledBinding C-2 LIMIT: a company manager can still create a DISABLED binding on their own channel
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.R3-C2.founderCanEnableBinding        C-2: the founder CAN enable a binding
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   C.R3-C3.managerCannotRepointEnabledBinding C-3 (P2): a manager cannot repoint an ENABLED binding onto the founder channel
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   VERDICT 202609020003: SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 202609030001 — 7/7
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.employeeCannotClaim                  an ordinary employee cannot claim a blocked run for retry
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.anonCannotClaim                      anon cannot claim a blocked run for retry
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.R3-D1.managerCannotRewriteRetryColumns D-1 (P1): under a realistic session_user, a company manager is REFUSED by guard_agent_run_retry_columns (behavioural, not a grant refusal)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.R3-D3.managerCannotRewriteExecutionMode D-3 (P2): execution_mode is guarded like every other retry column
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.R3-D2.serviceRoleHasNoGrant          D-2 (P1): no role holds EXECUTE on the claim function (checked in pg_proc, not inferred from a denial), and service_role through the authenticator shape is refused
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.R3-D2.directSupervisorCanClaim       D-2 LIMIT: the supervisor transport (direct login session) CAN claim
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   OK   D.R3.founderViaAuthenticatorStillGoverned D LIMIT: the founder (is_founder_or_admin) is still recognised by the guard under a realistic session_user
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)]   VERDICT 202609030001: SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] ==============================================================================
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] personas: 34/34 passed
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] 
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] STILL NOT PROVEN: PostgREST request shaping, Supabase Auth issuance, and
+[Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)] production data. This proves POLICY ENFORCEMENT against a real engine.
+validate-real-postgresql	Double-claim under genuine concurrency (real PostgreSQL, two connections)	﻿2026-09-04T06:48:27.2462943Z ##[group]Run node concurrency.mjs
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] ^[[36;1mnode concurrency.mjs^[[0m
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] shell: /usr/bin/bash -e {0}
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] env:
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] ##[endgroup]
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] engine: real-postgresql — PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] OK   supervisor-1 claims the eligible run inside an open transaction — [{"id":"dddd0000-0000-0000-0000-00000000000d"}]
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] OK   supervisor-2, racing inside its own transaction, gets ZERO rows and does not block — []
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] OK   after supervisor-1 commits, the run is claimed and supervisor-2 still gets nothing — []
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] OK   exactly one claimant is recorded — {"claimed_by":"supervisor-1","attempt_count":2}
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] 
+[Double-claim under genuine concurrency (real PostgreSQL, two connections)] concurrency: TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN — VERIFIED under real concurrency (real PostgreSQL, two connections)
+validate-real-postgresql	Publish reports (real PostgreSQL)	﻿2026-09-04T06:48:27.9154561Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+[Publish reports (real PostgreSQL)] ##[group]Run actions/upload-artifact@v4
+[Publish reports (real PostgreSQL)] with:
+[Publish reports (real PostgreSQL)]   name: migration-validation-reports-real-postgresql
+[Publish reports (real PostgreSQL)]   path: qa/dbtest/apply-report.json
+validate-real-postgresql	Publish reports (real PostgreSQL)	qa/dbtest/acceptance-report.json
+validate-real-postgresql	Publish reports (real PostgreSQL)	qa/dbtest/personas-report.json
+validate-real-postgresql	Publish reports (real PostgreSQL)	
+[Publish reports (real PostgreSQL)]   if-no-files-found: warn
+[Publish reports (real PostgreSQL)]   compression-level: 6
+[Publish reports (real PostgreSQL)]   overwrite: false
+[Publish reports (real PostgreSQL)]   include-hidden-files: false
+[Publish reports (real PostgreSQL)] env:
+[Publish reports (real PostgreSQL)]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Publish reports (real PostgreSQL)] ##[endgroup]
+[Publish reports (real PostgreSQL)] (node:4677) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+[Publish reports (real PostgreSQL)] (Use `node --trace-deprecation ...` to show where the warning was created)
+[Publish reports (real PostgreSQL)] Multiple search paths detected. Calculating the least common ancestor of all paths
+[Publish reports (real PostgreSQL)] The least common ancestor is /home/runner/work/brain-os/brain-os/qa/dbtest. This will be the root directory of the artifact
+[Publish reports (real PostgreSQL)] With the provided path, there will be 3 files uploaded
+[Publish reports (real PostgreSQL)] Artifact name is valid!
+[Publish reports (real PostgreSQL)] Root directory input is valid!
+[Publish reports (real PostgreSQL)] Beginning upload of artifact content to blob storage
+[Publish reports (real PostgreSQL)] (node:4677) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+[Publish reports (real PostgreSQL)] Uploaded bytes 6067
+[Publish reports (real PostgreSQL)] Finished uploading artifact content to blob storage!
+[Publish reports (real PostgreSQL)] SHA256 digest of uploaded artifact zip is 48d16f710becbe5a9a2dc3e8637b13da38f9f97a74395682bb9b7ff2ab39210e
+[Publish reports (real PostgreSQL)] Finalizing artifact upload
+[Publish reports (real PostgreSQL)] Artifact migration-validation-reports-real-postgresql.zip successfully finalized. Artifact ID 9926494468
+[Publish reports (real PostgreSQL)] Artifact migration-validation-reports-real-postgresql has been successfully uploaded! Final size is 6067 bytes. Artifact ID is 9926494468
+[Publish reports (real PostgreSQL)] Artifact download URL: https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33845376254/artifacts/9926494468
+validate-real-postgresql	Evidence level reached by this job	﻿2026-09-04T06:48:28.7385831Z ##[group]Run echo "This job proves, on a REAL PostgreSQL server with a self-checked non-superuser role:"
+[Evidence level reached by this job] ^[[36;1mecho "This job proves, on a REAL PostgreSQL server with a self-checked non-superuser role:"^[[0m
+[Evidence level reached by this job] ^[[36;1mecho "  SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED -> RLS / GRANTS / SECURITY DEFINER"^[[0m
+[Evidence level reached by this job] ^[[36;1mecho "  BEHAVIOUR VERIFIED -> SECURITY VERIFIED, per migration, as printed above."^[[0m
+[Evidence level reached by this job] ^[[36;1mecho "It does NOT prove PostgREST shaping, Supabase Auth issuance, or anything about"^[[0m
+[Evidence level reached by this job] ^[[36;1mecho "production data. It is a prerequisite for, not a substitute for, the founder's"^[[0m
+[Evidence level reached by this job] ^[[36;1mecho "production authorization and the post-apply live verification."^[[0m
+[Evidence level reached by this job] shell: /usr/bin/bash -e {0}
+[Evidence level reached by this job] env:
+[Evidence level reached by this job]   DBTEST_PG_URL: ***localhost:5432/dbtest
+[Evidence level reached by this job] ##[endgroup]
+[Evidence level reached by this job] This job proves, on a REAL PostgreSQL server with a self-checked non-superuser role:
+[Evidence level reached by this job]   SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED -> RLS / GRANTS / SECURITY DEFINER
+[Evidence level reached by this job]   BEHAVIOUR VERIFIED -> SECURITY VERIFIED, per migration, as printed above.
+[Evidence level reached by this job] It does NOT prove PostgREST shaping, Supabase Auth issuance, or anything about
+[Evidence level reached by this job] production data. It is a prerequisite for, not a substitute for, the founder's
+[Evidence level reached by this job] production authorization and the post-apply live verification.
+validate-real-postgresql	Post Run actions/setup-node@v4	﻿2026-09-04T06:48:28.7562485Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+[Post Run actions/setup-node@v4] Post job cleanup.
+[Post Run actions/setup-node@v4] (node:4694) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+[Post Run actions/setup-node@v4] (Use `node --trace-deprecation ...` to show where the warning was created)
+validate-real-postgresql	Post Run actions/checkout@v4	﻿2026-09-04T06:48:28.8950638Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+[Post Run actions/checkout@v4] Post job cleanup.
+[Post Run actions/checkout@v4] [command]/usr/bin/git version
+[Post Run actions/checkout@v4] git version 2.55.0
+[Post Run actions/checkout@v4] Temporarily overriding HOME='/home/runner/work/_temp/ef3d8a2a-31e6-4014-8805-08dc672ec743' before making global git config changes
+[Post Run actions/checkout@v4] Adding repository directory to the temporary git global config as a safe directory
+[Post Run actions/checkout@v4] [command]/usr/bin/git config --global --add safe.directory /home/runner/work/brain-os/brain-os
+[Post Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[Post Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+[Post Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[Post Run actions/checkout@v4] http.https://github.com/.extraheader
+[Post Run actions/checkout@v4] [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+[Post Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+[Post Run actions/checkout@v4] [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[Post Run actions/checkout@v4] [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+validate-real-postgresql	Stop containers	﻿2026-09-04T06:48:29.1016565Z Print service container logs: 11b29fd03d334468896f649106f8c81e_pgvectorpgvectorpg15_6d206c
+[Stop containers] ##[command]/usr/bin/docker logs --details beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Stop containers]  The files belonging to this database system will be owned by user "postgres".
+[Stop containers]  initdb: warning: enabling "trust" authentication for local connections
+[Stop containers]  This user must also own the server process.
+[Stop containers]  
+[Stop containers]  The database cluster will be initialized with locale "en_US.utf8".
+[Stop containers]  The default database encoding has accordingly been set to "UTF8".
+[Stop containers]  The default text search configuration will be set to "english".
+[Stop containers]  
+[Stop containers]  Data page checksums are disabled.
+[Stop containers]  
+[Stop containers]  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+[Stop containers]  creating subdirectories ... ok
+[Stop containers]  selecting dynamic shared memory implementation ... posix
+[Stop containers]  selecting default max_connections ... 100
+[Stop containers]  selecting default shared_buffers ... 128MB
+[Stop containers]  selecting default time zone ... Etc/UTC
+[Stop containers]  creating configuration files ... ok
+[Stop containers]  running bootstrap script ... ok
+[Stop containers]  performing post-bootstrap initialization ... ok
+[Stop containers]  syncing data to disk ... ok
+[Stop containers]  
+[Stop containers]  
+[Stop containers]  Success. You can now start the database server using:
+[Stop containers]  
+[Stop containers]      pg_ctl -D /var/lib/postgresql/data -l logfile start
+[Stop containers]  
+[Stop containers]  waiting for server to start....2026-09-04 06:41:11.945 UTC [49] LOG:  starting PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Stop containers]  2026-09-04 06:41:11.946 UTC [49] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+[Stop containers]  2026-09-04 06:41:11.949 UTC [52] LOG:  database system was shut down at 2026-09-04 06:41:11 UTC
+[Stop containers]  2026-09-04 06:41:11.953 UTC [49] LOG:  database system is ready to accept connections
+[Stop containers]   done
+[Stop containers]  server started
+[Stop containers]  CREATE DATABASE
+[Stop containers]  
+[Stop containers]  
+[Stop containers]  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+[Stop containers]  
+[Stop containers]  2026-09-04 06:41:12.128 UTC [49] LOG:  received fast shutdown request
+[Stop containers]  waiting for server to shut down....2026-09-04 06:41:12.128 UTC [49] LOG:  aborting any active transactions
+[Stop containers]  2026-09-04 06:41:12.130 UTC [49] LOG:  background worker "logical replication launcher" (PID 55) exited with exit code 1
+[Stop containers]  2026-09-04 06:41:12.131 UTC [50] LOG:  shutting down
+[Stop containers]  2026-09-04 06:41:12.134 UTC [50] LOG:  checkpoint starting: shutdown immediate
+[Stop containers]  2026-09-04 06:41:12.153 UTC [50] LOG:  checkpoint complete: wrote 918 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.004 s, total=0.022 s; sync files=301, longest=0.003 s, average=0.001 s; distance=4222 kB, estimate=4222 kB
+[Stop containers]  2026-09-04 06:41:12.159 UTC [49] LOG:  database system is shut down
+[Stop containers]   done
+[Stop containers]  server stopped
+[Stop containers]  
+[Stop containers]  PostgreSQL init process complete; ready for start up.
+[Stop containers]  
+[Stop containers]  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+[Stop containers]  2026-09-04 06:41:12.249 UTC [1] LOG:  starting PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+[Stop containers]  2026-09-04 06:41:12.249 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+[Stop containers]  2026-09-04 06:41:12.249 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+[Stop containers]  2026-09-04 06:41:12.251 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+[Stop containers]  2026-09-04 06:41:12.254 UTC [65] LOG:  database system was shut down at 2026-09-04 06:41:12 UTC
+[Stop containers]  2026-09-04 06:41:12.260 UTC [1] LOG:  database system is ready to accept connections
+[Stop containers]  2026-09-04 06:46:12.329 UTC [63] LOG:  checkpoint starting: time
+[Stop containers]  2026-09-04 06:46:16.442 UTC [63] LOG:  checkpoint complete: wrote 44 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.110 s, sync=0.002 s, total=4.113 s; sync files=12, longest=0.001 s, average=0.001 s; distance=252 kB, estimate=252 kB
+[Stop containers]  2026-09-04 06:48:25.351 UTC [772] WARNING:  wal_level is insufficient to publish logical changes
+[Stop containers]  2026-09-04 06:48:25.351 UTC [772] HINT:  Set wal_level to "logical" before creating subscriptions.
+[Stop containers]  2026-09-04 06:48:25.351 UTC [772] CONTEXT:  SQL statement "create publication supabase_realtime"
+[Stop containers]  	PL/pgSQL function inline_code_block line 4 at SQL statement
+[Stop containers]  2026-09-04 06:48:25.971 UTC [773] WARNING:  wal_level is insufficient to publish logical changes
+[Stop containers]  2026-09-04 06:48:25.971 UTC [773] HINT:  Set wal_level to "logical" before creating subscriptions.
+[Stop containers]  2026-09-04 06:48:25.971 UTC [773] CONTEXT:  SQL statement "create publication supabase_realtime"
+[Stop containers]  	PL/pgSQL function inline_code_block line 4 at SQL statement
+[Stop containers]  2026-09-04 06:48:26.418 UTC [773] ERROR:  chat_channel_state: a row may not be created holding server-written state (pending_action_*, last_successful_mutation, compacted_*); insert the empty row, then use the RPCs
+[Stop containers]  2026-09-04 06:48:26.418 UTC [773] CONTEXT:  PL/pgSQL function public.chat_channel_state_guard_trusted_columns_ins() line 20 at RAISE
+[Stop containers]  2026-09-04 06:48:26.418 UTC [773] STATEMENT:  insert into public.chat_channel_state
+[Stop containers]  	    (channel_id, pending_action, pending_action_action_type, pending_action_expected_confirmation,
+[Stop containers]  	     pending_action_created_at, pending_action_expires_at)
+[Stop containers]  	    values ('44444444-0000-0000-0000-000000000004', '{"kind":"bulk"}'::jsonb, 'archive', 'confirmation', now(), now() + interval '1 hour');
+[Stop containers]  2026-09-04 06:48:26.419 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.420 UTC [773] ERROR:  new row for relation "chat_channel_state" violates check constraint "chat_channel_state_confirmation_binds_targets"
+[Stop containers]  2026-09-04 06:48:26.420 UTC [773] DETAIL:  Failing row contains (44444444-0000-0000-0000-000000000004, {"kind": "bulk"}, archive, null, null, confirmation, 2026-09-04 06:48:26.419409+00, 2026-09-04 07:48:26.419409+00, [], [], null, null, [], null, 0, 1, 2026-09-04 06:48:26.419409+00).
+[Stop containers]  2026-09-04 06:48:26.420 UTC [773] CONTEXT:  SQL statement "insert into public.chat_channel_state as s (
+[Stop containers]  	    channel_id, pending_action, pending_action_action_type, pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation, pending_action_created_at, pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id
+[Stop containers]  	  ) values (
+[Stop containers]  	    p_channel_id, p_pending_action, p_action_type, p_target_ids,
+[Stop containers]  	    p_expected_confirmation, now(), p_expires_at, p_source_work_order_id
+[Stop containers]  	  )
+[Stop containers]  	  on conflict (channel_id) do update set
+[Stop containers]  	    pending_action = excluded.pending_action,
+[Stop containers]  	    pending_action_action_type = excluded.pending_action_action_type,
+[Stop containers]  	    pending_action_target_ids = excluded.pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation = excluded.pending_action_expected_confirmation,
+[Stop containers]  	    pending_action_created_at = excluded.pending_action_created_at,
+[Stop containers]  	    pending_action_expires_at = excluded.pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id = excluded.pending_action_source_work_order_id,
+[Stop containers]  	    version = s.version + 1"
+[Stop containers]  	PL/pgSQL function public.set_chat_channel_pending_action(uuid,jsonb,text,jsonb,text,timestamp with time zone,uuid) line 17 at SQL statement
+[Stop containers]  2026-09-04 06:48:26.420 UTC [773] STATEMENT:  select public.set_chat_channel_pending_action('44444444-0000-0000-0000-000000000004', '{"kind":"bulk"}'::jsonb,
+[Stop containers]  	             'archive', null, 'confirmation', now() + interval '1 hour', null);
+[Stop containers]  2026-09-04 06:48:26.420 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.421 UTC [773] ERROR:  new row for relation "chat_channel_state" violates check constraint "chat_channel_state_pending_action_whole"
+[Stop containers]  2026-09-04 06:48:26.421 UTC [773] DETAIL:  Failing row contains (44444444-0000-0000-0000-000000000004, {"kind": "bulk"}, archive, [], null, confirmation, 2026-09-04 06:48:26.420975+00, null, [], [], null, null, [], null, 0, 1, 2026-09-04 06:48:26.420975+00).
+[Stop containers]  2026-09-04 06:48:26.421 UTC [773] CONTEXT:  SQL statement "insert into public.chat_channel_state as s (
+[Stop containers]  	    channel_id, pending_action, pending_action_action_type, pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation, pending_action_created_at, pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id
+[Stop containers]  	  ) values (
+[Stop containers]  	    p_channel_id, p_pending_action, p_action_type, p_target_ids,
+[Stop containers]  	    p_expected_confirmation, now(), p_expires_at, p_source_work_order_id
+[Stop containers]  	  )
+[Stop containers]  	  on conflict (channel_id) do update set
+[Stop containers]  	    pending_action = excluded.pending_action,
+[Stop containers]  	    pending_action_action_type = excluded.pending_action_action_type,
+[Stop containers]  	    pending_action_target_ids = excluded.pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation = excluded.pending_action_expected_confirmation,
+[Stop containers]  	    pending_action_created_at = excluded.pending_action_created_at,
+[Stop containers]  	    pending_action_expires_at = excluded.pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id = excluded.pending_action_source_work_order_id,
+[Stop containers]  	    version = s.version + 1"
+[Stop containers]  	PL/pgSQL function public.set_chat_channel_pending_action(uuid,jsonb,text,jsonb,text,timestamp with time zone,uuid) line 17 at SQL statement
+[Stop containers]  2026-09-04 06:48:26.421 UTC [773] STATEMENT:  select public.set_chat_channel_pending_action('44444444-0000-0000-0000-000000000004', '{"kind":"bulk"}'::jsonb,
+[Stop containers]  	             'archive', '[]'::jsonb, 'confirmation', null, null);
+[Stop containers]  2026-09-04 06:48:26.421 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.422 UTC [773] ERROR:  new row for relation "chat_channel_state" violates check constraint "chat_channel_state_pending_action_action_type_check"
+[Stop containers]  2026-09-04 06:48:26.422 UTC [773] DETAIL:  Failing row contains (44444444-0000-0000-0000-000000000004, {}, obliterate, [], null, confirmation, 2026-09-04 06:48:26.422116+00, 2026-09-04 07:48:26.422116+00, [], [], null, null, [], null, 0, 1, 2026-09-04 06:48:26.422116+00).
+[Stop containers]  2026-09-04 06:48:26.422 UTC [773] CONTEXT:  SQL statement "insert into public.chat_channel_state as s (
+[Stop containers]  	    channel_id, pending_action, pending_action_action_type, pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation, pending_action_created_at, pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id
+[Stop containers]  	  ) values (
+[Stop containers]  	    p_channel_id, p_pending_action, p_action_type, p_target_ids,
+[Stop containers]  	    p_expected_confirmation, now(), p_expires_at, p_source_work_order_id
+[Stop containers]  	  )
+[Stop containers]  	  on conflict (channel_id) do update set
+[Stop containers]  	    pending_action = excluded.pending_action,
+[Stop containers]  	    pending_action_action_type = excluded.pending_action_action_type,
+[Stop containers]  	    pending_action_target_ids = excluded.pending_action_target_ids,
+[Stop containers]  	    pending_action_expected_confirmation = excluded.pending_action_expected_confirmation,
+[Stop containers]  	    pending_action_created_at = excluded.pending_action_created_at,
+[Stop containers]  	    pending_action_expires_at = excluded.pending_action_expires_at,
+[Stop containers]  	    pending_action_source_work_order_id = excluded.pending_action_source_work_order_id,
+[Stop containers]  	    version = s.version + 1"
+[Stop containers]  	PL/pgSQL function public.set_chat_channel_pending_action(uuid,jsonb,text,jsonb,text,timestamp with time zone,uuid) line 17 at SQL statement
+[Stop containers]  2026-09-04 06:48:26.422 UTC [773] STATEMENT:  select public.set_chat_channel_pending_action('44444444-0000-0000-0000-000000000004', '{}'::jsonb,
+[Stop containers]  	             'obliterate', '[]'::jsonb, 'confirmation', now() + interval '1h', null);
+[Stop containers]  2026-09-04 06:48:26.422 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.424 UTC [773] ERROR:  new row for relation "chat_channel_state" violates check constraint "chat_channel_state_jsonb_shapes"
+[Stop containers]  2026-09-04 06:48:26.424 UTC [773] DETAIL:  Failing row contains (44444444-0000-0000-0000-000000000005, null, null, null, null, null, null, null, "not-an-array", [], null, null, [], null, 0, 1, 2026-09-04 06:48:26.424402+00).
+[Stop containers]  2026-09-04 06:48:26.424 UTC [773] STATEMENT:  insert into public.chat_channel_state (channel_id, focus_stack)
+[Stop containers]  	           values ('44444444-0000-0000-0000-000000000005', '"not-an-array"'::jsonb);
+[Stop containers]  2026-09-04 06:48:26.424 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.425 UTC [773] ERROR:  chat_channel_state: a row may not be created holding server-written state (pending_action_*, last_successful_mutation, compacted_*); insert the empty row, then use the RPCs
+[Stop containers]  2026-09-04 06:48:26.425 UTC [773] CONTEXT:  PL/pgSQL function public.chat_channel_state_guard_trusted_columns_ins() line 20 at RAISE
+[Stop containers]  2026-09-04 06:48:26.425 UTC [773] STATEMENT:  insert into public.chat_channel_state (channel_id, last_successful_mutation)
+[Stop containers]  	           values ('44444444-0000-0000-0000-000000000005', '{"action":"archive","id":"fake"}'::jsonb);
+[Stop containers]  2026-09-04 06:48:26.425 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.427 UTC [773] ERROR:  chat_channel_state: pending_action_*, last_successful_mutation and compacted_* are server-written only; use the chat_channel_state RPCs (a client may clear them, never assert them)
+[Stop containers]  2026-09-04 06:48:26.427 UTC [773] CONTEXT:  PL/pgSQL function public.chat_channel_state_guard_trusted_columns() line 48 at RAISE
+[Stop containers]  2026-09-04 06:48:26.427 UTC [773] STATEMENT:  update public.chat_channel_state
+[Stop containers]  	                  set last_successful_mutation = '{"action":"archive"}'::jsonb
+[Stop containers]  	                  where channel_id = '44444444-0000-0000-0000-000000000005';
+[Stop containers]  2026-09-04 06:48:26.427 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.430 UTC [773] ERROR:  chat_channel_state: pending_action_*, last_successful_mutation and compacted_* are server-written only; use the chat_channel_state RPCs (a client may clear them, never assert them)
+[Stop containers]  2026-09-04 06:48:26.430 UTC [773] CONTEXT:  PL/pgSQL function public.chat_channel_state_guard_trusted_columns() line 48 at RAISE
+[Stop containers]  2026-09-04 06:48:26.430 UTC [773] STATEMENT:  update public.chat_channel_state set last_successful_mutation = '{"a":"forged"}'::jsonb where channel_id='44444444-0000-0000-0000-000000000005';
+[Stop containers]  2026-09-04 06:48:26.431 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.434 UTC [773] ERROR:  set_chat_channel_compaction: a compaction summary requires its through-work-order anchor
+[Stop containers]  2026-09-04 06:48:26.434 UTC [773] CONTEXT:  PL/pgSQL function public.set_chat_channel_compaction(uuid,text,jsonb,uuid,integer) line 18 at RAISE
+[Stop containers]  2026-09-04 06:48:26.434 UTC [773] STATEMENT:  select public.set_chat_channel_compaction('44444444-0000-0000-0000-000000000005', 'summary text', '[]'::jsonb, null, 5);
+[Stop containers]  2026-09-04 06:48:26.441 UTC [773] ERROR:  new row for relation "external_identity_bindings" violates check constraint "external_identity_bindings_revocation_complete"
+[Stop containers]  2026-09-04 06:48:26.441 UTC [773] DETAIL:  Failing row contains (4234f082-9bab-4b44-a8b7-927b18498734, telegram, probe-1, 94de4d74-3e3e-4a98-9f8a-aa84b0f9824f, revoked, 94de4d74-3e3e-4a98-9f8a-aa84b0f9824f, 2026-09-04 06:48:26.440956+00, null).
+[Stop containers]  2026-09-04 06:48:26.441 UTC [773] STATEMENT:  insert into public.external_identity_bindings (transport, external_user_id, profile_id, status)
+[Stop containers]  	           select 'telegram','probe-1', p.id, 'revoked' from public.profiles p limit 1;
+[Stop containers]  2026-09-04 06:48:26.441 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.443 UTC [773] ERROR:  channel_transport_bindings: channel 44444444-0000-0000-0000-000000000004 belongs to company (none), not 33333333-0000-0000-0000-000000000003 (cross-company channel binding rejected)
+[Stop containers]  2026-09-04 06:48:26.443 UTC [773] CONTEXT:  PL/pgSQL function public.channel_transport_bindings_enforce_channel_company() line 8 at RAISE
+[Stop containers]  2026-09-04 06:48:26.443 UTC [773] STATEMENT:  insert into public.channel_transport_bindings
+[Stop containers]  	      (transport, external_conversation_id, channel_id, company_id)
+[Stop containers]  	      values ('telegram','conv-x','44444444-0000-0000-0000-000000000004','33333333-0000-0000-0000-000000000003');
+[Stop containers]  2026-09-04 06:48:26.443 UTC [773] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:26.680 UTC [774] WARNING:  wal_level is insufficient to publish logical changes
+[Stop containers]  2026-09-04 06:48:26.680 UTC [774] HINT:  Set wal_level to "logical" before creating subscriptions.
+[Stop containers]  2026-09-04 06:48:26.680 UTC [774] CONTEXT:  SQL statement "create publication supabase_realtime"
+[Stop containers]  	PL/pgSQL function inline_code_block line 4 at SQL statement
+[Stop containers]  2026-09-04 06:48:27.078 UTC [774] ERROR:  new row violates row-level security policy for table "_rls_selfcheck"
+[Stop containers]  2026-09-04 06:48:27.078 UTC [774] STATEMENT:  insert into public._rls_selfcheck values (3,'mallory');
+[Stop containers]  2026-09-04 06:48:27.079 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.101 UTC [774] ERROR:  permission denied for table chat_channel_state
+[Stop containers]  2026-09-04 06:48:27.101 UTC [774] STATEMENT:  select count(*)::int c from public.chat_channel_state
+[Stop containers]  2026-09-04 06:48:27.106 UTC [774] ERROR:  new row violates row-level security policy for table "chat_channel_state"
+[Stop containers]  2026-09-04 06:48:27.106 UTC [774] STATEMENT:  insert into public.chat_channel_state (channel_id) values ('cccc0000-0000-0000-0000-00000000000c') on conflict (channel_id) do nothing;
+[Stop containers]  2026-09-04 06:48:27.107 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.111 UTC [774] ERROR:  set_chat_channel_pending_action: only the channel creator or a founder/admin may arm a pending action on channel cccc0000-0000-0000-0000-00000000000c
+[Stop containers]  2026-09-04 06:48:27.111 UTC [774] CONTEXT:  PL/pgSQL function public.set_chat_channel_pending_action(uuid,jsonb,text,jsonb,text,timestamp with time zone,uuid) line 11 at RAISE
+[Stop containers]  2026-09-04 06:48:27.111 UTC [774] STATEMENT:  select public.set_chat_channel_pending_action('cccc0000-0000-0000-0000-00000000000c', '{"kind":"bulk"}'::jsonb,
+[Stop containers]  	       'archive', '[{"resourceType":"company","id":"aaaa0000-0000-0000-0000-00000000000a"}]'::jsonb, 'confirmation',
+[Stop containers]  	       now() + interval '1 hour', null);
+[Stop containers]  2026-09-04 06:48:27.111 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.114 UTC [774] ERROR:  record_chat_channel_mutation: not authorized for channel cccc0000-0000-0000-0000-00000000000c
+[Stop containers]  2026-09-04 06:48:27.114 UTC [774] CONTEXT:  PL/pgSQL function public.record_chat_channel_mutation(uuid,jsonb) line 11 at RAISE
+[Stop containers]  2026-09-04 06:48:27.114 UTC [774] STATEMENT:  select public.record_chat_channel_mutation('cccc0000-0000-0000-0000-00000000000c', '{"action":"archive"}'::jsonb);
+[Stop containers]  2026-09-04 06:48:27.114 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.129 UTC [774] ERROR:  Only the founder, an admin, or a manager of the target company can assign this person
+[Stop containers]  2026-09-04 06:48:27.129 UTC [774] CONTEXT:  PL/pgSQL function public.set_person_assignment(uuid,uuid,uuid,uuid,text,uuid,text,numeric,text,boolean,text,boolean) line 16 at RAISE
+[Stop containers]  2026-09-04 06:48:27.129 UTC [774] STATEMENT:  select public.set_person_assignment('7b52084f-1aa1-4078-8697-79e974af6cf9'::uuid, 'aaaa0000-0000-0000-0000-00000000000a'::uuid);
+[Stop containers]  2026-09-04 06:48:27.130 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.132 UTC [774] ERROR:  permission denied for function set_person_assignment
+[Stop containers]  2026-09-04 06:48:27.132 UTC [774] STATEMENT:  select public.set_person_assignment('7b52084f-1aa1-4078-8697-79e974af6cf9'::uuid, 'aaaa0000-0000-0000-0000-00000000000a'::uuid);
+[Stop containers]  2026-09-04 06:48:27.133 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.136 UTC [774] ERROR:  set_person_assignment: department 7aa8b36d-c1fd-4e62-8c46-3d91344a5c62 does not belong to company aaaa0000-0000-0000-0000-00000000000a (cross-company department reference rejected)
+[Stop containers]  2026-09-04 06:48:27.136 UTC [774] CONTEXT:  PL/pgSQL function public.set_person_assignment(uuid,uuid,uuid,uuid,text,uuid,text,numeric,text,boolean,text,boolean) line 38 at RAISE
+[Stop containers]  2026-09-04 06:48:27.136 UTC [774] STATEMENT:  select public.set_person_assignment('7b52084f-1aa1-4078-8697-79e974af6cf9'::uuid, 'aaaa0000-0000-0000-0000-00000000000a'::uuid, null, '7aa8b36d-c1fd-4e62-8c46-3d91344a5c62'::uuid);
+[Stop containers]  2026-09-04 06:48:27.137 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.139 UTC [774] ERROR:  permission denied for table channel_transport_bindings
+[Stop containers]  2026-09-04 06:48:27.139 UTC [774] STATEMENT:  select count(*) from public.channel_transport_bindings
+[Stop containers]  2026-09-04 06:48:27.140 UTC [774] ERROR:  permission denied for table external_identity_bindings
+[Stop containers]  2026-09-04 06:48:27.140 UTC [774] STATEMENT:  select count(*) from public.external_identity_bindings
+[Stop containers]  2026-09-04 06:48:27.141 UTC [774] ERROR:  permission denied for table outbound_messages
+[Stop containers]  2026-09-04 06:48:27.141 UTC [774] STATEMENT:  select count(*) from public.outbound_messages
+[Stop containers]  2026-09-04 06:48:27.144 UTC [774] ERROR:  new row violates row-level security policy for table "external_identity_bindings"
+[Stop containers]  2026-09-04 06:48:27.144 UTC [774] STATEMENT:  insert into public.external_identity_bindings (transport, external_user_id, profile_id)
+[Stop containers]  	     values ('telegram','attacker-1','194e3d8d-34e2-4ef6-82de-ec8fb9a65699');
+[Stop containers]  2026-09-04 06:48:27.144 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.152 UTC [774] ERROR:  permission denied for function claim_blocked_run_for_retry
+[Stop containers]  2026-09-04 06:48:27.152 UTC [774] STATEMENT:  select * from public.claim_blocked_run_for_retry('attacker');
+[Stop containers]  2026-09-04 06:48:27.152 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.155 UTC [774] ERROR:  permission denied for function claim_blocked_run_for_retry
+[Stop containers]  2026-09-04 06:48:27.155 UTC [774] STATEMENT:  select * from public.claim_blocked_run_for_retry('attacker');
+[Stop containers]  2026-09-04 06:48:27.155 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.160 UTC [774] ERROR:  chat_channel_state: pending_action_*, last_successful_mutation and compacted_* are server-written only; use the chat_channel_state RPCs (a client may clear them, never assert them)
+[Stop containers]  2026-09-04 06:48:27.160 UTC [774] CONTEXT:  PL/pgSQL function public.chat_channel_state_guard_trusted_columns() line 48 at RAISE
+[Stop containers]  2026-09-04 06:48:27.160 UTC [774] STATEMENT:  select set_config('app.chat_channel_state_trusted_write','on',false);
+[Stop containers]  	     update public.chat_channel_state set last_successful_mutation='{"forged":"never happened"}'::jsonb where channel_id='cccc0000-0000-0000-0000-00000000000c';
+[Stop containers]  2026-09-04 06:48:27.161 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.185 UTC [774] ERROR:  set_person_assignment: person eeee0000-0000-0000-0000-00000000000e is currently employed by company bbbb0000-0000-0000-0000-00000000000b, which the caller does not manage (cross-company employment change rejected)
+[Stop containers]  2026-09-04 06:48:27.185 UTC [774] CONTEXT:  PL/pgSQL function public.set_person_assignment(uuid,uuid,uuid,uuid,text,uuid,text,numeric,text,boolean,text,boolean) line 23 at RAISE
+[Stop containers]  2026-09-04 06:48:27.185 UTC [774] STATEMENT:  select public.set_person_assignment('eeee0000-0000-0000-0000-00000000000e'::uuid, 'aaaa0000-0000-0000-0000-00000000000a'::uuid);
+[Stop containers]  2026-09-04 06:48:27.186 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.189 UTC [774] ERROR:  set_person_assignment: manager ffff0000-0000-0000-0000-00000000000f does not belong to company bbbb0000-0000-0000-0000-00000000000b (cross-company manager reference rejected)
+[Stop containers]  2026-09-04 06:48:27.189 UTC [774] CONTEXT:  PL/pgSQL function public.set_person_assignment(uuid,uuid,uuid,uuid,text,uuid,text,numeric,text,boolean,text,boolean) line 54 at RAISE
+[Stop containers]  2026-09-04 06:48:27.189 UTC [774] STATEMENT:  select public.set_person_assignment('7b52084f-1aa1-4078-8697-79e974af6cf9'::uuid, 'bbbb0000-0000-0000-0000-00000000000b'::uuid, null, null, null, 'ffff0000-0000-0000-0000-00000000000f'::uuid);
+[Stop containers]  2026-09-04 06:48:27.190 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.196 UTC [774] ERROR:  channel_transport_bindings: enabling a transport binding requires the founder or an admin (post-review)
+[Stop containers]  2026-09-04 06:48:27.196 UTC [774] CONTEXT:  PL/pgSQL function public.channel_transport_bindings_enable_requires_founder() line 4 at RAISE
+[Stop containers]  2026-09-04 06:48:27.196 UTC [774] STATEMENT:  insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+[Stop containers]  	     values ('telegram','conv-mgr-on','cccc0000-0000-0000-0000-00000000000d','aaaa0000-0000-0000-0000-00000000000a', true);
+[Stop containers]  2026-09-04 06:48:27.197 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.207 UTC [774] ERROR:  channel_transport_bindings: repointing an ENABLED transport binding to another channel requires the founder or an admin
+[Stop containers]  2026-09-04 06:48:27.207 UTC [774] CONTEXT:  PL/pgSQL function public.channel_transport_bindings_enable_requires_founder() line 9 at RAISE
+[Stop containers]  2026-09-04 06:48:27.207 UTC [774] STATEMENT:  update public.channel_transport_bindings set channel_id='cccc0000-0000-0000-0000-00000000000c' where external_conversation_id='conv-mgr-off';
+[Stop containers]  2026-09-04 06:48:27.208 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.213 UTC [774] ERROR:  Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state
+[Stop containers]  2026-09-04 06:48:27.213 UTC [774] CONTEXT:  PL/pgSQL function public.guard_agent_run_retry_columns() line 41 at RAISE
+[Stop containers]  2026-09-04 06:48:27.213 UTC [774] STATEMENT:  update public.agent_runs set worktree='/attacker/worktree' where id='dddd0000-0000-0000-0000-00000000000d';
+[Stop containers]  2026-09-04 06:48:27.217 UTC [774] ERROR:  Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state
+[Stop containers]  2026-09-04 06:48:27.217 UTC [774] CONTEXT:  PL/pgSQL function public.guard_agent_run_retry_columns() line 41 at RAISE
+[Stop containers]  2026-09-04 06:48:27.217 UTC [774] STATEMENT:  update public.agent_runs set execution_mode='background_subagent' where id='dddd0000-0000-0000-0000-00000000000d';
+[Stop containers]  2026-09-04 06:48:27.221 UTC [774] ERROR:  permission denied for function claim_blocked_run_for_retry
+[Stop containers]  2026-09-04 06:48:27.221 UTC [774] STATEMENT:  select * from public.claim_blocked_run_for_retry('attacker');
+[Stop containers]  2026-09-04 06:48:27.221 UTC [774] WARNING:  there is no transaction in progress
+[Stop containers]  2026-09-04 06:48:27.469 UTC [783] WARNING:  wal_level is insufficient to publish logical changes
+[Stop containers]  2026-09-04 06:48:27.469 UTC [783] HINT:  Set wal_level to "logical" before creating subscriptions.
+[Stop containers]  2026-09-04 06:48:27.469 UTC [783] CONTEXT:  SQL statement "create publication supabase_realtime"
+[Stop containers]  	PL/pgSQL function inline_code_block line 4 at SQL statement
+[Stop containers] Stop and remove container: 11b29fd03d334468896f649106f8c81e_pgvectorpgvectorpg15_6d206c
+[Stop containers] ##[command]/usr/bin/docker rm --force beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Stop containers] beaaf9dd6ba4040756836c6f1822ac5e6b8c245d090f65e930c661f08fec0bff
+[Stop containers] Remove container network: github_network_9d7ec055bbec4cd39f43c9d1bc59142e
+[Stop containers] ##[command]/usr/bin/docker network rm github_network_9d7ec055bbec4cd39f43c9d1bc59142e
+[Stop containers] github_network_9d7ec055bbec4cd39f43c9d1bc59142e
+validate-real-postgresql	Complete job	﻿2026-09-04T06:48:29.3573591Z Cleaning up orphan processes
+[Complete job] ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

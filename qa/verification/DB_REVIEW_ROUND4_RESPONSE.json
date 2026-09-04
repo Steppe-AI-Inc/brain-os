@@ -24,25 +24,108 @@
    "observed_by": "personas A.R3-A1.clientCannotForgeViaFlag (authenticated raises the flag, writes, is refused by the guard) + A.R3-A1.rpcStillWorks (LIMIT); chat_channel_state_trusted_columns_contract A2.guardNotDefiner re-pinned to the two-part gate; mutation proof M1 (flag-only again) and M2 (guard becomes DEFINER).",
    "status": "CLOSED for this migration. The five live migrations remain OPEN — separate Work Order."
   },
-  "A-2 (P2)": { "finding": "record_chat_channel_mutation checks WHO writes, never WHETHER it happened; a channel's own creator can self-record a fabricated mutation.", "change": "ACCEPTED IN WRITING in the SQL comment at the RPC: 'un-forgeable' means un-forgeable BY OTHER USERS; verifying against an execution record is a separate change.", "status": "ACCEPTED, scope stated" },
-  "A-3 (P2)": { "finding": "Table-tier write policy admitted the company-manager tier; a same-company manager could DELETE the founder's armed action and plant focus_stack.", "change": "202609020001: the manager branch is removed from both halves of chat_channel_state_write_scope (creator + founder/admin only).", "observed_by": "personas A.R3-A3.managerCannotDeleteFounderState, A.R3-A3.managerCannotPlantFocusStack, A.R3.creatorStillWritesOwnRow (LIMIT); mutation proof M3.", "status": "CLOSED" },
-  "A-4 (P2)": { "finding": "version is client-writable, defeating the CAS.", "change": "ACCEPTED IN WRITING in the SQL: with the manager tier gone, only the row's own creator can break the CAS on their own row — self-harm, not escalation.", "status": "ACCEPTED, scope stated" },
-  "A-5 (P3)": { "finding": "R-A10 shape guard checks presence, not types.", "change": "Recorded in the SQL comment.", "status": "RECORDED" },
-  "A-6 (P3)": { "finding": "Eight trigger functions PUBLIC-executable.", "change": "REVOKE EXECUTE ... FROM public, anon, authenticated on all trigger functions in A, C and D.", "observed_by": "reviewer's G1 inventory probe on re-review", "status": "CLOSED" },
-  "A-7 / B-3 / C-5 / X-1 (P2)": { "finding": "Zero governance/ registration (CLAUDE.md §24).", "change": "governance/DATA_CLASSIFICATION.md: rows for chat_channel_state, channel_transport_bindings, external_identity_bindings, outbound_messages, agent_runs retry columns incl. execution_mode. governance/SECURITY_INVARIANTS.md: #8 (a GUC is never authority), #9 (security evidence under the identity the code does not privilege).", "status": "CLOSED" },
-  "B-1 (P2)": { "finding": "p_manager_person_id had no company guard; p_department_id had two.", "change": "202609020002: a manager must belong to the target company (people.company_id or a current assignment there) or the reference is rejected with 23514.", "observed_by": "personas B.R3-B1.crossCompanyManagerPersonRefused (data-integrity refusal, not authority — the founder is the caller); mutation proof M5.", "status": "CLOSED" },
-  "B-2 (P1, R-B2 HIGH)": { "finding": "Authority tested against the TARGET company only; a manager of any company could end a person's employment in a company they do not manage.", "change": "202609020002: a SECOND guard (the ancestor's is kept VERBATIM so function_redefinition_preserves_ancestor_guards still sees it) requires the caller to be founder/admin or a manager of the person's CURRENT company (when it differs from the target); the historicise statement only ends assignments in companies the caller manages.", "observed_by": "personas B.R3-B2.crossCompanyManagerCannotEndEmployment, B.R3.sameCompanyManagerStillAssigns (LIMIT); mutation proof M4; ancestor checker 0 dropped.", "status": "CLOSED (decision taken here rather than deferred: the file re-creates the function that carries the hole)" },
-  "C-1 (P1, sequencing)": { "finding": "Ahead of the Phase 11 gate; batching it makes one approval answer two questions.", "change": "Migration C is SPLIT OUT of the A/B/D authorization batch (see authorization_batch). Recorded in its header.", "status": "ACCEPTED" },
-  "C-2 (P2)": { "finding": "'OFF until explicitly enabled post-review' enforced by nobody.", "change": "202609020003: trigger channel_transport_bindings_enable_gate — enabling (INSERT with enabled, or false->true) requires is_founder_or_admin().", "observed_by": "personas C.R3-C2.managerCannotEnableBinding, C.R3-C2.managerCanCreateDisabledBinding (LIMIT), C.R3-C2.founderCanEnableBinding; mutation proof M6 (gate not attached).", "status": "CLOSED" },
-  "C-3 (P2)": { "finding": "An enabled binding could be repointed onto the founder's channel by a manager.", "change": "Same trigger: changing channel_id on an ENABLED binding requires founder/admin.", "observed_by": "personas C.R3-C3.managerCannotRepointEnabledBinding; mutation proof M7.", "status": "CLOSED" },
-  "C-4 (P3)": { "finding": "Agreement triggers are SECURITY INVOKER; two refusals were fail-closed-on-invisibility.", "change": "Recorded; the reviewer's C12d covers the comparison branch. No SQL change.", "status": "RECORDED" },
-  "D-2 (P1)": { "finding": "The claim function's only grantee (service_role) is the identity its own check refuses.", "change": "202609030001: EXECUTE revoked from service_role as well — the function is DIRECT-CONNECTION-ONLY, stated in the SQL. supervisor.regression re-pinned (D7, R-D1 service_role assertion); acceptance R-D7 re-pinned.", "observed_by": "personas D.R3-D2.serviceRoleHasNoGrant (checks pg_proc privileges, not just a denial) + D.R3-D2.directSupervisorCanClaim (LIMIT); mutation proof M9.", "status": "CLOSED" },
-  "D-3 (P2)": { "finding": "execution_mode not in the guard's column list.", "change": "202609030001: added to guard_agent_run_retry_columns.", "observed_by": "personas D.R3-D3.managerCannotRewriteExecutionMode; supervisor.regression EXECUTION_MODE_IS_RECORDED_AS_DATA; mutation proof M8.", "status": "CLOSED" },
-  "D-4 (BLOCKED -> real engine)": { "finding": "FOR UPDATE SKIP LOCKED untested under concurrency by anybody.", "change": "qa/dbtest/concurrency.mjs: two pg.Client connections race the claim inside open transactions on the real engine (block or duplicate = FAIL; PGlite prints NO VERDICT). New CI step in validate-real-postgresql.", "status": "IMPLEMENTED; evidence arrives with the next CI run (recorded below when it does)" },
-  "D-5 (P3)": { "finding": "Rollback column-drop was a placeholder.", "change": "Enumerated (17 columns).", "status": "CLOSED" },
-  "X-2 (P3)": { "finding": "Broken real-engine transform regex.", "change": "qa/dbtest/apply-migrations.mjs fixed.", "status": "CLOSED" },
-  "X-3 (P3)": { "finding": "Persona JWT leaked across the suite.", "change": "leavePersonaSession clears request.jwt.claims.", "status": "CLOSED" },
-  "BK-1..BK-5": { "change": "DB_REVIEW_ROUND3_RESPONSE.json corrected in place (ROUND3_REVIEW_OUTCOME); '81/81' is stated as 80 migration files + the bootstrap shim from now on.", "status": "CLOSED" }
+  "A-2 (P2)": {
+   "finding": "record_chat_channel_mutation checks WHO writes, never WHETHER it happened; a channel's own creator can self-record a fabricated mutation.",
+   "change": "ACCEPTED IN WRITING in the SQL comment at the RPC: 'un-forgeable' means un-forgeable BY OTHER USERS; verifying against an execution record is a separate change.",
+   "status": "ACCEPTED, scope stated"
+  },
+  "A-3 (P2)": {
+   "finding": "Table-tier write policy admitted the company-manager tier; a same-company manager could DELETE the founder's armed action and plant focus_stack.",
+   "change": "202609020001: the manager branch is removed from both halves of chat_channel_state_write_scope (creator + founder/admin only).",
+   "observed_by": "personas A.R3-A3.managerCannotDeleteFounderState, A.R3-A3.managerCannotPlantFocusStack, A.R3.creatorStillWritesOwnRow (LIMIT); mutation proof M3.",
+   "status": "CLOSED"
+  },
+  "A-4 (P2)": {
+   "finding": "version is client-writable, defeating the CAS.",
+   "change": "ACCEPTED IN WRITING in the SQL: with the manager tier gone, only the row's own creator can break the CAS on their own row — self-harm, not escalation.",
+   "status": "ACCEPTED, scope stated"
+  },
+  "A-5 (P3)": {
+   "finding": "R-A10 shape guard checks presence, not types.",
+   "change": "Recorded in the SQL comment.",
+   "status": "RECORDED"
+  },
+  "A-6 (P3)": {
+   "finding": "Eight trigger functions PUBLIC-executable.",
+   "change": "REVOKE EXECUTE ... FROM public, anon, authenticated on all trigger functions in A, C and D.",
+   "observed_by": "reviewer's G1 inventory probe on re-review",
+   "status": "CLOSED"
+  },
+  "A-7 / B-3 / C-5 / X-1 (P2)": {
+   "finding": "Zero governance/ registration (CLAUDE.md §24).",
+   "change": "governance/DATA_CLASSIFICATION.md: rows for chat_channel_state, channel_transport_bindings, external_identity_bindings, outbound_messages, agent_runs retry columns incl. execution_mode. governance/SECURITY_INVARIANTS.md: #8 (a GUC is never authority), #9 (security evidence under the identity the code does not privilege).",
+   "status": "CLOSED"
+  },
+  "B-1 (P2)": {
+   "finding": "p_manager_person_id had no company guard; p_department_id had two.",
+   "change": "202609020002: a manager must belong to the target company (people.company_id or a current assignment there) or the reference is rejected with 23514.",
+   "observed_by": "personas B.R3-B1.crossCompanyManagerPersonRefused (data-integrity refusal, not authority — the founder is the caller); mutation proof M5.",
+   "status": "CLOSED"
+  },
+  "B-2 (P1, R-B2 HIGH)": {
+   "finding": "Authority tested against the TARGET company only; a manager of any company could end a person's employment in a company they do not manage.",
+   "change": "202609020002: a SECOND guard (the ancestor's is kept VERBATIM so function_redefinition_preserves_ancestor_guards still sees it) requires the caller to be founder/admin or a manager of the person's CURRENT company (when it differs from the target); the historicise statement only ends assignments in companies the caller manages.",
+   "observed_by": "personas B.R3-B2.crossCompanyManagerCannotEndEmployment, B.R3.sameCompanyManagerStillAssigns (LIMIT); mutation proof M4; ancestor checker 0 dropped.",
+   "status": "CLOSED (decision taken here rather than deferred: the file re-creates the function that carries the hole)"
+  },
+  "C-1 (P1, sequencing)": {
+   "finding": "Ahead of the Phase 11 gate; batching it makes one approval answer two questions.",
+   "change": "Migration C is SPLIT OUT of the A/B/D authorization batch (see authorization_batch). Recorded in its header.",
+   "status": "ACCEPTED"
+  },
+  "C-2 (P2)": {
+   "finding": "'OFF until explicitly enabled post-review' enforced by nobody.",
+   "change": "202609020003: trigger channel_transport_bindings_enable_gate — enabling (INSERT with enabled, or false->true) requires is_founder_or_admin().",
+   "observed_by": "personas C.R3-C2.managerCannotEnableBinding, C.R3-C2.managerCanCreateDisabledBinding (LIMIT), C.R3-C2.founderCanEnableBinding; mutation proof M6 (gate not attached).",
+   "status": "CLOSED"
+  },
+  "C-3 (P2)": {
+   "finding": "An enabled binding could be repointed onto the founder's channel by a manager.",
+   "change": "Same trigger: changing channel_id on an ENABLED binding requires founder/admin.",
+   "observed_by": "personas C.R3-C3.managerCannotRepointEnabledBinding; mutation proof M7.",
+   "status": "CLOSED"
+  },
+  "C-4 (P3)": {
+   "finding": "Agreement triggers are SECURITY INVOKER; two refusals were fail-closed-on-invisibility.",
+   "change": "Recorded; the reviewer's C12d covers the comparison branch. No SQL change.",
+   "status": "RECORDED"
+  },
+  "D-2 (P1)": {
+   "finding": "The claim function's only grantee (service_role) is the identity its own check refuses.",
+   "change": "202609030001: EXECUTE revoked from service_role as well — the function is DIRECT-CONNECTION-ONLY, stated in the SQL. supervisor.regression re-pinned (D7, R-D1 service_role assertion); acceptance R-D7 re-pinned.",
+   "observed_by": "personas D.R3-D2.serviceRoleHasNoGrant (checks pg_proc privileges, not just a denial) + D.R3-D2.directSupervisorCanClaim (LIMIT); mutation proof M9.",
+   "status": "CLOSED"
+  },
+  "D-3 (P2)": {
+   "finding": "execution_mode not in the guard's column list.",
+   "change": "202609030001: added to guard_agent_run_retry_columns.",
+   "observed_by": "personas D.R3-D3.managerCannotRewriteExecutionMode; supervisor.regression EXECUTION_MODE_IS_RECORDED_AS_DATA; mutation proof M8.",
+   "status": "CLOSED"
+  },
+  "D-4 (BLOCKED -> real engine)": {
+   "finding": "FOR UPDATE SKIP LOCKED untested under concurrency by anybody.",
+   "change": "qa/dbtest/concurrency.mjs: two pg.Client connections race the claim inside open transactions on the real engine (block or duplicate = FAIL; PGlite prints NO VERDICT). New CI step in validate-real-postgresql.",
+   "status": "CLOSED on the real engine (CI run 33845376254 concurrency step)"
+  },
+  "D-5 (P3)": {
+   "finding": "Rollback column-drop was a placeholder.",
+   "change": "Enumerated (17 columns).",
+   "status": "CLOSED"
+  },
+  "X-2 (P3)": {
+   "finding": "Broken real-engine transform regex.",
+   "change": "qa/dbtest/apply-migrations.mjs fixed.",
+   "status": "CLOSED"
+  },
+  "X-3 (P3)": {
+   "finding": "Persona JWT leaked across the suite.",
+   "change": "leavePersonaSession clears request.jwt.claims.",
+   "status": "CLOSED"
+  },
+  "BK-1..BK-5": {
+   "change": "DB_REVIEW_ROUND3_RESPONSE.json corrected in place (ROUND3_REVIEW_OUTCOME); '81/81' is stated as 80 migration files + the bootstrap shim from now on.",
+   "status": "CLOSED"
+  }
  },
  "local_evidence_pglite_only": {
   "wording": "PGlite = SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED + RLS ENFORCEMENT (PGlite emulation). NOT SECURITY VERIFIED.",
@@ -52,7 +135,31 @@
   "contract_suites": "chat_channel_state_trusted_columns 51/51; messaging_transport 23/23; function_redefinition_preserves_ancestor_guards 0 dropped (29 guards); migration_a 8/8; migration_c 10/10; migration_round4 10/10",
   "factory": "provider 15/15; supervisor 35/35; injection green"
  },
- "real_postgresql_ci": "PENDING — filled in when the validate-real-postgresql job (with the concurrency step) completes on this commit",
+ "real_postgresql_ci": {
+  "run_id": 33845376254,
+  "run_url": "https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33845376254",
+  "commit": "master @ 27a807d",
+  "jobs": {
+   "validate_pglite": "success",
+   "validate_real_postgresql": "success"
+  },
+  "engine": "PostgreSQL 15.19 (Debian) x86_64, pgvector/pgvector:pg15 service container, disposable",
+  "self_check": {
+   "login_user": "postgres",
+   "persona_session_user": "qa_authenticator",
+   "current_user": "authenticated",
+   "session_user": "qa_authenticator",
+   "rolsuper": false,
+   "rolbypassrls": false,
+   "row_security": "on",
+   "forbidden_insert": "42501"
+  },
+  "apply": "80 migration files + bootstrap shim, 0 failed",
+  "acceptance": "36/36",
+  "personas": "34/34 — each of the four migrations: SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked) — on the CORRECTED harness (session_user = qa_authenticator)",
+  "concurrency": "TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN — VERIFIED under real concurrency: supervisor-2 racing inside its own transaction got ZERO rows without blocking; exactly one claimant recorded",
+  "log_archived_at": "qa/verification/ci/migration-validation-run33845376254-real-postgresql.log"
+ },
  "still_NOT_proven": [
   "PostgREST refusing SET/set_config (no longer load-bearing for 202609020001; still load-bearing for the five LIVE flag-only migrations)",
   "Supabase Auth JWT issuance; auth.users real shape; Storage RLS; vault",
