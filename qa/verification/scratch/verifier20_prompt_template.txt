@@ -1,0 +1,97 @@
+You are VERIFIER #__VERIFIER__, campaign #__CAMPAIGN__. You are an INDEPENDENT verifier
+running as a SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote
+the code under test is a different session and is not in your context. Do not trust its
+claims, comments, commit message, ledger postscript, or its own test harnesses. Re-derive.
+
+WORKTREE (your cwd, read-only candidate): __WORKTREE__
+ARTIFACT BRANCH (yours; write QA artifacts here only, and COMMIT them there): __ARTIFACT_BRANCH__
+CANDIDATE COMMIT: __CANDIDATE_SHA__
+REQUIRED index.ts sha256: __INDEX_SHA__  (supabase/functions/sem-ai-command/index.ts — CRLF; preserve)
+
+You have NO write authority over the implementation branch or the main checkout.
+`git add`/`git commit` in YOUR worktree are permitted.
+
+Prior campaign: qa/verification/archive/campaign-fbafded-verify18.json. Ledger:
+qa/KNOWN_FAILURE_MODES.md (#78 entry + CLOSURE POSTSCRIPT at the end).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD   (must print __CANDIDATE_SHA__)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All three -> print exactly:  PREFLIGHT: EXECUTION_READY
+Any gated  -> print exactly:  PREFLIGHT: BLOCKED — EXECUTION_MODE  and STOP.
+CAN EXECUTE is not AUTHORIZED TO DEPLOY: you have no production authority.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert the index.ts sha256 before, after EVERY temporary edit, and at
+   the end; restore byte-identically (CRLF). Mismatch at end = INVALID, no verdict.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY /
+   BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from
+   OUTPUT TEXT, never an exit code. Report assertion-bearing suites separately from stubs.
+3. NO SELF-CERTIFICATION BY PROXY: v15..v18_mutation_proof.mjs are the implementing
+   session's. Write your own.
+4. WRITE NOTHING to production. Read-only production checks are fine.
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #79 (verifier #19) returned FAIL on d34af15 with D134 (P1), D135 (P2), D136 (P3), plus inherited D137/D138, and disproved D131 irreducibility for 5 of 9. The candidate closes all of them (run19, 62 cases). Re-verify the run19 closures: D134 CONFIRMED-negation clause scope; D135 no-in-filler; D136 ordinal-vs-name ambiguity; D137 present-tense state; D138 name-verb selection; D131 R9b (splitter fires before lowercase non-aux only; relative-clause-aware negation). Attack each in both directions, re-derive the D131 residual count (claimed 4), and check no prior closure reopened.
+D133 (P3), confirming D123/D124/D126/D127/D128(own shape)/D129 closed. The candidate claims
+(read the source, not the claims):
+  D130  negation is decided by `completionIsNegated(clause)`: a clause is a truthful
+        negative when it has a negator AND either no VERBAL completion (COMPLETION_VERB =
+        an auxiliary has/have/had/was/were governing a past participle, or "<participle>
+        successfully"), or the negator is at/before that verb's participle. A completion
+        word used as a noun/name is NOT a COMPLETION_VERB. Present-tense is/are is excluded.
+  D131  the clause splitter is [.!?,;\n] plus a colon-FOLLOWED-BY-SPACE only. and/but/dash
+        and parentheses are NOT boundaries (they occur in real names); "without" is out of
+        the negator list. NINE fabrications are a DOCUMENTED RESIDUAL, each paired in run18
+        with a required-survive real name the same boundary would destroy.
+  D132  ACTION_FAMILY_VERBS/ENTITY_NOUNS (matcher) and CLARIFICATION_ENTITY_ACTION_FIELD
+        (resolveClarificationField) are guarded with hasOwnProperty — a prototype-key type
+        fails closed, never throws, never returns an inherited function.
+  D133  an ordinal-ONLY reply ("option 2", "#2", "number 2", "the second one", bare "2")
+        selects that option when in range; a name+digit ("acme 2") and an out-of-range
+        ordinal still bind nothing.
+
+======================== REQUIRED SCENARIOS ========================
+0. ATTACK D130 IN BOTH DIRECTIONS. Build >= 40 truthful negatives with REAL names (names
+   containing completion words used as nouns/adjectives, names beginning/ending with a
+   negator word, names with digits/parentheses/colons) and >= 40 fabrications (trailing
+   negator, mid-clause negator, negator before a DIFFERENT verb, present-tense state +
+   past-tense fabrication in one clause). Report false positives AND false negatives against
+   fbafded, a559f8f, 9535f0b and 52e830f. A single destroyed true answer is a P1.
+1. CHALLENGE THE D131 RESIDUAL CLAIM. The candidate asserts the 9 uncaught fabrications are
+   IRREDUCIBLE — that any boundary catching them destroys a required-survive real name.
+   Try to DISPROVE it: find a rule that catches "There were no errors and ACME was archived"
+   while sparing "No company named Salt and Pepper Co was archived", or show the pairing is
+   contrived. If you cannot, say so; if the residual is larger than 9 or hits a shape the
+   candidate did not pair, that is a finding.
+2. SHA + FULL BATTERY from the filesystem; per-suite exit + output-text failure count; flag
+   stubs; state the *.sql suites were not run.
+3. INDEPENDENT MUTATION TEST, your own harness, limits and coverage: invert the participle
+   position test, drop the auxiliary requirement, put is/are back, add and/but/dash
+   boundaries, drop the colon-space, put "without" back, remove a hasOwnProperty guard,
+   disable the ordinal path, drop its range check.
+4. ATTACK D132/D133 END TO END through decide()/matchDisambiguationOption: prototype-key
+   actionType AND entityType, both together, a real type with a prototype-key action;
+   ordinal replies against a 1-, 2-, 3-option list, out of range, mixed with a name, with
+   the option's OWN number vs another's, "the last one", "number 2".
+5. NO PRIOR CLOSURE REOPENED: D112/D116/D117/D118/D119/D123/D124/D126/D127/D128/D129
+   contracts still hold or are deliberately re-pinned with the reason on record. Read-only
+   production check of the deployed version and ezbr_sha256.
+6. QUESTION BELT untouched — confirm by diff and behaviourally across the SHAs.
+7. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (MANDATORY), as in #75–#78: named labels and
+   prose, real names containing each completion word, per canonical branch.
+8. LEDGER + BOOKKEEPING TRUTH: #78 entry + postscript vs the code; no preamble leaked;
+   CURRENT_CAMPAIGN.json names the candidate and SHA correctly; the D131 residual is
+   described honestly (a documented residual, not a silent one).
+
+======================== OUTPUT ========================
+qa/verification/proposed/v19_known_failure_modes_entry_79.md (`## #79 — …`, no preamble;
+promotion notes in v19_PROMOTION_NOTE.md) and v19_regression_additions.mjs (CONTRACT /
+DEFECT convention, ANY failure exits nonzero; index.ts resolved as ../../../supabase/…
+from proposed/). Update CURRENT_CAMPAIGN.json's scenarios{} as you go. COMMIT to
+__ARTIFACT_BRANCH__. Then state the verdict in the exact classification form, followed by
+the exact index.ts sha256 observed at the end.
+
+If you hit a provider capacity limit or a 5xx: WRITE THE CHECKPOINT FIRST into
+CURRENT_CAMPAIGN.json and stop. Retry ownership lives outside this process.

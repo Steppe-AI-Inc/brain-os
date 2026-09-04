@@ -1,39 +1,42 @@
 {
- "campaign": 79,
- "verifier": 19,
+ "campaign": 80,
+ "verifier": 20,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "be9d94f",
- "index_sha256": "d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30",
+ "closure_commit": "f27f6b7",
+ "index_sha256": "6407d95cc846e638d1229559b2622323072028876c8844ce2b1045eade050a6c",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 78,
-  "verifier": 18,
+  "campaign": 79,
+  "verifier": 19,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-fbafded-verify18.json",
+  "archive": "qa/verification/archive/campaign-d34af15-verify19.json",
   "defects": [
-   "D130 (P1)",
-   "D131 (P2)",
-   "D132 (P2)",
-   "D133 (P3)"
+   "D134 (P1)",
+   "D135 (P2)",
+   "D136 (P3)",
+   "D137 (P2)",
+   "D138 (P3)",
+   "D131 (R9b)"
   ]
  },
- "what_changed_since_78": [
-  "D130: negation decided against the VERBAL completion (COMPLETION_VERB = auxiliary+participle), not any completion word; present-tense is/are excluded; completionIsNegated helper",
-  "D131: splitter is punctuation + colon-space only; and/but/dash stay inside names; \"without\" removed from negators; 9 fabrications are a DOCUMENTED, PROVEN-irreducible residual (catching them reopens D130), left to the evidence path",
-  "D132: prototype-key actionType/entityType fail closed via hasOwnProperty in the matcher AND resolveClarificationField",
-  "D133: an ordinal-only reply (\"option 2\", \"#2\", \"the second one\", bare \"2\") selects that option in range; a name+digit still dead-ends",
-  "run18_defect_closure_contract.mjs promoted (56 cases)"
+ "what_changed_since_79": [
+  "D134: CONFIRMED negation scoped to the clause containing the matched participle",
+  "D135: no removed from ordinal filler",
+  "D136: ordinal-that-is-also-a-name dead-ends",
+  "D137: EIP present-tense only when progressive",
+  "D138: matched label stripped before contradiction check",
+  "D131/R9b: 5 of 9 residuals now caught; 4 remain documented",
+  "run19 promoted (62 cases)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "29 suites / 0 failures",
-  "mutation_proof": "v18 12/12; v17 7/7 (+7 superseded); v16 11/11 (+2); v15 4/4 (+10)",
-  "deno_check": "identical pre-existing errors to d724d8c, 0 new",
-  "documented_residual": "D131: 9 fabrications survive the belt; each proven inseparable from a required-survive real name; caught by the primary structured-evidence path, not the belt"
+  "battery": "30 suites / 0 failures",
+  "mutation_proof": "v19 11/11; v18 9/9 (+3 superseded); v17/v16/v15 unchanged",
+  "deno_check": "23 errors, identical to d724d8c (0 new)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T12:06:11.082Z",
- "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once, only after an independent PASS on the exact bytes."
+ "opened_at": "2026-09-04T13:01:25.731Z",
+ "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
