@@ -2,7 +2,7 @@
  "artifact": "qa/verification/DB_REVIEW_ROUND3_RESPONSE.json",
  "what_this_is": "The IMPLEMENTING session's response to DB_REVIEW_ROUND2.json. It is a record of what was changed and why. It is NOT a verdict and NOT a verification: the session that wrote the fixes cannot certify them, and round 3 must be an independent review.",
  "responds_to": "qa/verification/DB_REVIEW_ROUND2.json (round 2, base ead2226, all four migrations FAIL)",
- "written_at": "2026-09-03",
+ "written_at": "2026-09-04T02:31:57.039Z",
  "branch": "master",
  "worktree": "C:/Users/Dell/dev/brain-os-bug006",
  "closure_commits": {
@@ -13,7 +13,7 @@
   "acceptance_artifacts": "d0d09c1 (R-ART1..R-ART9)"
  },
  "EVIDENCE_LEVEL": {
-  "level": "SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED (per migration)",
+  "level": "SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED + RLS/GRANTS/SECURITY DEFINER BEHAVIOUR VERIFIED + SECURITY VERIFIED (real PostgreSQL 15.19, non-superuser role, self-checked) — per migration, CI run 33829327538",
   "superseded": "This block previously read CODE INSPECTED. That is no longer true, and the change is the most important update in this record.",
   "how": "qa/dbtest/ runs PGlite — real PostgreSQL 18.3 compiled to WASM — under Node with no Docker and no machine-wide install. apply-migrations.mjs applies the FULL 81-file chain (81/81, 0 failures). acceptance.mjs then EXERCISES behaviour: 36/36 across the four migrations, each with its own verdict.",
   "per_migration": {
@@ -26,19 +26,61 @@
   "what_is_still_NOT_proven": [
    "RLS ENFORCEMENT PER PERSONA. PGlite runs single-user as superuser, so policies are proven to EXIST and be ATTACHED, never to refuse a real caller. This is the single largest remaining gap and it is a separate verdict.",
    "Anything about production data, PostgREST behaviour, or Supabase-specific runtime.",
-   "Five neutralised lines, all pgvector-related, listed by name in every run. None belongs to the four migrations under test."
+   "Five neutralised lines, all pgvector-related, listed by name in every run. None belongs to the four migrations under test.",
+   "PostgREST request shaping and Supabase Auth JWT issuance (the harness sets request.jwt.claims directly)",
+   "Supabase-specific postgres role attributes (not superuser, BYPASSRLS) — every persona assertion is made after SET ROLE to a non-superuser, non-BYPASSRLS role so the difference cannot flatter a result",
+   "production data; post-apply live verification after an authorized push",
+   "INDEPENDENT round-3 review has not yet returned — this file is the implementing session's response, not a verdict"
   ],
-  "shim_disclosure": "The bootstrap defines the Supabase roles, the auth schema and auth.uid/jwt/role, the storage schema and storage.foldername, the supabase_realtime publication, and an extensions schema of thin re-exports over REAL pgcrypto. pgvector is shimmed (domain + constant-returning <=> + skipped hnsw index). A migration passing only because the shim is more permissive than real Supabase is NOT validated — the shim is deliberately minimal, and it was already caught being WRONG once: auth.users lacked raw_user_meta_data, which the production handle_new_auth_user() trigger reads."
+  "shim_disclosure": "The bootstrap defines the Supabase roles, the auth schema and auth.uid/jwt/role, the storage schema and storage.foldername, the supabase_realtime publication, and an extensions schema of thin re-exports over REAL pgcrypto. pgvector is shimmed (domain + constant-returning <=> + skipped hnsw index). A migration passing only because the shim is more permissive than real Supabase is NOT validated — the shim is deliberately minimal, and it was already caught being WRONG once: auth.users lacked raw_user_meta_data, which the production handle_new_auth_user() trigger reads.",
+  "superseded_by_real_postgresql_ci": {
+   "workflow": ".github/workflows/migration-validation.yml",
+   "run_id": 33829327538,
+   "run_url": "https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33829327538",
+   "commit": "master @ 7c955f3",
+   "jobs": {
+    "validate_pglite": "success",
+    "validate_real_postgresql": "success"
+   },
+   "real_engine": "PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) x86_64, pgvector/pgvector:pg15 service container, disposable, NOT production (URL refused if Supabase host)",
+   "log_archived_at": "qa/verification/ci/migration-validation-run33829327538-real-postgresql.log"
+  },
+  "real_postgresql_security_self_check": {
+   "current_user": "authenticated",
+   "session_user": "postgres",
+   "rolsuper": false,
+   "rolbypassrls": false,
+   "row_security": "on",
+   "has_public_usage": true,
+   "policy_filter": "login sees 2, authenticated sees 1",
+   "known_forbidden_insert": "failed with SQLSTATE 42501 (row-level security) — the expected authorization reason"
+  },
+  "pglite_wording": "PGlite results are now labelled RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED. They are fast integration smoke only.",
+  "per_migration_real_postgresql": {
+   "202609020001_chat_channel_state_durable_conversation": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609020002_set_person_assignment_clear_manager": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609020003_messaging_transport_foundation": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609030001_agent_run_capacity_retry": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)",
+    "note": "now also adds agent_runs.execution_mode + CHECK (isolated_process | background_subagent)"
+   }
+  }
  },
- "AUTHORIZATION_RECOMMENDATION": {
-  "ask_the_founder_to_approve_now": false,
-  "why_not": "Still not ready, but for a NARROWER reason than before. Parse and integration are now proven. What is missing is RLS persona enforcement (PGlite cannot prove it) and an independent round-3 review of the reworked migrations. The package is materially stronger than when this file was written, and materially short of authorizable.",
-  "what_must_happen_first": [
-   "A persona/RLS enforcement verdict for each migration — obtained either from a real Supabase test project or by a role-switching harness that PGlite can actually enforce.",
-   "An independent round-3 review of all four migrations as reworked, each with its OWN verdict.",
-   "Migration C additionally remains AHEAD OF ITS GATE (no messaging work before Phase 11 acceptance, which has not run) and should not be authorized on correctness alone."
-  ]
- },
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET. All four migrations are SECURITY VERIFIED on real PostgreSQL by the implementing session's harness; the independent round-3 reviewer (TOP_LEVEL_ISOLATED_PROCESS) must return before \"Approve production DB migration?\" is asked, exactly once.",
  "per_migration": {
   "A_202609020001_chat_channel_state": {
    "round_2_verdict": "FAIL - CHANGES REQUIRED",
