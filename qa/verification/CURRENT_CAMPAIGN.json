@@ -1,40 +1,41 @@
 {
- "campaign": 84,
- "verifier": 24,
+ "campaign": 85,
+ "verifier": 25,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "e6a4d02",
- "index_sha256": "bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066",
+ "closure_commit": "0e72ced",
+ "index_sha256": "e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 83,
-  "verifier": 23,
+  "campaign": 84,
+  "verifier": 24,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-82d4d77-verify23.json",
+  "archive": "qa/verification/archive/campaign-89a1ac9-verify24.json",
   "defects": [
-   "D155 (P2)",
-   "D156 (P3)",
-   "D157 (P2)"
+   "D158 (P2)",
+   "D158b (P3)",
+   "D158c (P4)",
+   "D159 (P4)"
   ]
  },
- "what_changed_since_83": [
-  "D156: FIX-A — relativizer disjunct admits zero-complementiser evidential/reporting verbs",
-  "D155: fallback 1 (Deno-safe) — active-voice arm moved to an inline CASE-SENSITIVE regex in readsAsCompletion (object must be [A-Z] or an entity noun); NOT FIX-B (?-i:), which is unverified in Deno",
-  "D157: imperative test reuses ARCHIVE_VERB_PATTERN/RESTORE_VERB_PATTERN (bring back / un-archive now recognised)",
-  "run22 retired, run23 promoted (316 cases)",
-  "residuals [RESIDUAL]: D156b (subject-NP), D153 (dropped-linker trade), D146b (comma-list), D154 (out-of-lexicon opposite-verb name)"
+ "what_changed_since_84": [
+  "D158 FIX-C: the twelve evidential verbs in completionIsNegated are gated behind fixed-length lookbehinds excluding was/were/is/are/am/be/been/being/has/have/had (active-complement only)",
+  "D158c: corrected the now-false run21/D148 comment (post-D157 lexicon unification)",
+  "bookkeeping: collateral baseline corrected (vs 4476c92 not b32e0e4); run24 header re-pointed at this candidate, \"green means broken\" line dropped",
+  "run23 retired, run24 promoted (207 cases)",
+  "residuals [RESIDUAL]: D158b, D154/D158c, D159, D156b, D153, D146b"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run23": "316/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (BETTER than b32e0e4 baseline of 7)",
-  "battery": "32 suites / 0 failures (run15 57/0, run22 retired, run23 added)",
-  "deno_check": "23 == baseline, 0 new (run via npx deno@2)",
-  "mutation_proof": "v23_mutation_proof 6/6",
-  "deploy_note": "no regexp modifier group shipped — no Deno-modifier risk"
+  "run24": "207/0",
+  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (strictly better than 4476c92)",
+  "battery": "32 suites / 0 failures (run15 57/0, run23 retired, run24 added)",
+  "deno_check": "23 == baseline, 0 new (npx deno@2)",
+  "mutation_proof": "v24_mutation_proof 4/4",
+  "deploy_note": "no regexp modifier group shipped; only fixed-length lookbehinds (already 12 in the file)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T19:54:34.018Z",
+ "opened_at": "2026-09-04T20:25:10.373Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
