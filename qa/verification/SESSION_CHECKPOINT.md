@@ -191,3 +191,28 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
 - **AUTHORIZATION BOUNDARY REACHED for A/B/D.** Asking the founder, exactly once, to approve
   the production DB migration of A, B and D. NOT asking about C. NOT asking ALLOW_FUNCTIONS_DEPLOY
   (Edge is still verifying).
+
+## UPDATE 2026-09-05 ~01:45 local — Edge #80 FAIL closed → run20 (54ebecc); verifier #21 dispatched; DB at prod-cred boundary
+- Edge: verifier #20 (campaign #80) FAIL on b32e0e4 — D139 (P1 zero-relativizer truthful
+  negative destroyed by R9b's aux arm), D142 (P1 label strip arms opposite destructive
+  field), D141 (P2 negator-lexicon gap), D144 (P3 active-voice fabrication missed).
+  **Closed at `54ebecc`** (index.ts sha256 `c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2`):
+  D139 R-ZR2 name-safe clause linker; D142 D136 dead-end on the label path (fail-closed, no
+  actionType||archive default); D141 lexicon +nobody/neither/nowhere/nor/few/hardly; D144
+  active-voice arm in LEGACY_PAST_COMPLETION only. Evidence: run20 102/0; collateral 0/75
+  truthful destroyed & 6/50 fabrications missed (was 18/75, 7/50); battery 32/0; deno 23 ==
+  baseline (0 new); **v20_mutation_proof 6/6** (coverage x4 + limits for both P1s). R-IDIOM
+  NOT adopted (extraction fragility); residual documented 6.
+  **VERIFIER #21 dispatched** on bookkeeping commit `0ba51a1` (index bytes identical to
+  54ebecc), worktree brain-os-verify-0ba51a1, branch verify-0ba51a1-campaign81, watchdog pid
+  13405, log verifier21_output.log; monitor task on watchdog-verifier21_output.state.
+- DB: **A/B/D authorized by the founder** (A=202609020001, B=202609020002, D=202609030001;
+  C 202609020003 + 202609040001 EXCLUDED; strict pre-write protocol). Round 7 pushed as
+  master `e7c943e`. **BLOCKED at the production-credentials boundary**: this environment has
+  NO supabase auth (no ~/.supabase/access-token, no DB password/URL) for the linked project
+  `pvphxgrtdfrudejjhzjk`, so `migration list` / `db push --dry-run` cannot run here. Founder
+  chose to run the two read-only commands themselves and paste output. Ordering fact: the
+  approved set is NON-CONTIGUOUS (C sits between B and D), so a naive push would include C +
+  040001 → the founder's STOP condition; a selective procedure is required and D is
+  object-independent of C (grep: D's only C mentions are comments). Awaiting the pending-set
+  output to finalize + locally verify the selective A/B/D-only apply.
