@@ -1,44 +1,39 @@
 {
- "campaign": 76,
- "verifier": 16,
+ "campaign": 77,
+ "verifier": 17,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "52e830f",
- "closure_commit_note": "Close run15 D116-D122 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
- "index_sha256": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+ "closure_commit": "f232975",
+ "closure_commit_note": "Close run16 D123-D126 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+ "index_sha256": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 75,
-  "verifier": 15,
+  "campaign": 76,
+  "verifier": 16,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-d724d8c-verify15.json",
+  "archive": "qa/verification/archive/campaign-0a03127-verify16.json",
   "defects": [
-   "D116 (P1)",
-   "D117",
-   "D118",
-   "D119",
-   "D120",
-   "D121",
-   "D122"
+   "D123 (P1)",
+   "D124 (P1)",
+   "D125 (P2)",
+   "D126 (test gap)"
   ]
  },
- "what_changed_since_75": [
-  "D116: NEGATED_MENTION clause-scoped dead-end in matchDisambiguationOption before the single-match return (fail closed, negation never interpreted); limits pinned",
-  "D117+D118: whole-summary lookahead removed from CONFIRMED_COMPLETION; NEGATED_CLAUSE applied once per clause in readsAsCompletion for every arm",
-  "D119: absent-branch lexical fallback removed; unresolvable options DROPPED; empty list degrades to an open question; run8/D72b RETIRED; six suites re-pinned (run15/D119 RE-PIN)",
-  "D120: closed by the D119 mechanism, no new regex in the label channel",
-  "D121: run15_defect_closure_contract.mjs promoted (48 cases)",
-  "D122: issue5 suite executes the REAL resolveClarificationField; call-site citation fixed",
-  "Factory: verifier-watchdog.sh classifies EXECUTION_MODE / PROVIDER_TRANSIENT_ERROR from output text; dispatch-isolated-verifier.sh (TOP_LEVEL_ISOLATED_PROCESS, fresh worktree at the exact candidate, artifact branch, mandatory preflight)"
+ "what_changed_since_76": [
+  "D123: NEGATED_MENTION word list REMOVED; matchDisambiguationOption binds only a CLEAN SELECTION (label + selection filler), on all three paths; \"acme, no rush\" now dead-ends (two holds inverted on the record)",
+  "D124: canonicalKnowsIt decided by the canonical read (canonicalById / lastKnownLabel); CANONICAL_TYPE_ALIAS resolves employee->person etc.; unlisted types dropped unless known",
+  "D125: clause splitter adds dashes (except the \"Confirmed —\" lead), colon, parentheses, newline, and/but/without",
+  "D126: run15 observes the drop through the real pipeline (7 new cases); run16 promoted (53 cases)",
+  "Factory: verifier allowlist gains git add/commit; dispatcher/watchdog take a pinned file; DB round-3 review dispatched as verifier #301"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "26 suites / 0 failures",
-  "mutation_proof": "qa/verification/proposed/v15_mutation_proof.mjs 14/14 (coverage + limits)",
+  "battery": "27 suites / 0 failures (21 assertion-bearing, 5 SUPERSEDED stubs, 1 library)",
+  "mutation_proof": "qa/verification/proposed/v16_mutation_proof.mjs 13/13 (coverage + limits); v15 10/10 with 4 superseded",
   "deno_check": "23 errors, identical set to d724d8c (0 new)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T02:17:52.607Z",
+ "opened_at": "2026-09-04T02:55:26.630Z",
  "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes."
 }

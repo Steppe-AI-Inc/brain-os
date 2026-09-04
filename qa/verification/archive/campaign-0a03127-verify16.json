@@ -1,0 +1,197 @@
+{
+ "campaign": 76,
+ "verifier": 16,
+ "status": "COMPLETED",
+ "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+ "closure_commit": "52e830f",
+ "closure_commit_note": "Close run15 D116-D122 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+ "index_sha256": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+ "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+ "prior_campaign": {
+  "campaign": 75,
+  "verifier": 15,
+  "verdict": "FAIL",
+  "archive": "qa/verification/archive/campaign-d724d8c-verify15.json",
+  "defects": [
+   "D116 (P1)",
+   "D117",
+   "D118",
+   "D119",
+   "D120",
+   "D121",
+   "D122"
+  ]
+ },
+ "what_changed_since_75": [
+  "D116: NEGATED_MENTION clause-scoped dead-end in matchDisambiguationOption before the single-match return (fail closed, negation never interpreted); limits pinned",
+  "D117+D118: whole-summary lookahead removed from CONFIRMED_COMPLETION; NEGATED_CLAUSE applied once per clause in readsAsCompletion for every arm",
+  "D119: absent-branch lexical fallback removed; unresolvable options DROPPED; empty list degrades to an open question; run8/D72b RETIRED; six suites re-pinned (run15/D119 RE-PIN)",
+  "D120: closed by the D119 mechanism, no new regex in the label channel",
+  "D121: run15_defect_closure_contract.mjs promoted (48 cases)",
+  "D122: issue5 suite executes the REAL resolveClarificationField; call-site citation fixed",
+  "Factory: verifier-watchdog.sh classifies EXECUTION_MODE / PROVIDER_TRANSIENT_ERROR from output text; dispatch-isolated-verifier.sh (TOP_LEVEL_ISOLATED_PROCESS, fresh worktree at the exact candidate, artifact branch, mandatory preflight)"
+ ],
+ "implementing_session_evidence_not_to_be_trusted": {
+  "battery": "26 suites / 0 failures",
+  "mutation_proof": "qa/verification/proposed/v15_mutation_proof.mjs 14/14 (coverage + limits)",
+  "deno_check": "23 errors, identical set to d724d8c (0 new)"
+ },
+ "verdict": "FAIL",
+ "attempts": [
+  {
+   "attempt": 1,
+   "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+   "preflight": "EXECUTION_READY",
+   "outcome": "FAIL (completed, fully executed)",
+   "log_bytes": 5767,
+   "artifact_branch": "verify-0a03127-campaign76",
+   "artifact_commit": "a9d14ad",
+   "defects": [
+    "D123 (P1)",
+    "D124 (P1)",
+    "D125 (P2)",
+    "D126 (test gap)"
+   ]
+  }
+ ],
+ "scenarios": {},
+ "opened_at": "2026-09-04T02:17:52.607Z",
+ "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes.",
+ "verifier_checkpoint": {
+  "campaign": 76,
+  "verifier": 16,
+  "status": "COMPLETE",
+  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+  "closure_commit": "52e830f",
+  "closure_commit_note": "Close run15 D116-D122 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+  "index_sha256": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "prior_campaign": {
+   "campaign": 75,
+   "verifier": 15,
+   "verdict": "FAIL",
+   "archive": "qa/verification/archive/campaign-d724d8c-verify15.json",
+   "defects": [
+    "D116 (P1)",
+    "D117",
+    "D118",
+    "D119",
+    "D120",
+    "D121",
+    "D122"
+   ]
+  },
+  "what_changed_since_75": [
+   "D116: NEGATED_MENTION clause-scoped dead-end in matchDisambiguationOption before the single-match return (fail closed, negation never interpreted); limits pinned",
+   "D117+D118: whole-summary lookahead removed from CONFIRMED_COMPLETION; NEGATED_CLAUSE applied once per clause in readsAsCompletion for every arm",
+   "D119: absent-branch lexical fallback removed; unresolvable options DROPPED; empty list degrades to an open question; run8/D72b RETIRED; six suites re-pinned (run15/D119 RE-PIN)",
+   "D120: closed by the D119 mechanism, no new regex in the label channel",
+   "D121: run15_defect_closure_contract.mjs promoted (48 cases)",
+   "D122: issue5 suite executes the REAL resolveClarificationField; call-site citation fixed",
+   "Factory: verifier-watchdog.sh classifies EXECUTION_MODE / PROVIDER_TRANSIENT_ERROR from output text; dispatch-isolated-verifier.sh (TOP_LEVEL_ISOLATED_PROCESS, fresh worktree at the exact candidate, artifact branch, mandatory preflight)"
+  ],
+  "implementing_session_evidence_not_to_be_trusted": {
+   "battery": "26 suites / 0 failures",
+   "mutation_proof": "qa/verification/proposed/v15_mutation_proof.mjs 14/14 (coverage + limits)",
+   "deno_check": "23 errors, identical set to d724d8c (0 new)"
+  },
+  "verdict": "FAIL",
+  "attempts": [],
+  "scenarios": {
+   "S1_battery": {
+    "status": "PASS",
+    "evidence": "27 mjs suites enumerated from filesystem; 21 assertion-bearing, 0 failures; 5 SUPERSEDED stubs (assert nothing, self-labelled), _gate_extract.mjs is a library not a suite. *.sql suites NOT run - DB/RLS/lifecycle truth OUT OF SCOPE this run.",
+    "at": "2026-09-04T02:23:06.349Z"
+   },
+   "S0_matcher_attack": {
+    "status": "FAIL",
+    "evidence": "D116 NOT CLOSED. 24/48 exclusion replies still MIS-BIND the excluded option (P1). 19 via unlisted negators (exclude/besides/aside from/apart from/avoid/omit/ignore/save/minus/stop/cancel/forget/hold off on/wrong one/nope/nah/unless/anything else/excludes); 6 via CROSS-CLAUSE negation incl. the founder shape 'acme? no, the holdings one' -> binds ACME not ACME Holdings. Over-refusal: 2 dead-ends, both present at d724d8c too => 0 regressions vs baseline.",
+    "at": "2026-09-04T02:23:06.431Z"
+   },
+   "S2_mutation": {
+    "status": "PASS_WITH_GAPS",
+    "evidence": "20 mutations (14+6), 0 vacuous on the primary guards, index.ts sha256 restored byte-identically after every one. GAPS: (1) C5 (drop only when ALL options unresolvable) SURVIVES the entire battery => the MIXED drop case is unpinned; (2) run15's D119/D120 cases use renderLabel = the per-option label loop ONLY and never execute the drop - C1/C2/C5 all left run15 at exit=0; the drop is observed only by run8/run12/run13/run14/lifecycle re-pins; (3) B1b/B2b (weakening NEGATED_CLAUSE) are caught only by run15's extraction shape guard, not by any behavioural assertion.",
+    "at": "2026-09-04T02:32:48.511Z"
+   },
+   "S3_belt_attack": {
+    "status": "PASS_WITH_REGRESSION",
+    "evidence": "37 fabrications / 30 truthful through the REAL readsAsCompletion. cand FN=11 FP=1 vs d724d8c FN=16 FP=8 => BOTH directions net-improved (first time in the #72-#75 belt sequence). BUT 4 NEW false negatives vs d724d8c (F33 en-dash, F34 parenthetical, F36 'without incident', F37 'and no errors occurred') - D118 extended negation to LEGACY_PAST_COMPLETION/EXECUTION_IN_PROGRESS which previously had none, widening the disarm surface. Clause splitter knows only [.!?,;] - em dash, en dash, colon, parentheses, newline and 'and' are NOT boundaries. Pre-existing FP retained: 'test3 is archived. Should I restore it?' (passive-progressive arm).",
+    "at": "2026-09-04T02:32:48.606Z"
+   },
+   "S4_drop_attack": {
+    "status": "FAIL",
+    "evidence": "D119 drop works for all TYPED_FALLBACK types (all-unresolvable -> empty list, next turn cannot bind; mixed -> only canonical survives; duplicate canonical names still numbered/selectable; presentation-only label differences kept). TWO DEFECTS: (1) canonicalKnowsIt compares derivedLabel against TYPED_FALLBACK[et]||'the record' while displayName derives 'the <et>' for ANY word-shaped type => the drop NEVER fires for any entityType outside the 22-key map (subsidiary/branch/unit/client/vendor/invoice/employee...). (2) 'employee' is in CLARIFICATION_ENTITY_ACTION_FIELD (executable, endEmploymentPersonIds) but NOT in TYPED_FALLBACK and canonicalById is keyed 'person|', so REAL named in-context people render as 'the employee (option 1)/(option 2)' and the founder chooses whose employment to end with no name shown; the bind DOES execute (contextPersonIds.has(id) true). Both pre-existing at d724d8c, NOT introduced here.",
+    "at": "2026-09-04T02:32:48.706Z"
+   },
+   "S8_founder_lexical": {
+    "status": "PASS",
+    "evidence": "ABSENT branch: execution assertions surviving 0/8 (base 2/8), real names destroyed 10/10 (base 8/9 destroyed to 'the company', 1 kept). PRESENT branch: assertions 0/8, canonical name always shown. HONEST case (canonical row IS the real completion-shaped name): 9/9 KEPT, quoted where COMPLETION_WORD fires. JUDGMENT: the D119 remedy (drop, do not gate lexically) is ACCEPTABLE and strictly better than the lexical fallback - it destroys no real name the database actually knows, and a dropped dead pointer is better than an unselectable 'the company'. runtimeLabels/lastKnownLabel is the one channel where a label not in contextPack still ships verbatim, but recordLabel is only called with DB-RETURNED ids at real create sites, so it is not model-choosable and not a fabrication channel.",
+    "at": "2026-09-04T02:32:48.774Z"
+   },
+   "S5_d122": {
+    "status": "PASS",
+    "evidence": "issue5 extracts+executes the REAL resolveClarificationField and the REAL CLARIFICATION_ENTITY_ACTION_FIELD; mutation F1 (destructive default) -> 3 assertion failures, F2 (map entry removed) -> 1. Call-site comment at index.ts:2584-2588 accurate; both cited suites fail under F1.",
+    "at": "2026-09-04T02:39:20.616Z"
+   },
+   "S6_no_prior_closure_reopened": {
+    "status": "PASS",
+    "evidence": "run8=40/0 run10=43/0 run11=46/0 run12=71/0 run13=60/0 run14=68/0 lifecycle=103/0 all green. Six D119 re-pins characterized: run12/D95 STRENGTHENED, run13/D103.hold.numbered STRENGTHENED, run14/D113.hold.absentId CHANGED-in-contract explicitly (now observes the drop), run10 R10.flag.*/D78 PRESERVED (quiet narrowed to resolvable path), lifecycle R2 PRESERVED, run8/D72 WEAKENED (opts.every vacuous on empty array) + D72b RETIRED on the record. PRODUCTION READ-ONLY (self-run): sem-ai-command v92 ACTIVE ezbr_sha256 33255b31...fe475 updated_at 1788239725518; none of D58-D126 is live.",
+    "at": "2026-09-04T02:39:20.681Z"
+   },
+   "S7_drift_belt_both_directions": {
+    "status": "PASS",
+    "evidence": "COMPLETION belt improved in BOTH directions for the first time in #72-#75: FN 16->11, FP 8->1. QUESTION belt UNCHANGED - no diff hunk touches safeQuestionFragment/FUTURE_PROMISE_IN_QUESTION, and behaviourally identical on 15 genuine + 6 promise questions across both SHAs. Residual: 4 NEW false negatives (D125).",
+    "at": "2026-09-04T02:39:20.766Z"
+   },
+   "S9_ledger_bookkeeping": {
+    "status": "PASS_WITH_OMISSION",
+    "evidence": "All six #75 D116 exemplars now dead-end. No promotion preamble leaked into KNOWN_FAILURE_MODES.md. CURRENT_CAMPAIGN.json accurate; rotation commit 52e830f->0a03127 touches only qa/verification bookkeeping (verified by diff). OMISSION: the D116 clause-scope LIMIT is disclosed only in its BENIGN direction ('acme holdings, no rush' still binds); the destructive direction ('acme, no' binds the excluded option) is not disclosed - that is what let D123 read as closed. Minor: postscript says '26 suites' where 27 .mjs exist (5 are SUPERSEDED stubs, 1 is a library).",
+    "at": "2026-09-04T02:39:20.846Z"
+   }
+  },
+  "opened_at": "2026-09-04T02:17:52.607Z",
+  "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes.",
+  "base_commit": "0a031277486041da72002a88edc3f7e86ddb473d",
+  "started_at": "2026-09-04T02:18:41.920Z",
+  "last_checkpoint_at": "2026-09-04T02:39:39.758Z",
+  "preflight": "EXECUTION_READY",
+  "index_sha256_observed_start": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+  "index_sha256_observed_end": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+  "sha_discipline": "asserted before the run, after each of 20 temporary source mutations, and at the end - all identical",
+  "defects_found": [
+   "D123 (P1) - D116 closed only for the six #75 exemplars; 24/48 exclusion replies still bind the excluded option (15 unlisted negators + cross-clause negation incl. \"acme? no, the holdings one\"). Pre-existing at d724d8c, NOT a regression, but reported CLOSED when only NARROWED.",
+   "D124 (P1) - the D119 drop never fires for any entityType outside TYPED_FALLBACK (canonicalKnowsIt and displayName compute different fallbacks). entityType=employee is executable (endEmploymentPersonIds) AND unresolvable by construction (canonicalById keyed person|), so real named in-context people render as \"the employee (option 1/2)\" and the founder ends employment blind. Pre-existing at d724d8c.",
+   "D125 (P2) - 4 fabrications d724d8c caught now escape (en dash, parenthetical, \"without incident\", \"and no errors occurred\"); the clause splitter knows only [.!?,;].",
+   "D126 (TEST GAP) - run15 D119/D120 cases never execute the drop; no committed suite observes the MIXED drop case (mutant C5 survives the entire battery)."
+  ],
+  "closed_confirmed": [
+   "D117",
+   "D118",
+   "D119",
+   "D120",
+   "D122"
+  ],
+  "production": {
+   "function": "sem-ai-command",
+   "version": 92,
+   "status": "ACTIVE",
+   "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+   "updated_at": 1788239725518,
+   "note": "re-checked by verifier #16 directly; unchanged since #75; none of D58-D126 is live"
+  },
+  "regressions_added": [
+   "qa/verification/proposed/v16_regression_additions.mjs (50 cases: 14 pass, 36 DEFECT reproductions by design, 0 CONTRACT failures)"
+  ],
+  "artifacts": [
+   "qa/verification/proposed/v16_known_failure_modes_entry_76.md",
+   "qa/verification/proposed/v16_PROMOTION_NOTE.md",
+   "qa/verification/proposed/v16_regression_additions.mjs"
+  ],
+  "coverage_gaps": [
+   "*.sql suites NOT run - DB/RLS/lifecycle truth BLOCKED, out of scope",
+   "no browser - UI truth and live AI-chat truth BLOCKED, not skipped silently",
+   "no DB writes, so no QA-VERIFY-* synthetic data was created and none needs cleanup"
+  ],
+  "remaining_scenarios": []
+ }
+}

@@ -85,3 +85,18 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
 - `Approve production DB migration?` is asked ONLY after that review returns PASS on all
   four (or after its findings are closed and re-reviewed). Not before.
 - Verifier #16 (Edge, campaign #76) still running (pid 4220), log empty until exit.
+
+## UPDATE 2026-09-04 ~11:20 local — campaign #76 CLOSED at f232975; verifier #17 dispatched
+- Verifier #16 (isolated process, preflight EXECUTION_READY) returned FAIL on 0a03127:
+  D123 (P1 exclusion outside the word list), D124 (P1 `employee` never dropped, nameless),
+  D125 (P2 splitter scope), D126 (run15 never exercised the drop). Its artifacts are on
+  `verify-0a03127-campaign76` @ a9d14ad (landed on its behalf: `git add` was not in its
+  allowlist — fixed).
+- Closure commit **`f232975`**: NEGATED_MENTION removed, clean-selection allowlist on all
+  three matcher paths; canonicalKnowsIt from the canonical read + CANONICAL_TYPE_ALIAS;
+  widened clause splitter with the "Confirmed —" lookbehind; run15 pipeline cases; run16
+  promoted (53). Battery 27/0 (21 assertion-bearing); v16 mutation proof 13/13; v15 10/10
+  (+4 superseded); deno 23/23 (0 new). Ledger #76 + postscript appended.
+- **VERIFIER #17 (campaign #77) IS RUNNING** as TOP_LEVEL_ISOLATED_PROCESS on the rotation
+  commit (index.ts sha in CURRENT_CAMPAIGN.json). DO NOT MODIFY index.ts until it returns.
+- DB round-3 reviewer #301 still running (worktree brain-os-verify-fbc5c79).
