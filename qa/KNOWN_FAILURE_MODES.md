@@ -5076,3 +5076,16 @@ must be accepted in the SQL comment where the next engineer will read it, not in
 file. (4) A review that returns FAIL on all four while confirming 22 of 47 prior closures
 re-derived from the SQL is the most useful kind: it is exactly what an independent
 reviewer is for.
+
+**ROUND 4 / R4-7 correction to the DB-R3 entry above (2026-09-04):** the live flag-only class is
+FOUR guard-defining migrations and FIVE GUCs, not five migrations — `202608290010` only SETS a
+flag that `202608290001`'s guard reads; it defines no guard. The reviewer's full inventory
+confirmed no unnamed sixth file reads an `app.*` GUC as authority, and that migration A is the
+only one pairing the flag with an identity condition. Round 4 also returned A PASS / B PASS /
+C FAIL (R4-3: no channel-ownership guard — a manager could plant a disabled binding on the
+founder's channel, or disable-then-repoint one) / D FAIL (R4-1: three columns the claim RPC
+RETURNS were not in the guard, under a comment claiming completeness — the D-3 shape one round
+later). Round 5 closes both structurally: an ownership condition on every INSERT and every
+channel_id change, and a guard list pinned to the claim's return list by
+`qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs`; the persona suite now runs on an
+engine-enforced second connection on the real engine (R4-5).

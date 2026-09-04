@@ -300,10 +300,13 @@ grant select, insert, update, delete on public.chat_channel_state to authenticat
 -- authority is the execution context (see the guard), which a client cannot forge: a client
 -- that raises the flag is still `authenticated` and is refused. The flag is kept only to
 -- separate "inside an RPC" from "a superuser's ad-hoc UPDATE" within the trusted context.
--- The reviewer's same-class sweep found the flag-only pattern ALREADY LIVE in five pushed
--- migrations (app.company_lifecycle_rpc, app.task_lifecycle_rpc, app.goal_lifecycle_rpc,
--- 202608290008, 202608300002, 202608290010); that is a live-schema defect class recorded in
--- qa/KNOWN_FAILURE_MODES.md and owed its own migration — not silently folded in here.
+-- The reviewer's same-class sweep found the flag-only pattern ALREADY LIVE: four
+-- guard-defining migrations and five GUCs (202608280013 app.company_lifecycle_rpc;
+-- 202608290001 app.task_lifecycle_rpc + app.goal_lifecycle_rpc; 202608290008
+-- app.person_lifecycle_rpc; 202608300002 app.work_order_completion_rpc — 202608290010 only
+-- SETS a flag another guard reads; ROUND 4 / R4-7 corrected the count). That is a
+-- live-schema defect class recorded in qa/KNOWN_FAILURE_MODES.md and owed its own
+-- migration — not silently folded in here.
 --
 -- FLAG SCOPING, STATED PRECISELY (the imprecise version of this comment was itself a bug
 -- caught while writing it). `set_config(..., is_local => true)` discards the flag at

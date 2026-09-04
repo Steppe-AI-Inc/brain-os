@@ -146,7 +146,9 @@ const failed = results.filter((r) => r.status !== 'APPLIED');
 const targetRows = results.filter((r) => r.isTarget);
 
 console.log('\n' + '='.repeat(78));
-console.log(`applied ${applied}/${results.length}; ${failed.length} failed`);
+// ROUND 4 / R4-10: the count names what it counts — migration FILES plus the bootstrap shim,
+// which the harness itself defines as ASSUMED, not verified.
+console.log(`applied ${applied}/${results.length} (${results.length - 1} migration files + the bootstrap shim); ${failed.length} failed`);
 console.log('\nPER-TARGET VERDICT (each stands alone):');
 for (const t of TARGETS) {
   const row = targetRows.find((r) => r.label === t);
@@ -173,8 +175,13 @@ NEUTRALISED EXTENSION STATEMENTS (${neutralised.length}) — each is an UNVALIDA
 }
 
 console.log('\nWHAT THIS RUN DOES NOT PROVE:');
-console.log('  * PGlite is single-user and superuser: RLS POLICY CREATION is validated here,');
-console.log('    but policy ENFORCEMENT per persona needs the role-switching suite, not this file.');
+if (db.engine === 'pglite') {
+  console.log('  * PGlite is single-user and superuser: RLS POLICY CREATION is validated here,');
+  console.log('    but policy ENFORCEMENT per persona needs the role-switching suite, not this file.');
+} else {
+  console.log('  * This is a real PostgreSQL server (' + db.version.split(',')[0] + '); this file applies the chain as the');
+  console.log('    superuser login. Policy ENFORCEMENT is the persona suite\'s job, not this file\'s.');
+}
 console.log('  * The bootstrap shim defines auth.uid()/jwt()/role() and the Supabase roles. Any');
 console.log('    migration that passes only because the shim is more permissive than real');
 console.log('    Supabase is NOT validated. The shim is deliberately minimal for that reason.');
@@ -185,7 +192,7 @@ console.log('    says nothing about production data.');
 
 writeFileSync(join(HERE, 'apply-report.json'), JSON.stringify({
   generated_at: new Date().toISOString(),
-  engine: 'PGlite 0.5.8 (PostgreSQL 18.3, wasm32)',
+  engine: `${db.engine} — ${db.version}`, // ROUND 4 / R4-10: the artifact names the engine it ran on
   migrations_dir: 'supabase/migrations',
   total: results.length, applied, failed: failed.length,
   neutralised_extension_statements: neutralised,

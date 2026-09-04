@@ -306,16 +306,33 @@ language plpgsql
 security invoker
 set search_path = ''
 as $$
+declare
+  v_channel_owner uuid;
 begin
   if new.enabled and (tg_op = 'INSERT' or not old.enabled) and not public.is_founder_or_admin() then
     raise exception 'channel_transport_bindings: enabling a transport binding requires the founder or an admin (post-review)'
       using errcode = '42501';
   end if;
-  if tg_op = 'UPDATE' and old.enabled and new.channel_id is distinct from old.channel_id
+  -- ROUND 4 / R4-3 (P2): the repoint branch fired only on an ENABLED binding, and nothing
+  -- guarded channel OWNERSHIP at all — so a manager could disable-then-repoint a
+  -- founder-enabled binding onto the founder's channel, or simply CREATE a disabled binding
+  -- pointing at it, and the founder's own later "enable" would route the manager's external
+  -- conversation into the founder's private channel. Ownership is the rule now: on INSERT,
+  -- and on ANY change of channel_id, the target channel must be one the caller created —
+  -- or the caller is the founder/admin. (SECURITY INVOKER: the channel read is under the
+  -- caller's own RLS, so an invisible channel fails closed here too.)
+  if (tg_op = 'INSERT' or new.channel_id is distinct from old.channel_id)
      and not public.is_founder_or_admin() then
-    raise exception 'channel_transport_bindings: repointing an ENABLED transport binding to another channel requires the founder or an admin'
-      using errcode = '42501';
+    select c.created_by_profile_id into v_channel_owner
+      from public.chat_channels c where c.id = new.channel_id;
+    if v_channel_owner is null or v_channel_owner is distinct from public.current_profile_id() then
+      raise exception 'channel_transport_bindings: binding a transport to channel % requires that channel''s creator or the founder/admin (channel ownership)', new.channel_id
+        using errcode = '42501';
+    end if;
   end if;
+  -- ROUND 4 / R4-4 (P3), ACCEPTED IN WRITING: a company manager MAY disable a founder-enabled
+  -- binding on a channel they own (enabled true -> false is not gated). That is fail-safe in
+  -- direction — it stops traffic, it cannot redirect it — and re-enabling remains founder/admin.
   return new;
 end;
 $$;

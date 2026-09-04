@@ -194,6 +194,32 @@ export async function securitySelfCheck(db, role = 'authenticated') {
   return ev;
 }
 
+/** ROUND 4 / R4-5: on the real engine, a SECOND connection authenticated AS qa_authenticator.
+ *  On it the persona identity is the ENGINE's boundary, not a harness convention — the login
+ *  role is not a superuser, so SET SESSION AUTHORIZATION postgres is refused by PostgreSQL
+ *  itself. Returns null on PGlite (single in-process connection; the SET SESSION AUTHORIZATION
+ *  convention remains, labelled as emulation). */
+export async function openPersonaDb(db) {
+  if (!PG_URL || db.engine !== 'real-postgresql') return null;
+  const { default: pg } = await import('pg');
+  const url = new URL(PG_URL);
+  url.username = PERSONA_LOGIN_ROLE;
+  url.password = 'qa_authenticator_dbtest';
+  const client = new pg.Client({ connectionString: url.toString() });
+  await client.connect();
+  const p = { engine: db.engine + ' (persona connection)', version: db.version, extensions: db.extensions,
+    exec: async (sql) => { await client.query(sql); }, query: async (sql) => client.query(sql), close: () => client.end() };
+  const who = (await p.query('select session_user su, current_user cu')).rows[0];
+  if (who.su !== PERSONA_LOGIN_ROLE) throw new Error(`persona connection is ${who.su}, expected ${PERSONA_LOGIN_ROLE}`);
+  // The engine boundary, proven on the connection itself: escaping to the superuser must FAIL.
+  let escaped = false;
+  try { await p.exec('set session authorization postgres;'); escaped = true; } catch { /* expected */ }
+  if (escaped) { await client.end(); throw new Error('persona connection could SET SESSION AUTHORIZATION postgres — it is not an engine boundary'); }
+  try { await p.exec('set role postgres;'); escaped = true; } catch { /* expected */ }
+  if (escaped) { await client.end(); throw new Error('persona connection could SET ROLE postgres'); }
+  return p;
+}
+
 /** The evidence label a persona verdict may carry on this engine. PGlite is never allowed
  *  to say SECURITY VERIFIED. */
 export function securityVerdictLabel(db) {

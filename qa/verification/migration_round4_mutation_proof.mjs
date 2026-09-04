@@ -51,20 +51,23 @@ const MUTATIONS = [
     find: /create trigger channel_transport_bindings_enable_gate\r?\n\s*before insert or update on public\.channel_transport_bindings/,
     replace: 'create trigger channel_transport_bindings_enable_gate\n  before delete on public.channel_transport_bindings',
     expect: ['C.R3-C2.managerCannotEnableBinding', 'C.R3-C3.managerCannotRepointEnabledBinding'] },
-  { file: 'C', name: 'C-3 COVERAGE: the repoint branch of the enable gate is removed',
-    find: /\s*if tg_op = 'UPDATE' and old\.enabled and new\.channel_id is distinct from old\.channel_id[\s\S]*?end if;/, replace: '',
-    expect: ['C.R3-C3.managerCannotRepointEnabledBinding'] },
+  // ROUND 5: the enabled-only repoint branch was REPLACED by the ownership branch (R4-3); the
+  // mutation now removes that branch, which reopens C-3 and R4-3 together.
+  { file: 'C', name: 'C-3 / R4-3 COVERAGE: the channel-ownership branch of the enable gate is removed',
+    find: /\s*if \(tg_op = 'INSERT' or new\.channel_id is distinct from old\.channel_id\)\r?\n\s*and not public\.is_founder_or_admin\(\) then[\s\S]*?end if;\r?\n\s*end if;/, replace: '',
+    expect: ['C.R3-C3.managerCannotRepointEnabledBinding', 'C.R4-3.managerCannotPlantBindingOnFounderChannel', 'C.R4-3.managerCannotTwoStepRepoint'] },
   { file: 'D', name: 'D-3 COVERAGE: execution_mode leaves the guard column list',
     // The comment lines above the guard entry end in a newline; the replacement must start on its own line.
-    find: /\s*or new\.execution_mode is distinct from old\.execution_mode then/, replace: '\n     then',
+    find: /\s*or new\.execution_mode is distinct from old\.execution_mode(?=\r?\n)/, replace: '',
     expect: ['D.R3-D3.managerCannotRewriteExecutionMode'] },
   { file: 'D', name: 'D-2 COVERAGE: the dead service_role grant comes back',
     find: /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated, service_role;/,
     replace: "revoke execute on function public.claim_blocked_run_for_retry(text, integer, interval) from anon, public, authenticated;\ngrant execute on function public.claim_blocked_run_for_retry(text, integer, interval) to service_role;",
     expect: ['D.R3-D2.serviceRoleHasNoGrant'] },
   { file: 'P', name: 'D-1 HARNESS COVERAGE: personas run under the superuser login again (session_user = postgres) — the guard then refuses nobody',
-    find: /const as = async \(authUid, fn, role = 'authenticated'\) => \{\r?\n\s*const login = await enterPersonaSession\(db\);/,
-    replace: "const as = async (authUid, fn, role = 'authenticated') => {\n  const login = (await db.query('select session_user su')).rows[0].su;",
+    // ROUND 5: as() gained the real-engine branch first; the PGlite branch is what runs here.
+    find: /  const login = await enterPersonaSession\(db\);\r?\n  try \{\r?\n    await db\.exec\(`set role \$\{role\};`\);/,
+    replace: "  const login = (await db.query('select session_user su')).rows[0].su;\n  try {\n    await db.exec(`set role ${role};`);",
     expect: ['D.R3-D1.managerCannotRewriteRetryColumns'] },
 ];
 

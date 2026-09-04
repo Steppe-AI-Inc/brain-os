@@ -428,7 +428,7 @@ test('VERIFIER_RESUME_USES_TOP_LEVEL_ISOLATED_PROCESS: the supervisor spawn goes
 test('EXECUTION_MODE_IS_RECORDED_AS_DATA: 202609030001 adds execution_mode with a CHECK, and the supervisor writes it via sqlEscape (never concatenated raw)', () => {
   assert.ok(/add column if not exists execution_mode text/.test(MIGRATION));
   // ROUND 3 / D-3: the attestation column is guarded like every other retry column.
-  assert.ok(/or new\.execution_mode is distinct from old\.execution_mode then/.test(MIGRATION), 'execution_mode must be in the guard column list');
+  assert.ok(/or new\.execution_mode is distinct from old\.execution_mode/.test(MIGRATION), 'execution_mode must be in the guard column list'); // ROUND 4 / R4-1: the list grew past it
   assert.ok(/agent_runs_execution_mode_known check \(\s*execution_mode is null or execution_mode in \('isolated_process', 'background_subagent'\)/.test(MIGRATION));
   const live = SUPERVISOR_SRC.split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
   assert.ok(/set execution_mode = \$\{sqlEscape\(mode\)\}/.test(live));

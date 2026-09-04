@@ -20,7 +20,7 @@
 // tests that "passed" on a foreign-key or primary-key violation instead of on authority
 // (R-ART2, R-ART7), so every refusal here is checked against insufficient_privilege or an
 // explicit authority message — never `catch (others)`.
-import { openDb, bootstrap, transformFor, securitySelfCheck, securityVerdictLabel, enterPersonaSession, leavePersonaSession } from './db.mjs';
+import { openDb, bootstrap, transformFor, securitySelfCheck, securityVerdictLabel, enterPersonaSession, leavePersonaSession, openPersonaDb } from './db.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,10 +29,24 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const MIGDIR = join(resolve(HERE, '..', '..'), 'supabase', 'migrations');
 // ENGINE: PGlite by default (fast integration smoke, RLS emulation), or a REAL PostgreSQL
 // server when DBTEST_PG_URL is set (the only engine allowed to say SECURITY VERIFIED).
-const db = await openDb();
-console.log(`engine: ${db.engine} — ${db.version}`);
-const transform = transformFor(db);
-await bootstrap(db);
+const admin = await openDb();
+console.log(`engine: ${admin.engine} — ${admin.version}`);
+const transform = transformFor(admin);
+await bootstrap(admin);
+// ROUND 4 / R4-5: on the real engine every persona statement runs on a SECOND connection
+// authenticated AS qa_authenticator — the engine's boundary, not a harness convention (the
+// login role is not a superuser, so SET SESSION AUTHORIZATION postgres is refused by
+// PostgreSQL itself; openPersonaDb proves that on connect). On PGlite (one in-process
+// superuser connection) the SET SESSION AUTHORIZATION convention remains and is labelled as
+// emulation. `db` delegates to whichever connection the current block is acting through.
+const personaConn = await openPersonaDb(admin);
+let active = admin;
+const db = {
+  get engine() { return admin.engine; }, get version() { return admin.version; }, get extensions() { return admin.extensions; },
+  exec: (sql) => active.exec(sql), query: (sql) => active.query(sql),
+  close: async () => { if (personaConn) await personaConn.close(); await admin.close(); },
+};
+console.log(personaConn ? 'persona connection: ENGINE-ENFORCED (second connection as qa_authenticator; escape to superuser refused by the engine)' : 'persona connection: PGlite emulation (SET SESSION AUTHORIZATION convention on the single superuser connection)');
 for (const f of readdirSync(MIGDIR).filter((x) => x.endsWith('.sql')).sort()) {
   try { await db.exec(transform(readFileSync(join(MIGDIR, f), 'utf8'))); }
   catch (e) { console.log(`SETUP FAILED at ${f}: ${String(e.message).split('\n')[0]}`); process.exit(1); }
@@ -115,6 +129,19 @@ const T = async (mig, id, desc, fn) => {
 // postgres) migration D's guards could not refuse anybody. ROUND 3 / X-3: the JWT claims are
 // cleared on the way out, so no top-level statement inherits the last persona's identity.
 const as = async (authUid, fn, role = 'authenticated') => {
+  if (personaConn) {
+    // Real engine: the persona connection IS qa_authenticator; only SET ROLE + the JWT GUC.
+    active = personaConn;
+    try {
+      await personaConn.exec(`set role ${role};`);
+      await personaConn.exec(`select set_config('request.jwt.claims', '${authUid ? `{"sub":"${authUid}","role":"${role}"}` : '{}'}', false);`);
+      return await fn();
+    } finally {
+      try { await personaConn.exec('reset role;'); } catch {}
+      await personaConn.exec(`select set_config('request.jwt.claims', '', false);`);
+      active = admin;
+    }
+  }
   const login = await enterPersonaSession(db);
   try {
     await db.exec(`set role ${role};`);
@@ -330,7 +357,7 @@ await T(MC, 'C.R3-C2.managerCannotEnableBinding', 'C-2 (P2): a company manager c
   as(MANAGER_A_AUTH, () => deniedWrite(
     `insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
      values ('telegram','conv-mgr-on','${CH_MANAGER}','${CO_A}', true);`)));
-await T(MC, 'C.R3-C2.managerCanCreateDisabledBinding', 'C-2 LIMIT: a company manager can still create a DISABLED binding on their own channel', async () =>
+await T(MC, 'C.R3-C2.managerCanCreateDisabledBinding', 'C-2 LIMIT + R4-3: a company manager can still create a DISABLED binding on a channel THEY CREATED (ownership is now enforced by the gate)', async () =>
   as(MANAGER_A_AUTH, async () => {
     await db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
       values ('telegram','conv-mgr-off','${CH_MANAGER}','${CO_A}', false);`);
@@ -387,6 +414,52 @@ await T(MD, 'D.R3.founderViaAuthenticatorStillGoverned', 'D LIMIT: the founder (
     return true;
   }));
 
+// =========================================================================================
+// ROUND 4 (independent review) closures.
+// =========================================================================================
+await T(MA, 'H.R4-5.personaCannotEscapeToSuperuser', 'R4-5: inside a persona, SET SESSION AUTHORIZATION postgres is refused (ENGINE boundary on the real engine; on PGlite this documents the convention and is expected to be ALLOWED — reported, never counted as security)', async () => {
+  if (!personaConn) { console.log('  (PGlite: persona identity is a harness convention — the engine boundary is proven only on the real-PostgreSQL job)'); return true; }
+  return as(EMP_AUTH, async () => {
+    try { await db.exec('set session authorization postgres;'); return false; }
+    catch (e) { return /permission denied|42501|must be superuser/i.test(String(e.message)); }
+  });
+});
+
+await T(MC, 'C.R4-3.managerCannotPlantBindingOnFounderChannel', 'R4-3 (P2): a manager cannot CREATE even a disabled binding pointing at the founder channel (channel ownership)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(
+    `insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+     values ('telegram','conv-plant','${CH_FOUNDER}','${CO_A}', false);`)));
+await T(MC, 'C.R4-3.managerCannotTwoStepRepoint', 'R4-3 (P2): disable-then-repoint onto the founder channel is refused at the repoint (ownership, regardless of enabled state)', async () => {
+  await as(MANAGER_A_AUTH, () => db.exec(`update public.channel_transport_bindings set enabled = false where external_conversation_id='conv-mgr-off';`).catch(() => {}));
+  const refused = await as(MANAGER_A_AUTH, () => deniedWrite(`update public.channel_transport_bindings set channel_id='${CH_FOUNDER}' where external_conversation_id='conv-mgr-off';`));
+  const landed = (await countVisible(`select count(*)::int c from public.channel_transport_bindings where external_conversation_id='conv-mgr-off' and channel_id='${CH_FOUNDER}'`)) === 1;
+  return refused && !landed;
+});
+await T(MC, 'C.R4-4.managerMayDisableOwnBinding', 'R4-4 (P3, accepted in the SQL): a manager MAY disable a binding on a channel they created (fail-safe direction)', async () =>
+  (await countVisible(`select count(*)::int c from public.channel_transport_bindings where external_conversation_id='conv-mgr-off' and enabled = false`)) === 1);
+await T(MC, 'C.R4-3.founderCanBindAnyChannel', 'R4-3 LIMIT: the founder can bind a transport to a channel they did not create', async () =>
+  as(FOUNDER_AUTH, async () => {
+    await db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+      values ('telegram','conv-founder-on-mgr','${CH_MANAGER}','${CO_A}', false);`);
+    return true;
+  }));
+
+for (const [col, value] of [['canonical_work_order_id', 'gen_random_uuid()'], ['task_id', 'gen_random_uuid()'], ['agent_id', 'gen_random_uuid()'], ['last_event', "'attacker rewrote this'"], ['last_heartbeat_at', "now() + interval '90 days'"]]) {
+  await T(MD, `D.R4-1.managerCannotRewrite.${col}`, `R4-1/R4-2: ${col} is guarded (a returned or liveness column) — the guard's own refusal, and the stored value is unchanged`, async () => {
+    const before = (await db.query(`select ${col}::text v from public.agent_runs where id='dddd0000-0000-0000-0000-00000000000d'`)).rows[0].v;
+    let refused = false;
+    await as(MANAGER_A_AUTH, () => db.exec(`update public.agent_runs set ${col} = ${value} where id='dddd0000-0000-0000-0000-00000000000d';`)
+      .catch((e) => { refused = /may modify Agent Run retry\/checkpoint state/.test(String(e.message)); }));
+    const after = (await db.query(`select ${col}::text v from public.agent_runs where id='dddd0000-0000-0000-0000-00000000000d'`)).rows[0].v;
+    return refused && before === after;
+  });
+}
+await T(MD, 'D.R4-9.guardRaises42501', 'R4-9: the guard refusal carries SQLSTATE 42501 (an authority refusal a client can distinguish)', async () =>
+  as(MANAGER_A_AUTH, async () => {
+    try { await db.exec(`update public.agent_runs set worktree='/attacker' where id='dddd0000-0000-0000-0000-00000000000d';`); return false; }
+    catch (e) { return e.code === '42501' || /42501/.test(String(e.message)) || (db.engine === 'pglite' && /may modify Agent Run retry\/checkpoint state/.test(String(e.message))); }
+  }));
+
 // ---- report -----------------------------------------------------------------------------
 const byMig = {};
 for (const r of R) (byMig[r.mig] ||= []).push(r);
@@ -405,6 +478,6 @@ console.log('\n' + '='.repeat(78));
 console.log(`personas: ${R.length - failed.length}/${R.length} passed`);
 console.log('\nSTILL NOT PROVEN: PostgREST request shaping, Supabase Auth issuance, and');
 console.log('production data. This proves POLICY ENFORCEMENT against a real engine.');
-writeFileSync(join(HERE, 'personas-report.json'), JSON.stringify({ generated_at: new Date().toISOString(), engine: db.engine, version: db.version, security_self_check: SELF_CHECK, verdict_label: securityVerdictLabel(db), results: R }, null, 1) + '\n');
+writeFileSync(join(HERE, 'personas-report.json'), JSON.stringify({ generated_at: new Date().toISOString(), engine: db.engine, version: db.version, persona_connection: personaConn ? 'engine-enforced second connection as qa_authenticator' : 'PGlite emulation (SET SESSION AUTHORIZATION convention)', security_self_check: SELF_CHECK, verdict_label: securityVerdictLabel(db), results: R }, null, 1) + '\n');
 await db.close();
 process.exit(failed.length ? 1 : 0);

@@ -36,6 +36,11 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'qa_authenticator') then
     create role qa_authenticator noinherit login nosuperuser nobypassrls;
   end if;
+  -- ROUND 4 / R4-5: on the real engine the persona suite opens a SECOND connection AS this
+  -- role (qa/dbtest/db.mjs openPersonaDb), so the isolation is the engine's — no statement
+  -- in the suite can SET SESSION AUTHORIZATION back to the superuser. The password is a
+  -- harness constant for a disposable database that db.mjs refuses to point at production.
+  alter role qa_authenticator with password 'qa_authenticator_dbtest';
 end $$;
 grant anon, authenticated, service_role to qa_authenticator;
 

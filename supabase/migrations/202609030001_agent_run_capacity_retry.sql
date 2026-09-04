@@ -223,9 +223,17 @@ begin
   -- unattended session — remaining_scenarios and last_completed_scenario (which decide
   -- what the resumed run SKIPS as already-certified), verification_campaign_id (which is
   -- interpolated into its prompt), status (the claim's primary gate — flipping it makes a
-  -- run re-claimable or hides it), claimed_at and fallback_reason. Every column the claim
-  -- RETURNS or SELECTS ON is now guarded; a partial list here is the same shape of defect
-  -- as a guard that never runs.
+  -- run re-claimable or hides it), claimed_at and fallback_reason.
+  -- ROUND 4 / R4-1 (P2): this comment used to claim "every column the claim RETURNS or
+  -- SELECTS ON is now guarded" while canonical_work_order_id, task_id and agent_id — three
+  -- columns the claim RETURNS to the supervisor that spawns an unattended session — were
+  -- missing, so a company manager could re-target a blocked run at another task or agent
+  -- before it resumed (the same defect as D-3, one round later). The list below is now
+  -- DERIVED from the claim's return list plus the columns its predicate reads, and the
+  -- liveness signals a future watchdog would trust (R4-2: last_event, last_heartbeat_at).
+  -- The claim's return list and this guard are pinned to each other by
+  -- qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs, so the next omission
+  -- fails a suite instead of a review.
   if new.worktree is distinct from old.worktree
      or new.checkpoint_location is distinct from old.checkpoint_location
      or new.source_sha is distinct from old.source_sha
@@ -248,8 +256,19 @@ begin
      -- ROUND 3 / D-3 (P2): execution_mode is the reviewer-facing attestation of which dispatch
      -- path ran, added by this same migration — and it was not in this list, so a company
      -- manager could rewrite it. A forgeable attestation is worse than none.
-     or new.execution_mode is distinct from old.execution_mode then
-    raise exception 'Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state';
+     or new.execution_mode is distinct from old.execution_mode
+     -- ROUND 4 / R4-1: the three RETURNED columns the list omitted.
+     or new.canonical_work_order_id is distinct from old.canonical_work_order_id
+     or new.task_id is distinct from old.task_id
+     or new.agent_id is distinct from old.agent_id
+     -- ROUND 4 / R4-2: liveness signals a watchdog would trust; a forged heartbeat is a
+     -- forged "still alive".
+     or new.last_event is distinct from old.last_event
+     or new.last_heartbeat_at is distinct from old.last_heartbeat_at then
+    -- ROUND 4 / R4-9: an AUTHORITY refusal carries 42501 like every other guard in this batch,
+    -- so a client (and the persona suite) can tell it from a business-rule error by SQLSTATE.
+    raise exception 'Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state'
+      using errcode = '42501';
   end if;
   return new;
 end;
