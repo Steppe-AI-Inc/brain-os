@@ -300,3 +300,26 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   if #25 returns PASS or P4-only, `0e72ced` is the deploy-ready candidate pending ALLOW_FUNCTIONS_DEPLOY.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
   founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~05:00 local — Edge #85 FAIL → run25 (7c5e610); verifier #26 dispatched
+- Verifier #25 (campaign #85) FAIL on 164b3ee: D160/D160b (P2 — FIX-C's fixed-length lookbehind
+  sees one token, so an adverb/contraction/whitespace or an active-intransitive evidential
+  defeats it), D161 (P4, pre-existing, same class). Confirmed D158/D155/D156/D157 closed.
+- **Closed at `7c5e610`** (index sha256 `3b5baa2c268ccb6c1ecb5e2eac0ac0f20ccfafc991af28af3b090416961f7602`):
+  FIX-D (the ROOT-class fix — the evidential test runs on the LAST linker-delimited segment of
+  the negator→verb span; the 11 FIX-C lookbehinds DELETED; position, not voice) and FIX-E
+  (modal-hedge guard closes D161). Per the verifier's own measurement, run25 is now BETTER than
+  4476c92 on BOTH axes (truthful destroyed 0 vs 5; passive/intransitive fabrications caught
+  62/62 + 28/28; active-complement negatives survive 17). Residuals [RESIDUAL]: D158b, D154/
+  D158c, D156b, D153, D146b.
+  Evidence: run25 440/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  32/0 (run15 57/0, run24 retired, run25 added); deno 23 == baseline (npx deno@2); v25_mutation_proof 4/4.
+- **VERIFIER #26 dispatched** on bookkeeping commit `415fed3` (index bytes identical), watchdog
+  pid 17120, monitor task on watchdog-verifier26_output.state.
+- Trajectory: #80→run20 … #85→run25 (SIX iterations). FIX-D addressed the recurring root class
+  (a fixed-length lookbehind deciding syntactic scope) rather than another symptom — a strong
+  convergence signal. The two P1s (D139, D142/D148/D150) have held across SIX rounds. If #26
+  returns PASS or P4-only, `7c5e610` is the deploy-ready candidate → the ALLOW_FUNCTIONS_DEPLOY
+  authorization question is the next genuine boundary.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
