@@ -257,3 +257,26 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   destructive-bind) closed and held across three independent rounds' scrutiny.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
   founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~03:40 local — Edge #83 FAIL → run23 (e6a4d02); verifier #24 dispatched
+- Verifier #23 (campaign #83) FAIL on 82d4d77: D155 (P2, run22's active arm destroyed
+  first-person non-completions), D156 (P3, free-pass deletion destroyed evidential-complement
+  negatives), D157 (P2, pre-existing imperative-lexicon divergence). Confirmed D150 closed and
+  both P1s holding.
+- **Closed at `e6a4d02`** (index sha256 `bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066`):
+  D156 (FIX-A evidential verbs in relativizer), D155 (fallback 1 — active arm moved to an INLINE
+  CASE-SENSITIVE regex in readsAsCompletion, NOT FIX-B's `(?-i:)` which is Deno-unverified and
+  could brick module load), D157 (imperative test reuses ARCHIVE/RESTORE_VERB_PATTERN). Residuals
+  [RESIDUAL]: D156b (subject-NP), D153 (dropped-linker trade), D146b (comma-list), D154.
+  Evidence: run23 316/0; collateral **0/75 truthful destroyed & 4/50 fabrications missed —
+  BETTER than the b32e0e4 baseline of 7**; battery 32/0 (run15 57/0, run22 retired, run23 added);
+  deno 23 == baseline (npx deno@2); v23_mutation_proof 6/6. No regexp modifier shipped → no
+  Deno-modifier deploy risk.
+- **VERIFIER #24 dispatched** on bookkeeping commit `89a1ac9` (index bytes identical), watchdog
+  pid 15967, monitor task on watchdog-verifier24_output.state.
+- Trajectory: #80→run20, #81→run21, #82→run22, #83→run23. Four iterations; the two P1s
+  (D139 truthful-destruction, D142/D148/D150 destructive-bind) closed and held across all four
+  independent rounds. Residuals now niche (subject-NP parsing, comma-lists, out-of-lexicon
+  names). Collateral strictly better than baseline.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
