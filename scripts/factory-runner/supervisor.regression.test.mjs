@@ -102,7 +102,10 @@ test('PROCESS_DEATH_DOES_NOT_END_WORK_ORDER: retry ownership lives outside the C
   // The supervisor's claim path must not depend on the blocked session existing: it
   // reads durable state and spawns a NEW session.
   assert.match(SUPERVISOR_SRC, /claim_blocked_run_for_retry/);
-  assert.match(SUPERVISOR_SRC, /'--bg', prompt/);
+  // 2026-09-03: the spawn argv comes from provider.verifierDispatchArgv() in
+  // TOP_LEVEL_ISOLATED_PROCESS mode — a NEW top-level `claude -p` process, never `--bg`
+  // from a parent session (which can inherit an unactionable plan/approval gate).
+  assert.match(SUPERVISOR_SRC, /provider\.verifierDispatchArgv\(prompt, mode\)/);
   assert.ok(!/provider_run_id/.test(SUPERVISOR_SRC),
     'the supervisor must never require the dead run\'s provider session id to recover it');
 });
@@ -212,8 +215,10 @@ test('NO_SILENT_PROVIDER_FALLBACK: requested and actual provider/model are separ
 // fields flow into a spawned process's cwd and into an agent prompt — the two places
 // where "just metadata" becomes execution.
 test('SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: shell metacharacters never reach a shell', () => {
-  assert.match(SUPERVISOR_SRC, /execFileAsync\('claude', \['--agent'/,
-    'must spawn via execFile with an argv ARRAY — never exec()/shell:true');
+  // The argv is an ARRAY built by the pure, separately-tested verifierDispatchArgv():
+  // execFile(file, argvArray) — never exec()/shell:true, never a concatenated string.
+  assert.match(SUPERVISOR_SRC, /execFileAsync\('claude', provider\.verifierDispatchArgv\(prompt, mode\), \{/,
+    'must spawn via execFile with an argv ARRAY from verifierDispatchArgv — never exec()/shell:true');
   // Scope the shell check to the SPAWN call itself. runSql legitimately uses shell:true
   // for `npx`, and it passes no DB-controlled string — an unscoped check would either
   // fail on that or (worse) pass vacuously.
@@ -406,4 +411,18 @@ test('R-D8 the documented rollback names the ACTUAL signature', () => {
     'DROP FUNCTION IF EXISTS with a non-matching arity is a silent no-op — in the rollback path, which nobody tests');
   assert.match(MIGRATION_RAW, /drop trigger if exists agent_runs_guard_retry_columns/);
   assert.match(MIGRATION_RAW, /drop function if exists public\.guard_agent_run_retry_columns\(\)/);
+});
+
+// ---- 2026-09-03: verification execution mode is TOP_LEVEL_ISOLATED_PROCESS, recorded as DATA ----
+test('VERIFIER_RESUME_USES_TOP_LEVEL_ISOLATED_PROCESS: the supervisor spawn goes through verifierDispatchArgv with the isolated mode and never --bg', () => {
+  const live = SUPERVISOR_SRC.split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
+  assert.ok(/verifierDispatchArgv\(prompt, mode\)/.test(live), 'spawn argv must come from the pure, tested builder');
+  assert.ok(/EXECUTION_MODES\.TOP_LEVEL_ISOLATED_PROCESS/.test(live), 'the verifier mode must be the isolated one');
+  assert.ok(!/'--bg'/.test(live), 'no literal --bg dispatch may remain in the supervisor');
+});
+test('EXECUTION_MODE_IS_RECORDED_AS_DATA: 202609030001 adds execution_mode with a CHECK, and the supervisor writes it via sqlEscape (never concatenated raw)', () => {
+  assert.ok(/add column if not exists execution_mode text/.test(MIGRATION));
+  assert.ok(/agent_runs_execution_mode_known check \(\s*execution_mode is null or execution_mode in \('isolated_process', 'background_subagent'\)/.test(MIGRATION));
+  const live = SUPERVISOR_SRC.split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
+  assert.ok(/set execution_mode = \$\{sqlEscape\(mode\)\}/.test(live));
 });

@@ -10,8 +10,7 @@
 //
 // Every assertion states which migration and which round-2 finding it covers, so a green
 // run is traceable to the thing it is supposed to prove.
-import { PGlite } from '@electric-sql/pglite';
-import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
+import { openDb, bootstrap, transformFor } from './db.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,14 +19,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
 const MIGDIR = join(REPO, 'supabase', 'migrations');
 
-const UNAVAILABLE_EXT = /^\s*create\s+extension\s+(if\s+not\s+exists\s+)?["']?(pg_net|pgjwt|pg_graphql|pg_stat_statements|uuid-ossp|http|vector)["']?[^;]*;/gim;
-const VECTOR_MODIFIER = /\bvector\s*\(\s*\d+\s*\)/gi;
-const VECTOR_INDEX = /create\s+index[^;]*?using\s+(hnsw|ivfflat)[^;]*;/gi;
-const transform = (s) => s.replace(UNAVAILABLE_EXT, '').replace(VECTOR_MODIFIER, 'vector')
-  .replace(VECTOR_INDEX, '');
-
-const db = await PGlite.create({ extensions: { pgcrypto } });
-await db.exec(readFileSync(join(HERE, 'bootstrap.sql'), 'utf8'));
+// ENGINE: PGlite by default, or a REAL PostgreSQL server when DBTEST_PG_URL is set.
+const db = await openDb();
+console.log(`engine: ${db.engine} — ${db.version}`);
+const transform = transformFor(db);
+await bootstrap(db);
 for (const f of readdirSync(MIGDIR).filter((x) => x.endsWith('.sql')).sort()) {
   try { await db.exec(transform(readFileSync(join(MIGDIR, f), 'utf8'))); }
   catch (e) { console.log(`SETUP FAILED at ${f}: ${e.message}`); process.exit(1); }
@@ -399,4 +395,5 @@ console.log('\nNOT PROVEN HERE: RLS ENFORCEMENT per persona. PGlite runs single-
 console.log('superuser, so policies are proven to EXIST and to be attached, not to refuse a');
 console.log('real caller. That is a separate suite and a separate verdict.');
 writeFileSync(join(HERE, 'acceptance-report.json'), JSON.stringify({ generated_at: new Date().toISOString(), results: R }, null, 1) + '\n');
+await db.close();
 process.exit(failed.length ? 1 : 0);

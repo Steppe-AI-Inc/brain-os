@@ -2,8 +2,9 @@
   "name": "brain-os-dbtest",
   "private": true,
   "type": "module",
-  "description": "Disposable real-PostgreSQL validation harness for supabase/migrations. PGlite is real PostgreSQL compiled to WASM: it PARSES and EXECUTES the migrations, which static review cannot do.",
+  "description": "Disposable validation harness for supabase/migrations. PGlite (real PostgreSQL in WASM) gives fast integration smoke evidence; DBTEST_PG_URL points the SAME harnesses at a real PostgreSQL server (CI service container) for the security layer.",
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8"
+    "@electric-sql/pglite": "^0.5.8",
+    "pg": "^8.13.1"
   }
 }

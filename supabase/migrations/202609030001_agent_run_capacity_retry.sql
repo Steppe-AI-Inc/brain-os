@@ -51,6 +51,16 @@ alter table public.agent_runs add column if not exists requested_model text;
 alter table public.agent_runs add column if not exists actual_provider text;
 alter table public.agent_runs add column if not exists actual_model text;
 alter table public.agent_runs add column if not exists fallback_reason text;
+-- Execution mode is recorded as DATA so a reviewer can see which dispatch path actually ran.
+-- 'isolated_process' = a separate top-level `claude -p` in an isolated worktree at the
+-- pinned SHA (the only mode permitted for the independent verifier);
+-- 'background_subagent' = `claude --bg` from a parent session (can inherit an unactionable
+-- plan/approval gate — never for verification).
+alter table public.agent_runs add column if not exists execution_mode text;
+alter table public.agent_runs drop constraint if exists agent_runs_execution_mode_known;
+alter table public.agent_runs add constraint agent_runs_execution_mode_known check (
+  execution_mode is null or execution_mode in ('isolated_process', 'background_subagent')
+);
 
 -- ---- Atomic claim, so two supervisors cannot double-restart one run ---------------
 alter table public.agent_runs add column if not exists claimed_by text;

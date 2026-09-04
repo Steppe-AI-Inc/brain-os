@@ -20,21 +20,19 @@
 // tests that "passed" on a foreign-key or primary-key violation instead of on authority
 // (R-ART2, R-ART7), so every refusal here is checked against insufficient_privilege or an
 // explicit authority message — never `catch (others)`.
-import { PGlite } from '@electric-sql/pglite';
-import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
+import { openDb, bootstrap, transformFor, securitySelfCheck, securityVerdictLabel } from './db.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MIGDIR = join(resolve(HERE, '..', '..'), 'supabase', 'migrations');
-const transform = (s) => s
-  .replace(/^\s*create\s+extension\s+(if\s+not\s+exists\s+)?["']?(pg_net|pgjwt|pg_graphql|pg_stat_statements|uuid-ossp|http|vector)["']?[^;]*;/gim, '')
-  .replace(/\bvector\s*\(\s*\d+\s*\)/gi, 'vector')
-  .replace(/create\s+index[^;]*?using\s+(hnsw|ivfflat)[^;]*;/gi, '');
-
-const db = await PGlite.create({ extensions: { pgcrypto } });
-await db.exec(readFileSync(join(HERE, 'bootstrap.sql'), 'utf8'));
+// ENGINE: PGlite by default (fast integration smoke, RLS emulation), or a REAL PostgreSQL
+// server when DBTEST_PG_URL is set (the only engine allowed to say SECURITY VERIFIED).
+const db = await openDb();
+console.log(`engine: ${db.engine} — ${db.version}`);
+const transform = transformFor(db);
+await bootstrap(db);
 for (const f of readdirSync(MIGDIR).filter((x) => x.endsWith('.sql')).sort()) {
   try { await db.exec(transform(readFileSync(join(MIGDIR, f), 'utf8'))); }
   catch (e) { console.log(`SETUP FAILED at ${f}: ${String(e.message).split('\n')[0]}`); process.exit(1); }
@@ -43,22 +41,22 @@ for (const f of readdirSync(MIGDIR).filter((x) => x.endsWith('.sql')).sort()) {
 // ---- self-check: prove RLS is actually being enforced before asserting anything --------
 // Without this, every "denied" result below could be a missing table or a typo, and the
 // suite would report airtight security while proving nothing.
-await db.exec(`create table if not exists public._rls_selfcheck(id int, owner text);
-  alter table public._rls_selfcheck enable row level security;
-  grant select on public._rls_selfcheck to authenticated, anon;
-  drop policy if exists sc on public._rls_selfcheck;
-  create policy sc on public._rls_selfcheck for select using (owner = 'alice');
-  insert into public._rls_selfcheck values (1,'alice'),(2,'bob');`);
-const selfSuper = (await db.query('select count(*)::int c from public._rls_selfcheck')).rows[0].c;
-await db.exec(`set role authenticated;`);
-const selfAuth = (await db.query('select count(*)::int c from public._rls_selfcheck')).rows[0].c;
-await db.exec(`reset role;`);
-if (!(selfSuper === 2 && selfAuth === 1)) {
-  console.log(`RLS SELF-CHECK FAILED (superuser=${selfSuper}, authenticated=${selfAuth}). ` +
-    'Policies are NOT being enforced in this harness, so no denial below would mean anything.');
+// The founder-mandated REAL POSTGRES SECURITY SELF-CHECK (db.mjs): current_user really
+// changed and session_user did not; the role is not a superuser and has no BYPASSRLS;
+// row_security is on; the expected grant exists; a policy-filtered read returns only the
+// allowed rows; and a known-forbidden INSERT fails FOR THE EXPECTED AUTHORIZATION REASON
+// (42501 / row-level security), never for a typo, FK or missing table. Runs on both
+// engines; only the real engine's result may back a SECURITY VERIFIED verdict.
+let SELF_CHECK;
+try { SELF_CHECK = await securitySelfCheck(db, 'authenticated'); }
+catch (e) {
+  console.log(`SECURITY SELF-CHECK FAILED on ${db.engine}: ${e.message}`);
+  console.log('Enforcement is unproven on this connection, so no denial below would mean anything.');
   process.exit(1);
 }
-console.log(`RLS enforcement self-check: superuser sees ${selfSuper}, authenticated sees ${selfAuth} — policies ARE enforced\n`);
+console.log('security self-check: ' + JSON.stringify(SELF_CHECK));
+console.log(`  current_user=${SELF_CHECK.current_user} session_user=${SELF_CHECK.session_user} superuser=${SELF_CHECK.rolsuper} bypassrls=${SELF_CHECK.rolbypassrls} row_security=${SELF_CHECK.row_security}`);
+console.log(`  policy filter: login sees ${SELF_CHECK.superuser_sees}, authenticated sees ${SELF_CHECK.role_sees}; forbidden INSERT failed with ${SELF_CHECK.forbidden_op_sqlstate || 'RLS message'} — enforcement PROVEN on ${db.engine}\n`);
 
 // ---- personas ---------------------------------------------------------------------------
 const FOUNDER_AUTH = '11111111-0000-0000-0000-000000000001';
@@ -260,12 +258,13 @@ for (const [mig, rows] of Object.entries(byMig)) {
     console.log(`  ${r.ok ? 'OK  ' : 'FAIL'} ${r.id.padEnd(38)} ${r.desc}`);
     if (!r.ok && r.err) console.log(`       ${r.err}`);
   }
-  console.log(`  VERDICT ${mig}: ${bad.length === 0 ? 'SECURITY VERIFIED (RLS enforcement, integration)' : 'FAILED — ' + bad.length}`);
+  console.log(`  VERDICT ${mig}: ${bad.length === 0 ? securityVerdictLabel(db) : 'FAILED — ' + bad.length}`);
 }
 const failed = R.filter((r) => !r.ok);
 console.log('\n' + '='.repeat(78));
 console.log(`personas: ${R.length - failed.length}/${R.length} passed`);
 console.log('\nSTILL NOT PROVEN: PostgREST request shaping, Supabase Auth issuance, and');
 console.log('production data. This proves POLICY ENFORCEMENT against a real engine.');
-writeFileSync(join(HERE, 'personas-report.json'), JSON.stringify({ generated_at: new Date().toISOString(), results: R }, null, 1) + '\n');
+writeFileSync(join(HERE, 'personas-report.json'), JSON.stringify({ generated_at: new Date().toISOString(), engine: db.engine, version: db.version, security_self_check: SELF_CHECK, verdict_label: securityVerdictLabel(db), results: R }, null, 1) + '\n');
+await db.close();
 process.exit(failed.length ? 1 : 0);

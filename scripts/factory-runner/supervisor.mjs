@@ -320,7 +320,18 @@ export async function pollOnce(supervisorId, currentSourceSha) {
   // immediate release on a failure we DID observe returns the run to the queue now
   // rather than in thirty minutes.
   try {
-    await execFileAsync('claude', ['--agent', 'brain-os-verifier', '--permission-mode', 'auto', '--bg', prompt], {
+    // EXECUTION MODE: the Factory Director decides. A verifier resume is ALWAYS
+    // TOP_LEVEL_ISOLATED_PROCESS (a separate `claude -p` with an explicit non-interactive
+    // permission mode, cwd = the isolated worktree at the pinned SHA) — never `--bg` from
+    // a parent session, which can inherit an unactionable Plan Mode / approval gate
+    // (BACKGROUND_AGENT_EXECUTION_MODE_MUST_NOT_INHERIT_UNACTIONABLE_PLAN_GATE). The mode
+    // is recorded on the row as DATA (execution_mode) so a reviewer can see which path
+    // actually ran; the argv itself comes from the pure, tested verifierDispatchArgv().
+    const mode = provider.EXECUTION_MODES.TOP_LEVEL_ISOLATED_PROCESS;
+    try {
+      await runSql(`update public.agent_runs set execution_mode = ${sqlEscape(mode)} where id = ${sqlEscape(run.id)}::uuid;`);
+    } catch { /* column absent until 202609030001 is applied; the dispatch still records mode in its log */ }
+    await execFileAsync('claude', provider.verifierDispatchArgv(prompt, mode), {
       cwd: safeWorktree(run.worktree), maxBuffer: 10 * 1024 * 1024,
     });
   } catch (spawnError) {

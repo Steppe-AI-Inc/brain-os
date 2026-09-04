@@ -15,8 +15,7 @@
 //
 //   node apply-migrations.mjs              # apply the whole chain, report per file
 //   node apply-migrations.mjs --stop-first # stop at the first failure
-import { PGlite } from '@electric-sql/pglite';
-import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
+import { openDb, bootstrap } from './db.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,7 +34,10 @@ const TARGETS = new Set([
   '202609030001_agent_run_capacity_retry.sql',
 ]);
 
-const db = await PGlite.create({ extensions: { pgcrypto } });
+// ENGINE: PGlite by default, or a REAL PostgreSQL server when DBTEST_PG_URL is set. The
+// neutralisation below is applied on BOTH engines so the two runs validate identical text.
+const db = await openDb();
+console.log(`engine: ${db.engine} — ${db.version}`);
 const results = [];
 
 // Extensions PGlite does not bundle. Each occurrence is NEUTRALISED and COUNTED, never
@@ -98,6 +100,9 @@ async function run(label, sql, isTarget) {
 }
 
 console.log('bootstrap: Supabase-compatible shim (roles, auth schema, auth.uid/jwt/role)');
+// On a real engine that ships pgvector the type is REAL; bootstrap.sql's domain shim then
+// skips itself. PGlite has no pgvector, so this is a no-op there and the shim applies.
+if (db.extensions.vector) await run('_vector_extension.sql', 'create extension if not exists vector;', false);
 await run('_bootstrap.sql', readFileSync(join(HERE, 'bootstrap.sql'), 'utf8'), false);
 if (results[0].status !== 'APPLIED') {
   console.log('BOOTSTRAP FAILED — nothing below is meaningful:', results[0].error);

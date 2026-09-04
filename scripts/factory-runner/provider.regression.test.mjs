@@ -22,7 +22,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseProviderRunId, classifyProviderOutput, PROVIDER_CAPACITY_BLOCKED } from './provider.mjs';
+import { parseProviderRunId, classifyProviderOutput, PROVIDER_CAPACITY_BLOCKED, PROVIDER_TRANSIENT_ERROR, EXECUTION_MODE_BLOCKED, transientBackoffSeconds, verifierDispatchArgv, EXECUTION_MODES } from './provider.mjs';
 
 test('parseProviderRunId: parses the exact live-observed ANSI-wrapped byte sequence', () => {
   // Exact bytes observed live 2026-08-29 during the Phase 8 dispatch that produced
@@ -116,4 +116,41 @@ test('startRun contract: capacity output raises a TYPED error, never a generic p
   const capacityOutput = "You've hit your session limit · resets 1am (Asia/Ulaanbaatar)";
   assert.ok(classifyProviderOutput(capacityOutput));
   assert.throws(() => parseProviderRunId(capacityOutput)); // and the old path alone would have been generic
+});
+
+// ---- 2026-09-03: transient 5xx and execution-mode gates are classified, never PASS/FAIL ----
+test('PROVIDER_TRANSIENT_ERROR: an API 500 mid-run classifies as transient (retryable), not capacity, not a verdict', () => {
+  for (const s of ['API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"}}',
+    'API Error: 529 overloaded_error', 'request failed: 503 Service Unavailable', 'TypeError: fetch failed']) {
+    const c = classifyProviderOutput(s);
+    assert.equal(c?.classification, PROVIDER_TRANSIENT_ERROR, s);
+  }
+});
+test('PROVIDER_TRANSIENT_ERROR: backoff is bounded — never immediate, never unbounded', () => {
+  assert.equal(transientBackoffSeconds(1), 60);
+  assert.equal(transientBackoffSeconds(2), 120);
+  assert.equal(transientBackoffSeconds(4), 480);
+  assert.equal(transientBackoffSeconds(5), 900);
+  assert.equal(transientBackoffSeconds(50), 900);
+  assert.ok(transientBackoffSeconds(0) >= 60);
+});
+test('EXECUTION_MODE_BLOCKED: plan-mode / approval text classifies as an execution-mode block and wins over other text', () => {
+  for (const s of ['Entering plan mode. Waiting for approval before making changes.',
+    'PREFLIGHT: BLOCKED — EXECUTION_MODE', 'This action requires approval. You have hit your session limit']) {
+    assert.equal(classifyProviderOutput(s)?.classification, EXECUTION_MODE_BLOCKED, s);
+  }
+  // A benign mention of the word "plan" is NOT a gate.
+  assert.equal(classifyProviderOutput('Executing the plan to reassign CLIX GPS.'), null);
+});
+test('BACKGROUND_AGENT_EXECUTION_MODE_MUST_NOT_INHERIT_UNACTIONABLE_PLAN_GATE: an isolated verifier dispatch is -p, explicit non-plan permission mode, never --bg', () => {
+  const argv = verifierDispatchArgv('verify this', EXECUTION_MODES.TOP_LEVEL_ISOLATED_PROCESS);
+  assert.ok(argv.includes('-p'), 'must be a print/non-interactive top-level run');
+  assert.ok(!argv.includes('--bg') && !argv.includes('--background'), 'must never be a background subagent');
+  const pm = argv[argv.indexOf('--permission-mode') + 1];
+  assert.ok(pm && pm !== 'plan' && pm !== 'default', 'explicit permission mode that cannot stall on an invisible prompt: ' + pm);
+  assert.equal(argv[argv.indexOf('--agent') + 1], 'brain-os-verifier');
+  assert.equal(argv[argv.length - 1], 'verify this');
+  // The default mode for a verifier IS the isolated one.
+  assert.deepEqual(verifierDispatchArgv('x'), argv.slice(0, -1).concat('x'));
+  assert.throws(() => verifierDispatchArgv('x', 'nonsense'));
 });

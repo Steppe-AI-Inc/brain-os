@@ -96,13 +96,93 @@ const PROVIDER_CAPACITY_PATTERNS = [
 ];
 // @param {string} combined - raw provider output (stdout+stderr or log tail).
 // @returns {{classification: string, matched: string} | null}
+// BLOCKED — EXECUTION_MODE (2026-09-03, real incident): a background-dispatched verifier
+// inherited an interactive Plan Mode / approval gate that no human was present to click,
+// and stalled silently. Checked FIRST because this text can co-occur with anything else,
+// and no retry in the SAME execution mode can clear it — the Factory Director must
+// re-dispatch as TOP_LEVEL_ISOLATED_PROCESS (see verifierDispatchArgv). Never a FAIL of the
+// candidate, never a PASS.
+export const EXECUTION_MODE_BLOCKED = 'EXECUTION_MODE_BLOCKED';
+const EXECUTION_MODE_PATTERNS = [
+  /\bplan mode\b/i,
+  /ExitPlanMode/,
+  /(requires|waiting for|needs your) approval/i,
+  /approval (is )?required/i,
+  /permission (prompt|required)/i,
+  /PREFLIGHT: BLOCKED — EXECUTION_MODE/,
+];
+// BLOCKED — PROVIDER_TRANSIENT_ERROR (2026-09-03, "provider API 500 interrupted verifier
+// #15"): a 5xx / overloaded response mid-run is neither a PASS nor a FAIL of the
+// candidate. It is retryable with BOUNDED exponential backoff, and the durable checkpoint
+// plus the pinned SHA make the retry a RESUMPTION (sha unchanged => completed scenarios
+// are reused; sha changed => partial certification is invalidated by planResume).
+export const PROVIDER_TRANSIENT_ERROR = 'PROVIDER_TRANSIENT_ERROR';
+const PROVIDER_TRANSIENT_PATTERNS = [
+  /API Error: 5\d\d/i,
+  /\b(500|502|503|504|529)\b[^\n]{0,40}(error|overloaded|internal|unavailable)/i,
+  /overloaded_error/i,
+  /internal server error/i,
+  /service unavailable/i,
+  /\b(ECONNRESET|ETIMEDOUT|fetch failed)\b/,
+];
 export function classifyProviderOutput(combined) {
   const clean = stripAnsi(String(combined ?? ''));
+  for (const pattern of EXECUTION_MODE_PATTERNS) {
+    const match = clean.match(pattern);
+    if (match) return { classification: EXECUTION_MODE_BLOCKED, matched: match[0] };
+  }
   for (const pattern of PROVIDER_CAPACITY_PATTERNS) {
     const match = clean.match(pattern);
     if (match) return { classification: PROVIDER_CAPACITY_BLOCKED, matched: match[0] };
   }
+  for (const pattern of PROVIDER_TRANSIENT_PATTERNS) {
+    const match = clean.match(pattern);
+    if (match) return { classification: PROVIDER_TRANSIENT_ERROR, matched: match[0] };
+  }
   return null;
+}
+
+// Bounded exponential backoff for transient provider errors: 60s, 120s, 240s ... capped at
+// 15 minutes. Pure so the bound itself is a regression (never immediate, never unbounded).
+export function transientBackoffSeconds(attemptCount) {
+  const n = Math.max(1, Number(attemptCount) || 1);
+  return Math.min(900, 60 * 2 ** (n - 1));
+}
+
+// ---- EXECUTION MODES ------------------------------------------------------------------
+// BACKGROUND_SUBAGENT: `claude --agent X --bg` from within a parent session. It shares the
+//   parent's permission context, so it CAN inherit an unactionable Plan Mode / approval
+//   gate. Retained for implementation runs that a human is watching.
+// TOP_LEVEL_ISOLATED_PROCESS: a separate `claude -p` process with an explicit
+//   non-interactive permission mode, cwd = an isolated git worktree at the exact candidate
+//   SHA, the role given directly via --agent, no parent session, no implementation history.
+//   The ONLY mode permitted for the independent verifier.
+export const EXECUTION_MODES = Object.freeze({
+  BACKGROUND_SUBAGENT: 'background_subagent',
+  TOP_LEVEL_ISOLATED_PROCESS: 'isolated_process',
+});
+export const VERIFIER_ALLOWED_TOOLS = Object.freeze([
+  'Bash(node:*)', 'Bash(sha256sum:*)', 'Bash(git status:*)', 'Bash(git log:*)', 'Bash(git diff:*)',
+  'Bash(git show:*)', 'Bash(git rev-parse:*)', 'Bash(git worktree list:*)', 'Bash(ls:*)', 'Bash(cat:*)',
+  'Bash(echo:*)', 'Bash(touch:*)', 'Bash(rm:*)', 'Bash(npx supabase functions list:*)',
+]);
+/**
+ * The argv for a verifier dispatch. Pure and exported so the regression
+ * BACKGROUND_AGENT_EXECUTION_MODE_MUST_NOT_INHERIT_UNACTIONABLE_PLAN_GATE can assert the
+ * exact shape: an isolated verifier is `-p` (non-interactive, exits when done), carries an
+ * explicit permission mode that is never `plan`, never `--bg`, and names its role directly.
+ * @param {string} prompt
+ * @param {string} mode one of EXECUTION_MODES
+ */
+export function verifierDispatchArgv(prompt, mode = EXECUTION_MODES.TOP_LEVEL_ISOLATED_PROCESS) {
+  if (mode === EXECUTION_MODES.TOP_LEVEL_ISOLATED_PROCESS) {
+    return ['--permission-mode', 'acceptEdits', '--allowedTools', ...VERIFIER_ALLOWED_TOOLS,
+      '--agent', 'brain-os-verifier', '-p', prompt];
+  }
+  if (mode === EXECUTION_MODES.BACKGROUND_SUBAGENT) {
+    return ['--agent', 'brain-os-verifier', '--permission-mode', 'auto', '--bg', prompt];
+  }
+  throw new Error(`unknown execution mode: ${mode}`);
 }
 
 export async function startRun(agentName, task, cwd) {
