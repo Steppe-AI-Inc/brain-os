@@ -64,7 +64,7 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
 
   log "attempt $attempt: dispatching verifier (cwd=$CWD)"
   ( cd "$CWD" && claude --permission-mode acceptEdits \
-      --allowedTools "Bash(node:*)" "Bash(sha256sum:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git rev-parse:*)" "Bash(git worktree list:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(echo:*)" "Bash(touch:*)" "Bash(rm:*)" "Bash(npx supabase functions list:*)" "Bash(npm install:*)" "Bash(npm ci:*)" "Bash(gh run view:*)" "Bash(gh run list:*)" "Bash(gh api:*)" \
+      --allowedTools "Bash(node:*)" "Bash(sha256sum:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git rev-parse:*)" "Bash(git worktree list:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(echo:*)" "Bash(touch:*)" "Bash(rm:*)" "Bash(npx supabase functions list:*)" "Bash(npm install:*)" "Bash(npm ci:*)" "Bash(gh run view:*)" "Bash(gh run list:*)" "Bash(gh api:*)" "Bash(git add:*)" "Bash(git commit:*)" \
       --agent brain-os-verifier -p "$(cat "$PROMPT")" < /dev/null > "$LOG" 2>&1 )
   rc=$?
   bytes=$(wc -c < "$LOG" 2>/dev/null || echo 0)

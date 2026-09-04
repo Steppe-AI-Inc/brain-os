@@ -139,6 +139,7 @@ const labelBody = `
   ${grab('const PAST_COMPLETION_CLAIM_PATTERN =', ';')}
   ${grab('const COMPLETION_WORD =', ';')}
   ${grab('const FUTURE_PROMISE_IN_QUESTION =', ';')}
+  ${balancedFrom(src, 'const CANONICAL_TYPE_ALIAS')};
   ${balancedFrom(src, 'const TYPED_FALLBACK')};
   ${balancedFrom(src, 'const lastKnownLabel =')};
   ${balancedFrom(src, 'const safeDisplayLabel =')};
@@ -219,9 +220,18 @@ C('D116.hold.multiMentionStillDeadEnds', 'CONTRACT',
   () => bind('archive acme, leave acme holdings alone', [O('Acme', 'a'), O('Acme Holdings', 'ah')]) === null);
 // Closure edit (run15) — LIMITS of the D116 guard, so it cannot be over-broadened without a
 // test failing (the vacuous-guard lesson, applied to the fix that states it).
-C('D116.hold.negatorInAnotherClauseStillBinds', 'CONTRACT',
-  'D116 LIMIT: the negator test is CLAUSE-scoped — "acme holdings, no rush" still binds Acme Holdings',
-  () => bind('acme holdings, no rush', NEG3) === 'ah');
+// RETIRED at run16/D123 closure: this LIMIT pinned the benign direction of clause scoping
+// ("acme holdings, no rush" binds) while the destructive direction ("acme, no" bound
+// too) went unpinned — verifier #16's finding. The matcher now binds only a CLEAN
+// SELECTION (label + selection filler); any other word dead-ends to the LLM path. The
+// inverse is asserted so the old limit cannot drift back: an unrelated negator in another
+// clause now dead-ends, deliberately, because failing closed is cheaper than a wrong bind.
+C('D116.hold.negatorInAnotherClauseDeadEnds', 'CONTRACT',
+  'run16/D123: "acme holdings, no rush" dead-ends (fail closed) — the LLM path resolves it, the deterministic path never guesses',
+  () => bind('acme holdings, no rush', NEG3) === null);
+C('D116.hold.selectionFillerStillBinds', 'CONTRACT',
+  'run16/D123 LIMIT: selection filler around a name still binds ("yes, archive acme holdings please")',
+  () => bind('yes, archive acme holdings please', NEG3) === 'ah' && bind('the acme holdings one', NEG3) === 'ah');
 C('D116.hold.nameContainingNegatorStillBinds', 'CONTRACT',
   'D116 LIMIT: the option\'s OWN label is removed before the negator test — a real name containing "no" cannot disarm itself',
   () => bind('no limits inc', [O('No Limits Inc', 'nl'), O('Beta', 'b')]) === 'nl');
@@ -313,6 +323,42 @@ C('D118.hold.realCompletionsStillCaught', 'CONTRACT',
 ].forEach((s, i) => C(`D120.progressiveLabelSurvives.${i}`, 'DEFECT',
   `D120: a progressive execution assertion must not ship as an option label — ${JSON.stringify(s)}`,
   () => { const out = renderLabel(s, null); return !/^(now removing|i'm now removing|archiving|executing)/i.test(String(out).trim()); }));
+
+// =====================================================================================
+// Closure edit (run16/D126): the D119/D120 cases above observe the LABEL LOOP only — the
+// DROP itself lives after it, so removing or weakening the drop left this suite green
+// (verifier #16). These drive the REAL pipeline (label loop + the D119 drop + the D95
+// numbering) extracted from index.ts, so the drop is observed where it happens.
+// =====================================================================================
+const gateStart = src.indexOf('const unresolvableOptionIndexes');
+const numLoop = gateStart === -1 ? -1 : src.indexOf('for (let oi = 0; oi < paObj.options.length; oi++)', src.indexOf('const labelKey =', gateStart));
+if (gateStart === -1 || numLoop === -1) throw new Error('D119 drop / D95 numbering anchors not found — update this harness, do not let it pass');
+let gateDepth = 0, gateEnd = -1;
+for (let k = src.indexOf('{', numLoop); k < src.length; k++) {
+  if (src[k] === '{') gateDepth++; else if (src[k] === '}') { gateDepth--; if (gateDepth === 0) { gateEnd = k + 1; break; } }
+}
+const gateBlock = src.slice(gateStart, gateEnd);
+if (!gateBlock.includes('paObj.options = paObj.options.filter')) throw new Error('the D119 drop is absent from the gate slice — refusing to report on a slice that is not the product');
+const pipelineBody = labelBody.slice(0, labelBody.indexOf('function gateOneOption'))
+  + '\n  return function gatePipeline(paObj) { let pendingActionGatingChanged = false;\n' + gateBlock + '\n  return paObj.options; };';
+const pipe = (options, canonicalById = new Map()) => new Function('__canonicalById', stripTS(pipelineBody))(canonicalById)({ options: JSON.parse(JSON.stringify(options)) });
+const CO = (id, label, entityType = 'company') => ({ id, label, entityType, actionType: 'archive' });
+const ID2 = '22222222-2222-4222-8222-222222222222';
+['Terminated Bob Smith', 'Now removing ACME.', 'ACME Holdings.', ''].forEach((s, i) => C(`D126.dropObservedInPipeline.${i}`, 'CONTRACT',
+  `run16/D126: an unresolvable option (${JSON.stringify(s)}) is DROPPED by the real pipeline, not merely relabelled`,
+  () => pipe([CO(ID, s)]).length === 0));
+C('D126.mixedDrop', 'CONTRACT',
+  'run16/D126: the MIXED case — the unresolvable option goes, the resolvable one stays under its canonical name',
+  () => { const out = pipe([CO(ID, 'Now removing ACME.'), CO(ID2, 'Beta Corp')], new Map([[`company|${ID2}`, { name: 'Beta Corp' }]])); return out.length === 1 && out[0].label === 'Beta Corp' && out[0].id === ID2; });
+C('D126.resolvableNeverDropped', 'CONTRACT',
+  'run16/D126 LIMIT: the drop is not over-broad — two canonically-known options both survive, canonical names shown',
+  () => pipe([CO(ID, 'Terminated Bob Smith'), CO(ID2, 'whatever')], new Map([[`company|${ID}`, { name: 'ACME Holdings' }], [`company|${ID2}`, { name: 'Beta Corp' }]])).map((o) => o.label).join('|') === 'ACME Holdings|Beta Corp');
+C('D124.employeeAliasResolves', 'CONTRACT',
+  "run16/D124: entityType 'employee' resolves through the canonical alias to person| — two real people are shown BY NAME",
+  () => pipe([CO(ID, 'Bob Smith', 'employee'), CO(ID2, 'Jane Doe', 'employee')], new Map([[`person|${ID}`, { full_name: 'Bob Smith' }], [`person|${ID2}`, { full_name: 'Jane Doe' }]])).map((o) => o.label).join('|') === 'Bob Smith|Jane Doe');
+C('D124.unlistedTypeIsDropped', 'CONTRACT',
+  'run16/D124: an unresolvable option whose entityType is outside every map is dropped like any other',
+  () => ['subsidiary', 'invoice', 'employee', 'organization'].every((et) => pipe([CO(ID, 'Terminated Bob Smith', et)]).length === 0));
 
 // =====================================================================================
 // CONTRACT — properties that HOLD on d724d8c and correspond to SURVIVING mutants in my

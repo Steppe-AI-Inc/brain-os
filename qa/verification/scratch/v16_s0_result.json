@@ -1,0 +1,581 @@
+{
+  "misbinds": 24,
+  "deadends": 2,
+  "regressions": 0,
+  "rows": [
+    {
+      "dir": "misbind",
+      "name": "listed negator: dont",
+      "cmd": "dont archive acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: not X, the other",
+      "cmd": "not acme, the other one",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: except",
+      "cmd": "anything except acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: never",
+      "cmd": "never acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: leave alone",
+      "cmd": "leave acme alone",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: keep",
+      "cmd": "keep acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: skip",
+      "cmd": "skip acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: spare",
+      "cmd": "spare acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: without",
+      "cmd": "proceed without acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: rather than",
+      "cmd": "rather than acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: instead of",
+      "cmd": "instead of acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: other than",
+      "cmd": "other than acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: all but",
+      "cmd": "all but acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: cannot",
+      "cmd": "cannot touch acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: neither",
+      "cmd": "neither acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "listed negator: none",
+      "cmd": "none of acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: exclude",
+      "cmd": "exclude acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: excludes",
+      "cmd": "excludes acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: besides",
+      "cmd": "everything besides acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: aside from",
+      "cmd": "aside from acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: apart from",
+      "cmd": "apart from acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: avoid",
+      "cmd": "avoid acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: omit",
+      "cmd": "omit acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: ignore",
+      "cmd": "ignore acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: save",
+      "cmd": "save acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: anything else",
+      "cmd": "anything else, acme is fine",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: minus",
+      "cmd": "all of them minus acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: stop",
+      "cmd": "stop, acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: cancel",
+      "cmd": "cancel acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: forget",
+      "cmd": "forget acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: hold off on",
+      "cmd": "hold off on acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: wrong one",
+      "cmd": "wrong one, acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: nope",
+      "cmd": "nope acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: nah",
+      "cmd": "nah acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "UNLISTED: unless",
+      "cmd": "unless acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "SPLIT: no. acme",
+      "cmd": "no. acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "SPLIT: not that one, acme",
+      "cmd": "not that one, acme",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "SPLIT: acme? no",
+      "cmd": "acme? no",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "SPLIT: acme, no",
+      "cmd": "acme, no",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "SPLIT: acme - no",
+      "cmd": "acme - no",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "FOUNDER SHAPE: acme? no, the holdings one",
+      "cmd": "acme? no, the holdings one",
+      "cand": "c1",
+      "base": "c1",
+      "verdict": "MIS-BIND (P1)"
+    },
+    {
+      "dir": "misbind",
+      "name": "QUOTED negator",
+      "cmd": "the one that is \"not\" acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "EM DASH clause",
+      "cmd": "acme — not that one",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "COLON clause",
+      "cmd": "not this: acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "NEWLINE clause",
+      "cmd": "not that one\nacme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "DOUBLE NEG",
+      "cmd": "not not acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "misbind",
+      "name": "DOUBLE NEG 2",
+      "cmd": "dont not archive acme",
+      "cand": null,
+      "base": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "plain name",
+      "cmd": "acme",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "name in a sentence",
+      "cmd": "archive acme please",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "longest wins",
+      "cmd": "acme holdings",
+      "cand": "c2",
+      "base": "c2",
+      "want": "c2",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"No\"",
+      "cmd": "no limits inc",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Not\"",
+      "cmd": "not just bagels",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Except\"",
+      "cmd": "except studios",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Nothing\"",
+      "cmd": "nothing bundt cakes",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Never\"",
+      "cmd": "never say never llc",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"But\"",
+      "cmd": "nothing but net",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Keep\"",
+      "cmd": "keep it simple co",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"None\"",
+      "cmd": "none the wiser ltd",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "real name containing \"Without\"",
+      "cmd": "without a trace inc",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "negator in ANOTHER clause, name clean",
+      "cmd": "yes do it. acme",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "affirmative with \"no problem\" in other clause",
+      "cmd": "acme. no problem",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "negation of a DIFFERENT option",
+      "cmd": "not beta corp, acme",
+      "cand": null,
+      "base": null,
+      "want": "c1",
+      "verdict": "dead-end (also at base)"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "negation of a DIFFERENT option (3 opts)",
+      "cmd": "not beta corp, gamma llc",
+      "cand": null,
+      "base": null,
+      "want": "c3",
+      "verdict": "dead-end (also at base)"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "polite request with \"but\"",
+      "cmd": "acme, but hurry",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "\"keep going\" alongside a name",
+      "cmd": "acme, keep going",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "\"no rush\" alongside a name",
+      "cmd": "acme, no rush",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "\"nothing else\" alongside a name",
+      "cmd": "acme, nothing else",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "\"can't wait\" alongside a name",
+      "cmd": "acme, cant wait",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    },
+    {
+      "dir": "overrefusal",
+      "name": "apostrophe name D102 pair",
+      "cmd": "bob's co",
+      "cand": "c1",
+      "base": "c1",
+      "want": "c1",
+      "verdict": "ok"
+    }
+  ]
+}

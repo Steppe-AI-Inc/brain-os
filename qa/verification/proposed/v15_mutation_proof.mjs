@@ -28,26 +28,30 @@ const text = pristine.toString('utf8');
 
 const MUTATIONS = [
   // ---- D116: the P1 negated-mention bind ---------------------------------------------
-  { name: 'M01 D116 COVERAGE: the negation dead-end is removed (the d724d8c state)',
+  // run16/D123 SUPERSEDED M01/M02/M04: the NEGATED_MENTION word list is gone — the matcher
+  // binds only a CLEAN SELECTION (label + selection filler), which subsumes every
+  // negation case. Their coverage lives in v16_mutation_proof (M01-M05).
+  { name: 'M01 D116 COVERAGE: the negation dead-end is removed (the d724d8c state)', superseded: 'run16/D123 replaced NEGATED_MENTION with the clean-selection allowlist; see v16_mutation_proof M01',
     find: /\n\s*if \(matches\.some\(\(o\) => clauses\.some\(\(c\) => c\.includes\(forMatching\(o\.label\)\)\s*\n\s*&& NEGATED_MENTION\.test\(c\.split\(forMatching\(o\.label\)\)\.join\(' '\)\)\)\)\) return null;/,
     replace: '',
     expect: /D116\./ },
-  { name: 'M02 D116 LIMIT: the negator test runs on the WHOLE command instead of the clause',
+  { name: 'M02 D116 LIMIT: the negator test runs on the WHOLE command instead of the clause', superseded: 'run16/D123: clause scoping no longer exists; the LIMIT is now the selection-filler allowlist (v16_mutation_proof M02/M03)',
     find: /clauses\.some\(\(c\) => c\.includes\(forMatching\(o\.label\)\)\s*\n\s*&& NEGATED_MENTION\.test\(c\.split\(forMatching\(o\.label\)\)\.join\(' '\)\)\)/,
     replace: "NEGATED_MENTION.test(normalizedCommand.split(forMatching(o.label)).join(' '))",
     expect: /D116\.hold\.negatorInAnotherClause/ },
-  { name: "M03 D116 LIMIT: the option's own label is NOT removed before the negator test (a real name can disarm itself)",
+  { name: "M03 D116 LIMIT: the option's own label is NOT removed before the negator test (a real name can disarm itself)", superseded: 'run16/D123: NEGATED_MENTION no longer exists; the self-label removal now lives in cleanSelection (v16_mutation_proof M03/M06, D123.hold.legitimateRepliesStillBind)',
     find: /NEGATED_MENTION\.test\(c\.split\(forMatching\(o\.label\)\)\.join\(' '\)\)/,
     replace: 'NEGATED_MENTION.test(c)',
     expect: /D116\.hold\.nameContainingNegator/ },
-  { name: 'M04 D116 COVERAGE: the contraction arm ("dont", "cannot") is dropped from NEGATED_MENTION',
+  { name: 'M04 D116 COVERAGE: the contraction arm ("dont", "cannot") is dropped from NEGATED_MENTION', superseded: 'run16/D123: NEGATED_MENTION no longer exists',
     find: /\|\(\?:do\|does\|did\|is\|are\|was\|were\|wo\|ca\|could\|would\|should\|must\|has\|have\|had\|need\)n'\?t\|cannot/,
     replace: '',
     expect: /D116\.dontArchive/ },
 
   // ---- D117 / D118: negation once, per clause, every arm -------------------------------
   { name: 'M05 D117 COVERAGE: readsAsCompletion loses the clause split and tests the whole summary',
-    find: /String\(s\)\.split\(\/\[\.!\?,\\x3b\]\+\/\)\.map\(\(c\) => c\.trim\(\)\)/,
+    // run16/D125 widened the splitter; the anchor follows it (the mutation is the same: no split at all).
+    find: /String\(s\)\.split\(\/[^\n]*?\/i\)\.map\(\(c\) => c\.trim\(\)\)/,
     replace: '[String(s)]',
     expect: /D117\.suffixDisarms/ },
   { name: 'M06 D118 COVERAGE: NEGATED_CLAUSE is no longer consulted (negation blindness on every arm)',
@@ -57,8 +61,8 @@ const MUTATIONS = [
     // NEGATED_CLAUSE (the whole suite exits), and run14's D112 cases fail behaviourally.
     expect: /D118\.truthfulNegativeDestroyed|D112\.negated|run15:EXIT/ },
   { name: 'M07 D117 COVERAGE: the comma stops being a clause boundary',
-    find: /split\(\/\[\.!\?,\\x3b\]\+\/\)/,
-    replace: 'split(/[.!?\\x3b]+/)',
+    find: /split\(\/\[\.!\?,\\x3b:\(\)\\n\]\+\|/,
+    replace: 'split(/[.!?\\x3b:()\\n]+|',
     expect: /D117\.suffixDisarms\.1/ },
   { name: 'M08 D118 LIMIT: NEGATED_CLAUSE over-broadened to any word (every clause reads as negated)',
     // Appended at the END of the list so run15's extraction guard (which pins the head of
@@ -111,12 +115,13 @@ const runSuites = () => {
 };
 const failing = (out) => out.split(/\r?\n/).filter((l) => /^FAIL /.test(l)).map((l) => l.replace(/^FAIL /, '').split(/\s+/)[0]);
 
-let unproven = 0;
+let unproven = 0, superseded = 0;
 try {
   const base = failing(runSuites());
   if (base.length) { console.log('BASELINE NOT CLEAN — the suites fail on unmutated source:\n  ' + base.join('\n  ')); process.exit(1); }
   console.log('baseline: all ' + SUITES.length + ' suites green on unmutated source\n');
   for (const m of MUTATIONS) {
+    if (m.superseded) { console.log(`SUPERSEDED    ${m.name}\n              ${m.superseded}`); superseded++; continue; }
     const hits = (text.match(new RegExp(m.find.source, m.find.flags.includes('g') ? m.find.flags : m.find.flags + 'g')) || []).length;
     if (hits !== 1) { console.log(`UNPROVEN      ${m.name}\n              stale anchor: matched ${hits}x, expected 1`); unproven++; continue; }
     // A replacement function, never a string: a `$` in the replacement would otherwise
@@ -140,5 +145,5 @@ try {
   if (after !== pristineSha) { console.log(`\n*** SOURCE NOT RESTORED *** ${after}`); process.exit(2); }
   console.log(`\nsource restored byte-identically (sha256 ${after.slice(0, 16)}…)`);
 }
-console.log(`v15_mutation_proof: ${MUTATIONS.length - unproven}/${MUTATIONS.length} proven, ${unproven} unproven`);
+console.log(`v15_mutation_proof: ${MUTATIONS.length - unproven - superseded}/${MUTATIONS.length - superseded} proven, ${unproven} unproven, ${superseded} superseded by run16 (historical record: 14/14 at 52e830f)`);
 process.exit(unproven === 0 ? 0 : 1);
