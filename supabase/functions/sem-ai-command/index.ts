@@ -421,6 +421,27 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   if (!normalizedCommand) return null;
   const usable = (o) => o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string';
   const matches = options.filter((o) => usable(o) && forMatching(o.label).length > 0 && normalizedCommand.includes(forMatching(o.label)));
+  // run15/D116 (P1 — a wrong-entity DESTRUCTIVE bind, the same severity as D106 and in the
+  // same function, but NOT in the code D106 changed). The single-match return below ran
+  // BEFORE any of D106's machinery, so a reply that EXCLUDES the one option it names
+  // ("don't archive acme", "not acme, the other one", "anything except acme holdings")
+  // bound that option and armed archiveCompanyIds with no LLM in the loop. The
+  // contradiction check downstream cannot help: "don't archive acme" contains an archive
+  // verb and no restore verb, which is not a contradiction for an archive option.
+  //
+  // FAIL CLOSED, and NEVER INTERPRET the negation. A negated mention is not resolved to
+  // "the other one" — with three options that would be a guess, and a guess here is an
+  // archive of the wrong company. Any option whose mention sits in a clause carrying a
+  // negator/exclusion dead-ends the whole match and the reply falls through to the LLM
+  // path, exactly as an ambiguous reply does. The negator test is made on the clause with
+  // the option's OWN label removed, so a real name containing "no"/"not" ("No Limits
+  // Inc") cannot disarm itself, and it runs on the presentation-stripped text, so the
+  // apostrophe-less forms ("dont") are the ones listed. Deliberately conservative: a
+  // false dead-end costs one LLM round-trip; a false bind costs a wrong mutation.
+  const NEGATED_MENTION = /\b(?:not|no|never|neither|nor|none|without|except|excepting|excluding|but|other than|anything but|everything but|instead of|rather than|(?:do|does|did|is|are|was|were|wo|ca|could|would|should|must|has|have|had|need)n'?t|cannot|leave|keep|spare|skip)\b/i;
+  const clauses = normalizedCommand.split(/[,.;!?]+/);
+  if (matches.some((o) => clauses.some((c) => c.includes(forMatching(o.label))
+    && NEGATED_MENTION.test(c.split(forMatching(o.label)).join(' '))))) return null;
   if (matches.length === 1) return matches[0];
   // run13/D102: stripping presentation characters fixed the quoted-label regression but
   // introduced its own collision — two real names differing ONLY by an apostrophe
@@ -2560,7 +2581,11 @@ serve(async (req) => {
           // refuse and fall through to the ordinary LLM path (field stays undefined),
           // never silently pick a destructive default. Every legitimate archive/restore
           // clarification sets actionType explicitly (system prompt requirement below)
-          // and is unaffected - proven by qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs.
+          // and is unaffected - the fail-closed shape of the REAL function is pinned by
+          // qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs, and
+          // issue5_confirmation_action_type_binding.mjs executes the real function extracted
+          // from this file against the full matrix (run15/D122: it used to cite a suite that
+          // re-implemented the product, which proves nothing about this line).
           const field = resolveClarificationField(pendingAction.entityType, pendingAction.actionType);
           if (field) {
             deterministic = {
@@ -5079,6 +5104,7 @@ serve(async (req) => {
             // run9/D72: never blank a label — an empty label makes the option
             // unselectable in the disambiguation flow. A refused label falls back to a
             // safe DERIVED reference from the option's own canonical identity.
+            const unresolvableOptionIndexes: number[] = [];
             for (let oi = 0; oi < paObj.options.length; oi++) {
               const o = paObj.options[oi];
               if (!o || typeof o !== 'object') continue;
@@ -5129,35 +5155,47 @@ serve(async (req) => {
               // must see what those entities are actually called — a paraphrase is exactly
               // the channel a fabricated label travels through, and no paraphrase is worth
               // one wrong archive.
-              // TWO INDEPENDENT RULES, and only the second one is lexical:
+              // ONE RULE, and it is not lexical (run15/D119 — the decision verifier #15
+              // put to the founder, taken):
               //
-              //   1. The canonical read KNOWS this entity and the label disagrees with it
-              //      -> replace. No word list involved, so "Terminated Bob Smith" for an
-              //      entity actually called ACME Holdings is caught, and so is a Cyrillic
-              //      homoglyph of a real name. This is the rule that closes D113, and it is
-              //      the strong case: we are not guessing, we know what the row says.
-              //   2. The canonical read does NOT know this entity, and the label reads as a
-              //      completed action -> replace. Unverifiable AND assertion-shaped is the
-              //      D100 shape, and such an option cannot execute anyway (run13/D103, its
-              //      id fails the contextPack filter).
+              //   The founder sees the CANONICAL NAME. A model label survives only when it
+              //   IS that name modulo presentation. No word list is involved anywhere, so
+              //   "Terminated Bob Smith" for an entity actually called ACME Holdings is
+              //   caught, and so is a Cyrillic homoglyph, and so is a progressive assertion
+              //   ("Now removing ACME." — run15/D120, closed by this same rule: the label
+              //   channel no longer has a lexical gate for a new shape to slip past).
               //
-              // A benign label for an entity the read simply does not contain SURVIVES,
-              // which is what run8/D72b pins ("ACME Holdings." keeps its repair). Removing
-              // the lexical test from rule 2 as well destroyed that case and two others —
-              // measured, then reverted. The lesson is that the gate was doing real work in
-              // the ABSENT branch; what was wrong was letting a word list decide the
-              // PRESENT branch, where the database already knows the answer.
+              // D113 kept a second, LEXICAL rule for the branch where the canonical read
+              // does NOT know the entity, so that a benign label could survive there
+              // (run8/D72b). Verifier #15 measured that fallback: over 18 execution
+              // assertions and 13 real completion-shaped names it let 6 assertions ship
+              // VERBATIM and destroyed 10 real names — it separated "verbs on the 24-word
+              // list" from "verbs not on it", and both sides contained both kinds. It had
+              // no discriminating power, so it is gone. An option whose id resolves to
+              // NOTHING this turn is not shown at all (dropped below): it cannot execute
+              // anyway (run13/D103 — its id fails the contextPack filter), so offering it
+              // only invites the founder to select a pointer to nowhere under a label only
+              // the model vouches for. run8/D72b is RETIRED by this decision, deliberately
+              // and on the record (ledger #75): the trailing-period repair of a name the
+              // database cannot corroborate is not a property worth an unverifiable label.
               const typedFallback = TYPED_FALLBACK[typeof o.entityType === 'string' ? o.entityType : 'record'] || 'the record';
               const canonicalKnowsIt = !!derivedLabel
                 && bare(derivedLabel) !== bare(typedFallback)
                 && !/^option \d+$/.test(derivedLabel);
               const agrees = !!safeLabel && bare(safeLabel) === bare(derivedLabel);
-              o.label = agrees
-                ? safeLabel
-                : (canonicalKnowsIt || !safeLabel || COMPLETION_WORD.test(safeLabel))
-                  ? derivedLabel
-                  : safeLabel;
+              o.label = agrees ? safeLabel : derivedLabel;
               if (o.label !== beforeLabel) pendingActionGatingChanged = true;
+              if (!canonicalKnowsIt) unresolvableOptionIndexes.push(oi);
+            }
+            // run15/D119: the drop itself. Structural, not lexical — an option the canonical
+            // read cannot name is removed before the founder ever sees it. When NOTHING is
+            // left, the pending action is downgraded to an OPEN question: the question text
+            // survives (it is already gated), the option list does not, so the next turn
+            // cannot bind a bare reply to a fabricated id — the disambiguation branch
+            // requires a non-empty option list and falls through to the LLM path.
+            if (unresolvableOptionIndexes.length > 0) {
+              paObj.options = paObj.options.filter((_: unknown, oi: number) => !unresolvableOptionIndexes.includes(oi));
+              pendingActionGatingChanged = true;
             }
             // run12/D95: when two options both fall back to a bare TYPED reference (their
             // entities are absent from the canonical read and carry no runtime label),
@@ -5279,9 +5317,25 @@ serve(async (req) => {
         // nine truthful founder-facing answers of sixteen, each replaced with "I can't
         // actually do that from chat", which is itself false. Destroying a true answer and
         // substituting a false one is a worse outcome than the fabrication this belt exists
-        // to catch. A negator anywhere in the predicate disarms the belt, and a completion
-        // word directly preceded by a determiner or a cardinal is a noun, not a claim.
-        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*(?![^]*\b(?:not|never|no|nothing|none|without|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t)\b)[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
+        // to catch. A completion word directly preceded by a determiner or a cardinal is
+        // a noun, not a claim (that part-of-speech guard stays here).
+        // run15/D117+D118: D112's negation handling was a `(?![^]*\b(?:not|...)\b)` lookahead
+        // INSIDE this one regex — a WHOLE-SUMMARY test, and applied to ONE arm only. Both
+        // are recurrences of classes this ledger already recorded: a negation word in a
+        // later sentence ("Confirmed — Archived ACME. No further action needed.") disarmed
+        // the belt for the fabrication beside it (the mechanism struck down at ledger
+        // #5277), while LEGACY_PAST_COMPLETION and EXECUTION_IN_PROGRESS had no negation
+        // handling at all, so "no company was archived" was still destroyed (#4905).
+        // Negation now lives in NEGATED_CLAUSE below and is applied ONCE, per CLAUSE, in
+        // readsAsCompletion — for every arm, so the two halves of run13/D100's "one
+        // predicate, both arms" can no longer diverge on negation either.
+        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
+        // The D112 negator list, unchanged, now scoped to a clause. Clause boundaries are
+        // sentence punctuation and the comma, so "Deleted ACME, nothing else was changed"
+        // keeps its fabrication in a clause of its own. Disclosed residual: a fabrication
+        // and a negator in the SAME clause ("Archived ACME with no issues") still disarms
+        // that clause; evidence, not this belt, remains the primary defence.
+        const NEGATED_CLAUSE = /\b(?:not|never|no|nothing|none|without|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t)\b/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the
@@ -5293,9 +5347,14 @@ serve(async (req) => {
         // run13/D100: the two drift arms below each carried their OWN copy of this
         // pattern list, so extending one silently left the other behind. One predicate,
         // both arms — a new completion shape cannot be half-covered again.
-        const readsAsCompletion = (s) => LEGACY_PAST_COMPLETION.test(s)
-          || EXECUTION_IN_PROGRESS.test(s) || CONFIRMED_COMPLETION.test(s)
-          || REFERENCELESS_CONFIRMATION.test(s);
+        // run15/D117+D118: negation is decided HERE, once, per clause, for every arm. A
+        // clause carrying a negator is a truthful negative and is skipped; any other clause
+        // asserting a completion makes the whole summary read as one. (The semicolon in the
+        // clause splitter is written as \x3b so this stays a single statement for the
+        // source-extracting suites, which slice this predicate up to its first `;`.)
+        const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
+          || String(s).split(/[.!?,\x3b]+/).map((c) => c.trim()).some((c) => !NEGATED_CLAUSE.test(c)
+            && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || CONFIRMED_COMPLETION.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan

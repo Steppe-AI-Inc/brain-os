@@ -56,11 +56,11 @@ C('R10.label.canonical', 'CONTRACT', 'an assertion-shaped CANONICAL name collaps
 C('R10.flag.text', 'CONTRACT', 'gating a pendingAction.summary sets pendingActionGatingChanged (M14 survived)',
   () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'bulk_confirmation', summary: 'ACME has been archived. Delete it?', question: 'Delete it?' } }).paChanged === true);
 C('R10.flag.label', 'CONTRACT', 'repairing an option label sets the flag (M15 survived)',
-  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', summary: null, options: [{ label: 'ACME Services.', id: ID, entityType: 'company' }] } }).paChanged === true);
+  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', summary: null, options: [{ label: 'ACME Services.', id: ID, entityType: 'company' }] }, context: { companies: [{ id: ID, name: 'ACME Services' }] } }).paChanged === true);
 C('R10.flag.arrays', 'CONTRACT', 'dropping a question sets the flag (M16 survived)',
   () => run({ claims: null, summary: 'ok', questions: ['ACME has been archived. Next?'] }).paChanged === true);
 C('R10.flag.quiet', 'CONTRACT', 'a pendingAction with nothing to gate does NOT set the flag (observed TRUE on 65ade7c — null !== undefined; see D80)',
-  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'ACME Services', id: ID, entityType: 'company' }] } }).paChanged === false);
+  () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'ACME Services', id: ID, entityType: 'company' }] }, context: { companies: [{ id: ID, name: 'ACME Services' }] } }).paChanged === false);
 C('R10.fallback.derived', 'CONTRACT', 'a refused option label falls back to the DERIVED canonical reference, not "option N" (M18 survived)',
   () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'ACME has been archived', id: ACME, entityType: 'company' }] }, context: { companies: [{ id: ACME, name: 'ACME Holdings' }] } }).envelope.pendingAction.options[0].label === 'ACME Holdings');
 C('R10.paQuestion', 'CONTRACT', 'an assertion-shaped pendingAction.question is gated in place (M27 survived)',
@@ -78,7 +78,7 @@ C('D70.hold', 'CONTRACT', 'D70 still holds: "Is Acme Inc. still interested?" sur
 C('D70b.hold', 'CONTRACT', 'D70b still holds: "Should the 1.5 allocation stay?" survives whole', () => Q('Should the 1.5 allocation stay?').includes('Should the 1.5 allocation stay?'));
 for (const [tag, label] of [['simple past', 'ACME deleted'], ['first person', 'I archived ACME'], ['done-colon', 'Done: ACME deleted'], ['present tense', 'ACME is now archived']]) {
   C('D78.' + tag, 'DEFECT', 'D78: sentence-shaped option label ' + JSON.stringify(label) + ' is not rendered/persisted as a label',
-    () => { const r = run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label, id: ACME, entityType: 'company' }, { label: 'ACME Services', id: ID, entityType: 'company' }] } }); return !r.summary.includes(label) && r.envelope.pendingAction.options[0].label !== label; });
+    () => { const r = run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label, id: ACME, entityType: 'company' }, { label: 'ACME Services', id: ID, entityType: 'company' }] }, context: { companies: [{ id: ACME, name: 'ACME Holdings' }, { id: ID, name: 'ACME Services' }] } }); return !r.summary.includes(label) && r.envelope.pendingAction.options[0].label !== label; });
 }
 C('D78.legit', 'CONTRACT', 'D72 still holds: a CANONICALLY-CORROBORATED name with a completion word ("Closed Loop Systems") survives as a label (run13/D100: uncorroborated ones no longer do)',
   () => run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [{ label: 'Closed Loop Systems', id: ID, entityType: 'company' }] },

@@ -167,3 +167,35 @@ console.log(`  -> resolves to ${JSON.stringify(resolveFieldBuggy('company', unde
 console.log('  after fix:');
 console.log(`  -> resolves to ${JSON.stringify(resolveFieldFixed('company', undefined))}  <-- refuses, falls through to the LLM path`);
 console.log('');
+
+// ---------------------------------------------------------------------------------------
+// run15/D122: everything above MODELS the fix, which proves nothing about index.ts — the
+// call site used to cite this file as proof, and a suite that re-implements the product
+// cannot be. This section executes the REAL resolveClarificationField and the REAL
+// CLARIFICATION_ENTITY_ACTION_FIELD table, extracted from the shipped source, against the
+// same matrix, and fails the run if the product disagrees with the fixed contract.
+{
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, resolve } = await import('node:path');
+  const HERE = dirname(fileURLToPath(import.meta.url));
+  const { stripTS } = await import(new URL('file://' + resolve(HERE, '_gate_extract.mjs')).href);
+  const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '..', '..', 'supabase', 'functions', 'sem-ai-command', 'index.ts');
+  const src = readFileSync(SRC, 'utf8');
+  const tStart = src.indexOf('const CLARIFICATION_ENTITY_ACTION_FIELD');
+  const fStart = src.indexOf('function resolveClarificationField(');
+  if (tStart === -1 || fStart === -1) throw new Error('index.ts anchors not found — update this suite, do not let it pass');
+  const tableSrc = src.slice(tStart, src.indexOf('};', tStart) + 2);
+  const fnSrc = src.slice(fStart, src.indexOf('\n}', fStart) + 2);
+  const realResolve = new Function(stripTS(tableSrc + '\n' + fnSrc) + '\n; return resolveClarificationField;')();
+  let realFail = 0;
+  for (const c of cases) {
+    const got = realResolve(c.entityType, c.actionType);
+    if (got !== c.fixedExpected) {
+      realFail++;
+      console.log('FAIL REAL ' + c.name + '\n    index.ts resolveClarificationField got ' + JSON.stringify(got) + ', expected ' + JSON.stringify(c.fixedExpected));
+    }
+  }
+  console.log('issue5 REAL resolveClarificationField (extracted from index.ts): ' + (cases.length - realFail) + '/' + cases.length + ' agree with the fixed contract');
+  if (realFail > 0) process.exit(1);
+}

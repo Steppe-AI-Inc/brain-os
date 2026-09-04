@@ -1,0 +1,85 @@
+Campaign complete. Source tree byte-identical to HEAD; no writes, no deploys, no migrations.
+
+---
+
+# VERIFIER #15 — CAMPAIGN #75 FINAL REPORT
+
+**CHANGE VERIFIED:** `d724d8c` (run14 D106–D115 closure), branch `pending/d3-past-completion-gate-pendingaction-shortcircuit`
+
+```
+SCENARIOS: 8 passed, 3 failed, 0 blocked
+CANONICAL GRAPH:      N/A (no DB access used — see scope)
+UI ↔ DB:              BLOCKED (not exercised)
+AI ↔ DB:              BLOCKED (not exercised)
+DEPENDENCIES:         PASS  (no prior closure reopened; run8/10/11/12/13/14 all green)
+PERMISSIONS:          N/A
+RELOAD/PERSISTENCE:   N/A
+IDEMPOTENCY:          N/A
+```
+
+## FOUND
+
+**What the commit genuinely closed** — measured, not accepted:
+
+| claim | verdict | evidence |
+|---|---|---|
+| D106 (P1 wrong-entity bind) | **CLOSED, well** | 34/40 attack probes pass; the 6 failures are a *different* defect in code D106 never touched |
+| D113 (canonical corroboration) | **CLOSED** | canonical-present branch: **0/18** assertions survive, **0/13** real names destroyed |
+| D114 (question belt) | **CLOSED — first build to dominate** | candidate 0 leaks/1 lost vs `ace9b6a` 0/5 and `f1722f2` 7/1 |
+| seven new guards observed? | **YES, both directions** | 20 of my 25 mutants killed, every guard has a coverage *and* a limit mutant killed |
+
+After eleven vacuous guards, this is a real change in kind and should be said plainly.
+
+**Five new defects, one of them P1:**
+
+- **D116 (P1) — a negated reply archives the company the founder excluded.** `matchDisambiguationOption` returns on `matches.length === 1` *before* every D106 guard, and nothing models negation. `"don't archive acme"` → binds Acme → `archiveCompanyIds` → `rpc('archive_company')`. Traced through the shipped source at 2572→2583→2587→2604→3047→3076. No LLM in the loop, no confirmation. Same severity and same function as D106; D106's fix does not reach it.
+- **D117 — D112's negation lookahead is whole-summary.** Appending `"No further action needed."` makes `"Confirmed — Archived ACME."` escape **all four arms**. 6/33 fabrications escape. This is a **recurrence** of the class the ledger already struck down at `:5277`.
+- **D118 — D112 was applied to one arm of four.** 7/7 same-class truthful negatives still destroyed, including the postscript's own example with `is` → `was`. Also an already-recorded class (`:4905`), left standing despite D100's own "one predicate, both arms" headline.
+- **D119 — the remaining lexical branch fails both directions at once:** 10/13 real names destroyed **and** 6/18 fabrications surviving.
+- **D120 / D121 / D122** — label channel ignores `EXECUTION_IN_PROGRESS`; three guard limits unobserved plus one equivalent mutant; a source comment cites a suite that reimplements the product and cannot prove what it's cited for.
+
+## FOUNDER-DIRECTED VERDICT: the remaining lexical fallback is **NOT ACCEPTABLE**
+
+Not an opinion — two numbers per branch:
+
+| | real names destroyed | execution assertions surviving |
+|---|---|---|
+| canonical row **exists** | **0 / 13** | **0 / 18** |
+| **no** canonical row | **10 / 13** | **6 / 18** |
+
+It has no discriminating power. `Terminated Cable Co` (real) survives by the identical accident that lets `Terminated Bob Smith` (fabricated) survive — neither verb is on the 24-word list.
+
+**Remedy, honouring your no-sixth-grammar-rule constraint: stop offering the option.** D103 already proves such an option *cannot execute* (its id fails the provenance filter). Offering a dead pointer labelled with unverifiable model text is the defect; the label gate is downstream of it. Drop options whose id doesn't resolve canonically. This retires committed contract D72b, so it is **your decision, not a patch**.
+
+## PRODUCTION
+
+`sem-ai-command` is **v92** (~2026-08-30), predating the entire run9→run14 sequence. **None of D58–D122 is live.** Everything above concerns a candidate branch, not what you are running today.
+
+## SCOPE NOT COVERED — stated plainly, not skipped
+
+- The **60 `.sql` suites were not run** and no DB query was issued. DB/RLS/lifecycle truth is **out of scope** for this campaign.
+- **No browser tools were available in this session type**, so UI and live AI-chat verification are **BLOCKED**, not silently omitted.
+- **No synthetic data was created** — this run issued zero writes, so there is no `QA-VERIFY-*` cleanup to perform.
+- No source file modified, nothing committed, nothing deployed, no migration prepared or pushed.
+
+## PROCESS NOTE
+
+My first question-belt metric counted any non-null return as a leak and scored the candidate 11/20; the true figure is 0/20. I caught it because the number disagreed with the D114 narrative and I went back to the fragments. A verifier's measurement error in the *pessimistic* direction produces a false verdict just as readily as an implementer's optimistic one.
+
+## ARTIFACTS
+
+- `qa/verification/proposed/v15_known_failure_modes_entry_75.md` (`## #75` section, no promotion preamble)
+- `qa/verification/proposed/v15_PROMOTION_NOTE.md` (separate, per the D97/D104/D115 history)
+- `qa/verification/proposed/v15_regression_additions.mjs` — 46 cases, 17 pass / 29 fail, **0 CONTRACT failures**, exits 1
+- `qa/verification/CURRENT_CAMPAIGN.json` — all 11 scenarios checkpointed with evidence
+
+## BLOCKERS REQUIRING YOUR ACTION
+
+1. **D116 is a P1** — approve the fail-closed negation fix before this branch goes anywhere near production.
+2. **D119 retires contract D72b** — a product decision only you can make.
+
+---
+
+**VERDICT: FAIL**
+
+**index.ts sha256 observed at end: `1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64`** — matches the required pin; asserted before the run, after all 25 temporary source mutations, and at the end. `git status --porcelain supabase/` is empty.

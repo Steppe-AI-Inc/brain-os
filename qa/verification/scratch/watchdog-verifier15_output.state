@@ -1,0 +1,4 @@
+[2026-09-03 20:53:48] watchdog started; max_attempts=6 expect_sha=1b291f370d285ae7…
+[2026-09-03 20:53:48] attempt 1: dispatching verifier
+[2026-09-03 21:17:49] attempt 1: exited rc=0 log_bytes=5828
+[2026-09-03 21:17:49] attempt 1: verifier produced a real report (5828 bytes); watchdog done

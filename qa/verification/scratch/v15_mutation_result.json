@@ -1,0 +1,299 @@
+[
+ {
+  "id": "M01",
+  "guard": "D106-specificity",
+  "kind": "COVERAGE",
+  "desc": "longest-wins inverted to shortest-wins (the original D106 P1 shape)",
+  "from": "    const maxLen = Math.max(...matches.map(specificity));",
+  "to": "    const maxLen = Math.min(...matches.map(specificity));",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail8)"
+  ]
+ },
+ {
+  "id": "M02",
+  "guard": "D106-specificity",
+  "kind": "LIMIT",
+  "desc": "a REMAINING TIE now silently picks longest[0] instead of dead-ending",
+  "from": "    if (longest.length === 1) {",
+  "to": "    if (longest.length >= 1) {",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M03",
+  "guard": "D106-specificity",
+  "kind": "LIMIT",
+  "desc": "specificity measured on the RAW label, so presentation chars inflate rank",
+  "from": "    const specificity = (o: PendingActionOption) => forMatching(o.label).length;",
+  "to": "    const specificity = (o: PendingActionOption) => o.label.length;",
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "M04",
+  "guard": "D106-residual",
+  "kind": "COVERAGE",
+  "desc": "residual-mention guard deleted — a reply naming several options binds the longest",
+  "from": "      return matches.some((o) => o !== longest[0] && rest.includes(forMatching(o.label))) ? null : longest[0];",
+  "to": "      return longest[0];",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail3)"
+  ]
+ },
+ {
+  "id": "M05",
+  "guard": "D106-residual",
+  "kind": "LIMIT",
+  "desc": "residual computed over the FULL reply, so any nested label always dead-ends",
+  "from": "      return matches.some((o) => o !== longest[0] && rest.includes(forMatching(o.label))) ? null : longest[0];",
+  "to": "      return matches.some((o) => o !== longest[0] && normalizedCommand.includes(forMatching(o.label))) ? null : longest[0];",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail2)"
+  ]
+ },
+ {
+  "id": "M06",
+  "guard": "D106-residual",
+  "kind": "LIMIT",
+  "desc": "winner text blanked instead of space-joined, so adjacent words fuse",
+  "from": "      const rest = normalizedCommand.split(forMatching(longest[0].label)).join(' ');",
+  "to": "      const rest = normalizedCommand.split(forMatching(longest[0].label)).join('');",
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "M07",
+  "guard": "D106-rawTieBreak",
+  "kind": "COVERAGE",
+  "desc": "raw tie-break widened back to ALL options (the D102 shape D106 removed)",
+  "from": "    const exact = longest.filter((o) => o.label.trim().length > 0",
+  "to": "    const exact = options.filter((o) => o.label.trim().length > 0",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M08",
+  "guard": "D106-rawTieBreak",
+  "kind": "LIMIT",
+  "desc": "raw tie-break widened to the whole matched set rather than the tied set",
+  "from": "    const exact = longest.filter((o) => o.label.trim().length > 0",
+  "to": "    const exact = matches.filter((o) => o.label.trim().length > 0",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M09",
+  "guard": "D112-negationLookahead",
+  "kind": "COVERAGE",
+  "desc": "negation lookahead deleted — \"Confirmed — the company is not archived\" destroyed again",
+  "from": "(?![^]*\\b(?:not|never|no|nothing|none|without|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t)\\b)",
+  "to": "",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail6)"
+  ]
+ },
+ {
+  "id": "M10",
+  "guard": "D112-negationLookahead",
+  "kind": "LIMIT",
+  "desc": "negation lookahead over-broadened with \"now\", so real completions escape the belt",
+  "from": "(?:not|never|no|nothing|none|without|pending|awaiting",
+  "to": "(?:not|never|no|nothing|none|now|without|pending|awaiting",
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "M11",
+  "guard": "D112-lookbehinds",
+  "kind": "LIMIT",
+  "desc": "the \"the\" lookbehind dropped — belt fires on truthful determiner prose",
+  "from": "(?<!\\bthe )(?<!\\ba )(?<!\\ban )(?<!\\bany )(?<!\\byour )(?<!\\bmy )(?<!\\bour )(?<!\\d )",
+  "to": "(?<!\\ba )(?<!\\ban )(?<!\\bany )(?<!\\byour )(?<!\\bmy )(?<!\\bour )(?<!\\d )",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M12",
+  "guard": "D112-lookbehinds",
+  "kind": "LIMIT",
+  "desc": "the CARDINAL lookbehind dropped — \"you have 3 archived companies\" destroyed",
+  "from": "(?<!\\bthe )(?<!\\ba )(?<!\\ban )(?<!\\bany )(?<!\\byour )(?<!\\bmy )(?<!\\bour )(?<!\\d )",
+  "to": "(?<!\\bthe )(?<!\\ba )(?<!\\ban )(?<!\\bany )(?<!\\byour )(?<!\\bmy )(?<!\\bour )",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M13",
+  "guard": "D112-lookbehinds",
+  "kind": "LIMIT",
+  "desc": "the WHOLE lookbehind chain dropped",
+  "from": "(?<!\\bthe )(?<!\\ba )(?<!\\ban )(?<!\\bany )(?<!\\byour )(?<!\\bmy )(?<!\\bour )(?<!\\d )",
+  "to": "",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail2)"
+  ]
+ },
+ {
+  "id": "M14",
+  "guard": "D114-firstPerson",
+  "kind": "COVERAGE",
+  "desc": "first-person belt deleted — exactly the D114 swap that reopened run12s class",
+  "from": "          if (FIRST_PERSON_MAIN_CLAUSE_COMPLETION.test(q)) return null;",
+  "to": "",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail12)"
+  ]
+ },
+ {
+  "id": "M15",
+  "guard": "D114-clausePosition",
+  "kind": "LIMIT",
+  "desc": "clause-position lookbehind dropped — \"the company I archived\" destroyed (D98 class)",
+  "from": "/(?<!\\b(?:the|a|an|all|any|some|those|these|our|your|my|their|both|each|every)\\s\\w{1,24}\\s)",
+  "to": "/",
+  "killed": true,
+  "killers": [
+   "run13_defect_closure_contract.mjs(exit1,fail14)",
+   "run14_defect_closure_contract.mjs(exit1,fail7)"
+  ]
+ },
+ {
+  "id": "M16",
+  "guard": "D114-interrogativeLead",
+  "kind": "LIMIT",
+  "desc": "INTERROGATIVE_LEAD exemption dropped — run12/D92 blanket belt restored",
+  "from": "          if (COMPLETION_WORD.test(q) && !INTERROGATIVE_LEAD.test(q)) return null;",
+  "to": "          if (COMPLETION_WORD.test(q)) return null;",
+  "killed": true,
+  "killers": [
+   "run12_defect_closure_contract.mjs(exit1,fail13)",
+   "run13_defect_closure_contract.mjs(exit1,fail18)",
+   "run14_defect_closure_contract.mjs(exit1,fail7)"
+  ]
+ },
+ {
+  "id": "M17",
+  "guard": "D114-interrogativeLead",
+  "kind": "COVERAGE",
+  "desc": "interrogative belt disabled entirely",
+  "from": "          if (COMPLETION_WORD.test(q) && !INTERROGATIVE_LEAD.test(q)) return null;",
+  "to": "",
+  "killed": true,
+  "killers": [
+   "run13_defect_closure_contract.mjs(exit1,fail14)"
+  ]
+ },
+ {
+  "id": "M18",
+  "guard": "D113-rule1-canonical",
+  "kind": "COVERAGE",
+  "desc": "rule 1 dropped — canonical disagreement no longer replaces the label (pre-D113)",
+  "from": "                : (canonicalKnowsIt || !safeLabel || COMPLETION_WORD.test(safeLabel))",
+  "to": "                : (!safeLabel || COMPLETION_WORD.test(safeLabel))",
+  "killed": true,
+  "killers": [
+   "run14_defect_closure_contract.mjs(exit1,fail4)"
+  ]
+ },
+ {
+  "id": "M19",
+  "guard": "D113-rule2-lexical",
+  "kind": "COVERAGE",
+  "desc": "rule 2 lexical test dropped — assertion-shaped labels survive the ABSENT branch",
+  "from": "                : (canonicalKnowsIt || !safeLabel || COMPLETION_WORD.test(safeLabel))",
+  "to": "                : (canonicalKnowsIt || !safeLabel)",
+  "killed": true,
+  "killers": [
+   "run12_defect_closure_contract.mjs(exit1,fail1)",
+   "run14_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M20",
+  "guard": "D113-rule2-lexical",
+  "kind": "LIMIT",
+  "desc": "rule 2 made unconditional — every absent-branch label replaced (run8/D72b class)",
+  "from": "                : (canonicalKnowsIt || !safeLabel || COMPLETION_WORD.test(safeLabel))",
+  "to": "                : (canonicalKnowsIt || !safeLabel || true)",
+  "killed": true,
+  "killers": [
+   "lifecycle_evidence_and_output_persistence_contract.mjs(exit1,fail1)",
+   "run10_defect_closure_contract.mjs(exit1,fail1)",
+   "run8_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M21",
+  "guard": "D113-agrees",
+  "kind": "LIMIT",
+  "desc": "agreement widened from equality to CONTAINMENT — a label that merely contains the canonical name survives verbatim",
+  "from": "              const agrees = !!safeLabel && bare(safeLabel) === bare(derivedLabel);",
+  "to": "              const agrees = !!safeLabel && bare(safeLabel).includes(bare(derivedLabel));",
+  "killed": false,
+  "killers": []
+ },
+ {
+  "id": "M22",
+  "guard": "D113-canonicalKnowsIt",
+  "kind": "LIMIT",
+  "desc": "typed-fallback exclusion dropped — \"the company\" counts as canonical knowledge",
+  "from": "                && bare(derivedLabel) !== bare(typedFallback)",
+  "to": "                && true",
+  "killed": true,
+  "killers": [
+   "run10_defect_closure_contract.mjs(exit1,fail1)",
+   "run8_defect_closure_contract.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M23",
+  "guard": "issue5-failClosed",
+  "kind": "COVERAGE",
+  "desc": "resolveClarificationField reverted to the P1 form: absent actionType coerced to ARCHIVE",
+  "from": "  if (!entityType || !actionType) return undefined;",
+  "to": "  if (false) return undefined;",
+  "killed": true,
+  "killers": [
+   "sem_ai_command_source_invariants_drift_guard.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M24",
+  "guard": "issue5-failClosed",
+  "kind": "COVERAGE",
+  "desc": "destructive default restored explicitly (entityType||\"\" / actionType||\"archive\")",
+  "from": "  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType];",
+  "to": "  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType || '']?.[actionType || 'archive'];",
+  "killed": true,
+  "killers": [
+   "sem_ai_command_source_invariants_drift_guard.mjs(exit1,fail1)"
+  ]
+ },
+ {
+  "id": "M25",
+  "guard": "D32-contradictActionType",
+  "kind": "COVERAGE",
+  "desc": "contradiction default flipped so an absent actionType is treated as restore",
+  "from": "  const resolvedActionType = actionType || 'archive';",
+  "to": "  const resolvedActionType = actionType || 'restore';",
+  "killed": false,
+  "killers": []
+ }
+]

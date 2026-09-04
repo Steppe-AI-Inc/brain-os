@@ -237,7 +237,10 @@ const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 {
   const r = claims({ claims: [M('company', ID, 'archive')], evidence: [],
     questions: ['Should I also notify the team?'],
-    pendingAction: { question: 'Which company did you mean?', options: [{ label: 'ACME Holdings' }, { label: 'ACME Services' }] } });
+    pendingAction: { question: 'Which company did you mean?', options: [{ label: 'ACME Holdings', id: ID, entityType: 'company' }, { label: 'ACME Services', id: '22222222-2222-4222-8222-222222222222', entityType: 'company' }] },
+    // run15/D119: an option is a pointer to a CANONICAL entity and one the canonical read cannot
+    // name is dropped before the founder sees it, so this fixture supplies the rows.
+    context: { companies: [{ id: ID, name: 'ACME Holdings' }, { id: '22222222-2222-4222-8222-222222222222', name: 'ACME Services' }] } });
   check('R1 the pendingAction PROMPT survives the claim rewrite', /Which company did you mean\?/.test(r.summary),
     'Losing the prompt strands the founder mid-clarification with no way to answer.');
   check('R2 the pendingAction OPTIONS survive the claim rewrite', /ACME Holdings/.test(r.summary) && /ACME Services/.test(r.summary));

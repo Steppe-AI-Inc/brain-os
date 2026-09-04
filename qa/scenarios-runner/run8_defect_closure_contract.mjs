@@ -174,7 +174,11 @@ check('D70b a decimal does NOT truncate a legitimate question',
 check('D69c a completion assertion phrased AS the question is dropped entirely',
   !run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x', questions: ['Did you know ACME has been archived?'] }).summary.includes('has been archived'));
 
-// D72: a refused option label falls back to a safe derived reference, never ''.
+// D72: a refused option label never renders as the assertion, and never as ''.
+// run15/D119: an option whose id the canonical read cannot name is DROPPED, so both of
+// these (no contextPack row) leave the list and the question survives. run8/D72b — the
+// trailing-period repair of a name the database cannot corroborate — is RETIRED by that
+// decision (ledger #75); the repair itself is still observed below, on a corroborated row.
 {
   const r = run({ claims: [M('company', ACME, 'archive')], evidence: [], summary: 'x',
     pendingAction: { kind: 'disambiguation', question: 'Which one?', options: [
@@ -182,10 +186,12 @@ check('D69c a completion assertion phrased AS the question is dropped entirely',
       { label: 'ACME Services.', id: ID, entityType: 'company' },
     ] } });
   const opts = r.envelope.pendingAction.options;
-  check('D72 an assertion-shaped label falls back to a derived reference, never blank',
-    opts[0].label.length > 0 && !/has been archived/.test(opts[0].label));
-  check('D72b a legitimate name with a trailing period is REPAIRED, not blanked',
-    opts[1].label === 'ACME Services');
+  check('D72 an assertion-shaped label is never persisted (unresolvable: dropped, run15/D119); the question survives',
+    opts.every((o) => o.label.length > 0 && !/has been archived/.test(o.label)) && r.envelope.pendingAction.question === 'Which one?');
+  check('D72b RETIRED (run15/D119): an uncorroborated label is dropped, not repaired; the repair survives on a corroborated row',
+    opts.length === 0 && run({ claims: null, summary: 'ok',
+      pendingAction: { kind: 'disambiguation', question: 'Which one?', options: [{ label: 'ACME Services.', id: ID, entityType: 'company' }] },
+      context: { companies: [{ id: ID, name: 'ACME Services' }] } }).envelope.pendingAction.options[0].label === 'ACME Services');
 }
 
 // D73: gated pendingAction text is observable in the envelope (the re-persist flag

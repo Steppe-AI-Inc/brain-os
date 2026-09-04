@@ -153,3 +153,47 @@ sha256, the last completed scenario, and the remaining scenarios. A blocked atte
 a checkpoint resumes where it stopped; one without restarts from zero, and three
 campaigns have been lost that way. Do not attempt to restart yourself — retry ownership
 lives outside this session by design.
+
+======== FOUNDER-DIRECTED SCENARIO (MANDATORY): JUDGE THE REMAINING LEXICAL BRANCH ========
+
+The D78 -> D86 -> D91 -> D100 -> D113 sequence exposed a RECURRING ARCHITECTURAL problem,
+not five separate bugs. The current design is:
+
+  where the canonical DB/resource read KNOWS the answer
+      -> use canonical evidence
+      -> do NOT let lexical grammar decide identity or truth
+  where the read genuinely CANNOT establish the entity
+      -> a limited lexical fallback remains
+
+YOU MUST EXPLICITLY JUDGE WHETHER THAT REMAINING FALLBACK IS ACCEPTABLE. State a verdict on
+it in your report; do not leave it implied.
+
+Attack at least these, both as OPTION LABELS and as SUMMARY PROSE, with and without a
+canonical row behind the id:
+
+  "Terminated Bob Smith"
+  "Closed Loop Systems"
+  "Confirmed — the company is not archived"
+  "ACME Deleted"
+  "Deleted ACME"
+  "I archived ACME, ok?"
+  "Now removing ACME."
+  "I'm now removing ACME."
+
+And adversarial REAL company/person names containing each of: Archived, Deleted, Closed,
+Terminated, Completed, Assigned, Removed, Restored, Approved. These are legitimate names and
+must survive when the canonical read confirms them.
+
+THE TEST MUST DISTINGUISH:
+
+  REAL ENTITY LABEL          vs          EXECUTION ASSERTION
+
+using CANONICAL EVIDENCE whenever it is available. Report, as two separate numbers, how many
+real names are destroyed and how many execution assertions survive — in the branch where a
+canonical row EXISTS, and in the branch where it does NOT.
+
+EXPLICIT DESIGN CONSTRAINT ON ANY FIX YOU PROPOSE: do NOT add another
+capitalization/word-position/regex chain where canonical identity exists. Five campaigns
+have now been spent narrowing exactly such chains. If your finding is that the lexical
+fallback is unsafe, the remedy to propose is a way to obtain or require canonical evidence,
+not a sixth grammar rule.

@@ -38,7 +38,7 @@ const MUTATIONS = [
     expect: /D10[26]/ },
 
   // ---- FIX-B / D112: negation blindness ------------------------------------------------
-  { name: 'D112 COVERAGE: CONFIRMED_COMPLETION loses its negation lookahead',
+  { name: 'D112 COVERAGE: CONFIRMED_COMPLETION loses its negation lookahead', superseded: 'run15/D117 removed that lookahead (it was the whole-summary defect); see v15_mutation_proof M5/M6',
     find: /\(\?!\[\^\]\*\\b\(\?:not\|never\|no\|nothing\|none\|without\|pending\|awaiting\|isn\['’\]\?t\|aren\['’\]\?t\|wasn\['’\]\?t\|weren\['’\]\?t\|hasn\['’\]\?t\|haven\['’\]\?t\|didn\['’\]\?t\|don\['’\]\?t\)\\b\)/,
     replace: '',
     expect: /D112/ },
@@ -58,7 +58,7 @@ const MUTATIONS = [
     expect: /D98|D114\.hold/ },
 
   // ---- D113: the decision that de-lexicalised the corroboration gate -------------------
-  { name: 'D113 COVERAGE: corroboration is gated on COMPLETION_WORD again',
+  { name: 'D113 COVERAGE: corroboration is gated on COMPLETION_WORD again', superseded: 'run15/D119 removed the lexical fallback entirely; see v15_mutation_proof M10',
     find: /\(canonicalKnowsIt \|\| !safeLabel \|\| COMPLETION_WORD\.test\(safeLabel\)\)/,
     replace: '(!safeLabel || COMPLETION_WORD.test(safeLabel))',
     expect: /D113/ },
@@ -66,7 +66,7 @@ const MUTATIONS = [
     find: /const agrees = !!safeLabel && bare\(safeLabel\) === bare\(derivedLabel\);/,
     replace: 'const agrees = !!safeLabel && bare(derivedLabel).includes(bare(safeLabel));',
     expect: /D113\.hold/ },
-  { name: 'D113 LIMIT: the ABSENT branch also drops its lexical test (destroys benign labels — run8/D72b)',
+  { name: 'D113 LIMIT: the ABSENT branch also drops its lexical test (destroys benign labels — run8/D72b)', superseded: 'run15/D119 RETIRED run8/D72b on the record; the absent branch is now dropped',
     find: /\(canonicalKnowsIt \|\| !safeLabel \|\| COMPLETION_WORD\.test\(safeLabel\)\)/,
     replace: '(true)',
     expect: /D72b|D100|D113\.hold/ },
@@ -86,7 +86,7 @@ const runSuites = () => {
 };
 const failedIds = (o) => o.split(/\r?\n/).filter((l) => /^FAIL\s/.test(l)).map((l) => l.split(/\s+/)[1]);
 
-let unproven = 0;
+let unproven = 0, superseded = 0;
 try {
   const base = failedIds(runSuites());
   if (base.length > 0) { console.log('BASELINE NOT CLEAN:', base.join(', ')); process.exit(1); }
@@ -94,6 +94,7 @@ try {
   const text = pristine.toString('utf8');
 
   for (const m of MUTATIONS) {
+    if (m.superseded) { console.log(`SUPERSEDED    ${m.name}\n              ${m.superseded}`); superseded++; continue; }
     const hits = (text.match(new RegExp(m.find.source, m.find.flags.includes('g') ? m.find.flags : m.find.flags + 'g')) || []).length;
     if (hits !== 1) {
       console.log(`STALE ANCHOR  ${m.name}\n              matched ${hits}x, expected 1`); unproven++; continue;
@@ -120,5 +121,5 @@ try {
   }
   console.log(`\nsource restored byte-identically (sha256 ${after.slice(0, 16)}…)`);
 }
-console.log(`v14_mutation_proof: ${MUTATIONS.length - unproven}/${MUTATIONS.length} proven, ${unproven} unproven`);
+console.log(`v14_mutation_proof: ${MUTATIONS.length - unproven - superseded}/${MUTATIONS.length - superseded} proven, ${unproven} unproven, ${superseded} superseded by run15 (historical record: 10/10 at d724d8c)`);
 process.exit(unproven === 0 ? 0 : 1);

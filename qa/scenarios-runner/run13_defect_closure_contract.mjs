@@ -245,10 +245,16 @@ C('D103.falseConfirmation', 'DEFECT',
 C('D103.hold.substantive', 'CONTRACT',
   'a confirmation that says something substantive must survive the referenceless belt',
   () => !corrected('Confirmed — the company you asked about is in Ulaanbaatar.'));
-C('D103.hold.numbered', 'CONTRACT', 'the committed D95 case still holds: two out-of-context options render distinguishably',
-  () => { const r = labels([{ label: 'Advanced Closed Systems', id: ACME, entityType: 'company' },
-                            { label: 'Global Closed Loop', id: ID2, entityType: 'company' }]);
-    return r[0] !== r[1]; });
+// run15/D119 RE-PIN: out-of-context options are now DROPPED (see run12 D95), so the
+// numbering guard is observed on the reachable shape — two in-context entities whose
+// canonical names collide.
+C('D103.hold.numbered', 'CONTRACT', 'the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names render distinguishably, and out-of-context ones are dropped',
+  () => { const gone = labels([{ label: 'Advanced Closed Systems', id: ACME, entityType: 'company' },
+                               { label: 'Global Closed Loop', id: ID2, entityType: 'company' }]);
+    const r = labels([{ label: 'Closed Loop', id: ACME, entityType: 'company' },
+                      { label: 'Closed Loop', id: ID2, entityType: 'company' }],
+                     { companies: [{ id: ACME, name: 'Closed Loop' }, { id: ID2, name: 'Closed Loop' }] });
+    return gone.length === 0 && r.length === 2 && r[0] !== r[1]; });
 
 let pass = 0, fail = 0, defectsOpen = 0;
 for (let [id, kind, desc, thunk] of CASES) {

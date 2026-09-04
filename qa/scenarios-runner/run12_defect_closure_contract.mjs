@@ -175,12 +175,23 @@ for (const name of ['Advanced Closed Systems', 'Closed Loop AG', 'Global Closed 
 // matches and returns null: the option set is dead-ended. The committed D79 control only
 // covers the in-contextPack case.
 // =====================================================================================
+// run15/D119 RE-PIN: an option with NO contextPack row is now DROPPED before the founder
+// sees it (it could never execute — run13/D103), so the out-of-context collision this case
+// pinned can no longer occur. The property D95 actually protects — two options must never
+// collapse to one indistinguishable label — is re-pinned on the REACHABLE shape: two
+// in-context entities whose canonical names collide.
 C('D95.distinctOutOfContext', 'DEFECT',
-  'D95: two refused options with NO contextPack row must still render distinguishable labels',
-  () => { const r = run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [
+  'D95 (re-pinned run15/D119): out-of-context options are dropped, and two in-context options with colliding canonical names still render distinguishably',
+  () => { const dropped = run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [
       { label: 'Advanced Closed Systems', id: ACME, entityType: 'company' },
       { label: 'Global Closed Loop', id: ID, entityType: 'company' }] } });
-    const [a, b] = r.envelope.pendingAction.options.map((o) => o.label); return a !== b; });
+    const r = run({ claims: null, summary: 'ok', pendingAction: { kind: 'disambiguation', question: 'Which?', options: [
+      { label: 'Closed Loop', id: ACME, entityType: 'company' },
+      { label: 'Closed Loop', id: ID, entityType: 'company' }] },
+      context: { companies: [{ id: ACME, name: 'Closed Loop' }, { id: ID, name: 'Closed Loop' }] } });
+    const [a, b] = r.envelope.pendingAction.options.map((o) => o.label);
+    return dropped.envelope.pendingAction.options.length === 0 && dropped.envelope.pendingAction.question === 'Which?'
+      && r.envelope.pendingAction.options.length === 2 && a !== b; });
 
 // =====================================================================================
 // D94 — DEFECT (PRE-EXISTING, also present on fdb4564; recorded because the run11 closure

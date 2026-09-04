@@ -295,8 +295,12 @@ C('D113.hold.idBound', 'CONTRACT',
 C('D113.hold.equalityNotContainment', 'CONTRACT',
   'corroboration requires EQUALITY, not containment — a fabricated label that is a substring of the canonical name is refused (unobserved: G2.lim.substringCorroboration survived)',
   () => label('Closed Loop', 'Closed Loop Systems') !== 'Closed Loop');
-C('D113.hold.absentId', 'CONTRACT', 'an id absent from the canonical read falls back to the typed reference',
-  () => label('Completed Migration', null, ID3) === 'the company');
+// run15/D119 RE-PIN: the typed-reference fallback was the last lexical branch, and verifier
+// #15 measured it as having no discriminating power. An id absent from the canonical read
+// is now DROPPED from the option list, never shown under any label.
+C('D113.hold.absentId', 'CONTRACT', 'an id absent from the canonical read is dropped from the option list (re-pinned run15/D119; was: falls back to the typed reference)',
+  () => label('Completed Migration', null, ID3) === undefined
+     && labels([{ label: 'Completed Migration', id: ID3, entityType: 'company' }]).length === 0);
 
 // =====================================================================================
 // D114 — DEFECT (P2, REGRESSION vs ace9b6a). FIX-3b REPLACED run12's FIRST_PERSON_COMPLETION
