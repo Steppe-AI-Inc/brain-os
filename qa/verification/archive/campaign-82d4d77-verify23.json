@@ -1,0 +1,26 @@
+{
+ "campaign": 83,
+ "verifier": 23,
+ "candidate_sha": "82d4d7715e17b520b14165ba23a726d7cdf3b586",
+ "index_sha256": "e802227b2944585fa7ff6989030c4d96b84f61ea1e778405195af157d9e449f3",
+ "verdict": "FAIL",
+ "defects": [
+  "D155 (P2, NEW regression — active-arm object test \\s+\\S destroys first-person non-completions)",
+  "D156 (P3, NEW regression — free-pass deletion destroys evidential-complement truthful negatives)",
+  "D157 (P2, pre-existing — imperative inline list diverges from RESTORE_VERB_PATTERN)"
+ ],
+ "confirmed_closed": [
+  "D150 (13/13 base-verb names select; only SHA holding BOTH D148 and D150)",
+  "D148 62 phrasings dead-end",
+  "D151 lexicon + D147b + D149",
+  "no prior closure reopened",
+  "question belt byte-identical x5 SHAs"
+ ],
+ "prepared_fixes": [
+  "FIX-A (D156, adopted)",
+  "FIX-B (?-i: — NOT adopted, Deno-unverified; fallback 1 adopted instead)",
+  "D157 lexicon-unification (adopted)"
+ ],
+ "report": "qa/verification/scratch/verifier23_output.log",
+ "artifact_branch": "verify-82d4d77-campaign83 (a1e6e37)"
+}

@@ -1,40 +1,40 @@
 {
- "campaign": 83,
- "verifier": 23,
+ "campaign": 84,
+ "verifier": 24,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "4476c92",
- "index_sha256": "e802227b2944585fa7ff6989030c4d96b84f61ea1e778405195af157d9e449f3",
+ "closure_commit": "e6a4d02",
+ "index_sha256": "bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 82,
-  "verifier": 22,
+  "campaign": 83,
+  "verifier": 23,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-be8d9ca-verify22.json",
+  "archive": "qa/verification/archive/campaign-82d4d77-verify23.json",
   "defects": [
-   "D150 (P2)",
-   "D153 (P3)",
-   "D141 revert refuted",
-   "D144 revert partially refuted"
+   "D155 (P2)",
+   "D156 (P3)",
+   "D157 (P2)"
   ]
  },
- "what_changed_since_82": [
-  "D150: D148 imperative test now LABEL-GATED (fires only for a bare opposite-verb label); base-verb names select again",
-  "D151: re-added negator lexicon AND deleted completionIsNegated clause-initial free pass (truthful destroyed 11->1, fabrications missed 32->27); run15 pin updated",
-  "D152: first-person clause-anchored active-voice arm in LEGACY_PAST_COMPLETION (7/7 D144 caught, 0/12 D145 destroyed, 1 idiom FP)",
-  "adopted all three of verifier #22 prepared fixes; run21 retired, run22 promoted (242 cases)",
-  "residuals pinned [RESIDUAL]: D153 (dropped-linker trade), D152 idiom FP, D146b (comma-list), D154 (out-of-lexicon opposite verb name)"
+ "what_changed_since_83": [
+  "D156: FIX-A — relativizer disjunct admits zero-complementiser evidential/reporting verbs",
+  "D155: fallback 1 (Deno-safe) — active-voice arm moved to an inline CASE-SENSITIVE regex in readsAsCompletion (object must be [A-Z] or an entity noun); NOT FIX-B (?-i:), which is unverified in Deno",
+  "D157: imperative test reuses ARCHIVE_VERB_PATTERN/RESTORE_VERB_PATTERN (bring back / un-archive now recognised)",
+  "run22 retired, run23 promoted (316 cases)",
+  "residuals [RESIDUAL]: D156b (subject-NP), D153 (dropped-linker trade), D146b (comma-list), D154 (out-of-lexicon opposite-verb name)"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run22": "242/0",
+  "run23": "316/0",
   "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (BETTER than b32e0e4 baseline of 7)",
-  "battery": "32 suites / 0 failures (run15 57/0, run21 retired, run22 added)",
-  "deno_check": "23 == baseline, 0 new",
-  "mutation_proof": "v22_mutation_proof 6/6 (D150/D148/D151/D147b/D152/D146)"
+  "battery": "32 suites / 0 failures (run15 57/0, run22 retired, run23 added)",
+  "deno_check": "23 == baseline, 0 new (run via npx deno@2)",
+  "mutation_proof": "v23_mutation_proof 6/6",
+  "deploy_note": "no regexp modifier group shipped — no Deno-modifier risk"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T19:08:19.089Z",
+ "opened_at": "2026-09-04T19:54:34.018Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
