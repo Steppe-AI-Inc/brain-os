@@ -1,0 +1,89 @@
+PREFLIGHT: EXECUTION_READY *(re-stated for the record; all three checks passed at the top of the run)*
+
+---
+
+# CHANGE VERIFIED: the run17 D127–D129 closure (`a559f8f` / `fbafded`) — `sem-ai-command` completion belt + disambiguation matcher
+
+```
+SCENARIOS: 3 passed, 5 failed, 0 blocked-as-a-whole (3 sub-areas BLOCKED: SQL, UI/AI-chat, deno)
+CANONICAL GRAPH:      n/a this campaign (no DB access — BLOCKED, stated, not silently skipped)
+UI ↔ DB:              BLOCKED (no browser/MCP tooling in this process)
+AI ↔ DB:              BLOCKED (same)
+DEPENDENCIES:         PASS  (whole diff = 3 code sites + comments; question belt byte-identical)
+PERMISSIONS:          n/a   (no authorization surface changed)
+RELOAD/PERSISTENCE:   n/a
+IDEMPOTENCY:          n/a
+```
+
+## Environment established
+
+| | |
+|---|---|
+| Worktree HEAD | `fbafded912e0fef7ddc7d5119308df8ab8be72e9` |
+| index.ts sha256 (start / after each of 14 mutations / end) | `cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb` — **restored byte-identically, CRLF preserved, `git status` clean for `supabase/`** |
+| Supabase project ref | `pvphxgrtdfrudejjhzjk` |
+| Deployed Edge Function | `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256` `33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475` — unchanged since #75/#76/#77. **The candidate is not live. Nothing was deployed.** |
+| Baselines | `9535f0b` and `f232975` carry a **byte-identical** index.ts (`e5ccf63b…b6d69`) — one belt, not two; plus `52e830f`, `d724d8c` |
+
+## Verdict
+
+**FAIL.** D128 is genuinely closed for the exact shape it names — and closed by reopening a sibling shape in the same direction, for the seventh consecutive change to this belt.
+
+### Failures
+
+| # | Scenario / Expected / Actual | Impact | Status |
+|---|---|---|---|
+| **D130 (P1)** | Truthful negative must survive. `"The archived list was not updated."`, `"Closed Loop Systems was not archived."` → belt fires. `COMPLETION_VOCAB` has **no part-of-speech guard**, so a completion word used as a noun/adjective/name outranks the negator under the new ORDER rule. | **24/26** real names in `"<Name> was not archived."` destroyed — **0/26 on `9535f0b` AND `52e830f`, 26/26 on `d724d8c`**. The true answer is replaced by *"I can't actually do that from chat — nothing was changed"* (index.ts:5628), which is itself false. On this shape the candidate has regressed all the way back to the pre-negation belt. | Flagged, not fixed (see "fix authority" below) |
+| **D131 (P2)** | Disclosed residual is "a name that *begins* with a negator". Actually: **any** negator anywhere before the first completion verb. `"There were no errors and ACME was archived."` ships. | 19/20 escape; **13 of them `9535f0b` caught** — a net FN regression against the SHA being fixed. | Flagged |
+| **D132 (P2)** | A model-authored `actionType`/`entityType` must **fail closed** (D124's rule). `"constructor"`/`"__proto__"`/`"toString"` → `TypeError: .split is not a function` inside `matchDisambiguationOption`, surfaced to the founder as a raw JS error; reply lost. New — all 3 prior SHAs fail closed. The option gate validates `entityType` and `id` but **never `actionType`**. | Visible internal error, disambiguation turn lost | Flagged |
+| **D133 (P3)** | D95 numbers colliding options *"so every option stays uniquely selectable"*. With the labels the product actually renders (`the company (option 1)`), `option 1` / `1` / `#1` / `the first one` **all still dead-end**; only a verbatim copy of the whole label binds. D129 helps only replies that also carry the entity name — which by construction doesn't exist in the collision case. | Founder shown a selector they cannot use | Flagged |
+| **Coverage** | 3 of my 14 mutants survive the whole 28-suite battery: **M3** the newline the candidate *added*; **M10** the `ACTION_FAMILY_VERBS` scoping that **is** the headline half of D127 (union it back → `reopen acme` arms `archiveCompanyIds` against a pending archive, battery stays green); **M12** run17's `D129.hold.bareDigitStillDeadEnds` tests a digit that is never the winner's own number. | The fix could be reverted and nothing would notice | Regression tests written |
+| **Bookkeeping** | Postscript: *"28 suites … 22 assertion-bearing."* Filesystem at `a559f8f`: **29 `.mjs` = 1 library + 5 stubs + 23 assertion-bearing** (the same commit added `run17`). **Identical error #77's own entry corrected one generation earlier.** Also false: *"a bare digit and another option's number… both pinned"* — only the second is. | No failure hidden, but truth-of-record | Recorded |
+
+### What genuinely closed (verified, not taken on trust)
+
+D128 for its own shape (95/327 → **13/327** FPs; **0/10** on run17's own strings vs 10/10 on `9535f0b`) · D125's FN direction (**0/19** escapes vs 18/19 on `52e830f`) · D127's entity-noun half (killed by mutant M8) · D127's contradiction half (M13) · D129's other-option-number limit (M11) · **the question belt is untouched as a byte fact** — `safeQuestionFragment` hashes `04cd67c0e48dd3ce` identically on all four revisions, 0/8 behavioural divergence · **no committed contract reopened**: battery **711 assertions / 0 failures, 0 nonzero exits**.
+
+⚠️ One qualification I will not average away: run14's committed **D112 cases pass while the D112 class is reopened**. `"Confirmed — the archived list is empty."` survives; add one auxiliary — `"The archived list was not updated."` — and it is destroyed. **Contracts hold, class does not.**
+
+## Same-class search performed
+
+`COMPLETION_VOCAB` vs `CONFIRMED_COMPLETION`'s lookbehinds (D112's PoS guard exists but isn't consulted by the new rule) · every bare-object-literal lookup keyed by a model string (`ACTION_FAMILY_VERBS`, `ENTITY_NOUNS` → crash; `CLARIFICATION_ENTITY_ACTION_FIELD` → checked, fails closed correctly) · both belts across four revisions · both matcher directions (archive-family vs restore-family, both axes).
+
+## Regression tests added
+
+`qa/verification/proposed/v18_regression_additions.mjs` — 56 cases, CONTRACT/DEFECT convention, **any failure exits nonzero** (exit 1 confirmed). On this candidate: **15 pass, 41 fail — all 41 DEFECT by design, 0 CONTRACT failures.** Every per-case claim in its descriptions was cross-checked against the baseline belts (30/30) before promotion.
+
+## Harness honesty note
+
+My first mutation kill-rule matched `/FAILED/i` anywhere in output and was fooled by a CONTRACT description containing the word *failed* (`run11`: "a failed head-count query"). It reported **0 survivors** — a vacuous mutation proof. Replaced with a baseline-differential rule, which found the 3 real survivors. Recorded in the committed README so it isn't repeated.
+
+## Fix authority — nothing fixed live, deliberately
+
+All four defects are in `supabase/functions/sem-ai-command/index.ts`, which is **outside my write scope** for this run (read-only candidate; I have no authority over the implementation branch and **no production authority of any kind**). D130's fix is also a genuine trade — restore D112's part-of-speech lookbehinds, or drop the ordering comparison and return to `52e830f`'s semantics (0/25 and 0/26 FPs, 18/19 FNs) — and index.ts's own standing position (5388–5391) is that destroying a true answer is the worse failure. Direction is written up in the promotion note; the call belongs to the implementer.
+
+**Pending DB pushes: none.** No migration was needed or written. `supabase db push` was never run and never approached.
+
+## Coverage gaps (BLOCKED, not skipped)
+
+- The **60 `*.sql` suites were NOT run** — `npx supabase db query --linked` is permission-gated in this process (`functions list` is not). DB/RLS/archive-restore-ownership lifecycle truth is **BLOCKED**, not claimed either way. `names_probe.sql` is committed, prepared, unrun; the "how many real company names begin with a negator" measurement against production is therefore **BLOCKED** — I substituted a corpus measurement and, more usefully, showed the residual is not name-positional at all.
+- **No browser/MCP tooling in this session type → UI truth and live AI-chat truth are BLOCKED.**
+- `deno` is gated → the postscript's *"`deno check`: identical 23 errors, 0 new"* is **NOT INDEPENDENTLY VERIFIED**.
+
+## Synthetic data
+
+**None created.** This campaign performs no writes of any kind — extracted product code plus one read-only `functions list`. There are no `QA-VERIFY-*` entities to clean up, and none were left behind.
+
+## Commits
+
+| hash | summary |
+|---|---|
+| `71c0c3e` | Campaign #78 / verifier #18: FAIL on fbafded — the order rule reopens D112 in the worse direction (on `verify-fbafded-campaign78`; `qa/verification/**` only) |
+
+Deliverables: `qa/verification/proposed/v18_known_failure_modes_entry_78.md` (`## #78 — …`, no preamble), `v18_PROMOTION_NOTE.md`, `v18_regression_additions.mjs`, `qa/verification/scratch/v18/**` (13 harnesses + README), `CURRENT_CAMPAIGN.json` with `base_commit`, per-scenario status and the final verdict.
+
+---
+
+**VERDICT: FAIL**
+
+**index.ts sha256 observed at the end: `cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb`**

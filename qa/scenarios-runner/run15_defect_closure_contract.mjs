@@ -109,7 +109,7 @@ const beltSlice = stripTS([
   balancedFrom(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
   grab('const CONFIRMED_COMPLETION =', ';'),
   grab('const NEGATED_CLAUSE =', ';'),
-  grab('const COMPLETION_VOCAB =', ';'), // Closure edit (run17/D128): negation is now decided by ORDER against this vocabulary
+  grab('const COMPLETION_PARTICIPLE =', ';'), grab('const COMPLETION_VERB =', ';'), balancedFrom(src, 'const completionIsNegated =', '{', '}') + ';', // Closure edit (run18/D130): negation vs the VERBAL completion
   grab('const REFERENCELESS_CONFIRMATION =', ';'),
   grab('const readsAsCompletion =', ';'),
   'return { readsAsCompletion, LEGACY_PAST_COMPLETION, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, NEGATED_CLAUSE };',
@@ -118,14 +118,14 @@ const beltSlice = stripTS([
 // (whole-summary, single-arm). Negation now lives in NEGATED_CLAUSE and is applied once,
 // per clause, inside readsAsCompletion. The guard pins THAT instead — the same rule as
 // before: refuse to report on a slice that is not the product.
-if (!beltSlice.includes("(?:not|never|no|nothing|none|without|pending|awaiting")) {
+if (!beltSlice.includes("(?:not|never|no|nothing|none|pending|awaiting")) {
   throw new Error('the D117/D118 NEGATED_CLAUSE negator list did not survive extraction — refusing to report on a slice that is not the product');
 }
 if (beltSlice.includes('(?![^]*')) {
   throw new Error('a whole-summary negation lookahead is back in a belt — D117 has reopened');
 }
-if (!/const readsAsCompletion =[\s\S]*NEGATED_CLAUSE\.test\(/.test(beltSlice)) {
-  throw new Error('readsAsCompletion no longer consults NEGATED_CLAUSE — D118 (negation on one arm only) has reopened');
+if (!/completionIsNegated\(/.test(beltSlice.split('const readsAsCompletion =')[1] || '')) {
+  throw new Error('readsAsCompletion no longer decides negation via completionIsNegated — refusing to report');
 }
 const BELTS = new Function(beltSlice)();
 

@@ -54,7 +54,7 @@ const MUTATIONS = [
     find: /String\(s\)\.split\(\/[^\n]*?\/i?\)\.map\(\(c\) => c\.trim\(\)\)/,
     replace: '[String(s)]',
     expect: /D117\.suffixDisarms/ },
-  { name: 'M06 D118 COVERAGE: NEGATED_CLAUSE is no longer consulted (negation blindness on every arm)',
+  { name: 'M06 D118 COVERAGE: NEGATED_CLAUSE is no longer consulted (negation blindness on every arm)', superseded: 'run18/D130+D132: the belt (D118 negation) and resolveClarificationField (D122) were redesigned in run18; both are mutation-proven in v18_mutation_proof (M08, M10)',
     // run17/D128: negation is decided by order; removing the whole test is still "negation blindness".
     find: /!\(NEGATED_CLAUSE\.test\(c\) && \(c\.search\(COMPLETION_VOCAB\) < 0 \|\| c\.search\(NEGATED_CLAUSE\) < c\.search\(COMPLETION_VOCAB\)\)\)\s*\n\s*&& /,
     replace: '',
@@ -65,7 +65,7 @@ const MUTATIONS = [
     find: /split\(\/\[\.!\?,\\x3b\\n\]\+\/\)/,
     replace: 'split(/[.!?\\x3b\\n]+/)',
     expect: /D117\.suffixDisarms\.1/ },
-  { name: 'M08 D118 LIMIT: NEGATED_CLAUSE over-broadened to any word (every clause reads as negated)',
+  { name: 'M08 D118 LIMIT: NEGATED_CLAUSE over-broadened to any word (every clause reads as negated)', superseded: 'run18/D130+D132: the belt (D118 negation) and resolveClarificationField (D122) were redesigned in run18; both are mutation-proven in v18_mutation_proof (M08, M10)',
     // Appended at the END of the list so run15's extraction guard (which pins the head of
     // the negator list) still admits the slice and the LIMIT is observed by CASES.
     find: /didn\['’\]\?t\|don\['’\]\?t\)\\b\/i;/,
@@ -95,11 +95,11 @@ const MUTATIONS = [
   // returns undefined for an absent actionType), so the behavioural defect needs BOTH
   // reintroduced at once — a single-line mutant here is inert, and reporting it as "proven"
   // would be exactly the vacuous evidence this file exists to rule out.
-  { name: 'M13 D122 COVERAGE (behavioural): the issue #5 defect returns — guard removed AND absent actionType coerced to archive',
+  { name: 'M13 D122 COVERAGE (behavioural): the issue #5 defect returns — guard removed AND absent actionType coerced to archive', superseded: 'run18/D130+D132: the belt (D118 negation) and resolveClarificationField (D122) were redesigned in run18; both are mutation-proven in v18_mutation_proof (M08, M10)',
     find: /if \(!entityType \|\| !actionType\) return undefined;\r?\n(\s*)return CLARIFICATION_ENTITY_ACTION_FIELD\[entityType\]\?\.\[actionType\];/,
     replace: "$1return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType || 'archive'];",
     expect: /issue5:EXIT|^REAL$/ },
-  { name: 'M14 D122 COVERAGE (structural): the fail-closed guard line alone is removed — the source-invariant guard must refuse it',
+  { name: 'M14 D122 COVERAGE (structural): the fail-closed guard line alone is removed — the source-invariant guard must refuse it', superseded: 'run18/D130+D132: the belt (D118 negation) and resolveClarificationField (D122) were redesigned in run18; both are mutation-proven in v18_mutation_proof (M08, M10)',
     find: /\n\s*if \(!entityType \|\| !actionType\) return undefined;(\r?\n\s*return CLARIFICATION_ENTITY_ACTION_FIELD)/,
     replace: '$1',
     expect: /sem:EXIT/ },

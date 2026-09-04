@@ -1,0 +1,69 @@
+diff --git a/supabase/functions/sem-ai-command/index.ts b/supabase/functions/sem-ai-command/index.ts
+index f69ed5a..15641e8 100644
+--- a/supabase/functions/sem-ai-command/index.ts
++++ b/supabase/functions/sem-ai-command/index.ts
+@@ -232 +232,3 @@ const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing
+-const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
++// run17/D127: plain `activate` was missing (only `reactivate` was listed), so a make-active
++// intent against a pending ARCHIVE was not a contradiction. Same family, one more spelling.
++const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|(?:re)?activat(e|ed|ing))\b/i;
+@@ -456,0 +459,7 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
++  // run17/D127 (P2): the filler used to be a static union of EVERY lifecycle verb and EVERY
++  // entity-type noun, so "activate acme" (a make-active intent), "reject acme" (an
++  // exclusion) and "archive acme tasks" (a different TARGET) all counted as clean
++  // selections of an ARCHIVE-COMPANY option and armed archiveCompanyIds. The verbs and
++  // nouns admitted are now scoped to the winning option itself: only its own action
++  // family's verbs and its own entity type's nouns. Anything else is a different intent
++  // or a different target and dead-ends to the LLM path.
+@@ -459,2 +468,10 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
+-    + 'option number archive restore delete remove end close assign reassign update rename activate deactivate approve reject '
+-    + 'to for with of on in company companies person people employee employees task tasks goal goals project department record').split(' '));
++    + 'option number to for with of on in record').split(' '));
++  const ACTION_FAMILY_VERBS: Record<string, string> = {
++    archive: 'archive archiving archived delete deleting remove removing end ending close closing deactivate deactivating',
++    restore: 'restore restoring restored reactivate reactivating activate activating reopen unarchive undelete',
++  };
++  const ENTITY_NOUNS: Record<string, string> = {
++    company: 'company companies', person: 'person people employee employees', employee: 'person people employee employees',
++    task: 'task tasks', goal: 'goal goals', project: 'project projects', department: 'department departments',
++    channel: 'channel channels', approval: 'approval approvals',
++  };
+@@ -462 +479 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
+-    const residual = normalizedCommand.split(forMatching(winner.label)).join(' ');
++    let residual = normalizedCommand.split(forMatching(winner.label)).join(' ');
+@@ -463,0 +481,9 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
++    // run17/D129 (P3): the product itself renders "(option N)" (run12/D95 numbering), so a
++    // reply that names the option by ITS OWN number — "acme (option 1)", "acme #1",
++    // "option 1, acme" — is a clean selection. Only that option's own number, and only in
++    // the option/# shape: a bare digit stays a dead end ("acme 2" is not a selection).
++    const ownNumber = options.indexOf(winner) + 1;
++    residual = residual.replace(new RegExp('(?:\\boption\\s*#?|#)' + ownNumber + '\\b', 'g'), ' ');
++    const allowed = new Set([...SELECTION_FILLER,
++      ...(ACTION_FAMILY_VERBS[typeof winner.actionType === 'string' ? winner.actionType : 'archive'] || ACTION_FAMILY_VERBS.archive).split(' '),
++      ...(ENTITY_NOUNS[typeof winner.entityType === 'string' ? winner.entityType : ''] || '').split(' ').filter((w) => w.length > 0)]);
+@@ -465 +491 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
+-      .every((w) => SELECTION_FILLER.has(w));
++      .every((w) => allowed.has(w));
+@@ -5405,0 +5432,19 @@ serve(async (req) => {
++        // run17/D128 (P1): run16/D125 widened the clause splitter to and/but/without, dashes,
++        // parentheses and colons — and inside a NOUN PHRASE those are not clause boundaries.
++        // "No company named Salt and Pepper Co was archived." split into ["No company named
++        // Salt", "Pepper Co was archived"] and the truthful negative was destroyed: 97/130 on
++        // the verifier's corpus, 0/130 one candidate earlier — the D112 class again, in the
++        // direction index.ts itself calls the worse one. The splitter is back to sentence
++        // punctuation, the comma and the newline. What decides negation is no longer "a
++        // negator anywhere in the clause" but ORDER: a negator disarms a clause only when it
++        // PRECEDES the completion vocabulary ("no company … was archived", "the company is
++        // not archived"); a negator that follows the verb ("archived – no undo available",
++        // "archived without incident", "archived and no errors occurred") is a qualifier on a
++        // completion that was still asserted, and the belt fires. Disclosed residual: a real
++        // name that itself begins with a negator word before the verb ("Nothing Bundt Cakes
++        // was archived") disarms the belt; evidence, not this belt, remains primary.
++        // ("confirmed" is deliberately NOT in this list: "Confirmed — the company is not archived"
++        // leads with it, and it would sit before every negator.)
++        const COMPLETION_VOCAB = new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|'
++          + PROGRESS_VERBS + '|executing|processing)\\b', 'i');
++        // (One statement on purpose — the source-extracting suites slice it up to its first `;`.)
+@@ -5407 +5452 @@ serve(async (req) => {
+-          || String(s).split(/[.!?,\x3b:()\n]+|(?<!\bconfirmed\s*)[–—]+|\s+(?:and|but|without)\s+/i).map((c) => c.trim()).some((c) => !NEGATED_CLAUSE.test(c)
++          || String(s).split(/[.!?,\x3b\n]+/).map((c) => c.trim()).some((c) => !(NEGATED_CLAUSE.test(c) && (c.search(COMPLETION_VOCAB) < 0 || c.search(NEGATED_CLAUSE) < c.search(COMPLETION_VOCAB)))

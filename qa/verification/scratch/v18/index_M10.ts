@@ -185,13 +185,7 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> 
 // exactly as if no pending action had matched.
 function resolveClarificationField(entityType: string | undefined | null, actionType: string | undefined | null): string | undefined {
   if (!entityType || !actionType) return undefined;
-  // run18/D132 (P2): entityType/actionType are model-authored strings and may be prototype
-  // keys ("constructor", "__proto__", "toString"). A plain indexed access would return an
-  // inherited function, which then reads as a valid field and could arm a real mutation.
-  // hasOwnProperty makes every unknown pair fail closed to undefined (fall through to the LLM).
-  if (!Object.prototype.hasOwnProperty.call(CLARIFICATION_ENTITY_ACTION_FIELD, entityType)) return undefined;
-  const row = CLARIFICATION_ENTITY_ACTION_FIELD[entityType];
-  return Object.prototype.hasOwnProperty.call(row, actionType) ? row[actionType] : undefined;
+  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType];
 }
 
 // Real, live-reproduced defect found by an independent verifier certifying the fix above
@@ -427,22 +421,6 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   const forMatching = (s: string) => s.replace(/[“”‘’"']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const normalizedCommand = forMatching(command);
   if (!normalizedCommand) return null;
-  // run18/D133 (P3): the product renders "(option N)" (run12/D95) precisely so the founder
-  // can answer by number. A reply that is ONLY an ordinal reference to an option —
-  // "option 2", "#2", "number 2", "the second one", or a bare "2" — selects that option
-  // when N is in range. A reply that also carries a name ("acme 2") is NOT ordinal-only and
-  // falls through to label matching, so run17/D129's "acme 2 => dead end" is preserved.
-  const ORDINAL_WORDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
-  const ordMatch = normalizedCommand.match(/\b(?:option|number)\s*#?(\d+)\b/) || normalizedCommand.match(/^\s*#\s*(\d+)\b/) || normalizedCommand.match(/^\s*(\d+)\s*$/);
-  const ordN = ordMatch ? parseInt(ordMatch[1], 10) : (ORDINAL_WORDS.findIndex((w) => new RegExp('\\b' + w + '\\b').test(normalizedCommand)) + 1);
-  if (ordN >= 1) {
-    const ORD_FILLER = new Set('the a an one it that this these those option options number no yes ok okay sure please to want i want id im we go ahead do proceed select pick choose use'.split(' '));
-    const rest = normalizedCommand
-      .replace(/\b(?:option|number)\s*#?\d+\b/g, ' ').replace(/#\s*\d+/g, ' ').replace(/\b\d+\b/g, ' ')
-      .replace(new RegExp('\\b(?:' + ORDINAL_WORDS.join('|') + ')\\b', 'g'), ' ')
-      .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter((w) => w.length > 0);
-    if (rest.every((w) => ORD_FILLER.has(w))) return (ordN <= options.length && options[ordN - 1] && typeof options[ordN - 1].id === 'string') ? options[ordN - 1] : null;
-  }
   const usable = (o) => o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string';
   const matches = options.filter((o) => usable(o) && forMatching(o.label).length > 0 && normalizedCommand.includes(forMatching(o.label)));
   // run15/D116 (P1 — a wrong-entity DESTRUCTIVE bind, the same severity as D106 and in the
@@ -506,19 +484,9 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
     // the option/# shape: a bare digit stays a dead end ("acme 2" is not a selection).
     const ownNumber = options.indexOf(winner) + 1;
     residual = residual.replace(new RegExp('(?:\\boption\\s*#?|#)' + ownNumber + '\\b', 'g'), ' ');
-    // run18/D132 (P2): a model-authored actionType/entityType can be any string, including a
-    // prototype key ("constructor", "__proto__", "toString"). Indexing a bare object literal
-    // by such a key returns an inherited FUNCTION, whose `.split` then throws and surfaces a
-    // raw JS error to the founder, losing the disambiguation turn. hasOwnProperty makes every
-    // unknown type fall closed to the base/empty set — a different intent dead-ends, it never
-    // crashes.
-    const at = typeof winner.actionType === 'string' ? winner.actionType : '';
-    const et = typeof winner.entityType === 'string' ? winner.entityType : '';
-    const ownVerbs = Object.prototype.hasOwnProperty.call(ACTION_FAMILY_VERBS, at);
-    const ownNouns = Object.prototype.hasOwnProperty.call(ENTITY_NOUNS, et);
     const allowed = new Set([...SELECTION_FILLER,
-      ...(ownVerbs ? ACTION_FAMILY_VERBS[at] : ACTION_FAMILY_VERBS.archive).split(' '),
-      ...(ownNouns ? ENTITY_NOUNS[et] : '').split(' ').filter((w) => w.length > 0)]);
+      ...Object.values(ACTION_FAMILY_VERBS).join(' ').split(' '),
+      ...(ENTITY_NOUNS[typeof winner.entityType === 'string' ? winner.entityType : ''] || '').split(' ').filter((w) => w.length > 0)]);
     return residual.replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter((w) => w.length > 0)
       .every((w) => allowed.has(w));
   };
@@ -5438,11 +5406,7 @@ serve(async (req) => {
         // keeps its fabrication in a clause of its own. Disclosed residual: a fabrication
         // and a negator in the SAME clause ("Archived ACME with no issues") still disarms
         // that clause; evidence, not this belt, remains the primary defence.
-        // run18/D131: "without" is REMOVED from the negator list. It is a name word
-        // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
-        // qualifier ("archived without incident") far more often than a genuine negation, and
-        // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /\b(?:not|never|no|nothing|none|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
+        const NEGATED_CLAUSE = /\b(?:not|never|no|nothing|none|without|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t)\b/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the
@@ -5479,45 +5443,14 @@ serve(async (req) => {
         // completion that was still asserted, and the belt fires. Disclosed residual: a real
         // name that itself begins with a negator word before the verb ("Nothing Bundt Cakes
         // was archived") disarms the belt; evidence, not this belt, remains primary.
-        // run18/D130 (P1): run17/D128's order rule compared the negator to the first
-        // COMPLETION WORD — but a completion word used as a NOUN ("the archived list") or in
-        // a NAME ("Closed Loop Systems", "Archived Media Group") sits before the negator and
-        // was mistaken for the completion verb, so "Closed Loop Systems was not archived."
-        // read as a completion and the true answer was destroyed (24/26 real names). The
-        // comparison is now against the VERBAL completion only: an auxiliary immediately
-        // governing a past participle ("was archived", "has been restored", "were not
-        // deleted"), or the "<participle> successfully" form. A leading name word is a noun,
-        // not a verb, and is never the reference point. Present-tense "is/are archived" is a
-        // STATE, not a completion event, so it is deliberately excluded from the verbal set
-        // (that is what lets "ACME is archived but was not deleted." survive).
-        const COMPLETION_PARTICIPLE = /\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b/i;
-        const COMPLETION_VERB = /\b(?:has|have|had|was|were)(?:\s+(?:not|been|being|already|just|recently|successfully|also|now))*\s+(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b|\b(?:archived|deleted|updated|created|restored|removed|completed|renamed|approved|rejected|assigned|reassigned|moved|sent|cleared|granted|declined|ended|activated|deactivated)\s+successfully\b/i;
-        // A clause is a TRUTHFUL NEGATIVE (not a completion assertion) when it carries a
-        // negator AND either there is no verbal completion in it at all (the completion words
-        // are nouns/names), or the negator falls at/before that verb's PARTICIPLE — i.e. it
-        // negates the verb ("was NOT archived") rather than trailing it ("archived — no undo").
-        const completionIsNegated = (c: string): boolean => {
-          const n = c.search(NEGATED_CLAUSE);
-          if (n < 0) return false;
-          const m = COMPLETION_VERB.exec(c);
-          if (m === null) return true;
-          const rel = m[0].search(COMPLETION_PARTICIPLE);
-          return n <= m.index + (rel < 0 ? 0 : rel);
-        };
-        // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
-        // colon FOLLOWED BY SPACE — so a filler negator set off by punctuation ("No problem —
-        // ACME was archived", "Nothing failed: ACME was archived") no longer shields the
-        // fabrication beside it, while a hyphenated or conjunction-bearing NAME ("Salt and
-        // Pepper Co"), a parenthetical ("No entity (including ACME) was archived") and a clock
-        // time ("14:30") are left whole. Parentheses are deliberately NOT boundaries: the
-        // order rule already catches "archived (no undo available)" because the negator
-        // trails the verb. The "Confirmed —" prefix is handled by testing CONFIRMED_COMPLETION
-        // on the whole string, so splitting the dash cannot blind it. (One statement — the
-        // source-extracting suites slice this up to its first `;`.)
+        // ("confirmed" is deliberately NOT in this list: "Confirmed — the company is not archived"
+        // leads with it, and it would sit before every negator.)
+        const COMPLETION_VOCAB = new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|'
+          + PROGRESS_VERBS + '|executing|processing)\\b', 'i');
+        // (One statement on purpose — the source-extracting suites slice it up to its first `;`.)
         const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
-          || (CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).split(/[.!?,\x3b\n]/)[0]))
-          || String(s).split(/[.!?,\x3b\n]+|:\s/).map((c) => c.trim()).some((c) => !completionIsNegated(c)
-            && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c)));
+          || String(s).split(/[.!?,\x3b\n]+/).map((c) => c.trim()).some((c) => !(NEGATED_CLAUSE.test(c) && (c.search(COMPLETION_VOCAB) < 0 || c.search(NEGATED_CLAUSE) < c.search(COMPLETION_VOCAB)))
+            && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || CONFIRMED_COMPLETION.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan

@@ -20,23 +20,23 @@ const text = pristine.toString('utf8');
 
 const MUTATIONS = [
   // ---- D128: negation decided by ORDER, splitter back to sentence punctuation -------------
-  { name: 'M01 D128 COVERAGE: the conjunction/dash/paren boundaries come back (the f232975 splitter)',
+  { name: 'M01 D128 COVERAGE: the conjunction/dash/paren boundaries come back (the f232975 splitter)', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /split\(\/\[\.!\?,\\x3b\\n\]\+\/\)/,
     replace: 'split(/[.!?,\\x3b:()\\n]+|(?<!\\bconfirmed\\s*)[–—]+|\\s+(?:and|but|without)\\s+/i)',
     expect: /D128\.truthfulNegativeDestroyed|D128\.rateVsPrior/ },
-  { name: 'M02 D128 LIMIT: order is ignored — a negator ANYWHERE in the clause disarms it (the f232975 rule; the four D125 fabrications escape)',
+  { name: 'M02 D128 LIMIT: order is ignored — a negator ANYWHERE in the clause disarms it (the f232975 rule; the four D125 fabrications escape)', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /!\(NEGATED_CLAUSE\.test\(c\) && \(c\.search\(COMPLETION_VOCAB\) < 0 \|\| c\.search\(NEGATED_CLAUSE\) < c\.search\(COMPLETION_VOCAB\)\)\)/,
     replace: '!NEGATED_CLAUSE.test(c)',
     expect: /D128\.hold\.newFabricationsStillCaught|D125\.newFalseNegative/ },
-  { name: 'M03 D128 LIMIT: order is inverted — a negator disarms only when it FOLLOWS the verb (truthful negatives destroyed, fabrications with trailing negators survive)',
+  { name: 'M03 D128 LIMIT: order is inverted — a negator disarms only when it FOLLOWS the verb (truthful negatives destroyed, fabrications with trailing negators survive)', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /c\.search\(NEGATED_CLAUSE\) < c\.search\(COMPLETION_VOCAB\)/,
     replace: 'c.search(NEGATED_CLAUSE) > c.search(COMPLETION_VOCAB)',
     expect: /D118\.truthfulNegativeDestroyed|D128\.hold\.plainTruthfulNegativesSurvive|D112\./ },
-  { name: 'M04 D128 COVERAGE: "confirmed" re-enters the completion vocabulary (the lead word sits before every negator)',
+  { name: 'M04 D128 COVERAGE: "confirmed" re-enters the completion vocabulary (the lead word sits before every negator)', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /\|granted\|added\|'\r?\n\s*\+ PROGRESS_VERBS/,
     replace: "|granted|added|confirmed|'\n          + PROGRESS_VERBS",
     expect: /D112\.negated|D118\.truthfulNegativeDestroyed|D117\.hold\.d112ExamplesStillSurvive/ },
-  { name: 'M05 D128 COVERAGE: "or" is added as a boundary (the verifier\'s surviving mutant M28)',
+  { name: 'M05 D128 COVERAGE: "or" is added as a boundary (the verifier\'s surviving mutant M28)', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /split\(\/\[\.!\?,\\x3b\\n\]\+\/\)/,
     replace: 'split(/[.!?,\\x3b\\n]+|\\s+or\\s+/)',
     expect: /D128\.coverage\.orIsNotYetABoundary/ },
@@ -73,11 +73,11 @@ const MUTATIONS = [
     find: /'\(\?:\\\\boption\\\\s\*#\?\|#\)' \+ ownNumber \+ '\\\\b'/,
     replace: "'(?:\\\\boption\\\\s*#?|#)\\\\d+\\\\b'",
     expect: /D129\.hold\.otherOptionsNumberDeadEnds/ },
-  { name: 'M13 D117 COVERAGE (re-observed under the order rule): the clause split is removed — a truthful negative in sentence 1 disarms a fabrication in sentence 2',
+  { name: 'M13 D117 COVERAGE (re-observed under the order rule): the clause split is removed — a truthful negative in sentence 1 disarms a fabrication in sentence 2', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /String\(s\)\.split\(\/\[\.!\?,\\x3b\\n\]\+\/\)\.map\(\(c\) => c\.trim\(\)\)/,
     replace: '[String(s)]',
     expect: /D117\.hold\.splitStillMatters/ },
-  { name: 'M14 D117 COVERAGE (re-observed): the comma stops being a clause boundary',
+  { name: 'M14 D117 COVERAGE (re-observed): the comma stops being a clause boundary', superseded: 'run18/D130: the belt was redesigned (order rule replaced by completionIsNegated against the VERBAL completion; COMPLETION_VOCAB retired); this region is now mutation-proven in v18_mutation_proof',
     find: /split\(\/\[\.!\?,\\x3b\\n\]\+\/\)/,
     replace: 'split(/[.!?\\x3b\\n]+/)',
     expect: /D117\.hold\.commaStillMatters/ },
@@ -94,12 +94,13 @@ const runSuites = () => {
 };
 const failing = (out) => out.split(/\r?\n/).filter((l) => /^FAIL /.test(l)).map((l) => l.replace(/^FAIL /, '').split(/\s+/)[0]);
 
-let unproven = 0;
+let unproven = 0, superseded = 0;
 try {
   const base = failing(runSuites());
   if (base.length) { console.log('BASELINE NOT CLEAN — the suites fail on unmutated source:\n  ' + base.join('\n  ')); process.exit(1); }
   console.log('baseline: all ' + SUITES.length + ' suites green on unmutated source\n');
   for (const m of MUTATIONS) {
+    if (m.superseded) { console.log(`SUPERSEDED    ${m.name}\n              ${m.superseded}`); superseded++; continue; }
     const hits = (text.match(new RegExp(m.find.source, m.find.flags.includes('g') ? m.find.flags : m.find.flags + 'g')) || []).length;
     if (hits !== 1) { console.log(`UNPROVEN      ${m.name}\n              stale anchor: matched ${hits}x, expected 1`); unproven++; continue; }
     const mutated = text.replace(m.find, () => m.replace);
@@ -121,5 +122,5 @@ try {
   if (after !== pristineSha) { console.log(`\n*** SOURCE NOT RESTORED *** ${after}`); process.exit(2); }
   console.log(`\nsource restored byte-identically (sha256 ${after.slice(0, 16)}…)`);
 }
-console.log(`v17_mutation_proof: ${MUTATIONS.length - unproven}/${MUTATIONS.length} proven, ${unproven} unproven`);
+console.log(`v17_mutation_proof: ${MUTATIONS.length - unproven - superseded}/${MUTATIONS.length - superseded} proven, ${unproven} unproven, ${superseded} superseded by run18 (historical record: 14/14 at a559f8f)`);
 process.exit(unproven === 0 ? 0 : 1);

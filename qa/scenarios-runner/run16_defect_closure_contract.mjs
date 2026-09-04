@@ -113,6 +113,8 @@ const stripTS = (s) => s
   .replace(/\)\s*:\s*string\s*=>/g, ') =>')
   .replace(/const unresolvableOptionIndexes:\s*number\[\]/g, 'const unresolvableOptionIndexes')
   .replace(/\(_:\s*unknown,\s*oi:\s*number\)/g, '(_, oi)')
+  .replace(/=\s*\(([^)]*)\)\s*:\s*[^=]+=>/g, (_m, pp) => '= (' + pp.replace(/:\s*[^,)]+/g, '') + ') =>')
+  .replace(/\(([A-Za-z_$][\w$]*)\s*:\s*[^,)]+\)\s*=>/g, '($1) =>')
   .replace(/:\s*string\b(?=\s*[,)])/g, '');
 
 // Refuse to report on a slice that is not the product.
@@ -128,11 +130,11 @@ const matchOption = new Function(stripTS(balanced(src, 'function matchDisambigua
 const beltSlice = stripTS([
   stmt(src, 'const LEGACY_PAST_COMPLETION ='), stmt(src, 'const PROGRESS_VERBS ='),
   balanced(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
-  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='), stmt(src, 'const COMPLETION_VOCAB ='), // Closure edit (run17/D128)
+  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='), stmt(src, 'const COMPLETION_PARTICIPLE ='), stmt(src, 'const COMPLETION_VERB ='), stmt(src, 'const completionIsNegated ='), // Closure edit (run18/D130)
   stmt(src, 'const REFERENCELESS_CONFIRMATION ='), stmt(src, 'const readsAsCompletion ='),
   'return readsAsCompletion;'].join('\n'));
-if (!/const readsAsCompletion =[\s\S]*NEGATED_CLAUSE\.test\(/.test(beltSlice)) {
-  throw new Error('readsAsCompletion no longer consults NEGATED_CLAUSE — refusing to report');
+if (!/completionIsNegated\(/.test(beltSlice.split('const readsAsCompletion =')[1] || '')) {
+  throw new Error('readsAsCompletion no longer decides negation via completionIsNegated — refusing to report');
 }
 const readsAsCompletion = new Function(beltSlice)();
 
