@@ -51,7 +51,16 @@
   "personas": "53/53 (45 prior + 8 round-5 closure/limit cases)",
   "suites": "agent_run_guard_covers_claim_returns (id now required); chat_channel_state_trusted_columns 51/51; messaging_transport 23/23; ancestor guards 0 dropped; migration_a 8/8; migration_c 10/10; migration_round4 10/10; migration_round5 9/9; migration_round6 9/9"
  },
- "real_postgresql_ci": "Read from the run on THIS commit (gh run list --commit <sha>); the round-6 reviewer is dispatched on that same commit (R4-6).",
+ "real_postgresql_ci": {
+  "run_id": 33871917330,
+  "commit": "master @ 4201a7e",
+  "jobs": {
+   "validate_pglite": "success",
+   "validate_real_postgresql": "success"
+  },
+  "result": "apply 82/82; acceptance 36/36; personas 53/53 (persona connection ENGINE-ENFORCED); all four SECURITY VERIFIED; concurrency verified",
+  "log": "qa/verification/ci/migration-validation-run33871917330-real-postgresql.log"
+ },
  "still_NOT_proven": [
   "A-1(c): whether any API-reachable Supabase role is a member of postgres/supabase_admin — needs a disposable Supabase project",
   "PostgREST refusing SET/set_config — still load-bearing for the four LIVE guard-defining migrations",
