@@ -229,9 +229,7 @@ const COMMON_COMMAND_STOPWORDS = new Set([
 // generic-word-heavy command in a workspace with many similarly-named fixtures.
 const NAMED_LOOKUP_ROW_CAP = 5;
 const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
-// run17/D127: plain `activate` was missing (only `reactivate` was listed), so a make-active
-// intent against a pending ARCHIVE was not a contradiction. Same family, one more spelling.
-const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|(?:re)?activat(e|ed|ing))\b/i;
+const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
 function commandContradictsActionType(command: string, actionType: string | undefined): boolean {
   const resolvedActionType = actionType || 'archive';
   if (resolvedActionType === 'archive' && RESTORE_VERB_PATTERN.test(command) && !ARCHIVE_VERB_PATTERN.test(command)) return true;
@@ -440,57 +438,10 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   // Inc") cannot disarm itself, and it runs on the presentation-stripped text, so the
   // apostrophe-less forms ("dont") are the ones listed. Deliberately conservative: a
   // false dead-end costs one LLM round-trip; a false bind costs a wrong mutation.
-  //
-  // run16/D123 (P1): that D116 guard was a WORD LIST (NEGATED_MENTION) tested per CLAUSE,
-  // and verifier #16 showed both halves of that fail: an exclusion word not on the list
-  // ("exclude acme", "cancel acme", "besides acme") and a negator in an ADJACENT clause
-  // ("acme? no, the holdings one", "acme, no") still bound the option the founder
-  // excluded — 24 of its 48 exclusion replies, decided by whether a comma happened to
-  // create a clause boundary. A blocklist of negators can never be complete. The rule is
-  // INVERTED: a deterministic bind is allowed only for a CLEAN SELECTION — once the chosen
-  // label is removed, every remaining word must be selection filler (an affirmative, an
-  // article, the pending action's own verb, an entity-type noun). ANY other word — a
-  // negator, an exclusion, a correction, a second name, a hedge — dead-ends to the LLM
-  // path, which can actually read the intent. Fail closed: a false dead-end costs one
-  // round-trip; a false bind costs a wrong destructive mutation. The word list is GONE
-  // rather than kept "as defence in depth": once the allowlist exists it can never fire,
-  // and an unobservable guard is the vacuous-guard class this ledger has recorded eleven
-  // times.
-  // run17/D127 (P2): the filler used to be a static union of EVERY lifecycle verb and EVERY
-  // entity-type noun, so "activate acme" (a make-active intent), "reject acme" (an
-  // exclusion) and "archive acme tasks" (a different TARGET) all counted as clean
-  // selections of an ARCHIVE-COMPANY option and armed archiveCompanyIds. The verbs and
-  // nouns admitted are now scoped to the winning option itself: only its own action
-  // family's verbs and its own entity type's nouns. Anything else is a different intent
-  // or a different target and dead-ends to the LLM path.
-  const SELECTION_FILLER = new Set(('yes yeah yep yup ok okay sure please pls thanks thank you confirm confirmed correct right exactly '
-    + 'that this one the a an it its is go ahead do proceed select selected pick choose chose use mean meant want i id im we '
-    + 'option number to for with of on in record').split(' '));
-  const ACTION_FAMILY_VERBS: Record<string, string> = {
-    archive: 'archive archiving archived delete deleting remove removing end ending close closing deactivate deactivating',
-    restore: 'restore restoring restored reactivate reactivating activate activating reopen unarchive undelete',
-  };
-  const ENTITY_NOUNS: Record<string, string> = {
-    company: 'company companies', person: 'person people employee employees', employee: 'person people employee employees',
-    task: 'task tasks', goal: 'goal goals', project: 'project projects', department: 'department departments',
-    channel: 'channel channels', approval: 'approval approvals',
-  };
-  const cleanSelection = (winner: PendingActionOption) => {
-    let residual = normalizedCommand.split(forMatching(winner.label)).join(' ');
-    if (matches.some((o) => o !== winner && residual.includes(forMatching(o.label)))) return false;
-    // run17/D129 (P3): the product itself renders "(option N)" (run12/D95 numbering), so a
-    // reply that names the option by ITS OWN number — "acme (option 1)", "acme #1",
-    // "option 1, acme" — is a clean selection. Only that option's own number, and only in
-    // the option/# shape: a bare digit stays a dead end ("acme 2" is not a selection).
-    const ownNumber = options.indexOf(winner) + 1;
-    residual = residual.replace(new RegExp('(?:\\boption\\s*#?|#)' + ownNumber + '\\b', 'g'), ' ');
-    const allowed = new Set([...SELECTION_FILLER,
-      ...(ACTION_FAMILY_VERBS[typeof winner.actionType === 'string' ? winner.actionType : 'archive'] || ACTION_FAMILY_VERBS.archive).split(' '),
-      ...(ENTITY_NOUNS[typeof winner.entityType === 'string' ? winner.entityType : ''] || '').split(' ').filter((w) => w.length > 0)]);
-    return residual.replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter((w) => w.length > 0)
-      .every((w) => allowed.has(w));
-  };
-  if (matches.length === 1 && !cleanSelection(matches[0])) return null;
+  const NEGATED_MENTION = /\b(?:not|no|never|neither|nor|none|without|except|excepting|excluding|but|other than|anything but|everything but|instead of|rather than|(?:do|does|did|is|are|was|were|wo|ca|could|would|should|must|has|have|had|need)n'?t|cannot|leave|keep|spare|skip)\b/i;
+  const clauses = normalizedCommand.split(/[,.;!?]+/);
+  if (matches.some((o) => clauses.some((c) => c.includes(forMatching(o.label))
+    && NEGATED_MENTION.test(c.split(forMatching(o.label)).join(' '))))) return null;
   if (matches.length === 1) return matches[0];
   // run13/D102: stripping presentation characters fixed the quoted-label regression but
   // introduced its own collision — two real names differing ONLY by an apostrophe
@@ -523,9 +474,6 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
     const maxLen = Math.max(...matches.map(specificity));
     const longest = matches.filter((o) => specificity(o) === maxLen);
     if (longest.length === 1) {
-      // run16/D123: the clean-selection rule applies on this path too (a longer label
-      // with an exclusion word around it is still an exclusion).
-      if (!cleanSelection(longest[0])) return null;
       const rest = normalizedCommand.split(forMatching(longest[0].label)).join(' ');
       return matches.some((o) => o !== longest[0] && rest.includes(forMatching(o.label))) ? null : longest[0];
     }
@@ -535,7 +483,7 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
     const rawCommand = command.replace(/\s+/g, ' ').trim().toLowerCase();
     const exact = longest.filter((o) => o.label.trim().length > 0
       && rawCommand.includes(o.label.replace(/\s+/g, ' ').trim().toLowerCase()));
-    if (exact.length === 1) return cleanSelection(exact[0]) ? exact[0] : null;
+    if (exact.length === 1) return exact[0];
   }
   return null;
 }
@@ -5157,15 +5105,6 @@ serve(async (req) => {
             // unselectable in the disambiguation flow. A refused label falls back to a
             // safe DERIVED reference from the option's own canonical identity.
             const unresolvableOptionIndexes: number[] = [];
-            // run16/D124: model-authored entity types that the canonical read keys under
-            // another name. Anything not listed keeps its own name and is simply
-            // unresolvable (and therefore dropped) unless the read knows it under that name.
-            const CANONICAL_TYPE_ALIAS: Record<string, string> = {
-              employee: 'person', staff: 'person', user: 'person', member: 'person', contact: 'person',
-              organization: 'company', organisation: 'company', org: 'company', business: 'company',
-              client: 'company', customer: 'company', vendor: 'company', supplier: 'company', partner: 'company',
-              subsidiary: 'company', ticket: 'task', todo: 'task', objective: 'goal', okr: 'goal',
-            };
             for (let oi = 0; oi < paObj.options.length; oi++) {
               const o = paObj.options[oi];
               if (!o || typeof o !== 'object') continue;
@@ -5188,20 +5127,9 @@ serve(async (req) => {
               // run13/D103, such an option cannot be executed anyway, since its id fails
               // the contextPack filter. Losing an unverifiable spelling is the cheaper
               // error.
-              // run16/D124 (P1): the model may name an entity type the canonical read keys
-              // differently — 'employee' is EXECUTABLE (endEmploymentPersonIds) but the read
-              // is keyed 'person|', so two real, named, in-context people rendered as "the
-              // employee (option 1/2)" and the founder was asked whose employment to end
-              // with no name shown. The type is resolved through the canonical alias so a
-              // real person is shown by name; and "known" is decided from the READ ITSELF
-              // below, never by comparing two independently-derived fallback strings
-              // (displayName says "the <type>" for any word-shaped type, TYPED_FALLBACK
-              // said "the record" — they disagreed, so the drop never fired).
               const derivedLabel = typeof o.id === 'string' && o.id
-                ? displayName(CANONICAL_TYPE_ALIAS[typeof o.entityType === 'string' ? o.entityType : ''] || (typeof o.entityType === 'string' ? o.entityType : 'record'), o.id)
+                ? displayName(typeof o.entityType === 'string' ? o.entityType : 'record', o.id)
                 : `option ${oi + 1}`;
-              const canonicalType = CANONICAL_TYPE_ALIAS[typeof o.entityType === 'string' ? o.entityType : '']
-                || (typeof o.entityType === 'string' ? o.entityType : 'record');
               const safeLabel = safeOptionLabel(o.label);
               const bare = (v) => String(v).replace(/[“”‘’"']/g, '').trim().toLowerCase();
               // run14/D113 — THE DECISION THAT ENDS THIS CLASS. The corroboration above was
@@ -5250,9 +5178,10 @@ serve(async (req) => {
               // the model vouches for. run8/D72b is RETIRED by this decision, deliberately
               // and on the record (ledger #75): the trailing-period repair of a name the
               // database cannot corroborate is not a property worth an unverifiable label.
+              const typedFallback = TYPED_FALLBACK[typeof o.entityType === 'string' ? o.entityType : 'record'] || 'the record';
               const canonicalKnowsIt = !!derivedLabel
-                && typeof o.id === 'string' && o.id.length > 0
-                && (canonicalById.has(canonicalType + '|' + o.id) || lastKnownLabel(canonicalType, o.id) !== null);
+                && bare(derivedLabel) !== bare(typedFallback)
+                && !/^option \d+$/.test(derivedLabel);
               const agrees = !!safeLabel && bare(safeLabel) === bare(derivedLabel);
               o.label = agrees ? safeLabel : derivedLabel;
               if (o.label !== beforeLabel) pendingActionGatingChanged = true;
@@ -5423,33 +5352,8 @@ serve(async (req) => {
         // asserting a completion makes the whole summary read as one. (The semicolon in the
         // clause splitter is written as \x3b so this stays a single statement for the
         // source-extracting suites, which slice this predicate up to its first `;`.)
-        // run16/D125: the splitter knew only [.!?,;], so a fabrication followed by a negator
-        // in the SAME typographic clause ("archived – no undo available", "archived (no undo
-        // available)", "archived without incident", "archived and no errors occurred") was
-        // disarmed — four shapes d724d8c had caught. Dashes, colon, parentheses, newline and
-        // the conjunctions and/but/without are boundaries now; the residual is a negator
-        // inside one bare clause with no separator at all.
-        // run17/D128 (P1): run16/D125 widened the clause splitter to and/but/without, dashes,
-        // parentheses and colons — and inside a NOUN PHRASE those are not clause boundaries.
-        // "No company named Salt and Pepper Co was archived." split into ["No company named
-        // Salt", "Pepper Co was archived"] and the truthful negative was destroyed: 97/130 on
-        // the verifier's corpus, 0/130 one candidate earlier — the D112 class again, in the
-        // direction index.ts itself calls the worse one. The splitter is back to sentence
-        // punctuation, the comma and the newline. What decides negation is no longer "a
-        // negator anywhere in the clause" but ORDER: a negator disarms a clause only when it
-        // PRECEDES the completion vocabulary ("no company … was archived", "the company is
-        // not archived"); a negator that follows the verb ("archived – no undo available",
-        // "archived without incident", "archived and no errors occurred") is a qualifier on a
-        // completion that was still asserted, and the belt fires. Disclosed residual: a real
-        // name that itself begins with a negator word before the verb ("Nothing Bundt Cakes
-        // was archived") disarms the belt; evidence, not this belt, remains primary.
-        // ("confirmed" is deliberately NOT in this list: "Confirmed — the company is not archived"
-        // leads with it, and it would sit before every negator.)
-        const COMPLETION_VOCAB = new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|'
-          + PROGRESS_VERBS + '|executing|processing)\\b', 'i');
-        // (One statement on purpose — the source-extracting suites slice it up to its first `;`.)
         const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
-          || String(s).split(/[.!?,\x3b\n]+/).map((c) => c.trim()).some((c) => !(NEGATED_CLAUSE.test(c) && (c.search(COMPLETION_VOCAB) < 0 || c.search(NEGATED_CLAUSE) < c.search(COMPLETION_VOCAB)))
+          || String(s).split(/[.!?,\x3b]+/).map((c) => c.trim()).some((c) => !NEGATED_CLAUSE.test(c)
             && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || CONFIRMED_COMPLETION.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'

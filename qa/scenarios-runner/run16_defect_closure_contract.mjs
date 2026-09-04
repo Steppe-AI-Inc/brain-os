@@ -128,7 +128,7 @@ const matchOption = new Function(stripTS(balanced(src, 'function matchDisambigua
 const beltSlice = stripTS([
   stmt(src, 'const LEGACY_PAST_COMPLETION ='), stmt(src, 'const PROGRESS_VERBS ='),
   balanced(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
-  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='),
+  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='), stmt(src, 'const COMPLETION_VOCAB ='), // Closure edit (run17/D128)
   stmt(src, 'const REFERENCELESS_CONFIRMATION ='), stmt(src, 'const readsAsCompletion ='),
   'return readsAsCompletion;'].join('\n'));
 if (!/const readsAsCompletion =[\s\S]*NEGATED_CLAUSE\.test\(/.test(beltSlice)) {

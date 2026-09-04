@@ -1,0 +1,20 @@
+M21 drop       CAUGHT BEHAVIOURALLY by run15_defect_closure_contract.mjs[BEHAVIOURAL:1] run16_defect_closure_contract.mjs[BEHAVIOURAL:1]
+     OVER-BROAD drop, literal preserved: the filter predicate always drops
+M22 drop       CAUGHT BEHAVIOURALLY by run12_defect_closure_contract.mjs[BEHAVIOURAL:1] run13_defect_closure_contract.mjs[BEHAVIOURAL:1] run14_defect_closure_contract.mjs[BEHAVIOURAL:1] run15_defect_closure_contract.mjs[BEHAVIOURAL:6] run16_defect_closure_contract.mjs[BEHAVIOURAL:11] run8_defect_closure_contract.mjs[BEHAVIOURAL:1]
+     NO-OP drop, literal preserved: the filter predicate never drops
+M23 drop       CAUGHT BEHAVIOURALLY by run12_defect_closure_contract.mjs[BEHAVIOURAL:1] run13_defect_closure_contract.mjs[BEHAVIOURAL:1] run16_defect_closure_contract.mjs[BEHAVIOURAL:1] run8_defect_closure_contract.mjs[BEHAVIOURAL:1]
+     drop fires only for the FIRST unresolvable option (index 0)
+M24 numbering  CAUGHT BEHAVIOURALLY by run12_defect_closure_contract.mjs[BEHAVIOURAL:1] run13_defect_closure_contract.mjs[BEHAVIOURAL:2]
+     D95 numbering removed (colliding fallbacks stay mutually unselectable)
+M25 gate       CAUGHT BEHAVIOURALLY by run15_defect_closure_contract.mjs[BEHAVIOURAL:1] run16_defect_closure_contract.mjs[BEHAVIOURAL:1]
+     alias table emptied ENTIRELY (all 19 keys), braces preserved
+M26 gate       CAUGHT BEHAVIOURALLY by run15_defect_closure_contract.mjs[BEHAVIOURAL:1] run16_defect_closure_contract.mjs[BEHAVIOURAL:1]
+     alias applied to the READ but NOT to displayName (the two disagree again)
+M27 matcher    CAUGHT BEHAVIOURALLY by run16_defect_closure_contract.mjs[BEHAVIOURAL:4]
+     filler set gains only the single word "no"
+M28 belt       *** SURVIVED ***
+     splitter also splits on "or" (a plausible next widening)
+
+index.ts sha256 after restore: e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69  (MATCHES REQUIRED)
+
+ROUND 2: 8 applied, 1 survived, 0 caught ONLY by an extraction refusal

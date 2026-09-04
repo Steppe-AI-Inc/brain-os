@@ -1,0 +1,240 @@
+[
+ {
+  "id": "M1",
+  "area": "matcher",
+  "desc": "remove the single-match clean-selection check",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=5,sumFail=5)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M2",
+  "area": "matcher",
+  "desc": "remove the clean-selection check on the D106 specificity path",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M3",
+  "area": "matcher",
+  "desc": "remove the clean-selection check on the D102 raw tie-break path",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M4",
+  "area": "matcher",
+  "desc": "remove the second-option guard inside cleanSelection",
+  "applied": true,
+  "caughtBy": [],
+  "survived": true
+ },
+ {
+  "id": "M5",
+  "area": "matcher",
+  "desc": "OVER-BROADEN the filler set with every negator (the D123 defect, re-armed)",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=3,sumFail=3)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=14,sumFail=14)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M6",
+  "area": "matcher",
+  "desc": "OVER-BROADEN: .every -> .some (one filler word is enough)",
+  "applied": true,
+  "caughtBy": [
+   "run12_defect_closure_contract.mjs(exit=1,failLines=4,sumFail=4)",
+   "run13_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run14_defect_closure_contract.mjs(exit=1,failLines=4,sumFail=4)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=5,sumFail=5)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=9,sumFail=9)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M7",
+  "area": "matcher",
+  "desc": "OVER-NARROW: empty the filler set (label must stand alone)",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=2,sumFail=2)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M8",
+  "area": "gate",
+  "desc": "EMPTY the alias table (D124 re-armed for aliased types)",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M9",
+  "area": "gate",
+  "desc": "canonicalKnowsIt IGNORES lastKnownLabel",
+  "applied": true,
+  "caughtBy": [
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M10",
+  "area": "gate",
+  "desc": "canonicalKnowsIt IGNORES canonicalById",
+  "applied": true,
+  "caughtBy": [
+   "lifecycle_evidence_and_output_persistence_contract.mjs(exit=1,failLines=1,sumFail=0)",
+   "run10_defect_closure_contract.mjs(exit=1,failLines=8,sumFail=8)",
+   "run11_defect_closure_contract.mjs(exit=1,failLines=7,sumFail=7)",
+   "run12_defect_closure_contract.mjs(exit=1,failLines=6,sumFail=6)",
+   "run13_defect_closure_contract.mjs(exit=1,failLines=5,sumFail=5)",
+   "run14_defect_closure_contract.mjs(exit=1,failLines=9,sumFail=9)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=3,sumFail=3)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=3,sumFail=3)",
+   "run8_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M11",
+  "area": "gate",
+  "desc": "canonicalKnowsIt reverts to the D124 typedFallback string comparison",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=8,sumFail=8)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M12",
+  "area": "drop",
+  "desc": "drop fires ONLY when EVERY option is unresolvable (the #16 D126 mutant)",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M13",
+  "area": "drop",
+  "desc": "remove the D119 drop entirely",
+  "applied": true,
+  "caughtBy": [
+   "run12_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run13_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run14_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)",
+   "run8_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=0)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M14",
+  "area": "drop",
+  "desc": "OVER-BROAD drop: any unresolvable option empties the whole list",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M15",
+  "area": "belt",
+  "desc": "drop the \"confirmed\" lookbehind from the dash boundary",
+  "applied": true,
+  "caughtBy": [
+   "run13_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run14_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=7,sumFail=7)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M16",
+  "area": "belt",
+  "desc": "remove and/but/without from the splitter",
+  "applied": true,
+  "caughtBy": [
+   "run16_defect_closure_contract.mjs(exit=1,failLines=2,sumFail=2)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M17",
+  "area": "belt",
+  "desc": "remove :()\\n from the splitter character class",
+  "applied": true,
+  "caughtBy": [
+   "run16_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M18",
+  "area": "belt",
+  "desc": "revert the splitter to 52e830f exactly",
+  "applied": true,
+  "caughtBy": [
+   "run16_defect_closure_contract.mjs(exit=1,failLines=4,sumFail=4)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M19",
+  "area": "belt",
+  "desc": "remove the per-clause NEGATED_CLAUSE test",
+  "applied": true,
+  "caughtBy": [
+   "run14_defect_closure_contract.mjs(exit=1,failLines=5,sumFail=5)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=0,sumFail=0)"
+  ],
+  "survived": false
+ },
+ {
+  "id": "M20",
+  "area": "belt",
+  "desc": "OVER-BROADEN: split on every space (every word its own clause)",
+  "applied": true,
+  "caughtBy": [
+   "run10_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run11_defect_closure_contract.mjs(exit=1,failLines=12,sumFail=12)",
+   "run12_defect_closure_contract.mjs(exit=1,failLines=15,sumFail=15)",
+   "run13_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run14_defect_closure_contract.mjs(exit=1,failLines=1,sumFail=1)",
+   "run15_defect_closure_contract.mjs(exit=1,failLines=8,sumFail=8)",
+   "run16_defect_closure_contract.mjs(exit=1,failLines=5,sumFail=5)",
+   "run8_defect_closure_contract.mjs(exit=1,failLines=4,sumFail=0)",
+   "structured_claim_laundering_contract.mjs(exit=1,failLines=0,sumFail=0)",
+   "structured_claim_verification.mjs(exit=1,failLines=4,sumFail=0)"
+  ],
+  "survived": false
+ }
+]

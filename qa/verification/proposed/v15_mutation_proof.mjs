@@ -49,20 +49,21 @@ const MUTATIONS = [
     expect: /D116\.dontArchive/ },
 
   // ---- D117 / D118: negation once, per clause, every arm -------------------------------
-  { name: 'M05 D117 COVERAGE: readsAsCompletion loses the clause split and tests the whole summary',
+  { name: 'M05 D117 COVERAGE: readsAsCompletion loses the clause split and tests the whole summary', superseded: 'run17/D128: under the ORDER rule the D117 corpus no longer depends on the split; the split is observed by run17 D117.hold.splitStillMatters (v17_mutation_proof M13)',
     // run16/D125 widened the splitter; the anchor follows it (the mutation is the same: no split at all).
-    find: /String\(s\)\.split\(\/[^\n]*?\/i\)\.map\(\(c\) => c\.trim\(\)\)/,
+    find: /String\(s\)\.split\(\/[^\n]*?\/i?\)\.map\(\(c\) => c\.trim\(\)\)/,
     replace: '[String(s)]',
     expect: /D117\.suffixDisarms/ },
   { name: 'M06 D118 COVERAGE: NEGATED_CLAUSE is no longer consulted (negation blindness on every arm)',
-    find: /!NEGATED_CLAUSE\.test\(c\)\s*\n\s*&& /,
+    // run17/D128: negation is decided by order; removing the whole test is still "negation blindness".
+    find: /!\(NEGATED_CLAUSE\.test\(c\) && \(c\.search\(COMPLETION_VOCAB\) < 0 \|\| c\.search\(NEGATED_CLAUSE\) < c\.search\(COMPLETION_VOCAB\)\)\)\s*\n\s*&& /,
     replace: '',
     // run15's belt-slice guard REFUSES to report on a predicate that no longer consults
     // NEGATED_CLAUSE (the whole suite exits), and run14's D112 cases fail behaviourally.
     expect: /D118\.truthfulNegativeDestroyed|D112\.negated|run15:EXIT/ },
-  { name: 'M07 D117 COVERAGE: the comma stops being a clause boundary',
-    find: /split\(\/\[\.!\?,\\x3b:\(\)\\n\]\+\|/,
-    replace: 'split(/[.!?\\x3b:()\\n]+|',
+  { name: 'M07 D117 COVERAGE: the comma stops being a clause boundary', superseded: 'run17/D128: observed by run17 D117.hold.commaStillMatters (v17_mutation_proof M14)',
+    find: /split\(\/\[\.!\?,\\x3b\\n\]\+\/\)/,
+    replace: 'split(/[.!?\\x3b\\n]+/)',
     expect: /D117\.suffixDisarms\.1/ },
   { name: 'M08 D118 LIMIT: NEGATED_CLAUSE over-broadened to any word (every clause reads as negated)',
     // Appended at the END of the list so run15's extraction guard (which pins the head of

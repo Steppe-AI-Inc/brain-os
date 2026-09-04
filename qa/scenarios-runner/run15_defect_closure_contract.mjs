@@ -109,6 +109,7 @@ const beltSlice = stripTS([
   balancedFrom(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
   grab('const CONFIRMED_COMPLETION =', ';'),
   grab('const NEGATED_CLAUSE =', ';'),
+  grab('const COMPLETION_VOCAB =', ';'), // Closure edit (run17/D128): negation is now decided by ORDER against this vocabulary
   grab('const REFERENCELESS_CONFIRMATION =', ';'),
   grab('const readsAsCompletion =', ';'),
   'return { readsAsCompletion, LEGACY_PAST_COMPLETION, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, NEGATED_CLAUSE };',

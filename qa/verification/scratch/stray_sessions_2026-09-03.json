@@ -103,6 +103,46 @@
      "status": "running, read-only candidate"
     }
    ]
+  },
+  {
+   "reconciled_at": "2026-09-04T06:49:50.290Z",
+   "note": "2026-09-04 ~14:50: two isolated verifiers running concurrently in separate worktrees; no competing writer on index.ts (frozen at e5ccf63b… since f232975).",
+   "sessions": [
+    {
+     "pid": 1664,
+     "role": "implementation (this session)",
+     "work_order": "BUG-002 execution truth / campaign #77 + DB round 4",
+     "repo": "C:/Users/Dell/dev/brain-os",
+     "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+     "sha": "1356a7e",
+     "hot_files": [
+      "index.ts FROZEN"
+     ],
+     "status": "active"
+    },
+    {
+     "pid": 4009,
+     "role": "verifier-watchdog for #17",
+     "work_order": "campaign #77",
+     "worktree": "C:/Users/Dell/dev/brain-os-verify-9535f0b",
+     "branch": "verify-9535f0b-campaign77",
+     "sha": "9535f0b",
+     "status": "attempt 2 running after PROVIDER_CAPACITY block"
+    },
+    {
+     "pid": 5823,
+     "role": "verifier-watchdog for #401 (DB round 4)",
+     "work_order": "DB round 4",
+     "worktree": "C:/Users/Dell/dev/brain-os-verify-96e1309",
+     "branch": "verify-96e1309-campaign4",
+     "sha": "96e1309",
+     "status": "attempt 1 running"
+    },
+    {
+     "role": "brain-os-verifier #17 / #401 (claude -p, isolated)",
+     "status": "running, read-only candidates"
+    }
+   ]
   }
  ]
 }

@@ -32,8 +32,9 @@ const MUTATIONS = [
     replace: 'no yes yeah yep yup ok okay sure please',
     expect: /D123\.crossClauseNegator|D116\.noNotBeta|D116\.hold\.negatorInAnotherClauseDeadEnds/ },
   { name: 'M03 D123 LIMIT: the action verbs leave the filler set (the allowlist over-narrows — "archive acme holdings" dead-ends)',
-    find: /option number archive restore delete remove end close assign reassign update rename activate deactivate approve reject /,
-    replace: 'option number ',
+    // run17/D127 moved the verbs into ACTION_FAMILY_VERBS (scoped to the option's own family).
+    find: /archive: 'archive archiving archived delete deleting remove removing end ending close closing deactivate deactivating',/,
+    replace: "archive: '',",
     expect: /D116\.hold\.plainNameStillBinds|D123\.hold\.selectionFillerStillBinds|D116\.hold\.selectionFillerStillBinds/ },
   { name: 'M04 D123 COVERAGE: the clean-selection check is skipped on the specificity (D106) path',
     find: /\n\s*if \(!cleanSelection\(longest\[0\]\)\) return null;/,
@@ -44,8 +45,8 @@ const MUTATIONS = [
     replace: 'if (exact.length === 1) return exact[0];',
     expect: /D123\.exclusionOnTieBreakPath/ },
   { name: 'M06 D123 LIMIT: residual words are compared case-sensitively against the filler (any capitalised filler word dead-ends)',
-    find: /\.every\(\(w\) => SELECTION_FILLER\.has\(w\)\);/,
-    replace: '.every((w) => SELECTION_FILLER.has(w.toUpperCase()));',
+    find: /\.every\(\(w\) => allowed\.has\(w\)\);/,
+    replace: '.every((w) => allowed.has(w.toUpperCase()));',
     expect: /D116\.hold\.plainNameStillBinds|selectionFillerStillBinds|D106\./ },
 
   // ---- D124: canonical alias + "known" decided by the read ------------------------------
@@ -63,11 +64,11 @@ const MUTATIONS = [
     expect: /D126\.freshCreateLabelStillResolves/ },
 
   // ---- D125: clause boundaries -----------------------------------------------------------
-  { name: 'M10 D125 COVERAGE: the splitter reverts to [.!?,;] only',
+  { name: 'M10 D125 COVERAGE: the splitter reverts to [.!?,;] only', superseded: 'run17/D128: the splitter IS [.!?,;\\n] again by design; negation is decided by ORDER (v17_mutation_proof M05-M07)',
     find: /split\(\/\[\.!\?,\\x3b:\(\)\\n\]\+\|\(\?<!\\bconfirmed\\s\*\)\[–—\]\+\|\\s\+\(\?:and\|but\|without\)\\s\+\/i\)/,
     replace: 'split(/[.!?,\\x3b]+/)',
     expect: /D125\.newFalseNegative/ },
-  { name: 'M11 D125 LIMIT: the "confirmed —" lookbehind is removed (the lead separator splits the base shape)',
+  { name: 'M11 D125 LIMIT: the "confirmed —" lookbehind is removed (the lead separator splits the base shape)', superseded: 'run17/D128: dashes are no longer boundaries, so there is no lookbehind to remove',
     find: /\(\?<!\\bconfirmed\\s\*\)\[–—\]\+/,
     replace: '[–—]+',
     expect: /D117\.hold\.baseShapeStillCaught|D112\.hold\.realCompletion|D125\.hold\.d117LaterClauseStillCaught/ },
@@ -94,12 +95,13 @@ const runSuites = () => {
 };
 const failing = (out) => out.split(/\r?\n/).filter((l) => /^FAIL /.test(l)).map((l) => l.replace(/^FAIL /, '').split(/\s+/)[0]);
 
-let unproven = 0;
+let unproven = 0, superseded = 0;
 try {
   const base = failing(runSuites());
   if (base.length) { console.log('BASELINE NOT CLEAN — the suites fail on unmutated source:\n  ' + base.join('\n  ')); process.exit(1); }
   console.log('baseline: all ' + SUITES.length + ' suites green on unmutated source\n');
   for (const m of MUTATIONS) {
+    if (m.superseded) { console.log(`SUPERSEDED    ${m.name}\n              ${m.superseded}`); superseded++; continue; }
     const hits = (text.match(new RegExp(m.find.source, m.find.flags.includes('g') ? m.find.flags : m.find.flags + 'g')) || []).length;
     if (hits !== 1) { console.log(`UNPROVEN      ${m.name}\n              stale anchor: matched ${hits}x, expected 1`); unproven++; continue; }
     const mutated = text.replace(m.find, () => m.replace);
@@ -121,5 +123,5 @@ try {
   if (after !== pristineSha) { console.log(`\n*** SOURCE NOT RESTORED *** ${after}`); process.exit(2); }
   console.log(`\nsource restored byte-identically (sha256 ${after.slice(0, 16)}…)`);
 }
-console.log(`v16_mutation_proof: ${MUTATIONS.length - unproven}/${MUTATIONS.length} proven, ${unproven} unproven`);
+console.log(`v16_mutation_proof: ${MUTATIONS.length - unproven - superseded}/${MUTATIONS.length - superseded} proven, ${unproven} unproven, ${superseded} superseded by run17 (historical record: 13/13 at f232975)`);
 process.exit(unproven === 0 ? 0 : 1);

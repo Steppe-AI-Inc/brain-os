@@ -1,0 +1,63 @@
+PREFLIGHT: EXECUTION_READY (recorded earlier)
+
+---
+
+# VERIFIER #17 / CAMPAIGN #77 — FINAL REPORT
+
+```
+CHANGE VERIFIED: run16 D123–D126 closure on sem-ai-command/index.ts
+  candidate  9535f0b4d094570ac871c3ec85b78830324b03bc (closure commit f232975;
+             rotation commit on top is bookkeeping only — index.ts byte-identical, verified by diff)
+  baselines  52e830f (#76 candidate) and d724d8c
+SCENARIOS: 8 passed, 1 failed, 2 blocked (UI truth, live-AI-chat truth)
+```
+
+## Verdict
+
+**FAIL**
+
+D123, D124 and D126 are genuinely closed and well made. D125 closed the false‑negative direction of the completion belt and **reopened the false‑positive one** — a P1 regression against the immediately prior candidate, in the exact class `index.ts` records against itself.
+
+## Findings
+
+| id | sev | finding | status |
+|---|---|---|---|
+| **D128** | **P1** | D125's widened splitter treats `and`/`but`/`without`, `()`, `:` and dashes as clause boundaries. Inside a **noun phrase** they are not, so the negator is severed from the verb it scopes over. `"No company named Salt and Pepper Co was archived."` → `["No company named Salt", "Pepper Co was archived"]` → reads as a completion. **97/130** realistic truthful negatives destroyed vs **0/130** on 52e830f. Downstream (`index.ts:5583`) replaces the truthful answer with *"I can't actually do that from chat"*. Recurrence of run14/D112 / ledger #4905 — the class `index.ts:5362` itself calls *worse than the fabrication the belt exists to catch*. The disclosed residual names only the other direction. | **FLAGGED, not fixed** (no write authority on the implementation branch; sha pinned) |
+| **D127** | P2 | `SELECTION_FILLER` is described in the code comment *and* the #76 postscript as "the pending action's own verbs". It is a static union of every lifecycle verb + entity noun. End‑to‑end: `activate acme` and `reject bob smith` **arm** `archiveCompanyIds` / `endEmploymentPersonIds`. `activate` is missing from `RESTORE_VERB_PATTERN` (only `reactivate` is there). Pre‑existing at both priors. | FLAGGED |
+| **D129** | P3 | The D95 seam: the product renders `(option 1)` then refuses `acme (option 1)` — `option`/`number` are filler but no digit is. Candidate binds **57/78** legitimate naming replies vs 78/78 on both priors. | FLAGGED |
+| coverage | — | `cleanSelection`'s second‑option guard survives all 22 suites (264 of **4,942,140** fuzzed combos decide on it — not vacuous, but unobserved). Adding `or` to the splitter is caught by **no** suite. | Regression cases added |
+
+## What genuinely closed (re-derived, not accepted)
+
+- **D123** — 289 probes, three‑way: **zero** replies bind that dead‑ended on 52e830f or d724d8c. Strictly tighter, provably (no negator word is in the filler set). All three paths carry the check (3 call sites in source).
+- **D124** — fail‑closed on every hostile probe: alias‑vs‑original type mismatch, 13 unlisted/prototype entityTypes (`__proto__`, `constructor`, …), non‑string/absent type, absent/empty id, alias‑keyed runtime labels. A fabricated label reaches the founder by **exactly one** path: the canonical row carries that exact name.
+- **D126** — confirmed by *mutation*, not by reading the suite: run15 fails **behaviourally** under drop‑only‑when‑all, over‑broad, no‑op and first‑index‑only drops.
+- **Question belt untouched** — 9 constructs byte‑identical across all three SHAs, 0/16 behavioural drift.
+
+## Evidence
+
+- **Battery**: 28 `.mjs` enumerated from the filesystem = 1 library + 5 SUPERSEDED stubs + **22 assertion‑bearing**; all exit 0, **failures counted from output text = 0** (668 marks). The #76 postscript's "27 suites / 21 assertion‑bearing" is a pre‑change count adopted after adding run16. The 60 `*.sql` suites were **NOT run**.
+- **Mutation**: my own 20 + 8 mutants (limits *and* coverage), 26 caught, 0 caught only by an extraction refusal, 2 survivors. Not the implementing session's `v15/v16_mutation_proof.mjs`.
+- **Production, read‑only, self‑run**: `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…fe475`, `updated_at 1788239725518` — unchanged; **none of D58–D129 is live**.
+
+## Blocked coverage (real gaps, not passes)
+
+- **UI truth: BLOCKED** — no browser/MCP tooling in this process.
+- **Live AI‑chat truth: BLOCKED** — same, and nothing is deployed to test against.
+- **DB/RLS/lifecycle truth: OUT OF SCOPE** — `*.sql` suites not run.
+
+## Artifacts committed to `verify-9535f0b-campaign77` (`361390a`)
+
+`qa/verification/proposed/v17_known_failure_modes_entry_77.md` (`## #77`, no preamble) · `v17_regression_additions.mjs` (39 cases — **19 pass / 20 fail, all 20 DEFECT‑by‑design, 0 CONTRACT failures**, exits 1) · `v17_PROMOTION_NOTE.md` · `qa/verification/scratch/v17b_*` harnesses + `v17b_README.md` · `CURRENT_CAMPAIGN.json` updated per scenario.
+
+## Founder approval / pending actions
+
+**No DB migration, no deploy, no production write of any kind was performed or is pending from this run.** No `QA-VERIFY-*` data was created — this campaign is source‑level and executed in‑process, so there is nothing to clean up in the database. The only mutations were 28 temporary in‑place edits of `index.ts`, each restored byte‑for‑byte with the sha re‑asserted immediately after; the file is unmodified in git.
+
+**Do not deploy this candidate with D128 open** — it trades 15 caught fabrications for ~75% of truthful negatives about any entity whose name contains "and"/"but"/"without"/a dash/a parenthesis.
+
+---
+
+**VERDICT: FAIL**
+
+**index.ts sha256 observed at end: `e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69`** — matches the required value.
