@@ -1,60 +1,108 @@
-﻿{
-    "recorded_at":  "2026-09-03T22:27:30",
-    "sessions":  [
-                     {
-                         "hot_files":  "none",
-                         "started":  "2026-08-29 22:34",
-                         "pid":  13028,
-                         "action":  "TERMINATED (pre-upgrade zombie)",
-                         "role":  "claude agents --json (zombie list call)",
-                         "execution_mode":  "n/a"
-                     },
-                     {
-                         "started":  "2026-08-30 02:53",
-                         "pid":  27604,
-                         "hot_files":  "none (read-only reviewer; not an index.ts writer)",
-                         "session_id":  "3172d876-66f3-4273-bc3b-183fa61e5339",
-                         "execution_mode":  "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
-                         "parent":  4608,
-                         "role":  "brain-os-db-security-engineer",
-                         "action":  "TERMINATED with its pty host 4608 — pre-upgrade, not provably active; its review artifacts (DB_REVIEW_*) are already durable"
-                     },
-                     {
-                         "started":  "2026-08-31 10:45",
-                         "pid":  2616,
-                         "hot_files":  "none",
-                         "session_id":  "26c0fcc3-527b-4f2c-85bb-6a8b5083e53d",
-                         "execution_mode":  "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
-                         "parent":  24848,
-                         "role":  "brain-os-verifier (Phase 5 Software Factory verification)",
-                         "action":  "TERMINATED with pty host 24848 — campaign long completed (Phase 5 E2E VERIFIED recorded)"
-                     },
-                     {
-                         "started":  "2026-08-31 19:06",
-                         "pid":  16600,
-                         "hot_files":  "none",
-                         "session_id":  "2e2eaf49-3194-4296-92e3-cc7ae25d1d8c",
-                         "execution_mode":  "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
-                         "parent":  31304,
-                         "role":  "brain-os-verifier (task-observer skill apply)",
-                         "action":  "TERMINATED with pty host 31304 — pre-upgrade, not provably active"
-                     },
-                     {
-                         "hot_files":  "supabase/functions/sem-ai-command/index.ts (sole writer)",
-                         "started":  "2026-09-03 22:16",
-                         "pid":  4692,
-                         "action":  "KEPT",
-                         "role":  "THIS implementation session (claude --continue)",
-                         "execution_mode":  "top-level interactive"
-                     },
-                     {
-                         "hot_files":  "none",
-                         "started":  "2026-09-03 22:17",
-                         "pid":  27112,
-                         "action":  "KEPT",
-                         "role":  "claude daemon (spawned by this session)",
-                         "execution_mode":  "daemon"
-                     }
-                 ],
-    "remaining_claude_pids":  "4692,13028,22996,24296,27112,30376"
+{
+ "recorded_at": "2026-09-03T22:27:30",
+ "sessions": [
+  {
+   "hot_files": "none",
+   "started": "2026-08-29 22:34",
+   "pid": 13028,
+   "action": "TERMINATED (pre-upgrade zombie)",
+   "role": "claude agents --json (zombie list call)",
+   "execution_mode": "n/a"
+  },
+  {
+   "started": "2026-08-30 02:53",
+   "pid": 27604,
+   "hot_files": "none (read-only reviewer; not an index.ts writer)",
+   "session_id": "3172d876-66f3-4273-bc3b-183fa61e5339",
+   "execution_mode": "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
+   "parent": 4608,
+   "role": "brain-os-db-security-engineer",
+   "action": "TERMINATED with its pty host 4608 — pre-upgrade, not provably active; its review artifacts (DB_REVIEW_*) are already durable"
+  },
+  {
+   "started": "2026-08-31 10:45",
+   "pid": 2616,
+   "hot_files": "none",
+   "session_id": "26c0fcc3-527b-4f2c-85bb-6a8b5083e53d",
+   "execution_mode": "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
+   "parent": 24848,
+   "role": "brain-os-verifier (Phase 5 Software Factory verification)",
+   "action": "TERMINATED with pty host 24848 — campaign long completed (Phase 5 E2E VERIFIED recorded)"
+  },
+  {
+   "started": "2026-08-31 19:06",
+   "pid": 16600,
+   "hot_files": "none",
+   "session_id": "2e2eaf49-3194-4296-92e3-cc7ae25d1d8c",
+   "execution_mode": "BACKGROUND_SUBAGENT (--bg-pty-host) — the banned mode",
+   "parent": 31304,
+   "role": "brain-os-verifier (task-observer skill apply)",
+   "action": "TERMINATED with pty host 31304 — pre-upgrade, not provably active"
+  },
+  {
+   "hot_files": "supabase/functions/sem-ai-command/index.ts (sole writer)",
+   "started": "2026-09-03 22:16",
+   "pid": 4692,
+   "action": "KEPT",
+   "role": "THIS implementation session (claude --continue)",
+   "execution_mode": "top-level interactive"
+  },
+  {
+   "hot_files": "none",
+   "started": "2026-09-03 22:17",
+   "pid": 27112,
+   "action": "KEPT",
+   "role": "claude daemon (spawned by this session)",
+   "execution_mode": "daemon"
+  }
+ ],
+ "remaining_claude_pids": "4692,13028,22996,24296,27112,30376",
+ "reconciliations": [
+  {
+   "reconciled_at": "2026-09-04T02:19:56.805Z",
+   "note": "2026-09-04 post-compact reconciliation: only this implementation session (PID 1664, --continue) plus its rg child and the Playwright MCP node processes existed; no competing writer on index.ts. Verifier #16 then dispatched as TOP_LEVEL_ISOLATED_PROCESS.",
+   "sessions": [
+    {
+     "pid": 1664,
+     "role": "implementation (this session)",
+     "work_order": "BUG-002 execution truth / campaign #76",
+     "repo": "C:/Users/Dell/dev/brain-os",
+     "worktree": "main",
+     "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+     "sha": "0a03127",
+     "hot_files": [
+      "supabase/functions/sem-ai-command/index.ts (frozen until verifier #16 returns)"
+     ],
+     "status": "active"
+    },
+    {
+     "pid": 2572,
+     "role": "verifier-watchdog (bash, retry ownership)",
+     "work_order": "campaign #76",
+     "repo": "C:/Users/Dell/dev/brain-os",
+     "worktree": "C:/Users/Dell/dev/brain-os-verify-0a03127",
+     "branch": "verify-0a03127-campaign76",
+     "sha": "0a03127",
+     "hot_files": [
+      "qa/verification/scratch/verifier16_output.log"
+     ],
+     "status": "active"
+    },
+    {
+     "pid": "4220/16388",
+     "role": "brain-os-verifier #16 (claude -p, isolated process)",
+     "work_order": "campaign #76",
+     "repo": "C:/Users/Dell/dev/brain-os-verify-0a03127",
+     "worktree": "C:/Users/Dell/dev/brain-os-verify-0a03127",
+     "branch": "verify-0a03127-campaign76",
+     "sha": "0a03127",
+     "index_sha256": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+     "hot_files": [
+      "qa/verification/** in its own worktree only"
+     ],
+     "status": "running, read-only candidate"
+    }
+   ]
+  }
+ ]
 }

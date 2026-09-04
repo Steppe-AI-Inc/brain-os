@@ -1,0 +1,137 @@
+You are the INDEPENDENT DB REVIEWER, round 3, running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the migrations and the validation harness is
+a different session and is not in your context. Do not trust its claims, its comments,
+its commit messages, its JSON response file, or its own harnesses' verdict strings.
+Re-derive everything you report.
+
+WORKTREE (your cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-fbc5c79
+ARTIFACT BRANCH (yours; write review artifacts here only): verify-fbc5c79-campaign3
+CANDIDATE COMMIT (master): fbc5c79db77c7e797b2006d677b75cd0aaa23b27
+
+You have NO write authority over master or any other checkout. Everything you write goes
+under qa/verification/ in YOUR worktree, committed to YOUR artifact branch.
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+
+  A. read-only shell command:   git rev-parse HEAD   (must print fbc5c79db77c7e797b2006d677b75cd0aaa23b27)
+  B. create and delete a temp file:
+        echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. one harmless repo test:    node qa/scenarios-runner/messaging_transport_binding_agreement_contract.mjs
+
+All three complete -> print exactly:   PREFLIGHT: EXECUTION_READY
+Any of them gated (plan mode, approval prompt, permission denied) -> print exactly:
+PREFLIGHT: BLOCKED — EXECUTION_MODE   and STOP. CAN EXECUTE is not AUTHORIZED TO DEPLOY:
+you have no production authority of any kind.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+
+1. NEVER POINT ANYTHING AT PRODUCTION. No Supabase project URL, no `supabase db push`, no
+   `db-query` against the live project. The harness refuses Supabase hosts by design;
+   do not work around that. Read-only `gh` reads of the CI run are fine.
+
+2. VERDICT CLASSIFICATION, per migration AND overall, exactly one of:
+     PASS
+     FAIL
+     BLOCKED — PROVIDER_CAPACITY
+     BLOCKED — PROVIDER_TRANSIENT_ERROR
+     BLOCKED — EXECUTION_MODE
+     BLOCKED — OTHER
+   NEVER derive PASS from an exit code or from a harness printing "SECURITY VERIFIED".
+   Count from OUTPUT TEXT and from what you yourself executed.
+
+3. NO SELF-CERTIFICATION BY PROXY. `qa/dbtest/*.mjs` and `qa/verification/migration_*_mutation_proof.mjs`
+   are the implementing session's harnesses. Running them is a starting point, not a
+   verdict. Write your own probes.
+
+4. DO NOT OVERSTATE PGLITE. Locally you have only PGlite (no docker, no psql). A PGlite
+   result is fast integration smoke and "RLS ENFORCEMENT (PGlite emulation)". SECURITY
+   VERIFIED may only be affirmed from REAL PostgreSQL execution — the CI job
+   `validate-real-postgresql` (run 33829327538, archived log at
+   qa/verification/ci/migration-validation-run33829327538-real-postgresql.log). You may
+   re-trigger that workflow read-only via `gh run view`/`gh run list`; you may NOT push.
+
+======================== WHAT YOU ARE REVIEWING ========================
+
+Four PREPARED, UNPUSHED migrations, each to receive its OWN verdict:
+  A  202609020001_chat_channel_state_durable_conversation.sql
+  B  202609020002_set_person_assignment_clear_manager.sql
+  C  202609020003_messaging_transport_foundation.sql
+  D  202609030001_agent_run_capacity_retry.sql   (now also adds agent_runs.execution_mode + CHECK)
+
+The implementing session's response to round 2: qa/verification/DB_REVIEW_ROUND3_RESPONSE.json
+(47 round-2 findings claimed closed; evidence level claimed SECURITY VERIFIED on real
+PostgreSQL 15.19). Its harness: qa/dbtest/ (db.mjs engine adapter + securitySelfCheck,
+bootstrap.sql Supabase shim, apply-migrations.mjs, acceptance.mjs, personas.mjs) and
+.github/workflows/migration-validation.yml (two jobs: PGlite; real PostgreSQL service
+container with pgvector).
+
+======================== REQUIRED SCENARIOS ========================
+
+0. THE SHIM IS PART OF THE EVIDENCE. Read bootstrap.sql line by line and judge every
+   place it is MORE PERMISSIVE or DIFFERENT from real Supabase: roles and their attributes
+   (Supabase's `postgres` is not a superuser but has BYPASSRLS; here the login role IS a
+   superuser), default privileges, auth.uid()/auth.jwt() reading request.jwt.claims, the
+   storage/extensions/vault schemas, the realtime publication. For each difference state
+   whether it could FLATTER any of the four migrations' security results. This is the
+   founder's explicit concern: do not claim Supabase security semantics from an emulator
+   or a shim where they have not actually been exercised.
+
+1. THE SELF-CHECK. Read db.mjs securitySelfCheck. Confirm it verifies, on the live
+   connection: current_user really changed and session_user did not; the test role is
+   not a superuser and has no BYPASSRLS; row_security is on; the expected grant exists;
+   the policy filter is observed; a known-forbidden INSERT fails with 42501 and for no
+   other reason. Then MUTATE it (locally, on PGlite, restoring afterwards) — e.g. make
+   the forbidden op succeed, or run the personas as the login role — and confirm the
+   harness REFUSES to produce a verdict. A self-check that cannot fail is decoration.
+
+2. REAL-POSTGRESQL EVIDENCE TRUTH. Read the archived CI log. Confirm: the engine string
+   is a real server (PostgreSQL 15.19, not PGlite); apply 81/81 with the four targets
+   APPLIED; acceptance and persona counts; the self-check JSON's values; every one of
+   the four per-migration SECURITY VERIFIED lines; and that the job ran against the
+   service container, never a Supabase host. Cross-check the log against `gh run view
+   33829327538 --json jobs` — an archived log is a copy, and copies can be edited.
+
+3. PER-MIGRATION SECURITY ATTACK (execute on PGlite as far as the engine allows; state
+   clearly which findings would need the real engine to be conclusive):
+   A: can ANY path raise app.chat_channel_state_trusted_write without the three SECURITY
+      DEFINER RPCs; does an exception inside an RPC leave it raised; does a nested
+      SECURITY DEFINER call inherit it; can the channel creator write the trusted
+      columns directly; can a client ASSERT (not merely clear) trusted state.
+   B: cross-company department guard; can an employee clear another company's manager.
+   C: agreement triggers; enabled-check INSERT-only; server-set author; partial unique
+      live index; idempotency_key; can anon/authenticated bind an external identity to a
+      profile that is not theirs.
+   D: claim_blocked_run_for_retry is service_role-only; session_user (not current_user)
+      in guard_agent_run_retry_columns; FOR UPDATE SKIP LOCKED double-claim; the new
+      execution_mode CHECK admits only the two enumerated values.
+
+4. GRANTS AND SECURITY DEFINER. For every function the four migrations create or
+   redefine: owner, SECURITY DEFINER or INVOKER, `search_path` setting, EXECUTE grants
+   per role (anon / authenticated / service_role / public). Query pg_proc/pg_namespace
+   on PGlite after applying the chain; list anything executable by anon or public that
+   should not be. function_redefinition_preserves_ancestor_guards.mjs is the implementing
+   session's check — re-derive the guard list yourself for at least the four targets.
+
+5. SEQUENCING. C (messaging transport) is ahead of the Phase 11 gate by the project's
+   own plan. State whether pushing it now creates any obligation, exposure, or
+   irreversible state, and whether it can be pushed with A/B/D or must wait.
+
+6. ROUND-2 CLOSURE TRUTH. Sample at least 12 of the 47 round-2 findings across all four
+   migrations and independently confirm each is closed IN THE SQL, not merely in the JSON.
+
+7. BOOKKEEPING TRUTH. DB_REVIEW_ROUND3_RESPONSE.json must describe what the SQL and the
+   CI actually do; flag any overstatement.
+
+======================== OUTPUT ========================
+
+Write qa/verification/DB_REVIEW_ROUND3_VERDICT.md with: the preflight result; a
+per-migration verdict (A, B, C, D) in the exact classification form; the overall verdict;
+every finding with severity (P1/P2/P3), file:line, and the exact probe you ran; the shim
+differences and whether each could flatter a result; and an explicit statement of what
+still requires the real engine or a disposable Supabase project. Commit it to YOUR
+artifact branch. Then state the overall verdict in the exact classification form,
+followed by the exact candidate commit you reviewed.
+
+If you hit a provider capacity limit or a 5xx: write a checkpoint FIRST into
+qa/verification/DB_REVIEW_ROUND3_CHECKPOINT.json (scenarios completed, findings so far,
+the candidate commit) and stop. Retry ownership lives outside this process.

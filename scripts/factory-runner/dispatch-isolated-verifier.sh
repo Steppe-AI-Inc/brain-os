@@ -17,7 +17,9 @@
 # __WORKTREE__, __ARTIFACT_BRANCH__, __CAMPAIGN__ and __VERIFIER__; they are substituted
 # from the arguments, so the same template serves successive verifiers.
 #
-# Usage: dispatch-isolated-verifier.sh <candidate-sha> <campaign-number> <verifier-number> <prompt-template> [max-attempts]
+# Usage: dispatch-isolated-verifier.sh <candidate-sha> <campaign-number> <verifier-number> <prompt-template> [max-attempts] [pinned-file]
+#   pinned-file: repo-relative file whose sha256 the watchdog pins (default: the Edge
+#   candidate index.ts), or "GIT_HEAD" to pin the worktree commit itself (DB reviews).
 set -eu
 
 CANDIDATE="$1"
@@ -25,6 +27,7 @@ CAMPAIGN="$2"
 VERIFIER="$3"
 TEMPLATE="$4"
 MAX_ATTEMPTS="${5:-6}"
+PINNED="${6:-supabase/functions/sem-ai-command/index.ts}"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SHA7="$(git -C "$REPO" rev-parse --short=7 "$CANDIDATE")"
@@ -42,7 +45,7 @@ if [ -e "$WORKTREE" ]; then
   exit 2
 fi
 git -C "$REPO" worktree add -b "$BRANCH" "$WORKTREE" "$FULL" >/dev/null
-INDEX_SHA="$(sha256sum "$WORKTREE/supabase/functions/sem-ai-command/index.ts" | cut -d' ' -f1)"
+if [ "$PINNED" = "GIT_HEAD" ]; then INDEX_SHA="$FULL"; else INDEX_SHA="$(sha256sum "$WORKTREE/$PINNED" | cut -d' ' -f1)"; fi
 if [ "$(git -C "$WORKTREE" rev-parse HEAD)" != "$FULL" ]; then
   echo "worktree HEAD does not equal the candidate — aborting" >&2
   exit 2
@@ -64,7 +67,8 @@ cat > "$META" <<EOF
   "worktree": "$WORKTREE",
   "artifact_branch": "$BRANCH",
   "candidate_sha": "$FULL",
-  "index_sha256": "$INDEX_SHA",
+  "pinned_file": "$PINNED",
+  "pinned_sha256": "$INDEX_SHA",
   "read_only_candidate": true,
   "checkpoint": "qa/verification/CURRENT_CAMPAIGN.json",
   "provider": "claude-code-cli",
@@ -79,7 +83,7 @@ EOF
 
 # ---- launch under the watchdog, detached ---------------------------------------------------
 : > "$LOG"
-nohup bash "$REPO/scripts/factory-runner/verifier-watchdog.sh" "$PROMPT" "$LOG" "$INDEX_SHA" "$MAX_ATTEMPTS" "$WORKTREE" \
+nohup bash "$REPO/scripts/factory-runner/verifier-watchdog.sh" "$PROMPT" "$LOG" "$INDEX_SHA" "$MAX_ATTEMPTS" "$WORKTREE" "$PINNED" \
   > "$SCRATCH/watchdog${VERIFIER}.nohup" 2>&1 &
 echo "$!" > "$SCRATCH/watchdog${VERIFIER}.pid"
 echo "dispatched verifier #$VERIFIER (campaign #$CAMPAIGN) as TOP_LEVEL_ISOLATED_PROCESS"

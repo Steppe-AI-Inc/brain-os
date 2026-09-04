@@ -27,7 +27,9 @@
 #   (real report)                       hand back; the VERDICT is read from the report by
 #                                       the campaign owner, never inferred here.
 #
-# Usage: verifier-watchdog.sh <prompt-file> <log-file> <expected-index-sha256> [max-attempts] [cwd]
+# Usage: verifier-watchdog.sh <prompt-file> <log-file> <expected-pinned-sha256> [max-attempts] [cwd] [pinned-file]
+#   pinned-file defaults to supabase/functions/sem-ai-command/index.ts (the Edge candidate).
+#   A DB review pins a migration file, or the string "GIT_HEAD" to pin the worktree's commit.
 set -u
 
 PROMPT="$1"
@@ -35,10 +37,14 @@ LOG="$2"
 EXPECT_SHA="$3"
 MAX_ATTEMPTS="${4:-6}"
 CWD="${5:-}"
+PINNED="${6:-supabase/functions/sem-ai-command/index.ts}"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 [ -z "$CWD" ] && CWD="$REPO"
-INDEX="$CWD/supabase/functions/sem-ai-command/index.ts"
+INDEX="$CWD/$PINNED"
+pinned_sha() {
+  if [ "$PINNED" = "GIT_HEAD" ]; then git -C "$CWD" rev-parse HEAD; else sha256sum "$INDEX" | cut -d' ' -f1; fi
+}
 STATE="$REPO/qa/verification/scratch/watchdog-$(basename "$LOG" .log).state"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$STATE"; }
@@ -50,15 +56,15 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
   # SHA DISCIPLINE. A retry must run against the SAME source the campaign was opened for.
   # If the source under the worktree has moved, this is no longer a resumption and the
   # watchdog must stop rather than silently certify a different build.
-  actual="$(sha256sum "$INDEX" | cut -d' ' -f1)"
+  actual="$(pinned_sha)"
   if [ "$actual" != "$EXPECT_SHA" ]; then
-    log "ABORT: index.ts is $actual, campaign pinned $EXPECT_SHA. Source changed under the campaign; a retry would certify a different build. Stopping."
+    log "ABORT: $PINNED is $actual, campaign pinned $EXPECT_SHA. Source changed under the campaign; a retry would certify a different build. Stopping."
     exit 3
   fi
 
   log "attempt $attempt: dispatching verifier (cwd=$CWD)"
   ( cd "$CWD" && claude --permission-mode acceptEdits \
-      --allowedTools "Bash(node:*)" "Bash(sha256sum:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git rev-parse:*)" "Bash(git worktree list:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(echo:*)" "Bash(touch:*)" "Bash(rm:*)" "Bash(npx supabase functions list:*)" \
+      --allowedTools "Bash(node:*)" "Bash(sha256sum:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git rev-parse:*)" "Bash(git worktree list:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(echo:*)" "Bash(touch:*)" "Bash(rm:*)" "Bash(npx supabase functions list:*)" "Bash(npm install:*)" "Bash(npm ci:*)" "Bash(gh run view:*)" "Bash(gh run list:*)" "Bash(gh api:*)" \
       --agent brain-os-verifier -p "$(cat "$PROMPT")" < /dev/null > "$LOG" 2>&1 )
   rc=$?
   bytes=$(wc -c < "$LOG" 2>/dev/null || echo 0)
