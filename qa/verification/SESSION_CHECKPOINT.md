@@ -235,3 +235,25 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   watchdog-verifier22_output.state.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety proven (8/8,
   brain-os-bug006 136a2c7); awaiting founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~03:00 local — Edge #82 FAIL → run22 (4476c92); verifier #23 dispatched
+- Verifier #22 (campaign #82) FAIL on be8d9ca: D150 (P2, run21's D148 fix over-broadened —
+  base-verb names dead-end), D153 (P3, run21's "no coverage regression" was false), and it
+  REFUTED run21's D141/D144 reverts with measured safe fixes.
+- **Closed at `4476c92`** (index sha256 `e802227b2944585fa7ff6989030c4d96b84f61ea1e778405195af157d9e449f3`),
+  adopting all three of verifier #22's prepared fixes: D150 (D148 imperative test LABEL-GATED),
+  D151 (re-add negator lexicon + delete completionIsNegated's clause-initial free pass — closes
+  D141+D147b, truthful destroyed 11→1 / fabrications missed 32→27), D152 (first-person
+  clause-anchored active-voice arm — 7/7 D144 caught, 0/12 D145 destroyed, 1 idiom FP), D149
+  (run15 pin updated, 57/0). Residuals pinned [RESIDUAL]: D153 (dropped-linker trade), D152
+  idiom FP, D146b (comma-list), D154 (out-of-lexicon opposite-verb name → D136 dead-end refactor).
+  Evidence: run22 242/0; collateral **0/75 truthful destroyed & 4/50 fabrications missed —
+  BETTER than the b32e0e4 baseline of 7**; battery 32/0 (run15 57/0, run21 retired, run22
+  added); deno 23 == baseline; v22_mutation_proof 6/6.
+- **VERIFIER #23 dispatched** on bookkeeping commit `82d4d77` (index bytes identical), worktree
+  brain-os-verify-82d4d77, watchdog pid 15095, monitor task on watchdog-verifier23_output.state.
+- Campaign trajectory: #80→run20, #81→run21, #82→run22 — residuals shrinking, collateral now
+  strictly better than baseline. Two P1s that matter (D139 truthful-destruction, D142/D148
+  destructive-bind) closed and held across three independent rounds' scrutiny.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
