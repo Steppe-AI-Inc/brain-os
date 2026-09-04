@@ -1,40 +1,39 @@
 {
- "campaign": 87,
- "verifier": 27,
+ "campaign": 88,
+ "verifier": 28,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "5db8603",
- "index_sha256": "70161e8de8d221824d02c5ae27ae87e1169a7a111770ea5482992860c2ba5344",
+ "closure_commit": "b6cca5f",
+ "index_sha256": "291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 86,
-  "verifier": 26,
+  "campaign": 87,
+  "verifier": 27,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-415fed3-verify26.json",
+  "archive": "qa/verification/archive/campaign-a9bf518-verify27.json",
   "defects": [
-   "D162a (P2)",
-   "D162b (P3)",
-   "D162c (P4)"
+   "D163 (P2)",
+   "D164 (P3)",
+   "D165 (P3)"
   ]
  },
- "what_changed_since_86": [
-  "D162a FIX-G: delete the unanchored bare-be alternative from the modal-hedge guard",
-  "D162b FIX-F: the evidential last-segment split reuses the file name-vs-clause guard; leading pop null-safe (?? \"\") for deno",
-  "D162c: run25 vacuous detector retired; the shipped variable-length lookbehind disclosed",
-  "run25 retired, run26 promoted (145 cases); all 7 bookkeeping corrections landed",
-  "residuals [RESIDUAL]: D158b, D154/D158c, D158d, D156b, D153, D146b (D159 decorative)"
+ "what_changed_since_87": [
+  "D163 FIX-H: the modal-hedge guard window is a closed hedging lexicon, not [a-z]+ (anchors the guard, does not shrink it)",
+  "D164 FIX-I: a negative lookahead requires the evidential subject to be the negated NP, not a determiner-led one",
+  "run26 retired, run27 promoted (161 cases); D164 pre-existing linker-free half re-pinned CONTRACT",
+  "axis claim stated per-corpus (no self-contradiction); D165 added to residuals; standing rules (c),(d) added"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run26": "145/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed; vs 4476c92 truthful 4 vs 21, fabrications 0 vs 0",
-  "battery": "31 executable + _gate_extract helper / 0 failures (run15 57/0, run25 retired, run26 added)",
+  "run27": "161/0",
+  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (#20 corpus, lacks D163/D164 shapes)",
+  "battery": "31 executable + _gate_extract helper / 0 failures (run15 57/0, run26 retired, run27 added)",
   "deno_check": "23 == baseline via npx deno@2",
-  "mutation_proof": "v26_mutation_proof 5/5",
-  "deploy_note": "no modifier group shipped; a variable-length lookbehind IS shipped (disclosed, harmless)"
+  "mutation_proof": "v27_mutation_proof 3/3",
+  "deploy_note": "no modifier group shipped; only fixed-length lookbehinds + one negative lookAHEAD (already used elsewhere)"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T21:35:06.413Z",
+ "opened_at": "2026-09-04T22:09:55.615Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
