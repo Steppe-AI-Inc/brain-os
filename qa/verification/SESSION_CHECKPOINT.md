@@ -176,3 +176,18 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   template qa/verification/scratch/db_review_round6_prompt_template.txt, pinned GIT_HEAD.
 - Gates: still NOT ready. A/B/D authorization awaits the round-6 reviewer PASS on D (A/B
   already 2x PASS). Edge deploy awaits verifier #19 PASS on the exact bytes.
+
+## UPDATE 2026-09-04 ~21:05 local — Edge #79 closed (verifier #20 running); DB A/B/D at the AUTHORIZATION BOUNDARY
+- Edge: verifier #19 FAIL (D134 P1 + D135/D136/D137/D138 + D131 R9b) closed at **`f27f6b7`**
+  (index.ts `6407d95c…`). Battery 30/0; run19 promoted (62); v19 proof 11/11; deno 0 new.
+  VERIFIER #20 running on rotation commit `b32e0e4` (index.ts `6407d95c…`),
+  worktree brain-os-verify-b32e0e4, watchdog pid 11570.
+- DB: round-6 reviewer (verify-4201a7e-campaign6 @ d67b147) returned **A PASS, B PASS, D PASS,
+  C FAIL** (R6-0 P1 repoint-onto-own-channel; R6-1 P2 disable-then-delete). Round 7 pushed as
+  master **`e7c943e`**: R6-0/R6-1 closed in C; the 3 ledger corrections landed; R6-8 deferred.
+  personas 57/57; migration_round7 4/4. **A/B/D have PASSED THREE independent rounds**
+  (202609020001, 202609020002, 202609030001), real-PostgreSQL CI SECURITY VERIFIED. C
+  (+202609040001) stays split out, awaiting its own round-7 review.
+- **AUTHORIZATION BOUNDARY REACHED for A/B/D.** Asking the founder, exactly once, to approve
+  the production DB migration of A, B and D. NOT asking about C. NOT asking ALLOW_FUNCTIONS_DEPLOY
+  (Edge is still verifying).
