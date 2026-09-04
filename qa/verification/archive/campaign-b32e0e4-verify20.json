@@ -1,0 +1,38 @@
+{
+ "campaign": 80,
+ "verifier": 20,
+ "candidate_sha": "b32e0e48566934741093ad3407f093fc1aa8b01b",
+ "index_sha256": "6407d95cc846e638d1229559b2622323072028876c8844ce2b1045eade050a6c",
+ "verdict": "FAIL",
+ "defects": [
+  "D139 (P1, zero-relativizer truthful negative destroyed)",
+  "D142 (P1, label strip arms opposite destructive field)",
+  "D141 (P2, negator lexicon gap, pre-existing)",
+  "D144 (P3, active-voice fabrication missed)"
+ ],
+ "also": [
+  "safeOptionLabel null for names beginning with a completion word (pre-existing, rendering half of D138 class)",
+  "ordinal range check vacuous (harmless)"
+ ],
+ "closed_confirmed": [
+  "D132 guard load-bearing",
+  "D133",
+  "D134",
+  "D135",
+  "D136",
+  "D137",
+  "D138 shape",
+  "question belt",
+  "D112/D116-D129"
+ ],
+ "measured_fix_directions": {
+  "D139": "R-ZR2 name-safe clause linker (0/75 truthful destroyed)",
+  "D142": "D136 dead-end on label path",
+  "D141": "extend lexicon",
+  "D144": "active-voice arm",
+  "R-IDIOM": "optional residual reducer, not adopted"
+ },
+ "production": "sem-ai-command v92 ACTIVE, ezbr_sha256 33255b31…, candidate not live",
+ "artifact_branch": "verify-b32e0e4-campaign80",
+ "report": "qa/verification/scratch/verifier20_output.log"
+}
