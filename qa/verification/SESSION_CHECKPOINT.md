@@ -216,3 +216,22 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   040001 → the founder's STOP condition; a selective procedure is required and D is
   object-independent of C (grep: D's only C mentions are comments). Awaiting the pending-set
   output to finalize + locally verify the selective A/B/D-only apply.
+
+## UPDATE 2026-09-05 ~02:15 local — Edge #81 FAIL → run21 (0969852); verifier #22 dispatched
+- Verifier #21 (campaign #81) FAIL on 0ba51a1: D148 (P1, D142 only narrowed), D145 (P1, D144
+  active arm destroyed truthful questions), D146 (P1/P2, R-ZR2 linkers too broad), D147 (P2),
+  D149 (P2, D141 broke run15 — my "stub" claim was wrong).
+- **Closed at `0969852`** (index sha256 `272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2`):
+  D148 (D142 rebuilt on imperative-form opposite-verb test, fail-closed, no actionType||archive
+  default), D146 (R-ZR2 linkers narrowed to and|but + although|though|however|therefore), D149
+  (D141 reverted → run15 57/0 again; false stub claim withdrawn). **REVERTED as documented
+  [RESIDUAL]s**: D141 (P2), D144 active-voice/D145 (P1), D146b (P2 comma-list) — each cannot be
+  closed safely without a corpus; not regressions vs b32e0e4. Net: the two P1s that matter
+  (D139 truthful-destruction, D142/D148 destructive-bind) are CLOSED.
+  Evidence: run21 136/0; collateral 0/75 truthful destroyed & 7/50 missed (== baseline);
+  battery 32/0 (run15 57/0, run20 retired, run21 added); deno 23 == baseline; v21_mutation_proof 6/6.
+- **VERIFIER #22 dispatched** on bookkeeping commit `be8d9ca` (index bytes identical),
+  worktree brain-os-verify-be8d9ca, watchdog pid 14474, monitor task on
+  watchdog-verifier22_output.state.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety proven (8/8,
+  brain-os-bug006 136a2c7); awaiting founder's `migration list` + `db push --dry-run` output.
