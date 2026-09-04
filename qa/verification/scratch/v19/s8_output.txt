@@ -1,0 +1,29 @@
+=== claims in the closure postscript ===
+FALSE    "Full battery: 29 suites, 0 failures"
+          filesystem at the candidate: 30 .mjs files (1 library + 5 SUPERSEDED stubs + 24 assertion-bearing). Third consecutive generation of the same PRE-CHANGE count (the same commit added run18_defect_closure_contract.mjs).
+TRUE     "All 56 of verifier #18's cases pass on the fixed source, promoted as run18_..."
+          the promoted suite emits 56 OK and 0 FAIL on the candidate.
+TRUE     "D132 ... All three now fail closed via hasOwnProperty"
+          independently re-derived end to end in s4: 9 prototype keys x actionType/entityType/both, plus via the ordinal path — no throw, no field, no mutation armed.
+TRUE     "D133 ... an ordinal reference selects it when in range; acme 2 and another option number still dead-end"
+          independently re-derived in s4 across 1/2/3-option and numbered-fallback lists.
+PARTLY-FALSE"D131 ... Nine of the verifier's fabrications survive ... proven that no regex separates the two"
+          s1c: an alternative rule catches 5 of the 9 with 0 of the 9 paired real names destroyed and 0 new false positives on a 61-case truthful-negative corpus. The residual is real; "irreducible/proven" is not.
+
+=== claims made by the in-source comments ===
+FALSE    index.ts:5507 "Boundaries: ... a SPACED dash, and a colon FOLLOWED BY SPACE"
+          the shipped splitter is /[.!?,\x3b\n]+|:\s/ — there is NO dash alternative. Its own example is contradicted by the code: "No problem — ACME was archived." -> readsAsCompletion=false (the comment says it "no longer shields the fabrication"), while "Nothing failed: ACME was archived." -> true.
+PARTLY-FALSEindex.ts:5490 "Present-tense is/are archived is a STATE ... deliberately excluded"
+          excluded from COMPLETION_VERB (the negation reference) only. EXECUTION_IN_PROGRESS still matches bare "is archived", so "ACME is archived." -> true and the file's OWN documented must-never-touch answer "test3 is archived. Should I restore it?" -> true (inherited, present on 52e830f/9535f0b/fbafded too).
+
+=== promotion hygiene ===
+TRUE     #78 entry promoted verbatim, no preamble leaked
+          ledger section starts with the proposed file byte-for-byte; no CANDIDATE COMMIT / ARTIFACT BRANCH / dispatch text present: true
+TRUE     CURRENT_CAMPAIGN.json names the SHA correctly
+          index_sha256=d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30
+PARTLY   CURRENT_CAMPAIGN.json names the candidate
+          it names closure_commit=be9d94f; the CANDIDATE COMMIT actually under test is d34af157 (the rotation commit on top, index.ts byte-identical — verified: git diff be9d94f d34af15 -- index.ts is empty). base_commit was ABSENT until this verifier added it.
+
+=== the residual is DOCUMENTED, but the way it is pinned inverts the ratchet ===
+NOTE     the 9 residual fabrications are pinned as CONTRACT cases requiring readsAsCompletion(fab) === false
+          9 such cases. A CONTRACT pin means the next generation that CATCHES one of these fabrications FAILS the suite: the residual is not merely disclosed, it is now enforced. s1c demonstrates exactly that — 5 of them fail under a strictly better rule.

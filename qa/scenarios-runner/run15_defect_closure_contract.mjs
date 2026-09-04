@@ -109,7 +109,7 @@ const beltSlice = stripTS([
   balancedFrom(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
   grab('const CONFIRMED_COMPLETION =', ';'),
   grab('const NEGATED_CLAUSE =', ';'),
-  grab('const COMPLETION_PARTICIPLE =', ';'), grab('const COMPLETION_VERB =', ';'), balancedFrom(src, 'const completionIsNegated =', '{', '}') + ';', // Closure edit (run18/D130): negation vs the VERBAL completion
+  grab('const COMPLETION_PARTICIPLE =', ';'), grab('const COMPLETION_VERB =', ';'), grab('const NEGATION_AUX =', ';'), balancedFrom(src, 'const completionIsNegated =', '{', '}') + ';', // Closure edit (run18/D130): negation vs the VERBAL completion
   grab('const REFERENCELESS_CONFIRMATION =', ';'),
   grab('const readsAsCompletion =', ';'),
   'return { readsAsCompletion, LEGACY_PAST_COMPLETION, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, NEGATED_CLAUSE };',

@@ -132,6 +132,7 @@ const beltSlice = stripTS([
   statementAt(src, 'const NEGATED_CLAUSE ='),
   statementAt(src, 'const COMPLETION_PARTICIPLE ='),
   statementAt(src, 'const COMPLETION_VERB ='),
+  statementAt(src, 'const NEGATION_AUX ='),
   statementAt(src, 'const completionIsNegated ='),
   statementAt(src, 'const REFERENCELESS_CONFIRMATION ='),
   statementAt(src, 'const readsAsCompletion ='),
@@ -245,20 +246,22 @@ for (const s of D131_CATCHABLE) {
     `D131 (P2): a filler negator set off by a colon, or a name-word "without", is still caught — ${JSON.stringify(s)}`,
     () => readsAsCompletion(s) === true);
 }
+// run19/D131 (R9b): five of the nine residuals run18 pinned as "irreducible" are now CAUGHT
+// (a boundary that only fires before a lowercase non-auxiliary token, plus a relative-clause
+// -aware negation) — they moved to run19's D131.separableResidual. Only these FOUR remain a
+// documented residual: the separator is followed by a CAPITALISED token (a name) or the
+// fabrication has no verbal boundary at all, so no lexical rule separates them from the paired
+// real name without a false positive. Verifier #19 measured that; the "proven irreducible"
+// claim is corrected to "residual, and here is exactly which four."
 const D131_IRREDUCIBLE = [
-  ['and', 'There were no errors and ACME was archived.', 'No company named Salt and Pepper Co was archived.'],
-  ['and', 'The company had no open tasks and was archived.', 'Nothing named Bed Bath and Beyond was deleted.'],
-  ['and', 'No issues at all and the goal was completed.', 'There is no company called Barnes and Noble that was archived.'],
-  ['but', 'There is no undo but the company has been archived.', 'No company called But First Coffee was archived.'],
   ['but', 'Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.'],
   ['dash', 'No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'],
   ['dash', 'Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.'],
-  ['dash', 'Not the task — the company was archived.', 'No unit at Erdenet — Copper Works was archived.'],
   ['dash', 'Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
 ];
 for (const [tok, fab, real] of D131_IRREDUCIBLE) {
   C(`D131.irreducibleResidual.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
-    `D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separator is "${tok}", and that boundary DESTROYS the paired real name (proven here). Caught by the primary evidence path, not the belt.`,
+    `D131 DOCUMENTED RESIDUAL (4 remaining after run19/R9b): this fabrication survives because its only separator is "${tok}" followed by a capitalised/name token, and that boundary DESTROYS the paired real name (proven here). Caught by the primary evidence path, not the belt.`,
     () => readsAsCompletion(fab) === false && readsAsCompletion(real) === false);
 }
 C('D131.disclosedResidual.pinnedNotAccepted', 'CONTRACT',

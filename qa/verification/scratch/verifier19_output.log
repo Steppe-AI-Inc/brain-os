@@ -1,0 +1,45 @@
+## Final report — VERIFIER #19, campaign #79
+
+```
+CHANGE VERIFIED: run18 D130–D133 closure in supabase/functions/sem-ai-command/index.ts
+                 (candidate d34af157, closure be9d94f)
+SCENARIOS: 12 executed and conclusive, 3 BLOCKED (DB/*.sql, UI, live AI chat)
+CANONICAL GRAPH: BLOCKED (no DB access in this process — not claimed either way)
+UI ↔ DB:         BLOCKED (no browser/MCP tooling in this session type)
+AI ↔ DB:         BLOCKED (same)
+DEPENDENCIES:    n/a (source/behavioural campaign)
+PERMISSIONS:     n/a
+RELOAD/PERSISTENCE: n/a
+IDEMPOTENCY:     PASS (index.ts restored byte-identically after all 14 mutations)
+```
+
+**PREFLIGHT: EXECUTION_READY** (HEAD = d34af157…, write probe OK, regex runner 13/13).
+
+### What genuinely closed (independently re-derived, not taken from the closure's own harnesses)
+- **D130 — CLOSED.** False positives on a 62-case truthful-negative corpus built from the shape the *new* mechanism keys on: **22/62 (fbafded/a559f8f) → 5/62**, and all 5 survivors are the new D134 shape. Real-name groups: **40/40 survive** (fbafded destroyed 17). Founder-directed lexical matrix, one real company name per completion word (24 words × 7 canonical branches): every truthful negative survives **and** every fabrication is still caught.
+- **D132 — CLOSED end to end.** 27 prototype-key combinations through the real `matchDisambiguationOption → commandContradictsActionType → resolveClarificationField` chain: no throw, no field, no mutation armed — plus 18 more via the new ordinal path.
+- **D133 — CLOSED for the shapes it names**, with D129's limits preserved.
+- **Coverage is real:** my own 10 required mutants (invert participle position, drop the auxiliary, is/are back, and/but/dash boundaries, drop colon-space, "without" back, both `hasOwnProperty` guards, ordinal off, range check off) — **10 killed, 0 survived**.
+- **Question belt untouched:** byte-identical across 6 revisions (`156577c1ea482bbb`), 0 behavioural divergences.
+- **Battery:** 30 `.mjs` from the filesystem = 1 library + 5 SUPERSEDED stubs + **24 assertion-bearing**, **909 OK, 0 failures from output text, 0 nonzero exits**.
+
+### Failures found
+| # | Sev | Finding |
+|---|---|---|
+| **D134** | **P1, NEW** | The D130 fix moved `CONFIRMED_COMPLETION` to a **whole-string** test but tests negation on **clause[0] only**. 12/12 truthful `"Confirmed — …"` negatives destroyed (0/12 on fbafded, a559f8f, 9535f0b, 52e830f). Proven through the real gate: both correction paths replace the true answer with a false one. This is #5277's class in mirror image, and #75's own D117 lesson un-learned. |
+| **D135** | **P2, NEW** | `no` is inside `ORD_FILLER`, so `"no option 2"`, `"option 2, no"`, `"no the second one"` **bind and arm `archiveCompanyIds`** with no LLM in the loop — while `"acme, no"` (the identical intent, D123's own example) correctly dead-ends. |
+| **D136** | **P3, NEW** | The ordinal path preempts label matching: with a company literally named "Option 2 Ltd", `"option 2"` arms the **other** company. |
+| **D131** | **P2, claim** | "Proven irreducible" is false for **5 of the 9** pinned residuals: a scope-based rule catches 5, destroys **0/9** paired real names, adds **0** new false positives, and leaves the battery green except the 5 pins that encode the residual. Pinning fabrications as CONTRACT also inverts the ratchet. |
+| **D137** | P2, inherited | `"ACME is archived."` and the file's own must-never-touch live case `"test3 is archived. Should I restore it?"` read as completions (EXECUTION_IN_PROGRESS), contradicting this closure's stated present-tense rationale. Undisclosed. |
+| **D138** | P3, inherited | A company whose **name** contains a lifecycle verb ("Restored Furniture Co", "Activated Carbon Mongolia" — the latter since run17/D127) cannot be selected deterministically. |
+| — | bookkeeping | "29 suites" is wrong for the **third consecutive generation** (30). `index.ts:5507` documents a SPACED-DASH boundary the splitter does not have, with an example the same commit's ledger lists as uncaught. |
+
+**Fixes: PREPARED, not applied** (no write authority on the implementation branch). F1+F2+F3 close all 19 D134/D135/D136 cases — regression file 28→47 passing, **0 CONTRACT failures**, committed battery still **909 OK / 0 failures**.
+
+**Artifacts committed to `verify-d34af15-campaign79` (4a79c9e):** `qa/verification/proposed/v19_known_failure_modes_entry_79.md`, `v19_PROMOTION_NOTE.md`, `v19_regression_additions.mjs` (61 cases: 28 pass / 33 fail, 0 CONTRACT failures, exits nonzero), plus 20 reproduction scripts under `qa/verification/scratch/v19/` and `CURRENT_CAMPAIGN.json` (base_commit recorded first, scenarios updated throughout).
+
+**Coverage gaps, stated not skipped:** `supabase db query --linked` is permission-gated here → the 60+ `*.sql` suites and all DB/RLS/lifecycle truth are **BLOCKED**; no browser/MCP tooling in this session type → UI truth and live AI-chat truth are **BLOCKED**; `deno` gated → the postscript's `deno check` claim is **NOT INDEPENDENTLY VERIFIED**. Production read-only check: `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…4fe475` — unchanged since #75; nothing in D58–D138 is live. **No synthetic `QA-VERIFY-*` data was created** (no DB access; this campaign is source/behavioural only), so there is nothing to clean up.
+
+VERDICT: **FAIL**
+
+index.ts sha256 observed at the end: **d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30**

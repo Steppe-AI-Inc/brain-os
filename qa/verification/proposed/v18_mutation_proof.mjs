@@ -32,7 +32,7 @@ const MUTATIONS = [
     find: /if \(m === null\) return true;/,
     replace: 'if (m === null) return false;',
     expect: /D130\.|D118\.hold|D112\.hold/ },
-  { name: 'M03 D130 LIMIT: the position test is inverted (<= becomes >), so a trailing negator disarms and D128 fabrications escape',
+  { name: 'M03 D130 LIMIT: the position test is inverted (<= becomes >), so a trailing negator disarms and D128 fabrications escape', superseded: 'run19/D134+R9b: the belt was redesigned (CONFIRMED negation scoped to the matched clause; splitter gained and/but/dash-before-lowercase boundaries; completionIsNegated is relative-clause-aware); this region is mutation-proven in v19_mutation_proof',
     find: /return n <= m\.index \+ \(rel < 0 \? 0 : rel\);/,
     replace: 'return n > m.index + (rel < 0 ? 0 : rel);',
     expect: /D128\.hold\.d125FourShapesStillCaught|D131\.fabricationCaught/ },
@@ -42,11 +42,11 @@ const MUTATIONS = [
     expect: /D130\.stateThenNegation/ },
 
   // ---- D131: boundaries are punctuation only; and/but/dash stay inside names --------------
-  { name: 'M05 D131 COVERAGE: the colon-space boundary is removed, so a colon-separated fabrication escapes',
+  { name: 'M05 D131 COVERAGE: the colon-space boundary is removed, so a colon-separated fabrication escapes', superseded: 'run19/D134+R9b: the belt was redesigned (CONFIRMED negation scoped to the matched clause; splitter gained and/but/dash-before-lowercase boundaries; completionIsNegated is relative-clause-aware); this region is mutation-proven in v19_mutation_proof',
     find: /String\(s\)\.split\(\/\[\.!\?,\\x3b\\n\]\+\|:\\s\/\)/,
     replace: 'String(s).split(/[.!?,\\x3b\\n]+/)',
     expect: /D131\.fabricationCaught/ },
-  { name: 'M06 D131 LIMIT: a spaced dash becomes a boundary again — it destroys the paired real name in the irreducible-residual proof',
+  { name: 'M06 D131 LIMIT: a spaced dash becomes a boundary again — it destroys the paired real name in the irreducible-residual proof', superseded: 'run19/D134+R9b: the belt was redesigned (CONFIRMED negation scoped to the matched clause; splitter gained and/but/dash-before-lowercase boundaries; completionIsNegated is relative-clause-aware); this region is mutation-proven in v19_mutation_proof',
     find: /String\(s\)\.split\(\/\[\.!\?,\\x3b\\n\]\+\|:\\s\/\)/,
     replace: 'String(s).split(/[.!?,\\x3b\\n]+|:\\s|\\s[–—]+\\s/)',
     expect: /D131\.irreducibleResidual/ },
@@ -96,12 +96,14 @@ const runSuites = () => {
 };
 const failing = (out) => out.split(/\r?\n/).filter((l) => /^FAIL /.test(l)).map((l) => l.replace(/^FAIL /, '').split(/\s+/)[0]);
 
-let unproven = 0;
+let unproven = 0, superseded = 0;
 try {
   const base = failing(runSuites());
   if (base.length) { console.log('BASELINE NOT CLEAN — the suites fail on unmutated source:\n  ' + base.join('\n  ')); process.exit(1); }
   console.log('baseline: all ' + SUITES.length + ' suites green on unmutated source\n');
   for (const m of MUTATIONS) {
+    if (m.superseded) { console.log(`SUPERSEDED    ${m.name}
+              ${m.superseded}`); superseded++; continue; }
     const hits = (text.match(new RegExp(m.find.source, m.find.flags.includes('g') ? m.find.flags : m.find.flags + 'g')) || []).length;
     if (hits < 1) { console.log(`UNPROVEN      ${m.name}\n              stale anchor: matched 0x`); unproven++; continue; }
     const mutated = text.replace(m.find, () => m.replace);
@@ -123,5 +125,5 @@ try {
   if (after !== pristineSha) { console.log(`\n*** SOURCE NOT RESTORED *** ${after}`); process.exit(2); }
   console.log(`\nsource restored byte-identically (sha256 ${after.slice(0, 16)}…)`);
 }
-console.log(`v18_mutation_proof: ${MUTATIONS.length - unproven}/${MUTATIONS.length} proven, ${unproven} unproven`);
+console.log(`v18_mutation_proof: ${MUTATIONS.length - unproven - superseded}/${MUTATIONS.length - superseded} proven, ${unproven} unproven, ${superseded} superseded by run19 (historical record: 12/12 at be9d94f)`);
 process.exit(unproven === 0 ? 0 : 1);

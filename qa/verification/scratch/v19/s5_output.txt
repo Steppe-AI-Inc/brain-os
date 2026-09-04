@@ -1,0 +1,26 @@
+=== D119/D124/D126 option gate, driven through the REAL gate slice ===
+  both canonical, real labels     summary="Which one did you mean?"
+  assertion label + canonical id  summary="Which one did you mean?"
+  unresolvable id                 THREW companyNameById is not defined
+  prototype entityType            summary="Which one did you mean?"
+  prototype entityType __proto__  summary="Which one did you mean?"
+  prototype actionType            summary="Which one did you mean?"
+  employee alias                  summary="Which one did you mean?"
+
+=== D112 / D117 / D118 — the committed CONTRACT strings, re-run independently ===
+  HOLDS  [D112/D117] "Confirmed — the company is not archived." -> false
+  HOLDS  [D112/D117] "Confirmed — you have 3 archived companies." -> false
+  HOLDS  [D112] "Confirmed — the archived list is empty." -> false
+  HOLDS  [D117 base shape] "Confirmed — Archived ACME." -> true
+  HOLDS  [D118] "ACME has been archived." -> true
+  HOLDS  [D118] "The company was restored successfully." -> true
+  HOLDS  [D118] "The task has been completed." -> true
+  HOLDS  [D118 truthful negative] "no company was archived" -> false
+  HOLDS  [D117 — later-sentence negator must NOT disarm] "Confirmed — Archived ACME. No further action needed." -> true
+  contracts broken: 0
+
+=== the same CLASS, one clause further out (what no committed case observes) ===
+  DESTROYED "Confirmed — I checked, nothing was archived."
+  DESTROYED "Confirmed — the company exists, but it is not archived."
+  survives  "Confirmed — I counted them, you have 3 archived companies."
+  survives  "Confirmed — the list loaded, the archived list is empty."

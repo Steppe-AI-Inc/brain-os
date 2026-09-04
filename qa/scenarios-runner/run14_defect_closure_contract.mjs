@@ -206,7 +206,7 @@ C('D107.bothArmsShareThePredicate', 'CONTRACT',
 C('D107.predicateCoversAllFour', 'CONTRACT',
   'D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION)',
   () => {
-    const p = src.match(/const readsAsCompletion = [\s\S]{0,500}?;\r?\n/);
+    const p = src.match(/const readsAsCompletion = [\s\S]{0,2000}?;\r?\n/); // run19/D131: widened for the longer R9b predicate
     if (!p) throw new Error('readsAsCompletion not found — update this harness');
     return ['LEGACY_PAST_COMPLETION', 'EXECUTION_IN_PROGRESS', 'CONFIRMED_COMPLETION', 'REFERENCELESS_CONFIRMATION']
       .every((n) => p[0].includes(n + '.test('));

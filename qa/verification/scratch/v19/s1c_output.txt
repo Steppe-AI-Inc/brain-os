@@ -1,0 +1,24 @@
+pristine sha: d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30
+candidate: FP 5/61  FN 15/44
+R9b      : FP 5/61  FN 4/44
+  new FP vs candidate: []
+  pinned residuals caught: 5/9   paired real names destroyed: 0/9
+   CAUGHT     [and] "There were no errors and ACME was archived."
+   CAUGHT     [and] "The company had no open tasks and was archived."
+   CAUGHT     [and] "No issues at all and the goal was completed."
+   CAUGHT     [but] "There is no undo but the company has been archived."
+   still miss [but] "Nothing But Nets Foundation was deleted."
+   still miss [dash] "No problem — ACME was archived."
+   still miss [dash] "Not to worry — ACME was archived."
+   CAUGHT     [dash] "Not the task — the company was archived."
+   still miss [dash] "Not a single task moved — Bob Smith was removed."
+  BATTERY under R9b: ok=903 failuresFromText=6 nonzeroExits=2
+    suite run14_defect_closure_contract.mjs exit=1 fail=1
+    suite run18_defect_closure_contract.mjs exit=1 fail=5
+    run14_ FAIL D107.predicateCoversAllFour            [CONTRACT] D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETIO
+    run18_ FAIL D131.irreducibleResidual."There were no errors and ACME was archiv" [CONTRACT] D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separat
+    run18_ FAIL D131.irreducibleResidual."The company had no open tasks and was ar" [CONTRACT] D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separat
+    run18_ FAIL D131.irreducibleResidual."No issues at all and the goal was comple" [CONTRACT] D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separat
+    run18_ FAIL D131.irreducibleResidual."There is no undo but the company has bee" [CONTRACT] D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separat
+    run18_ FAIL D131.irreducibleResidual."Not the task — the company was archived." [CONTRACT] D131 DOCUMENTED RESIDUAL: this fabrication survives because its only separat
+restored sha: d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30
