@@ -2743,7 +2743,7 @@ serve(async (req) => {
               || (typeof matchedOption.label === 'string'
                 && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(matchedOption.label)
                 && matchedOption.label.replace(new RegExp((matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).source, 'ig'), ' ').trim().length === 0
-                && (matchedOption.actionType === 'restore' ? /\b(?:archive|delete|remove|end)\b/i : /\b(?:restore|unarchive|reactivate|activate)\b/i).test(command)));
+                && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(command)));
           // Same GitHub issue #5 class-B fail-closed fix as the single_entity_clarification
           // branch above: an option carrying no explicit actionType must refuse, not
           // default to this entity type's destructive field.
@@ -5410,7 +5410,7 @@ serve(async (req) => {
         // mutation claim accounts for? If so the reply has drifted from the verified
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|(?:^|\bconfirmed\s*[—–-]\s*)(?:and\s+|but\s+|so\s+|then\s+)?(?:i|we)\s+(?:just\s+|already\s+|also\s+|now\s+|recently\s+|successfully\s+|have\s+|had\s+)*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+\S|\brenamed:\s*.+(→|->)/i;
+        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
 
         // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
         // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
@@ -5587,7 +5587,7 @@ serve(async (req) => {
           // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
           // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
           // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index))
+          return n >= m.index || /\b(?:that|which|who|whom|show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test(c.slice(n, m.index))
             || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
@@ -5607,10 +5607,17 @@ serve(async (req) => {
         // now checked on the CLAUSE THAT CONTAINS the matched completion word: the text up to
         // the end of the CONFIRMED match, last clause. (Optional chaining keeps it null-safe
         // and a single statement for the source-extracting suites.)
+        // run23/D155 (fallback 1, Deno-safe): the third .some() arm below is a first-person
+        // active-voice completion, tested CASE-SENSITIVELY (no /i) so its object must be a proper
+        // name ([A-Z]) or a real entity noun — "I removed it from my draft" / "I restored order"
+        // are NOT claims, "I deleted Beta Corp" / "I deleted the company" are. It lives INLINE (no
+        // new const: run15-18 assemble the belt from a named-const list and would drop a new one)
+        // and uses NO (?-i:) modifier (unverified in the Deno Edge runtime — a bad modifier fails
+        // to construct at module load and takes the whole function down).
         const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
           || (CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[.!?,\x3b\n]|:\s/).pop() ?? ''))
           || String(s).split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.trim()).some((c) => !completionIsNegated(c)
-            && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c)));
+            && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || /(?:^|\b[Cc]onfirmed\s*[—–-]\s*)(?:and |but |so |then )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:[A-Z]|company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)/.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
