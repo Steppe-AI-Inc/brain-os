@@ -66,3 +66,22 @@ existed; no competing writer on index.ts. Record: `qa/verification/scratch/stray
 
 ## Authorization gates — NOT ready, do not ask yet
 Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
+
+## UPDATE 2026-09-04 10:35 local — real-PostgreSQL CI green; DB round-3 independent review dispatched
+- CI run 33829327538 on master `3f77dd9`+`fbc5c79`: job `validate` (PGlite) success; job
+  `validate-real-postgresql` (PostgreSQL 15.19, pgvector service container) success —
+  apply 81/81 (four targets APPLIED), acceptance 36/36, personas 17/17, self-check
+  current_user=authenticated / session_user=postgres / superuser=false / bypassrls=false /
+  row_security=on / forbidden INSERT -> 42501. **Each of the four migrations: SECURITY
+  VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked).** Log archived
+  at `qa/verification/ci/migration-validation-run33829327538-real-postgresql.log`;
+  `DB_REVIEW_ROUND3_RESPONSE.json` updated. First run 33829043446 failed on a service-DB
+  state leak between steps (fixed: reset on connect; real vector extension issued outside
+  the neutralising transform).
+- **DB ROUND-3 INDEPENDENT REVIEW IS RUNNING** as verifier #301 (campaign 3), isolated
+  worktree `C:/Users/Dell/dev/brain-os-verify-fbc5c79` (branch `verify-fbc5c79-campaign3`)
+  at master `fbc5c79`, watchdog pid 3122, log `qa/verification/scratch/verifier301_output.log`.
+  Output: `qa/verification/DB_REVIEW_ROUND3_VERDICT.md` on its artifact branch.
+- `Approve production DB migration?` is asked ONLY after that review returns PASS on all
+  four (or after its findings are closed and re-reviewed). Not before.
+- Verifier #16 (Edge, campaign #76) still running (pid 4220), log empty until exit.
