@@ -323,3 +323,24 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   authorization question is the next genuine boundary.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
   founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~05:35 local — Edge #86 FAIL → run26 (5db8603); verifier #27 dispatched
+- Verifier #26 (campaign #86) FAIL on 415fed3: D162a (P2, FIX-E's unanchored bare-`be` drops a
+  clause on copular modals), D162b (P3, FIX-D's name-blind split — an `and` in a name defeats it,
+  D125→D128→D162b), D162c (P4, run25 vacuous detector). Confirmed D160/D160b/D156/D161 closed.
+- **Closed at `70161e8d…`** (commit 5db8603 + deno null-safety): FIX-G (delete unanchored bare-be),
+  FIX-F (evidential split reuses the file name-vs-clause guard; leading pop null-safe for deno),
+  D162c disclosure (a variable-length lookbehind IS shipped, harmless, now disclosed). Landed ALL
+  7 bookkeeping corrections #26 required (axis claim two-directional, FIX-E collateral withdrawn,
+  D158d in residual list, header at this sha, honest suite count, vll retraction, deno provenance)
+  + 2 standing rules. Residuals [RESIDUAL]: D158b, D154/D158c, D158d, D156b, D153, D146b.
+  Evidence: run26 145/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  31 executable + helper / 0 failures (run15 57/0, run25 retired, run26 added); deno 23 ==
+  baseline (npx deno@2); v26_mutation_proof 5/5.
+- **VERIFIER #27 dispatched** on bookkeeping commit `a9bf518` (index bytes identical), watchdog
+  pid 17928, monitor task on watchdog-verifier27_output.state.
+- Trajectory: #80→run20 … #86→run26 (SEVEN iterations). Severity has dropped to P3/P4 residuals;
+  the last two P2s (D160/D162a) are closed. The two original P1s held across SEVEN rounds. If #27
+  returns PASS or only-documented-P4, `5db8603` is deploy-ready → ALLOW_FUNCTIONS_DEPLOY boundary.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
