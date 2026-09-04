@@ -1,8 +1,11 @@
 // =====================================================================================
-// v28_regression_additions.mjs — verifier #28 / campaign #88.
+// run28 CLOSURE CONTRACT — promoted from v28_regression_additions (verifier #28 / campaign #88),
+// then FIX-I reverted (D164/D166 re-opened as RESIDUAL); PASSED by verifier #29 (campaign #89).
 //
-// Candidate under test: 45d05ccd020f2ea59240a2cef7f6951b35386fa1
-// index.ts sha256:     291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778
+// Candidate under test (run28 consolidation): 95c824c
+// index.ts sha256:     0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757
+// NOTE: the D166/D164 residual notes below still mention a "FIX-I lookahead" that this candidate
+//   REVERTED — the assertions pin the correct (reverted, missed) behaviour; only that prose is stale.
 //
 // Groups:
 //   [CONTRACT] — behaviour that MUST hold. A failure here is a reopened closure.

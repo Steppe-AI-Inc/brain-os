@@ -1,39 +1,16 @@
 {
  "campaign": 89,
  "verifier": 29,
- "status": "DISPATCHED",
- "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+ "status": "PASS — EDGE BELT CONSOLIDATED",
  "closure_commit": "95c824c",
  "index_sha256": "0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
- "prior_campaign": {
-  "campaign": 88,
-  "verifier": 28,
-  "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-45d05cc-verify28.json",
-  "defects": [
-   "D166 (P2)",
-   "D167 (P2)",
-   "D168/D169/D170 (P3)"
-  ]
- },
- "what_changed_since_88": [
-  "FIX-I REVERTED (verifier #28 recommendation): the evidential arm is back to its pre-FIX-I form; D164/D166 re-open as disclosed RESIDUAL, D167 closed by the revert",
-  "FIX-H (D163) kept and closed",
-  "run27 retired, run28 promoted (110 cases); D164r/D166r/D168/D169r/D170 pinned RESIDUAL",
-  "honest bookkeeping: older residuals (D158b/D154/D153/D146b) documented but NOT pinned (deferred cumulative-residuals suite); battery 26 executing + 5 stubs + 1 helper"
- ],
- "implementing_session_evidence_not_to_be_trusted": {
-  "run28": "110/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (#20 corpus)",
-  "battery": "26 executing + 5 stubs + 1 helper / 0 failures (run15 57/0, run27 retired, run28 added)",
-  "deno_check": "23 == baseline via npx deno@2",
-  "mutation_proof": "v28_mutation_proof 2/2",
-  "note": "CONSOLIDATION candidate — FIX-I reverted; defense-in-depth belt with disclosed residuals"
- },
- "verdict": null,
- "attempts": [],
- "scenarios": {},
- "opened_at": "2026-09-04T22:42:25.665Z",
- "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
+ "verdict": "PASS",
+ "verdict_detail": "Verifier #29 PASS: revert byte-exact, D163/D167 closed, no closure reopened, 0 truthful destroyed vs 4476c92. Belt loop CLOSED at run28.",
+ "edge_belt_state": "CONSOLIDATED / VERIFIED-PASS at 95c824c. Ready to LAND in the pending branch.",
+ "next_edge_step_before_deploy": "candidate-vs-DEPLOYED-v92 differential (NOT a belt campaign). Fetching v92 source needs production access — the SAME boundary blocking the DB A/B/D dry-run. No verifier #30.",
+ "db_state": "A/B/D authorized by founder; blocked on production credentials; gap-safety 8/8; awaiting founder migration list + db push --dry-run.",
+ "no_deploy_without": "ALLOW_FUNCTIONS_DEPLOY=1 asked once AFTER a candidate-vs-v92 differential shows no regression against the live bytes.",
+ "history": "run20(#80)->run28(#89): D139/D142/D148/D150 (2 P1s) closed & held 9 rounds; D146/D151/D155/D156/D157/D158/D160/D162a/D162b/D163/D167 closed; D141/D144/D153/D146b/D154/D156b/D158b-d/D164/D165/D166/D168/D169/D170/D171 documented residuals (defense-in-depth fabrication-misses, evidence primary).",
+ "opened_at": "2026-09-04T23:18:34.707Z"
 }
