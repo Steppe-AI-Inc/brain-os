@@ -2713,7 +2713,22 @@ serve(async (req) => {
           const commandForContradiction = matchedOption && typeof matchedOption.label === 'string'
             ? command.replace(new RegExp(matchedOption.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ')
             : command;
-          const contradicted = !!matchedOption && commandContradictsActionType(commandForContradiction, matchedOption.actionType);
+          // run20/D142 (P1): the strip above can erase the founder's OWN command verb when the
+          // matched option's LABEL *is* a bare opposite-family verb (a company named "Restore",
+          // "ReStore", "Unarchive", "Archive", "Delete"). Reply "restore" against a pending
+          // archive then left an empty command, the contradiction check saw nothing, and the
+          // destructive field armed on the OPPOSITE intent. D136's ambiguity dead-end, already
+          // on the ordinal path, is carried here: when removing the label empties the command
+          // AND the label is itself a bare opposite-family verb (stripping that verb leaves the
+          // label empty), dead-end to the LLM. A real name that merely CONTAINS a verb
+          // ("Restored Furniture Co") leaves a non-empty remainder, so it stays selectable (D138).
+          const contradicted = !!matchedOption
+            && (commandContradictsActionType(commandForContradiction, matchedOption.actionType)
+              || (typeof matchedOption.label === 'string'
+                && (matchedOption.actionType === 'restore' || matchedOption.actionType === 'archive')
+                && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(matchedOption.label)
+                && matchedOption.label.replace(new RegExp((matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).source, 'ig'), ' ').trim().length === 0
+                && commandForContradiction.trim().length === 0));
           // Same GitHub issue #5 class-B fail-closed fix as the single_entity_clarification
           // branch above: an option carrying no explicit actionType must refuse, not
           // default to this entity type's destructive field.
@@ -5380,7 +5395,7 @@ serve(async (req) => {
         // mutation claim accounts for? If so the reply has drifted from the verified
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\b(?:i|we|they)\s+(?:just\s+|already\s+|then\s+|also\s+|now\s+|recently\s+|successfully\s+)*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+\S|\brenamed:\s*.+(→|->)/i;
 
         // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
         // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
@@ -5473,7 +5488,7 @@ serve(async (req) => {
         // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
         // qualifier ("archived without incident") far more often than a genuine negation, and
         // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /\b(?:not|never|no|nothing|none|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
+        const NEGATED_CLAUSE = /\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the
@@ -5548,7 +5563,14 @@ serve(async (req) => {
           const rel = m[0].search(COMPLETION_PARTICIPLE);
           const p = m.index + (rel < 0 ? 0 : rel);
           if (n > p) return false;
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || !NEGATION_AUX.test(c.slice(0, n));
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || !NEGATION_AUX.test(c.slice(0, n))
+            // run20/D139 (R-ZR2): a negator that already follows a finite auxiliary still
+            // scopes over the completion verb UNLESS a clause-linker sits between them. A
+            // coordinator counts only after a LOWERCASE token ("no errors and X was archived"
+            // links; "no record Salt and Pepper Co was archived" is name-internal); a
+            // subordinator links wherever it appears. "There is no record ACME was archived."
+            // (zero relativizer, no linker) is therefore the truthful negative it is.
+            || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but|or|so|yet)\s/.test(c.slice(n, m.index)) || /\b(?:because|since|although|though|while|after|before|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
         // colon FOLLOWED BY SPACE — so a filler negator set off by punctuation ("No problem —
