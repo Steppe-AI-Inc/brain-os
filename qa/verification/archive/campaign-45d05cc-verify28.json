@@ -1,0 +1,23 @@
+{
+ "campaign": 88,
+ "verifier": 28,
+ "candidate_sha": "45d05ccd020f2ea59240a2cef7f6951b35386fa1",
+ "index_sha256": "291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778",
+ "verdict": "FAIL",
+ "defects": [
+  "D166 (P2, FIX-I lookahead one-token subject only)",
+  "D167 (P2, FIX-I matched nouns as evidentials, destroyed truthful negatives)",
+  "D168 (P3, FIX-H hedge cost)",
+  "D169 (P3, inherited FIX-E clause drop)",
+  "D170 (P3, pre-existing digit-final name)"
+ ],
+ "confirmed_closed": [
+  "D163/FIX-H 13/13",
+  "D162a/D162b",
+  "question belt byte-identical",
+  "run15 57/0"
+ ],
+ "recommendation": "REVERT FIX-I; re-open D164 as a disclosed residual (a rescue destroying 8 truthful negatives to catch 5 fabrications is the trade index.ts refuses)",
+ "report": "qa/verification/scratch/verifier28_output.log",
+ "artifact_branch": "verify-45d05cc-campaign88 (baa4098)"
+}

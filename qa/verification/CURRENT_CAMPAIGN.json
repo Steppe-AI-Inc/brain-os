@@ -1,39 +1,39 @@
 {
- "campaign": 88,
- "verifier": 28,
+ "campaign": 89,
+ "verifier": 29,
  "status": "DISPATCHED",
  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
- "closure_commit": "b6cca5f",
- "index_sha256": "291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778",
+ "closure_commit": "95c824c",
+ "index_sha256": "0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "prior_campaign": {
-  "campaign": 87,
-  "verifier": 27,
+  "campaign": 88,
+  "verifier": 28,
   "verdict": "FAIL",
-  "archive": "qa/verification/archive/campaign-a9bf518-verify27.json",
+  "archive": "qa/verification/archive/campaign-45d05cc-verify28.json",
   "defects": [
-   "D163 (P2)",
-   "D164 (P3)",
-   "D165 (P3)"
+   "D166 (P2)",
+   "D167 (P2)",
+   "D168/D169/D170 (P3)"
   ]
  },
- "what_changed_since_87": [
-  "D163 FIX-H: the modal-hedge guard window is a closed hedging lexicon, not [a-z]+ (anchors the guard, does not shrink it)",
-  "D164 FIX-I: a negative lookahead requires the evidential subject to be the negated NP, not a determiner-led one",
-  "run26 retired, run27 promoted (161 cases); D164 pre-existing linker-free half re-pinned CONTRACT",
-  "axis claim stated per-corpus (no self-contradiction); D165 added to residuals; standing rules (c),(d) added"
+ "what_changed_since_88": [
+  "FIX-I REVERTED (verifier #28 recommendation): the evidential arm is back to its pre-FIX-I form; D164/D166 re-open as disclosed RESIDUAL, D167 closed by the revert",
+  "FIX-H (D163) kept and closed",
+  "run27 retired, run28 promoted (110 cases); D164r/D166r/D168/D169r/D170 pinned RESIDUAL",
+  "honest bookkeeping: older residuals (D158b/D154/D153/D146b) documented but NOT pinned (deferred cumulative-residuals suite); battery 26 executing + 5 stubs + 1 helper"
  ],
  "implementing_session_evidence_not_to_be_trusted": {
-  "run27": "161/0",
-  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (#20 corpus, lacks D163/D164 shapes)",
-  "battery": "31 executable + _gate_extract helper / 0 failures (run15 57/0, run26 retired, run27 added)",
+  "run28": "110/0",
+  "collateral": "0/75 truthful destroyed, 4/50 fabrications missed (#20 corpus)",
+  "battery": "26 executing + 5 stubs + 1 helper / 0 failures (run15 57/0, run27 retired, run28 added)",
   "deno_check": "23 == baseline via npx deno@2",
-  "mutation_proof": "v27_mutation_proof 3/3",
-  "deploy_note": "no modifier group shipped; only fixed-length lookbehinds + one negative lookAHEAD (already used elsewhere)"
+  "mutation_proof": "v28_mutation_proof 2/2",
+  "note": "CONSOLIDATION candidate — FIX-I reverted; defense-in-depth belt with disclosed residuals"
  },
  "verdict": null,
  "attempts": [],
  "scenarios": {},
- "opened_at": "2026-09-04T22:09:55.615Z",
+ "opened_at": "2026-09-04T22:42:25.665Z",
  "rules": "Verdict PASS/FAIL/BLOCKED-* from OUTPUT TEXT never exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked once after an independent PASS on the exact bytes."
 }
