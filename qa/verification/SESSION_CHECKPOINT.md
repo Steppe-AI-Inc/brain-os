@@ -122,3 +122,18 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
 - Verifier #17 (Edge, campaign #77): attempt 1 BLOCKED — PROVIDER_CAPACITY (resets 2:20pm),
   watchdog slept 11859s and re-dispatched attempt 2 at 14:22 on the unchanged SHA; running.
   index.ts remains frozen at e5ccf63b… (closure f232975).
+
+## UPDATE 2026-09-04 ~15:11 local — campaign #77 CLOSED at a559f8f; verifier #18 dispatched; DB round-4 reviewer running
+- Verifier #17 (attempt 2 after a capacity block) returned FAIL on 9535f0b: D128 (P1: the
+  D125 splitter cut inside noun phrases, 97/130 truthful negatives destroyed), D127 (P2:
+  filler admitted every lifecycle verb/noun), D129 (P3: "(option N)" replies dead-ended);
+  D123/D124/D126 confirmed closed. Artifacts on verify-9535f0b-campaign77 @ 361390a.
+- Closure **`a559f8f`**: negation decided by ORDER against COMPLETION_VOCAB (splitter back to
+  [.!?,;\n]); filler scoped to ACTION_FAMILY_VERBS[actionType] + ENTITY_NOUNS[entityType];
+  RESTORE_VERB_PATTERN gains "activate"; winner's own option number is filler; run17 (43)
+  promoted. Battery 28/0; v17 proof 14/14; v16 11/11 (+2 superseded); v15 8/8 (+6);
+  deno 23/23 (0 new). Ledger #77 + postscript appended.
+- **VERIFIER #18 (campaign #78) IS RUNNING** on rotation commit `fbafded`, index.ts sha
+  **`cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb`**, worktree
+  brain-os-verify-fbafded, watchdog pid 6595. DO NOT MODIFY index.ts until it returns.
+- DB round-4 independent reviewer (#401) still running on master 96e1309 (brain-os-verify-96e1309).
