@@ -5590,7 +5590,7 @@ serve(async (req) => {
           // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
           // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
           // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || /^(?!.*\b(?:the|a|an|this|that|these|those|our|its|his|her|their|my|your)\s+\w+\s+(?:show|prove|indicate|say|state|record|confirm|establish|suggest|report|mention|note)\w*\b)[^]*\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || /\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
             || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
