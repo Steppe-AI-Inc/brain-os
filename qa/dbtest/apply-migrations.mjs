@@ -57,6 +57,14 @@ const VECTOR_MODIFIER = /\bvector\s*\(\s*\d+\s*\)/gi;
 const VECTOR_INDEX = /create\s+index[^;]*?using\s+(hnsw|ivfflat)[^;]*;/gi;
 
 function transform(label, sql) {
+  // A REAL pgvector (real-postgresql job) needs no neutralisation of vector at all.
+  if (db.extensions.vector) {
+    return sql.replace(/^s*creates+extensions+(ifs+nots+existss+)?["']?(pg_net|pgjwt|pg_graphql|pg_stat_statements|uuid-ossp|http)["']?[^;]*;/gim, (m) => {
+      neutralised.push({ label, kind: 'extension', statement: m.trim().replace(/s+/g, ' ') });
+      return `-- [harness] neutralised (extension unavailable on this engine): ${m.trim().replace(/s+/g, ' ')}
+`;
+    });
+  }
   return sql
     .replace(UNAVAILABLE_EXT, (m) => {
       neutralised.push({ label, kind: 'extension', statement: m.trim().replace(/\s+/g, ' ') });
@@ -102,7 +110,10 @@ async function run(label, sql, isTarget) {
 console.log('bootstrap: Supabase-compatible shim (roles, auth schema, auth.uid/jwt/role)');
 // On a real engine that ships pgvector the type is REAL; bootstrap.sql's domain shim then
 // skips itself. PGlite has no pgvector, so this is a no-op there and the shim applies.
-if (db.extensions.vector) await run('_vector_extension.sql', 'create extension if not exists vector;', false);
+// Issued DIRECTLY, never through run(): run() applies transform(), which neutralises
+// `create extension ... vector` — CI run 33829043446 proved that path silently produced the
+// domain shim on a server that had the real extension.
+if (db.extensions.vector) await db.exec('create extension if not exists vector;');
 await run('_bootstrap.sql', readFileSync(join(HERE, 'bootstrap.sql'), 'utf8'), false);
 if (results[0].status !== 'APPLIED') {
   console.log('BOOTSTRAP FAILED — nothing below is meaningful:', results[0].error);

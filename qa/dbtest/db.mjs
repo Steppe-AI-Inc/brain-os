@@ -44,6 +44,18 @@ export async function openDb() {
     const exec = async (sql) => { await client.query(sql); };
     const query = async (sql) => client.query(sql);
     const version = (await query('select version() v')).rows[0].v;
+    // DISPOSABLE MEANS DISPOSABLE. The CI service database persists across the job's
+    // steps, so each harness starts by dropping everything the previous one built —
+    // schemas (which takes extensions, domains, tables, functions and policies with them)
+    // and the realtime publication. Roles are cluster-level and are re-used; bootstrap
+    // creates them with IF NOT EXISTS. This is also why db.mjs refuses production hosts.
+    // (CI run 33829043446: the apply step's bootstrap left a `vector` domain behind and the
+    // acceptance step's real `create extension vector` then collided with it.)
+    await exec(`drop schema if exists public cascade; create schema public;
+      grant all on schema public to public;
+      drop schema if exists auth cascade; drop schema if exists storage cascade;
+      drop schema if exists extensions cascade; drop schema if exists vault cascade;
+      drop publication if exists supabase_realtime;`);
     // pgvector is REAL here when the image ships it (pgvector/pgvector:pgNN); pgcrypto is
     // contrib and always present on a stock image.
     const available = (await query(`select name from pg_available_extensions where name in ('vector','pgcrypto')`)).rows.map((r) => r.name);
