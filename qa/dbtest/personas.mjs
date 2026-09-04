@@ -20,7 +20,7 @@
 // tests that "passed" on a foreign-key or primary-key violation instead of on authority
 // (R-ART2, R-ART7), so every refusal here is checked against insufficient_privilege or an
 // explicit authority message — never `catch (others)`.
-import { openDb, bootstrap, transformFor, securitySelfCheck, securityVerdictLabel } from './db.mjs';
+import { openDb, bootstrap, transformFor, securitySelfCheck, securityVerdictLabel, enterPersonaSession, leavePersonaSession } from './db.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +62,13 @@ console.log(`  policy filter: login sees ${SELF_CHECK.superuser_sees}, authentic
 const FOUNDER_AUTH = '11111111-0000-0000-0000-000000000001';
 const EMP_AUTH = '22222222-0000-0000-0000-000000000002';
 const OUTSIDER_AUTH = '33333333-0000-0000-0000-000000000009';
+// ROUND 3 (reviewer §9.4): the suite had NO company-manager persona and no company_memberships
+// rows, so no "a manager cannot X" claim in the batch was tested. Two managers now exist — one
+// per company — because the round-3 findings are about a manager of the SAME company (A-3,
+// C-2, C-3, D-3) and a manager of ANOTHER company (B-1, B-2).
+const MANAGER_A_AUTH = '44444444-0000-0000-0000-000000000004';
+const MANAGER_B_AUTH = '55555555-0000-0000-0000-000000000005';
+const CH_MANAGER = 'cccc0000-0000-0000-0000-00000000000d';
 const CO_A = 'aaaa0000-0000-0000-0000-00000000000a';
 const CO_B = 'bbbb0000-0000-0000-0000-00000000000b';
 const CH_FOUNDER = 'cccc0000-0000-0000-0000-00000000000c';
@@ -69,11 +76,14 @@ const CH_FOUNDER = 'cccc0000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users (id,email,raw_user_meta_data) values
   ('${FOUNDER_AUTH}','founder@t.local','{"full_name":"F"}'::jsonb),
   ('${EMP_AUTH}','emp@t.local','{"full_name":"E"}'::jsonb),
-  ('${OUTSIDER_AUTH}','out@t.local','{"full_name":"O"}'::jsonb);`);
+  ('${OUTSIDER_AUTH}','out@t.local','{"full_name":"O"}'::jsonb),
+  ('${MANAGER_A_AUTH}','mgra@t.local','{"full_name":"MA"}'::jsonb),
+  ('${MANAGER_B_AUTH}','mgrb@t.local','{"full_name":"MB"}'::jsonb);`);
 await db.exec(`update public.profiles set role='founder', active=true where email='founder@t.local';
-  update public.profiles set role='employee', active=true where email in ('emp@t.local','out@t.local');`);
+  update public.profiles set role='employee', active=true where email in ('emp@t.local','out@t.local','mgra@t.local','mgrb@t.local');`);
 const pid = async (email) => (await db.query(`select id from public.profiles where email='${email}'`)).rows[0].id;
 const FP = await pid('founder@t.local'), EP = await pid('emp@t.local'), OP = await pid('out@t.local');
+const MAP = await pid('mgra@t.local'), MBP = await pid('mgrb@t.local');
 
 await db.exec(`insert into public.companies (id,name,created_by_profile_id) values
   ('${CO_A}','Company A','${FP}'), ('${CO_B}','Company B','${FP}');`);
@@ -82,6 +92,16 @@ await db.exec(`insert into public.companies (id,name,created_by_profile_id) valu
 await db.exec(`insert into public.chat_channels (id,name,company_id,created_by_profile_id)
   values ('${CH_FOUNDER}','Founder private channel','${CO_A}','${FP}');`);
 await db.exec(`insert into public.chat_channel_state (channel_id) values ('${CH_FOUNDER}');`);
+await db.exec(`insert into public.company_memberships (company_id, profile_id, role_in_company, active) values
+  ('${CO_A}','${MAP}','manager',true), ('${CO_A}','${EP}','employee',true), ('${CO_B}','${MBP}','manager',true);`);
+await db.exec(`insert into public.chat_channels (id,name,company_id,created_by_profile_id)
+  values ('${CH_MANAGER}','Manager A channel','${CO_A}','${MAP}');`);
+// People rows for the B-1 / B-2 probes: a person whose canonical company is B, and a manager
+// person in A (the profile rows above are auth identities, not people rows).
+const PERSON_B = 'eeee0000-0000-0000-0000-00000000000e';
+const PERSON_MGR_A = 'ffff0000-0000-0000-0000-00000000000f';
+await db.exec(`insert into public.people (id, full_name, company_id) values
+  ('${PERSON_B}','Person In B','${CO_B}'), ('${PERSON_MGR_A}','Manager Person A','${CO_A}');`);
 
 const R = [];
 const T = async (mig, id, desc, fn) => {
@@ -90,11 +110,21 @@ const T = async (mig, id, desc, fn) => {
 };
 
 // Act as a persona: non-superuser role + the same JWT GUC production sets.
+// ROUND 3 / D-1: every persona runs under session_user = qa_authenticator (a non-superuser
+// LOGIN role, PostgREST's shape), then SET ROLE down. Under the old shape (session_user =
+// postgres) migration D's guards could not refuse anybody. ROUND 3 / X-3: the JWT claims are
+// cleared on the way out, so no top-level statement inherits the last persona's identity.
 const as = async (authUid, fn, role = 'authenticated') => {
-  await db.exec(`set role ${role};`);
-  await db.exec(`select set_config('request.jwt.claims', '${authUid ? `{"sub":"${authUid}","role":"authenticated"}` : '{}'}', false);`);
-  try { return await fn(); } finally { await db.exec(`reset role;`); }
+  const login = await enterPersonaSession(db);
+  try {
+    await db.exec(`set role ${role};`);
+    await db.exec(`select set_config('request.jwt.claims', '${authUid ? `{"sub":"${authUid}","role":"${role}"}` : '{}'}', false);`);
+    return await fn();
+  } finally { await leavePersonaSession(db, login); }
 };
+// The supervisor's transport: a DIRECT connection as the login role (session_user = postgres),
+// the only way claim_blocked_run_for_retry can be called (ROUND 3 / D-2).
+const asDirectSupervisor = async (fn) => { await db.exec(`select set_config('request.jwt.claims', '', false);`); return fn(); };
 const countVisible = async (sql) => (await db.query(sql)).rows[0].c;
 // Refusal must be an AUTHORITY refusal. An RLS write that matches no policy raises
 // insufficient_privilege (42501); a policy that filters a read simply returns zero rows.
@@ -107,8 +137,9 @@ const deniedWrite = async (sql) => {
     //   * the RPC's OWN authority check raising an explicit message
     // A foreign-key, unique or check violation is NOT an authority refusal, and accepting
     // one is exactly how R-ART7 passed while proving nothing.
-    const engineRefusal = /insufficient_privilege|row-level security|permission denied|42501/i.test(m);
-    const explicitAuthority = /only the (channel creator|founder)|not authorized|can (claim|assign)|Only the founder/i.test(m);
+    const engineRefusal = e.code === '42501' || /insufficient_privilege|row-level security|permission denied|42501/i.test(m);
+    // The migrations' own authority guards raise with errcode 42501 and these messages.
+    const explicitAuthority = /only the (channel creator|founder)|not authorized|can (claim|assign)|Only the founder|server-written only|requires the founder or an admin|may modify Agent Run retry|cross-company employment change rejected/i.test(m);
     if (!engineRefusal && !explicitAuthority) {
       throw new Error(`refused for the WRONG reason: ${m.split('\n')[0]}`);
     }
@@ -246,6 +277,115 @@ await T(MD, 'D.employeeCannotClaim', 'an ordinary employee cannot claim a blocke
 
 await T(MD, 'D.anonCannotClaim', 'anon cannot claim a blocked run for retry', async () =>
   as(null, () => deniedWrite(`select * from public.claim_blocked_run_for_retry('attacker');`), 'anon'));
+
+// =========================================================================================
+// ROUND 3 (independent review) closures — each test names the finding it closes.
+// =========================================================================================
+await T(MA, 'A.R3-A1.clientCannotForgeViaFlag', 'A-1 (P1): an authenticated client that RAISES the trusted-write GUC itself is still refused (authority is the definer context, not the flag)', async () =>
+  as(FOUNDER_AUTH, () => deniedWrite(
+    `select set_config('app.chat_channel_state_trusted_write','on',false);
+     update public.chat_channel_state set last_successful_mutation='{"forged":"never happened"}'::jsonb where channel_id='${CH_FOUNDER}';`)));
+await T(MA, 'A.R3-A1.rpcStillWorks', 'A-1 LIMIT: the SECURITY DEFINER RPC path still asserts trusted state (the gate is not a blanket denier)', async () =>
+  as(FOUNDER_AUTH, async () => {
+    await db.exec(`select public.record_chat_channel_mutation('${CH_FOUNDER}', '{"action":"archive","id":"real"}'::jsonb);`);
+    return true;
+  }));
+await T(MA, 'A.R3-A3.managerCannotDeleteFounderState', 'A-3 (P2): a manager of the SAME company cannot DELETE the founder channel state row', async () =>
+  (async () => {
+    // RLS filters a DELETE that matches no policy silently (or refuses at the grant); either
+    // way the row must still be there afterwards, checked as the login role.
+    await as(MANAGER_A_AUTH, () => db.exec(`delete from public.chat_channel_state where channel_id='${CH_FOUNDER}';`).catch(() => {}));
+    return (await countVisible(`select count(*)::int c from public.chat_channel_state where channel_id='${CH_FOUNDER}'`)) === 1;
+  })());
+await T(MA, 'A.R3-A3.managerCannotPlantFocusStack', 'A-3 (P2): a manager of the same company cannot write focus_stack into the founder channel row', async () =>
+  (async () => {
+    await as(MANAGER_A_AUTH, () => db.exec(`update public.chat_channel_state set focus_stack='[{"resourceType":"company","id":"${CO_B}","label":"looks safe"}]'::jsonb where channel_id='${CH_FOUNDER}';`).catch(() => {}));
+    return (await countVisible(`select count(*)::int c from public.chat_channel_state where channel_id='${CH_FOUNDER}' and focus_stack::text like '%looks safe%'`)) === 0;
+  })());
+await T(MA, 'A.R3.creatorStillWritesOwnRow', 'A-3 LIMIT: a channel creator can still update non-trusted columns of their OWN state row', async () =>
+  as(MANAGER_A_AUTH, async () => {
+    await db.exec(`insert into public.chat_channel_state (channel_id) values ('${CH_MANAGER}') on conflict do nothing;`);
+    await db.exec(`update public.chat_channel_state set focus_stack='[]'::jsonb where channel_id='${CH_MANAGER}';`);
+    return true;
+  }));
+
+await T(MB, 'B.R3-B2.crossCompanyManagerCannotEndEmployment', 'B-2 (R-B2 HIGH): a manager of Co A cannot act on a person whose current company is Co B', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(`select public.set_person_assignment('${PERSON_B}'::uuid, '${CO_A}'::uuid);`)));
+await T(MB, 'B.R3-B1.crossCompanyManagerPersonRefused', 'B-1 (P2): a manager_person_id from another company is refused as a data-integrity reference (not on authority)', async () =>
+  as(FOUNDER_AUTH, async () => {
+    try { await db.exec(`select public.set_person_assignment('${OP}'::uuid, '${CO_B}'::uuid, null, null, null, '${PERSON_MGR_A}'::uuid);`); return false; }
+    catch (e) {
+      const m = String(e.message || e);
+      if (/insufficient_privilege|permission denied|Only the founder/i.test(m)) throw new Error('refused on AUTHORITY, not by the B-1 guard: ' + m.split('\n')[0]);
+      return /cross-company manager reference rejected/.test(m);
+    } finally { try { await db.exec('rollback;'); } catch {} }
+  }));
+await T(MB, 'B.R3.sameCompanyManagerStillAssigns', 'B LIMIT: a manager of Co A can still assign a Co A person within Co A', async () =>
+  as(MANAGER_A_AUTH, async () => {
+    await db.exec(`select public.set_person_assignment('${PERSON_MGR_A}'::uuid, '${CO_A}'::uuid);`);
+    return true;
+  }));
+
+await T(MC, 'C.R3-C2.managerCannotEnableBinding', 'C-2 (P2): a company manager cannot switch a transport binding ON (post-review is founder/admin)', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(
+    `insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+     values ('telegram','conv-mgr-on','${CH_MANAGER}','${CO_A}', true);`)));
+await T(MC, 'C.R3-C2.managerCanCreateDisabledBinding', 'C-2 LIMIT: a company manager can still create a DISABLED binding on their own channel', async () =>
+  as(MANAGER_A_AUTH, async () => {
+    await db.exec(`insert into public.channel_transport_bindings (transport, external_conversation_id, channel_id, company_id, enabled)
+      values ('telegram','conv-mgr-off','${CH_MANAGER}','${CO_A}', false);`);
+    return true;
+  }));
+await T(MC, 'C.R3-C2.founderCanEnableBinding', 'C-2: the founder CAN enable a binding', async () =>
+  as(FOUNDER_AUTH, async () => {
+    await db.exec(`update public.channel_transport_bindings set enabled = true where external_conversation_id='conv-mgr-off';`);
+    return (await countVisible(`select count(*)::int c from public.channel_transport_bindings where external_conversation_id='conv-mgr-off' and enabled`)) === 1;
+  }));
+await T(MC, 'C.R3-C3.managerCannotRepointEnabledBinding', 'C-3 (P2): a manager cannot repoint an ENABLED binding onto the founder channel', async () =>
+  as(MANAGER_A_AUTH, () => deniedWrite(
+    `update public.channel_transport_bindings set channel_id='${CH_FOUNDER}' where external_conversation_id='conv-mgr-off';`)));
+
+await T(MD, 'D.R3-D1.managerCannotRewriteRetryColumns', 'D-1 (P1): under a realistic session_user, a company manager is REFUSED by guard_agent_run_retry_columns (behavioural, not a grant refusal)', async () => {
+  await asDirectSupervisor(() => db.exec(`insert into public.agent_runs (id, status, blocked_at, retry_after, attempt_count, source_sha, worktree, company_id, blocked_reason)
+    values ('dddd0000-0000-0000-0000-00000000000d','blocked', now() - interval '1 hour', now() + interval '1 hour', 1, 'abc1234', '/real/worktree', '${CO_A}', 'PROVIDER_CAPACITY_BLOCKED: persona fixture')
+    on conflict (id) do update set worktree='/real/worktree', execution_mode=null, blocked_reason='PROVIDER_CAPACITY_BLOCKED: persona fixture';`));
+  let refusedByGuard = false;
+  await as(MANAGER_A_AUTH, () => db.exec(`update public.agent_runs set worktree='/attacker/worktree' where id='dddd0000-0000-0000-0000-00000000000d';`)
+    .catch((e) => { refusedByGuard = /may modify Agent Run retry\/checkpoint state/.test(String(e.message)); }));
+  const tampered = (await countVisible(`select count(*)::int c from public.agent_runs where id='dddd0000-0000-0000-0000-00000000000d' and worktree='/attacker/worktree'`)) === 1;
+  // BEHAVIOURAL: the guard itself must have refused (not RLS filtering the row away silently).
+  return refusedByGuard && !tampered;
+});
+await T(MD, 'D.R3-D3.managerCannotRewriteExecutionMode', 'D-3 (P2): execution_mode is guarded like every other retry column', async () =>
+  (async () => {
+    let refusedByGuard = false;
+    await as(MANAGER_A_AUTH, () => db.exec(`update public.agent_runs set execution_mode='background_subagent' where id='dddd0000-0000-0000-0000-00000000000d';`)
+      .catch((e) => { refusedByGuard = /may modify Agent Run retry\/checkpoint state/.test(String(e.message)); }));
+    const tampered = (await countVisible(`select count(*)::int c from public.agent_runs where id='dddd0000-0000-0000-0000-00000000000d' and execution_mode='background_subagent'`)) === 1;
+    return refusedByGuard && !tampered;
+  })());
+await T(MD, 'D.R3-D2.serviceRoleHasNoGrant', 'D-2 (P1): no role holds EXECUTE on the claim function (checked in pg_proc, not inferred from a denial), and service_role through the authenticator shape is refused', async () => {
+  // A denial alone would also be produced by the function's OWN check with the dead grant
+  // present (that was the round-3 shape); the grant itself must be absent.
+  const g = (await db.query(`select has_function_privilege('service_role', p.oid, 'EXECUTE') s,
+                                   has_function_privilege('authenticated', p.oid, 'EXECUTE') a,
+                                   has_function_privilege('anon', p.oid, 'EXECUTE') n
+                              from pg_proc p join pg_namespace nn on nn.oid = p.pronamespace
+                             where nn.nspname = 'public' and p.proname = 'claim_blocked_run_for_retry'`)).rows[0];
+  if (g.s || g.a || g.n) return false;
+  return as(null, () => deniedWrite(`select * from public.claim_blocked_run_for_retry('attacker');`), 'service_role');
+});
+await T(MD, 'D.R3-D2.directSupervisorCanClaim', 'D-2 LIMIT: the supervisor transport (direct login session) CAN claim', async () =>
+  asDirectSupervisor(async () => {
+    await db.exec(`update public.agent_runs set retry_after = now() - interval '1 minute', claimed_by = null, claimed_at = null where id='dddd0000-0000-0000-0000-00000000000d';`);
+    const rows = (await db.query(`select id from public.claim_blocked_run_for_retry('supervisor-test', 6, interval '30 minutes')`)).rows;
+    return rows.length === 1;
+  }));
+await T(MD, 'D.R3.founderViaAuthenticatorStillGoverned', 'D LIMIT: the founder (is_founder_or_admin) is still recognised by the guard under a realistic session_user', async () =>
+  as(FOUNDER_AUTH, async () => {
+    await db.exec(`update public.agent_runs set fallback_reason='founder edit' where id='dddd0000-0000-0000-0000-00000000000d';`);
+    return true;
+  }));
 
 // ---- report -----------------------------------------------------------------------------
 const byMig = {};

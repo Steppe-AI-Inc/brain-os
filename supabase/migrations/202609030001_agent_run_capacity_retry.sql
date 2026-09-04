@@ -186,10 +186,15 @@ $$;
 -- run12/D7: the grant was broader than the demonstrated need — EXECUTE to every logged-in
 -- user, with only the internal check stopping them. The real caller is the server-side
 -- supervisor (direct superuser connection, which needs no grant) so `authenticated` is
--- revoked too; service_role covers a future PostgREST-side caller. Narrowing here costs
--- nothing today because no authenticated client calls this function.
-revoke execute on function public.claim_blocked_run_for_retry(text, integer, interval) from anon, public, authenticated;
-grant execute on function public.claim_blocked_run_for_retry(text, integer, interval) to service_role;
+-- revoked too.
+-- ROUND 3 / D-2 (P1): the previous version also GRANTED service_role "for a future
+-- PostgREST-side caller" — but a service_role request through PostgREST arrives with
+-- session_user = 'authenticator' and a JWT with no sub, so the authority check inside refuses
+-- it: the only grantee was the one identity the function refuses, and the grant documented a
+-- path that cannot work. Decision: this function is DIRECT-CONNECTION-ONLY (the supervisor's
+-- transport), stated rather than implied. No role holds EXECUTE; the founder/admin branch of
+-- the internal check remains for a direct founder session.
+revoke execute on function public.claim_blocked_run_for_retry(text, integer, interval) from anon, public, authenticated, service_role;
 
 -- run12/D5: claim AUTHORITY was founder-only, but authority over the claim's INPUTS was
 -- not — agent_runs_update_scope lets a company manager UPDATE rows for their company,
@@ -239,12 +244,19 @@ begin
      or new.requested_provider is distinct from old.requested_provider
      or new.requested_model is distinct from old.requested_model
      or new.actual_provider is distinct from old.actual_provider
-     or new.actual_model is distinct from old.actual_model then
+     or new.actual_model is distinct from old.actual_model
+     -- ROUND 3 / D-3 (P2): execution_mode is the reviewer-facing attestation of which dispatch
+     -- path ran, added by this same migration — and it was not in this list, so a company
+     -- manager could rewrite it. A forgeable attestation is worse than none.
+     or new.execution_mode is distinct from old.execution_mode then
     raise exception 'Only the founder, an admin, or the server-side supervisor identity may modify Agent Run retry/checkpoint state';
   end if;
   return new;
 end;
 $$;
+
+-- ROUND 3 / A-6 class: a SECURITY DEFINER trigger function must not be PUBLIC-executable.
+revoke execute on function public.guard_agent_run_retry_columns() from public, anon, authenticated;
 
 drop trigger if exists agent_runs_guard_retry_columns on public.agent_runs;
 create trigger agent_runs_guard_retry_columns
@@ -284,7 +296,15 @@ commit;
 --    wrong arity is a silent no-op that leaves the function live while the operator
 --    believes it is gone.)
 --   drop index if exists public.agent_runs_retry_eligible_idx;
---   alter table public.agent_runs drop column if exists <each column added above>;
+--   alter table public.agent_runs drop column if exists blocked_at, drop column if exists retry_after,
+--     drop column if exists attempt_count, drop column if exists checkpoint_location,
+--     drop column if exists source_sha, drop column if exists worktree,
+--     drop column if exists last_completed_scenario, drop column if exists remaining_scenarios,
+--     drop column if exists verification_campaign_id, drop column if exists requested_provider,
+--     drop column if exists requested_model, drop column if exists actual_provider,
+--     drop column if exists actual_model, drop column if exists fallback_reason,
+--     drop column if exists execution_mode, drop column if exists claimed_by, drop column if exists claimed_at;
+--   (ROUND 3 / D-5: enumerated so this block can be pasted under pressure.)
 -- Purely additive; the supervisor is feature-gated on the claim function existing, so
 -- rolling back the migration returns the Factory to today's manual-recovery behaviour
 -- without an application rollback.

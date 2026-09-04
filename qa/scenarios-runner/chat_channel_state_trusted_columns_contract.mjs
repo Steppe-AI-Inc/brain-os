@@ -95,8 +95,16 @@ C('A2.triggersWired', 'DEFECT', 'R-A2: both guards are actually attached as trig
   () => /create\s+trigger\s+chat_channel_state_guard_trusted_ins\s[\s\S]*?before\s+insert\s+on\s+public\.chat_channel_state/i.test(sql)
      && /create\s+trigger\s+chat_channel_state_guard_trusted_upd\s[\s\S]*?before\s+update\s+on\s+public\.chat_channel_state/i.test(sql));
 
-C('A2.guardNotDefiner', 'CONTRACT', 'the guard is SECURITY INVOKER and decides on the flag alone — never on current_user, which SECURITY DEFINER rebinds (R-D1)',
-  () => updGuard !== null && /security\s+invoker/i.test(updGuard) && !/current_user/i.test(updGuard));
+// ROUND 3 / A-1 RE-PIN: the flag ALONE was forgeable (any role may set_config a custom GUC),
+// so the guard now requires the flag AND the SECURITY DEFINER execution context
+// (current_user = the RPC owner). It stays SECURITY INVOKER — that is exactly what makes the
+// current_user test meaningful: inside the definer RPC it is the owner, for a client it is
+// anon/authenticated whatever GUC the client set. The old contract ("never current_user")
+// pinned the forgeable design and is retired on the record.
+C('A2.guardNotDefiner', 'CONTRACT', 'the guard is SECURITY INVOKER and requires BOTH the flag AND the definer execution context (current_user = owner) — ROUND 3 / A-1',
+  () => updGuard !== null && /security\s+invoker/i.test(updGuard)
+     && /current_setting\('app\.chat_channel_state_trusted_write'/i.test(updGuard)
+     && /and\s+current_user\s+in\s*\('postgres',\s*'supabase_admin'\)/i.test(updGuard));
 
 // --- R-A1: the pending-action writer must NOT include the company-manager tier -----------
 const paRpc = fnBody('set_chat_channel_pending_action');

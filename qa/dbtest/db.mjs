@@ -109,6 +109,31 @@ export function transformFor(db) {
  * Returns the evidence record; throws on the first failed check so no persona verdict can
  * be produced on a connection where enforcement is unproven.
  */
+// ROUND 3 / D-1: the identities the code under test PRIVILEGES. A persona connection whose
+// session_user is one of these cannot exercise any guard written against session_user, so
+// the self-check refuses to let a persona verdict be produced on it.
+export const PRIVILEGED_SESSION_USERS = Object.freeze(['postgres', 'supabase_admin', 'supabase_auth_admin', 'supabase_storage_admin']);
+export const PERSONA_LOGIN_ROLE = 'qa_authenticator';
+
+/** Enter the PostgREST-shaped session: session_user = a NON-superuser login role. Requires
+ *  the login role to be a superuser (it is, on both engines). Returns the login role name so
+ *  leavePersonaSession can restore it — PGlite's RESET SESSION AUTHORIZATION is a no-op
+ *  (reviewer probe scratch/sessauth_probe.mjs), so the original role is named explicitly. */
+export async function enterPersonaSession(db) {
+  const login = (await db.query('select session_user su')).rows[0].su;
+  await db.exec(`set session authorization ${PERSONA_LOGIN_ROLE};`);
+  return login;
+}
+export async function leavePersonaSession(db, login) {
+  try { await db.exec('reset role;'); } catch { /* none set */ }
+  await db.exec(`set session authorization ${login};`);
+  try { await db.exec('reset role;'); } catch { /* none set */ }
+  // ROUND 3 / X-3: the persona JWT must not leak into the next top-level statement.
+  await db.exec(`select set_config('request.jwt.claims', '', false);`);
+  const su = (await db.query('select session_user su')).rows[0].su;
+  if (su !== login) throw new Error(`persona session teardown failed: session_user is ${su}, expected ${login}`);
+}
+
 export async function securitySelfCheck(db, role = 'authenticated') {
   const ev = { engine: db.engine, version: db.version, role };
   await db.exec(`create table if not exists public._rls_selfcheck(id int, owner text);
@@ -122,12 +147,21 @@ export async function securitySelfCheck(db, role = 'authenticated') {
   ev.login_user = before.cu;
   ev.superuser_sees = (await db.query('select count(*)::int c from public._rls_selfcheck')).rows[0].c;
 
-  await db.exec(`set role ${role};`);
+  // The persona SESSION: a non-superuser login identity, then SET ROLE down — PostgREST's shape.
+  const login = await enterPersonaSession(db);
   try {
+    const sess = (await db.query(`select session_user su, r.rolsuper, r.rolbypassrls from pg_roles r where r.rolname = session_user`)).rows[0];
+    ev.persona_session_user = sess.su;
+    if (sess.su !== PERSONA_LOGIN_ROLE) throw new Error(`SET SESSION AUTHORIZATION did not take effect: session_user is ${sess.su}`);
+    if (PRIVILEGED_SESSION_USERS.includes(sess.su)) throw new Error(`session_user ${sess.su} is an identity the code under test privileges — no guard written against session_user can refuse it`);
+    if (sess.rolsuper) throw new Error(`persona session role ${sess.su} is a SUPERUSER`);
+    if (sess.rolbypassrls) throw new Error(`persona session role ${sess.su} has BYPASSRLS`);
+    await db.exec(`set role ${role};`);
     const who = (await db.query('select current_user cu, session_user su, current_setting(\'row_security\') rs')).rows[0];
     ev.current_user = who.cu; ev.session_user = who.su; ev.row_security = who.rs;
     if (who.cu !== role) throw new Error(`SET ROLE did not take effect: current_user is ${who.cu}, expected ${role}`);
     if (who.su === role) throw new Error(`session_user is also ${role} — the login role IS the test role, so nothing was switched`);
+    if (PRIVILEGED_SESSION_USERS.includes(who.su)) throw new Error(`session_user is ${who.su} after SET ROLE — a privileged identity leaked into the persona session`);
     if (who.rs !== 'on') throw new Error(`row_security is ${who.rs}, expected on`);
     const attrs = (await db.query(`select rolsuper, rolbypassrls, rolinherit from pg_roles where rolname = current_user`)).rows[0];
     ev.rolsuper = attrs.rolsuper; ev.rolbypassrls = attrs.rolbypassrls;
@@ -152,10 +186,10 @@ export async function securitySelfCheck(db, role = 'authenticated') {
     const expectedReason = code === '42501' || /row-level security|insufficient_privilege|permission denied/i.test(msg);
     if (!expectedReason) throw new Error(`the forbidden INSERT failed for the WRONG reason: ${msg.split('\n')[0]}`);
   } finally {
-    await db.exec('reset role;');
+    await leavePersonaSession(db, login);
   }
-  const after = (await db.query('select current_user cu')).rows[0].cu;
-  if (after !== ev.login_user) throw new Error(`RESET ROLE did not restore the login role (${after} vs ${ev.login_user})`);
+  const after = (await db.query('select current_user cu, session_user su')).rows[0];
+  if (after.cu !== ev.login_user || after.su !== ev.login_user) throw new Error(`teardown did not restore the login role (${after.cu}/${after.su} vs ${ev.login_user})`);
   ev.ok = true;
   return ev;
 }

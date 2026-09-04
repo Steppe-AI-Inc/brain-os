@@ -72,9 +72,27 @@ set search_path = ''
 as $$
 declare
   v_id uuid;
+  v_current_company uuid;
 begin
+  -- ROUND 3 / B-2 (R-B2, HIGH). Round 2 classified this as "inherited, not introduced" and
+  -- declined to close it here; the round-3 reviewer reproduced it against THIS file, which
+  -- re-creates the function that carries it, so it is closed here. Authority was tested
+  -- against the TARGET company only, and the historicise statement below filtered on the
+  -- person with no company predicate at all — a manager of any company could end a person's
+  -- employment in a company they have no authority over. A manager must now hold authority
+  -- over BOTH the target company and the person's current company; founder/admin unchanged.
+  -- The ancestor's guard is kept VERBATIM (function_redefinition_preserves_ancestor_guards
+  -- identifies a guard by its message); the cross-company rule is a SECOND guard.
   if not (public.is_founder_or_admin() or public.is_company_manager(p_operating_company_id)) then
     raise exception 'Only the founder, an admin, or a manager of the target company can assign this person';
+  end if;
+  select p.company_id into v_current_company from public.people p where p.id = p_person_id;
+  if not (public.is_founder_or_admin()
+          or v_current_company is null
+          or v_current_company = p_operating_company_id
+          or public.is_company_manager(v_current_company)) then
+    raise exception 'set_person_assignment: person % is currently employed by company %, which the caller does not manage (cross-company employment change rejected)', p_person_id, v_current_company
+      using errcode = '42501';
   end if;
   if p_state not in ('current', 'planned', 'historical') then
     raise exception 'Unknown state %', p_state;
@@ -89,6 +107,22 @@ begin
     select 1 from public.departments d where d.id = p_department_id and d.company_id = p_operating_company_id
   ) then
     raise exception 'set_person_assignment: department % does not belong to company % (cross-company department reference rejected)', p_department_id, p_operating_company_id
+      using errcode = '23514';
+  end if;
+
+  -- ROUND 3 / B-1 (P2): p_manager_person_id had NO company guard while p_department_id had
+  -- two. The manager must belong to the target company — by their canonical company or by a
+  -- current assignment there — or the reference is cross-company and is rejected, symmetric
+  -- with the department guard above and with migration C's agreement triggers.
+  if p_manager_person_id is not null and not exists (
+    select 1 from public.people mp
+     where mp.id = p_manager_person_id
+       and (mp.company_id = p_operating_company_id
+            or exists (select 1 from public.person_assignments ma
+                        where ma.person_id = mp.id and ma.state = 'current'
+                          and ma.operating_company_id = p_operating_company_id))
+  ) then
+    raise exception 'set_person_assignment: manager % does not belong to company % (cross-company manager reference rejected)', p_manager_person_id, p_operating_company_id
       using errcode = '23514';
   end if;
 
@@ -120,7 +154,11 @@ begin
 
     update public.person_assignments
       set state = 'historical', end_date = coalesce(end_date, current_date), updated_at = now()
-      where person_id = p_person_id and state = 'current' and is_primary = true;
+      where person_id = p_person_id and state = 'current' and is_primary = true
+        -- ROUND 3 / B-2: only assignments the caller has authority over can be ended by this
+        -- call. The authority check above makes this redundant for a consistent person row;
+        -- it is the guard that holds when people.company_id and the assignments disagree.
+        and (public.is_founder_or_admin() or public.is_company_manager(operating_company_id));
   end if;
 
   insert into public.person_assignments (

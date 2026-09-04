@@ -13,7 +13,7 @@
   "acceptance_artifacts": "d0d09c1 (R-ART1..R-ART9)"
  },
  "EVIDENCE_LEVEL": {
-  "level": "SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED + RLS/GRANTS/SECURITY DEFINER BEHAVIOUR VERIFIED + SECURITY VERIFIED (real PostgreSQL 15.19, non-superuser role, self-checked) — per migration, CI run 33829327538",
+  "level": "WITHDRAWN by the round-3 independent review (D-1 / BK-1 / BK-5). See ROUND3_REVIEW_OUTCOME and DB_REVIEW_ROUND4_RESPONSE.json.",
   "superseded": "This block previously read CODE INSPECTED. That is no longer true, and the change is the most important update in this record.",
   "how": "qa/dbtest/ runs PGlite — real PostgreSQL 18.3 compiled to WASM — under Node with no Docker and no machine-wide install. apply-migrations.mjs applies the FULL 81-file chain (81/81, 0 failures). acceptance.mjs then EXERCISES behaviour: 36/36 across the four migrations, each with its own verdict.",
   "per_migration": {
@@ -80,7 +80,7 @@
    }
   }
  },
- "AUTHORIZATION_RECOMMENDATION": "NOT YET. All four migrations are SECURITY VERIFIED on real PostgreSQL by the implementing session's harness; the independent round-3 reviewer (TOP_LEVEL_ISOLATED_PROCESS) must return before \"Approve production DB migration?\" is asked, exactly once.",
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET — round 3 independent review returned FAIL on all four; round 4 closes the findings and re-dispatches the independent reviewer. Migration C (202609020003) is SPLIT OUT of the A/B/D authorization batch on sequencing (C-1).",
  "per_migration": {
   "A_202609020001_chat_channel_state": {
    "round_2_verdict": "FAIL - CHANGES REQUIRED",
@@ -189,5 +189,16 @@
   "harness": "qa/dbtest/ (apply-migrations.mjs, acceptance.mjs, bootstrap.sql)",
   "ci": ".github/workflows/migration-validation.yml — runs both harnesses on every migration change, so no migration can reach production authorization on static review alone again",
   "supervisor_security": "scripts/factory-runner/supervisor.injection.test.mjs (139 adversarial assertions) + supervisor.injection.mutation.mjs (5/5 proven). R-D9 (shell:true on the SQL transport) CLOSED."
+ },
+ "ROUND3_REVIEW_OUTCOME": {
+  "verdict": "FAIL (all four) — independent reviewer, verify-fbc5c79-campaign3 @ 3215ddd, qa/verification/DB_REVIEW_ROUND3_VERDICT.md",
+  "bookkeeping_corrections_applied_in_round4": {
+   "BK-1 (P1)": "The claim that SET ROLE to a non-superuser role means the superuser login \"cannot flatter a result\" was FALSE: SET ROLE does not change session_user, which migration D privileges. Retracted here and in the workflow header. Personas now run under session_user = qa_authenticator.",
+   "BK-2 (P2)": "what_is_still_NOT_proven carried stale PGlite-era text contradicting the per-migration verdicts; superseded by DB_REVIEW_ROUND4_RESPONSE.json.",
+   "BK-3 (P3)": "\"81/81\" is 80 migration files + the bootstrap shim, which the harness itself defines as ASSUMED, not verified. Stated as such from now on.",
+   "BK-4 (P3)": "The PGlite-only \"how\" text is superseded.",
+   "BK-5 (P1)": "SECURITY VERIFIED for D was OVERSTATED: two grant-level refusals and a pg_get_functiondef regex on a connection whose session_user the guards trust. Withdrawn."
+  },
+  "superseded_by": "qa/verification/DB_REVIEW_ROUND4_RESPONSE.json"
  }
 }

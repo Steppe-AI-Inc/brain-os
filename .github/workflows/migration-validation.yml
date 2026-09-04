@@ -36,12 +36,21 @@ name: Validate migrations (real PostgreSQL)
 #       the allowed rows; a known-forbidden INSERT fails with SQLSTATE 42501 and for no other
 #       reason. Only this job may print SECURITY VERIFIED, and only per migration.
 #
-# What even the real-PostgreSQL job does NOT prove: PostgREST request shaping, Supabase
-# Auth JWT issuance, the Supabase-specific `postgres` role attributes (on Supabase it is
-# not a superuser but has BYPASSRLS; here the login role is a true superuser, and every
-# persona assertion is made AFTER SET ROLE to a non-superuser, non-BYPASSRLS role so that
-# difference cannot flatter a result), and production data. Supabase-only behaviour must
-# be reproduced faithfully in bootstrap.sql or tested in a disposable Supabase project.
+# ROUND 3 (independent DB review, D-1, P1): an earlier version of this header claimed that
+# SET ROLE to a non-superuser role meant the superuser login "cannot flatter a result".
+# That was FALSE — SET ROLE changes current_user, not session_user, and migration D's
+# guards trust session_user in ('postgres','supabase_admin'), so on the postgres login every
+# persona assertion for D was made on a connection its guards could not refuse. Personas now
+# run under SET SESSION AUTHORIZATION qa_authenticator (a non-superuser, non-BYPASSRLS LOGIN
+# role — PostgREST's shape), and the self-check refuses to produce any persona verdict while
+# session_user is a privileged identity. The concurrency step below is the only place the
+# FOR UPDATE SKIP LOCKED double-claim guarantee is exercised at all.
+#
+# What even the real-PostgreSQL job does NOT prove: PostgREST request shaping (including
+# whether PostgREST refuses SET/set_config — the property migration A no longer depends on),
+# Supabase Auth JWT issuance, the Supabase `postgres` role's exact attributes, and
+# production data. Supabase-only behaviour must be reproduced faithfully in bootstrap.sql or
+# tested in a disposable Supabase project.
 #
 # STATUS LADDER this workflow moves a migration along:
 #   CODE INSPECTED -> SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED (both jobs)
@@ -172,6 +181,13 @@ jobs:
         # a superuser and has no BYPASSRLS, row_security is on, the expected grant exists,
         # a policy-filtered read returns only allowed rows, and a known-forbidden INSERT
         # fails with 42501. A denial on a connection where that is unproven is not evidence.
+
+      - name: Double-claim under genuine concurrency (real PostgreSQL, two connections)
+        working-directory: qa/dbtest
+        run: node concurrency.mjs
+        # ROUND 3 / D-4: FOR UPDATE SKIP LOCKED cannot be exercised on single-connection
+        # PGlite. Two pg.Clients race inside open transactions; a block or a duplicate claim
+        # is a FAIL. On PGlite this script prints NO VERDICT and exits 0 — never a pass.
 
       - name: Publish reports (real PostgreSQL)
         if: always()

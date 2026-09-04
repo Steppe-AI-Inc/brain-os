@@ -193,7 +193,8 @@ test('AUTHORIZATION_STATE_SURVIVES_RESTART_WITH_EXACT_SCOPE: restarting is found
   // requirement itself is unchanged: no anonymous, employee, or manager path exists.
   assert.match(MIGRATION, /if not \(public\.is_founder_or_admin\(\)/,
     'claiming a production Agent Run for restart is real factory authority');
-  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated;/);
+  // ROUND 3 / D-2: NO role holds EXECUTE (direct-connection-only); service_role's grant was dead.
+  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated, service_role;/);
   assert.match(MIGRATION, /security definer[\s\S]*set search_path = ''/i);
   // The resume prompt must not carry or imply any deployment authorization.
   const prompt = buildResumePrompt(blockedRun(), planResume(blockedRun(), '66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded'));
@@ -345,10 +346,13 @@ test('D6 a provider/model substitution cannot be RECORDED without a stated reaso
   assert.match(MIGRATION, /fallback_reason is not null/);
 });
 
-test('D7 EXECUTE is narrowed to the demonstrated caller', () => {
-  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated;/,
+test('D7 + ROUND 3/D-2: EXECUTE is held by NO role — the claim RPC is direct-connection-only', () => {
+  assert.match(MIGRATION, /revoke execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) from anon, public, authenticated, service_role;/,
     'granting EXECUTE to every logged-in user was broader than the demonstrated need');
-  assert.match(MIGRATION, /grant execute on function public\.claim_blocked_run_for_retry\(text, integer, interval\) to service_role;/);
+  // The service_role grant documented a path that cannot work (session_user = authenticator,
+  // no sub -> refused by the function's own check). It must not come back.
+  assert.ok(!/grant execute on function public\.claim_blocked_run_for_retry/.test(MIGRATION),
+    'no role may hold EXECUTE on the claim RPC (ROUND 3 / D-2)');
 });
 
 // ============================================================================
@@ -365,7 +369,8 @@ test('R-D1 SECURITY DEFINER functions use session_user, never current_user, to d
   // Two independent sites had the same bug: the claim RPC and the column guard.
   assert.equal((MIGRATION.match(/session_user in \('postgres', 'supabase_admin'\)/g) || []).length, 2,
     'both the claim function and the column-guard trigger must use the corrected primitive');
-  assert.ok(!/service_role/.test(MIGRATION.split('grant execute')[0] || ''),
+  // service_role may be REVOKED from (ROUND 3 / D-2) but must never be TRUSTED in an identity test.
+  assert.ok(!/session_user in \([^)]*service_role/.test(MIGRATION) && !/current_user in \([^)]*service_role/.test(MIGRATION),
     'service_role must not appear in an identity test — a service_role request still arrives as authenticator');
 });
 
@@ -422,6 +427,8 @@ test('VERIFIER_RESUME_USES_TOP_LEVEL_ISOLATED_PROCESS: the supervisor spawn goes
 });
 test('EXECUTION_MODE_IS_RECORDED_AS_DATA: 202609030001 adds execution_mode with a CHECK, and the supervisor writes it via sqlEscape (never concatenated raw)', () => {
   assert.ok(/add column if not exists execution_mode text/.test(MIGRATION));
+  // ROUND 3 / D-3: the attestation column is guarded like every other retry column.
+  assert.ok(/or new\.execution_mode is distinct from old\.execution_mode then/.test(MIGRATION), 'execution_mode must be in the guard column list');
   assert.ok(/agent_runs_execution_mode_known check \(\s*execution_mode is null or execution_mode in \('isolated_process', 'background_subagent'\)/.test(MIGRATION));
   const live = SUPERVISOR_SRC.split(String.fromCharCode(10)).filter((l) => !/^\s*\/\//.test(l)).join(String.fromCharCode(10));
   assert.ok(/set execution_mode = \$\{sqlEscape\(mode\)\}/.test(live));

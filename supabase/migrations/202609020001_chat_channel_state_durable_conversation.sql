@@ -237,22 +237,31 @@ create policy "chat_channel_state_select_scope" on public.chat_channel_state for
 -- this policy alone would not have been enough, because the same columns were also
 -- directly writable by the channel's own creator via PostgREST. The trusted columns are
 -- therefore made SERVER-ONLY by trigger below, which closes R-A1 and R-A2 together.
+-- ROUND 3 / A-3 (P2): the table-tier write policy admitted the company-manager tier
+-- (is_company_manager = owner, manager AND team_lead). The reviewer, as a manager of the
+-- same company, DELETEd the founder's armed pending action and planted a focus_stack entry
+-- in the founder's channel row. A channel's state row belongs to the channel's creator and
+-- the founder/admin tier — no manager has a legitimate write into another user's
+-- conversation state. The manager branch is removed from both halves of the policy.
+-- ROUND 3 / A-4 (P2), ACCEPTED IN WRITING: `version` stays client-writable by design — it is
+-- the optimistic-concurrency counter the writer maintains, and with the manager tier gone the
+-- only client that can break the CAS on a channel is that channel's own creator, on their own
+-- row. That is self-harm, not authority escalation, and is accepted.
+-- ROUND 3 / A-5 (P3), recorded: the R-A10 shape guard checks column presence, not types.
 drop policy if exists "chat_channel_state_write_scope" on public.chat_channel_state;
 create policy "chat_channel_state_write_scope" on public.chat_channel_state for all using (
   public.is_founder_or_admin()
   or exists (
     select 1 from public.chat_channels c
     where c.id = chat_channel_state.channel_id
-      and (c.created_by_profile_id = public.current_profile_id()
-           or (c.company_id is not null and public.is_company_manager(c.company_id)))
+      and c.created_by_profile_id = public.current_profile_id()
   )
 ) with check (
   public.is_founder_or_admin()
   or exists (
     select 1 from public.chat_channels c
     where c.id = chat_channel_state.channel_id
-      and (c.created_by_profile_id = public.current_profile_id()
-           or (c.company_id is not null and public.is_company_manager(c.company_id)))
+      and c.created_by_profile_id = public.current_profile_id()
   )
 );
 
@@ -279,8 +288,22 @@ grant select, insert, update, delete on public.chat_channel_state to authenticat
 -- THE RULE ENFORCED HERE: a client may CLEAR trusted state but may never ASSERT it.
 -- Clearing cannot fabricate anything — it can only lose state the system will re-derive —
 -- so expiry sweeps, "forget this", and the FK's own ON DELETE SET NULL all keep working
--- without any privileged path. Setting a trusted column to a non-null value requires the
--- transaction-local flag below, which only a SECURITY DEFINER RPC can set.
+-- without any privileged path. Setting a trusted column to a non-null value requires TWO
+-- things at once: the transaction-local flag below AND the execution context of a
+-- SECURITY DEFINER RPC (current_user = the migration role that owns them).
+--
+-- ROUND 3 (independent review, A-1, P1): the previous sentence here said the flag was
+-- something "only a SECURITY DEFINER RPC can set". That was FALSE as written —
+-- app.chat_channel_state_trusted_write is a plain custom GUC in an unreserved namespace and
+-- ANY role may set_config() it; the reviewer planted a fabricated last_successful_mutation
+-- as `authenticated` in one statement. The flag is therefore no longer the authority. The
+-- authority is the execution context (see the guard), which a client cannot forge: a client
+-- that raises the flag is still `authenticated` and is refused. The flag is kept only to
+-- separate "inside an RPC" from "a superuser's ad-hoc UPDATE" within the trusted context.
+-- The reviewer's same-class sweep found the flag-only pattern ALREADY LIVE in five pushed
+-- migrations (app.company_lifecycle_rpc, app.task_lifecycle_rpc, app.goal_lifecycle_rpc,
+-- 202608290008, 202608300002, 202608290010); that is a live-schema defect class recorded in
+-- qa/KNOWN_FAILURE_MODES.md and owed its own migration — not silently folded in here.
 --
 -- FLAG SCOPING, STATED PRECISELY (the imprecise version of this comment was itself a bug
 -- caught while writing it). `set_config(..., is_local => true)` discards the flag at
@@ -300,12 +323,16 @@ security invoker           -- deliberately NOT definer: this reads a GUC, never 
 set search_path = ''
 as $$
 declare
-  -- R-D1's lesson, applied pre-emptively: authority here is the transaction-local flag and
-  -- NOTHING else. `current_user` is rebound inside SECURITY DEFINER and would make any
-  -- role-name comparison silently always-true; `session_user` is not rebound but is still
-  -- the wrong question. The only question is "did a trusted RPC open this write?".
+  -- ROUND 3 / A-1: the flag alone was forgeable (see the header). `current_user` IS rebound
+  -- inside a SECURITY DEFINER function — R-D1 called that the wrong primitive when the
+  -- question was "who is the caller"; here the question is "am I running under the
+  -- definer's identity", and the rebinding is exactly what answers it. This trigger is
+  -- SECURITY INVOKER, so inside one of the three RPCs (owned by the migration role)
+  -- current_user is that owner; for a direct client write it is anon/authenticated,
+  -- whatever GUC the client has set. Both conditions are required.
   v_trusted boolean := coalesce(
-    current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on';
+    current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on'
+    and current_user in ('postgres', 'supabase_admin');
   v_asserts boolean;
 begin
   if v_trusted then
@@ -359,7 +386,9 @@ security invoker
 set search_path = ''
 as $$
 begin
-  if coalesce(current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on' then
+  -- ROUND 3 / A-1: the same two-part gate as the UPDATE guard — flag AND definer context.
+  if coalesce(current_setting('app.chat_channel_state_trusted_write', true), 'off') = 'on'
+     and current_user in ('postgres', 'supabase_admin') then
     return new;
   end if;
   if new.pending_action is not null
@@ -512,6 +541,13 @@ $$;
 
 -- Recording what actually executed. This is the column the AI answers "what did you just
 -- do" from, so it is the single most important one to keep un-forgeable (R-A2).
+-- ROUND 3 / A-2 (P2), SCOPE STATED: "un-forgeable" means un-forgeable BY OTHER USERS. The
+-- channel's own creator (which is what the Edge Function is, acting as the signed-in user)
+-- can record a mutation claim this RPC does not verify against any execution record; the
+-- database checks WHO writes, not WHETHER it happened. Closing that requires an execution
+-- evidence source to verify against (the work_orders execution record), which is a separate
+-- change. Until then this column is trusted against cross-user forgery only. Accepted in
+-- writing for this migration.
 create or replace function public.record_chat_channel_mutation(
   p_channel_id uuid,
   p_mutation jsonb
@@ -602,6 +638,16 @@ revoke execute on function public.set_chat_channel_compaction(uuid, text, jsonb,
 grant execute on function public.set_chat_channel_pending_action(uuid, jsonb, text, jsonb, text, timestamptz, uuid) to authenticated;
 grant execute on function public.record_chat_channel_mutation(uuid, jsonb) to authenticated;
 grant execute on function public.set_chat_channel_compaction(uuid, text, jsonb, uuid, integer) to authenticated;
+
+-- ROUND 3 / A-6 (P3): PostgreSQL grants EXECUTE to PUBLIC on every new function by default,
+-- so the four trigger functions above were callable-in-principle by anon/PUBLIC, contradicting
+-- the anon-grant sweep this file invokes. Not exploitable (a trigger function refuses a direct
+-- call, SQLSTATE 0A000) — revoked anyway, because the same create-or-replace shape will not
+-- always be a trigger function.
+revoke execute on function public.chat_channel_state_guard_trusted_columns() from public, anon, authenticated;
+revoke execute on function public.chat_channel_state_guard_trusted_columns_ins() from public, anon, authenticated;
+revoke execute on function public.chat_channel_state_touch_updated_at() from public, anon, authenticated;
+revoke execute on function public.chat_channel_state_invalidate_unanchored_compaction() from public, anon, authenticated;
 
 commit;
 

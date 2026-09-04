@@ -356,13 +356,16 @@ await T(MD, 'D.R-D1.sessionUserNotCurrentUser', 'R-D1: the guard uses session_us
   return /session_user/.test(code) && !/\bcurrent_user\b/.test(code);
 });
 
-await T(MD, 'D.R-D7.grants', 'R-D7: authenticated has NO execute on the claim RPC; service_role does', async () => {
+// ROUND 3 / D-2 (P1): the service_role grant was DEAD (a service_role request arrives with
+// session_user = authenticator and no sub, which the function's own check refuses). The
+// function is direct-connection-only now; NO role holds EXECUTE.
+await T(MD, 'D.R-D7.grants', 'R-D7 + ROUND 3/D-2: NO role holds EXECUTE on the claim RPC (direct-connection-only; the dead service_role grant is gone)', async () => {
   const r = await one(`select has_function_privilege('authenticated', p.oid, 'EXECUTE') a,
                               has_function_privilege('service_role', p.oid, 'EXECUTE') s,
                               has_function_privilege('anon', p.oid, 'EXECUTE') n
                        from pg_proc p join pg_namespace nn on nn.oid=p.pronamespace
                        where nn.nspname='public' and p.proname='claim_blocked_run_for_retry'`);
-  return r.a === false && r.s === true && r.n === false;
+  return r.a === false && r.s === false && r.n === false;
 });
 
 await T(MD, 'D.signature', 'the claim RPC has the 3-arg signature (attempt cap and stale window are real parameters)', async () => {

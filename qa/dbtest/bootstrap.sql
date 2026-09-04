@@ -24,6 +24,21 @@ end $$;
 
 grant anon, authenticated, service_role to authenticator;
 
+-- ROUND 3 / D-1 (P1, harness): every persona assertion used to run with session_user =
+-- postgres (the login role), and SET ROLE does not change session_user — so migration D's
+-- guards, which deliberately trust session_user in ('postgres','supabase_admin'), refused
+-- NOBODY on the connection that printed SECURITY VERIFIED. Personas now run under a
+-- dedicated NON-superuser, non-BYPASSRLS LOGIN role via SET SESSION AUTHORIZATION, which is
+-- what PostgREST's `authenticator` really looks like; the self-check refuses to proceed if
+-- session_user is still a privileged identity.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'qa_authenticator') then
+    create role qa_authenticator noinherit login nosuperuser nobypassrls;
+  end if;
+end $$;
+grant anon, authenticated, service_role to qa_authenticator;
+
 -- ---- 2. Extensions. --------------------------------------------------------------------
 -- pgcrypto IS in PGlite's contrib set and is loaded by the runner before this file, so this
 -- is real, not shimmed. gen_random_uuid() is core in PG13+ regardless.

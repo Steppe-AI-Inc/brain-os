@@ -44,7 +44,7 @@ create table if not exists public.channel_transport_bindings (
   -- The organization this binding speaks for. Explicit and required: an external
   -- conversation with no org binding has no business reaching company data.
   company_id uuid not null references public.companies(id) on delete cascade,
-  enabled boolean not null default false, -- OFF until explicitly enabled post-review
+  enabled boolean not null default false, -- OFF until explicitly enabled post-review (ENFORCED by channel_transport_bindings_enable_gate below — ROUND 3 / C-2)
   created_by_profile_id uuid references public.profiles(id),
   created_at timestamptz not null default now(),
   unique (transport, external_conversation_id)
@@ -293,6 +293,47 @@ create index if not exists outbound_messages_binding_status_idx
   on public.outbound_messages (binding_id, status, created_at);
 create index if not exists outbound_messages_channel_idx
   on public.outbound_messages (channel_id);
+
+-- ROUND 3 / C-2 (P2) + C-3 (P2): "OFF until explicitly enabled post-review" was a header claim
+-- with no enforcement behind it — the same shape as R-C2, one round after this file's own
+-- text learned that lesson; and the agreement trigger constrained COMPANY but never CHANNEL
+-- OWNERSHIP, so a manager could repoint an already-enabled transport onto the founder's
+-- channel. Switching a transport ON, and moving an enabled binding onto another channel, are
+-- founder/admin acts. A company manager may still create and edit a DISABLED binding.
+create or replace function public.channel_transport_bindings_enable_requires_founder()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.enabled and (tg_op = 'INSERT' or not old.enabled) and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: enabling a transport binding requires the founder or an admin (post-review)'
+      using errcode = '42501';
+  end if;
+  if tg_op = 'UPDATE' and old.enabled and new.channel_id is distinct from old.channel_id
+     and not public.is_founder_or_admin() then
+    raise exception 'channel_transport_bindings: repointing an ENABLED transport binding to another channel requires the founder or an admin'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists channel_transport_bindings_enable_gate on public.channel_transport_bindings;
+create trigger channel_transport_bindings_enable_gate
+  before insert or update on public.channel_transport_bindings
+  for each row execute function public.channel_transport_bindings_enable_requires_founder();
+
+-- ROUND 3 / A-6 class: trigger functions are not PUBLIC-executable (see migration A).
+revoke execute on function public.channel_transport_bindings_enforce_channel_company() from public, anon, authenticated;
+revoke execute on function public.outbound_messages_enforce_binding_channel() from public, anon, authenticated;
+revoke execute on function public.set_created_by_profile_id() from public, anon, authenticated;
+revoke execute on function public.channel_transport_bindings_enable_requires_founder() from public, anon, authenticated;
+
+-- ROUND 3 / C-1 (P1, SEQUENCING), recorded: this migration is ahead of the Phase 11 gate and is
+-- NOT part of the A/B/D authorization batch. It is judged separately, on sequencing, when the
+-- gate passes. Its rollback (drop of three tables) is clean only while they are empty.
 
 -- anon gets nothing anywhere (privileged-surface sweep discipline, 202608310004).
 revoke all on public.channel_transport_bindings from anon, public;

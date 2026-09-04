@@ -59,10 +59,12 @@ const VECTOR_INDEX = /create\s+index[^;]*?using\s+(hnsw|ivfflat)[^;]*;/gi;
 function transform(label, sql) {
   // A REAL pgvector (real-postgresql job) needs no neutralisation of vector at all.
   if (db.extensions.vector) {
-    return sql.replace(/^s*creates+extensions+(ifs+nots+existss+)?["']?(pg_net|pgjwt|pg_graphql|pg_stat_statements|uuid-ossp|http)["']?[^;]*;/gim, (m) => {
-      neutralised.push({ label, kind: 'extension', statement: m.trim().replace(/s+/g, ' ') });
-      return `-- [harness] neutralised (extension unavailable on this engine): ${m.trim().replace(/s+/g, ' ')}
-`;
+    // ROUND 3 / X-2: this regex had literal 's' where '\\s' was meant (a shell-escaping
+    // artefact), so on the real engine it neutralised nothing and the disclosure report was
+    // silently empty. Correct now; kept structurally identical to the PGlite branch below.
+    return sql.replace(/^\s*create\s+extension\s+(if\s+not\s+exists\s+)?["']?(pg_net|pgjwt|pg_graphql|pg_stat_statements|uuid-ossp|http)["']?[^;]*;/gim, (m) => {
+      neutralised.push({ label, kind: 'extension', statement: m.trim().replace(/\s+/g, ' ') });
+      return `-- [harness] neutralised (extension unavailable on this engine): ${m.trim().replace(/\s+/g, ' ')}\n`;
     });
   }
   return sql
