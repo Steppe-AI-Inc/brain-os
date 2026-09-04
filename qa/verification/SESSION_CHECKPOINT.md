@@ -365,3 +365,26 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   founder may at some point weigh "good enough to deploy" vs chasing every exotic shape.
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
   `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~06:55 local — Edge #88 FAIL → run28 CONSOLIDATION (95c824c); verifier #29 dispatched
+- Verifier #28 (campaign #88) FAIL on 45d05cc: FIX-I regressed BOTH axes (D166 one-token-subject
+  lookahead; D167 matched nouns as evidentials, destroyed 8 truthful negatives). Its explicit
+  recommendation: REVERT FIX-I — a rescue that destroys 8 truthful negatives to catch 5 fabrications
+  is the trade index.ts refuses. D163/FIX-H confirmed closed.
+- **CONSOLIDATION at `0565a5c2…`** (commit 95c824c): FIX-I REVERTED; FIX-H (D163) KEPT/closed;
+  D167 closed by the revert; D164/D166 (determiner-led evidential fabrication) + D168/D169/D170
+  re-opened as DISCLOSED RESIDUALS pinned in run28. Honest bookkeeping: older residuals (D158b,
+  D154, D153, D146b) documented but NOT pinned (a cumulative-residuals suite is deferred, stated
+  not claimed). Evidence: run28 110/0; collateral 0/75 truthful destroyed & 4/50 missed; battery
+  32 files (26 executing + 5 stubs + 1 helper) / 0 failures (run15 57/0, run27 retired, run28
+  added); deno 23 == baseline; v28_mutation_proof 2/2.
+- **VERIFIER #29 dispatched** on bookkeeping commit `0b5f67f` (index bytes identical) — a
+  CONSOLIDATION-confirmation run (asked for a deployability judgment), watchdog pid 19166, monitor
+  task watchdog-verifier29_output.state.
+- INFLECTION POINT: NINE iterations (#80→run20 … #88→run28). The belt is at a stable
+  defense-in-depth state — 2 P1s closed & held across 9 rounds, 0 truthful destroyed, residuals
+  documented. Verifier #28 endorsed the revert as "the honest outcome". If #29 confirms clean +
+  deployable, the ALLOW_FUNCTIONS_DEPLOY authorization question is the next boundary (founder's call
+  on deploy vs continue polishing).
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
