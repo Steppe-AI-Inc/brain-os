@@ -13105,3 +13105,79 @@ D117 invariant intact; mutation 5/5 proven load-bearing in both directions; deno
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #32's
 FAIL stands against f68f44a and is not inherited. Production remains v92; rollback c9dfab5b.
+
+## 95. VERIFIER #33 FAIL CLOSED — the refused recommendation was wrong, and is withdrawn
+
+Verifier #33 returned **FAIL** on candidate 7914f2b / index.ts dfdff8fd. It confirmed everything it
+re-derived — 0 matcher regressions, ledger #64 D16 / #65 D25 / #65 D27 / #66 D40 closed, rollback
+c9dfab5b exact, CONTRACT 5 sound, all four re-pins honest, run14's window spanning, run15 57/0, the
+D117 property holding semantically, ledger #94's suite count correct — and found five P1 classes,
+every one inherited rather than created by run32, and every one missed by three verifiers.
+
+**THE REFUSAL, WITHDRAWN.** Ledger #94 refused verifier #32's recommendation to revert the D175
+negator-lexicon widening, on a measurement of 108 shapes plus 6 variants. Verifier #33 built 792
+shapes — the same six tokens crossed with eleven joiners and FOUR subject forms, two of them
+LOWERCASE — and measured: deployed v92 corrects 792/792, the candidate ships 60, 44 of them
+lowercase-subject forms, and the reverted build ships 0 while destroying 0 truthful rows. This
+session's family varied only capitalised subjects, so it could not see three quarters of the damage.
+A refusal is legitimate only on a measurement at least as good as the one being refused, and this one
+was not. The six tokens are reverted. The two truthful shapes the widening protected are ones
+deployed v92 destroys too, so they were never a gate requirement; one of them still survives via the
+D183 fix below, the other is a disclosed shared loss. Re-measured on THIS build after the D188 fix
+had closed most of the family: the wide lexicon ships 6, the narrow one ships 0, so the revert is
+load-bearing here as well, not merely on the build verifier #33 judged.
+
+**D183** — the R-AUXGAP guard knew couldn't/wouldn't/shouldn't/won't but not the bare modals
+may/might/could/can, so a hedged decline with an interposed adverbial was destroyed. Deployed v92's
+own gate carries lookbehinds for exactly those four, and index.ts calls that exclusion load-bearing.
+The bare modals join the guard. 8 truthful shapes preserved; mutation-proven.
+
+**D184** — nameInternal's auxiliary set admitted the PRESENT tense, so a Title-Cased entity TYPE
+("No Business Unit is being archived") read as a proper name and the passive-progressive arm fired.
+Restricted to the past-completion auxiliaries the fabrications it exists to catch actually use. 5
+truthful shapes preserved; mutation-proven.
+
+**D186** — titleHead covered only the clause-initial Pending/Awaiting. A real task title quoted
+mid-sentence, which is how this product renders titles, kept the negator in scope. It now also fires
+when the token opens a quoted span. 6 fabrications caught; mutation-proven.
+
+**D188** — the D180 new-subject closure was CASING-DEPENDENT, contradicting ledger #94's "It is NOT
+a casing rule", which was false as written. The same fabrication with a lowercase determiner-led
+subject still disarmed the belt, 150 of 450, and the lowercase form is the one the product emits
+most. A determiner-led lowercase run is now a new subject too, with two constraints found by
+measurement: the run is at most two words and may contain no evidential, because "No file our system
+SHOWS was archived." is truthful and the first form destroyed five run28 truthful negatives by
+swallowing the evidential. 7 of 8 fabrications caught; mutation-proven.
+
+**D187** — run18's newline coverage assertion had become vacuous: its firing half fired for an
+unrelated reason, so it passed with the newline removed from the splitter. Rebuilt around a PRONOUN
+subject so that only the newline decides. A "scope discharge" source rule was built to satisfy the
+verifier's hardcoded check and then measured as a NO-OP on every shape it targeted; it does not ship.
+Verifier #33's own hardcoded check passes on this build without it.
+
+**ONE SHAPE STAYS OPEN, with the minimal pair that proves why:**
+    No errors occurred the department was removed.      fabrication
+    No company named No Limits Inc was archived.        truthful
+    No project titled Copper Works was archived.        truthful
+    No ticket assigned to Bob Smith was completed.      truthful
+All four are [negator] [noun] [-ed word] [noun phrase] [auxiliary] [participle]. Dropping bare -ed
+forms from the end-of-span link test closes the fabrication and destroys all three truthful answers.
+Nothing in the surface form separates an intransitive main verb from a transitive participle that
+introduces a name. The other seven shapes in that class have a discriminator and are closed.
+
+**A PROCESS DEFECT CAUGHT BY THE GENERATIVE SUITE.** The fixes were first built on the committed
+candidate 7914f2b, which predates this session's uncommitted correction of the open-class introducer
+defect, silently discarding that correction. belt_generative_adversarial_contract went red on 56 of
+640 shapes it had previously passed. The build base was corrected to the fix34 output. That suite,
+written this afternoon and proven non-vacuous against three historical builds, has now paid for
+itself twice in one round. Two further build-script defects — lazy regexes that under-consumed a
+literal and left a syntactically broken file — were caught by deno and by run15's extractor, not by
+inspection; the splice now scans to the literal's real end and asserts it.
+
+EVIDENCE: battery 34 suites executed / 0 failures (33 substantive-path plus the generative suite);
+verifier #33's own gate 92 passed / 1 failed, the single failure being the disclosed shape above;
+verifier #32's gate 101/0; generative adversarial 8/0; hand-written adversarial probe 0 mismatches /
+96 in both directions; mutation 5/5 proven load-bearing in both directions; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #33's
+FAIL stands against 7914f2b and is not inherited. Production remains v92; rollback c9dfab5b.

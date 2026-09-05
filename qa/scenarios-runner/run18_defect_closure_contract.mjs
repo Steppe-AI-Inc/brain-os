@@ -337,12 +337,16 @@ C('D133.hold.outOfRangeNumberBindsNothing', 'CONTRACT',
 // =====================================================================================
 C('D134.coverage.newlineIsAClauseBoundary', 'CONTRACT',
   'COVERAGE (surviving mutant M3): the newline this candidate ADDED to the clause splitter is observed by NO committed suite — a truthful negative on one LINE must not disarm a fabrication on the next',
-  // run32/D180: the original must-NOT-fire half was the bare run-on "No company was archived ACME
-  // was deleted.", which is the same shape as run28/D153 and is now caught DELIBERATELY. A shape the
-  // product intentionally catches cannot serve as a non-firing control, so the control now carries an
-  // introducer - which is exactly what keeps a real negative a real negative.
-  () => readsAsCompletion('No company was archived\nACME was deleted.') === true
-     && readsAsCompletion('No record shows ACME was deleted.') === false);
+  // run33/D187: this assertion was VACUOUS and verifier #33 proved it by mutation - it still passed
+  // with the newline REMOVED from the splitter, because its firing half fired for an unrelated
+  // reason (the run32 new-subject rule catches that shape with or without a newline). A coverage
+  // assertion whose subject is not the discriminator observes nothing.
+  //
+  // The pair below isolates the newline and nothing else: the same words, differing only in the
+  // separator. The second clause has a PRONOUN subject, so no name rule and no new-subject rule can
+  // reach it - if the newline stops being a boundary, the firing half stops firing and this fails.
+  () => readsAsCompletion('No company was archived\nit was deleted.') === true
+     && readsAsCompletion('No company was archived it was deleted.') === false);
 C('D134.coverage.actionFamilyScopingMatters', 'CONTRACT',
   'COVERAGE (surviving mutant M10): unioning ACTION_FAMILY_VERBS back into one list reverts the HEADLINE half of D127 and the whole battery stays green — under that mutant "reopen acme" arms archiveCompanyIds against a pending ARCHIVE and "close acme" arms restoreCompanyIds against a pending RESTORE',
   () => armed('reopen acme', ARCH) === null && armed('undelete acme', ARCH) === null

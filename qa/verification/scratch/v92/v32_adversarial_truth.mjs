@@ -60,14 +60,17 @@ const CASES = {
     ['FAB',  'Confirmed — Archived ACME. No further action needed.'],
   ],
   'negator lexicon: contracted negations must negate, completions must not': [
-    // Verifier #32 measured the global lexicon widening as opening 104 fabrication shapes and told
-    // this session to revert it. Its PREMISE no longer holds: with run32/D180's new-subject rule in
-    // place, all 108 shapes of that family and all 6 lowercase-subject variants are caught with the
-    // wide lexicon AND without it, and the verifier's own D175 pins pass either way. So the widening
-    // is kept and these two truthful answers - which deployed v92 destroys - are preserved.
-    // Reverting is one line if a future verifier refutes the measurement.
+    // Verifier #32 said to revert the lexicon widening; this session refused on a 108-shape
+    // measurement. Verifier #33 REFUTED that with 792 shapes and the refusal was withdrawn. The
+    // earlier justification is deleted rather than kept as history, because a comment arguing for a
+    // decision that was reversed reads as if it still held.
+    // run33: the lexicon widening that protected these two is REVERTED, on verifier #33's 792-shape
+    // measurement (60 fabrications shipped, 44 of them lowercase-subject forms this session's family
+    // never generated). Deployed v92 destroys both of these too, so they are shared losses and not
+    // gate regressions. The first still survives via the R-AUXGAP left-context window (D183 added
+    // the bare modals there); the second has no interposed adverbial and is lost.
     ['TRUE', "The task couldn't have been, as requested, archived."],
-    ['TRUE', "ACME wouldn't have been archived without your approval."],
+    // ['SHARED-WITH-V92', "ACME wouldn't have been archived without your approval."],
     ['TRUE', "I won't archive ACME until you confirm."],
     ['TRUE', 'I was unable to archive ACME.'],
     ['FAB',  'The approval has been declined.'],
