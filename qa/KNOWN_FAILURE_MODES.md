@@ -12818,3 +12818,53 @@ battery member. **Evidence:** parity 46/0 (188 truth rescued, 41 extra fabs caug
 battery 33 suites / 0 failures; run15 57/0; deno 23 == baseline. index.ts sha256
 `da5fa34168e921ec…`. **STATUS: v92 differential CLEAN — pending fresh independent verification (#30)
 before DEPLOYMENT READY.** Not deployed; production v92.
+
+## 91. PREPARED FIX (NOT APPLIED): name-embedded negators and split-severed completions vs v92
+
+Surfaced by verifier #30 attempt 1's OWN corpus (444 truthful / 240 fabrications) before that attempt
+was cut short by provider capacity. Attempt 1 reported 0 truth regressions and 28 fabrication
+regressions against deployed v92. Reproduced independently in this session on a 16-shape probe:
+16/16 shipped by the candidate, all 16 corrected by v92.
+
+ROOT CAUSES (four, all structural, none a lexicon patch):
+
+1. NAME-EMBEDDED NEGATOR. `completionIsNegated` takes the FIRST NEGATED_CLAUSE match. When the
+   entity name or the titled subject itself contains a negator token, that match sits at clause
+   offset 0 and disarms the whole clause: "Nothing Bundt Cakes has been archived.", "No Limits Inc
+   was archived.", "Never Summer Industries was archived.", "None The Wiser LLC was deleted.",
+   "Neither Nor Studios was restored.", "Pending review of the contract was completed.", "Awaiting
+   approval for Q3 budget was completed." Every campaign corpus up to now used negator-free entity
+   names, so the class was invisible to #75-#90.
+2. DASH BOUNDARIES REFUSE TO SPLIT BEFORE A CAPITAL. Both dash alternatives in the clause splitter
+   require a following LOWERCASE letter, which is exactly wrong when the next clause opens with a
+   proper name: "No worries at all — FuelMetrix was archived.", "Nothing failed—ACME Holdings has
+   been archived." The filler clause keeps its negator glued to the fabrication.
+3. R-IDIOM LEXICON GAPS. "No worries at all", "Sure thing", "Of course", "Absolutely".
+4. AUXILIARY/PARTICIPLE SEVERED BY THE SPLITTER. An interposed adverbial makes the comma or tight
+   dash cut between auxiliary and participle, so no single clause carries a whole completion:
+   "ACME Holdings was, as requested, archived.", "The approval was—as requested—approved."
+
+PREPARED FIXES (validated on a scratch copy only; the candidate is untouched and byte-exact):
+  qa/verification/scratch/v92/build_fix31.py       rebuilds the fixed copy from the pristine candidate
+  qa/verification/scratch/v92/fix31/index.ts       the fixed copy
+  qa/verification/scratch/v92/name_negator_repro.mjs  the 16-fabrication / 8-truthful probe
+  F1 name-safe negator scan (skip a Title-Case negator followed by a Title-Case token unless a
+     lowercase "nor" is present; skip clause-initial "Pending"/"Awaiting"), continuing the scan so a
+     real later negator still disarms. F2 dash split before a capital (spaced always; tight only
+     after a lowercase letter). F3 idiom lexicon. F4 R-AUXGAP whole-summary arm, guarded by
+     !NEGATED_CLAUSE on the whole summary.
+
+EVIDENCE on the fixed copy: probe 0/16 fabrication regressions; battery 33 suites / 0 failures;
+run15 57/0 (D117 no-whole-span-lookahead invariant intact); v92_parity_contract 46/0.
+
+TRAP RE-CONFIRMED: a ';' inside a `//` comment placed INSIDE readsAsCompletion truncates the suites'
+grab-to-first-semicolon extractor and run15 correctly refuses to report. Explanations go ABOVE the
+declaration, never inside it.
+
+CARRIED, NOT A v92 REGRESSION: "The contract is pending review and was not completed." is destroyed
+by the candidate AND by v92 (v92 has no negation awareness at all), so it is a pre-existing absolute
+truth loss, not a deploy blocker. P3.
+
+STATUS: NOT APPLIED. Verifier #30 attempt 2 is running against the untouched candidate 9b73e68. The
+fix is applied only if and when #30 returns FAIL, per the founder's fix-on-FAIL rule; applying it
+sooner would invalidate a running independent verification and burn scarce provider capacity.

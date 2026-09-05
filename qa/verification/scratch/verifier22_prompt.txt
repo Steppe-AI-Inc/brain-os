@@ -1,0 +1,103 @@
+You are VERIFIER #22, campaign #82. You are an INDEPENDENT verifier
+running as a SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the
+code under test is a different session and is not in your context. Do not trust its claims,
+comments, commit message, ledger postscript, run21 suite, or v21_mutation_proof — re-derive
+from the pinned bytes.
+
+WORKTREE (your cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-be8d9ca
+ARTIFACT BRANCH (write QA artifacts here only, and COMMIT them there): verify-be8d9ca-campaign82
+CANDIDATE COMMIT: be8d9ca9fe4d99199b448a3a129dcb2cea21873d
+REQUIRED index.ts sha256: 272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2  (supabase/functions/sem-ai-command/index.ts — LF; preserve)
+
+You have NO write authority over the implementation branch or the main checkout. `git add`/
+`git commit` in YOUR worktree are permitted.
+
+Prior campaign: qa/verification/archive/campaign-0ba51a1-verify21.json (verifier #21, FAIL).
+Ledger: qa/KNOWN_FAILURE_MODES.md (#81 entry + the run21 CLOSURE POSTSCRIPT at the end).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD   (must print be8d9ca9fe4d99199b448a3a129dcb2cea21873d)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All three -> print exactly:  PREFLIGHT: EXECUTION_READY
+Any gated  -> print exactly:  PREFLIGHT: BLOCKED — EXECUTION_MODE  and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert index.ts sha256 before, after EVERY temporary edit, and at the end;
+   restore byte-identically (LF). Mismatch at end = INVALID.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY /
+   BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from
+   OUTPUT TEXT never an exit code. Report assertion-bearing suites separately from stubs.
+3. Write your OWN mutation harness. WRITE NOTHING to production (read-only prod checks fine).
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #81 (verifier #21) returned FAIL with D148 (P1), D145 (P1), D146 (P1/P2), D147 (P2),
+D149 (P2). This candidate's response CLOSES three and REVERTS two fixes as documented
+residuals. Read the SOURCE and both attack the closures AND judge the residual decisions.
+
+CLOSURES to re-derive (attack in both directions):
+  D148 (P1) — D142 is now an IMPERATIVE-form opposite-verb test in the `contradicted`
+    statement: base forms /\b(restore|unarchive|reactivate|activate)\b/i vs a pending archive,
+    /\b(archive|delete|remove|end)\b/i vs a pending restore, tested on the RAW command.
+    VERIFY through decide()/matchDisambiguationOption: EVERY natural phrasing of an opposite
+    command on a company named that verb dead-ends (build >= 25 phrasings: punctuation,
+    politeness, pronoun object, "yes/ok" prefixes, trailing clauses); a participial NAME
+    ("Restored Furniture Co", "Unarchived Records Ltd", "Reactivated Metals LLC", with and
+    without "yes,"/filler) still SELECTS; a real opposite verb outside the name still
+    dead-ends; an absent actionType fails closed; the `actionType || 'archive'` field default
+    did not reappear. Try to find a phrasing that still arms the opposite field, or a real
+    name that now dead-ends.
+  D146 (P1/P2) — R-ZR2's linker set is now coordinators `and|but` (after a lowercase token)
+    + subordinators `although|though|however|therefore`. VERIFY the D146 truthful negatives
+    (or/so/yet/because/since/while/before/after, coordinated noun phrases, temporal modifiers)
+    now SURVIVE, and the genuinely clause-linked fabrications (and/but/although/however) are
+    still CAUGHT. Then re-derive the D139 headline (0/24 completion-word names destroyed) and
+    the name-safe coordinator / em-dash place-name cases on your own corpus.
+  D149 (P2) — run15 runs its full 57 assertions again (D141 reverted). Confirm run15 is 57/0
+    and that the ledger WITHDREW the false "pre-existing stub" claim.
+
+RESIDUAL DECISIONS to judge (the implementing session REVERTED these rather than re-guess):
+  D141 (P2, reverted) — nobody/neither/nowhere/nor/few/hardly are OUT of NEGATED_CLAUSE again.
+    Judge: is reverting defensible given it broke run15 (D149) and opened D147 fabrication
+    vectors, or is there a SAFE close (scope-aware, run15 pin updated, 0 new fabrication
+    vectors)? If you find one, that is a finding; if not, confirm the revert is correct.
+  D144 active-voice (P3) / D145 (P1, reverted) — the active-voice arm is gone; active-voice
+    completion ("I deleted Beta Corp.") is uncaught again. Judge: can the arm be made
+    assertion-safe (no truthful clarifying question destroyed, no "restored order" FP) WITHIN
+    the extraction constraints (adding a new const referenced by readsAsCompletion breaks the
+    older run8..run19 source-extracting suites — check that claim)? If yes, that is a finding;
+    if not, confirm the revert.
+  D146b (P2) — "There is no record, log or ticket showing ACME was deleted." still reads as a
+    completion (comma splits the noun list off the negator). Judge whether a safe fix exists.
+  Pinned at their current behaviour in run21 as [RESIDUAL] — confirm run21 does not silently
+  assert them as closed, and that none is a REGRESSION vs b32e0e4 (they are pre-existing or
+  newly-disclosed gaps).
+
+======================== REQUIRED SCENARIOS ========================
+0. D148 end-to-end (the corpus above), both directions.
+1. D146 both directions + the D139 headline re-derivation on your own >= 60/40 corpus; report
+   truthful-destroyed and fabrications-missed vs b32e0e4, d34af15, 9535f0b, 52e830f.
+2. SHA + FULL BATTERY from the filesystem; per-suite exit + output-text failure count; flag
+   stubs; confirm run15 is 57/0, run20 is gone, run21 is present and assertion-bearing;
+   state the *.sql suites were not run.
+3. INDEPENDENT MUTATION TEST, your own harness, limits and coverage: D148 (neutralise the
+   imperative test; widen it to the -ed stem), D146 (linker always-present; restore the broad
+   set), D149 (re-add a negator without updating run15). Each must break a NAMED case.
+4. NO PRIOR CLOSURE REOPENED: D130/D132/D133/D134/D135/D136/D137/D138/D139 and
+   D112/D116/D123/D127/D128/D129; question belt byte-identical across SHAs. Read-only prod
+   check of the deployed version and ezbr_sha256 (expected sem-ai-command v92, not the candidate).
+5. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (as #75–#81): named labels and prose, real names
+   per completion word, incl. "There is no record <Name> was archived." per word.
+6. LEDGER + BOOKKEEPING TRUTH: the #81 entry + run21 CLOSURE POSTSCRIPT vs the code; the
+   residuals are disclosed not hidden; CURRENT_CAMPAIGN.json names THIS candidate/SHA; the
+   D149 false "stub" claim is withdrawn.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v22_known_failure_modes_entry_82.md (`## #82 — …`, no preamble;
+promotion notes in v22_PROMOTION_NOTE.md) and v22_regression_additions.mjs (CONTRACT/DEFECT,
+ANY failure exits nonzero; index.ts via ../../../supabase/… or SEM_INDEX_SRC). Update
+CURRENT_CAMPAIGN.json scenarios{} as you go. COMMIT to verify-be8d9ca-campaign82. Then state the
+verdict in the exact classification form, followed by the exact index.ts sha256 at the end.
+
+If you hit a provider capacity limit or a 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json
+and stop. Retry ownership lives outside this process.

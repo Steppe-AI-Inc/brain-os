@@ -1,0 +1,74 @@
+## FINAL REPORT — VERIFIER #24, CAMPAIGN #84
+
+**PREFLIGHT: EXECUTION_READY** (A: `git rev-parse HEAD` = `89a1ac9d149819004d5f00e7519bc34d7d877f00`; B: scratch write+delete OK; C: `sem_ai_command_past_completion_claim_regex.mjs` → `13 passed, 0 failed`)
+
+```
+CHANGE VERIFIED: run23 closure of D155 / D156 / D157 in supabase/functions/sem-ai-command/index.ts
+SCENARIOS:        4 passed, 2 failed, 2 blocked (deno-runtime check; live UI/AI-chat)
+CANONICAL GRAPH:  N/A — no entity mutation in this change surface
+UI ↔ DB:          BLOCKED — the candidate is not deployed (production is v92)
+AI ↔ DB:          FAIL — D158: the belt now ships a fabricated completion the previous candidate caught
+DEPENDENCIES:     PASS — belt const set, run15/16/17/18 assembly, question belt all intact
+PERMISSIONS:      PASS — the D157 change moves only in the fail-closed direction; fail-closed on unknown actionType holds
+RELOAD/PERSISTENCE: N/A
+IDEMPOTENCY:      N/A
+```
+
+### What I actually did (not what I was told was done)
+
+I re-derived everything from the pinned bytes with **my own extractor** (slices the real `readsAsCompletion` / `completionIsNegated` / `contradicted` / `ARCHIVE_VERB_PATTERN` / `RESTORE_VERB_PATTERN` out of `index.ts` and evaluates them in Node; imports nothing from `qa/scenarios-runner` and nothing from any `v23_*` artefact), **my own corpora**, and **my own mutation harness**. `index.ts` was never written — sha asserted at preflight, before/after every one of 6 mutations, and at the end.
+
+### The failure
+
+**D158 (P2) — REGRESSION vs `4476c92`, partially reopens D147b.**
+FIX-A's twelve evidential verbs are tested anywhere in `c.slice(n, m.index)` with no requirement that the verb be an **active, complement-taking** predicate. Used **passively** — the most ordinary way English writes an all-clear — they disarm the belt and the fabrication linked beside them ships:
+
+| founder-facing summary | `4476c92` | **candidate** |
+|---|---|---|
+| `No errors were reported and ACME was archived.` | CAUGHT | **MISSED** |
+| `No issues were noted and Beta Corp was deleted.` | CAUGHT | **MISSED** |
+| `No delay was recorded and ACME was archived.` | CAUGHT | **MISSED** |
+| …8 more of the same shape | CAUGHT | **MISSED** |
+
+11/12 missed here; 11/11 caught one candidate earlier. **`run23` pins D147b as a `[CONTRACT]` — but its six cases use `occurred` / `were pending` / `failed` / `remained`, not one verb from the list FIX-A added**, so the contract that exists to catch this cannot. Third campaign in a row with collateral measured on a corpus that could not contain the new risk (D153 → #83 claim 1 → D158).
+
+Root cause: `completionIsNegated` decides subordination from a bag of words, not from position. `that|which|who|whom` are unambiguously subordinating; an evidential verb is not.
+
+**Also found:** D158b (P3 — the D155 object narrowing silently drops 5 real completions `4476c92` caught: `my`/`his`/cardinal/pronoun/lowercase-name objects; reported only on its winning side). D158c (P4 — the D157 unification also imports the `-ed`/`-ing` forms and `bring back`, so 8 bare participial company **names** now dead-end where `4476c92` selected them; fail-closed, so not a security defect, but undisclosed **and it falsifies the D148 comment still in the file**). D159 (P4, pre-existing at every SHA — `LEGACY_PAST_COMPLETION`'s `renamed: … ->` arm is **unreachable** because `readsAsCompletion` splits clauses on `:\s` first; a decorative guard, found because the existing suite tests the raw regex instead of the predicate the product calls).
+
+### What is genuinely closed (re-derived, not trusted)
+
+- **D155 — CLOSED.** truthful destroyed / completions missed: `b32e0e4` 0/32 & 23/25 · `54ebecc` 17/32 & 2/25 · `4476c92` 13/32 & 0/25 · **candidate 0/32 & 0/25**. The only SHA holding both. Interrogative/conditional/embedded/negated first-person all survive; lowercase `i`/`we` still caught.
+- **No `(?-i:` / `(?i:` shipped.** Exactly one occurrence in the whole file, inside the `//` comment explaining why it was avoided. **The DEPLOY NOTE is TRUE.** No new `const` — belt const set byte-identical to what run15–18 assemble.
+- **D156 — CLOSED** (13/13 evidential-complement negatives survive; `4476c92` destroys 13/13) — but too wide, see D158.
+- **D157 — CLOSED**, 4/4 now dead-end instead of arming `archiveCompanyIds`; D148 13/13 and D150/D138 42/42 both preserved.
+- **D154 / D156b / D153 / D146b residuals — all four confirmed open, correctly pinned, none a regression.**
+- **Battery:** 32 suites, 0 non-zero exits, 0 FAIL lines, 1,140 OK. run15 = 57. run22 retired. run23 present, 316, and **proven mutation-sensitive** (reverting D155/D156/D157 → exit 1 with 25/13/30 FAILs). `child_process` in zero `.mjs` — no `.sql` executed. 5 self-declared SUPERSEDED stubs + 1 helper; 6 more assert in a PASS format. No silent stub.
+- **Founder-directed lexical-branch scenario: 450/450, 0 regressions.** 41-case belt + 12-case matcher prior-closure sweep: 0 regressions. Question belt byte-identical (`1e3d374db34fa084`) across all four SHAs.
+- **Mutation test: 6/6 load-bearing**, each breaking named cases.
+- **Diff surface is 4 non-comment lines + 7 comment lines** — the two large hunks in `git diff` are ~40 lines of LF→CRLF normalisation.
+
+### Claims corrected
+
+`"collateral … 4/50 fabrications missed (BETTER than the b32e0e4 baseline of 7)"` — wrong baseline. `b32e0e4` predates the first-person arm and misses 23/25 of it. Against `4476c92` this candidate **destroys 13 fewer truthful answers and misses 8 more fabrications**; the D156 half of that bought **nothing** on my corpus and cost 3. · `run23`'s header is still pinned at `4476c92`/`e802227b…` and still says a green run means it isn't doing its job — while green 316/0. That is **#23's claim 4, repeated verbatim one campaign later**. · `"deno check 23 == baseline"` — **not re-derivable here.**
+
+### Fix prepared (NOT applied — no write authority on the implementation branch)
+
+**FIX-C**, one line in `completionIsNegated`: keep `that|which|who|whom` unconditional; gate the twelve evidential verbs behind fixed-length lookbehinds excluding `was|were|is|are|am|be|been|being|has|have|had`.
+Measured: **D158 0/11 → 11/11 caught · D156 13/13 still survive · D147b 8/8 still caught · my corpora unchanged · `v24_regression_additions` 196/11 → 207/0 · full battery 0 failing suites · no pin has to move.** Fixed-length lookbehind only — the same construct this file already ships 12×, so no new Deno risk and no `(?-i:)`.
+
+### Artifacts (committed to `verify-89a1ac9-campaign84`, commit `d603b77`)
+
+`qa/verification/proposed/v24_known_failure_modes_entry_84.md` · `v24_PROMOTION_NOTE.md` · `v24_regression_additions.mjs` (196/11 here, 207/0 under FIX-C, exits nonzero on any failure) · `qa/verification/CURRENT_CAMPAIGN.json` (base commit recorded first) · 12 scratch harnesses + `v24_README.md`.
+
+### Blockers / coverage gaps (stated, not skipped)
+
+- **`deno check` — BLOCKED.** No `deno` on PATH; `npx deno` not invocable. Mitigated, not replaced, by the direct proof that no modifier group is shipped.
+- **Live UI + AI-chat truth — BLOCKED.** The candidate is **not deployed**; production `sem-ai-command` is **v92 / `33255b31…`**, verified read-only, unchanged from #75–#83. There is no live surface for it and no browser/chat evidence is claimed.
+- **Synthetic data:** none created. This campaign touches no database entity, so there is no `QA-VERIFY-*` data to clean up. **Nothing was written to production. No migration was prepared or pushed. No function was deployed.**
+
+---
+
+**VERDICT: FAIL**
+
+`bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066`

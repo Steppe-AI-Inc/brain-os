@@ -1,0 +1,34 @@
+**PREFLIGHT: EXECUTION_READY**
+
+---
+
+## FOUND
+
+**C `202609020003` — R4-3 is not closed.** The ownership condition added in round 5 is real and refuses all eight direct paths I tried (plant disabled, plant enabled, repoint disabled, repoint enabled, two-step, cross-company, invisible channel, another manager's channel — every one `42501`). It is bypassed through its own input.
+
+- **R5-1 (P1)** — the gate reads `chat_channels.created_by_profile_id` (`202609020003:326-328`), and `chat_channels_write_scope` (`202608260008:35-45`, confirmed from `pg_policy`, `polcmd=ALL`) lets a company manager **write** that column. Proven in one transaction: take ownership of the founder's channel → plant the disabled binding → hand ownership back (`founder_channel_owner_restored=true`). That is verbatim the R4-3 threat the response calls CLOSED. Same class as D-5: authority guarded, the guard's *input* not.
+- **R5-2 (P2)** — the gate watches `enabled` and `channel_id`; nothing watches `external_conversation_id`/`transport` on an already-enabled binding. Proven end-to-end: manager rewrites the destination on the founder's own enabled binding, and the founder's next outbound message from their private channel departs to `ATTACKER-CHAT`. No founder action, no race.
+- **R5-3 (P2)** — DELETE is unguarded and untriggered; delete + re-create moves a live customer conversation onto the manager's channel. R4-4's "it stops traffic, it cannot redirect it" rationale doesn't survive its two neighbouring powers.
+
+**D `202609030001` — R5-4 (P3).** `id` is returned by the claim RPC, is not in the guard, and `agent_run_guard_covers_claim_returns.mjs:25,29` filters it out with an undocumented `.filter(c => c !== 'id')` — while the SQL says the list is *derived from* the return list. Proven: a manager re-keys an in-flight run; `complete_agent_run` returns an honest `not_found` (no fabricated success); the run is stranded `in_progress` forever and is not re-claimable. One-line fix.
+
+## ROOT CAUSE
+Both are "the guard is correct, its premise is writable/partial." R4-1 and R4-2 *are* genuinely closed — I re-derived the claim's return list and the guard list from `pg_get_function_result` and the `pg_trigger`-attached `prosrc`, not from the migration text, and swept all 47 `agent_runs` columns as a manager: 25 guarded refuse `42501` with values unchanged.
+
+## SYSTEMIC IMPACT
+Same-class sweep found **R5-7 (P2, pre-existing)**: `agent_runs.verification_status` (plus `summary`/`error`) is manager-writable and rendered to the founder (`web/lib/data/factory.ts:207,371,413`) — D-3's own rule on a column actually on the founder's screen. Plus R5-5/6/8/9 and two harness observations. I also tried to break D's "inserts are founder-only" comment with four personas and **could not** — the comment is accurate; I record the disproof.
+
+## TESTED
+Harness mutated first (M-A…M-F, sha256-restored, M-E new); product mutated (P1…P5) against both suites — P1 proves the "a NEW returned column fails the suite" claim is a real mechanism. 20-path C matrix, 47-column D sweep, catalog-derived grants/SECDEF inventory (55 SECDEF, all pinned; claim RPC has no grantee). Every number in `DB_REVIEW_ROUND5_RESPONSE.json` reproduced exactly — it overstates nothing numerically; its one substantive overstatement is `R4-3: CLOSED`.
+
+## PRODUCTION
+**None touched.** PGlite only, `DBTEST_PG_URL` never set, no `--linked`, no `db push`, no migration written or pushed. CI identity confirmed: run `33848913777`, `headSha == 647c808` — reviewed commit and CI commit are the same (R4-6 closed).
+
+## BLOCKERS
+Do not ask the authorization question this round. A and B are ready on the merits and could be split out; D needs one line; **C's P1 cannot be fixed inside `202609020003`** — the hole is in `chat_channels`' write policy. Five items still require a disposable Supabase project (listed in §9 of the verdict).
+
+Committed to `verify-647c808-campaign5` as `0843c3e`; verdict at `qa/verification/DB_REVIEW_ROUND5_VERDICT.md`, probes under `qa/verification/scratch/r5b/`. `git status` clean, no tracked candidate file modified.
+
+**OVERALL: FAILED** — A `202609020001` PASS, B `202609020002` PASS, C `202609020003` FAIL, D `202609030001` FAIL.
+
+Candidate commit reviewed: `647c8084fc5c261b6520e63ee6c629d1d6a45e58`

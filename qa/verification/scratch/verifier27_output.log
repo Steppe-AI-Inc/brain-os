@@ -1,0 +1,78 @@
+**PREFLIGHT: EXECUTION_READY** (A: HEAD = `a9bf5189e071ae9b00ee2bddade2b0f9588e0f1d`; B: scratch write probe OK; C: `sem_ai_command_past_completion_claim_regex.mjs` 13 passed, 0 failed)
+
+---
+
+```
+CHANGE VERIFIED: run26 closure of D162a (FIX-G, delete `|be`) + D162b (FIX-F, name-guarded
+                 evidential split) in supabase/functions/sem-ai-command/index.ts
+SCENARIOS: 9 passed, 3 failed, 2 blocked
+CANONICAL GRAPH: N/A (pure text-predicate surface; nothing deployed, no entities mutated)
+UI ↔ DB:  BLOCKED — nothing deployed (prod v92); no live surface exercises these predicates
+AI ↔ DB:  BLOCKED — same
+DEPENDENCIES:      PASS (belt const set unchanged, question belt byte-identical, matcher intact)
+PERMISSIONS:       N/A
+RELOAD/PERSISTENCE: N/A
+IDEMPOTENCY:       PASS (all 4 mutations reversible; index.ts sha256 asserted before/after each)
+```
+
+## FOUND
+
+**What is genuinely closed** — re-derived on corpora I wrote, mutation-proven, never taken on trust:
+- **D162a CLOSED 12/12.** FIX-G restores *exact* `4476c92` parity on the whole copular-modal family (`can be confident`, `should be visible`, `may be worth noting`, `could be that`, `can be hard to say`…). My mutation M1 (re-add `|be`) breaks 5/5 named cases, `run26` → `exit=1, 6 FAIL`.
+- **D162b CLOSED 12/12.** 26 name-internal-linker truthful negatives that are destroyed at **both** `415fed3` and `4476c92` now survive; all 9 paired real-linker fabrications still fire. M2 (revert to the name-blind split) breaks 5/5, `run26` → `exit=1, 7 FAIL`.
+- **No prior closure reopened:** 34/34 belt closures, 16/16 matcher closures, D161 hedges 15/15, question belt byte-identical across `4476c92`/`415fed3`/candidate, no `(?-i:)`/`(?i:)` group, no new `const`, `run15` = 57.
+
+**Two undisclosed defects, and the closure's central number is false:**
+
+**D163 (P2) — REGRESSION vs `4476c92`, inherited from run25/FIX-E, NOT closed by FIX-G.** #26's stated root cause was *"it never checks that the modal governs the completion verb."* FIX-G deleted one alternative; it did not anchor anything. `(?:[a-z]+\s+){0,2}?` still admits **a whole new subject**, and two tokens is exactly `verb + one-token company name`:
+
+| summary | `4476c92` | candidate |
+|---|---|---|
+| `I can confirm ACME has been archived.` | **CAUGHT** | **MISSED** |
+| `You may recall ACME has been archived.` | **CAUGHT** | **MISSED** |
+| `We should note ACME has been deleted.` | **CAUGHT** | **MISSED** |
+
+10 named shapes. The verdict flips on three accidents: `was` instead of the perfect passive → caught; a **two-token** name → caught; a digit in the name (`test3`) → caught. **`run26`'s six `D161.modalDoesNotLaunderAFabrication` pins use `ACME Holdings`/`Beta Corp` and `was` — every one of them is built out of those accidents**, and the single window probe is the 3-word (closed) end. The suite cannot fail on the open end. The founder reads *"I can confirm ACME has been archived"* on a turn where nothing was archived — a stronger claim than the D162a shape this campaign existed to fix.
+
+**D164 (P3) — NEW regression introduced by FIX-F, vs `415fed3` AND `4476c92`.** Arm 3 asks *"is there an evidential in the last segment?"*, never *"whose evidential is it?"*. FIX-F's name guard is correct, and it widens the rescue in **both** directions:
+```
+must survive: No log       however   shows  Salt and Pepper Co was archived.   → survives ✓
+must fire   : Nothing failed however the log shows Acme and Sons was archived. → MISSED ✗
+```
+Same negator, subordinator, evidential, and-name and completion. The only difference is whether the evidential's subject is the negated NP or a new determiner-led one. 5 named shapes.
+
+**D165 (P3, new disclosure, NOT a regression — identical at every SHA).** run11/D87's *"one shared verb list, every arm"* was never applied to the perfect-passive arm: `LEGACY_PAST_COMPLETION` omits `activated/deactivated/closed/cleared/sent`, `CONFIRMED_COMPLETION` omits `closed/added`. `Delta Ltd was activated.` fires; `Delta Ltd has been activated.` ships. Pinned `[RESIDUAL]`.
+
+## ROOT CAUSE / SYSTEMIC IMPACT
+Both new defects are the same meta-failure: **a fix was measured only on the corpus that motivated it.** FIX-G was measured on copular `be`, never on the perfect passive at the open end of its own window. FIX-F was measured on the truthful negatives it rescues, never on the fabrications the widened rescue also disarms.
+
+**BOOKKEEPING TRUTH (scenario 5).** Corrections **2, 3, 4, 5, 6 LANDED and are re-verified** — D158d is in the residual list, run26's header is at this sha with 0 hits for the prior sha or `"MISSED here"`, the battery is honestly stated as 31 executable + `_gate_extract` helper (matches my count exactly, first clean pass in four campaigns), and the variable-length-lookbehind retraction ships a detector that actually works and is pinned TRUE. Correction 7 (deno) is honestly scoped. **Correction 1 is false**: *"fabrications-missed 0 vs 0 (equal)"* — I measure **15 missed here vs 0 at `4476c92`** — and it **contradicts the Evidence line eight lines below it in the same postscript** (*"4/50 fabrications missed"*). Zero and four cannot both describe this candidate's fabrication axis. Sixth consecutive campaign on this claim shape; first that self-contradicts.
+
+## FIXED / PREPARED (never applied to the implementation branch — no write authority)
+- **FIX-H** (one line): anchor the guard to a hedging lexicon instead of `[a-z]+`. **D163 0 → 10/10, D161 15 → 15, D162a 12 → 12, D162b 12 → 12.**
+- **FIX-I** (one line): the evidential must belong to the negated NP. **D164 0 → 5/5 plus the 2 pre-existing linker-free cases, D156/D162b 12 → 12.**
+- Together: my suite **146/15 → 159/2** (the 2 are residual pins moving in the *good* direction and must be re-pinned closed). Whole battery green **except `run26`'s `fixEModalHedgeGuardPresent`**, which is a **byte pin on `(?:[a-z]+\s+){0,2}?`** — the exact construct the fix must change. Its sibling four lines above was deliberately written as a *property* after #26 asked for exactly that; the guard pin was left as bytes.
+
+## TESTED
+- **Battery from the filesystem:** 32 `.mjs` = **31 executable + `_gate_extract.mjs` helper**; **0 non-zero exits, 0 output-text FAIL lines**; `run15` = **57**; **`run25` gone**; **`run26` present, 145 assertions, genuinely assertion-bearing**; 5 self-declared `SUPERSEDED` stubs; 60 `.sql` present, **none executed**.
+- **My own mutation harness, 4/4 load-bearing**, each breaking NAMED cases: re-add `|be` (5/5, run26 `exit=1, 6 FAIL`); revert FIX-F (5/5, `7 FAIL`); remove the last-segment split (3/4, `26 FAIL`); neutralise the modal guard (5/5, `10 FAIL`).
+- **Founder-directed lexical branch:** 176 cases, 22 completion words × 28 real names (6 with internal `and`, 2 with `but`, 4 negator-initial) × 8 branches. **0 truthful answers destroyed.** `There is no record <Name> was <word>.` = 66/66 clean.
+- 20,000-string degenerate fuzz: **0 throws**. `split().pop()` always returns a string, so the `?? ''` is defensive, not load-bearing — as claimed.
+
+## PRODUCTION
+`sem-ai-command` **v92, ACTIVE**, `ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475`, `updated_at 1788239725518` — byte-identical to #75–#86. **Nothing deployed; none of D58–D165 is live.** Read-only `functions list` only; **no `db push`, no `functions deploy`, no writes of any kind.** `git status -- supabase/ web/` empty.
+
+## BLOCKERS / COVERAGE GAPS (stated, not hidden)
+- **`deno check`: BLOCKED.** No `deno` on PATH, `npx deno@2` not invocable, no `tsc` reachable. The postscript's "23 == baseline" is **not** re-derived by me — fourth campaign running. Partly discharged from the other side: both changed literals construct and execute under V8 here, no modifier group ships, and the TS2532 the `?? ''` addresses is compile-time only.
+- **UI / live AI-chat checks: BLOCKED.** No browser tools in this session type, *and* nothing is deployed, so there is no live surface. All results are **UNIT VERIFIED** against the real shipped source — not `LIVE VERIFIED`. I am not calling this covered.
+- **Synthetic data:** none created. This surface is a pure text predicate; no `QA-VERIFY-*` rows were needed and none were left behind.
+
+**Commit:** `b3311af` on `verify-a9bf518-campaign87` — QA artifacts only (`v27_known_failure_modes_entry_87.md`, `v27_PROMOTION_NOTE.md`, `v27_regression_additions.mjs`, `CURRENT_CAMPAIGN.json`, `scratch/v27/`). Not pushed; no commit on any implementation branch.
+
+---
+
+**VERDICT: FAIL**
+
+Not a PASS. `index.ts` was never written; every mutation and prepared fix ran on an in-memory string or a temp copy handed over by `SEM_INDEX_SRC`.
+
+`70161e8de8d221824d02c5ae27ae87e1169a7a111770ea5482992860c2ba5344`

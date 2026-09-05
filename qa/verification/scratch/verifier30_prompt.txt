@@ -1,0 +1,80 @@
+You are VERIFIER #30, campaign #90 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your
+context. Do not trust its claims, ledger #90, v92_parity_contract, v92_parity_corpus.json, or
+v92_mutation_proof — re-derive from bytes you obtain yourself.
+
+THIS IS NOT A BELT CAMPAIGN. It is the PRODUCTION-DEPLOYMENT GATE: a candidate-vs-DEPLOYED-v92
+differential. Verifier #29 already certified the candidate against the campaign baseline (4476c92);
+that certification is NOT deployability. Deployability requires proving the candidate against the
+bytes actually running in production. Do not repeat #29's belt work.
+
+WORKTREE (cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-9b73e68
+ARTIFACT BRANCH (commit QA artifacts here only): verify-9b73e68-campaign90
+CANDIDATE COMMIT: 9b73e68770b641ff52147035fc342b44b1e2e851   REQUIRED index.ts sha256: da5fa34168e921ec29b3a63ddefffaf709b3f359e75c7103579e0e07c2093ad9 (preserve byte-for-byte)
+NO write authority on the implementation branch. Ledger: qa/KNOWN_FAILURE_MODES.md (#90 entry).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD (must print 9b73e68770b641ff52147035fc342b44b1e2e851)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All pass -> print exactly PREFLIGHT: EXECUTION_READY ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert sha256 before/after every temporary edit and at end; restore byte-identically.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code.
+3. WRITE NOTHING to production. `supabase functions list` and `supabase functions download` are
+   READ-ONLY and permitted; `functions deploy`, `db push`, any migration — FORBIDDEN.
+4. Do NOT overwrite the candidate's index.ts with a download: download into a SCRATCH directory
+   (e.g. `--project-ref pvphxgrtdfrudejjhzjk` from a temp dir, or `git show c9dfab5bd433:...`).
+   If a download lands on the working tree, restore it with `git checkout --` and re-assert the sha.
+
+======================== STEP 1 — OBTAIN THE PRODUCTION BYTES YOURSELF ========================
+Independently establish the deployed v92 source for project pvphxgrtdfrudejjhzjk:
+  (a) `supabase functions list --project-ref pvphxgrtdfrudejjhzjk` — record version, ezbr_sha256, updated_at.
+  (b) obtain the source: `supabase functions download sem-ai-command` into a scratch dir, AND/OR
+      `git show c9dfab5bd433:supabase/functions/sem-ai-command/index.ts`. Compute sha256 of what you get.
+  (c) CONFIRM OR REFUTE the implementing session's provenance claim: deployed v92 == git c9dfab5bd433
+      byte-exact, index.ts sha256 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc.
+      If the bytes you obtain differ, that is a P0 finding — say so and stop the deploy path.
+
+======================== STEP 2 — THE SEVEN DEPLOY QUESTIONS (answer each with evidence) ========================
+1. What exact bytes differ between deployed v92 and candidate 9b73e68770b641ff52147035fc342b44b1e2e851 / da5fa34168e921ec29b3a63ddefffaf709b3f359e75c7103579e0e07c2093ad9?
+   (deploy surface under supabase/functions/; semantic delta with whitespace-insensitive diff; identifier delta)
+2. Does the candidate preserve every production behaviour intentionally present in v92? Build YOUR OWN
+   corpus (>= 150 truthful negatives with real names, >= 120 fabrications incl. rename-arrow, idiom-prefix,
+   parenthetical, hyphenated-negator, so/yet/because-linked, tight em-dash, and the ledger #64/#65/#66
+   production shapes). Run v92's gate (PAST_COMPLETION_CLAIM_PATTERN on the whole summary) vs the
+   candidate's readsAsCompletion. Report ALL FOUR quadrants: truth regression (must be 0), fab regression
+   (v92 corrects, candidate ships), truth improvement, fab improvement. Do the same for the matcher
+   (v92 raw-command contradiction vs candidate) on >= 25 disambiguation shapes.
+3. Does the candidate reintroduce anything previously removed from production? (identifiers removed;
+   any revert of v92 behaviour across the 32 commits c9dfab5b..HEAD)
+4. Do campaign assumptions depend on 4476c92 behaviour that differs from live v92? The implementing
+   session claims 12 such regressions existed and are now closed with 0 truth cost — confirm or refute
+   on YOUR corpus. Hunt for a 13th.
+5. Are ledger #64 D16 (11 shapes), #65 D25 (read-only amnesty), #65 D27 (production row 9dda919c
+   `Project renamed: "X" → "Y"`), #66 D40 (`claims: []`) GENUINELY closed on the candidate?
+6. Is the rollback target exact and available? (the commit whose index.ts is byte-identical to deployed)
+7. Does the deploy change contain only intended Edge changes? (what else under supabase/functions/
+   differs; what the 600+ other branch files are and that `functions deploy` does not ship them)
+
+======================== STEP 3 — MUTATION + BATTERY ========================
+- Independent mutation test of the eight v92-differential fixes (revert each on a temp copy; the
+  regression must reappear on YOUR corpus). Confirm no new const, no modifier group, no whole-span
+  lookahead in the belt (run15's D117 invariant), run15 57/0.
+- Full battery from the filesystem; confirm v92_parity_contract is present, assertion-bearing, and
+  not vacuous (mutate the source; it must go red).
+- Read-only prod re-check at the end (v92 unchanged; nothing deployed).
+
+======================== STEP 4 — DEPLOYABILITY CALL ========================
+State plainly, as an engineering judgment: is candidate 9b73e68770b641ff52147035fc342b44b1e2e851 fit to deploy over v92?
+If any truthful answer v92 preserves is destroyed by the candidate, or any fabrication v92 corrects
+is shipped, that is a FAIL. If clean, say PASS and that EDGE STATUS = DEPLOYMENT READY.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v30_known_failure_modes_entry_90.md (## #90-V — …, no preamble),
+v30_PROMOTION_NOTE.md, v30_regression_additions.mjs (CONTRACT/DEFECT, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or ../../../supabase/…). COMMIT to verify-9b73e68-campaign90. Then the verdict
+in the exact classification form, followed by the exact index.ts sha256 at the end. On provider
+capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json and stop.

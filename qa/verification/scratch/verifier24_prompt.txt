@@ -1,0 +1,86 @@
+You are VERIFIER #24, campaign #84. You are an INDEPENDENT verifier
+running as a SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the
+code under test is a different session and is not in your context. Do not trust its claims,
+comments, commit message, ledger postscript, run23 suite, or v23_mutation_proof — re-derive
+from the pinned bytes.
+
+WORKTREE (your cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-89a1ac9
+ARTIFACT BRANCH (write QA artifacts here only, and COMMIT them there): verify-89a1ac9-campaign84
+CANDIDATE COMMIT: 89a1ac9d149819004d5f00e7519bc34d7d877f00
+REQUIRED index.ts sha256: bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066  (supabase/functions/sem-ai-command/index.ts — preserve byte-for-byte)
+
+git add/commit in YOUR worktree only. NO write authority on the implementation branch.
+
+Prior campaign: qa/verification/archive/campaign-82d4d77-verify23.json (verifier #23, FAIL).
+Ledger: qa/KNOWN_FAILURE_MODES.md (#83 entry + run23 CLOSURE POSTSCRIPT at the end).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD   (must print 89a1ac9d149819004d5f00e7519bc34d7d877f00)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All three -> print exactly:  PREFLIGHT: EXECUTION_READY   ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert index.ts sha256 before, after EVERY temporary edit, and at end;
+   restore byte-identically. Mismatch at end = INVALID.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code.
+3. Write your OWN mutation harness. WRITE NOTHING to production (read-only prod checks fine).
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #83 (verifier #23) FAILed run22 with D155 (P2), D156 (P3), D157 (P2). This candidate
+adopts FIX-A (D156), a Deno-safe FALLBACK 1 for D155 (case-sensitive inline arm in
+readsAsCompletion, NOT the (?-i:) modifier FIX-B), and a lexicon-unification for D157. Read the
+SOURCE and attack the closures AND hunt for what THIS change introduced.
+  D155 — the first-person active-voice arm is now an INLINE, CASE-SENSITIVE regex in
+    readsAsCompletion (no /i, no new const; the arm was removed from LEGACY_PAST_COMPLETION).
+    VERIFY on your OWN corpus (>= 30 shapes): truthful first-person non-completions survive
+    ("I removed it from my draft, not from the database.", "I restored order to the report
+    layout.", embedded/interrogative/conditional forms) AND real first-person completions are
+    caught ("I deleted Beta Corp.", "We archived ACME.", "I deleted the company.", the D144
+    headline). The object test is `(?:[A-Z]|<entity nouns>)` case-sensitive — probe its edges
+    (lowercase proper-name-like objects, ALLCAPS common words, "the <non-entity noun>"). Confirm
+    NO regexp modifier group `(?-i:` / `(?i:` was shipped (it must be absent — it is unverified
+    in Deno and would fail at module load). Confirm run15/16/17/18 still assemble (no new const).
+  D156 — FIX-A added evidential/reporting verbs to the relativizer disjunct. VERIFY the
+    evidential-complement truthful negatives survive and that this did not make a real
+    fabrication survive (e.g., a completion following one of those verbs in a NON-complement
+    position). The subject-NP shape ("<clause> cannot be confirmed") is pinned [RESIDUAL] —
+    confirm it is disclosed, not silently closed.
+  D157 — the imperative test now reuses ARCHIVE_VERB_PATTERN/RESTORE_VERB_PATTERN. VERIFY
+    "bring back"/"un-archive"/"bring it back" named companies dead-end on the opposite intent,
+    and that unifying the lexicons did not break D148/D150 (bare-verb dead-end vs base-verb-name
+    select). D154 (revive/reopen/undelete) is pinned [RESIDUAL] — confirm.
+RESIDUALS to judge (pinned [RESIDUAL] in run23): D156b (subject-NP), D153 (dropped-linker trade),
+D146b (comma-list), D154. Confirm each disclosed, none a REGRESSION vs b32e0e4.
+HUNT for a D158: the case-sensitive arm's interaction with the sentence splitter and the
+`\bconfirmed` prefix; the evidential-verb list creating a new fabrication-miss; the unified
+imperative pattern (which now includes -ed/-ing forms and "bring back") firing on a base-verb
+NAME reply that leaves the label bare.
+
+======================== REQUIRED SCENARIOS ========================
+0. D155 both directions on your own corpus; re-derive truthful-destroyed / fabrications-missed
+   vs b32e0e4, 54ebecc, 4476c92. The claim is 0/75 destroyed, 4/50 missed — confirm or refute.
+1. D156 + D157 both directions; D148/D150 not reopened by the D157 unification.
+2. SHA + FULL BATTERY from the filesystem; per-suite exit + output-text failure count; flag
+   stubs; confirm run15 57/0, run22 gone, run23 present and assertion-bearing; *.sql not run.
+3. INDEPENDENT MUTATION TEST, your own harness, limits + coverage: D155 (widen the object to \S;
+   break the case-sensitivity), D156 (remove the evidential verbs), D157 (revert to the inline
+   list). Each must break a NAMED case.
+4. NO PRIOR CLOSURE REOPENED: D130/D132/D133/D134/D135/D136/D137/D138/D139/D142/D146/D148/D150
+   and D112/D116/D123/D127/D128/D129; question belt byte-identical across SHAs. Read-only prod
+   check (expected sem-ai-command v92, not the candidate).
+5. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (as #75–#83): named labels + prose, real names per
+   completion word, incl. "There is no record <Name> was archived." per word.
+6. LEDGER + BOOKKEEPING TRUTH: #83 entry + run23 postscript vs the code; residuals disclosed;
+   CURRENT_CAMPAIGN.json names THIS candidate/SHA; the DEPLOY NOTE (no modifier shipped) is true.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v24_known_failure_modes_entry_84.md (## #84 — …, no preamble; promotion
+notes in v24_PROMOTION_NOTE.md) and v24_regression_additions.mjs (CONTRACT/DEFECT, ANY failure
+exits nonzero; index.ts via SEM_INDEX_SRC or ../../../supabase/…). Update CURRENT_CAMPAIGN.json
+scenarios{} as you go. COMMIT to verify-89a1ac9-campaign84. Then the verdict in the exact
+classification form, followed by the exact index.ts sha256 at the end.
+
+If you hit a provider capacity limit or a 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json
+and stop. Retry ownership lives outside this process.

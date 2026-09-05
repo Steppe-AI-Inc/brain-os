@@ -1,0 +1,65 @@
+You are VERIFIER #25, campaign #85 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code under test
+is not in your context. Do not trust its claims, comments, commit message, ledger postscript,
+run24 suite, or v24_mutation_proof — re-derive from the pinned bytes with your OWN extractor,
+corpora and mutation harness.
+
+WORKTREE (cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-164b3ee
+ARTIFACT BRANCH (commit QA artifacts here only): verify-164b3ee-campaign85
+CANDIDATE COMMIT: 164b3ee08b0f394eeda37a7e5dd39ff860616967   REQUIRED index.ts sha256: e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834 (preserve byte-for-byte)
+NO write authority on the implementation branch. Prior: qa/verification/archive/campaign-89a1ac9-verify24.json.
+Ledger: qa/KNOWN_FAILURE_MODES.md (#84 entry + run24 CLOSURE POSTSCRIPT).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD (must print 164b3ee08b0f394eeda37a7e5dd39ff860616967)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All pass -> print exactly PREFLIGHT: EXECUTION_READY ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert sha256 before, after EVERY temporary edit, at end; restore byte-identically.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code. Stubs reported separately.
+3. Write your OWN mutation harness. WRITE NOTHING to production (read-only prod checks fine).
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #84 (verifier #24) FAILed run23 with D158 (P2, passive-evidential disarm). This candidate
+adopts FIX-C: the twelve evidential verbs in completionIsNegated's relativizer disjunct are gated
+behind FIXED-LENGTH lookbehinds excluding was/were/is/are/am/be/been/being/has/have/had. Read the
+SOURCE and attack it, AND hunt for a D160 the FIX-C change itself introduces.
+  D158 — VERIFY both directions on your OWN corpus: an ACTIVE evidential complement survives
+    ("No log shows/proves/records/… X was archived"); a PASSIVE evidential does NOT disarm
+    ("No errors were reported and X was archived" is CAUGHT), for EACH of the twelve verbs and
+    EACH excluded auxiliary. HUNT: does the lookbehind mis-fire on a verb that is BOTH a listed
+    evidential AND a lifecycle word ("recorded"), or on a modal/adverb between the aux and the
+    verb ("was never reported", "were also noted") that the fixed-length lookbehind cannot see?
+  Confirm no prior closure reopened: D139/D142/D146/D147b/D148/D150/D151/D155/D156/D157 and the
+  D112/D116/D123/D127/D128/D129/D130/D132/D133/D134/D135/D136/D137 belt+matcher contracts;
+  question belt byte-identical across SHAs; D155 still 0 truthful destroyed / D144 15/15 caught;
+  no (?-i:)/(?i:) modifier shipped; no new const (run15/16/17/18 assemble; run15 = 57).
+RESIDUALS to confirm disclosed, none a regression vs 4476c92: D158b (possessive/pronoun/cardinal
+objects), D154/D158c (single-token participial / out-of-lexicon names dead-end), D159 (unreachable
+renamed-arrow arm), D156b (subject-NP), D153 (dropped-linker trade), D146b (comma-list).
+
+======================== REQUIRED SCENARIOS ========================
+0. D158 both directions (>= 24 active + >= 24 passive, all twelve verbs × the excluded auxiliaries).
+1. SHA + FULL BATTERY from the filesystem; per-suite exit + output-text failure count; flag stubs;
+   confirm run15 57/0, run23 gone, run24 present and assertion-bearing; *.sql not run.
+2. INDEPENDENT MUTATION TEST, your own harness, limits + coverage: revert FIX-C (drop the
+   lookbehinds); remove the evidential verbs; break D155's case-sensitivity; revert D157. Each must
+   break a NAMED case.
+3. NO PRIOR CLOSURE REOPENED (the list above) + read-only prod check (expected sem-ai-command v92).
+4. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (as #75–#84): named labels + prose, real names per
+   completion word, incl. "There is no record <Name> was archived." per word.
+5. LEDGER + BOOKKEEPING TRUTH: #84 entry + run24 postscript vs code; the collateral-baseline
+   correction and the header re-point actually landed; residuals disclosed; CURRENT_CAMPAIGN.json
+   names THIS candidate/SHA; the "no modifier shipped" DEPLOY NOTE is true.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v25_known_failure_modes_entry_85.md (## #85 — …, no preamble; promotion
+notes in v25_PROMOTION_NOTE.md) and v25_regression_additions.mjs (CONTRACT/DEFECT/RESIDUAL, ANY
+failure exits nonzero; index.ts via SEM_INDEX_SRC or ../../../supabase/…). Update
+CURRENT_CAMPAIGN.json scenarios{} as you go. COMMIT to verify-164b3ee-campaign85. Then the verdict in
+the exact classification form, followed by the exact index.ts sha256 at the end.
+If a PASS: say so plainly and state what the smallest still-open residual is. If you hit a
+provider capacity limit or a 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json and stop.

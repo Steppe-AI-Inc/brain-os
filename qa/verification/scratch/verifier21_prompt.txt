@@ -1,0 +1,120 @@
+You are VERIFIER #21, campaign #81. You are an INDEPENDENT verifier
+running as a SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote
+the code under test is a different session and is not in your context. Do not trust its
+claims, comments, commit message, ledger entry, promotion note, or its own test harnesses
+(run20_defect_closure_contract.mjs and v20_mutation_proof.mjs are the IMPLEMENTING session's
+— re-derive rather than run-and-believe). Re-derive everything from the pinned bytes.
+
+WORKTREE (your cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-0ba51a1
+ARTIFACT BRANCH (yours; write QA artifacts here only, and COMMIT them there): verify-0ba51a1-campaign81
+CANDIDATE COMMIT: 0ba51a1cc858d565b1166e0909e93f54f92b17ce
+REQUIRED index.ts sha256: c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2  (supabase/functions/sem-ai-command/index.ts — LF; preserve)
+
+You have NO write authority over the implementation branch or the main checkout.
+`git add`/`git commit` in YOUR worktree are permitted.
+
+Prior campaign: qa/verification/archive/campaign-b32e0e4-verify20.json (verifier #20, FAIL).
+Ledger: qa/KNOWN_FAILURE_MODES.md (#80 entry is the prior verifier's own FAIL writeup).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD   (must print 0ba51a1cc858d565b1166e0909e93f54f92b17ce)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All three -> print exactly:  PREFLIGHT: EXECUTION_READY
+Any gated  -> print exactly:  PREFLIGHT: BLOCKED — EXECUTION_MODE  and STOP.
+CAN EXECUTE is not AUTHORIZED TO DEPLOY: you have no production authority.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert the index.ts sha256 before, after EVERY temporary edit, and at
+   the end; restore byte-identically (LF). Mismatch at end = INVALID, no verdict.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY /
+   BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from
+   OUTPUT TEXT, never an exit code. Report assertion-bearing suites separately from stubs.
+3. NO SELF-CERTIFICATION BY PROXY: write your OWN mutation harness; do not accept
+   v20_mutation_proof.mjs's result.
+4. WRITE NOTHING to production. Read-only production checks are fine.
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #80 (verifier #20) returned FAIL on b32e0e4 with TWO P1 regressions plus a P2 and a
+P3, all the same class — a rule widened without an adversarial corpus for the term it adds.
+This candidate claims to close them (run20, 102 cases). Read the SOURCE, not the claims, and
+attack each in BOTH directions:
+  D139 (P1) — R9b's third disjunct `!NEGATION_AUX.test(c.slice(0,n))` decided a negator that
+        follows a finite auxiliary does not scope over the completion verb, so the ordinary
+        zero-relativizer complement "There is no record ACME was archived." fired the belt on
+        the TRUE answer and legacyProseFallback rewrote it as a mutation refusal. The claimed
+        fix (verifier #20's own measured R-ZR2, in completionIsNegated): a 4th disjunct
+        `|| !(clause-linker between negator and verb)` where a COORDINATOR (and/but/or/so/yet)
+        counts only after a LOWERCASE token (name-safe) and a SUBORDINATOR counts anywhere.
+        VERIFY: a zero-relativizer truthful negative survives; a coordinated/subordinated
+        fabrication is still CAUGHT; a real name with an internal "and" ("Salt and Pepper Co",
+        "Bed Bath and Beyond", "Barnes and Noble") is NOT destroyed. Build >= 60 truthful
+        negatives (real names, names containing completion words, names with an internal
+        coordinator, em-dash place names) and >= 40 fabrications; report false pos AND false
+        neg against b32e0e4, d34af15, 9535f0b, 52e830f. ONE destroyed true answer is a P1.
+  D142 (P1) — D138's `commandForContradiction` stripped the matched label UNCONDITIONALLY, so
+        a company whose label IS a bare opposite-family verb ("Restore"/"ReStore"/"Unarchive"
+        /"Archive"/"Delete") absorbed the founder's own verb and the reply armed the
+        DESTRUCTIVE field on the OPPOSITE intent. The claimed fix (in the `contradicted`
+        statement): dead-end when stripping the label empties the command AND the label is a
+        bare opposite-family verb (stripping the opposite-verb pattern from the label leaves
+        it empty), written fail-closed with NO `actionType || 'archive'` default. VERIFY end
+        to end through decide()/matchDisambiguationOption: reply "restore"/"unarchive" on a
+        pending archive whose option is named that verb → MUST dead-end (null); reply
+        "archive"/"delete" on a pending restore likewise; a real name CONTAINING a verb
+        ("Restored Furniture Co", "Unarchived Records Ltd", "Reactivated Metals LLC") MUST
+        stay selectable; a real opposite verb OUTSIDE the name ("restore Restored Furniture
+        Co") MUST still dead-end. Try to find a label that empties the command yet is a real
+        name, or a bind that arms the opposite field.
+  D141 (P2) — NEGATED_CLAUSE gained nobody/neither/nowhere/nor/few/hardly. VERIFY these
+        truthful negatives now survive (incl. "The company was not archived, nor was it
+        deleted.") AND that adding them did not make a real fabrication survive (collateral):
+        does "few"/"hardly" wrongly disarm any completion that should be caught?
+  D144 (P3) — LEGACY_PAST_COMPLETION gained an active-voice arm (`I/we/they [adv]* <past
+        lifecycle verb> <obj>`). VERIFY "ACME is archived, and I also deleted Beta Corp." is
+        caught, that D137's present-tense state ("test3 is archived. Should I restore it?")
+        still SURVIVES, and that PAST_COMPLETION_CLAIM_PATTERN (a separate const) was left
+        alone. Probe the active arm for over-catch on benign first-person prose.
+
+======================== REQUIRED SCENARIOS ========================
+0. ATTACK D139 IN BOTH DIRECTIONS (the corpus above). Re-derive the truthful-destroyed and
+   fabrication-missed counts on the candidate and the four baselines with your OWN extractor;
+   a hand transcription cross-check of completionIsNegated is expected. The implementing
+   session measured 0/75 destroyed and 6/50 missed — confirm or refute on your own corpus.
+1. ATTACK D142 END TO END through decide()/matchDisambiguationOption (the shapes above), plus
+   a company literally named "Restore"/"Archive"/"Delete"/"Unarchive"/"ReStore" against both
+   pending families; confirm the `actionType || 'archive'` field-default did NOT reappear
+   (the source-invariant guard) and that the label dead-end is fail-closed on an absent
+   actionType.
+2. SHA + FULL BATTERY from the filesystem; per-suite exit + output-text failure count; flag
+   stubs; state the *.sql suites were not run. run20 must be present and assertion-bearing.
+3. INDEPENDENT MUTATION TEST, your own harness, LIMITS AND COVERAGE: for D139 make the linker
+   test always-true (reopens the zero-relativizer destruction) and always-false (misses a
+   coordinated fabrication); for D142 neutralise the label dead-end (arms the opposite field)
+   and drop its empty-remainder test (a real name-with-verb becomes unselectable); revert the
+   D141 lexicon; remove the D144 active arm. Each must break a NAMED case.
+4. NO PRIOR CLOSURE REOPENED: D130/D132/D133/D134/D135/D136/D137/D138 and
+   D112/D116/D117/D118/D119/D123/D124/D126/D127/D128/D129 contracts still hold or are
+   deliberately re-pinned with the reason on record. Read-only production check of the
+   deployed version and ezbr_sha256 (expected: sem-ai-command v92, unchanged — the candidate
+   is NOT live).
+5. QUESTION BELT untouched — confirm by diff and behaviourally across the SHAs.
+6. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (MANDATORY), as in #75–#80: named labels and
+   prose, real company names built around each completion word, per canonical branch;
+   include "There is no record <Name> was archived." for a name built on each of the 24
+   completion words (the D139 headline shape).
+7. LEDGER + BOOKKEEPING TRUTH: the #80 entry vs the code; CURRENT_CAMPAIGN.json names THIS
+   candidate and SHA correctly; the residual (implementing session says 6, disclosed not
+   proven-irreducible) is described honestly, and R-IDIOM's non-adoption is stated, not
+   hidden.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v21_known_failure_modes_entry_81.md (`## #81 — …`, no preamble;
+promotion notes in v21_PROMOTION_NOTE.md) and v21_regression_additions.mjs (CONTRACT /
+DEFECT convention, ANY failure exits nonzero; index.ts resolved as ../../../supabase/…
+from proposed/, or via SEM_INDEX_SRC). Update CURRENT_CAMPAIGN.json's scenarios{} as you go.
+COMMIT to verify-0ba51a1-campaign81. Then state the verdict in the exact classification form,
+followed by the exact index.ts sha256 observed at the end.
+
+If you hit a provider capacity limit or a 5xx: WRITE THE CHECKPOINT FIRST into
+CURRENT_CAMPAIGN.json and stop. Retry ownership lives outside this process.

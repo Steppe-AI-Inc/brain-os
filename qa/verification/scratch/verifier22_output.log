@@ -1,0 +1,93 @@
+PREFLIGHT: EXECUTION_READY (printed at the start; re-stated here for the record — `git rev-parse HEAD` = `be8d9ca9…`, scratch write probe OK, `sem_ai_command_past_completion_claim_regex.mjs` 13 passed / 0 failed)
+
+---
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND.** The run21 closure genuinely closes D148, D146's truthful side and D149 — I re-derived all three independently, not from its suite. But it introduces **one new P2 regression against both `b32e0e4` and `54ebecc`**, ships **one undisclosed coverage regression**, and **one of its two "cannot be safely closed" residual judgments is wrong**.
+
+**ROOT CAUSE (D150).** The new `contradicted` disjunct tests the **RAW command** — which still contains the matched option's own label — and is **not gated on that label being a bare verb**. The commit justifies it with "base forms never match the -ed/-ing forms in a real NAME", which is true for *participial* names and silent about the much larger class of real names carrying the **base** form. `\bend\b` alone covers a huge share of ordinary company names.
+
+**SYSTEMIC IMPACT.** This is D138's class reopened (index.ts's own comment at 2723-2724 — "a real name that merely CONTAINS a verb stays selectable" — is now false). Interacts with the pre-existing `safeOptionLabel` gap: base-form names are exactly the ones that *pass* the label belt, so the founder is **shown** the option, types its exact name, and dead-ends. Same-class search found the mechanism behind D147 too (`completionIsNegated`'s clause-initial free pass, open at *every* SHA with the *current* lexicon — D147b).
+
+**FIXED.** Nothing — no write authority on the implementation branch, and the SHA had to return byte-identical. Three fix directions **PREPARED and mutation-proven**, with measured blast radius.
+
+**TESTED.** 113-case D148 corpus; 84-truthful/47-fabrication belt corpus (101/61 on the union); prior-closure sweep 35/37; label belt 24 names; full 31-suite battery; 16/16 mutation proof; 242-case regression suite.
+
+**PRODUCTION.** Read-only only: `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…4475`, `updated_at 1788239725518` — unchanged since #75. **The candidate is not deployed. Nothing was written to production.**
+
+**BLOCKERS.** None requiring founder action to continue; two coverage gaps stated below, not skipped.
+
+---
+
+```
+CHANGE VERIFIED: supabase/functions/sem-ai-command/index.ts @ be8d9ca (closure 0969852) —
+                 the run21 D148/D146/D149 closure + the D141/D144 reverts
+SCENARIOS: 7 executed — 5 passed, 2 failed, 0 skipped; 2 coverage areas BLOCKED
+CANONICAL GRAPH:      N/A (pure Edge-Function lexical/branch change, no DB surface)
+UI ↔ DB:              BLOCKED (candidate not deployed; production runs v92)
+AI ↔ DB:              BLOCKED (same; no browser/chat tooling in this session type)
+DEPENDENCIES:         PASS  (question belt byte-identical at 4 SHAs; run15/run21 pins intact)
+PERMISSIONS:          PASS  (issue #5 class B fail-closed 6/6; no actionType||'archive' default)
+RELOAD/PERSISTENCE:   N/A
+IDEMPOTENCY:          N/A
+```
+
+### Failures
+
+| | |
+|---|---|
+| **Scenario** | S0 — D148 end-to-end, both directions |
+| **Expected** | a real entity name that merely *contains* a lifecycle verb stays selectable (D138) |
+| **Actual** | 14/14 base-form-verb names **dead-end**; all 14 SELECT at `b32e0e4` **and** `54ebecc` |
+| **Affected** | `Restore Hardware Ltd`, `Restore Point Systems`, `Activate Media Group`, `Reactivate Wellness Inc`, `West End Trading Co`, `High End Motors`, `Book End Cafe`, `Front End Systems LLC`, `End Zone Inc`, `Archive Media Group`, `Delete Key Software`, `Remove Rust Inc`, `The Archive Co` |
+| **User impact** | option is rendered, founder types its exact name, turn falls through to the LLM with nothing bound. Fail-safe; ordinal (`option 1`/`#1`/`the first one`) still works → **P2, not P1** |
+| **Root cause** | imperative test on the raw command, label gate dropped |
+| **Same-class search** | swept the mirror direction, participial names, opposite-verb-outside-name, ordinal path, `safeOptionLabel`, and the `single_entity_clarification` branch (unaffected) |
+| **Regression test** | `qa/verification/proposed/v22_regression_additions.mjs` → `D150.*` (14 DEFECT + 8 CONTRACT) |
+| **Status** | **FIX PREPARED**, mutation-proven 3/3, blast radius **zero** across all 12 `run*` suites — not applied (no write authority; SHA discipline) |
+
+| | |
+|---|---|
+| **Scenario** | S1 — D146 both directions |
+| **Expected** | closure's claim: "collateral … == the b32e0e4 baseline, **no coverage regression**" |
+| **Actual** | 8/8 aux-preceded fabrications linked by a **dropped** linker (`so/because/since/while/before/after/yet/or`) are **caught at `b32e0e4` and `54ebecc`, missed here** |
+| **User impact** | 8 fabrication shapes ship uncorrected. The *trade* is right (candidate destroys 1/84 truthful vs `b32e0e4`'s 37/84); the *disclosure* is false |
+| **Root cause** | the 50-case corpus the residual was measured on contains no sentence using a dropped term — #80's own D140 lesson, one generation on |
+| **Regression test** | `v22_regression_additions.mjs` → `D153.*` (8 DEFECT) |
+| **Status** | **flagged, not fixed** — P3, deliberate trade; needs correcting in the ledger, not reverting |
+
+### Residual judgments — one confirmed, one refuted, one partially refuted
+
+- **D141 revert — REFUTED (P2).** 8/8 truthful negatives (`Nobody was archived.`, `Neither company was archived.`, `Few records were deleted.` …) are destroyed again and replaced with *"I can't actually do that from chat"*, which is itself false. The stated reason (D147) is misdiagnosed: the leak is `completionIsNegated`'s clause-initial free pass, and it is **already open with the current lexicon** (D147b — `No errors occurred and ACME was archived.` is missed at every SHA). Safe close measured: re-add the lexicon **and** delete `!NEGATION_AUX.test(c.slice(0, n))` → **truthful destroyed 11 → 1, fabrications missed 32 → 27**, 0 new destructions, 0 lost catches. Cost is a `run15` pin update + `run21` `[RESIDUAL]` pin updates — the D149 rule this same commit wrote.
+- **D144 active-voice revert — PARTIALLY REFUTED (P3).** "A new const breaks the extraction suites" is **true and I measured it** (run15/16/17/18 all exit 1; run19/run21 unaffected) — but the arm needs no new const. Added inside `LEGACY_PAST_COMPLETION` with a clause-position anchor: **0/12** of D145's truthful shapes destroyed, **7/7** of D144's fabrications caught. One idiom FP survives (`I restored order to the report layout.`). **Deferring is defensible; "cannot be made assertion-safe" is overstated.**
+- **D146b — CONFIRMED.** Genuinely still open, genuinely disclosed, correctly pinned `[RESIDUAL]`.
+- **run21 does not silently assert any residual as closed** — 5 `[RESIDUAL]` pins sit at the current *defective* behaviour, and under each of my prepared fixes run21 fails **only** those pins with **0 CONTRACT failures**.
+
+### Bookkeeping truth
+
+`CURRENT_CAMPAIGN.json` correctly names this candidate/SHA. `git diff 0969852 be8d9ca -- supabase/` is empty. The false "run15 exit-1 is a pre-existing stub" claim is **explicitly withdrawn** — that one was handled exactly right. Four other closure claims are overstated (listed in `v22_PROMOTION_NOTE.md` §"Claims … that need correcting").
+
+### Coverage gaps (stated, not skipped)
+
+- **`deno check` — UNVERIFIED.** `deno` is not runnable in this session; the closure's "23 == baseline, 0 new" is neither confirmed nor refuted.
+- **Live UI + live AI-chat — BLOCKED, and blocked by construction.** The candidate is not deployed (production is v92), so no browser or chat session can exercise these bytes; `mcp__claude-in-chrome__*` / `ToolSearch` were not available in this session type either. Every finding is **CODE VERIFIED / UNIT VERIFIED against the shipped bytes**, never LIVE VERIFIED.
+- **~60 `*.sql` suites NOT run** — they need a live DB session; the change has no database surface.
+
+### Synthetic data
+
+**None created.** This change has no DB/UI surface, so there was nothing to seed or clean up — no `QA-VERIFY-*` entities exist from this campaign. The only production contact was one read-only `supabase functions list`.
+
+### Commits
+
+- `f32e7ad` — Verifier #22 (campaign #82) on be8d9ca / run21 closure 0969852: FAIL (artifacts + checkpoint, branch `verify-be8d9ca-campaign82`)
+
+### Founder-approval section
+
+**No database migration is pending from this campaign** — nothing to approve, nothing blocked on `supabase db push`. The one decision that needs a human: **do not deploy this candidate.** Three fix directions are prepared, measured and written up in `qa/verification/proposed/v22_PROMOTION_NOTE.md`; the D150 one has zero blast radius and is the one to take first.
+
+---
+
+**VERDICT: FAIL**
+
+`272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2`

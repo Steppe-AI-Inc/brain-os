@@ -1,0 +1,80 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #29 — CAMPAIGN #89 FINAL REPORT
+
+**CHANGE VERIFIED:** run28 consolidation candidate `0b5f67f` — FIX-I reverted, FIX-H (D163) kept, D164/D166/D168/D169/D170 pinned as disclosed residuals.
+
+```
+SCENARIOS: 7 passed, 0 failed, 1 blocked (Deno type-check — command classifier)
+CANONICAL GRAPH:      N/A (no DB entity touched — source/regex campaign)
+UI ↔ DB:              N/A
+AI ↔ DB:              N/A
+DEPENDENCIES:         PASS (candidate ≡ run26 + FIX-H ≡ run27 − FIX-I; 1/1 line each way)
+PERMISSIONS:          N/A
+RELOAD/PERSISTENCE:   PASS (index.ts byte-identical before, during, after every edit)
+IDEMPOTENCY:          PASS (all suites re-run identically; mutations restored byte-for-byte)
+```
+
+## What I re-derived, not accepted
+
+**The revert is a true revert.** The evidential-arm line at HEAD is **byte-identical** to the same line at `5db8603` (string comparison, not "behaves the same"). `git diff --numstat` returns **1/1 against run26 and 1/1 against run27** — so the question belt, `PAST_COMPLETION_CLAIM_PATTERN`, the clarification/contradiction path and every other closure are byte-identical to *both* neighbours. Confirmed independently by hash across seven SHAs: question belt `a8ff343b0…` (8334 chars), PCCP `3a1fc5ca6…` (436 chars). No inline modifier group in **code** (the one textual hit is inside the comment warning against them). No new belt const; `run15` **57/0**.
+
+**Both directions, my own extractor and corpora.** Versus `4476c92`: **0 truthful destroyed that the baseline kept**, 17 truthful **rescued**, 10 fabrications missed (5 D166 + 2 D164 + 3 D169 — all disclosed), 0 gained. A **25,440-sentence differential sweep** finds **no family anywhere** where the candidate fires and `4476c92` does not. The implementing session's "0 truthful destroyed" claim is **confirmed and understated**.
+
+**D163/FIX-H closed and load-bearing** (M1 breaks it), **D167 closed by the revert** (M2 and M3 both break it), **D164/D166 correctly re-opened as pinned residuals**, and the postscript's "the `and`-linker sub-case is still caught" is **true**. D168's "also destroyed at 4476c92, not a regression" is **independently confirmed 8/8**.
+
+**Founder-directed lexical branch:** 13,530 truthful answers (41 names incl. one built on every completion word × 22 words × 15 branches). **506 destroyed at the candidate, 506 at `4476c92`, 506 at `b6cca5f` — identical sets. 0 relative to baseline, 0 unexplained.** Bar met.
+
+**Production, read-only:** `sem-ai-command` **v92 ACTIVE**, `updated_at 2026-09-01` — before the candidate. Nothing deployed. I wrote nothing to production and touched no migration.
+
+## Nine findings — all P3, none a regression this candidate introduces
+
+| | finding |
+|---|---|
+| **V29-F1** | NEW: `had been` is absent from `LEGACY_PAST_COMPLETION`'s auxiliary set — a pluperfect completion claim is invisible to **every** arm, while FIX-H's guard exempts an auxiliary the belt can never fire on. Decorative, D159 class. Pre-existing. |
+| **V29-F2 / D171** | NEW: `CONFIRMED_COMPLETION` has no name guard, so a legitimate imperative confirmation is **destroyed** when the company name contains a participle (`Confirmed — Archive Archived Media Group?`). **440 of 13,530.** `index.ts`'s own comment says this shape "is unaffected". Pre-existing. |
+| **V29-F3** | SUITE COVERAGE: `run28` pins **6 of 32** FIX-H lexicon members. I removed `previously` from the **real** `index.ts` — a truthful hedge is destroyed and **`run28` stays green at 110/0**. Restored byte-identically. |
+| **V29-F4** | SUITE COVERAGE: **11 of `run28`'s 13 `D163` CONTRACT pins do not observe FIX-H** — their intervening material is already outside the pre-FIX-H `{0,2}` window. Only 2 are load-bearing. |
+| **V29-F5** | BOOKKEEPING: the residual-pinning admission is **substantially TRUE and errs toward self-deprecation** — but it understates what `run28` pins (12 groups, not 6) and **wrongly lists D153 as unpinned** (it is pinned, line 243). **It hides no regression:** every genuinely-unpinned residual behaves identically at `4476c92`/`5db8603`/`b6cca5f`/HEAD, except **D158b**, which moved at run23, is disclosed, and is named in the admission. |
+| **V29-F6** | DOC TRUTH: `run28`'s header still names `45d05cc`/`291800b`, and its D166/D167 labels still describe a **FIX-I lookahead that no longer exists**. The stale-rationale class, one campaign after the ledger ruled on it. Assertions correct; only the prose lies. |
+| **V29-F7** | DOC TRUTH: `index.ts`'s splitter comment cites `"No problem — ACME was archived"` as no longer shielded. **It still is** — the dash boundary needs a lowercase follower and real names are capitalised. |
+| **V29-F8** | NEW: a hedge containing `" and "` is split and destroyed; the `and` lexicon member is unreachable that way. Control: the same hedge with `or` survives. |
+| **V29-F9** | PIN GAP: D116 and `lowercaseNameWithAnd` are pinned only in the fabrication direction; their truthful-destruction direction was pinned nowhere. |
+
+**No residual is a P1/P2 truthful-destruction introduced here.** Every truthful destruction I found exists identically at the campaign baseline. Nothing blocks deploy on residual grounds.
+
+## Artefacts (committed to `verify-0b5f67f-campaign89`, commit `c3d37e7`)
+
+- `qa/verification/proposed/v29_known_failure_modes_entry_89.md`
+- `qa/verification/proposed/v29_PROMOTION_NOTE.md`
+- `qa/verification/proposed/v29_regression_additions.mjs` — **173 pass / 0 fail**, non-vacuous against 5 mutations (M1 22 / M2 20 / M3 11 / M4 3 / M5 2, where `run28` scores 12 / 24 / 15 / 3 / **0**)
+- `qa/verification/scratch/v29_{extract,corpus,axes,sweep,lexical_branch,mutation_proof,battery,regex_construct_scan}.mjs` + summaries
+- `CURRENT_CAMPAIGN.json` updated with `base_commit`, all 6 scenarios, findings and global integrity counts
+
+Committed locally on the artifact branch only — **not pushed** (not requested, and the implementation branch was explicitly off-limits).
+
+**Synthetic data:** none created. This campaign made no database writes at all — the only production contact was a read-only `functions list`. There is no `QA-VERIFY-*` data to clean up.
+
+## Blocked
+
+**Deno type-check — BLOCKED (command classifier),** same as verifier #28. Mitigation I *can* offer: Deno and Node both run V8, so the regex engine is identical; I constructed and evaluated **all 79 regex literals** in `index.ts` — **0 failures**, so the module-load failure mode the FIX-H comment warns about is absent. TypeScript typing itself remains unverified.
+
+---
+
+## VERDICT: **PASS**
+
+This is a PASS, plainly. The revert is real and byte-exact, D167 is genuinely closed, FIX-H genuinely survives its own removal test, no prior closure reopened, and the candidate destroys **zero** truthful answers the baseline preserved across 25,440 + 13,530 generated sentences plus a 169-case hand-written corpus.
+
+**Smallest still-open residual: D170** — `CONFIRMED_COMPLETION`'s `(?<!\d )` cardinal lookbehind (added by D112 for `3 archived companies`) also matches the space after a NAME ending in a digit, so `Confirmed — test3 archived.` ships while `Confirmed — ACME archived.` is caught. One lookbehind, four pinned shapes, and `test3` is `index.ts`'s own must-never-touch company. (Smallest in absolute terms is **D159** / the new **V29-F1** `had been` gap — both pure decoration costing nothing today.)
+
+**Deployability judgment — my engineering opinion, the founder decides:**
+
+*As a change to land in the branch:* **yes.** It is the cleanest candidate in this chain I have evidence for, and its trade — give up disclosed fabrication-catches, destroy no truthful answers — is exactly the direction `index.ts` and `CLAUDE.md` §26 prescribe.
+
+*As a decision to push to production:* **not on this evidence, and not because of this candidate.** Production runs **v92**, the prose-era build. Every campaign #75–#89, **mine included**, measures against `4476c92` — an in-chain SHA, not the live bytes — and the ledger's own #64/#65 entries record this branch being a *net regression against deployed v92* on twelve fabrication-escape shapes at an earlier point. Three suites assert **named** v92-parity shapes and are green, but that is a sample, not a differential; my attempt to download the v92 source into an isolated scratch directory produced no files. **The missing deploy gate is a candidate-vs-deployed-v92 differential, not another belt campaign.**
+
+**Founder-approval section:** nothing pending. No migration written, no `db push` attempted or needed, no Edge Function deployed. The only decision on the table is whether to fund the v92 differential before the next deploy conversation.
+
+index.ts sha256: `0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757`

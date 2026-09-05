@@ -1,0 +1,51 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# CHANGE VERIFIED: run19 closure (D134–D138 + D131/R9b) on `b32e0e4`
+
+**This was a resumed campaign.** `CURRENT_CAMPAIGN.json` existed at the same `base_commit` with S0–S2 already recorded. Per the skill's resume rule I re-derived rather than carried forward: I re-ran every harness from the filesystem, wrote a **fresh** independent harness for the headline P1, and cross-checked the extractor against a **hand transcription** of index.ts:5524-5551 (0 mismatches) before trusting any of it. Two findings below (D142, D141) are **new in this resumed half** and were not in the prior checkpoint; one prior "vacuous guard" conclusion was **my own probe gap** and is corrected.
+
+```
+SCENARIOS: 5 passed, 3 failed, 0 blocked
+CANONICAL GRAPH:      N/A (no DB entities — pure Edge-Function source, no migrations in scope)
+UI ↔ DB:              N/A / not exercisable (see coverage gap)
+AI ↔ DB:              FAIL  — the belt converts a TRUE read-only answer into a mutation refusal
+DEPENDENCIES:         PASS  — question belt, prior closures, battery all intact
+PERMISSIONS:          PASS  — prototype-key types fail closed; guard proven load-bearing
+RELOAD/PERSISTENCE:   N/A
+IDEMPOTENCY:          N/A
+```
+
+## VERDICT: **FAIL**
+
+### FOUND — two P1 regressions
+
+**D139 (P1, NEW).** R9b's third disjunct `!NEGATION_AUX.test(c.slice(0, n))` treats a negator preceded by any finite auxiliary as out-of-scope. English disagrees: *"There is no record ACME was archived."* is the ordinary zero-relativizer complement and its negator scopes over everything. The belt fires on the **true answer**, and `legacyProseFallback` (index.ts:5739) replaces it with *"I can't actually do that from chat — nothing was changed"* — a mutation refusal answering a read-only question. **18/75** on my corpus; **24/24** canonical completion-word company names. Survives at d34af15, fbafded, a559f8f, 9535f0b, 52e830f — destroyed only here and at pre-negation d724d8c. Isolated by two controls (relativizer variant and non-aux lead-in both survive) and by reverting that one term.
+
+**D142 (P1, NEW — not in the prior checkpoint).** D138's `commandForContradiction` strips the matched label **unconditionally**. When the label *is* an opposite-family verb (a company named "Restore"/"ReStore"/"Archive"/"Delete"), the strip removes the founder's own verb → reply `restore` against a pending **archive** arms **`archiveCompanyIds`**: a destructive bind on the opposite intent, no LLM in the loop. Prior SHAs return `null`. **The same commit already implements the correct rule** — D136's ambiguity dead-end — on the ordinal path only.
+
+### ROOT CAUSE / SYSTEMIC IMPACT
+Both are the same class: *a fix that widens a rule without an adversarial corpus for the specific term it adds.* R9b was adopted because #19 measured it — correctly — but what was measured was its score on one 61-case corpus, never that one disjunct against the shape it breaks. Same-class search found **D141** (P2, **pre-existing at all 7 revisions** — `NEGATED_CLAUSE` has no `nobody`/`neither`/`nowhere`/`nor`/`few`/`hardly`; *"not archived, nor was it deleted"* is destroyed), **D144** (P3, new — one fabrication d34af15 caught is now missed), and `safeOptionLabel` returning `null` for real names starting with a completion word (pre-existing; D138 closed only the matcher half of that class).
+
+### Genuinely closed
+D132 (**guard is load-bearing** — 15/15 prototype-key probes `TypeError` without it), D133, D134, D135, D136, D137, D138's own shape, question belt (0 drift / 5 SHAs + no diff hunk), and D112/D116/D117/D118/D119/D123/D124/D126/D127/D128/D129.
+
+### Battery / production
+**31 suites, 0 output-text failures, 0 nonzero exits — 7 assert nothing** (1 library + 6 SUPERSEDED stubs). The **60 `*.sql` suites were NOT run** (no DB session, no write authority). The battery is green *and both P1s are real*: no suite exercises the zero-relativizer shape or feeds a verb-shaped label through resolution.
+
+Production read-only, self-run: `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…`, unchanged since #75 — **the candidate is not live; no founder is exposed to D139/D142 today.**
+
+### Coverage gaps (stated, not skipped)
+- **Browser/live-AI checks: not performed and not meaningful here.** Production runs v92, not the candidate; a live UI/chat test would verify a different build. The consequence chain for D139 is therefore **CODE INSPECTED** at the call site (index.ts:5739), while the belt behaviour itself is **UNIT VERIFIED** against the real extracted predicates.
+- **No `QA-VERIFY-*` synthetic data was created** — this change touches no database, so there was nothing to clean up and nothing left behind. `supabase/` was never written to (`git status --porcelain supabase/` empty throughout).
+
+### Artifacts (committed to `verify-b32e0e4-campaign80`, commit `e090f70`)
+- `qa/verification/proposed/v20_known_failure_modes_entry_80.md` (`## #80`, no preamble)
+- `qa/verification/proposed/v20_regression_additions.mjs` — **102 cases: 72 pass, 30 fail, all 30 DEFECT by design, 0 CONTRACT failures**, exits nonzero
+- `qa/verification/proposed/v20_PROMOTION_NOTE.md` — incl. the deliberate `v19→v20` / `#79→#80` naming deviation (the prompt's names are verifier #19's committed artifacts and `## #79` already exists in the ledger)
+- `qa/verification/scratch/v20/` — all evidence files
+
+**No fix applied** — I have no write authority on the implementation branch. Measured fix directions are recorded (R-ZR2 gets D139 *and* keeps R9b's 5 fabrications; D136's dead-end applied to the label path gets D142 with all D138 limit cases still green). **No DB push was needed or attempted.**
+
+**Final index.ts sha256: `6407d95cc846e638d1229559b2622323072028876c8844ce2b1045eade050a6c`**
