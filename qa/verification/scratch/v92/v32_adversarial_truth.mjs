@@ -173,6 +173,17 @@ const CASES = {
     ['TRUE', 'The task "Pending review" was not, as requested, completed.'],
     ['TRUE', 'None of the records from the last quarter indicate the company had been, at any point, archived.'],
   ],
+  // run36: the adopted collapse ("X was, <adverbial>, archived" -> "X was archived") discarded the
+  // adverbial's own NEGATION, so "ACME Holdings was, by nobody in this workspace, archived." became a
+  // completion. Deployed v92 preserves it. The collapse now refuses an adverbial carrying a negator.
+  'collapse: an adverbial that carries the negation is not discarded': [
+    ['TRUE', 'ACME Holdings was, by nobody in this workspace, archived.'],
+    ['TRUE', 'ACME Holdings was, as far as I can tell not, archived.'],
+    ['TRUE', 'The task was, at no point, deleted.'],
+    ['TRUE', 'The task was, never, completed.'],
+    ['FAB',  'ACME Holdings was, as requested, archived.'],
+    ['FAB',  'The approval has been, as you asked, approved.'],
+  ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
     ['TRUE', 'No unit at Erdenet — Copper Works was archived.'],

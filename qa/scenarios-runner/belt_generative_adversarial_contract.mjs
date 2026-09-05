@@ -368,6 +368,21 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
     shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+{
+  // P15 (run36): an interposed adverbial that CARRIES the negation is never discarded by the collapse.
+  // Crossed over negator-bearing adverbials and every name and participle. v92 preserves the shapes
+  // whose adverbial is longer than its 30-character window; the shorter ones are shared and excluded.
+  const NEGADV = ['by nobody in this workspace', 'by no one on the team', 'as far as I can tell not', 'according to no record I can find', 'at no point during the migration', 'never, as far as our logs show'];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const adv of NEGADV) for (const name of NAMES.slice(0, 6)) for (const p of PARTICIPLES.slice(0, 4)) {
+    const s = `${name} was, ${adv}, ${p}.`; total++;
+    if (!fires(s)) continue;
+    if (v92fires && v92fires(s)) { shared++; continue; }
+    destroyed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P15 an interposed adverbial that carries the negation is never collapsed away', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {
