@@ -1,10 +1,10 @@
 {
- "campaign": 91,
- "verifier": 31,
+ "campaign": 92,
+ "verifier": 32,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, second round)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, third round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "2a7abef9c83cbbc1",
+ "index_sha256_prefix": "ee110024b5ecdd96",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,23 +15,24 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 90,
-  "verifier": 30,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 9b73e68 (28 fabrication regressions vs deployed v92, classes R1-R5)",
-  "artifact_commit": "72b9f16 on verify-9b73e68-campaign90"
+  "campaign": 91,
+  "verifier": 31,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 6774b52 (V31-F1 nameInternal destroyed 1144/1144 true reports; F2 completion word inside a name; F3 R-AUXGAP net-negative; F4 17 suite-pinned residuals are v92-corrected fabrications)",
+  "artifact_commit": "94e77f3 on verify-6774b52-campaign91"
  },
- "what_this_campaign_did": "Closed all five classes verifier #30 opened with five mutation-proven fixes. Reverted a sixth (dash-before-a-capital clause split) that closed R2/R3 but destroyed truthful answers whose real names contain a dash. Dropped a seventh that was not load-bearing. Re-pinned four residuals as closed, each with its paired real name proven surviving. Fixed V30-F2. Promoted verifier #30 artifact as a permanent suite with CONTRACT 5 narrowed to top-level declarations and two coverage assertions added so it still catches the case it exists for.",
+ "what_this_campaign_did": "Closed V31-F1 with the COMPLETION_VERB subject rule the verifier prescribed, after rejecting a designator-based variant that failed its coverage contract. Closed V31-F2 in the CONFIRMED arm, after two broader forms were caught destroying real fabrications. Removed and then REBUILT R-AUXGAP, shipping it only because re-measurement showed it net-positive. Closed 14 of the 17 V31-F4 residuals by fixing the evidential scope rule and by making a modal hedge blank its own span instead of vetoing a whole clause. Three residuals stay open, disclosed with reasons.",
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "34 suites / 0 failures (pristine baseline re-measured first: 33/0)",
-  "run15": "57/0, D117 no-whole-span-lookahead invariant intact",
+  "battery": "34 suites / 0 failures",
+  "v31_regression_additions": "33 pass / 1 fail - the single failure is the 3 disclosed no-boundary residuals",
+  "run15": "57/0, D117 invariant intact",
   "v92_parity_contract": "46/0",
-  "v92_open_regression_contract": "28/0 (promoted from verifier #30 artifact)",
-  "probe": "0/26 open regression shapes ship; 0/16 truthful controls destroyed",
-  "run17_D128_falsePositives": "0/24 on the dash-and-conjunction real-name set",
-  "mutation_proof": "5/5 fixes proven load-bearing",
+  "v92_open_regression_contract": "0/26 shipping, 0/16 controls destroyed",
+  "run17_D128_falsePositives": "0/24",
+  "mutation_proof": "11/11 proven load-bearing in BOTH directions",
   "deno": "23 == baseline",
-  "retracted": "an earlier \"battery 33/0 on the fixed copy\" was measured through a pipeline whose exit status was always 0"
+  "known_truth_cost": "2 shapes, disclosed in ledger #93: one pre-existing in 9b73e68, one the irreducible determiner/name ambiguity",
+  "retracted": "ledger #92 battery \"33/0 on the fixed copy\" was read from a pipeline whose exit status is always 0; re-measured 33/0 pristine and 34/0 here"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #30 FAIL stands against 9b73e68 and is NOT inherited by this candidate; #29 is historical campaign evidence only. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #31 FAIL stands against 6774b52 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }

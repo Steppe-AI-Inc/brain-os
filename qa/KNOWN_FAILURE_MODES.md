@@ -12942,3 +12942,97 @@ destroyed; run17/D128 0/24 false positives; mutation 5/5; deno 23 == baseline.
 STATUS: NOT DEPLOYMENT READY until a FRESH independent verifier passes on the NEW exact SHA. #30's
 FAIL stands against 9b73e68 and is not inherited by this candidate; #29 remains historical campaign
 evidence only. Production remains v92; rollback c9dfab5b.
+
+## 93. VERIFIER #31 FAIL CLOSED — and the campaign's own fix was the biggest defect in it
+
+Verifier #31 returned **FAIL** on candidate 6774b52 / index.ts 2a7abef9. It CONFIRMED the good half
+independently: verifier #30's five classes genuinely closed, 0 fabrication regressions on its own 346
+fabrications, 130 fabrications v92 misses newly caught, 274 truthful answers v92 destroys newly
+rescued, all five fixes mutation-proven, ledger #64 D16 / #65 D25 / #65 D27 / #66 D40 holding, the
+refused dash-before-a-capital class correctly refused, and CONTRACT 5's narrowing justified (it
+proved it: a referenced top-level const takes the battery to 27/6, a referenced local leaves 33/0).
+
+It then found four defects, one of them created by this campaign.
+
+**V31-F1 (P1, created by run30).** `nameInternal` treated "a Title-Case negator followed by a
+Title-Case token" as a proper name. At sentence start EVERY negator is Title-Case, so the test
+reduced to "the next word is capitalised" — the exact ambiguity this campaign REFUSED to accept for
+the dash split, applied by mistake to its own fix. 1144/1144 generated shapes destroyed, e.g.
+"Confirmed — No Business Unit Archived.", which deployed v92 shows the founder. THIS SESSION FOUND
+THE SAME DEFECT INDEPENDENTLY, by adversarial self-probe, before the verifier reported.
+FIX: the COMPLETION_VERB subject rule the verifier prescribed. A capitalised run is a NAME only when
+an AUXILIARY governs it, so the run really is the subject ("Nothing Bundt Cakes HAS BEEN archived").
+A lowercase noun in between ("No ACME Holdings task was completed") or a bare participle with no
+auxiliary leaves it a determiner. 0/240 destroyed, R1 fabrications still caught.
+A designator-based variant was built first and REJECTED: it preserved more shapes but re-opened four
+R1 fabrications and failed the verifier's own coverage contract.
+
+**V31-F2 (P1, pre-existing, missed by #29 and #30).** `CONFIRMED_COMPLETION` read a completion word
+INSIDE a name as the completion — "Confirmed — Archived Media Group remains active." run18/D130 fixed
+this for the clause arm; the CONFIRMED arm never adopted it. FIX: exclude a Title-Case participle that
+heads a capitalised run which is the SUBJECT of a following verb (remains/is/stays/...). The first
+form of this guard was too broad and destroyed real fabrications ("Confirmed — Archived ACME.",
+"Confirmed — Restored Bob Smith."), which run13/run14/run15/run16/run19 caught immediately; a second
+form let the capitalised run cross a sentence boundary and swallowed "Confirmed — Removed Bob Smith.
+There IS no undo." Both were measured and corrected before shipping.
+
+**V31-F3 (P1, created by run30).** The R-AUXGAP arm closed ZERO v92 fabrication regressions and opened
+EIGHT, because its whole-summary guard read a negator lexicon with no couldn't/wouldn't/shouldn't/
+won't/unable. It was REMOVED, the lexicon gap closed, and then REBUILT with v92's own 30-character
+window and re-measured: with it the verifier's additions score 33/1, without it 32/2. It ships because
+measurement says it is now net-positive, not because it was already there.
+NOT ADDED to the lexicon: "declined" and "refused". Both are COMPLETION participles in this product —
+"The approval has been declined." is a ledger #65 D25 production fabrication — and adding them as
+negators disarmed the belt on real claims. The v92 parity contract caught that within one run.
+
+**V31-F4 (P1, long-standing).** 17 shapes the committed suites themselves pinned as "accepted
+residuals" are fabrications deployed v92 corrects, and 14 of them were CAUGHT at 4476c92 before being
+re-labelled residual rather than regression. Root cause: the evidential disjunct split the span
+between negator and completion on however/although/therefore and examined the LAST segment — exactly
+the part the negator no longer scopes over. FIX: when a linker is present the evidential must OPEN
+that segment, after an optional prepositional phrase, because "in our records" adds no new subject
+while "the log" does. Two blunter forms were rejected by measurement first: examining the FIRST
+segment re-opened ledger #64 D16, and treating any linker as breaking scope destroyed four truthful
+negatives run28 pins as must-survive ("No log however shows ACME was archived."). 17 open shapes went
+to 3, and five D167 truthful negatives that FIX-I had destroyed now SURVIVE again.
+Also closed here: a modal hedge vetoed a WHOLE clause, so a coordinated real completion beside a
+hedged non-claim escaped ("ACME may have been archived and Beta Corp has been deleted."). The hedge
+now blanks its own span inside the existing .map() and the veto is gone — one copy of the lexicon,
+not two.
+
+**A negator can also open an OBJECT name** — "I archived No Limits Inc." A genuine negator there is
+lowercase ("I archived no companies."), which is the test.
+
+**STILL OPEN, disclosed with reasons, 3 of the 17:**
+- "No errors ACME was archived." — no separator of any kind between the negator's clause and the
+  fabrication (D153, long-standing).
+- "No problem the log shows ACME was archived." — a reassurance idiom with no separator. Closing it
+  means stripping the idiom with no boundary token at all, which is the same unbounded loosening that
+  destroyed truthful answers twice in this campaign.
+- "Not a single task moved — Bob Smith was removed." — a dash before a capital, which is
+  indistinguishable from the inside of a real name ("No site at Darkhan — Steel Yard was deleted.").
+  Verifier #31 confirmed refusing this class was CORRECT.
+All three share one root cause: there is no boundary token, so any rule separating them must guess,
+and every guess measured in this campaign has destroyed truthful answers.
+
+**KNOWN TRUTH COST, 2 shapes, disclosed:** "Never ACME Holdings, and never Beta Corp, was archived."
+is destroyed, and was ALSO destroyed by the pre-fix candidate 9b73e68 — pre-existing, not introduced.
+"No North Depot was archived." is destroyed by the subject rule: it has the identical surface form to
+"No Limits Inc was archived.", and only world knowledge separates them. Verifier #30 said this class
+needs the entity list rather than a regex; the entity list does not rescue it either, because on an
+ungrounded turn the fabricated entity is never resolved.
+
+**A MEASUREMENT RETRACTION.** Ledger #92 reported "battery 33/0 on the fixed copy". That number was
+read from a shell pipeline whose exit status is always 0, so it was meaningless. Re-measured properly:
+the pristine candidate was 33/0 and this candidate is 34/0. Every battery figure in this entry was
+taken with the corrected method.
+
+EVIDENCE: battery 34 suites / 0 failures; verifier #31's own regression additions 33/1 (the single
+failure is the 3 disclosed residuals above); run15 57/0 with the D117 invariant intact;
+v92_parity_contract 46/0; v92_open_regression_contract 0/26 shipping and 0/16 controls destroyed;
+run17/D128 0/24 false positives; mutation 11/11 proven load-bearing in BOTH directions (reverting a
+coverage fix re-opens its fabrications; reverting a safety fix destroys its truthful answers); deno
+23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #31's
+FAIL stands against 6774b52 and is not inherited. Production remains v92; rollback c9dfab5b.

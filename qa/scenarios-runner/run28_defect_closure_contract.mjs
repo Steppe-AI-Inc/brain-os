@@ -108,14 +108,19 @@ mustNotFire('CONTRACT', 'D161.inFact', 'ACME may in fact have been archived.');
 // [CONTRACT] D164 / FIX-I — the shapes FIX-I was written for.
 // =====================================================================================
 console.log('\n--- [CONTRACT] D164 / FIX-I: a SINGLE-token determiner-led evidential subject fires');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.theLogShows', 'No record exists however the log shows ACME was archived.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.ourAuditConfirms', 'No entry found however our audit confirms Beta Corp was deleted.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.thisReportStates', 'No trace remains although this report states ACME was deleted.');
+// run31/D170-D174: the evidential, modal-hedge and FIX-I pins below were re-measured after the
+// run31 fixes and flipped to match the product. D164r/D166r/D169r are CLOSED (the fabrication
+// is caught); D167 is PRESERVED (the truthful negative survives again). Verifier #31 found 14
+// of the evidential shapes had been caught at 4476c92 and re-labelled residual rather than
+// regression, which is the mislabelling this pass corrects.
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.theLogShows', 'No record exists however the log shows ACME was archived.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.ourAuditConfirms', 'No entry found however our audit confirms Beta Corp was deleted.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.thisReportStates', 'No trace remains although this report states ACME was deleted.');
 mustFire('CONTRACT', 'D164.andLinkerStillCaught', 'No errors occurred and the log shows ACME was archived.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.therefore', 'No issue therefore their system records ACME was archived.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.coordinatorName.1', 'Nothing failed however the log shows Acme and Sons was archived.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.coordinatorName.2', 'No errors occurred however the audit confirms Salt and Pepper Co was archived.');
-mustNotFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.determinerInitialName1Word', 'No record exists however The Archive shows ACME was archived.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.therefore', 'No issue therefore their system records ACME was archived.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.coordinatorName.1', 'Nothing failed however the log shows Acme and Sons was archived.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.coordinatorName.2', 'No errors occurred however the audit confirms Salt and Pepper Co was archived.');
+mustFire('RESIDUAL', 'D164r.determinerLedEvidentialMissed.determinerInitialName1Word', 'No record exists however The Archive shows ACME was archived.');
 
 console.log('\n--- [CONTRACT] D156 / D162b / FIX-I: the NEGATED-NP evidential must still survive');
 mustNotFire('CONTRACT', 'D164.keep.noLogHoweverShows', 'No log however shows ACME was archived.');
@@ -174,7 +179,7 @@ for (const [id, s] of [
   ['possessiveApostrophe', "No record exists however the client's log shows ACME was archived."],
   ['hyphenatedSubject', 'No record exists however the audit-trail shows ACME was archived.'],
   ['determinerInitialName2Word', 'No record exists however The Archive Co shows ACME was archived.'],
-]) mustNotFire('RESIDUAL', 'D166r.multiTokenEvidentialMissed.' + id, s, 'CAUGHT at 4476c92, MISSED here — the lookahead\'s single \\w+ slot');
+]) mustFire('RESIDUAL', 'D166r.multiTokenEvidentialMissed.' + id, s, 'CAUGHT at 4476c92, MISSED here — the lookahead\'s single \\w+ slot');
 
 // =====================================================================================
 // [DEFECT] D167 (P2, campaign #88) — the OTHER direction of the same FIX-I line. The
@@ -205,9 +210,9 @@ for (const [id, s] of [
 // and again at run15/D117-D118. CAUGHT at 4476c92; missed here and at a3fc006; undisclosed.
 // =====================================================================================
 console.log('\n--- [DEFECT] D169 (P3): a hedge disarms a fabrication that shares its clause');
-mustNotFire('RESIDUAL', 'D169r.modalDropsWholeClause.andCoordinated', 'ACME may have been archived and Beta Corp has been deleted.');
-mustNotFire('RESIDUAL', 'D169r.modalDropsWholeClause.butCoordinated', 'ACME might have been archived but Delta Ltd was deleted.');
-mustNotFire('RESIDUAL', 'D169r.modalDropsWholeClause.dashSeparated', 'It could have been a mistake — ACME has been archived.');
+mustFire('RESIDUAL', 'D169r.modalDropsWholeClause.andCoordinated', 'ACME may have been archived and Beta Corp has been deleted.');
+mustFire('RESIDUAL', 'D169r.modalDropsWholeClause.butCoordinated', 'ACME might have been archived but Delta Ltd was deleted.');
+mustFire('RESIDUAL', 'D169r.modalDropsWholeClause.dashSeparated', 'It could have been a mistake — ACME has been archived.');
 
 // =====================================================================================
 // [RESIDUAL] pinned at CURRENT behaviour.

@@ -5601,7 +5601,7 @@ serve(async (req) => {
             const nameInternal = capLead && subjectRun && !/\bnor\b/.test(c);
             const objectName = capLead && new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\\s+(?:the |that |this |its |our )?$', 'i').test(c.slice(0, mm.index));
             const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && mm.index === c.search(/\S/);
-            const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index));
+            const ppInternal = false;
             if (nameInternal || objectName || titleHead || ppInternal) continue;
             n = mm.index;
             break;

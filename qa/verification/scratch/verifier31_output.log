@@ -1,0 +1,37 @@
+---
+
+# VERIFIER #31 — FINAL REPORT
+
+**Candidate** `6774b52cf2eba8ca0b96d4c6951e7956ae2ad4dd` · **artifact commit** `94e77f3` on `verify-6774b52-campaign91` · working tree clean, deploy surface untouched.
+
+## PREFLIGHT: EXECUTION_READY
+A `git rev-parse HEAD` ✓ · B scratch write ✓ · C regex runner 13 passed / 0 failed ✓
+
+## STEP 1 — Production bytes: CONFIRMED, but **integration-level, not byte-direct**
+
+`supabase functions download` is **gated by this session's execution policy** — not a provider error. I could not hash the deployed bytes, so I built the link another way, all first-hand: live API says `sem-ai-command` ACTIVE **v92**, `ezbr_sha256 33255b31…`, `updated_at` 2026-09-01T05:15:25.518Z, `entrypoint_path` under `/home/runner/…` (CI). The repo's only deploy path is `.github/workflows/supabase-functions.yml`; its **latest** run is `33472871764`, headSha **`c9dfab5bd433`**, +21 s before the function timestamp, **no later run** (a manual deploy would have made v93). And `git show c9dfab5bd433:…/index.ts | sha256sum` = **`795c20c8…`** — the prompt's stated sha, re-derived not restated. **Confirmed, refuted nowhere. Byte-direct link BLOCKED.** I also checked the implementing session's own v92 copy: it LF-normalises to exactly `795c20c8…` (consistent), though its sibling `v92.lf.ts` is byte-identical to the CRLF file despite its name — hygiene defect, scratch-only.
+
+## VERDICT
+
+The campaign's headline is **half true, and I confirm that half**. Verifier #30's five classes are genuinely closed — **0 fabrication regressions on my own 346 fabrications**, 130 fabrications v92 misses newly caught, 274 truthful answers v92 destroys newly rescued. All five fixes are independently mutation-proven load-bearing, and reverting all five reproduces `9b73e68` exactly (69/2) — a fidelity check on my harness. Ledger #64 D16, #65 D25, #65 D27 (row `9dda919c`), #66 D40 all hold. The refused dash-before-CAPITAL class was **correctly** refused. Battery **33/0**. CONTRACT 5's narrowing is **justified** — I proved it by mutating the real `index.ts`: a referenced top-level const takes the battery to 27/6, a referenced local leaves it 33/0.
+
+But the gate was measured on one axis against one list, and fails on both once measured properly:
+
+- **V31-F1 (NEW)** `nameInternal` calls a Title-Case negator followed by a Title-Case token "name-internal" and skips it. `"Confirmed — No Business Unit Archived."` → **1144/1144** generated shapes destroyed; `9b73e68` destroys 0, **v92 shows every one to the founder**.
+- **V31-F2 (pre-existing, missed by #29 and #30)** `CONFIRMED_COMPLETION` reads a completion word *inside a name* as the completion — `"Confirmed — Archived Media Group remains active."` run18/D130 fixed this for the clause arm; that arm never adopted it.
+- **V31-F3 (NEW)** Isolated, the R-AUXGAP arm closes **0** v92 fabrication regressions and opens **8** (330 in sweep). Its only guard is a whole-summary token scan blind to `couldn't/wouldn't/shouldn't/won't/unable/refused`. Net-negative.
+- **V31-F4 (long-standing, the class nobody looked for)** **17 shapes the suites themselves pin as "accepted residuals" are fabrications v92 corrects**, all shipping end-to-end. **14 were caught at `4476c92`** — run28's own comment says *"CAUGHT at 4476c92, MISSED here"* — and were re-labelled residual instead of regression. That is the exact argument this campaign used to re-pin D116, applied to one shape and not the other seventeen.
+
+Truthful answers destroyed on one corpus: `4476c92` = 4, `9b73e68` = 2, **candidate = 33.** The re-pins are honest, but not one of their paired real names exercises the Title+Title direction — which is why V31-F1 shipped green.
+
+**Coverage gaps, stated not hidden:** byte-direct v92 provenance BLOCKED; browser/UI and live AI-chat checks were out of scope for this gate and were not run; no DB lifecycle scenarios were executed, so **no `QA-VERIFY-*` data was created and there is nothing to clean up**.
+
+**Artifacts:** `v31_known_failure_modes_entry_92.md`, `v31_PROMOTION_NOTE.md`, `v31_regression_additions.mjs` (29 pass / 5 fail, exit 1, cwd-independent, non-vacuous against three real sources).
+
+## FAIL
+
+EDGE STATUS = **NOT DEPLOYMENT READY**. Production stays on v92; rollback target `c9dfab5bd433` verified exact and available. Do not revert `nameInternal` to fix F1 — that re-opens class R1; it needs the `COMPLETION_VERB` subject rule instead.
+
+```
+2a7abef9c83cbbc19532aa742a73da71a40b597083a3287afb3fc0ed9de935a7
+```
