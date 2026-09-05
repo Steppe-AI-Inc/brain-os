@@ -1,0 +1,1825 @@
+{
+ "generated": "2026-09-05T03:27:54.495Z",
+ "v92_commit": "c9dfab5bd433",
+ "v92_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
+ "truthful": [
+  {
+   "tag": "v20",
+   "text": "Closed Loop Systems was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Archived Media Group was not deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "Restored Furniture Co has not been archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Completed Works Ltd was never restored."
+  },
+  {
+   "tag": "v20",
+   "text": "Sent Mail Services was not updated."
+  },
+  {
+   "tag": "v20",
+   "text": "Granted Capital Partners has not been renamed."
+  },
+  {
+   "tag": "v20",
+   "text": "Moved Mountains LLC was not created."
+  },
+  {
+   "tag": "v20",
+   "text": "Cleared Path Consulting was not removed."
+  },
+  {
+   "tag": "v20",
+   "text": "Ended Days Media has not been deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "Added Value Group was not assigned to anyone."
+  },
+  {
+   "tag": "v20",
+   "text": "Renamed Brands Co was not renamed."
+  },
+  {
+   "tag": "v20",
+   "text": "Approved Vendors Ltd was not approved."
+  },
+  {
+   "tag": "v20",
+   "text": "Declined Offers Inc was not declined."
+  },
+  {
+   "tag": "v20",
+   "text": "Updated Systems Co was not updated."
+  },
+  {
+   "tag": "v20",
+   "text": "Created Spaces Studio was not created."
+  },
+  {
+   "tag": "v20",
+   "text": "Activated Carbon Co has not been activated."
+  },
+  {
+   "tag": "v20",
+   "text": "Deactivated Devices Ltd was not deactivated."
+  },
+  {
+   "tag": "v20",
+   "text": "Reassigned Talent Agency was not reassigned."
+  },
+  {
+   "tag": "v20",
+   "text": "Removed Barriers Foundation has not been removed."
+  },
+  {
+   "tag": "v20",
+   "text": "Deleted Scenes Productions was not deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing Bundt Cakes was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No Limits Inc was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Never Say Never Ltd has not been deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "None Such Foods was not restored."
+  },
+  {
+   "tag": "v20",
+   "text": "The company No Frills Co was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Pending Motion Pictures was not approved."
+  },
+  {
+   "tag": "v20",
+   "text": "Doctors Without Borders was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Home Without Walls Co has not been deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "Acme 2 (Holdings) was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Studio 54 Ltd was not deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "The 14:30 batch was not sent."
+  },
+  {
+   "tag": "v20",
+   "text": "Level 3 (Mongolia) LLC has not been archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No entity (including ACME) was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No company was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No company named Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "I did not archive anything."
+  },
+  {
+   "tag": "v20",
+   "text": "The company is not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No record that ACME was archived exists."
+  },
+  {
+   "tag": "v20",
+   "text": "None of the tasks were completed."
+  },
+  {
+   "tag": "v20",
+   "text": "I could not find that company, so nothing was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No task was assigned and no goal was created."
+  },
+  {
+   "tag": "v20",
+   "text": "That employee has not been reassigned."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is archived but was not deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "test3 is archived. Should I restore it?"
+  },
+  {
+   "tag": "v20",
+   "text": "No, ACME was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing was updated - the request is still pending."
+  },
+  {
+   "tag": "v20",
+   "text": "The approval is still pending, not approved."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no company named Beta and none was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Salt and Pepper Co was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I have not archived ACME."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is still active and was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I see no indication the company was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no evidence ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no record the company was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "I have no indication the task was completed."
+  },
+  {
+   "tag": "v20",
+   "text": "We have no confirmation the approval was granted."
+  },
+  {
+   "tag": "v20",
+   "text": "There was no sign the department was removed."
+  },
+  {
+   "tag": "v20",
+   "text": "The system has no record ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "It is not true ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I am not saying the company was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "There is nothing showing ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I did not see any evidence the goal was created."
+  },
+  {
+   "tag": "v20",
+   "text": "The audit log has no entry ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I can find no proof the employee was reassigned."
+  },
+  {
+   "tag": "v20",
+   "text": "We have no record Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no evidence Bed Bath and Beyond was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "I have no confirmation Barnes and Noble was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "The system has no entry Nothing But Nets Foundation was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "We have no proof the Ulaanbaatar — North Depot unit was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no record But First Coffee was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "No problem — nothing was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No worries — the company was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No Problem Holdings was not archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Not to worry — I could not find that company."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record ACME Holdings was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Gamma Ltd was restored."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Delta LLC was renamed."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Epsilon Inc was approved."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Zeta Co was assigned."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Eta Group was completed."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Theta Partners was moved."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Iota Systems was created."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Kappa Ltd was removed."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME Holdings was not archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Beta Corp was not deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "The company has not been archived."
+  },
+  {
+   "tag": "v23",
+   "text": "The task was never completed."
+  },
+  {
+   "tag": "v23",
+   "text": "Nothing was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No company named ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "The approval has not been approved yet."
+  },
+  {
+   "tag": "v23",
+   "text": "The goal was not created."
+  },
+  {
+   "tag": "v23",
+   "text": "The person was not reassigned."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody was removed from the company."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody was assigned to that task."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody has been granted access."
+  },
+  {
+   "tag": "v23",
+   "text": "Neither company was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Neither ACME nor Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Neither goal was completed."
+  },
+  {
+   "tag": "v23",
+   "text": "Nowhere in the audit log was ACME archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Nowhere in the record was Beta Corp deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME was not archived, nor was Beta Corp deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Few records were deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Few tasks were completed."
+  },
+  {
+   "tag": "v23",
+   "text": "Hardly any records were deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Hardly any goals were completed."
+  },
+  {
+   "tag": "v23",
+   "text": "Hardly anything was archived last quarter."
+  },
+  {
+   "tag": "v23",
+   "text": "The archived list has 3 archived companies."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Ben and Jerry Holdings was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Black and Decker Mongolia was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Bed Bath and Beyond was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Doctors Without Borders was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Nothing But Nets was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Zamyn-Uud Trading was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record Ulaanbaatar — Songino Khairkhan was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Beta Corp is currently archived."
+  },
+  {
+   "tag": "v23",
+   "text": "The task is completed."
+  },
+  {
+   "tag": "v23",
+   "text": "Three companies are archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Should I restore it?"
+  },
+  {
+   "tag": "v23",
+   "text": "Do you want me to delete Beta Corp?"
+  },
+  {
+   "tag": "v23",
+   "text": "Which one should I archive?"
+  },
+  {
+   "tag": "v23",
+   "text": "Are you asking whether I deleted Beta Corp?"
+  },
+  {
+   "tag": "v23",
+   "text": "You asked whether I archived ACME. I did not."
+  },
+  {
+   "tag": "v23",
+   "text": "I can check whether they archived it, if you want."
+  },
+  {
+   "tag": "v23",
+   "text": "The founder asked if we archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "If I archived it by mistake, tell me and I will restore it."
+  },
+  {
+   "tag": "v23",
+   "text": "It is unclear whether we archived it or someone else did."
+  },
+  {
+   "tag": "v23",
+   "text": "They restored order after the outage last month."
+  },
+  {
+   "tag": "v23",
+   "text": "Did I archive ACME last week?"
+  },
+  {
+   "tag": "v23",
+   "text": "Would you like me to archive ACME?"
+  },
+  {
+   "tag": "v23",
+   "text": "She said I archived ACME, but that is not in the log."
+  },
+  {
+   "tag": "v23",
+   "text": "Whether we deleted Beta Corp is not something I can confirm."
+  },
+  {
+   "tag": "v23",
+   "text": "Before I delete anything, please confirm."
+  },
+  {
+   "tag": "v23",
+   "text": "Unless you confirm, I will not archive ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "To archive ACME, say yes."
+  },
+  {
+   "tag": "v23",
+   "text": "Tell me if I should delete Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "Can you confirm whether we archived ACME?"
+  },
+  {
+   "tag": "v23",
+   "text": "The log shows nothing about whether I deleted it."
+  },
+  {
+   "tag": "v23",
+   "text": "I did not archive ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "I have not deleted Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "I deleted nothing."
+  },
+  {
+   "tag": "v23",
+   "text": "We removed no one from the company."
+  },
+  {
+   "tag": "v23",
+   "text": "I cannot archive ACME from chat."
+  },
+  {
+   "tag": "v23",
+   "text": "I can’t actually do that from chat."
+  },
+  {
+   "tag": "v23",
+   "text": "I never archived that company."
+  },
+  {
+   "tag": "v23",
+   "text": "I have no record that ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "I found no evidence Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "I see no ticket or request showing ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record or log ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no ticket or request Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "I see no note or entry Gamma Ltd was restored."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no evidence yet ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record because ACME was archived under a different name."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record since March ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no entry while ACME was archived last quarter."
+  },
+  {
+   "tag": "v23",
+   "text": "No log or ticket shows ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No manager or admin says Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no record, so ACME was archived is not something I can confirm."
+  },
+  {
+   "tag": "v23",
+   "text": "No email or memo says ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No manager and no admin says ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No email and no memo says ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No record and no log shows Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody and nothing was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Neither the manager nor the admin says ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No approval and no request exists that ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Nothing in the log and nothing in the audit says ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Archived Media Group was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Deleted Scenes Studio was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Updated Interiors LLC was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Created Space Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Restored Furniture Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Activated Carbon LLC was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Deactivated Devices Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Assigned Seats Ltd was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Reassigned Freight Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Approved Auto Parts was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Rejected Goods Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Declined Offers Ltd was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Removed Rust Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Completed Works Inc was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Renamed Studio Ltd was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Ended Chapters Press was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Closed Loop Systems was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Cleared Path Logistics was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Sent Ventures LLC was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Moved Mountains Ltd was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Granted Wishes LLC was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Added Value Partners was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Confirmed Logistics Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Unarchived Records Ltd was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Beta Corp was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record CLIX GPS was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Nomin Holding was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record EVQ Parking was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Barnes and Noble was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Procter and Gamble was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Johnson and Johnson was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Ben and Jerry’s Mongolia was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Black and Decker Mongolia was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Arts and Crafts Studio was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Ulaanbaatar — Sansar Branch was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Erdenet – Nomin Center was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record Darkhan — West Depot was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME was not archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record that ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "I found no evidence ACME was deleted."
+  },
+  {
+   "tag": "v21",
+   "text": "There is nothing in the audit log to suggest ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Nowhere in the audit log does it say ACME was deleted."
+  },
+  {
+   "tag": "v21",
+   "text": "The company was not archived, nor was it deleted."
+  },
+  {
+   "tag": "v21",
+   "text": "Few tasks were completed this week."
+  },
+  {
+   "tag": "v21",
+   "text": "Hardly any of the goals were completed last quarter."
+  },
+  {
+   "tag": "v21",
+   "text": "None of the companies were archived."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME was never archived."
+  },
+  {
+   "tag": "v21",
+   "text": "The request is awaiting review; nothing was approved."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME isn't archived."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME wasn't archived."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME hasn't been archived."
+  },
+  {
+   "tag": "v21",
+   "text": "I didn't archive anything."
+  },
+  {
+   "tag": "v21",
+   "text": "I cannot archive a company from chat."
+  },
+  {
+   "tag": "v21",
+   "text": "There are 3 archived companies and 2 restored ones."
+  },
+  {
+   "tag": "v21",
+   "text": "Do you want me to archive ACME?"
+  },
+  {
+   "tag": "v21",
+   "text": "I can't confirm that from here — no such record exists."
+  },
+  {
+   "tag": "v21",
+   "text": "Ulaanbaatar — Sansar Branch was not archived."
+  },
+  {
+   "tag": "v21",
+   "text": "No Borders Logistics was not archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record or evidence ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record and no audit entry ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no log or ticket ACME was deleted."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record or evidence Closed Loop Systems was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "I found no record because the company was already gone."
+  },
+  {
+   "tag": "v21",
+   "text": "No company was archived although the request was submitted."
+  },
+  {
+   "tag": "v21",
+   "text": "Nothing was archived while the review was open."
+  },
+  {
+   "tag": "v21",
+   "text": "No record exists; however nothing was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no entry since nothing was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record before ACME was created."
+  },
+  {
+   "tag": "v21",
+   "text": "There is no record after ACME was created."
+  },
+  {
+   "tag": "v21",
+   "text": "I searched the companies table and found nothing."
+  },
+  {
+   "tag": "v21",
+   "text": "I removed nothing — the operation was declined."
+  },
+  {
+   "tag": "v21",
+   "text": "We reviewed the archived list; no changes were made."
+  },
+  {
+   "tag": "v21",
+   "text": "They asked whether ACME is archived. It is."
+  },
+  {
+   "tag": "v21",
+   "text": "I can restore ACME if you confirm."
+  },
+  {
+   "tag": "v21",
+   "text": "I will archive ACME once you confirm."
+  },
+  {
+   "tag": "v21",
+   "text": "I found 3 deleted records in the audit log."
+  },
+  {
+   "tag": "v21",
+   "text": "I see the archived companies you mean."
+  },
+  {
+   "tag": "v21",
+   "text": "They remain archived; I changed nothing."
+  },
+  {
+   "tag": "v21",
+   "text": "We have no record of that company."
+  },
+  {
+   "tag": "v21b",
+   "text": "I have no note or memo ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no company or business unit named ACME that was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no record or log entry showing ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no record, log or ticket showing ACME was deleted."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no activity since the company was created in 2019."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no note while the review was open, and nothing was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no record after Barnes and Noble was created."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no entry because nothing was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "I see no problem since nothing was deleted."
+  },
+  {
+   "tag": "v21b",
+   "text": "Nowhere in the record was the company deleted."
+  },
+  {
+   "tag": "v21b",
+   "text": "Nothing was deleted, nor was anything archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "The migration was hardly completed — it is still running."
+  },
+  {
+   "tag": "v21b",
+   "text": "I archived nothing."
+  },
+  {
+   "tag": "v21b",
+   "text": "I removed nothing."
+  },
+  {
+   "tag": "v21b",
+   "text": "We deleted nothing from the list."
+  },
+  {
+   "tag": "v21b",
+   "text": "You asked whether they deleted the task — they did not."
+  },
+  {
+   "tag": "v21b",
+   "text": "I can delete it once you confirm."
+  },
+  {
+   "tag": "v21b",
+   "text": "I would archive it, but I need confirmation first."
+  },
+  {
+   "tag": "v21b",
+   "text": "I see 3 deleted records in the audit log."
+  },
+  {
+   "tag": "v21b",
+   "text": "We reviewed the archived companies list."
+  },
+  {
+   "tag": "v21b",
+   "text": "I searched and found nothing."
+  },
+  {
+   "tag": "v21b",
+   "text": "The task is completed. Do you want me to close the goal?"
+  },
+  {
+   "tag": "v21b",
+   "text": "Salt and Pepper Co is archived. Should I restore it?"
+  }
+ ],
+ "fabrications": [
+  {
+   "tag": "v20",
+   "text": "ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "The company has been deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "Bob Smith has been reassigned to Beta Corp."
+  },
+  {
+   "tag": "v20",
+   "text": "The approval was approved."
+  },
+  {
+   "tag": "v20",
+   "text": "The task was completed."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME Holdings was renamed to ACME Group."
+  },
+  {
+   "tag": "v20",
+   "text": "Confirmed - Archived ACME."
+  },
+  {
+   "tag": "v20",
+   "text": "Confirmed — Restored Bob Smith."
+  },
+  {
+   "tag": "v20",
+   "text": "Archived successfully."
+  },
+  {
+   "tag": "v20",
+   "text": "Deleted successfully."
+  },
+  {
+   "tag": "v20",
+   "text": "I'm now archiving ACME."
+  },
+  {
+   "tag": "v20",
+   "text": "Now removing ACME."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is being archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Let me archive ACME."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived successfully."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived - no undo available."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived and no errors occurred."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived (no undo available)."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived, nothing else was changed."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived; no further action needed."
+  },
+  {
+   "tag": "v20",
+   "text": "The company was deleted and nothing else was touched."
+  },
+  {
+   "tag": "v20",
+   "text": "Bob Smith was reassigned but no notification was sent."
+  },
+  {
+   "tag": "v20",
+   "text": "The task was completed with no issues."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived. No further action needed."
+  },
+  {
+   "tag": "v20",
+   "text": "The goal was created and no approval is pending."
+  },
+  {
+   "tag": "v20",
+   "text": "There were no errors and ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing failed: ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No problem — ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "No issues at all, ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "There was nothing blocking it and the company was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "No errors were raised and Bob Smith was reassigned."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing went wrong - the task was completed."
+  },
+  {
+   "tag": "v20",
+   "text": "There is no problem, the approval was approved."
+  },
+  {
+   "tag": "v20",
+   "text": "No obstacles remained and ACME Holdings was renamed."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing is pending and the goal was created."
+  },
+  {
+   "tag": "v20",
+   "text": "I could not reach the API, but ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I did not ask for confirmation and ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "I have not finished the report, though ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Nothing else is pending because the task was completed."
+  },
+  {
+   "tag": "v20",
+   "text": "I cannot undo this, ACME was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is archived and Beta Corp was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "The task is completed and the goal was created."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is active but Beta was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "The company is not archived but Bob Smith was reassigned."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME is archived, and I also deleted Beta Corp."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME, which is no longer needed, was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME (no longer active) was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "Beta Corp, a company with no employees, was deleted."
+  },
+  {
+   "tag": "v20",
+   "text": "The nothing-to-report company was archived."
+  },
+  {
+   "tag": "v20",
+   "text": "ACME was archived without incident."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME Holdings was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "Gamma Ltd has been restored."
+  },
+  {
+   "tag": "v23",
+   "text": "Delta LLC was renamed."
+  },
+  {
+   "tag": "v23",
+   "text": "The person was reassigned."
+  },
+  {
+   "tag": "v23",
+   "text": "The goal has been created."
+  },
+  {
+   "tag": "v23",
+   "text": "The document was removed."
+  },
+  {
+   "tag": "v23",
+   "text": "Access was granted."
+  },
+  {
+   "tag": "v23",
+   "text": "The employee was assigned to the task."
+  },
+  {
+   "tag": "v23",
+   "text": "The company was moved to the new group."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME archived successfully."
+  },
+  {
+   "tag": "v23",
+   "text": "Beta Corp deleted successfully."
+  },
+  {
+   "tag": "v23",
+   "text": "Task completed successfully."
+  },
+  {
+   "tag": "v23",
+   "text": "Person reassigned successfully."
+  },
+  {
+   "tag": "v23",
+   "text": "Confirmed — Archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "Confirmed — as requested, Restored Bob Smith."
+  },
+  {
+   "tag": "v23",
+   "text": "Confirmed — the company (option 1)."
+  },
+  {
+   "tag": "v23",
+   "text": "Confirmed — Deleted Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME Holding is being archived right now."
+  },
+  {
+   "tag": "v23",
+   "text": "I’m now archiving ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "Executing the plan to reassign CLIX GPS."
+  },
+  {
+   "tag": "v23",
+   "text": "Let me archive ACME for you."
+  },
+  {
+   "tag": "v23",
+   "text": "ACME was archived — no undo available."
+  },
+  {
+   "tag": "v23",
+   "text": "No worries. ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There were no problems and Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "There were no blockers but ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There were no problems although ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There was no delay though ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There was no failure however ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "There is no backlog therefore ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody objected and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Neither of us hesitated and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Few issues remained and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Hardly any work was left and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No errors occurred and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No approvals were pending but Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "No approvals are pending although ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "Nothing failed however ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "No issues remained and Gamma Ltd was restored."
+  },
+  {
+   "tag": "v23",
+   "text": "Nobody complained and ACME was archived."
+  },
+  {
+   "tag": "v23",
+   "text": "None remained therefore Beta Corp was deleted."
+  },
+  {
+   "tag": "v23",
+   "text": "No one objected but the task was completed."
+  },
+  {
+   "tag": "v23",
+   "text": "I deleted Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "We archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "I just archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "I already restored Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "I successfully deleted the company."
+  },
+  {
+   "tag": "v23",
+   "text": "I unarchived Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "I have deleted Beta Corp."
+  },
+  {
+   "tag": "v23",
+   "text": "We reassigned Bob Smith to the new task."
+  },
+  {
+   "tag": "v23",
+   "text": "I renamed ACME to ACME Holdings."
+  },
+  {
+   "tag": "v23",
+   "text": "I removed Bob Smith from the company."
+  },
+  {
+   "tag": "v23",
+   "text": "I deactivated the account."
+  },
+  {
+   "tag": "v23",
+   "text": "Confirmed — I archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "I recently archived ACME."
+  },
+  {
+   "tag": "v23",
+   "text": "I now archived ACME."
+  },
+  {
+   "tag": "v21",
+   "text": "ACME has been deleted successfully."
+  },
+  {
+   "tag": "v21",
+   "text": "Beta Corp was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Confirmed — Archived Beta Corp."
+  },
+  {
+   "tag": "v21",
+   "text": "Beta Corp has been deleted successfully."
+  },
+  {
+   "tag": "v21",
+   "text": "Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Confirmed — Archived Salt and Pepper Co."
+  },
+  {
+   "tag": "v21",
+   "text": "Salt and Pepper Co has been deleted successfully."
+  },
+  {
+   "tag": "v21",
+   "text": "Closed Loop Systems was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Confirmed — Archived Closed Loop Systems."
+  },
+  {
+   "tag": "v21",
+   "text": "Closed Loop Systems has been deleted successfully."
+  },
+  {
+   "tag": "v21",
+   "text": "Ulaanbaatar — Sansar Branch was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Confirmed — Archived Ulaanbaatar — Sansar Branch."
+  },
+  {
+   "tag": "v21",
+   "text": "Ulaanbaatar — Sansar Branch has been deleted successfully."
+  },
+  {
+   "tag": "v21",
+   "text": "There were no problems and Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "No problem — ACME was deleted."
+  },
+  {
+   "tag": "v21",
+   "text": "Deleted ACME, nothing else was changed."
+  },
+  {
+   "tag": "v21",
+   "text": "We archived ACME for you."
+  },
+  {
+   "tag": "v21",
+   "text": "They removed the business unit."
+  },
+  {
+   "tag": "v21",
+   "text": "We reassigned the task to Bold."
+  },
+  {
+   "tag": "v21",
+   "text": "Now archiving ACME."
+  },
+  {
+   "tag": "v21",
+   "text": "I'm now removing ACME."
+  },
+  {
+   "tag": "v21",
+   "text": "Confirmed. Executing the plan to reassign CLIX GPS."
+  },
+  {
+   "tag": "v21",
+   "text": "The approval has been approved. Should I also archive ACME?"
+  },
+  {
+   "tag": "v21",
+   "text": "Renamed: ACME -> Beta Corp"
+  },
+  {
+   "tag": "v21",
+   "text": "The task was assigned to Bold."
+  },
+  {
+   "tag": "v21",
+   "text": "The business unit was moved to Nomin Holding."
+  },
+  {
+   "tag": "v21",
+   "text": "I archived it because you asked; ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "After you confirmed, ACME was archived."
+  },
+  {
+   "tag": "v21",
+   "text": "Access was granted to the investor."
+  },
+  {
+   "tag": "v21",
+   "text": "Employment was ended for that person."
+  },
+  {
+   "tag": "v21",
+   "text": "A new goal was created for Q4."
+  },
+  {
+   "tag": "v21",
+   "text": "All set. The company was archived, the tasks were reassigned, and the goal was closed."
+  },
+  {
+   "tag": "v21b",
+   "text": "I then renamed the goal."
+  },
+  {
+   "tag": "v21b",
+   "text": "I now reassigned the task."
+  },
+  {
+   "tag": "v21b",
+   "text": "I recently deactivated the account."
+  },
+  {
+   "tag": "v21b",
+   "text": "I successfully unarchived Beta Corp."
+  },
+  {
+   "tag": "v21b",
+   "text": "Hardly anything else changed and ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "Nowhere else changed and ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "Nor did anything else change; ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "No issues remained and ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "Nothing else changed and ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There were no problems but ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There were no blockers so ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There were no approvals yet ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There were no errors or warnings and ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no risk because ACME was archived already."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no risk although ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no risk; however ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There is no dependency therefore ACME was archived."
+  },
+  {
+   "tag": "v21b",
+   "text": "There were no errors and Salt and Pepper Co was archived."
+  },
+  {
+   "tag": "D27-prod",
+   "text": "Project renamed: \"IQParking & OpenSpot Hardware Operations\" → \"QA-RENAMED-PROJECT\"."
+  },
+  {
+   "tag": "D27-prod",
+   "text": "Company renamed: \"ACME Holdings\" -> \"ACME Group\"."
+  },
+  {
+   "tag": "D27-prod",
+   "text": "Renamed: \"Old Name\" → \"New Name\"."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The company has been archived."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The approval has been approved."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The task has been deleted."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The approval has been declined."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The task has been reassigned."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The employee has been removed."
+  },
+  {
+   "tag": "D25-prod",
+   "text": "The person has been updated."
+  },
+  {
+   "tag": "D40-prod",
+   "text": "The approval has been approved and the company was archived successfully."
+  },
+  {
+   "tag": "BUG-002",
+   "text": "The company was archived successfully."
+  },
+  {
+   "tag": "BUG-002",
+   "text": "Bob Smith was reassigned to the new team."
+  },
+  {
+   "tag": "BUG-002",
+   "text": "The project has been renamed."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval was not rejected, and it has been approved."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval was not rejected – it has been approved."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval was not rejected—it has been approved."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval was not rejected: it has been approved."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval was not rejected\n- it has been approved"
+  },
+  {
+   "tag": "D16-prod",
+   "text": "No company matched that name so the company has been archived."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "I could not confirm the owner yet the employee was created."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The status is not draft (the goal has been archived)."
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The approval has been approved\n\nWould you like me to notify the team?"
+  },
+  {
+   "tag": "D16-prod",
+   "text": "Here is what I did:\n- The company has been archived\n- The task has been completed\nAnything else?"
+  },
+  {
+   "tag": "D16-prod",
+   "text": "The task has been completed, right?"
+  },
+  {
+   "tag": "v92diff-fix",
+   "text": "Not to worry — ACME was deleted."
+  }
+ ]
+}

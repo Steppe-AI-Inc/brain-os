@@ -388,3 +388,18 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   on deploy vs continue polishing).
 - DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
   `migration list` + `db push --dry-run` output.
+
+
+## UPDATE 2026-09-05 ~11:45 local — v92 DIFFERENTIAL CAMPAIGN (#90) closed at `da5fa341…`; verifier #30 dispatched
+- Deployed v92 == git c9dfab5b (byte-exact, sha256 795c20c8), fetched read-only via
+  `supabase functions download`; copy committed at qa/verification/scratch/v92/index.v92.ts.
+- The differential found 12 fabrication regressions vs LIVE v92 (incl. D27 P1 — production row
+  9dda919c `Project renamed: "X" → "Y"`, sitting behind the `:\s` split) that the 4476c92-relative
+  campaign had classified as residuals → ALL 12 CLOSED, 0/272 truthful destroyed, 8/8 mutation-proven.
+  Permanent `v92_parity_contract` (46/0) now in the battery (33/0). run18/run19 D131 idiom pins
+  re-pinned closed. Founder's 7 questions answered in ledger #90. Rollback = c9dfab5b, exact+available.
+- **VERIFIER #30 = a V92-DIFFERENTIAL verifier** (re-derive the v92 bytes, own corpus, the 7 questions),
+  NOT a belt repeat. On PASS → EDGE STATUS = DEPLOYMENT READY → ask ALLOW_FUNCTIONS_DEPLOY=1 once.
+  #29 PASS (campaign) and #30 PASS (production) are BOTH required.
+- DB unchanged: A/B/D authorized; still blocked on the prod DB password (the functions-download read
+  access does NOT extend to `migration list` / `db push --dry-run`).

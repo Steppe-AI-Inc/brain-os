@@ -5506,7 +5506,7 @@ serve(async (req) => {
         // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
         // qualifier ("archived without incident") far more often than a genuine negation, and
         // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b/i;
+        const NEGATED_CLAUSE = /(?<!-)\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b(?!-)/i;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the
@@ -5590,8 +5590,9 @@ serve(async (req) => {
           // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
           // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
           // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index)) || /\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
-            || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index)));
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '') || /\b(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\b/i.test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore|so|yet|because)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
+            || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index))
+              || (c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).length > 1 && !NEGATED_CLAUSE.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '')));
         };
         // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
         // colon FOLLOWED BY SPACE — so a filler negator set off by punctuation ("No problem —
@@ -5617,9 +5618,16 @@ serve(async (req) => {
         // new const: run15-18 assemble the belt from a named-const list and would drop a new one)
         // and uses NO (?-i:) modifier (unverified in the Deno Edge runtime — a bad modifier fails
         // to construct at module load and takes the whole function down).
-        const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
+        // v92-differential/D27 (P1, REGRESSION vs deployed v92 — production row 9dda919c): the
+        // `renamed: "X" → "Y"` completion-report arm inherited from PAST_COMPLETION_CLAIM_PATTERN
+        // was UNREACHABLE here because the clause splitter below breaks on ":\s" before any arm
+        // sees the colon (verifier #29 called it "decorative" — it is the exact shape v92 corrects
+        // and this build shipped). Tested on the WHOLE summary, before the split, exactly as v92
+        // does. The arrow format is a completion report, not a truthful negative; measured 0
+        // truthful destroyed on the 303-case v92-differential corpus.
+        const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s) || /\brenamed:\s*.+(→|->)/i.test(String(s))
           || (CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[.!?,\x3b\n]|:\s/).pop() ?? ''))
-          || String(s).split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.trim()).some((c) => !completionIsNegated(c)
+          || String(s).replace(/^\s*(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem)\s*[—–-]\s+/i, '').split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|[—–](?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.replace(/\([^()]*\)/g, ' ').trim()).concat((String(s).match(/\([^()]*\)/g) || []).map((p) => p.slice(1, -1).trim())).some((c) => !completionIsNegated(c)
             && !/\b(?:may|might|could|can|would|should)\s+(?:(?:not|never|also|already|just|now|still|well|very|quite|really|truly|indeed|perhaps|possibly|probably|conceivably|previously|recently|actually|certainly|definitely|surely|maybe|in|fact|and|or|by|then|somehow|otherwise)\s+){0,3}(?:have been|has been|had been)\b/i.test(c)
             && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || /(?:^|\b[Cc]onfirmed\s*[—–-]\s*)(?:and |but |so |then )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:[A-Z]|company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)/.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim

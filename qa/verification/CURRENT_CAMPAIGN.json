@@ -1,16 +1,31 @@
 {
- "campaign": 89,
- "verifier": 29,
- "status": "PASS — EDGE BELT CONSOLIDATED",
- "closure_commit": "95c824c",
- "index_sha256": "0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757",
+ "campaign": 90,
+ "verifier": 30,
+ "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
+ "status": "DISPATCHED",
+ "closure_commit": "(the commit carrying this file)",
+ "index_sha256_prefix": "da5fa34168e921ec",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
- "verdict": "PASS",
- "verdict_detail": "Verifier #29 PASS: revert byte-exact, D163/D167 closed, no closure reopened, 0 truthful destroyed vs 4476c92. Belt loop CLOSED at run28.",
- "edge_belt_state": "CONSOLIDATED / VERIFIED-PASS at 95c824c. Ready to LAND in the pending branch.",
- "next_edge_step_before_deploy": "candidate-vs-DEPLOYED-v92 differential (NOT a belt campaign). Fetching v92 source needs production access — the SAME boundary blocking the DB A/B/D dry-run. No verifier #30.",
- "db_state": "A/B/D authorized by founder; blocked on production credentials; gap-safety 8/8; awaiting founder migration list + db push --dry-run.",
- "no_deploy_without": "ALLOW_FUNCTIONS_DEPLOY=1 asked once AFTER a candidate-vs-v92 differential shows no regression against the live bytes.",
- "history": "run20(#80)->run28(#89): D139/D142/D148/D150 (2 P1s) closed & held 9 rounds; D146/D151/D155/D156/D157/D158/D160/D162a/D162b/D163/D167 closed; D141/D144/D153/D146b/D154/D156b/D158b-d/D164/D165/D166/D168/D169/D170/D171 documented residuals (defense-in-depth fabrication-misses, evidence primary).",
- "opened_at": "2026-09-04T23:18:34.707Z"
+ "v92": {
+  "deployed_version": 92,
+  "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+  "git_commit": "c9dfab5bd433",
+  "index_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
+  "copy": "qa/verification/scratch/v92/index.v92.ts",
+  "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
+ },
+ "prior": { "campaign": 89, "verifier": 29, "verdict": "PASS — campaign certification vs 4476c92 only, NOT production certification" },
+ "what_this_campaign_did": "Fetched deployed v92 bytes; ran candidate-vs-v92 belt + matcher differential; found 12 fabrication regressions vs LIVE v92 (D27 P1 production row 9dda919c + 11 negator-adjacent shapes) that the 4476c92-relative campaign had classified as residuals; closed all 12 with 0 truth cost (0/272 truthful destroyed), each mutation-proven; added permanent v92_parity_contract to the battery; answered the founder's 7 questions in ledger #90.",
+ "implementing_session_evidence_not_to_be_trusted": {
+  "v92_parity_contract": "46/0 (188 truthful rescued vs v92, 41 extra fabrications caught)",
+  "belt_differential": "0 truthRegression / 0 fabRegression on 303 truthful / 217 fabrications",
+  "matcher_differential": "0 regressions / 12 improvements on 22 shapes",
+  "collateral_v20": "0/75 destroyed, 0/50 missed",
+  "battery": "33 suites / 0 failures",
+  "run15": "57/0 (D117 no-whole-span-lookahead invariant honoured)",
+  "deno": "23 == baseline (npx deno@2)",
+  "mutation_proof": "v92_mutation_proof 8/8"
+ },
+ "verdict": null,
+ "rules": "#29 PASS = campaign certification; a v92-differential verifier PASS = production-deployment certification; BOTH required. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after verifier #30 PASSES on the exact bytes. Production stays v92 until then."
 }

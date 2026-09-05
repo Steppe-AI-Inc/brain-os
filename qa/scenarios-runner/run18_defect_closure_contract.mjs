@@ -255,14 +255,19 @@ for (const s of D131_CATCHABLE) {
 // claim is corrected to "residual, and here is exactly which four."
 const D131_IRREDUCIBLE = [
   ['but', 'Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.'],
-  ['dash', 'No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'],
-  ['dash', 'Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.'],
   ['dash', 'Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
 ];
 for (const [tok, fab, real] of D131_IRREDUCIBLE) {
   C(`D131.irreducibleResidual.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
     `D131 DOCUMENTED RESIDUAL (4 remaining after run19/R9b): this fabrication survives because its only separator is "${tok}" followed by a capitalised/name token, and that boundary DESTROYS the paired real name (proven here). Caught by the primary evidence path, not the belt.`,
     () => readsAsCompletion(fab) === false && readsAsCompletion(real) === false);
+}
+// v92-differential (2026-09-05): R-IDIOM strips the non-referential negative idiom ("No problem —", "Not to worry —")
+// before the clause split, so these two former D131 residuals are now CAUGHT; their paired real names still survive.
+for (const [fab, real] of [['No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'], ['Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.']]) {
+  C(`D131.idiomResidualClosed.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
+    'CLOSED by R-IDIOM (v92-differential): the idiom prefix is stripped before the split, the fabrication is caught, and the paired real name still survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
 }
 C('D131.disclosedResidual.pinnedNotAccepted', 'CONTRACT',
   'D131 LIMIT, pinned: a name leading with a negator survives (shared with 9535f0b and 52e830f, not a regression)',

@@ -12765,3 +12765,56 @@ differential, not another belt campaign** — and fetching the v92 source needs 
 STATUS: the Edge drift-belt campaign is CONSOLIDATED at a verified PASS. The belt loop is closed;
 the next Edge step before any deploy is the v92 differential, which is a production-access task, not
 a belt task. No verifier #30 dispatched.
+
+
+## 90. CANDIDATE-vs-DEPLOYED-v92 DIFFERENTIAL (production-deployment gate) — closure at `da5fa341…`
+The #75–#89 belt campaign measured every candidate against `4476c92` (an in-chain SHA), never the live
+bytes. This campaign fetched the deployed source read-only (`supabase functions download sem-ai-command`)
+and ran the differential the deploy gate actually requires.
+**v92 provenance:** deployed `sem-ai-command` v92 (`ezbr_sha256 33255b31…`, updated 2026-09-01) is
+BYTE-EXACT to git `c9dfab5bd433` ("fix: BUG-002 P1"), index.ts sha256 `795c20c8…`; copy committed at
+`qa/verification/scratch/v92/index.v92.ts`. v92's ONLY completion gate is `PAST_COMPLETION_CLAIM_PATTERN`
+(no negation awareness); it has none of the drift belt / structured-claim / matcher hardening.
+**The founder's seven questions, answered with evidence:**
+1. EXACT BYTES: deploy surface under `supabase/functions/` = ONLY `sem-ai-command/index.ts`. ~1,730
+   semantic lines (GNU `diff -w`; git `--no-index` yielded a degenerate single hunk). 176 identifiers
+   ADDED inside existing handlers, 0 removed; 32 linear commits v92→candidate.
+2. PRESERVES EVERY INTENTIONAL v92 BEHAVIOUR: v92's PCCP regex is preserved byte-identical and LIVE
+   (8 refs). Belt parity on 182 fabrications: **0 fabrication regressions** (12 before this campaign).
+   Matcher parity on 22 shapes: **0 regressions, 12 improvements** — v92 itself BINDS the destructive
+   field on "don't archive acme holdings" (D116) and returns the raw `Object` constructor for a
+   prototype-key actionType (D132); the candidate fails closed.
+3. REINTRODUCES NOTHING REMOVED: 0 identifiers removed; strictly linear ancestry; the only revert
+   commits (run21, run28) reverted candidate-era additions, never v92 behaviour.
+4. 4476c92-DEPENDENT ASSUMPTIONS: **YES — and that was the real gap.** The 4476c92-relative campaign
+   classified 12 shapes as "documented residuals" that are FABRICATION REGRESSIONS vs live v92:
+   D27 (P1, production row 9dda919c `Project renamed: "X" → "Y"` — the `renamed:` arm was unreachable
+   behind the `:\s` split; verifier #29 mislabeled it "decorative"), D131 idiom ×2, D153 dropped-linker
+   ×4, parenthetical ×2, hyphenated negator, tight em-dash, and a determiner-`that`/evidential-`confirm`
+   pair. **ALL 12 CLOSED with 0 truth cost** (0/272 truthful destroyed).
+5. LEDGER #64/#65/#66 v92-REGRESSIONS: #64 D16 (11 "one delimiter away" shapes) CLOSED; #65 D25
+   (read-only amnesty gate) CLOSED — the gate no longer exists, all 7 replies caught; #65 D27 CLOSED —
+   rename arm restored on the WHOLE summary before the split, production shape caught; #66 D40
+   (`claims: []`) CLOSED — live suite `structured_claim_laundering_contract` L2.
+6. ROLLBACK TARGET: EXACT and AVAILABLE — `c9dfab5b` (byte-exact to deployed), sha256 `795c20c8…`,
+   copy committed; rollback = redeploy index.ts from that commit.
+7. ONLY INTENDED EDGE CHANGES: yes — the 637 other files in the branch diff are qa/docs/migrations and
+   are NOT deployed by `functions deploy`.
+**Fixes this campaign (8, each mutation-proven load-bearing, v92_mutation_proof 8/8):** D27 rename-arrow
+arm on the whole summary; R-IDIOM (strip "No problem —"/"Not to worry —"-class idiom prefixes before
+the split); hyphen-attached negator excluded from NEGATED_CLAUSE; a `so/yet/because` linker counts only
+when the segment after it carries no negator of its own (separates the D146 truthful "because NOTHING
+was archived" from the D153 fabrication "so the company has been archived"); parentheticals blanked for
+the outer clause AND tested as their own clause; tight em/en-dash as a clause boundary before a
+lowercase non-aux token; relativizer counts only in the last `so/yet/because` segment; `so/yet/because`
+added to the evidential last-segment split. run18/run19's two D131 idiom pins re-pinned CLOSED (their
+paired real names still survive). run15's D117 invariant (no whole-span lookahead in the belt) is
+honoured — the relativizer rule uses `split().pop()`, not a lookahead.
+**Permanent regression:** `qa/scenarios-runner/v92_parity_contract.mjs` (+ `v92_parity_corpus.json`,
+272 truthful / 182 fabrications incl. every production shape) asserts truthRegression==0 AND
+fabRegression==0 vs the v92 gate, the production shapes stay caught, and matcher parity — now a
+battery member. **Evidence:** parity 46/0 (188 truth rescued, 41 extra fabs caught); belt differential
+0/0 on the 303/217 union; matcher 0 regressions / 12 improvements; #20 collateral 0/75 & 0/50;
+battery 33 suites / 0 failures; run15 57/0; deno 23 == baseline. index.ts sha256
+`da5fa34168e921ec…`. **STATUS: v92 differential CLEAN — pending fresh independent verification (#30)
+before DEPLOYMENT READY.** Not deployed; production v92.

@@ -244,10 +244,15 @@ for (const [tok, fab, real] of D131_SEPARABLE) {
 }
 const D131_STILL_HARD = [
   ['Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.'],
-  ['No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'],
-  ['Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.'],
   ['Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
 ];
+// v92-differential (2026-09-05): the two dash-IDIOM residuals are now CAUGHT by R-IDIOM (idiom prefix stripped before the
+// split); paired real names still survive. Re-pinned closed. The remaining two D131_STILL_HARD stay disclosed residuals.
+for (const [fab, real] of [['No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'], ['Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.']]) {
+  C('D131.idiomResidualClosed.' + JSON.stringify(fab.slice(0, 34)), 'CONTRACT',
+    'CLOSED by R-IDIOM (v92-differential): fabrication caught, paired real name survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
+}
 for (const [fab, real] of D131_STILL_HARD) {
   C('D131.residualStillOpen.' + JSON.stringify(fab.slice(0, 34)), 'CONTRACT',
     'GENUINE residual, disclosed not proven-irreducible: the separator is followed by a CAPITALISED token, so it is indistinguishable from a name boundary by casing. The paired real name must keep surviving whatever is done about the fabrication',
