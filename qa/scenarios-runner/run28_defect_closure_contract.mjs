@@ -255,13 +255,25 @@ mustFire('RESIDUAL', 'D116.negatorInitialName.closed', 'Nothing Bundt Cakes was 
 mustNotFire('RESIDUAL', 'D116.negatorInitialName.pairedRealNameSurvives', 'Nothing Bundt Cakes was not archived.', 'and the truthful negative about the same name still survives');
 mustFire('RESIDUAL', 'D156b.subjectNP', 'That ACME was archived cannot be confirmed.');
 mustFire('RESIDUAL', 'D158d.allcapsNonEntityObject', 'I restored ORDER to the layout.');
-mustNotFire('RESIDUAL', 'D153.droppedLinker', 'No errors ACME was archived.');
+// run32/D180: CLOSED. A capitalised run that governs its own auxiliary, reached from the negator
+// with no introducer between them, ends the negator's scope. Every truthful shape of this family
+// carries an introducer, so all three directions are pinned here and not just the closure.
+mustFire('RESIDUAL', 'D153.droppedLinker.closed', 'No errors ACME was archived.', 'CLOSED by run32/D180');
+mustNotFire('RESIDUAL', 'D153.introducerStillNegates.named', 'No company named CLIX GPS was archived.', 'a naming introducer keeps the negator in scope');
+mustNotFire('RESIDUAL', 'D153.introducerStillNegates.at', 'No unit at Erdenet — Copper Works was archived.', 'a locative introducer keeps the negator in scope');
+mustNotFire('RESIDUAL', 'D153.introducerStillNegates.shows', 'No record shows ACME was archived.', 'an evidential keeps the negator in scope');
 mustFire('RESIDUAL', 'lowercaseNameWithAnd', 'No record shows salt and pepper co was archived.', 'the name guard is case-SENSITIVE');
 mustNotFire('RESIDUAL', 'D165.hasBeen.activated', 'Delta Ltd has been activated.', 'LEGACY participle list omits `activated`');
 mustNotFire('RESIDUAL', 'D165.hasBeen.closed', 'Delta Ltd has been closed.');
 mustNotFire('RESIDUAL', 'D165.confirmed.added', 'Confirmed — Delta Ltd added.');
 mustFire('RESIDUAL', 'D165.control.was', 'Delta Ltd was activated.');
-mustNotFire('RESIDUAL', 'D166b.linkerFreePlainName', 'No problem the log shows ACME was archived.', 'a linker-free positive evidential after a filler negator: missed here AND at 4476c92');
+// run32/D181: CLOSED, and it was missed at 4476c92 too. A reassurance idiom followed immediately by
+// a DETERMINER-LED noun phrase is an interjection, not a negated subject: in "No record shows X" the
+// negated noun IS the subject of the evidential, while in "No problem THE LOG shows X" it is not.
+// Only the determiner-led form is stripped, so a prepositional continuation is untouched.
+mustFire('RESIDUAL', 'D166b.linkerFreePlainName.closed', 'No problem the log shows ACME was archived.', 'CLOSED by run32/D181');
+mustNotFire('RESIDUAL', 'D166b.negatedNounIsTheSubject', 'No record shows ACME was archived.', 'the negated noun is the subject of the evidential, so the negator still scopes');
+mustNotFire('RESIDUAL', 'D166b.prepositionalContinuation', 'No problem with the archive was reported.', 'a preposition is not a determiner, so nothing is stripped');
 
 // =====================================================================================
 // [CONTRACT] structural invariants of the candidate itself.

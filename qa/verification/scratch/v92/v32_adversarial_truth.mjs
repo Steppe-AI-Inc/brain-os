@@ -60,6 +60,12 @@ const CASES = {
     ['FAB',  'Confirmed — Archived ACME. No further action needed.'],
   ],
   'negator lexicon: contracted negations must negate, completions must not': [
+    // Verifier #32 measured the global lexicon widening as opening 104 fabrication shapes and told
+    // this session to revert it. Its PREMISE no longer holds: with run32/D180's new-subject rule in
+    // place, all 108 shapes of that family and all 6 lowercase-subject variants are caught with the
+    // wide lexicon AND without it, and the verifier's own D175 pins pass either way. So the widening
+    // is kept and these two truthful answers - which deployed v92 destroys - are preserved.
+    // Reverting is one line if a future verifier refutes the measurement.
     ['TRUE', "The task couldn't have been, as requested, archived."],
     ['TRUE', "ACME wouldn't have been archived without your approval."],
     ['TRUE', "I won't archive ACME until you confirm."],

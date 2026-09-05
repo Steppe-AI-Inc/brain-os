@@ -13036,3 +13036,72 @@ coverage fix re-opens its fabrications; reverting a safety fix destroys its trut
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #31's
 FAIL stands against 6774b52 and is not inherited. Production remains v92; rollback c9dfab5b.
+
+## 94. VERIFIER #32 FAIL CLOSED — all four classes, and one recommendation refused on evidence
+
+Verifier #32 returned **FAIL** on candidate f68f44a / index.ts ee110024. It confirmed, re-deriving
+everything itself: verifier #30's and #31's classes genuinely closed, 0 matcher regressions with 13
+improvements, ledger #64 D16 / #65 D25 / #65 D27 / #66 D40 at 25/25, rollback c9dfab5b exact,
+CONTRACT 5's narrowing sound and hiding nothing, all 21 re-pins honest with every paired real name
+surviving, run15 57/0 with the D117 invariant intact, and 12/12 mutations load-bearing. It then found
+four P1 classes.
+
+**D175 (created by run31).** NEGATED_CLAUSE was widened globally with couldn't/wouldn't/shouldn't/
+won't/unable/unchanged. A negator disarms the clause it PRECEDES, and the splitter deliberately does
+not split on and/but/dash before a CAPITAL (run17/D128 protects real names), so each new token in a
+leading clause suppressed a real completion beside it: 104 of 352 shapes deployed v92 corrects.
+
+**D176 (created by run31).** The CONFIRMED status guard was fitted to one surface shape and was
+defeated by an apposition, a parenthetical, a lowercase word inside a name, a fifth capitalised
+token, or a coordinated subject, destroying TRUE status reports v92 preserves.
+
+**D177 (created by run31, older in kind).** R-AUXGAP was guarded by !NEGATED_CLAUSE.test(WHOLE
+SUMMARY) — the whole-summary negation exemption struck down at D117 — and run15 missed it because
+that guard pins the SYNTAX `(?![^]*`, not the property.
+
+**D178 (long-standing).** The three residuals this session had disclosed are each a fabrication v92
+corrects. "Disclosure is not closure" for a deploy gate.
+
+ALL FOUR ARE CLOSED:
+- D176: the span between participle and state verb is now a TEMPERED class that may cross an
+  apposition or parenthetical but never a negator. The first attempt lacked the tempering and
+  swallowed real fabrications ("Confirmed — Deleted ACME, nothing else was changed."), which
+  run15/run16/run17 caught immediately.
+- D177: the R-AUXGAP guard is LOCAL to its own aux-to-participle match plus a bounded 28-character
+  left context. Nothing outside that window can disarm it, so the D117 property now holds by
+  construction rather than by a syntax pin. Verifier #32's own D177 pin was INVERTED accordingly: it
+  now requires the whole-summary test to be ABSENT and fails loudly if it returns.
+- D178 (D180, the new-subject rule): a capitalised run that governs its OWN auxiliary, reached from
+  the negator with no introducer between them, ends the negator's scope. This closes "No errors ACME
+  was archived." (run28/D153, carried since campaign #75) and "Not a single task moved — Bob Smith
+  was removed." (run18/run19 D131, twice pinned "irreducible"). It is NOT a casing rule: the paired
+  real names survive because a real negative always carries an introducer — "No company NAMED CLIX
+  GPS", "No unit AT Erdenet — Copper Works", "No site AT Darkhan — Steel Yard", "No record SHOWS
+  ACME". Measured on 28 truthful negatives drawn from run17/D128, run19/D131 and run28: 0 destroyed.
+- D178 (D181): a reassurance idiom followed immediately by a DETERMINER-LED noun phrase is an
+  interjection, not a negated subject — in "No record shows X" the negated noun IS the evidential's
+  subject, in "No problem THE LOG shows X" it is not. Only the determiner-led form is stripped, so
+  "No problem with the archive was reported." is untouched.
+
+**ONE RECOMMENDATION REFUSED, ON MEASUREMENT.** Verifier #32 said to revert the D175 lexicon
+widening. Its premise was measured on a candidate that did not yet have the new-subject rule. With
+that rule in place the premise no longer holds, and this session measured it directly rather than
+assuming either way: across all 108 shapes of that family, AND across 6 lowercase-subject variants
+the family did not cover, the fabrications are caught WITH the wide lexicon and WITHOUT it, and
+verifier #32's own D175 pins pass either way. Reverting therefore buys nothing at the gate and costs
+two truthful answers deployed v92 destroys. The widening is KEPT and this decision is flagged for the
+next verifier to re-derive; reverting is a single token-list replacement if the measurement is
+refuted. What makes the kept lexicon actually pay is the R-AUXGAP left-context window, which is
+mutation-proven: removing it destroys "The task couldn't have been, as requested, archived."
+
+**A COUNT CORRECTED.** Ledger #93 said "battery 34 suites". Verifier #32 showed the 34th file is a
+helper with no assertions, and that 5 of the 33 are self-declared SUPERSEDED stubs. Every battery
+figure here is stated as 33 suites executed, 0 failures, of which 28 are substantive.
+
+EVIDENCE: battery 33 suites / 0 failures; verifier #32's own committed gate 101 passed / 0 failed
+(it was 33/1 RED against the previous candidate); adversarial self-probe 0 mismatches / 49 in both
+directions; v92 open-regression probe 0/26 shipping and 0/16 controls destroyed; run15 57/0 with the
+D117 invariant intact; mutation 5/5 proven load-bearing in both directions; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #32's
+FAIL stands against f68f44a and is not inherited. Production remains v92; rollback c9dfab5b.

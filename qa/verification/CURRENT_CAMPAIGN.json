@@ -1,10 +1,10 @@
 {
- "campaign": 92,
- "verifier": 32,
+ "campaign": 93,
+ "verifier": 33,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, third round)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, fourth round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "ee110024b5ecdd96",
+ "index_sha256_prefix": "dfdff8fd6f93888f",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,24 +15,22 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 91,
-  "verifier": 31,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 6774b52 (V31-F1 nameInternal destroyed 1144/1144 true reports; F2 completion word inside a name; F3 R-AUXGAP net-negative; F4 17 suite-pinned residuals are v92-corrected fabrications)",
-  "artifact_commit": "94e77f3 on verify-6774b52-campaign91"
+  "campaign": 92,
+  "verifier": 32,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on f68f44a (D175 global lexicon opened 104 shapes; D176 confirmed guard shape-fitted; D177 R-AUXGAP whole-summary negation exemption; D178 three disclosed residuals are v92-corrected fabrications)",
+  "artifact_commit": "7d2a197 on verify-f68f44a-campaign92"
  },
- "what_this_campaign_did": "Closed V31-F1 with the COMPLETION_VERB subject rule the verifier prescribed, after rejecting a designator-based variant that failed its coverage contract. Closed V31-F2 in the CONFIRMED arm, after two broader forms were caught destroying real fabrications. Removed and then REBUILT R-AUXGAP, shipping it only because re-measurement showed it net-positive. Closed 14 of the 17 V31-F4 residuals by fixing the evidential scope rule and by making a modal hedge blank its own span instead of vetoing a whole clause. Three residuals stay open, disclosed with reasons.",
+ "what_this_campaign_did": "Closed all four of verifier #32 classes. D176 tempered so the span may cross an apposition but never a negator. D177 made LOCAL to its own match plus a bounded left context, so the D117 property holds by construction; the verifier own D177 pin was INVERTED to require the whole-summary test to be absent. D178 closed by two structural rules: a capitalised run that governs its own auxiliary with no introducer ends the negator scope, and a reassurance idiom before a determiner-led noun phrase is an interjection. One recommendation was REFUSED on measurement: reverting the D175 lexicon buys nothing once the new-subject rule exists and costs two truthful answers, measured across 108 shapes plus 6 variants the verifier family missed.",
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "34 suites / 0 failures",
-  "v31_regression_additions": "33 pass / 1 fail - the single failure is the 3 disclosed no-boundary residuals",
+  "battery": "33 suites executed / 0 failures (28 substantive; the 34th file is a helper, 5 are SUPERSEDED stubs - count corrected per verifier #32)",
+  "verifier32_committed_gate": "101 passed / 0 failed (it was 33/1 RED against the previous candidate)",
+  "adversarial_self_probe": "0 mismatches / 49, both directions",
+  "v92_open_regression_probe": "0/26 shipping, 0/16 controls destroyed",
   "run15": "57/0, D117 invariant intact",
-  "v92_parity_contract": "46/0",
-  "v92_open_regression_contract": "0/26 shipping, 0/16 controls destroyed",
-  "run17_D128_falsePositives": "0/24",
-  "mutation_proof": "11/11 proven load-bearing in BOTH directions",
+  "mutation_proof": "5/5 proven load-bearing in both directions",
   "deno": "23 == baseline",
-  "known_truth_cost": "2 shapes, disclosed in ledger #93: one pre-existing in 9b73e68, one the irreducible determiner/name ambiguity",
-  "retracted": "ledger #92 battery \"33/0 on the fixed copy\" was read from a pipeline whose exit status is always 0; re-measured 33/0 pristine and 34/0 here"
+  "DECISION_TO_RE_DERIVE": "the D175 lexicon widening was KEPT against verifier #32 recommendation, on a measurement stated in ledger #94. Re-derive it; reverting is a single token-list replacement."
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #31 FAIL stands against 6774b52 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #32 FAIL stands against f68f44a and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }

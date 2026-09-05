@@ -5601,7 +5601,7 @@ serve(async (req) => {
             const nameInternal = capLead && subjectRun && !/\bnor\b/.test(c);
             const objectName = capLead && new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\\s+(?:the |that |this |its |our )?$', 'i').test(c.slice(0, mm.index));
             const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && mm.index === c.search(/\S/);
-            const newSubject = !/\bnor\b/.test(c) && ((sre) => { for (let sm = sre.exec(c); sm !== null; sm = sre.exec(c)) { if (sm.index <= mm.index + mm[0].length) continue; if (!new RegExp('\\b(?:named|called|for|at|in|on|about|regarding|that|which|who|whom|like|of|from|with|by|any|shows?|showed|confirms?|confirmed|indicates?|indicated|states?|stated|records?|recorded|proves?|proved|suggests?|suggested|reports?|reported|mentions?|mentioned|notes?|noted|see|seen|find|found)\\b', 'i').test(c.slice(mm.index + mm[0].length, sm.index))) return true; } return false; })(/\b[A-Z][\w&’'-]*(?:\s+[A-Z][\w&’'-]*){0,4}\s+(?:was|were|has been|have been|had been)\b/g);
+            const newSubject = false;
             const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index));
             if (nameInternal || objectName || titleHead || ppInternal || newSubject) continue;
             n = mm.index;

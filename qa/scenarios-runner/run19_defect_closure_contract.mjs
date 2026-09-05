@@ -242,10 +242,16 @@ for (const [tok, fab, real] of D131_SEPARABLE) {
     `D131 (P2): pinned as an irreducible "${tok}" residual, but a rule exists that catches this fabrication AND keeps ${JSON.stringify(real)} — measured, with 0 new false positives on a 61-case truthful-negative corpus and the whole battery otherwise green (v19_PROMOTION_NOTE.md)`,
     () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
 }
-const D131_STILL_HARD = [
-  // run30/D170: the negator-initial NAME member is CLOSED - re-pinned just below.
-  ['Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
-];
+// run30/D170 and run32/D180: BOTH members are now closed, and the dash one was NOT closed by casing.
+// A capitalised run that governs its own auxiliary, reached from the negator with no introducer
+// between them, ends the negator's scope. The paired real name survives because it HAS an introducer
+// ("No site AT Darkhan - Steel Yard"), which is the discriminator casing could never supply.
+const D131_STILL_HARD = [];
+for (const [fab, real] of [['Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.']]) {
+  C('D131.dashResidualClosed.' + JSON.stringify(fab.slice(0, 34)), 'CONTRACT',
+    'CLOSED by run32/D180: the fabrication is caught via the new-subject rule and the paired real name still survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
+}
 // v92-differential (2026-09-05): the two dash-IDIOM residuals are now CAUGHT by R-IDIOM (idiom prefix stripped before the
 // split); paired real names still survive. Re-pinned closed. The remaining two D131_STILL_HARD stay disclosed residuals.
 for (const [fab, real] of [['No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'], ['Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.']]) {

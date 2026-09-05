@@ -1,0 +1,86 @@
+PREFLIGHT: EXECUTION_READY *(recorded at the top of the run; all three checks passed — HEAD `f68f44a`, write probe OK, regex runner 13/0)*
+
+---
+
+# VERIFIER #32 — CAMPAIGN #92, THIRD v92-DIFFERENTIAL ROUND
+
+## STEP 1 — Deployed bytes, stated exactly as strongly as I can support
+
+Obtained by me, this session, via `npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk`:
+
+```
+slug sem-ai-command   status ACTIVE   version 92   verify_jwt true
+ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475
+updated_at  1788239725518   (distinct from every other function's 1787925072996)
+```
+
+Re-derived by me from git: `c9dfab5bd433:supabase/functions/sem-ai-command/index.ts` sha256 (LF) = `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` — matches the pinned value. The repo's `qa/verification/scratch/v92/index.v92.ts` LF-normalises to exactly that hash (it is stored CRLF in the working tree; raw `49d53882…`, 4,312 CRLF pairs).
+
+**I could not obtain the deployed bytes directly.** Every form of `supabase functions download` (bare, `--workdir`, via a script, from a scratch cwd) was refused by this session's command policy, and there is no `SUPABASE_ACCESS_TOKEN` in the environment for a Management-API fallback. So my provenance link is **INTEGRATION-LEVEL (version + `ezbr_sha256`, obtained by me) + REPO-ARTIFACT-LEVEL**, **not byte-direct**. I am not claiming byte-direct confirmation and I am not claiming refutation: nothing I observed suggests the bytes differ. This is a real coverage gap, recorded rather than glossed — the 2026-08-27 incident this project's constitution rests on was precisely a ledger saying "applied" while production ran something else.
+
+## STEP 2 — The seven deploy questions
+
+1. **Bytes differing.** Only `supabase/functions/sem-ai-command/index.ts` under `supabase/functions/`. LF-normalised diff **+1,724 / −52** lines. Identifier delta re-derived (not restated): **193 distinct declared identifiers ADDED, 0 REMOVED**, 484 → 677. The committed blob also flipped LF → CRLF, which is why a raw `git diff` shows the whole file; cosmetic and Deno-safe.
+2. **Behaviour preserved?** Own corpus, 400 truthful / 269 fabrications (incl. a labelled negator-token-in-name section, 50 + 50, both directions — all four quadrants clean there): **truthRegression = 0, fabRegression = 5**. Generated probes: **1,470 truth regressions** vs v92 and **104 newly-opened fabrication regressions**. Matcher, 32 disambiguation shapes: **0 regressions vs v92**, 13 improvements, 2 both-wrong (`Pending review…`/`Awaiting approval…` DEAD-END — the safe direction, at v92 too).
+3. **Reintroductions.** None. `without` still absent from `NEGATED_CLAUSE`; FIX-I's determiner lookahead absent; the only `(?-i:` in the file sits inside a comment.
+4. **4476c92 dependence.** Confined to run28's residual *labelling*. Re-measured against live v92, all 10 D168 pins give the same answer (v92 destroys them too). No deploy assertion rests on 4476c92.
+5. **#64 D16 / #65 D25 / #65 D27 (production row `9dda919c`) / #66 D40.** Genuinely closed — **25/25 shapes caught, 0 misses**, against an independently extracted belt.
+6. **Rollback.** Exact and available: `c9dfab5bd433`, index.ts `795c20c8…`, deployed `ezbr_sha256 33255b31…`.
+7. **Only intended Edge changes.** Yes — one file, nothing else under `supabase/functions/`.
+
+## STEP 3 / 3b — Adversarial results
+
+**What genuinely holds** (all re-derived): V31-F1 closed — `"Confirmed — No Business Unit Archived."` survives again. The evidential anchor is correct in *direction*: `"No log however shows ACME was archived."` and `"No entry however in our records shows ACME was archived."` survive, while a NEW subject (`"No blocker however the audit shows Beta Corp was deleted."`) is caught. Hedge blanking costs 0 truth on 8 probes. `objectName` catches `"I archived No Limits Inc."` while every lowercase form survives. The dash-before-a-CAPITAL refusal is right: all four truthful members survive and their twins are caught **lexically** by the idiom strip — mutation-proven (reverting the idiom widening re-opens `"Nothing failed — ACME Holdings was archived."`). **12 of 12 mutations load-bearing** on my corpus, after I extended the corpus to reach the four fixes that initially touched nothing (a fix my corpus can't reach is a fix I can't judge, so I extended the corpus rather than declaring it dead).
+
+**Four open classes** — each a P1 against the stated gate:
+
+| ID | Class | New this campaign? |
+|---|---|---|
+| **D175** | Widened negator lexicon (`couldn't\|wouldn't\|shouldn't\|won't\|unable\|unchanged`) ships **104 of 352** fabrication shapes v92 corrects **and the previous candidate `6774b52` caught** | **YES** |
+| **D176** | run31/F2's `Confirmed — <Participle> <Name> … <state>` guard defeated by apposition, parenthetical, a lowercase word in the name (`Salt and Pepper Co` — D128's own example), a 5th capitalised token, or coordination → 5 truthful shapes destroyed that v92 preserves | no |
+| **D177** | R-AUXGAP's whole-summary `!NEGATED_CLAUSE.test(s)` = the run15/D117 mechanism; invisible to run15 because that guard pins the *syntax* `(?![^]*`, not the property | no |
+| **D178** | the 3 disclosed no-boundary residuals are each a fabrication v92 corrects; #31's own committed gate is RED on this candidate (33/1, exit 1) | no |
+
+**D175 root cause:** a negator disarms the clause it *precedes*, and the splitter deliberately does not split on and/but/dash before a CAPITAL (D128 protects names). What it buys is 3 truthful shapes — **v92 destroys all three**, so they are improvements over v92, never regressions prevented. **Reverting the six tokens closes D175 at zero contract cost** (my additions go 81/20 → 88/13, 0 CONTRACT failures). If those three are worth keeping, widen the lexicon *locally inside the R-AUXGAP guard*, which is where V31-F3 needed it — never tried.
+
+**Judging the refusals.** `"No North Depot was archived."` — indistinguishable *for a lexical rule*, and it costs nothing at the gate (v92 destroys it too). But the premise is false: `canonicalById` (built from `contextPack`, a real per-turn RLS-scoped DB read, holding rows with names) is declared at `index.ts:4769`, same scope, ~900 lines before the belt. Used as a **positive signal only**, it is truncation-safe and separates the two. The refusal is defensible; "indistinguishable" is not. The three no-boundary residuals: refusing them lexically is right, but shipping them over v92 is not — the honest conclusion is that a lexical belt cannot be simultaneously v92-fabrication-complete and truth-superior.
+
+## STEP 3c — Retraction check
+
+Ledger #93's retraction of the **method** is correct (a pipeline's exit status is meaningless). Its replacement **number is not**. Spawning each suite and reading `child.status`: **33 suites, 33 pass, 0 fail**. The 34th `.mjs` is `_gate_extract.mjs` — a helper with no assertions and no output that exits 0. Worse, **5 of the 33 are self-declared `SUPERSEDED` stubs** that assert nothing. The substantive battery is **28**. "34/0" should read "28 substantive suites, 0 failures."
+
+## STEP 4 — Suite integrity
+
+CONTRACT 5's narrowing is **sound**: it carries its own in-memory coverage mutation (injecting a top-level `const nx` must be detected), and the four new locals inside `completionIsNegated` provably are not the hazard — every extractor executes the brace-balanced body and stays green. It hides nothing real. All **21/21 re-pins honest** against an independent belt (run18 D131 "but" + `disclosedResidual`, run19 D131, run28 D116), and every paired real name genuinely survives — all of which v92 destroys, so they are truth improvements. run14/D107's 2,600 window **does** span the statement (2,498 used) with all four belt names inside — not vacuous, but 102 characters of headroom is a trap. **run15 = 57/0 with the D117 no-whole-span-lookahead invariant intact.**
+
+---
+
+## FINAL REPORT
+
+```
+CHANGE VERIFIED: candidate f68f44a vs DEPLOYED sem-ai-command v92 (Edge deployment gate)
+SCENARIOS:            7 executed, 3 passed, 4 failed, 2 blocked (byte-direct download, deno)
+CANONICAL GRAPH:      N/A — no DB/entity mutation in this change
+UI ↔ DB:              N/A — no UI surface in this change
+AI ↔ DB:              FAIL — 5 fabrication classes reach the founder that v92 corrects
+DEPENDENCIES:         PASS — 25/25 ledger production shapes still corrected
+PERMISSIONS:          N/A — no RLS/authorization surface touched
+RELOAD/PERSISTENCE:   N/A
+IDEMPOTENCY:          N/A
+MUTATION PROOF:       PASS — 12/12 load-bearing
+SUITE INTEGRITY:      PARTIAL — 33/33 green, but 5 vacuous stubs and a mis-stated count of 34
+```
+
+**FOUND** — the candidate destroys truthful answers v92 preserves (D176, 5 shapes) *and* ships fabrications v92 corrects (D175 ×104, D177 ×5, D178 ×3). **ROOT CAUSE** — a lexicon widened globally instead of locally; a guard fitted to one surface shape; a whole-summary negation exemption guarded by a string match. **SYSTEMIC IMPACT** — this is the third consecutive campaign whose own fix is its biggest defect, and D177 has survived four campaigns because its guard pins a regex idiom rather than a property. **PRODUCTION** — untouched; nothing deployed, no migration, no DB write. **BLOCKERS for the founder** — none requiring action beyond *do not* grant `ALLOW_FUNCTIONS_DEPLOY=1` on these bytes; a future verifier run should be launched with `supabase functions download` allowlisted so provenance can be byte-direct.
+
+**Artifacts committed to `verify-f68f44a-campaign92` as `7d2a197`:** `qa/verification/proposed/v32_known_failure_modes_entry_93.md` (`## #93-V`), `v32_PROMOTION_NOTE.md`, `v32_regression_additions.mjs` (CONTRACT/DEFECT, exits nonzero on any failure, resolves index.ts from `SEM_INDEX_SRC` or by walking up from itself — correct from any cwd; proven non-vacuous in both directions), plus `qa/verification/scratch/v32/` (independent extractor, corpus, six probes, README, outputs) and the updated `CURRENT_CAMPAIGN.json` checkpoint.
+
+**Synthetic data:** none created. This campaign performed **no** database write, Edge deploy, migration or `QA-VERIFY-*` fixture — it is a static/behavioural gate on one Edge Function, so there is nothing to clean up. The only transient artefacts were in-memory source mutants under `scratch/v32/mut/`, deleted after use (`mutate32.mjs` regenerates them). `supabase/functions/sem-ai-command/index.ts` was never opened for writing; its sha256 was asserted before and after every step and is byte-identical to the required value.
+
+---
+
+**VERDICT: FAIL** — candidate `f68f44afef0db7d524e7b8b3f55ae82bc798a073` is **NOT fit to deploy over v92**. EDGE STATUS = **NOT DEPLOYMENT READY**. Production stays v92; rollback target `c9dfab5bd433`. This FAIL is against these exact bytes and is not inherited by any later SHA.
+
+```
+ee110024b5ecdd96e57c2ad223728bae82a4d2d3e4971204f424ecd3af8aed1c
+```

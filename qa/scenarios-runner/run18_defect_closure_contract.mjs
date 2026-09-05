@@ -259,9 +259,16 @@ for (const s of D131_CATCHABLE) {
 // is NOT name-initial is still found by the continuing scan. Only the 'dash' member remains, and it
 // remains for the reason originally given: a dash before a capital is indistinguishable from the
 // inside of a real name, so no boundary rule separates it without a false positive.
-const D131_IRREDUCIBLE = [
-  ['dash', 'Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
-];
+// run32/D180: the last member is CLOSED, and NOT by casing. A capitalised run that governs its own
+// auxiliary, reached from the negator without any introducer, ends the negator's scope. The paired
+// real name still survives because it HAS an introducer ("No site AT Darkhan - Steel Yard"), which
+// is the discriminator casing could never supply.
+const D131_IRREDUCIBLE = [];
+for (const [fab, real] of [['Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.']]) {
+  C(`D131.dashResidualClosed.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
+    'CLOSED by run32/D180: the fabrication is caught via the new-subject rule and the paired real name, which carries an introducer, still survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
+}
 for (const [fab, real] of [['Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.']]) {
   C(`D131.nameInitialResidualClosed.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
     'CLOSED by run30/D170: a negator that only opens a proper name no longer negates, the fabrication is caught, and the paired real name still survives',
@@ -330,8 +337,12 @@ C('D133.hold.outOfRangeNumberBindsNothing', 'CONTRACT',
 // =====================================================================================
 C('D134.coverage.newlineIsAClauseBoundary', 'CONTRACT',
   'COVERAGE (surviving mutant M3): the newline this candidate ADDED to the clause splitter is observed by NO committed suite — a truthful negative on one LINE must not disarm a fabrication on the next',
+  // run32/D180: the original must-NOT-fire half was the bare run-on "No company was archived ACME
+  // was deleted.", which is the same shape as run28/D153 and is now caught DELIBERATELY. A shape the
+  // product intentionally catches cannot serve as a non-firing control, so the control now carries an
+  // introducer - which is exactly what keeps a real negative a real negative.
   () => readsAsCompletion('No company was archived\nACME was deleted.') === true
-     && readsAsCompletion('No company was archived ACME was deleted.') === false);
+     && readsAsCompletion('No record shows ACME was deleted.') === false);
 C('D134.coverage.actionFamilyScopingMatters', 'CONTRACT',
   'COVERAGE (surviving mutant M10): unioning ACTION_FAMILY_VERBS back into one list reverts the HEADLINE half of D127 and the whole battery stays green — under that mutant "reopen acme" arms archiveCompanyIds against a pending ARCHIVE and "close acme" arms restoreCompanyIds against a pending RESTORE',
   () => armed('reopen acme', ARCH) === null && armed('undelete acme', ARCH) === null
