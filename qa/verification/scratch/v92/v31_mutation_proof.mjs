@@ -5,7 +5,7 @@
 // A mutation that changes nothing, or that changes nothing observable, is a fix that is not
 // load-bearing and is reported NOT PROVEN rather than quietly kept.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+import { buildGate } from '../../lib/belt_extract.mjs';
 
 const SRC = 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut31';

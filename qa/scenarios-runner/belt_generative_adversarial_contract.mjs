@@ -22,7 +22,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+// run34/D198: the extractor is VENDORED into this repository. It was imported from an absolute path
+// into another worktree, so the suite passed only on the one machine where that worktree existed.
+import { buildGate } from '../verification/lib/belt_extract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');

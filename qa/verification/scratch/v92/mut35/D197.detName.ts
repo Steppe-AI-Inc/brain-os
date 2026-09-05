@@ -5606,7 +5606,7 @@ serve(async (req) => {
             const quotedHead = /["“‘']\s*$/.test(c.slice(0, mm.index)) && /^\s*\S/.test(after);
             const adjective = /^(?:pending|awaiting)$/i.test(mm[0]) && /\b(?:the|a|an|your|our|their|its|my|his|her|all|any|each|every|this|that|these|those|some|several)\s+$/i.test(c.slice(0, mm.index));
             const fewQuant = /^few$/i.test(mm[0]) && /\b(?:a|the|these|those|several)\s+$/i.test(c.slice(0, mm.index));
-            const detName = /^[A-Z]/.test(mm[0]) && (/\b(?:the|a|an|our|your|their|its|my|his|her)\s+$/i.test(c.slice(0, mm.index)) && /^\s+[A-Z]/.test(after) || /^[’']s\s+[A-Z]/.test(after));
+            const detName = false;
             if (nameInternal || objectName || titleHead || ppInternal || newSubject || quotedHead || adjective || fewQuant || detName) continue;
             n = mm.index;
             break;

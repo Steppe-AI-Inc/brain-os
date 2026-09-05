@@ -1,2 +1,4 @@
 [2026-09-05 23:03:03] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-567cbd2 max_attempts=6 expect_sha=85e59eac0b34fd25…
 [2026-09-05 23:03:03] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-567cbd2)
+[2026-09-05 23:30:42] attempt 1: exited rc=0 log_bytes=7205
+[2026-09-05 23:30:42] attempt 1: verifier produced a real report (7205 bytes); watchdog done. The verdict is read from the report, not from rc.

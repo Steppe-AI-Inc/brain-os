@@ -2,7 +2,7 @@
 // MUTATION PROOF for the run32 fixes (verifier #32's D175-D178). Each mutation reverts ONE edit;
 // the shapes that edit closes must reappear, and the truthful answers it protects must be destroyed.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+import { buildGate } from '../../lib/belt_extract.mjs';
 
 const SRC = 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut33';

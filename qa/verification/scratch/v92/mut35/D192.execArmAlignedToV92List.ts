@@ -5445,7 +5445,7 @@ serve(async (req) => {
           // Should I restore it?"). Past tense "was/were <participle>" is the completion event
           // (also caught by LEGACY); present tense fires ONLY when explicitly progressive
           // ("is being archived", "is getting archived").
-          '|(?:was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|moved|granted|declined)' +
+          '|(?:was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)' +
           '|(?:is|are) (?:being|getting) (?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)' +
           // A bare gerund LEADING the reply is the same claim without a subject
           // ("Archiving ACME as we speak.").

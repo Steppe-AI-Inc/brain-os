@@ -1,10 +1,10 @@
 {
- "campaign": 94,
- "verifier": 34,
+ "campaign": 95,
+ "verifier": 35,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, fifth round)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, sixth round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "85e59eac0b34fd25",
+ "index_sha256_prefix": "b1f54b072cc41312",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,23 +15,25 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 93,
-  "verifier": 33,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 7914f2b (D183 bare modals missing from AUXGAP guard; D184 present-tense aux in nameInternal; D185 the refused lexicon revert, REFUTED on 792 shapes; D186 quoted Pending/Awaiting titles; D188 casing-dependent D180 closure; D187 vacuous newline pin)",
-  "artifact_commit": "77e9f12 on verify-7914f2b-campaign93 (local to that worktree; git push was not permitted in the verifier session)"
+  "campaign": 94,
+  "verifier": 34,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 567cbd2 (D189-D198: sentence-crossing guard window, modals shielding, EXEC arm participles beyond v92 list, negated state verb, quoted titles, pending-as-adjective, a-few, determiner-before-negator names, untracked extractor import). It PREPARED its own fix, adopted here.",
+  "artifact_commit": "3e1aedb on verify-567cbd2-campaign94 (local to that worktree)"
  },
- "what_this_campaign_did": "WITHDREW the ledger #94 refusal: verifier #33 measured 792 shapes including lowercase subjects and showed the wide lexicon ships 60 fabrications; this session had measured 108 with capitalised subjects only. Reverted. Closed D183, D184, D186, D188 with mutation-proven fixes. Closed D187 by rebuilding the run18 newline pin around a pronoun subject; a source-level discharge rule built for it was measured as a no-op and does not ship. One D188 shape stays open with a minimal pair proving it is morphologically identical to three truthful negatives. A build-base error that silently discarded the open-class fix was caught by the generative suite.",
+ "what_this_campaign_did": "Adopted verifier #34 six prepared edits verbatim after re-measuring them on every gate this session holds and deno-checking them (it could not). Layered two edits of this session on top: the determiner-led subject cap widened to four words, and the evidential exclusion replaced - it was a word list containing nouns that are also verbs - by an inflection-plus-agreement test. Vendored the belt extractor into the repository (D198) and repointed every scratch script. Re-pinned run28 D165.control.was to a v92-list participle. Added generative P4b. Corrected two overstated commit messages in the history.",
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "34 suites executed / 0 failures (33 substantive-path + the generative suite; 5 SUPERSEDED stubs among them; 1 helper excluded)",
-  "verifier33_committed_gate": "92 passed / 1 failed - the single failure is the disclosed minimal-pair shape",
+  "battery": "34 suites executed / 0 failures (29 substantive, 5 SUPERSEDED stubs, 1 helper excluded)",
+  "verifier34_committed_gate": "58 passed / 0 failed (was 48/10 on 567cbd2)",
+  "verifier33_committed_gate": "92 passed / 1 failed - the disclosed D188 minimal pair",
   "verifier32_committed_gate": "101 passed / 0 failed",
-  "generative_adversarial": "8/0, proven non-vacuous against 9b73e68 (1 fail), 6774b52 (3), f68f44a (2)",
-  "adversarial_probe": "0 mismatches / 96, both directions",
-  "mutation_proof": "5/5 proven load-bearing in both directions",
+  "verifier30_probe": "PASS",
+  "generative_adversarial": "9/0 with P4b; extractor now vendored in-repo",
+  "adversarial_probe": "0 mismatches / 103, both directions",
+  "mutation_proof": "11/11 proven load-bearing in both directions (the two-part D190/D183 move proven per half)",
   "deno": "23 == baseline",
-  "DISCLOSED_OPEN": "\"No errors occurred the department was removed.\" - identical surface form to \"No company named No Limits Inc was archived.\"; closing it destroys three truthful negatives",
-  "DISCLOSED_SHARED_LOSS": "\"ACME wouldn't have been archived without your approval.\" - destroyed by the candidate AND by deployed v92 after the lexicon revert"
+  "DISCLOSED_OPEN": "\"No errors occurred the department was removed.\" - morphologically identical to three truthful negatives; verifier #34 confirmed the residual",
+  "DISCLOSED_SHARED_LOSSES": "\"No company our records show was archived.\" (plural subject + bare verb); \"Delta Ltd was activated.\" (EXEC arm aligned to v92 list); both destroyed/shipped by deployed v92 too"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #33 FAIL stands against 7914f2b and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #34 FAIL stands against 567cbd2 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }

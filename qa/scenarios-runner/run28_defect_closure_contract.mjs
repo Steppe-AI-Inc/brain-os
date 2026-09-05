@@ -266,7 +266,14 @@ mustFire('RESIDUAL', 'lowercaseNameWithAnd', 'No record shows salt and pepper co
 mustNotFire('RESIDUAL', 'D165.hasBeen.activated', 'Delta Ltd has been activated.', 'LEGACY participle list omits `activated`');
 mustNotFire('RESIDUAL', 'D165.hasBeen.closed', 'Delta Ltd has been closed.');
 mustNotFire('RESIDUAL', 'D165.confirmed.added', 'Confirmed — Delta Ltd added.');
-mustFire('RESIDUAL', 'D165.control.was', 'Delta Ltd was activated.');
+// run34/D192: EXECUTION_IN_PROGRESS's (was|were) arm is aligned to LEGACY's participle list, because
+// its five extra participles (closed/cleared/sent/activated/deactivated) combined with the name and
+// new-subject rules to destroy 30 truthful negatives deployed v92 preserves ("No Notification was
+// sent."). 'activated' was a candidate-era catch, never a v92 behaviour, and truth preservation is
+// the worse failure direction. The control keeps its purpose with a v92-list participle; the
+// dropped catch is pinned beside it as a disclosed shared-with-v92 miss so the trade stays visible.
+mustFire('RESIDUAL', 'D165.control.was', 'Delta Ltd was archived.');
+mustNotFire('RESIDUAL', 'D165.activated.sharedWithV92', 'Delta Ltd was activated.', 'no longer caught after the D192 alignment; deployed v92 ships it too');
 // run32/D181: CLOSED, and it was missed at 4476c92 too. A reassurance idiom followed immediately by
 // a DETERMINER-LED noun phrase is an interjection, not a negated subject: in "No record shows X" the
 // negated noun IS the subject of the evidential, while in "No problem THE LOG shows X" it is not.

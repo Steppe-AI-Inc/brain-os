@@ -3,7 +3,7 @@
 // occurrences non-negating, so each can destroy a TRUTHFUL answer. This probe hunts exactly that.
 // Every row below is a truthful negative: nothing happened, and the belt must NOT fire.
 // Read-only. Does not modify the candidate.
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+import { buildGate } from '../../lib/belt_extract.mjs';
 const CAND = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const g = buildGate(CAND);
 const fires = (s) => g.readsAsCompletion(String(s)) === true;

@@ -13181,3 +13181,77 @@ verifier #32's gate 101/0; generative adversarial 8/0; hand-written adversarial 
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #33's
 FAIL stands against 7914f2b and is not inherited. Production remains v92; rollback c9dfab5b.
+
+## 96. VERIFIER #34 FAIL CLOSED — its own prepared fix adopted, plus this session's evidential correction
+
+Verifier #34 returned **FAIL** on candidate 567cbd2 / index.ts 85e59eac, with nine defect classes,
+one suite-integrity defect, and — for the first time in this campaign — a PREPARED FIX of its own in
+scratch that it measured to 0 truth regressions. It confirmed everything it re-derived: the lexicon
+revert present and load-bearing on its own lowercase family (60/60), all three run31 refused shapes
+caught with paired names surviving, the D188 minimal pair confirmed as a residual, matcher 0
+regressions, ledger #64/#65/#66 closed, rollback exact, CONTRACT 5 sound, all re-pins honest,
+ledger #95's suite count correct.
+
+THE NINE CLASSES, all closed by adopting its six edits verbatim:
+- **D189 / D191** — the R-AUXGAP guard's 28-character left window crossed a SENTENCE boundary
+  (D117 by a new mechanism: "No errors. CLIX GPS was, as requested, archived." shipped, 324/384)
+  and was blind to a same-sentence negator further back ("None of the records ... indicate the
+  company had been, at any point, archived." destroyed, 240/240). The context is now the text since
+  the last sentence boundary, capped at 160 characters.
+- **D190** (created by run33/D183) — the bare modals placed in the guard lexicon SHIELDED
+  fabrications ("As you can see, X was, as requested, archived.", 324/384). They leave the lexicon
+  and become a lookbehind on the auxiliary itself, which is deployed v92's own semantics; every D183
+  hedged decline still survives. A two-part move, proven in both directions separately.
+- **D192** — the EXECUTION_IN_PROGRESS (was|were) arm carried five participles v92's gate does not
+  (closed/cleared/sent/activated/deactivated), and combined with the name and new-subject rules
+  destroyed 30 truthful negatives v92 preserves ("No Notification was sent."). Aligned to LEGACY's
+  list. This trips run28's D165.control.was, a candidate-era pin, re-pinned to a v92-list participle
+  with the dropped catch pinned beside it as a shared-with-v92 miss.
+  It also FALSIFIES an argument this session used repeatedly: "v92 destroys it too" was asserted
+  against PCCP's participle list without checking that the candidate's arms used the same list.
+- **D193** — the run32 status guard treated "is not <participle>" as a completion. Removed.
+- **D194** — titleHead covered only Pending/Awaiting; a quoted title beginning with ANY negator
+  ("No smoking signs for the depot") kept the negator in scope, 32/32. Any negator opening a quoted
+  span now heads a title.
+- **D195 / D196** — "The pending approval was approved." (BUG-002 plus one adjective, 150/150) and
+  "A few tasks were completed." (64/64): pending/awaiting after a determiner, and "a/the few", are
+  not negators.
+- **D197** — "The Never Ending Story project was archived.", "Nobody's Perfect Studio was archived.":
+  a determiner before a Title-Case negator, or a possessive negator, is inside a name.
+- **D198** — belt_generative_adversarial_contract imported its extractor from an absolute path into
+  ANOTHER WORKTREE, untracked, so it passed only on this machine. The extractor is vendored at
+  qa/verification/lib/belt_extract.mjs and every scratch script repointed. A first repoint attempt
+  emptied all ten imports because a backslash died in the shell; repaired by character code.
+
+THIS SESSION'S TWO EDITS ON TOP, from its own adversarial pass on the run33 fixes:
+- The determiner-led subject cap of two words let "No errors the sales pipeline data was archived."
+  escape while v92 catches it. The cap was never what protected the relative-clause truthful
+  negatives; it is now four words.
+- Fixing that exposed the deeper error: the evidential exclusion was a WORD LIST containing nouns
+  that are also verbs — "record", "report", "note", "state" — so "No errors the customer RECORD was
+  archived." was rejected as a subject and shipped, 48 of 192 in the generative P4b family. It is now
+  a grammatical test: a word is an evidential only when it is an inflected verb form directly before a
+  SINGULAR auxiliary with no subject between them — the relative-clause gap, which no noun phrase can
+  produce. A plural noun before "were" is agreeing, not evidential. Cost: one shared-with-v92 loss,
+  "No company our records SHOW was archived." (plural subject, bare verb).
+
+THE SUITE'S SECOND SELF-CORRECTION: the generative suite gained P4b (filler negator before a
+determiner-led subject of one to four words). Two commit messages claimed it had landed and proven
+non-vacuous before it had; both are corrected in the history rather than amended.
+
+VERIFIER #34'S JUDGMENT OF THE GENERATIVE SUITE, accepted: it re-derived the non-vacuity proof
+(fails on five historical builds) but showed it stayed 8/0 under every one of its twelve fix reverts —
+it would not have caught D183–D198. It now carries P4b and the vendored extractor; it remains a net
+for the classes it generates, not a substitute for a verifier.
+
+STILL OPEN, unchanged: the D188 minimal pair ("No errors occurred the department was removed." is
+morphologically identical to "No company named No Limits Inc was archived."). Verifier #34 confirmed
+the residual and added two more truthful shapes any -ed exclusion would destroy.
+
+EVIDENCE on the new candidate b1f54b07: battery 34 suites / 0 failures (29 substantive, 5
+SUPERSEDED stubs, helper excluded); verifier #34's own gate 58/0 (was 48/10); #33's 92/1 (the
+disclosed pair); #32's 101/0; #30's probe PASS; generative 9/0; hand-written probe 0 mismatches /
+103; mutation 11/11 proven in both directions; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #34's
+FAIL stands against 567cbd2 and is not inherited. Production remains v92; rollback c9dfab5b.

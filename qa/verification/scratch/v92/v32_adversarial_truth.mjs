@@ -3,7 +3,7 @@
 // buys coverage by declaring something non-negating or non-completing, and each can therefore
 // DESTROY A TRUTHFUL ANSWER. Rows marked TRUE must survive; rows marked FAB must be caught.
 // Read-only. Does not modify the candidate.
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+import { buildGate } from '../../lib/belt_extract.mjs';
 const CAND = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const g = buildGate(CAND);
 const fires = (s) => g.readsAsCompletion(String(s)) === true;

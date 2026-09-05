@@ -4,7 +4,7 @@
 // keep surviving. Every OPEN shape is a fabrication deployed v92 corrects; the candidate shipped
 // all of them. Pass condition: candidate CATCHES all of them and destroys none of the controls.
 import { readFileSync } from 'node:fs';
-import { buildGate } from 'file:///C:/Users/Dell/dev/brain-os-verify-b32e0e4/qa/verification/scratch/v20/extract.mjs';
+import { buildGate } from '../../lib/belt_extract.mjs';
 
 const CAND = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const V92 = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/index.v92.ts';
