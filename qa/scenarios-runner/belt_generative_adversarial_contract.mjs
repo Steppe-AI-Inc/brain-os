@@ -239,6 +239,74 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
     destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${examples.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+// ── PROPERTIES 7-11: the classes verifier #34 found, generated. That verifier showed this suite
+// stayed 8/0 under every one of its twelve fix reverts - it could not see any of them. A suite that
+// only generates the classes its author already knows about is the same closed-list error as the
+// rules it tests. These properties were added AFTER the fix, which is the wrong order; they are here
+// so the NEXT regression in these families is seen before a verifier sees it.
+const FILLER_SENTENCES = ['No errors.', 'Nothing failed.', 'No problems were found.', 'None were reported.'];
+const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your request', 'of course'];
+{
+  // P7 (D189): a negator in the PREVIOUS sentence never disarms an interposed-adverbial completion.
+  let disarmed = 0, shared = 0, total = 0; const ex = [];
+  for (const f of FILLER_SENTENCES) for (const name of NAMES.slice(0, 5)) for (const adv of INTERPOSED) for (const p of PARTICIPLES.slice(0, 3)) {
+    const s = `${f} ${name} was, ${adv}, ${p}.`; total++;
+    if (fires(s)) continue;
+    if (v92fires && !v92fires(s)) { shared++; continue; }
+    disarmed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P7 (D189) a negator in the previous sentence never disarms an interposed-adverbial completion', disarmed === 0, `${disarmed} of ${total} disarmed that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P8 (D190): a modal that does not govern the auxiliary never shields the completion.
+  const LEAD = ['As you can see,', 'As you may know,', 'If you could check,', 'As you might expect,'];
+  let shielded = 0, shared = 0, total = 0; const ex = [];
+  for (const l of LEAD) for (const name of NAMES.slice(0, 5)) for (const adv of INTERPOSED.slice(0, 3)) for (const p of PARTICIPLES.slice(0, 3)) {
+    const s = `${l} ${name} was, ${adv}, ${p}.`; total++;
+    if (fires(s)) continue;
+    if (v92fires && !v92fires(s)) { shared++; continue; }
+    shielded++; if (ex.length < 3) ex.push(s);
+  }
+  record('P8 (D190) a modal that does not govern the auxiliary never shields a completion', shielded === 0, `${shielded} of ${total} shielded that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P9 (D192): a Title-Cased ENTITY TYPE after a negator is a determiner reading whatever the participle.
+  const TYPES = ['Notification', 'Reply', 'Work Order', 'Business Unit', 'Task', 'Invoice', 'Approval'];
+  const EXTRA = ['sent', 'closed', 'cleared', 'activated', 'deactivated', 'archived', 'deleted'];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const t of TYPES) for (const p of EXTRA) {
+    const s = `No ${t} was ${p}.`; total++;
+    if (!fires(s)) continue;
+    if (v92fires && v92fires(s)) { shared++; continue; }
+    destroyed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P9 (D192) a negated Title-Cased entity type survives whatever the participle', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P10 (D194-D197): a negator that is part of a TITLE or NAME never disarms a completion about it.
+  const TITLES = ['No smoking signs for the depot', 'Nothing to declare form', 'Never on Sunday campaign', 'No Parking zone review'];
+  const NAMED = ['The Never Ending Story project', 'The Nothing Ventured fund', 'The No Limits account', "Nobody's Perfect Studio"];
+  let shipped = 0, shared = 0, total = 0; const ex = [];
+  for (const t of TITLES) for (const p of PARTICIPLES.slice(0, 4)) {
+    for (const s of [`The task "${t}" was ${p}.`, `"${t}" has been ${p}.`]) { total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } shipped++; if (ex.length < 3) ex.push(s); }
+  }
+  for (const n of NAMED) for (const p of PARTICIPLES.slice(0, 4)) { const s = `${n} was ${p}.`; total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } shipped++; if (ex.length < 3) ex.push(s); }
+  record('P10 (D194/D197) a negator inside a quoted title or a determiner-led name never disarms', shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P11 (D195/D196): pending/awaiting as adjectives and "a few" as a quantifier are not negators.
+  const DET = ['The', 'Your', 'Our', 'Each', 'Every', 'This'];
+  const HEAD2 = ['approval', 'task', 'request', 'invoice', 'review'];
+  let shipped = 0, shared = 0, total = 0; const ex = [];
+  for (const d of DET) for (const h of HEAD2) for (const adj of ['pending', 'awaiting']) for (const p of PARTICIPLES.slice(0, 3)) {
+    const s = `${d} ${adj} ${h} was ${p}.`; total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } shipped++; if (ex.length < 3) ex.push(s);
+  }
+  for (const q of ['A few', 'Quite a few', 'The few', 'Several']) for (const h of ['tasks', 'records', 'companies']) for (const p of PARTICIPLES.slice(0, 3)) {
+    const s = `${q} ${h} were ${p}.`; total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } shipped++; if (ex.length < 3) ex.push(s);
+  }
+  record('P11 (D195/D196) pending/awaiting as adjectives and "a few" as a quantifier never disarm', shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {
