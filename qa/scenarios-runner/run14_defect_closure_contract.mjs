@@ -206,7 +206,7 @@ C('D107.bothArmsShareThePredicate', 'CONTRACT',
 C('D107.predicateCoversAllFour', 'CONTRACT',
   'D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION)',
   () => {
-    const p = src.match(/const readsAsCompletion = [\s\S]{0,2000}?;\r?\n/); // run19/D131: widened for the longer R9b predicate
+    const p = src.match(/const readsAsCompletion = [\s\S]{0,2600}?;\r?\n/); // run19/D131: widened for the longer R9b predicate; run30/D171: widened again for the R-AUXGAP arm. The bound only has to SPAN the statement so it can be sliced - it is not a complexity cap, and widening it cannot weaken the four-belt check below.
     if (!p) throw new Error('readsAsCompletion not found — update this harness');
     return ['LEGACY_PAST_COMPLETION', 'EXECUTION_IN_PROGRESS', 'CONFIRMED_COMPLETION', 'REFERENCELESS_CONFIRMATION']
       .every((n) => p[0].includes(n + '.test('));

@@ -5574,20 +5574,25 @@ serve(async (req) => {
         // positives on a 61-case corpus, 5 of the 9 residual fabrications now caught.
         const NEGATION_AUX = /\b(?:is|are|am|was|were|has|have|had|do|does|did|can|could|will|would|should|may|might|must)\b/i;
         const completionIsNegated = (c: string): boolean => {
-          // run30/D170 (name-safe negator): a negator TOKEN that is part of a proper name
-          // ("Nothing Bundt Cakes was archived", "No Limits Inc has been archived",
-          // "Never Summer Industries was archived") or that heads a titled subject
-          // ("Pending review of the contract was completed") negates nothing. The belt read
-          // those as truthful negatives and SHIPPED them, while deployed v92 corrects every
-          // one. Skip such an occurrence and keep scanning, so a REAL negator later in the
-          // same clause ("Nothing Bundt Cakes was not archived") still disarms it. A
-          // lowercase "nor" anywhere means the clause is a genuine neither/nor negation.
+          // run30/D170: a negator TOKEN can sit where it negates NOTHING, and taking the first
+          // match blindly let fabrications deployed v92 corrects through the belt. Three such
+          // positions, each skipped so the scan CONTINUES and a real negator later in the same
+          // clause ("Nothing Bundt Cakes was not archived") still disarms it:
+          //   nameInternal  the negator opens a proper name - "No Limits Inc was archived",
+          //                 "Nothing Bundt Cakes has been archived". A lowercase "nor"
+          //                 anywhere means it is a genuine neither/nor negation instead.
+          //   titleHead     clause-initial "Pending"/"Awaiting" heading a titled subject -
+          //                 "Pending review of the contract was completed".
+          //   ppInternal    the negator sits in a prepositional phrase modifying something
+          //                 other than the completion - "The company with no active tasks was
+          //                 archived", "Since no objections were raised the goal was archived".
           let n = -1;
           const scan = new RegExp(NEGATED_CLAUSE.source, 'gi');
           for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
             const nameInternal = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(c.slice(mm.index + mm[0].length)) && !/\bnor\b/.test(c);
             const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && mm.index === c.search(/\S/);
-            if (nameInternal || titleHead) continue;
+            const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index));
+            if (nameInternal || titleHead || ppInternal) continue;
             n = mm.index;
             break;
           }
@@ -5642,14 +5647,17 @@ serve(async (req) => {
         // does. The arrow format is a completion report, not a truthful negative; measured 0
         // truthful destroyed on the 303-case v92-differential corpus.
         // run30/D171 (R-AUXGAP): an adverbial interposed between the auxiliary and the
-        // participle is cut apart by the clause splitter, so no single clause carries a
-        // whole completion and the belt shipped the claim. Deployed v92 catches both of
-        // the production shapes. Tested on the WHOLE summary like the rename arm, and only
-        // when the summary carries no negator at all, so no truthful negative moves.
+        // participle is cut apart by the clause splitter, so no single clause carries a whole
+        // completion and the belt shipped the claim. This also closes the two shapes the
+        // campaign own tight-dash fix F6 made WORSE than baseline 4476c92. Tested on the
+        // WHOLE summary like the rename arm, and only when the summary carries no negator at
+        // all, so no truthful negative can move. The participle list is COMPLETION_PARTICIPLE
+        // itself, never a private copy - D100 was exactly a second copy drifting from the
+        // first, and reusing it also keeps this predicate inside run14/D107 length bound.
         const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s) || /\brenamed:\s*.+(→|->)/i.test(String(s))
-          || (/\b(?:was|were|has been|have been|had been)\b\s*[,—–]\s*[^.]{0,40}?[,—–]\s*(?:approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b/i.test(String(s)) && !NEGATED_CLAUSE.test(String(s)))
+          || (new RegExp('\\b(?:was|were|has been|have been|had been)\\b\\s*[,—–]\\s*[^.]{0,40}?[,—–]\\s*' + COMPLETION_PARTICIPLE.source, 'i').test(String(s)) && !NEGATED_CLAUSE.test(String(s)))
           || (CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[.!?,\x3b\n]|:\s/).pop() ?? ''))
-          || String(s).replace(/^\s*(?:no problem|no worries at all|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|sure thing|of course|absolutely)\s*[—–-]\s+/i, '').split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=[A-Z])|[—–](?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|(?<=[a-z])[—–](?=[A-Z])/).map((c) => c.replace(/\([^()]*\)/g, ' ').trim()).concat((String(s).match(/\([^()]*\)/g) || []).map((p) => p.slice(1, -1).trim())).some((c) => !completionIsNegated(c)
+          || String(s).replace(/^\s*(?:(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\s+at all)?\s*[—–-]\s*)+/i, '').split(/[.!?,\x3b\n]+|:\s|\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|[—–](?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.replace(/\([^()]*\)/g, ' ').trim()).concat((String(s).match(/\([^()]*\)/g) || []).map((p) => p.slice(1, -1).trim())).some((c) => !completionIsNegated(c)
             && !/\b(?:may|might|could|can|would|should)\s+(?:(?:not|never|also|already|just|now|still|well|very|quite|really|truly|indeed|perhaps|possibly|probably|conceivably|previously|recently|actually|certainly|definitely|surely|maybe|in|fact|and|or|by|then|somehow|otherwise)\s+){0,3}(?:have been|has been|had been)\b/i.test(c)
             && (LEGACY_PAST_COMPLETION.test(c) || EXECUTION_IN_PROGRESS.test(c) || /(?:^|\b[Cc]onfirmed\s*[—–-]\s*)(?:and |but |so |then )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:[A-Z]|company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)/.test(c)));
         const legacyProseFallback = !hasSupportedMutationClaim

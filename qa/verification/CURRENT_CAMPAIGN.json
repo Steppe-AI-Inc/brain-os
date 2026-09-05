@@ -1,10 +1,10 @@
 {
- "campaign": 90,
- "verifier": 30,
+ "campaign": 91,
+ "verifier": 31,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "RUNNING — attempt 2 (attempt 1 BLOCKED — PROVIDER_CAPACITY at 11:54, watchdog auto-resumed 16:02)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, second round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "da5fa34168e921ec",
+ "index_sha256_prefix": "2a7abef9c83cbbc1",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,45 +15,23 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 89,
-  "verifier": 29,
-  "verdict": "PASS — campaign certification vs 4476c92 only, NOT production certification"
+  "campaign": 90,
+  "verifier": 30,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 9b73e68 (28 fabrication regressions vs deployed v92, classes R1-R5)",
+  "artifact_commit": "72b9f16 on verify-9b73e68-campaign90"
  },
- "what_this_campaign_did": "Fetched deployed v92 bytes; ran candidate-vs-v92 belt + matcher differential; found 12 fabrication regressions vs LIVE v92 (D27 P1 production row 9dda919c + 11 negator-adjacent shapes) that the 4476c92-relative campaign had classified as residuals; closed all 12 with 0 truth cost (0/272 truthful destroyed), each mutation-proven; added permanent v92_parity_contract to the battery; answered the founder's 7 questions in ledger #90.",
+ "what_this_campaign_did": "Closed all five classes verifier #30 opened with five mutation-proven fixes. Reverted a sixth (dash-before-a-capital clause split) that closed R2/R3 but destroyed truthful answers whose real names contain a dash. Dropped a seventh that was not load-bearing. Re-pinned four residuals as closed, each with its paired real name proven surviving. Fixed V30-F2. Promoted verifier #30 artifact as a permanent suite with CONTRACT 5 narrowed to top-level declarations and two coverage assertions added so it still catches the case it exists for.",
  "implementing_session_evidence_not_to_be_trusted": {
-  "v92_parity_contract": "46/0 (188 truthful rescued vs v92, 41 extra fabrications caught)",
-  "belt_differential": "0 truthRegression / 0 fabRegression on 303 truthful / 217 fabrications",
-  "matcher_differential": "0 regressions / 12 improvements on 22 shapes",
-  "collateral_v20": "0/75 destroyed, 0/50 missed",
-  "battery": "33 suites / 0 failures",
-  "run15": "57/0 (D117 no-whole-span-lookahead invariant honoured)",
-  "deno": "23 == baseline (npx deno@2)",
-  "mutation_proof": "v92_mutation_proof 8/8"
+  "battery": "34 suites / 0 failures (pristine baseline re-measured first: 33/0)",
+  "run15": "57/0, D117 no-whole-span-lookahead invariant intact",
+  "v92_parity_contract": "46/0",
+  "v92_open_regression_contract": "28/0 (promoted from verifier #30 artifact)",
+  "probe": "0/26 open regression shapes ship; 0/16 truthful controls destroyed",
+  "run17_D128_falsePositives": "0/24 on the dash-and-conjunction real-name set",
+  "mutation_proof": "5/5 fixes proven load-bearing",
+  "deno": "23 == baseline",
+  "retracted": "an earlier \"battery 33/0 on the fixed copy\" was measured through a pipeline whose exit status was always 0"
  },
  "verdict": null,
- "rules": "#29 PASS = campaign certification; a v92-differential verifier PASS = production-deployment certification; BOTH required. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after verifier #30 PASSES on the exact bytes. Production stays v92 until then.",
- "attempts": [
-  {
-   "n": 1,
-   "dispatched": "2026-09-05 11:32:32",
-   "ended": "2026-09-05 11:54:25",
-   "result": "BLOCKED — PROVIDER_CAPACITY (rc=1, log_bytes=63, quota resets 4pm)",
-   "note": "NOT a verdict. Partial artifacts preserved in the worktree at qa/verification/scratch/v30/ (own corpus 444 truthful/240 fabrications, belt+matcher differentials, mutation + prepared-fix probes)."
-  },
-  {
-   "n": 2,
-   "dispatched": "2026-09-05 16:02:01",
-   "result": null,
-   "pid": 21235
-  }
- ],
- "candidate_sha_unchanged_across_block": "9b73e68 / index.ts da5fa34168e921ec — re-asserted byte-identical in BOTH the implementation tree and the verifier worktree after the capacity block",
- "attempt1_partial_signal_NOT_A_VERDICT": {
-  "warning": "Read for readiness only. No verdict may be inferred from partial logs; no source change was made on the basis of these numbers.",
-  "belt": "verifier own corpus: TRUTH REGRESSION 0; FAB REGRESSION 28 vs deployed v92",
-  "dominant_new_class": "entity names that CONTAIN a negator token defeat completionIsNegated — \"Nothing Bundt Cakes\", \"No Limits Inc\", \"Never Summer Industries\"; plus title-leading \"Pending review of the contract was completed.\" / \"Awaiting approval for Q3 budget was completed.\"",
-  "secondary_classes": "aux-interposed adverbial (\"was, as requested, archived\"; \"was—as requested—approved\"), further idiom prefixes (\"No worries at all —\", \"Sure thing — no problem —\"), tight em-dash after a negator-bearing clause (\"Nothing failed—ACME Holdings has been archived.\")",
-  "matcher": "no regression observed in the sampled shapes; candidate improvements over v92 confirmed independently (v92 binds destructively on \"don't archive acme holdings\")",
-  "implication": "The implementing session's corpus used only negator-free entity names, so the name-embedded-negator class was invisible to it. If attempt 2 returns FAIL this is the expected root cause."
- }
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #30 FAIL stands against 9b73e68 and is NOT inherited by this candidate; #29 is historical campaign evidence only. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }

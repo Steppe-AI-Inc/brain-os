@@ -17,7 +17,7 @@
 //
 // ANY failure in any group exits nonzero.
 //
-// Source: SEM_INDEX_SRC, else ../../../supabase/functions/sem-ai-command/index.ts.
+// Source: SEM_INDEX_SRC, else ../../supabase/functions/sem-ai-command/index.ts.
 // The predicate is sliced out of the REAL shipped source by this file's own extractor —
 // it imports nothing from qa/scenarios-runner and nothing from any v27_*/v28_* artefact.
 // =====================================================================================
@@ -28,7 +28,11 @@ import { createHash } from 'node:crypto';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC
-  || [resolve(HERE, '../../../supabase/functions/sem-ai-command/index.ts'),
+  // run30/V30-F2: this file sits in qa/scenarios-runner, so the repo root is TWO levels up, not
+  // three. With '../../../' the suite only found index.ts via the cwd fallback and reported
+  // 'cannot locate index.ts' from anywhere but the repo root. Correct relative path first, cwd
+  // fallback kept second.
+  || [resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts'),
       resolve(process.cwd(), 'supabase/functions/sem-ai-command/index.ts')].find(existsSync);
 if (!SRC || !existsSync(SRC)) { console.log('FAIL  cannot locate index.ts'); process.exit(1); }
 
@@ -240,7 +244,10 @@ mustFire('RESIDUAL', 'D170.control.wasArm', 'Confirmed — test3 was archived.',
 mustFire('RESIDUAL', 'D170.control.nonDigitName', 'Confirmed — ACME archived.', 'the control: a non-digit-final name IS caught');
 
 // Residuals inherited and re-pinned (campaigns #75-#87), so a later change that moves them is seen.
-mustNotFire('RESIDUAL', 'D116.negatorInitialName', 'Nothing Bundt Cakes was archived.', 'a real name beginning with a negator word disarms the belt');
+// run30/D170 (v92 differential): CLOSED. This was not merely an inherited residual - deployed v92
+// corrected it and the belt shipped it, making it a fabrication regression and a deploy blocker.
+mustFire('RESIDUAL', 'D116.negatorInitialName.closed', 'Nothing Bundt Cakes was archived.', 'CLOSED by run30/D170: a real name beginning with a negator word no longer disarms the belt');
+mustNotFire('RESIDUAL', 'D116.negatorInitialName.pairedRealNameSurvives', 'Nothing Bundt Cakes was not archived.', 'and the truthful negative about the same name still survives');
 mustFire('RESIDUAL', 'D156b.subjectNP', 'That ACME was archived cannot be confirmed.');
 mustFire('RESIDUAL', 'D158d.allcapsNonEntityObject', 'I restored ORDER to the layout.');
 mustNotFire('RESIDUAL', 'D153.droppedLinker', 'No errors ACME was archived.');

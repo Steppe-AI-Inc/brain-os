@@ -1,0 +1,61 @@
+Campaign complete. Artifacts committed to `verify-9b73e68-campaign90` as `72b9f16`; the candidate's `index.ts` is byte-identical to what I started with.
+
+---
+
+# VERIFIER #30 — CAMPAIGN #90 — PRODUCTION-DEPLOYMENT GATE
+
+**PREFLIGHT: EXECUTION_READY** (A: HEAD `9b73e68…` ✓ · B: scratch write ✓ · C: 13 passed, 0 failed ✓)
+
+## STEP 1 — Production bytes, obtained myself
+
+| item | my evidence |
+|---|---|
+| `functions list` | `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…`, `updated_at` 1788239725518 = **2026-09-01T05:15:25.518Z**, entrypoint `file:///home/runner/…` (CI runner) |
+| source bytes | `git show c9dfab5bd433:…/index.ts` → **`795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`** — re-derived by me, matches the reference copy my measurements consumed |
+| CI link | `gh run list`: the **only** deploy run after 2026-08-30 is headSha `c9dfab5b`, success, 05:15:04Z→05:15:30Z — the live timestamp is **inside** that window; `.github/workflows/supabase-functions.yml` deploys from `actions/checkout@v4` of the triggering SHA |
+| corroboration | the other 5 functions are still at `updated_at` 2026-08-28 — *older* than the v92 deploy, i.e. CI re-bundled only the changed function |
+
+**Provenance claim CONFIRMED — not refuted.** Evidence level: **INTEGRATION VERIFIED**, not byte-direct: `supabase functions download` was **blocked by this session's command classifier** in every form. That is a genuine coverage limitation and the one provenance link I could not close myself.
+
+## STEP 2 — The seven deploy questions
+
+1. **Exact bytes.** Deploy surface = **only** `supabase/functions/sem-ai-command/index.ts` (1 `M` under `:/supabase`). Identifiers 497→679: **182 added, 0 removed**; the only absent word-token `reactivat` is superseded by the superset `(?:re)?activat`; `RESTORE_VERB_PATTERN`/`FUTURE_PROMISE_PATTERN` changed as strict supersets.
+2. **Preserves v92 behaviour? NO — 28 shapes.** My corpus (444 truthful / 240 fabrications, no row shared with theirs): `truthRegression=0 · fabRegression=28 · truthImprovement=224 · fabImprovement=8`. Matcher on 39 shapes: **39/39 correct, 0 regressions, 19 improvements** (v92 itself binds the destructive field on a negated mention and returns the raw `Object` constructor for a prototype-key `actionType`).
+3. **Reintroduces nothing removed.** 0 identifiers removed; the only reverts in the 79 commits reverted candidate-era additions, never v92 behaviour.
+4. **4476c92-dependent assumptions — yes, and worse than reported.** The 12 they closed *are* closed. But the "13th" is not one shape: **28, in 5 classes**. And **2 are regressions vs `4476c92` itself**, introduced by this campaign's own fix F6.
+5. **#64 D16, #65 D25, #65 D27, #66 D40 — GENUINELY CLOSED.** 11/11, 8/8, 2/2, 1/1 on the belt; D40 `claims:[]` and the D3 `pendingAction` short-circuit both corrected in the real decision window.
+6. **Rollback exact and available:** `c9dfab5b`, sha re-derived by me.
+7. **Only intended Edge changes:** yes — the other 646 changed files never reach the Edge runtime.
+
+## STEP 3 — Mutation + battery
+
+- **8/8 fixes mutation-proven load-bearing** on my corpus (+1…+24 fab regressions per revert), and `v92_parity_contract` goes **RED** for each → the promoted suite is **not vacuous**.
+- **D117 invariants hold**: no whole-span lookaround, no inline modifier group, belt const list identical to `4476c92`, 86/86 regex literals construct. **run15 57/0**, `v92_parity_contract` 46/0.
+- Battery: 33 suites, **32 clean, 1 finding** (below).
+- Final read-only prod re-check: **v92 unchanged, nothing deployed.**
+
+## STEP 4 — Findings
+
+**V30-F1 (P2, deploy blocker).** Ledger #90's "0 fabrication regressions" is a property of the corpus it was tuned against, not of the candidate. 28 shapes deployed v92 corrects and the candidate ships — R1 negator-initial real name/title ×13 (`No Limits Inc was archived.`), R2 idiom prefix outside the list ×4, R3 tight dash before an uppercase name ×1, R4 interposed adverbial ×5, R5 leading-PP negator ×5. I proved all **28 SHIP end-to-end** in the real decision window (`claims:null`, `claims:[]`, `claims:[existence]`) — `readsAsCompletion` is the sole predicate behind both `legacyProseFallback` and `structuredProseDrift`, so on an ungrounded turn it is the only defence. Blast radius bounded: **0/28 leak** on turns carrying structure.
+
+**V30-F1b (P2).** Fix F6 made two shapes *worse than the campaign baseline*: `The approval was—as requested—approved.` / `CLIX GPS has been—per your request—archived.` Undisclosed.
+
+**V30-F2 (P3).** `run28_defect_closure_contract.mjs` uses `../../../` where every sibling uses `../../`: **110/0 from the repo root, `FAIL cannot locate index.ts` from anywhere else.** Fails loud, so it cannot green-wash.
+
+**V30-F3 (P3).** Three ledger counts wrong: **79** commits not 32; **647** files not 637; **182** identifiers not 176.
+
+**Prepared fix: built, measured, REJECTED.** Closes R2–R5 (28→13) — but declares `nx` inside the belt block, violating run15/D117's no-new-const invariant: run15 **crashes**, run17/18/19 fail, and it costs 2 truthful answers. Not proposed. **R1 is not closable lexically** — separating the company *No Limits Inc* from the negator *no* needs the entity list, not a regex.
+
+## The honest trade
+
+The candidate is a large net improvement — it cuts `4476c92`'s 112 fab regressions to 28, and delivers **224 truthful answers v92 destroys** (v92 replaces them with "I can't actually do that from chat", itself false). But the gate rule is *any fabrication v92 corrects that the candidate ships is a FAIL*, and 28 do, all reaching the founder.
+
+**Fix authority / hard stop:** no `db push`, no migration, no `functions deploy` — nothing was written to production. **No synthetic `QA-VERIFY-*` data was created**: this campaign is source-and-differential only, zero DB writes, so there is nothing to clean up.
+
+**Commits:** `72b9f16` on `verify-9b73e68-campaign90` (3 artifacts + harness + checkpoint). Regression additions: **20 pass / 6 fail, RED on purpose**, non-vacuous both directions (23/3 against the prepared-fix copy).
+
+---
+
+**VERDICT: FAIL** — candidate `9b73e68770b641ff52147035fc342b44b1e2e851` is **not fit to deploy over v92**. `EDGE STATUS = NOT DEPLOYMENT READY.`
+
+`da5fa34168e921ec29b3a63ddefffaf709b3f359e75c7103579e0e07c2093ad9`

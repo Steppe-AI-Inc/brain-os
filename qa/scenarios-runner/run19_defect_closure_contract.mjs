@@ -243,7 +243,7 @@ for (const [tok, fab, real] of D131_SEPARABLE) {
     () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
 }
 const D131_STILL_HARD = [
-  ['Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.'],
+  // run30/D170: the negator-initial NAME member is CLOSED - re-pinned just below.
   ['Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
 ];
 // v92-differential (2026-09-05): the two dash-IDIOM residuals are now CAUGHT by R-IDIOM (idiom prefix stripped before the
@@ -251,6 +251,11 @@ const D131_STILL_HARD = [
 for (const [fab, real] of [['No problem — ACME was archived.', 'No company named Ulaanbaatar — North Depot was archived.'], ['Not to worry — ACME was archived.', 'Nothing at Ulaanbaatar — South Hub was deleted.']]) {
   C('D131.idiomResidualClosed.' + JSON.stringify(fab.slice(0, 34)), 'CONTRACT',
     'CLOSED by R-IDIOM (v92-differential): fabrication caught, paired real name survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
+}
+for (const [fab, real] of [['Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.']]) {
+  C('D131.nameInitialResidualClosed.' + JSON.stringify(fab.slice(0, 34)), 'CONTRACT',
+    'CLOSED by run30/D170: a negator that only OPENS a proper name no longer disarms the clause, so the fabrication is caught; the paired real name still survives because a genuine negator that is not name-initial is still found by the continuing scan',
     () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
 }
 for (const [fab, real] of D131_STILL_HARD) {

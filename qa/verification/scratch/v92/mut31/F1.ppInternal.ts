@@ -5591,7 +5591,7 @@ serve(async (req) => {
           for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
             const nameInternal = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(c.slice(mm.index + mm[0].length)) && !/\bnor\b/.test(c);
             const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && mm.index === c.search(/\S/);
-            const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index));
+            const ppInternal = false;
             if (nameInternal || titleHead || ppInternal) continue;
             n = mm.index;
             break;

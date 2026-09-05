@@ -12868,3 +12868,77 @@ truth loss, not a deploy blocker. P3.
 STATUS: NOT APPLIED. Verifier #30 attempt 2 is running against the untouched candidate 9b73e68. The
 fix is applied only if and when #30 returns FAIL, per the founder's fix-on-FAIL rule; applying it
 sooner would invalidate a running independent verification and burn scarce provider capacity.
+
+## 92. VERIFIER #30 FAIL CLOSED — the five v92-differential regression classes R1-R5
+
+Verifier #30 (attempt 2, after attempt 1 was cut short by provider capacity) returned **FAIL** on
+candidate 9b73e68 / index.ts da5fa341: `EDGE STATUS = NOT DEPLOYMENT READY`. It confirmed 0 truth
+regressions, 224 truthful answers v92 destroys that the candidate delivers, matcher 39/39 with 19
+improvements, the D16/D25/D27/D40 production shapes closed, the 8 campaign fixes mutation-proven and
+v92_parity_contract non-vacuous, and rollback c9dfab5b exact. It REFUTED ledger #90's "0 fabrication
+regressions": that number was a property of the corpus it was tuned against. On an independently
+built corpus the candidate shipped 28 fabrication shapes deployed v92 corrects, all reaching the
+founder end-to-end on an ungrounded turn.
+
+ROOT CAUSE, one sentence: completionIsNegated took the FIRST NEGATED_CLAUSE match unconditionally,
+so any negator token that negates nothing — because it opens a proper name, heads a title, or sits
+in a prepositional phrase — disarmed the whole clause; and an adverbial interposed between auxiliary
+and participle was cut apart by the clause splitter so no clause carried a whole completion.
+
+FIXES SHIPPED (5, each mutation-proven load-bearing, 5/5):
+- F1.nameInternal — a Title-Case negator followed by a Title-Case token opens a NAME, not a negation
+  ("No Limits Inc", "Nothing Bundt Cakes", "Never Summer Industries", "Nothing But Nets Foundation").
+  A lowercase "nor" anywhere means it is a genuine neither/nor negation instead.
+- F1.titleHead — clause-initial "Pending"/"Awaiting" heads a titled subject ("Pending review of the
+  contract was completed").
+- F1.ppInternal — the negator sits in a prepositional phrase ("The company with no active tasks was
+  archived", "Since no objections were raised the goal was archived").
+- F2.idiomLexicon — the R-IDIOM reassurance strip widened: the observed prefixes, an optional "at
+  all", a tight dash as well as a spaced one, and a + quantifier so stacked reassurances strip together.
+- F3.auxGap (R-AUXGAP) — a whole-summary arm for an adverbial interposed between auxiliary and
+  participle, guarded by !NEGATED_CLAUSE on the whole summary. Uses COMPLETION_PARTICIPLE itself,
+  never a private copy: D100 was exactly a second copy drifting from the first.
+The scan CONTINUES past every skipped occurrence, so a real negator later in the same clause still
+disarms it ("Nothing Bundt Cakes was not archived" is preserved).
+
+FIX BUILT AND REJECTED — a dash before a CAPITAL cannot be a clause boundary. Splitting there closes
+R2/R3 cleanly, and it also destroys truthful answers whose real names contain a dash: "No company
+named Ulaanbaatar — North Depot was archived." and run19's pinned "No unit at Erdenet — Copper Works
+was archived." Casing cannot separate a filler boundary from the inside of a name, which is exactly
+what run18/run19 documented. The splitter was left alone and R2/R3 closed lexically instead. Measured
+after reverting: 0 false positives on run17/D128's 24-case dash-and-conjunction name set.
+
+FIX BUILT AND DROPPED — the first version of the idiom widening closed nothing that the dash split
+did not already close (mutation re-opened 0/1). Once the dash split was reverted it became
+load-bearing (re-opens 5/5) and shipped. Only load-bearing fixes ship.
+
+RESIDUALS RE-PINNED CLOSED, each with its paired real name proven still surviving: run18
+D131.irreducibleResidual "but" member, run18 D131.disclosedResidual (negator-initial names, which was
+never an acceptable limit — deployed v92 corrected all four), run19 D131 same shape, run28 D116
+negatorInitialName. The "dash" member of D131_IRREDUCIBLE remains open for the reason above.
+
+VERIFIER'S P3 FINDINGS: V30-F2 fixed — run28 resolved ../../../supabase from qa/scenarios-runner,
+two levels too many, so it only worked from the repo root; corrected and verified from two working
+directories. V30-F3 acknowledged — ledger #90's counts were wrong; measured now at 82 commits and 757
+files changed since c9dfab5b, and the identifier delta is left for the next verifier to re-derive
+rather than restated from a number that was already wrong once.
+
+PROMOTED PERMANENT SUITE: qa/scenarios-runner/v92_open_regression_contract.mjs (28/0), from verifier
+#30's own artifact. Its CONTRACT 5 was NARROWED from a flat pinned identifier sequence over the whole
+belt block to TOP-LEVEL declarations only, because its own comment states the hazard is "a new
+top-level declaration" and it already whitelisted locals inside completionIsNegated. Two coverage
+assertions now keep that honest: injecting a top-level const must still be detected, and a new local
+inside completionIsNegated must not trip it. A contract that cannot fail is worse than none.
+
+HARNESS: run14/D107's slicing window widened 2000 to 2600. It only has to SPAN the statement so it
+can be sliced; it is not a complexity cap, and run19 widened it once before for the same reason.
+
+EVIDENCE on the new candidate: battery 34 suites / 0 failures (baseline re-measured correctly on the
+pristine candidate first: 33/0 — an earlier "33/0 on the fixed copy" was measured through a pipeline
+whose exit status was always 0, and is retracted); run15 57/0 with the D117 invariant intact;
+v92_parity_contract 46/0; v92_open_regression_contract 28/0; probe 0/26 regressions and 0/16 controls
+destroyed; run17/D128 0/24 false positives; mutation 5/5; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a FRESH independent verifier passes on the NEW exact SHA. #30's
+FAIL stands against 9b73e68 and is not inherited by this candidate; #29 remains historical campaign
+evidence only. Production remains v92; rollback c9dfab5b.

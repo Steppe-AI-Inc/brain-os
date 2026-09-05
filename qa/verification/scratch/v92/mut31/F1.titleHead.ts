@@ -5590,7 +5590,7 @@ serve(async (req) => {
           const scan = new RegExp(NEGATED_CLAUSE.source, 'gi');
           for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
             const nameInternal = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(c.slice(mm.index + mm[0].length)) && !/\bnor\b/.test(c);
-            const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && mm.index === c.search(/\S/);
+            const titleHead = false;
             const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index));
             if (nameInternal || titleHead || ppInternal) continue;
             n = mm.index;

@@ -253,10 +253,20 @@ for (const s of D131_CATCHABLE) {
 // fabrication has no verbal boundary at all, so no lexical rule separates them from the paired
 // real name without a false positive. Verifier #19 measured that; the "proven irreducible"
 // claim is corrected to "residual, and here is exactly which four."
+// run30/D170 (v92 differential): the 'but' member is CLOSED. A negator that merely OPENS a proper
+// name ("Nothing But Nets Foundation") no longer disarms the clause, and the paired real name
+// ("No charity like Nothing But Nets was archived.") still survives because a genuine negator that
+// is NOT name-initial is still found by the continuing scan. Only the 'dash' member remains, and it
+// remains for the reason originally given: a dash before a capital is indistinguishable from the
+// inside of a real name, so no boundary rule separates it without a false positive.
 const D131_IRREDUCIBLE = [
-  ['but', 'Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.'],
   ['dash', 'Not a single task moved — Bob Smith was removed.', 'No site at Darkhan — Steel Yard was deleted.'],
 ];
+for (const [fab, real] of [['Nothing But Nets Foundation was deleted.', 'No charity like Nothing But Nets was archived.']]) {
+  C(`D131.nameInitialResidualClosed.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
+    'CLOSED by run30/D170: a negator that only opens a proper name no longer negates, the fabrication is caught, and the paired real name still survives',
+    () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
+}
 for (const [tok, fab, real] of D131_IRREDUCIBLE) {
   C(`D131.irreducibleResidual.${JSON.stringify(fab.slice(0, 40))}`, 'CONTRACT',
     `D131 DOCUMENTED RESIDUAL (4 remaining after run19/R9b): this fabrication survives because its only separator is "${tok}" followed by a capitalised/name token, and that boundary DESTROYS the paired real name (proven here). Caught by the primary evidence path, not the belt.`,
@@ -269,10 +279,17 @@ for (const [fab, real] of [['No problem — ACME was archived.', 'No company nam
     'CLOSED by R-IDIOM (v92-differential): the idiom prefix is stripped before the split, the fabrication is caught, and the paired real name still survives',
     () => readsAsCompletion(fab) === true && readsAsCompletion(real) === false);
 }
-C('D131.disclosedResidual.pinnedNotAccepted', 'CONTRACT',
-  'D131 LIMIT, pinned: a name leading with a negator survives (shared with 9535f0b and 52e830f, not a regression)',
+// run30/D170: this LIMIT is closed. Deployed v92 corrected every one of these and the belt shipped
+// them, which made it a v92 fabrication regression and a deploy blocker, not an accepted limit.
+C('D131.disclosedResidual.nowClosed', 'CONTRACT',
+  'CLOSED by run30/D170: a name LEADING with a negator no longer disarms the belt (this was a fabrication regression against deployed v92)',
   () => ['Nothing Bundt Cakes was archived.', 'No Limits Inc was deleted.', 'Never Say Never LLC has been archived.',
-    'None The Wiser Ltd was archived.'].every((s) => readsAsCompletion(s) === false));
+    'None The Wiser Ltd was archived.'].every((s) => readsAsCompletion(s) === true));
+C('D131.disclosedResidual.pairedRealNamesSurvive', 'CONTRACT',
+  'closing the negator-initial name class must not cost a single truthful negative about the same names',
+  () => ['Nothing Bundt Cakes was not archived.', 'No company named No Limits Inc was deleted.',
+    'I found no record that Never Say Never LLC has been archived.', 'Nothing was archived for None The Wiser Ltd.',
+    'No charity like Nothing But Nets was archived.'].every((s) => readsAsCompletion(s) === false));
 
 // =====================================================================================
 // D132 (P2) — DEFECT. A model-authored actionType/entityType that is an Object.prototype
