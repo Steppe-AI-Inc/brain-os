@@ -2,7 +2,7 @@
  "campaign": 95,
  "verifier": 35,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, sixth round)",
+ "status": "RUNNING - attempt 2 (attempt 1 BLOCKED - PROVIDER_CAPACITY at 23:44, watchdog auto-resumed 03:52)",
  "closure_commit": "(the commit carrying this file)",
  "index_sha256_prefix": "b1f54b072cc41312",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
@@ -35,5 +35,21 @@
   "DISCLOSED_SHARED_LOSSES": "\"No company our records show was archived.\" (plural subject + bare verb); \"Delta Ltd was activated.\" (EXEC arm aligned to v92 list); both destroyed/shipped by deployed v92 too"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #34 FAIL stands against 567cbd2 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #34 FAIL stands against 567cbd2 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+ "attempts": [
+  {
+   "n": 1,
+   "dispatched": "2026-09-05 23:40:46",
+   "ended": "2026-09-05 23:44:28",
+   "result": "BLOCKED - PROVIDER_CAPACITY (rc=1, log_bytes=66, quota resets 3:50am). NOT a verdict."
+  },
+  {
+   "n": 2,
+   "dispatched": "2026-09-06 03:52:01",
+   "result": null
+  }
+ ],
+ "prepared_while_waiting_NOT_APPLIED": {
+  "fix39": "qa/verification/scratch/v92/fix39.ts - closes 3 gate regressions this session found in the ADOPTED verifier #34 edit: the sentence-bounded AUXGAP context let a negator inside a quoted title, a reassurance idiom, or a prepositional phrase earlier in the SAME sentence disarm the arm. The context now strips those spans first. All gates green on fix39 (battery 34/0, generative 15/0 incl. new P12, v34 58/0, v33 92/1, probe clean, run15 57/0, deno 23). Held until verifier #35 returns; candidate b1f54b07 stays byte-exact."
+ }
 }

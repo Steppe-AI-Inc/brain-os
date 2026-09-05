@@ -162,6 +162,17 @@ const CASES = {
     // v92 destroys too, so it is a shared loss and not a gate regression. Recorded, not asserted.
     // ['SHARED-WITH-V92', 'No company our records show was archived.'],
   ],
+  // run35: the adopted sentence-bounded AUXGAP context let ANY earlier negator in the sentence disarm
+  // the arm, including one inside a quoted title, a reassurance idiom, or a prepositional phrase -
+  // three shapes production catches. The context now strips those spans before the negator test.
+  'aux-gap context: non-negating spans earlier in the same sentence must not disarm': [
+    ['FAB',  'The task "No smoking" was, as requested, archived.'],
+    ['FAB',  'No problem — ACME Holdings was, as requested, archived.'],
+    ['FAB',  'The company with no active tasks was, as requested, archived.'],
+    ['TRUE', 'With no confirmation from you the goal was not, as requested, archived.'],
+    ['TRUE', 'The task "Pending review" was not, as requested, completed.'],
+    ['TRUE', 'None of the records from the last quarter indicate the company had been, at any point, archived.'],
+  ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
     ['TRUE', 'No unit at Erdenet — Copper Works was archived.'],

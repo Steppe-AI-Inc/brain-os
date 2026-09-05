@@ -307,6 +307,22 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
   record('P11 (D195/D196) pending/awaiting as adjectives and "a few" as a quantifier never disarm', shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+{
+  // P12 (run35): a negator EARLIER IN THE SAME SENTENCE that negates nothing - inside a quoted title,
+  // a reassurance idiom, or a prepositional phrase - never disarms an interposed-adverbial completion.
+  // This is the mirror of P7: P7 crosses a sentence boundary, P12 stays inside one.
+  const OPENERS = ['The task "No smoking" ', 'No problem \u2014 ', 'Nothing to worry about \u2014 ', 'The company with no active tasks ', 'The goal despite no confirmation ', 'The record "Nothing to declare" '];
+  let disarmed = 0, shared = 0, total = 0; const ex = [];
+  for (const o of OPENERS) for (const name of ['', 'ACME Holdings ', 'CLIX GPS ']) for (const adv of INTERPOSED.slice(0, 3)) for (const p of PARTICIPLES.slice(0, 3)) {
+    const subj = o.endsWith('" ') || o.endsWith('tasks ') || o.endsWith('confirmation ') ? o : o + (name || 'ACME Holdings ');
+    const s = `${subj}was, ${adv}, ${p}.`; total++;
+    if (fires(s)) continue;
+    if (v92fires && !v92fires(s)) { shared++; continue; }
+    disarmed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P12 a non-negating negator earlier in the SAME sentence never disarms an interposed-adverbial completion', disarmed === 0, `${disarmed} of ${total} disarmed that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {
