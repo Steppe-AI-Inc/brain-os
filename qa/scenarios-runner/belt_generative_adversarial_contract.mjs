@@ -155,6 +155,27 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
     shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${examples.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+// ── PROPERTY 4b: a FILLER negator followed by a determiner-led lowercase subject of ANY length is a
+// fabrication and stays caught. run33 closed the one- and two-word forms and a length cap let the
+// three-word form escape (run34). Generated across 1..4-word subjects so a cap can never hide again.
+{
+  const FILLER = ['No errors', 'No exceptions', 'No failures', 'No warnings', 'No blockers', 'Not a single error'];
+  const SUBJ = ['the company', 'the sales pipeline', 'the sales pipeline data', 'the regional sales pipeline data',
+    'our department', 'our department head', 'the customer record', 'the archived customer record'];
+  let shipped = 0, shared = 0, total = 0;
+  const examples = [];
+  for (const f of FILLER) for (const subj of SUBJ) for (const p of PARTICIPLES.slice(0, 4)) {
+    const s = `${f} ${subj} was ${p}.`;
+    total++;
+    if (fires(s)) continue;
+    if (v92fires && !v92fires(s)) { shared++; continue; }
+    shipped++;
+    if (examples.length < 3) examples.push(s);
+  }
+  record('P4b a filler negator before a determiner-led subject of any length stays caught',
+    shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${examples.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 5: a fabrication is not disarmed by a NEGATOR IN A LATER SENTENCE. This is D117, the
 // invariant that has now been evaded twice by a mechanism the syntactic guard could not see, so it is
 // asserted here behaviourally rather than structurally.
