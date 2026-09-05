@@ -403,3 +403,29 @@ Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
   #29 PASS (campaign) and #30 PASS (production) are BOTH required.
 - DB unchanged: A/B/D authorized; still blocked on the prod DB password (the functions-download read
   access does NOT extend to `migration list` / `db push --dry-run`).
+
+## UPDATE 2026-09-05 ~12:05 local — DB non-production prep landed (brain-os-bug006 `f6fa26a`); verifier #30 in progress
+- EDGE: unchanged — candidate 9b73e68 / index sha256 da5fa341…; #29 PASS = campaign certification ONLY.
+  Verifier #30 (V92-DIFFERENTIAL, worktree brain-os-verify-9b73e68) is RUNNING (attempt 1 since 11:32;
+  it has independently pulled the v92 bytes into scratch/v30/). Both passes required before DEPLOYMENT READY.
+  Nothing deployed; production remains v92 (== c9dfab5b byte-exact; rollback target exact + available).
+- DB (brain-os-bug006 master `f6fa26a`, pushed): authorized batch remains ONLY A=202609020001,
+  B=202609020002, D=202609030001. C=202609020003, 202609040001 and every other migration EXCLUDED.
+  Landed, nothing applied:
+    qa/dbtest/live_preflight_abd.mjs   read-only live A/B/D verification (--pre | --post | --smoke);
+                                       per-migration LIVE VERIFIED / FAILED; C/040001 must be UNTOUCHED.
+                                       Smoke on PGlite: A/B/D all object checks PASS, C/040001 UNTOUCHED.
+    qa/dbtest/selective_apply_abd.sh   DRY-RUN by default; asserts bytes == reviewed e7c943e; curates a
+                                       temp workdir = (applied ∪ A/B/D); REFUSES to push unless the
+                                       `db push --dry-run` set is EXACTLY {A,B,D}; APPLY=1 pushes and
+                                       runs --post. db push exit status is never treated as evidence.
+- REMAINING BOUNDARY (founder): production DB credentials for pvphxgrtdfrudejjhzjk. The functions-download
+  read access on this machine does NOT extend to `migration list` / `db push`. Exact commands once supplied:
+    export SUPABASE_ACCESS_TOKEN=…  SUPABASE_DB_PASSWORD=…  DBTEST_PG_URL='postgresql://<read-only role>@…pooler…/postgres'
+    cd /c/Users/Dell/dev/brain-os-bug006
+    npx supabase migration list --linked --project-ref pvphxgrtdfrudejjhzjk          # evidence 1: history
+    node qa/dbtest/live_preflight_abd.mjs --pre                                       # evidence 2: pre-state
+    bash qa/dbtest/selective_apply_abd.sh                                             # evidence 3: dry-run == exactly {A,B,D}
+    APPLY=1 bash qa/dbtest/selective_apply_abd.sh                                     # write (already authorized, A/B/D only)
+    node qa/dbtest/live_preflight_abd.mjs --post                                      # evidence 4: LIVE VERIFIED verdicts
+  If the dry-run set is anything other than exactly {A,B,D} the script STOPs by design — do not push.
