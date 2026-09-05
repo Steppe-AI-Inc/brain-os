@@ -13255,3 +13255,70 @@ disclosed pair); #32's 101/0; #30's probe PASS; generative 9/0; hand-written pro
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #34's
 FAIL stands against 567cbd2 and is not inherited. Production remains v92; rollback c9dfab5b.
+
+## 97. VERIFIER #35 FAIL CLOSED — its structural fix adopted over this session's own; the suite made honest
+
+Verifier #35 returned **FAIL** on candidate 0f96ff9 / index.ts b1f54b07, after an attempt cut short by
+provider capacity and auto-resumed by the watchdog. Six behavioural classes, one suite-integrity
+defect, and a PREPARED FIX of its own. It confirmed everything it re-derived, including that
+verifier #34's adopted edits were load-bearing (15/16) and that the run30 R-IDIOM lexicon widening is
+now DEAD CODE (0/3 re-open under revert) — which the "only load-bearing fixes ship" rule should have
+caught and did not.
+
+**THIS SESSION FOUND V35-F1 FIRST, AND ITS FIX WAS THE WEAKER ONE.** While #35 ran, this session's own
+adversarial pass found three gate regressions in verifier #34's sentence-bounded AUXGAP context: a
+negator inside a quoted title, a reassurance idiom, or a prepositional phrase earlier in the same
+sentence disarmed the arm. It built fix39, which STRIPPED those three span kinds from the context.
+Verifier #35 found the same class (21/23 ship) and fixed it STRUCTURALLY: the separate AUXGAP arm is
+REMOVED, and the interposed adverbial is COLLAPSED on the whole summary before the clause split ("X
+was, as requested, archived" becomes "X was archived"), so the ordinary clause pipeline with every
+scope rule decides it. Its fix closes all seven positions its F1 enumerated, plus five more classes;
+this session's fix closed three positions of one class and none of the other five. Its fix is adopted
+verbatim; this session's fix39 is superseded and not shipped.
+
+THE OTHER FIVE, all closed by its splices:
+- **F2** — "No Limits Inc archived successfully.": nameInternal required an auxiliary, so BUG-002's own
+  second form was unguarded (11/11). The subject run now also accepts "<participle> successfully".
+- **F3** — a period INSIDE a token ("Trade-book.ai", a real workspace name; "node.js") was a sentence
+  boundary, cutting the negator off from its clause (4/4 destroyed). A period is a boundary only
+  before whitespace or end of text, in the clause splitter, the CONFIRMED-arm split, and the status
+  guard's span.
+- **F4** — the 160-character cap on the AUXGAP context, on "had been" which v92 never covers (2/2).
+  Closed by the removal of that arm.
+- **F5** — the Confirmed-status guard accepted a PRONOUN-subject state verb and crossed ";" (4/4).
+  Both excluded; an apposition or a coordinated NAME still crosses.
+- **F7** (pre-existing) — "The company that had no open tasks was archived.": a negator inside a
+  RELATIVE CLAUSE of the subject modifies the subject, like ppInternal's prepositional phrase (6/6).
+  Symmetric with the existing rule that a relativizer BETWEEN negator and verb keeps scope.
+
+MUTATION PROOF, through the verifier's own builder: its build script carries a FIX39_SKIP switch that
+omits one splice at a time. Run in a temp tree seeded with the pristine 0f96ff9 bytes: the full build
+is BYTE-IDENTICAL to the applied candidate, and each of the seven splices (A1 A2 B C1 C2 D E) is
+proven in the direction it carries — 7/7. Three first-draft expectations listed truths an OLDER rule
+already protected and were corrected, not hidden: A2, D and E are coverage-only; A1 REMOVES an arm,
+so its effect is that multi-word modal phrases ("could in fact have been", "may well have been") stop
+being destroyed, which the old one-token lookbehind missed.
+
+**V35-F6, THE SUITE.** belt_generative_adversarial_contract's truth frames used "was <participle>",
+which deployed v92 DESTROYS, so 86% of their rows were excluded as shared and those properties could
+not fail on them — green under all six of verifier #34's edits and all five run30/31 fixes. The frames
+are rewritten in forms v92 PRESERVES (is being / had been / has not been / wasn't), crossed with every
+slot, and two properties added: P13 (those forms survive every name and link — fails on 7914f2b and
+6774b52 via the progressive-arm defect, passes now) and P14 (the interposed-adverbial fabrication
+crossed with every scope-excused negator position — fails on 567cbd2 and 0f96ff9, passes now). P2b
+still fails on 6774b52. Verifier #35's own F6 check, which inspects this file's frames directly, now
+passes. Verifier #33's harness anchor for its D187 mutant, which the C1 splice moved, is re-anchored on
+the new splitter text.
+
+STILL OPEN, unchanged: the D188 minimal pair. Verifier #35 confirmed the refusal reasonable and named
+one zero-cost option (an intransitive-verb list) — which is a closed list over an open class, the
+error this campaign keeps recording, so it is not taken.
+
+EVIDENCE on the new candidate a01c8e1a: battery 34 suites / 0 failures (29 substantive, 5 SUPERSEDED,
+1 helper); verifier #35's own gate 56/0 (was 49/7); #34's 58/0; #33's 92/1 (the disclosed pair);
+#32's 101/0; #30's probe PASS; generative 17/0; hand-written probe 0 mismatches / 109; run15 57/0
+with D117 intact; mutation 7/7 through the builder's skip switch with the full build byte-identical to
+the candidate; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #35's
+FAIL stands against 0f96ff9 and is not inherited. Production remains v92; rollback c9dfab5b.

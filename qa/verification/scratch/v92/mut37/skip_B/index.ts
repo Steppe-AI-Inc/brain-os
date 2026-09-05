@@ -5597,7 +5597,7 @@ serve(async (req) => {
           for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
             const after = c.slice(mm.index + mm[0].length);
             const capLead = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(after);
-            const subjectRun = new RegExp("^\\s+(?:[A-Z][\\w&.’'-]*\\s+){0,5}?[A-Z][\\w&.’'-]*\\s+(?:(?:was|were|has|have|had|been)\\b|" + COMPLETION_PARTICIPLE.source.slice(2) + "\\s+successfully\\b)").test(after);
+            const subjectRun = /^\s+(?:[A-Z][\w&.’'-]*\s+){0,5}?[A-Z][\w&.’'-]*\s+(?:was|were|has|have|had|been)\b/.test(after);
             const nameInternal = capLead && subjectRun && !/\bnor\b/.test(c);
             const objectName = capLead && new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\\s+(?:the |that |this |its |our )?$', 'i').test(c.slice(0, mm.index));
             const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && (mm.index === c.search(/\S/) || /["“‘']\s*$/.test(c.slice(0, mm.index)));

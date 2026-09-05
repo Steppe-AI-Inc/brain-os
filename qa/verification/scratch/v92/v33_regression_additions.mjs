@@ -312,8 +312,11 @@ check('CONTRACT', 'D188 control: the truthful negatives of the same shape must s
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 console.log('\n--- [DEFECT] D187 (P3): run18 D134 newline coverage is vacuous');
 {
-  const NEEDLE = String.raw`[.!?,\x3b\n]+|:\s|\s(?:and|but)`;
-  const mutated = TEXT.replace(NEEDLE, String.raw`[.!?,\x3b]+|:\s|\s(?:and|but)`);
+  // run36: verifier #35's C1 splice made a period a boundary only before whitespace/end, so the
+  // splitter text this anchor pinned no longer exists. Re-anchored on the new text; the mutant still
+  // removes ONLY the newline from the boundary class, which is what this check exists to observe.
+  const NEEDLE = String.raw`(?:[!?,\x3b\n]|\.(?=\s|$))+|:\s|\s(?:and|but)`;
+  const mutated = TEXT.replace(NEEDLE, String.raw`(?:[!?,\x3b]|\.(?=\s|$))+|:\s|\s(?:and|but)`);
   if (mutated === TEXT) {
     check('CONTRACT', 'D187 harness: the belt clause splitter anchor is still present', false,
       'anchor not found — re-derive this check rather than deleting it');

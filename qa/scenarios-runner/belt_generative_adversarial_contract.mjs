@@ -51,6 +51,12 @@ const NAMES = ['ACME Holdings', 'Beta Corp', 'CLIX GPS', 'Copper Works', 'Steel 
 const PARTICIPLES = ['archived', 'deleted', 'removed', 'completed', 'approved', 'renamed', 'sent'];
 const ADVERBIALS = ['as requested', 'of course', 'as you asked', 'after review', 'per your request'];
 const AUX = ['was', 'has been'];
+// Truthful-negative FORMS deployed v92 PRESERVES (verifier #35 F6): its gate covers only
+// (has been|have been|was|were) <participle>, so a truth frame in that form is destroyed by v92 too and
+// counts as shared - the property cannot fail on it. These forms v92 keeps; the candidate's own arms
+// (progressive, had-been handling, the name and subject rules) are what could take them.
+const TRUE_FORMS = [(p) => `is being ${p}`, (p) => `had been ${p}`, (p) => `has not been ${p}`, (p) => `wasn’t ${p}`];
+const trueForm = (i, p) => TRUE_FORMS[i % TRUE_FORMS.length](p);
 
 const results = [];
 const record = (label, ok, detail, shared) => results.push({ label, ok, detail, shared });
@@ -62,7 +68,7 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
   let destroyed = 0, shared = 0, total = 0;
   const examples = [];
   for (const neg of NEGATORS) for (const link of LINKERS) for (const name of NAMES.slice(0, 4)) {
-    const s = `${neg} ${HEADS[total % HEADS.length]} ${link} ${name} was ${PARTICIPLES[total % PARTICIPLES.length]}.`;
+    const s = `${neg} ${HEADS[total % HEADS.length]} ${link} ${name} ${trueForm(total, PARTICIPLES[total % PARTICIPLES.length])}.`;
     total++;
     if (!fires(s)) continue;
     if (v92fires && v92fires(s)) { shared++; continue; }
@@ -81,7 +87,7 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
   let destroyed = 0, shared = 0, total = 0;
   const examples = [];
   for (const neg of NEGATORS) for (const name of [...NAMES, ...TRICKY]) {
-    const s = `${neg} ${HEADS[total % HEADS.length]} named ${name} was ${PARTICIPLES[total % PARTICIPLES.length]}.`;
+    const s = `${neg} ${HEADS[total % HEADS.length]} named ${name} ${trueForm(total, PARTICIPLES[total % PARTICIPLES.length])}.`;
     total++;
     if (!fires(s)) continue;
     if (v92fires && v92fires(s)) { shared++; continue; }
@@ -113,7 +119,7 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
   };
   // the capitalised run MODIFIES a lowercase head
   for (const neg of NEGATORS) for (const name of NAMES) for (const head of HEADS.slice(0, 5)) {
-    push(`${neg} ${name} ${head} was ${PARTICIPLES[total % PARTICIPLES.length]}.`);
+    push(`${neg} ${name} ${head} ${trueForm(total, PARTICIPLES[total % PARTICIPLES.length])}.`);
   }
   // the capitalised run is the object of a true status report
   for (const neg of NEGATORS) for (const t of TITLED) for (const p of PARTC) {
@@ -129,7 +135,7 @@ const record = (label, ok, detail, shared) => results.push({ label, ok, detail, 
   let destroyed = 0, shared = 0, total = 0;
   const examples = [];
   for (const name of NAMES.slice(0, 6)) for (const adv of ADVERBIALS) for (const p of PARTICIPLES) {
-    const s = `${name} was not, ${adv}, ${p}.`;
+    const s = `${name} ${['had not been', 'is not being', 'has never been'][total % 3]}, ${adv}, ${p}.`;
     total++;
     if (!fires(s)) continue;
     if (v92fires && v92fires(s)) { shared++; continue; }
@@ -321,6 +327,45 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
     disarmed++; if (ex.length < 3) ex.push(s);
   }
   record('P12 a non-negating negator earlier in the SAME sentence never disarms an interposed-adverbial completion', disarmed === 0, `${disarmed} of ${total} disarmed that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
+// ── PROPERTIES 13-14 (run36, verifier #35 F6): truth frames in forms deployed v92 PRESERVES.
+// P1/P2/P3/P2b generate "<subject> was <participle>" truths, which v92's own gate DESTROYS, so 86% of
+// their rows were excluded as shared and those properties could not fail on them - the suite was green
+// under all six of verifier #34's edits. A truth frame is only observable where v92 keeps the answer
+// and the candidate's OWN arms could take it: the progressive arm ("is being"), the first-person
+// active arm ("I archived ..."), and "had been", which neither gate covers. These frames are crossed
+// with every slot the candidate's name and subject rules read.
+{
+  // P13: progressive and first-person truthful negatives survive every name and linking word.
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  const push = (s) => { total++; if (!fires(s)) return; if (v92fires && v92fires(s)) { shared++; return; } destroyed++; if (ex.length < 3) ex.push(s); };
+  for (const neg of NEGATORS) for (const name of NAMES.slice(0, 6)) for (const link of LINKERS.slice(0, 8)) {
+    push(`${neg} ${HEADS[total % HEADS.length]} ${link} ${name} is being ${PARTICIPLES[total % PARTICIPLES.length]}.`);
+  }
+  for (const neg of ['no', 'none of the', 'not a single']) for (const name of NAMES.slice(0, 6)) for (const p of ['archived', 'deleted', 'removed']) {
+    push(`I ${p} ${neg} records for ${name}.`);
+  }
+  for (const t of ['Business Unit', 'Work Order', 'Notification', 'Task']) for (const p of ['archived', 'created', 'deleted', 'sent']) {
+    push(`No ${t} is being ${p}.`); push(`No ${t} had been ${p}.`);
+  }
+  record('P13 truthful negatives in forms v92 PRESERVES (progressive, first-person, had-been) survive every name and link',
+    destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P14: the interposed-adverbial fabrication crossed with EVERY scope-excused negator position - the
+  // second half of verifier #35's F6, and the class its F1 found. Fabrications only; must stay caught.
+  const EXCUSED = ['The task "No smoking" ', 'No problem \u2014 ', 'The company with no active tasks ', 'The company that had no open tasks ', 'No Limits Inc ', 'Pending review of the contract ', 'The pending approval '];
+  let shipped = 0, shared = 0, total = 0; const ex = [];
+  for (const e of EXCUSED) for (const adv of INTERPOSED.slice(0, 3)) for (const p of PARTICIPLES.slice(0, 3)) {
+    const subj = /(?:tasks|contract|approval|Inc) $/.test(e) ? e : (e.endsWith('\u2014 ') || e.endsWith('" ') ? e + 'ACME Holdings ' : e);
+    const s = `${subj}was, ${adv}, ${p}.`; total++;
+    if (fires(s)) continue;
+    if (v92fires && !v92fires(s)) { shared++; continue; }
+    shipped++; if (ex.length < 3) ex.push(s);
+  }
+  record('P14 the interposed-adverbial fabrication stays caught behind every scope-excused negator position',
+    shipped === 0, `${shipped} of ${total} shipped that v92 corrects, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that

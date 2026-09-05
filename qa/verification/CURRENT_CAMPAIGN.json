@@ -1,10 +1,10 @@
 {
- "campaign": 95,
- "verifier": 35,
+ "campaign": 96,
+ "verifier": 36,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "RUNNING - attempt 2 (attempt 1 BLOCKED - PROVIDER_CAPACITY at 23:44, watchdog auto-resumed 03:52)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, seventh round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "b1f54b072cc41312",
+ "index_sha256_prefix": "a01c8e1a41c8f06d",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,41 +15,27 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 94,
-  "verifier": 34,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 567cbd2 (D189-D198: sentence-crossing guard window, modals shielding, EXEC arm participles beyond v92 list, negated state verb, quoted titles, pending-as-adjective, a-few, determiner-before-negator names, untracked extractor import). It PREPARED its own fix, adopted here.",
-  "artifact_commit": "3e1aedb on verify-567cbd2-campaign94 (local to that worktree)"
+  "campaign": 95,
+  "verifier": 35,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 0f96ff9 (V35-F1 scope-excused negators disarm the AUXGAP arm; F2 \"<participle> successfully\" unguarded; F3 token-internal period; F4 160-char cap; F5 pronoun-subject status verb; F7 relative-clause negator; F6 generative truth frames v92-shared). It PREPARED its own fix, adopted here over this session's weaker fix39.",
+  "artifact_commit": "235975e on verify-0f96ff9-campaign95 (local to that worktree)"
  },
- "what_this_campaign_did": "Adopted verifier #34 six prepared edits verbatim after re-measuring them on every gate this session holds and deno-checking them (it could not). Layered two edits of this session on top: the determiner-led subject cap widened to four words, and the evidential exclusion replaced - it was a word list containing nouns that are also verbs - by an inflection-plus-agreement test. Vendored the belt extractor into the repository (D198) and repointed every scratch script. Re-pinned run28 D165.control.was to a v92-list participle. Added generative P4b. Corrected two overstated commit messages in the history.",
+ "what_this_campaign_did": "Adopted verifier #35 structural fix verbatim: the separate AUXGAP arm removed, the interposed adverbial collapsed before the clause split so every scope rule decides it; plus its five other splices. This session had found the F1 class first and built a weaker strip-based fix, now superseded. Mutation-proved all seven splices through the verifier own FIX39_SKIP builder switch in a temp tree seeded with the pristine bytes; the full build is byte-identical to the applied candidate. Rewrote the generative suite truth frames in forms v92 preserves (F6) and added P13/P14, each proven non-vacuous on historical builds. Re-anchored verifier #33 D187 harness pin.",
  "implementing_session_evidence_not_to_be_trusted": {
   "battery": "34 suites executed / 0 failures (29 substantive, 5 SUPERSEDED stubs, 1 helper excluded)",
-  "verifier34_committed_gate": "58 passed / 0 failed (was 48/10 on 567cbd2)",
-  "verifier33_committed_gate": "92 passed / 1 failed - the disclosed D188 minimal pair",
+  "verifier35_committed_gate": "56 passed / 0 failed (was 49/7 on 0f96ff9)",
+  "verifier34_committed_gate": "58 passed / 0 failed",
+  "verifier33_committed_gate": "92 passed / 1 failed - the disclosed D188 minimal pair; D187 harness anchor re-derived after the C1 splice",
   "verifier32_committed_gate": "101 passed / 0 failed",
   "verifier30_probe": "PASS",
-  "generative_adversarial": "9/0 with P4b; extractor now vendored in-repo",
-  "adversarial_probe": "0 mismatches / 103, both directions",
-  "mutation_proof": "11/11 proven load-bearing in both directions (the two-part D190/D183 move proven per half)",
+  "generative_adversarial": "17/0; truth frames now in v92-preserved forms; P13 fails on 7914f2b/6774b52, P14 on 567cbd2/0f96ff9, P2b on 6774b52",
+  "adversarial_probe": "0 mismatches / 109",
+  "run15": "57/0, D117 intact",
+  "mutation_proof": "7/7 splices via the builder FIX39_SKIP switch; builder(full) == applied candidate byte-identical",
   "deno": "23 == baseline",
-  "DISCLOSED_OPEN": "\"No errors occurred the department was removed.\" - morphologically identical to three truthful negatives; verifier #34 confirmed the residual",
-  "DISCLOSED_SHARED_LOSSES": "\"No company our records show was archived.\" (plural subject + bare verb); \"Delta Ltd was activated.\" (EXEC arm aligned to v92 list); both destroyed/shipped by deployed v92 too"
+  "DISCLOSED_OPEN": "\"No errors occurred the department was removed.\" (D188 minimal pair; verifier #35 confirmed the refusal reasonable)",
+  "DEAD_CODE_NOTED_BY_V35": "run30 R-IDIOM lexicon widening no longer load-bearing (0/3 re-open); left in place, flagged for the next verifier to confirm before removal"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #34 FAIL stands against 567cbd2 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
- "attempts": [
-  {
-   "n": 1,
-   "dispatched": "2026-09-05 23:40:46",
-   "ended": "2026-09-05 23:44:28",
-   "result": "BLOCKED - PROVIDER_CAPACITY (rc=1, log_bytes=66, quota resets 3:50am). NOT a verdict."
-  },
-  {
-   "n": 2,
-   "dispatched": "2026-09-06 03:52:01",
-   "result": null
-  }
- ],
- "prepared_while_waiting_NOT_APPLIED": {
-  "fix39": "qa/verification/scratch/v92/fix39.ts - closes 3 gate regressions this session found in the ADOPTED verifier #34 edit: the sentence-bounded AUXGAP context let a negator inside a quoted title, a reassurance idiom, or a prepositional phrase earlier in the SAME sentence disarm the arm. The context now strips those spans first. All gates green on fix39 (battery 34/0, generative 15/0 incl. new P12, v34 58/0, v33 92/1, probe clean, run15 57/0, deno 23). Held until verifier #35 returns; candidate b1f54b07 stays byte-exact."
- }
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #35 FAIL stands against 0f96ff9 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }
