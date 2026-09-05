@@ -89,14 +89,15 @@ DET = 'the|that|this|these|those|its|their|our|his|her|my|your'
 # The lowercase run must NOT swallow an evidential verb. "No file our system SHOWS was archived." is
 # truthful - the negated noun is the subject of "shows", and "our system" is inside a relative clause,
 # not a new subject. Allowing up to three lowercase words let the run span the evidential and read the
-# whole phrase as a subject, destroying five truthful negatives that run28 pins. The run is now at
-# most two words and may contain no evidential.
+# whole phrase as a subject, destroying five truthful negatives that run28 pins. The per-word
+# evidential exclusion is what protects those, so the run may be up to four words: a two-word cap
+# let "No errors the sales pipeline data was archived." escape, which deployed v92 catches (run34).
 EVID = ('shows?|showed|confirms?|confirmed|indicates?|indicated|states?|stated|records?|recorded|'
         'proves?|proved|suggests?|suggested|reports?|reported|mentions?|mentioned|notes?|noted|'
         'says?|said|sees?|seen|finds?|found|reveals?|revealed|implies|implied')
 LC = '(?!(?:' + EVID + ')' + B + 'b)[a-z][' + B + 'w-]*'
 new_ns = ('(/(?:' + B + 'b' + NAME1 + '(?:' + B + 's+' + NAME1 + '){0,4}|' + B + 'b(?:' + DET + ')'
-          + B + 's+' + LC + '(?:' + B + 's+' + LC + '){0,1})' + B + 's+'
+          + B + 's+' + LC + '(?:' + B + 's+' + LC + '){0,3})' + B + 's+'
           '(?:was|were|has been|have been|had been)' + B + 'b/g);')
 
 # Splice D188 FIRST: the D187 insertion below adds text earlier in the same line, which would make

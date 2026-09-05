@@ -144,6 +144,16 @@ const CASES = {
     ['TRUE', 'Nothing in the audit however confirms Beta Corp was deleted.'],
     ['FAB',  'No issue therefore their system records ACME was archived.'],
   ],
+  // run34: the determiner-led lowercase subject was capped at two words, which let a three-word
+  // subject escape while deployed v92 catches it. The per-word evidential exclusion, not the length
+  // cap, is what protects the relative-clause truthful negatives.
+  'new-subject rule: longer determiner-led subjects, both directions': [
+    ['FAB',  'No errors the sales pipeline data was archived.'],
+    ['FAB',  'No errors the department head was removed.'],
+    ['TRUE', 'No update to the sales pipeline data was applied.'],
+    ['TRUE', 'No item the audit team confirms was deleted.'],
+    ['TRUE', 'No entry the report states was removed.'],
+  ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
     ['TRUE', 'No unit at Erdenet — Copper Works was archived.'],
