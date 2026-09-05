@@ -92,10 +92,19 @@ DET = 'the|that|this|these|those|its|their|our|his|her|my|your'
 # whole phrase as a subject, destroying five truthful negatives that run28 pins. The per-word
 # evidential exclusion is what protects those, so the run may be up to four words: a two-word cap
 # let "No errors the sales pipeline data was archived." escape, which deployed v92 catches (run34).
-EVID = ('shows?|showed|confirms?|confirmed|indicates?|indicated|states?|stated|records?|recorded|'
-        'proves?|proved|suggests?|suggested|reports?|reported|mentions?|mentioned|notes?|noted|'
-        'says?|said|sees?|seen|finds?|found|reveals?|revealed|implies|implied')
-LC = '(?!(?:' + EVID + ')' + B + 'b)[a-z][' + B + 'w-]*'
+# run34: the evidential exclusion was a WORD LIST, and it contained nouns that are also verbs -
+# "record", "report", "note", "state" - so "No errors the customer RECORD was archived." was
+# rejected as a subject and shipped, 48 of 192 in the generative P4b family, while deployed v92 catches
+# every one. Membership of a list is not what distinguishes "the log SHOWS was archived" (a relative
+# clause with a gap) from "the customer RECORD was archived" (a subject). Grammar does: in the relative
+# clause a 3rd-person-singular VERB stands directly before a singular auxiliary with no subject between
+# them, which no noun phrase can do. So a word is treated as an evidential only when it is an inflected
+# verb form (-s or past) AND is immediately followed by was / has been / had been. A plural noun before
+# "were" ("the customer records were archived") is agreeing, not evidential, and stays a subject.
+EVID_INFL = ('shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|'
+             'proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|'
+             'says|said|sees|finds|found|reveals|revealed|implies|implied')
+LC = '(?!(?:' + EVID_INFL + ')' + B + 's+(?:was|has been|had been)' + B + 'b)[a-z][' + B + 'w-]*'
 new_ns = ('(/(?:' + B + 'b' + NAME1 + '(?:' + B + 's+' + NAME1 + '){0,4}|' + B + 'b(?:' + DET + ')'
           + B + 's+' + LC + '(?:' + B + 's+' + LC + '){0,3})' + B + 's+'
           '(?:was|were|has been|have been|had been)' + B + 'b/g);')

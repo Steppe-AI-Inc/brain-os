@@ -153,6 +153,14 @@ const CASES = {
     ['TRUE', 'No update to the sales pipeline data was applied.'],
     ['TRUE', 'No item the audit team confirms was deleted.'],
     ['TRUE', 'No entry the report states was removed.'],
+    ['FAB',  'No errors the customer record was archived.'],
+    ['FAB',  'No errors the customer records were archived.'],
+    // run34: the evidential test is no longer a word list ("record" was in it, so "the customer
+    // record" was rejected as a subject) but an inflection-plus-agreement test: a 3sg or past verb
+    // form directly before a SINGULAR auxiliary is a relative-clause gap. The one shape that costs is a
+    // PLURAL subject with a bare verb - "No company our records SHOW was archived." - which deployed
+    // v92 destroys too, so it is a shared loss and not a gate regression. Recorded, not asserted.
+    // ['SHARED-WITH-V92', 'No company our records show was archived.'],
   ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
