@@ -13322,3 +13322,64 @@ the candidate; deno 23 == baseline.
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #35's
 FAIL stands against 0f96ff9 and is not inherited. Production remains v92; rollback c9dfab5b.
+
+## 98. VERIFIER #36 FAIL CLOSED — its fix adopted, the dead idiom strip removed, this session's fix41 superseded
+
+Verifier #36 returned **FAIL** on candidate f64b280 / index.ts a01c8e1a after a provider-capacity block
+the watchdog rode out. Seven classes, all reproduced end-to-end and ATTRIBUTED by running the same
+shapes on 4476c92 / 9b73e68 / 0f96ff9: three were created by verifier #35's adopted fix, four were
+never looked for by anyone. It prepared its own fix (7 splices, skip-switch builder).
+
+**ITS ROOT-CAUSE FINDING GOVERNS EVERYTHING BELOW.** Every scope-excuse rule in this campaign had been
+justified by "deployed v92 destroys the same shape". That holds only for v92's own aux+participle forms.
+The candidate-only arms — the progressive arm, the CONFIRMED arm, the collapse's extra reach — were never
+measured against v92-PRESERVED truths, and that is where all seven classes lived:
+- **V36-F1** (created by #35's A2) — the collapse bounded its CONTENT at 30 characters where v92 bounds
+  the whole SPAN, 4 characters wider, so "ACME Holdings was, as far as anyone can tell not, archived."
+  was collapsed into a completion. It also noted ledger #97 had stopped reporting #31's V31-F3 pin.
+- **V36-F2** (created by #35's D) — "Confirmed — Archived Media Group; it is still a customer." destroyed.
+- **V36-F3** (run30, missed by five verifiers) — ppInternal excused the negator in "Since no company is
+  being archived, the list is unchanged." while the PROGRESSIVE arm, which v92 lacks, fired.
+- **V36-F4** (run32) — the D181 determiner-led strip treated "No issues the team reported are being
+  archived." as an interjection; it is a negated subject with a reduced relative clause.
+- **V36-F5** (created by #35's C1) — newSubject's name run admitted no period, so "No errors
+  Trade-book.ai was restored." shipped.
+- **V36-F6** (run30) — COMPLETION_PARTICIPLE lacked v92's "confirmed".
+- **V36-F7** (run32/D176) — "Confirmed — Restored Bob Smith is back, and no other person was restored."
+
+THIS SESSION FOUND F1 FIRST, AND WAS WRONG ABOUT THE FIX. While #36 ran, this session's adversarial
+pass found the same class ("was, by nobody in this workspace, archived") and built fix41, which refused
+to collapse any adverbial carrying a negator. Verifier #36's fix instead bounds the collapse to v92's
+exact 30-character window — the production-faithful rule. Measured against its gate, fix41 TRIPS its
+F1 control: refusing every negator-bearing adverbial also lets fabrications INSIDE v92's window ship
+that v92 catches. The three shapes fix41 "rescued" sit inside that window, so v92 destroys them too and
+they were shared losses, not gate regressions. fix41 is superseded; those probe rows are relabelled.
+Its fix is adopted verbatim: the collapse reaches exactly v92's reach; the #35 status-guard
+restrictions are removed and the guard gated on a v92-reachable completion; ppInternal and the D181
+strip excuse a negator only when the clause carries a v92-reachable completion; newSubject's name run
+admits a token-internal period; "confirmed" joins the participle list.
+
+**THE DEAD CODE IS REMOVED.** #35 reported the run30 R-IDIOM lexicon widening dead; #36 found the ENTIRE
+dash-form strip dead ("only D181 is load-bearing"). This session measured it on every gate it holds
+with the strip removed — identical results everywhere — and a durable deadness proof shows re-adding
+it changes 0/17 idiom answers in either direction; the dash-before-lowercase split, newSubject,
+quotedHead and D181 carry every shape it once closed. By the campaign's own rule, it is gone. The
+run18/run19 pins that credit R-IDIOM still pass; their prose is stale and says so here rather than
+being rewritten in five suites.
+
+MUTATION PROOF: #36's own script, run in a temp tree seeded with the pristine f64b280 bytes (the repo's
+index.ts now carries the fix, so its walk-up builder would otherwise double-apply): builder(full) is
+byte-identical to its committed fix, and all seven splices prove load-bearing in the direction each
+carries (A, B2, C1, C2 in the truth direction; B1, D, E in the fabrication direction). #35's seven
+remain proven (ledger #97).
+
+DISCLOSURE #36 ADDED: the index.ts blob has been CRLF since 4de63e4 (run10), so byte-wise every line
+differs from v92's LF blob; a rollback must come from git, not from the CRLF scratch copy. Recorded.
+
+EVIDENCE on the new candidate ba50feff: battery 34 suites / 0 failures; verifier #36's own gate 62/0
+(was 55/7); #35's 56/0; #34's 58/0; #33's 92/1 (the disclosed D188 pair); #32's 101/0; #30's probe PASS;
+generative 18/0; hand-written probe 0 mismatches / 115; run15 57/0 with D117 intact; mutation 7/7 via
+#36's builder; deadness 0/17; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #36's
+FAIL stands against f64b280 and is not inherited. Production remains v92; rollback c9dfab5b (from git).
