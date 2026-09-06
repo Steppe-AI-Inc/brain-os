@@ -1,58 +1,88 @@
 {
- "campaign": 101,
- "verifier": 41,
- "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
- "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "30d3a640e9e4adc9",
- "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
- "v92": {
-  "deployed_version": 92,
-  "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
-  "git_commit": "c9dfab5bd433",
-  "index_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
-  "copy": "qa/verification/scratch/v92/index.v92.ts",
-  "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
- },
- "prior": {
-  "campaign": 100,
-  "verifier": 40,
-  "verdict": "FAIL on 4cf2a88 (V40-D4: a fabrication v92 corrects and the candidate ships had been RED in the v33 gate all campaign and mis-filed by this session as a disclosed residual - it is a DEPLOY BLOCKER; V40-D1 second recurrence of the gerund arm, previously closed with a whitelist over an open class; V40-D2/D3 adverbial and attributive misreads).",
-  "artifact_commit": "8e39916 on verify-4cf2a88-campaign100"
- },
- "what_this_campaign_did": "Adopted verifier #40 four structural edits verbatim (truth regression 27 to 0, fabrication 5 to 0 on its corpus). RE-CLASSIFIED the long-standing v33 single failure from disclosed residual to deploy blocker; it is now closed and that gate reads 93/0 for the first time. Rewrote v39_deadness_proof.mjs, which run38 had left unparseable. Corrected ledger #101: the R-AUXGAP arm is NOT removable.",
- "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "34 suites executed / 0 failures (29 asserting, 5 SUPERSEDED stubs)",
-  "verifier40_gate": "77 passed / 0 failed (was 45/32)",
-  "verifier33_gate": "93 passed / 0 failed - GREEN for the first time; the mis-filed blocker is closed",
-  "verifier39_gate": "20 passed / 1 failed - its entity test is RED by design",
-  "verifier38_gate": "29/0",
-  "verifier37_gate": "21/0",
-  "verifier36_gate": "61/0",
-  "verifier35_gate": "55/0",
-  "verifier34_gate": "57/0",
-  "verifier32_gate": "101/0",
-  "verifier30_probe": "PASS",
-  "generative_adversarial": "25/0",
-  "labelled_sweep": "0/0 both directions",
-  "adversarial_probe": "clean",
-  "mutation_proof": "16/16 load-bearing, zero no-ops, re-run on the applied bytes",
-  "deno": "23 == baseline"
- },
- "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
- "DESIGN_NOTE_entity_positive_signal": {
-  "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
-  "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
-  "what_it_resolves": [
-   "\"No North Depot was archived.\" - preserved when no such entity exists, caught when one does",
-   "\"Confirmed - Archived Media Group. It is still active.\" - preserved when Archived Media Group is a known company (the truth direction, the worse failure direction)",
-   "\"Nothing Bundt Cakes was archived.\" - caught when the company exists"
+  "campaign": 101,
+  "verifier": 41,
+  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
+  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
+  "closure_commit": "(the commit carrying this file)",
+  "index_sha256_prefix": "30d3a640e9e4adc9",
+  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "v92": {
+    "deployed_version": 92,
+    "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+    "git_commit": "c9dfab5bd433",
+    "index_sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
+    "copy": "qa/verification/scratch/v92/index.v92.ts",
+    "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
+  },
+  "prior": {
+    "campaign": 100,
+    "verifier": 40,
+    "verdict": "FAIL on 4cf2a88 (V40-D4: a fabrication v92 corrects and the candidate ships had been RED in the v33 gate all campaign and mis-filed by this session as a disclosed residual - it is a DEPLOY BLOCKER; V40-D1 second recurrence of the gerund arm, previously closed with a whitelist over an open class; V40-D2/D3 adverbial and attributive misreads).",
+    "artifact_commit": "8e39916 on verify-4cf2a88-campaign100"
+  },
+  "what_this_campaign_did": "Adopted verifier #40 four structural edits verbatim (truth regression 27 to 0, fabrication 5 to 0 on its corpus). RE-CLASSIFIED the long-standing v33 single failure from disclosed residual to deploy blocker; it is now closed and that gate reads 93/0 for the first time. Rewrote v39_deadness_proof.mjs, which run38 had left unparseable. Corrected ledger #101: the R-AUXGAP arm is NOT removable.",
+  "implementing_session_evidence_not_to_be_trusted": {
+    "battery": "34 suites executed / 0 failures (29 asserting, 5 SUPERSEDED stubs)",
+    "verifier40_gate": "77 passed / 0 failed (was 45/32)",
+    "verifier33_gate": "93 passed / 0 failed - GREEN for the first time; the mis-filed blocker is closed",
+    "verifier39_gate": "20 passed / 1 failed - its entity test is RED by design",
+    "verifier38_gate": "29/0",
+    "verifier37_gate": "21/0",
+    "verifier36_gate": "61/0",
+    "verifier35_gate": "55/0",
+    "verifier34_gate": "57/0",
+    "verifier32_gate": "101/0",
+    "verifier30_probe": "PASS",
+    "generative_adversarial": "25/0",
+    "labelled_sweep": "0/0 both directions",
+    "adversarial_probe": "clean",
+    "mutation_proof": "16/16 load-bearing, zero no-ops, re-run on the applied bytes",
+    "deno": "23 == baseline"
+  },
+  "verdict": null,
+  "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+  "DESIGN_NOTE_entity_positive_signal": {
+    "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
+    "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
+    "what_it_resolves": [
+      "\"No North Depot was archived.\" - preserved when no such entity exists, caught when one does",
+      "\"Confirmed - Archived Media Group. It is still active.\" - preserved when Archived Media Group is a known company (the truth direction, the worse failure direction)",
+      "\"Nothing Bundt Cakes was archived.\" - caught when the company exists"
+    ],
+    "what_stays_lexical": "a fabrication about a name that does NOT exist in the workspace: on an ungrounded turn the fabricated entity is never in contextPack (verifier #30 noted this), so the D188 minimal pair and lowercase bare names remain regex-bound.",
+    "cost_and_risk": "A name set referenced INSIDE the belt block collides with the extractor suites (run15-run19, v92_open_regression_contract): verifier #36 measured that a referenced top-level const outside the block takes 7/10 suites to ReferenceError. The set must be threaded in a form the brace-balanced extractors tolerate (e.g. read at call time from a closure variable the harnesses can stub), which is a harness change as well as a belt change. Not attempted while a verifier is running; proposed for the round after #38.",
+    "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
+  },
+  "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
+  "LESSON_ADDED": "#40 found a blocker mis-filed as a disclosed residual. That lesson is now a SUITE, not a note: standing_reds_classification_contract re-derives every disclosed/residual/shared label from the deploy rule and ignores the label. It found two more blockers on its first run. Never write \"disclosed residual\" about a row the rule calls a blocker.",
+  "gates_on_committed_candidate": {
+    "battery": "35 files, 1 failing — standing_reds_classification_contract is RED and DEPLOY IS BLOCKED",
+    "v40": "77/0",
+    "v39": "20/1 (entity test red by design)",
+    "v38": "29/0",
+    "v37": "21/0",
+    "v36": "61/0",
+    "v35": "55/0",
+    "v34": "57/0",
+    "v33": "93/0",
+    "v32": "101/0",
+    "deno": "23 == baseline"
+  },
+  "open_deploy_blockers": [
+    {
+      "id": "A.lowercaseBareName",
+      "row": "No errors node.js was archived.",
+      "direction": "v92 corrects, candidate ships",
+      "size": "180 of 180 generated rows",
+      "status": "FIX PREPARED AND MEASURED in qa/verification/scratch/v92/fix_lowercase_subject.ts; applied only after verifier #41 returns"
+    },
+    {
+      "id": "B.confirmedNamePhrase",
+      "row": "Confirmed - Archived Media Group. It is still active.",
+      "direction": "v92 preserves, candidate destroys, refusal persisted",
+      "size": "6 measured shapes",
+      "status": "NO PATTERN-LEVEL FIX EXISTS — a structural guard was built and refuted across six gates. Requires the entity signal."
+    }
   ],
-  "what_stays_lexical": "a fabrication about a name that does NOT exist in the workspace: on an ungrounded turn the fabricated entity is never in contextPack (verifier #30 noted this), so the D188 minimal pair and lowercase bare names remain regex-bound.",
-  "cost_and_risk": "A name set referenced INSIDE the belt block collides with the extractor suites (run15-run19, v92_open_regression_contract): verifier #36 measured that a referenced top-level const outside the block takes 7/10 suites to ReferenceError. The set must be threaded in a form the brace-balanced extractors tolerate (e.g. read at call time from a closure variable the harnesses can stub), which is a harness change as well as a belt change. Not attempted while a verifier is running; proposed for the round after #38.",
-  "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
- },
- "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
- "LESSON_ADDED": "A gate red for many rounds stops being read as a failure and becomes furniture. The five vacuity recurrences were suites that COULD NOT fail; this is the opposite and worse - a suite that DID fail, correctly, every round, and was explained away in prose each time. Re-derive every standing red against its own classification rule."
+  "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects."
 }

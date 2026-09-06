@@ -10,7 +10,7 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 | What | Where |
 |---|---|
 | Current campaign, verifier number, exact SHA, all gate numbers | `qa/verification/CURRENT_CAMPAIGN.json` |
-| Every defect class, every fix, every retraction, entries #90–#102 | `qa/KNOWN_FAILURE_MODES.md` (read #99, #100, #101, #102 first) |
+| Every defect class, every fix, every retraction, entries #90–#103 | `qa/KNOWN_FAILURE_MODES.md` (read #102 and #103 first) |
 | The candidate under test | `supabase/functions/sem-ai-command/index.ts` |
 | Verifier artifacts, one directory per verifier | `qa/verification/scratch/v92/v3*/` |
 | Reusable probes and proofs this session wrote | `qa/verification/scratch/v92/v4*_*.mjs` |
@@ -76,13 +76,20 @@ Every verifier gate lives at `qa/verification/scratch/v92/v3*/v3*_regression_add
 
 ## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`30d3a640`)
 
-battery 34/0 · #40 77/0 (was 45/32) · **#33 93/0 — green for the first time in the campaign** ·
-#39 20/1 (its entity test is RED BY DESIGN) · #38 29/0 · #37 21/0 · #36 61/0 · #35 55/0 ·
-#34 57/0 · #32 101/0 · #30 probe PASS · generative 25/0 · labelled sweep 0/0 ·
-adversarial probe clean · mutation 16/16 with zero no-ops · deno 23.
+battery **35 files, 1 failing** · #40 77/0 · #33 93/0 · #39 20/1 · #38 29/0 · #37 21/0 · #36 61/0 ·
+#35 55/0 · #34 57/0 · #32 101/0 · #30 probe PASS · generative 25/0 · labelled sweep 0/0 · deno 23.
 
-**#39's entity test is the ONLY expected red.** Anything else red is a real failure, not furniture —
-see the sixth lesson in §6.
+**TWO reds are expected, and only these two.** #39's entity test is red by design.
+`standing_reds_classification_contract` is red because **THE CANDIDATE IS NOT DEPLOYABLE** — it
+carries two blockers that the ledger had filed as disclosed residuals since verifier #37:
+
+| Blocker | Direction | State |
+|---|---|---|
+| `"No errors node.js was archived."` | v92 corrects, candidate ships, 180 of 180 rows | Fix prepared and fully measured at `qa/verification/scratch/v92/fix_lowercase_subject.ts`. Apply after #41 returns. |
+| `"Confirmed - Archived Media Group. It is still active."` | v92 preserves, candidate destroys, refusal persisted | **No pattern-level fix exists.** A structural guard was built and refuted across six gates. Needs the entity signal. |
+
+**The structured-evidence work is now ON THE CRITICAL PATH TO DEPLOY**, not an agreed next
+improvement. See ledger #103.
 
 ## 6. THE LESSON THAT COST THE MOST — READ THIS BEFORE WRITING ANY FIX
 
