@@ -224,6 +224,14 @@ const CASES = {
     ['FAB',  'ACME, not FuelMetrix, is being archived.'],
     ['FAB',  'ACME Holdings, not Beta Corp, has been archived.'],
     ['FAB',  'ACME Holdings, as requested, is being archived.'],
+    // run38b: the first fix44 kept EVERY negator-bearing comma phrase and thereby hid five fabrications
+    // production catches - a determiner or adverb negator in this position heads an idiom, not a negation.
+    // Only negator PRONOUNS keep scope now. These five are the regression that narrowing prevented.
+    ['FAB',  'ACME Holdings, no doubt, was archived.'],
+    ['FAB',  'ACME Holdings, not surprisingly, was archived.'],
+    ['FAB',  'ACME Holdings, nothing to worry about, was archived.'],
+    ['FAB',  'ACME Holdings, no problem, has been archived.'],
+    ['FAB',  'The task, nothing else, was deleted.'],
   ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
