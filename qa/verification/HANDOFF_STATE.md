@@ -10,7 +10,7 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 | What | Where |
 |---|---|
 | Current campaign, verifier number, exact SHA, all gate numbers | `qa/verification/CURRENT_CAMPAIGN.json` |
-| Every defect class, every fix, every retraction, entries #90–#107 | `qa/KNOWN_FAILURE_MODES.md` (read #102, #106 and #107 first) |
+| Every defect class, every fix, every retraction, entries #90–#110 | `qa/KNOWN_FAILURE_MODES.md` (read #102, #109 and #110 first) |
 | The candidate under test | `supabase/functions/sem-ai-command/index.ts` |
 | Verifier artifacts, one directory per verifier | `qa/verification/scratch/v92/v3*/` |
 | Reusable probes and proofs this session wrote | `qa/verification/scratch/v92/v4*_*.mjs` |
@@ -20,17 +20,31 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 
 ## 2. STATE RIGHT NOW
 
-- **Candidate:** commit `0007a02abd1855f438ccf9e5c735ac0ea42ae4ff`, `index.ts` sha256
-  `7b9fd136cdc0379b2efeb56e2adf0738df8c980e6b7153cea43900d65405c0cd`. CRLF 5998 / bare LF 0.
-- **Verifier #43 is RUNNING** (worktree `brain-os-verify-0007a02`, watchdog pid 42466). **Re-arm the
-  watcher after compaction** with
-  `bash scripts/factory-runner/watch-verifier-artifacts.sh 43 /c/Users/Dell/dev/brain-os-verify-0007a02 60`
-  — it follows the ARTIFACTS as well as the watchdog, because #41's watchdog died silently with a
+- **Candidate:** commit `b386767a3549ace22421c372dc5623e30e30b419`, `index.ts` sha256
+  `6c5e52b52f1a836670ce043f3a76612a21d27cfc741bff9e6a4bc1e2d410e59d`. CRLF 5998 / bare LF 0.
+- **Verifier #45 is RUNNING** (worktree `brain-os-verify-b386767`, watchdog pid 46229). **Re-arm the
+  watcher after compaction:**
+  `bash scripts/factory-runner/watch-verifier-artifacts.sh 45 /c/Users/Dell/dev/brain-os-verify-b386767 60`
+  It follows the ARTIFACTS as well as the watchdog, because #41's watchdog died silently with a
   0-byte log while the verifier ran to completion. **Silence is not a verdict.**
-- **The entity signal is WIRED** (ledger #107). Verifier #39's `V39-C-ENTITY` test was red by design
-  for four rounds and is now green; v39 reads 21/0 for the first time.
-- **Nothing is deployed. Production is still v92.** No DB write, no migration, no `functions deploy`.
+- **Nothing is deployed. Production is still v92.** No `functions deploy` has happened.
 - **Rollback:** `git c9dfab5bd433`, `index.ts` sha256 `795c20c82301aba1…`. Take it FROM GIT.
+- **PROVENANCE IS CLOSED, byte-direct** (ledger #108). The live function was downloaded from an
+  unrestricted shell and is byte-identical to `c9dfab5bd433`, 321,370 bytes. Re-runnable:
+  `bash scripts/factory-runner/verify-deployed-bytes.sh <git-ref>` — this is also the POST-DEPLOY
+  check. Verifier sessions cannot run `functions download`; if one reports the old
+  "integration-level only" caveat, that is true of its session and not an open item.
+
+### THE TWO THINGS WAITING ON THE FOUNDER
+
+1. **`qa/verification/DB_BATCH_STATE_FINDING.md`** — A, B, C, D and `202609040001` are ALL recorded as
+   applied in production, including the two that were EXPLICITLY EXCLUDED. Migration history only;
+   the schema objects are unverified and need a read-only `DBTEST_PG_URL` or Docker. No write was
+   performed, and the scoped A/B/D authorization can no longer be exercised — the apply set is empty.
+2. **The `let me` deferred offer (V44-D3)** — `"Let me archive the company once you confirm."`
+   v92 preserves all 39 rows; the candidate destroys them. Verifier #44 declined to fix it and routed
+   it to the founder: whether that arm should fire on an offer conditioned on the founder's own
+   confirmation is a product decision. **Do not close it with a regex.**
 
 ## 3. THE STANDING CONTRACT (unchanged, from the founder)
 
@@ -46,7 +60,7 @@ Verdicts are read from the verifier's OUTPUT TEXT, never from an exit code, and 
 `BLOCKED — EXECUTION_MODE` / `BLOCKED — OTHER`.
 
 **Ask `ALLOW_FUNCTIONS_DEPLOY=1?` exactly once, and only after a fresh verifier PASSES on the exact
-bytes.** Thirteen verifiers have failed in a row; do not anticipate a pass.
+bytes.** Sixteen verifiers have failed in a row; do not anticipate a pass.
 
 ---
 
@@ -75,28 +89,19 @@ Every verifier gate lives at `qa/verification/scratch/v92/v3*/v3*_regression_add
 
 ---
 
-## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`7b9fd136`)
+## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`6c5e52b5`)
 
-battery **36 files, 1 failing** · #42 12/1 · #41 22/0 · #40 77/0 · #38 29/0 · #37 21/0 · #36 61/0 ·
-#35 55/0 · #34 57/0 · #33 93/0 · #32 101/0 · generative 25/0 · entity positive contract 5/0 ·
-labelled sweep clean · deno 23 · CRLF 5998 / bare LF 0.
+battery **36 files, 0 failing** · #44 115/3 · #43 40/0 · #42 12/1 · #41 22/0 · #40 77/0 · #39 21/0 ·
+#38 29/0 · #37 21/0 · #36 61/0 · #35 55/0 · #34 57/0 · #33 93/0 · #32 101/0 · deno 23 ·
+CRLF 5998 / bare LF 0.
 
-**FOUR reds are expected, and only these four.**
+**THREE reds are expected, and only these three.** Anything else is a real failure.
 
 | Gate | Reads | Why |
 |---|---|---|
-| `standing_reds_classification_contract` | 1 blocker | the unknown-entity case; it reports the rescue, states the condition, and refuses to rule |
-| `v42` | 12/1 | its D2 test measures the EMPTY-set configuration — a verifier should re-derive it |
-| `v30` | 25/1 | stale inventory pin over belt LOCALS. #41 and #42 both re-derived it: NOT a blocker |
-| `v31` | 33/1 | lexicon assertion at the wrong locus. NOT a blocker; its harness no longer prints a deploy verdict |
-
-**`v39` is now 21/0.** It was 20/1 by design for four rounds. If it is ever 20/1 again, the entity
-signal has been unwired.
-
-**The one open question:** `"Confirmed - Archived Media Group. It is still active."` is rescued when
-the name is in the per-turn context pack and still destroyed when it is not, because absence
-deliberately proves nothing. **A verifier must rule whether that blocks a deploy.** Do not call it a
-residual — ledger #102 is what that word costs.
+| `v44` | 115/3 | the `let me` deferred-offer class — open for the FOUNDER, not a defect |
+| `v42` | 12/1 | its D2 test injects an EMPTY entity set by construction. With the pack POPULATED — the production configuration — 0 of 48 are destroyed |
+| `v30` / `v31` | 25/1, 33/1 | stale inventory pin and a lexicon assertion at the wrong locus. Both re-derived as non-blockers by #41, #42 and #43 |
 
 ## 6. THE LESSON THAT COST THE MOST — READ THIS BEFORE WRITING ANY FIX
 
@@ -110,6 +115,23 @@ because its corpus never generated the shape:
 4. `v92_parity_contract` (911 strings, 7 parentheticals, none in the position that mattered)
 5. the two gerund pins (both rested on the SAME string with the gerund mid-clause, so the arm that
    destroyed 28 ordinary answers was never observed)
+
+**Ninth and tenth, from verifiers #43 and #44, and both are corrections of this session's own record.**
+The suite designated as the ONLY measurement of the entity signal was **4/5 vacuous**: a
+four-parameter assertion helper called with FIVE arguments, so the description string was evaluated
+as the condition. On a build with the signal disabled it still reported 5 passed, 0 failed.
+Then: the record claimed **every** extractor injects the entity seed. Three never did, and passed
+only because none of them contained a row of the shape that throws — while the fuzz contract meant to
+notice used an alphabet that **cannot spell the word "Confirmed"**. That is a COVERAGE HOLE rather
+than a false green, and it is the eighth vacuity.
+
+**And the one that keeps coming back:** every guard on the gerund arm was anchored to a
+CLAUSE-INITIAL gerund, so a single leading adverbial walked past all three — 352 of 352 rows
+destroyed, third recurrence. **The shape that is tested is the shape that is guarded.**
+
+**"World-knowledge-bound" was an assumption carried four rounds and never a measurement.** It was
+refuted by three regex edits closing 672 of 784 rows at zero fabrication cost. Before calling a
+residual irreducible, generate the class and count it.
 
 **Eighth, from verifier #42.** The imminent arms of the in-progress belt had **never been guarded at
 all** — 98 of 140 ordinary guidance sentences destroyed, evenly across both halves, where production
@@ -151,7 +173,7 @@ from a regression (that mistake produced 11,760 false alarms in one sweep here).
 
 ---
 
-## 7. WHAT THE CAMPAIGN DID (verifiers #30–#42, all FAIL)
+## 7. WHAT THE CAMPAIGN DID (verifiers #30–#44, all FAIL)
 
 Each verifier failed the candidate, and from #34 onward each also **prepared its own fix**, which this
 session adopted verbatim after re-measuring and deno-checking it. Highlights only; the ledger has all:
