@@ -87,5 +87,13 @@
     "V41-D1 gerund arm, proper-name object: 1100/1320 -> 0",
     "V41-D2 CONFIRMED arm, determiner-negator object: 4/4 -> 0",
     "Blocker A bare-lowercase new subject (ledger #103): 180/180 -> 0"
-  ]
+  ],
+  "verifier_42_status": {
+    "state": "BLOCKED — PROVIDER_CAPACITY",
+    "attempt": 1,
+    "blocked_at": "2026-09-06T21:53:19+08:00",
+    "provider_reset_stated": "11:50pm",
+    "retry_owner": "verifier-watchdog.sh pid 37243 (detached OS process, sleeping 7121s)",
+    "note": "The watchdog owns the retry, not this session and not the verifier. The pinned SHA makes the retry a RESUMPTION. Do not re-dispatch; that would open a second campaign against the same bytes."
+  }
 }
