@@ -91,9 +91,13 @@
   ],
   "entity_signal_ruling": "#42: belt reads ONE free identifier; EVERY extractor injects it as an EMPTY Set by default, which makes \"an empty set produces byte-identical verdicts\" the structural default of the whole battery rather than a measurement someone must remember to run; one dedicated non-extractor suite injects a populated set and proves the positive signal. Option 2 is NOT authorised: verifier #37 pinned declaration list is not edited.",
   "retraction": "Ledger #104 recorded \"reverting V41-F1 re-opens 144 destroyed truths\". WITHDRAWN. #42 measured 0 of 17,475 in the general space and 8 of 3,200 in an engineered space. V41-F1 was added BESIDE the older object-shaped guard, not as a replacement of it. The fix is not dead and must not be removed on this evidence.",
-  "open_disclosed": [
-    "CONTRACT 5 second coverage assertion is written `mutated === TEXT || ...` and would pass vacuously if its anchor `let n = -1;` disappeared. Make it fail-loud like the first.",
-    "Provenance is INTEGRATION-LEVEL, not byte-direct: verifier sessions cannot run `supabase functions download`. Close with one download from an unrestricted shell before any deploy is called done."
-  ],
-  "entity_signal_state": "WIRED. Belt reads one free identifier `knownEntityNames`. 21 harnesses inject an EMPTY Set by default (13 threaded into the belt-build call, 11 via a process-level default because they build at several sites), so \"an empty set produces byte-identical verdicts\" is the structural default of the battery. qa/scenarios-runner/entity_signal_positive_contract.mjs is the ONE suite that populates the set and proves the positive direction; it leads with its own non-vacuity check."
+  "open_disclosed": [],
+  "entity_signal_state": "WIRED. Belt reads one free identifier `knownEntityNames`. 21 harnesses inject an EMPTY Set by default (13 threaded into the belt-build call, 11 via a process-level default because they build at several sites), so \"an empty set produces byte-identical verdicts\" is the structural default of the battery. qa/scenarios-runner/entity_signal_positive_contract.mjs is the ONE suite that populates the set and proves the positive direction; it leads with its own non-vacuity check.",
+  "provenance": {
+    "state": "BYTE-DIRECT, CLOSED 2026-09-07",
+    "evidence": "live download from pvphxgrtdfrudejjhzjk == git c9dfab5bd433, sha256 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc, 321370 bytes, byte-identical",
+    "reference_copy": "qa/verification/scratch/v92/index.v92.ts is LF-normalised identical to the deployed source; the v92 gate literal is byte-identical (54b678adb350384a)",
+    "tool": "scripts/factory-runner/verify-deployed-bytes.sh <git-ref> — also the post-deploy check",
+    "note": "Supersedes every \"integration-level, not byte-direct\" caveat in verifier reports #41 and #42 and in the promotion notes."
+  }
 }

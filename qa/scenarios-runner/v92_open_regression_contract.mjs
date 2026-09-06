@@ -296,10 +296,17 @@ const topLevelDecls = (src) => {
 {
   // COVERAGE, the other direction: a new LOCAL inside completionIsNegated must NOT trip the contract,
   // because the suites do not drop it. Without this, the contract silently forbids safe changes.
+  // FAIL-LOUD, per verifier #42. This was written `mutated === TEXT || …`, so if the anchor
+  // `let n = -1;` ever disappeared the assertion would PASS WITHOUT TESTING ANYTHING — the exact
+  // shape of the failure this campaign is named after, sitting inside a coverage check whose whole
+  // job is to prevent it. Its sibling above already requires `mutated !== TEXT`; this one now does
+  // too, so a moved anchor is reported as a broken harness instead of a green tick.
   const mutated = TEXT.replace('let n = -1;', 'let n = -1;\n          const nyLocal = 1;');
-  check('CONTRACT', 'COVERAGE: a new LOCAL inside completionIsNegated does not trip the contract',
-    mutated === TEXT || topLevelDecls(mutated).join(',') === topLevelDecls(TEXT).join(','),
-    'a function-local declaration changed the top-level list — the narrowing is not working');
+  check('CONTRACT', 'COVERAGE: a new LOCAL inside completionIsNegated does not trip the contract (non-vacuous)',
+    mutated !== TEXT && topLevelDecls(mutated).join(',') === topLevelDecls(TEXT).join(','),
+    mutated === TEXT
+      ? 'the anchor `let n = -1;` is gone — RE-ANCHOR this check, do not delete it and do not let it pass'
+      : 'a function-local declaration changed the top-level list — the narrowing is not working');
 }
 
 // ── CONTRACT 6: no whole-span lookaround in the belt (run15/D117) — a negator in a LATER sentence

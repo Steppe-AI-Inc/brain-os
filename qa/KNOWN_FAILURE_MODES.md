@@ -14007,3 +14007,46 @@ EVIDENCE on the new candidate `7b9fd136`: battery **36 files** (the new positive
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA.
 Production remains v92; rollback c9dfab5b from git.
+
+## 108. THE PROVENANCE GAP IS CLOSED — deployed v92 is byte-identical to git c9dfab5b, verified by download
+
+For this entire campaign the link "deployed v92 == git `c9dfab5bd433`" rested on the version number,
+the CI entrypoint path and matching timestamps. **Every verifier said so plainly and none could do
+better**: `supabase functions download` and `supabase link` are refused by the verifier sessions'
+command classifier. #41 recorded it as "INTEGRATION-LEVEL + TEMPORAL, not byte-direct"; #42 repeated
+it and said a deploy decision should close it with one download from an unrestricted shell.
+
+**Done, and the claim was right.** The live source was downloaded from project `pvphxgrtdfrudejjhzjk`
+and compared:
+
+```
+live  795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc  (321,370 bytes)
+git   795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc  (c9dfab5bd433, 321,370 bytes)
+RESULT: BYTE-IDENTICAL
+```
+
+Also confirmed against the real deployed bytes, not against another copy of the claim:
+* `qa/verification/scratch/v92/index.v92.ts` — the reference every gate measures against — is
+  **LF-normalised identical** to the downloaded source. The campaign has not been measuring against
+  a drifted copy.
+* `PAST_COMPLETION_CLAIM_PATTERN`, the ONLY completion gate v92 has, is **byte-identical** between
+  the deployed source and that reference (literal sha256
+  `54b678adb350384a8d856bf778fdcba46e89cf5d6bf9bdb78f5ad697d911db6e`). Every differential number in
+  this ledger was computed against production's actual gate.
+
+**KEPT AS A SCRIPT, NOT AS AN ANECDOTE.** `scripts/factory-runner/verify-deployed-bytes.sh <git-ref>`
+downloads the live function and compares it to any ref, reporting BYTE-IDENTICAL, identical after LF
+normalisation (the live bundle is built from a LF tree; the working tree is CRLF), or DIFFERENT with
+the first differing lines. **It is also the post-deploy check**: the standing rule is that a deploy
+is not done until the deployed bytes are re-downloaded and hashed against the certified bytes, never
+trusted from the deploy command's own exit status. That rule now has a tool.
+
+**WHAT THIS DOES AND DOES NOT SETTLE.** It settles the source-provenance question completely: what is
+running is that commit. It does not make the candidate deployable, does not close the entity-signal
+ruling, and is not live behavioural evidence — no chat turn has been exercised against production in
+this campaign, and the deploy question still needs the founder.
+
+Also fixed this round, per #42's disclosure: CONTRACT 5's second coverage assertion was written
+`mutated === TEXT || …` and would have **passed vacuously** if its anchor `let n = -1;` ever moved —
+the campaign's defining failure mode sitting inside a coverage check whose job is to prevent it. It
+now requires `mutated !== TEXT` like its sibling and reports a moved anchor as a broken harness.
