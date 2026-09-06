@@ -1,0 +1,66 @@
+PREFLIGHT: EXECUTION_READY *(recorded at the start; all three checks passed)*
+
+---
+
+# VERIFIER #46 — CAMPAIGN #106 FINAL REPORT
+
+```
+CHANGE VERIFIED: candidate e06bebc0 (supabase/functions/sem-ai-command/index.ts) as a
+                 production deploy over deployed v92
+SCENARIOS: 31 executed, 21 passed, 8 failed, 2 blocked
+CANONICAL GRAPH: N/A (no DB mutation in this change — source-only Edge differential)
+UI ↔ DB:         N/A / BLOCKED (see coverage boundary)
+AI ↔ DB:         BLOCKED — cannot be tested live without deploying the candidate, which is forbidden
+DEPENDENCIES:    PASS (deploy surface = exactly 1 file; 0 migrations)
+PERMISSIONS:     N/A (no RLS/auth surface touched)
+RELOAD/PERSISTENCE: FAIL — the V46-D3 false refusal is persisted to work_orders.output
+IDEMPOTENCY:     N/A
+```
+
+## VERDICT: **FAIL** — EDGE STATUS = **NOT DEPLOYMENT READY**
+
+## STEP 1 — provenance, stated at its real strength
+
+**LIVE, my own `supabase functions list`:** `sem-ai-command` · `ACTIVE` · **version 92** · `ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475` · `updated_at 1788239725518`. Matches the record.
+
+**CONFIRMED that deployed v92 == git `c9dfab5bd433` (blob sha256 `795c20c8…`)** — but the link is **INTEGRATION-LEVEL, not byte-direct**, and I will not overstate it. `functions download` is refused by this session (expected, ledger #108) and `ezbr_sha256` is a bundle hash I cannot recompute from source. What I proved byte-directly myself: the committed download artifact (tracked at HEAD, commit `24bfccf`) and git `c9dfab5bd433` are content-identical (LF-normalised, both `795c20c8…`).
+
+## FOUND
+
+**Two P1 deploy blockers, both prepared-fixed, neither applied.**
+
+**V46-D3** — the performance guard adopted from #45 (`if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c)) return false;`) destroys **9 truthful refusals v92 preserves**. Its premise is false: `readsAsCompletion` has a second arm, `EXECUTION_IN_PROGRESS`, whose gerunds (`processing`, `executing`, `archiving`…) appear in *neither* constant the guard tests — so negation is never detected for that arm at all. `"Not executing the plan without your approval."` becomes `"I can't actually do that from chat."`, and it is persisted. **A true refusal replaced by a false one.** I found one row (`"No longer executing the plan."`) beyond the eight on record.
+
+**V46-D7** — the ordinal path takes `ordN` from the *first* notation but strips *every* notation before the ordinal-only test, so a reply naming two different options binds one anyway and arms `archiveCompanyIds`. `"option 1, option 2"` → binds 1. `"#2 the first one"` → binds 2. v92 dead-ends on all four. Re-checked with plain labels to rule out a substring artifact in my own first probe. This violates the function's own comment at `index.ts:470`.
+
+**And the instrument the campaign steers by was wrong twice.** The launch brief asked me to find the next instance of *"a fix measured against the corpus that was already green"*. There were two:
+- **V46-D2** — `v46_runtime_probe.mjs`, the cited evidence for the adopted guard, compares two **byte-identical** files (both `d0de7e7e…`, 477,823 bytes). Its "1.24–1.44×" and "0 verdict changes of 9" measure nothing. Real benefit: ~1.16×, at a cost of 9 truthful sentences.
+- **V46-D8** — every differential this campaign has modelled v92 as *one* regex. v92 has **two** prose arms and gates the past one on `!claimsFutureActionWithNoPlan`; the candidate carries the same gate. The conditioned-offer class is therefore **28, not 35** — seven rows are v92 parity. **My own first-pass harness made this mistake too**, and I corrected it rather than shipping the number.
+
+**The runtime question is settled: both prior numbers were right about different inputs.** Ordinary prose is **linear** (e = 0.97, 3.20 ms at 33 KB) — the implementing session is right. One unsplittable clause carrying skipped negators is **cubic** (e = 2.97, 509 ms at 8 KB, 34.9 s at 33 KB) — #45's order of magnitude is right. v92 is flat (0.22 ms). One skipped negator suffices; `max_tokens: 8192` with no length cap makes it reachable; two call sites double it.
+
+## WHAT HELD (re-derived, not restated)
+
+0 fabrication regressions in every section of a 682-row corpus, both pack states · negator-name section 0/0 both directions · dash-name class preserved *lexically*, and I confirm the session's refusal to close it by casing is correct · battery **36/36, 1192 assertions**, and I scanned every suite's **output text** as well as its exit code — 0 of 36 need inspection · all 16 gates at exactly their stated states · 20/20 belt mechanisms load-bearing (the six first-pass "no-ops" all yield witnesses under targeted probing) · Q1/Q3/Q5/Q6/Q7 clean · Q4 shows 4476c92 differs from live v92 in four constructs, so #29's certification is **historical only** · CONTRACT 5's narrowing is defensible and still able to fail, but hides one named site (V46-D4) · the four re-pins are honest — each requires the fabrication caught *and* the paired real name surviving in the same predicate · run14/D107's window wasn't just widened to 2600, it has since been **removed entirely** in favour of scanning to the statement's real end, which is the right fix.
+
+New attacks that found nothing, reported so the coverage is on record: none of the function's own canned corrective strings trips its own belt; degenerate input is safe; 21 fresh truthful shapes (counterfactual, subordinate, reported speech, interrogative) — 0 regressions.
+
+## BLOCKERS FOR THE FOUNDER
+
+1. **`deno check` is unavailable in this session** — the expected "deno 23" gate is **BLOCKED, not verified**. I substituted a regex-construction check (129/129 construct, 0 inline modifier groups) and I am labelling it a substitute, not an equivalent.
+2. **Live AI/UI verification of the candidate is impossible by construction** — it would require deploying it, which is forbidden. Every finding here is source-executed against the real extracted predicates, which is the strongest evidence available without a deploy. I am not calling that E2E.
+3. **No pending DB migrations.** Nothing in this run needs one. No `functions deploy`, no `db push`, no migration ran. Only `supabase functions list` (read-only) and `git cat-file`.
+
+## SYNTHETIC DATA
+
+**None created.** This campaign is a source-level Edge differential with no database mutation, so no `QA-VERIFY-*` entities exist to clean up. Every mutation was applied to an in-memory string; `index.ts` was never written.
+
+## COMMIT
+
+`5a136df` on `verify-e06bebc-campaign106` — ledger entry #112-V, promotion note, and `v46_regression_additions.mjs` (35 CONTRACT green / 10 DEFECT red on purpose, exits non-zero, cwd-independent across 5 working directories, `SEM_INDEX_SRC` honoured — pointing it at my prepared D3 fix flips exactly the two D3 assertions and nothing else, 35/10 → 37/8).
+
+---
+
+**FAIL**
+
+`d0de7e7eadfb5e0a5eb34d92a85fe327fb70b7641decbddf84525b9f0ba13733`
