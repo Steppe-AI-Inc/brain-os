@@ -1,0 +1,70 @@
+OK   D106.substringApostrophe               [DEFECT] D106: a disambiguation reply must never bind to an option the founder did not name ("smiths bakery")
+OK   D106.shortNameWins                     [DEFECT] D106: a disambiguation reply must never bind to an option the founder did not name ("founders fund")
+OK   D106.threeWay                          [DEFECT] D106: a disambiguation reply must never bind to an option the founder did not name ("obrien logistics")
+OK   D106.statedCaseStillDeadEnds           [DEFECT] D106: D102's own stated goal — typing the EXACT name of the apostrophe option must select it, not dead-end
+OK   D106.hold.ambiguousStaysNull           [CONTRACT] a genuinely ambiguous reply still resolves to NOTHING rather than to a guess (unobserved: G4.lim.firstNotUnique survived)
+OK   D106.hold.unambiguous                  [CONTRACT] an unambiguous reply still selects the right option
+OK   D106.hold.mentionsBothEntities         [CONTRACT] a reply naming SEVERAL options must resolve to nothing, never to the longest one ("move the tasks from acme to acme holdings")
+OK   D106.hold.replyExcludesTheLongest      [CONTRACT] a reply naming SEVERAL options must resolve to nothing, never to the longest one ("archive acme, leave acme holdings alone")
+OK   D106.hold.mentionsTwoDistinctOptions   [CONTRACT] a reply naming SEVERAL options must resolve to nothing, never to the longest one ("alpha co and beta co")
+OK   D106.hold.tieBreakIgnoresShorterMatches [CONTRACT] the raw tie-break considers only the normalisation-tied labels, so a shorter incidental match cannot spoil it
+OK   D106.hold.unmentionedSameLength        [CONTRACT] an option the reply never mentions must not enter the tie-break by sharing the winner length
+OK   D107.bothArmsShareThePredicate         [CONTRACT] D107: BOTH drift arms must call readsAsCompletion(), not a private copy of the pattern list
+OK   D107.predicateCoversAllFour            [CONTRACT] D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION)
+OK   D108.replay.assertionLabelDegrades     [CONTRACT] D108: a stored assertion-shaped label must NOT be replayed into founder prose
+OK   D108.replay.typedFallbackDegrades      [CONTRACT] D108: a numbered typed fallback (which names nothing checkable) must degrade to a neutral acknowledgement
+OK   D108.replay.realNameIsQuotedAsACHOICE  [CONTRACT] D108: a real name must still be replayed, framed as the CHOICE the founder made, not as a completion
+OK   D108.replay.neverDegradesEverything    [CONTRACT] D108: the degradation must not swallow every replay — the founder has to see which option was taken
+OK   D112.negatedArchive                    [DEFECT] D112: truthful answer "Confirmed — the company is not archived." must not be destroyed by the completion belt
+OK   D112.negatedComplete                   [DEFECT] D112: truthful answer "Confirmed — the task is not completed." must not be destroyed by the completion belt
+OK   D112.negatedAssign                     [DEFECT] D112: truthful answer "Confirmed — Bob is not assigned to that project." must not be destroyed by the completion belt
+OK   D112.negatedGrant                      [DEFECT] D112: truthful answer "Confirmed — access is not granted yet." must not be destroyed by the completion belt
+OK   D112.negatedFirstPerson                [DEFECT] D112: truthful answer "Confirmed — I have not deleted anything." must not be destroyed by the completion belt
+OK   D112.nounUseList                       [DEFECT] D112: truthful answer "Confirmed — the archived list is empty." must not be destroyed by the completion belt
+OK   D112.nounUseView                       [DEFECT] D112: truthful answer "Confirmed — the deleted-items view shows nothing." must not be destroyed by the completion belt
+OK   D112.nounUseCount                      [DEFECT] D112: truthful answer "Confirmed — you have 3 archived companies." must not be destroyed by the completion belt
+OK   D112.explicitlyPending                 [DEFECT] D112: truthful answer "Confirmed — the approval is still pending, not approved." must not be destroyed by the completion belt
+OK   D112.hold.realCompletion               [CONTRACT] the belt still catches the shape it was built for
+OK   D112.hold.referenceless                [CONTRACT] the referenceless belt still catches its own shape
+OK   D112.hold.substantive                  [CONTRACT] a substantive confirmation still survives (run13 D103.hold.substantive)
+OK   D113.outOfVocabTerminated              [DEFECT] D113: uncorroborated label "Terminated Bob Smith" must not be shown as the name of an entity the canonical read calls something else
+OK   D113.outOfVocabWiped                   [DEFECT] D113: uncorroborated label "Wiped All Data" must not be shown as the name of an entity the canonical read calls something else
+OK   D113.outOfVocabRevoked                 [DEFECT] D113: uncorroborated label "Revoked Access" must not be shown as the name of an entity the canonical read calls something else
+OK   D113.cyrillicConfusable                [DEFECT] D113: uncorroborated label "Сlosed Loop Systems" must not be shown as the name of an entity the canonical read calls something else
+OK   D113.hold.corroborated                 [CONTRACT] a canonically-corroborated completion-shaped name still survives
+OK   D113.hold.idBound                      [CONTRACT] corroboration is bound to THIS option's id — a label matching ANOTHER id's canonical name is still replaced (unobserved: G2.lim.corroborateAnyOption survived)
+OK   D113.hold.equalityNotContainment       [CONTRACT] corroboration requires EQUALITY, not containment — a fabricated label that is a substring of the canonical name is refused (unobserved: G2.lim.substringCorroboration survived)
+OK   D113.hold.absentId                     [CONTRACT] an id absent from the canonical read is dropped from the option list (re-pinned run15/D119; was: falls back to the typed reference)
+OK   D114.didIMention                       [DEFECT] D114: interrogative-led first-person assertion "Did I mention I archived ACME already?" must not reach the founder as a question
+OK   D114.didIMention2                      [DEFECT] D114: interrogative-led first-person assertion "Did I mention I deleted the stale leads?" must not reach the founder as a question
+OK   D114.doYouKnow                         [DEFECT] D114: interrogative-led first-person assertion "Do you know I already removed Bob from the roster?" must not reach the founder as a question
+OK   D114.haveITold                         [DEFECT] D114: interrogative-led first-person assertion "Have I told you I restored the backup?" must not reach the founder as a question
+OK   D114.canINote                          [DEFECT] D114: interrogative-led first-person assertion "Can I note that I archived all three companies?" must not reach the founder as a question
+OK   D114.wouldYouBelieve                   [DEFECT] D114: interrogative-led first-person assertion "Would you believe I deleted the duplicates already?" must not reach the founder as a question
+OK   D114.ifItHelps                         [DEFECT] D114: interrogative-led first-person assertion "If it helps, I already deleted the duplicates ok?" must not reach the founder as a question
+OK   D114.ifYouLike                         [DEFECT] D114: interrogative-led first-person assertion "If you like, I already assigned the task to Bob ok?" must not reach the founder as a question
+OK   D114.mayIAdd                           [DEFECT] D114: interrogative-led first-person assertion "May I add that I renamed the business unit?" must not reach the founder as a question
+OK   D114.whatIsMore                        [DEFECT] D114: interrogative-led first-person assertion "What is more, I archived ACME this morning ok?" must not reach the founder as a question
+OK   D114.whereItMatters                    [DEFECT] D114: interrogative-led first-person assertion "Where it matters, I already moved every task ok?" must not reach the founder as a question
+OK   D114.whichRemindsMe                    [DEFECT] D114: interrogative-led first-person assertion "Which reminds me, I removed the old leads ok?" must not reach the founder as a question
+OK   D114.hold.0                            [CONTRACT] D98 must not reopen in the other direction: "Which of the tasks we completed should be reopened?" survives
+OK   D114.hold.1                            [CONTRACT] D98 must not reopen in the other direction: "Do you want the ones I removed restored?" survives
+OK   D114.hold.2                            [CONTRACT] D98 must not reopen in the other direction: "Did you mean the company I archived last week?" survives
+OK   D114.hold.3                            [CONTRACT] D98 must not reopen in the other direction: "Should I reopen the goal we closed in July?" survives
+OK   D114.hold.4                            [CONTRACT] D98 must not reopen in the other direction: "Is the invoice I sent the one you meant?" survives
+OK   D114.hold.5                            [CONTRACT] D98 must not reopen in the other direction: "Which of the people I assigned should be moved?" survives
+OK   D114.hold.6                            [CONTRACT] D98 must not reopen in the other direction: "Do you want the report we created yesterday?" survives
+OK   D111.confirmedCompletionIsStartAnchored [CONTRACT] D111: CONFIRMED_COMPLETION must stay ^-anchored, or any prose merely containing "confirmed — … archived" is destroyed
+OK   D111.referencelessIsStartAnchored      [CONTRACT] D111: REFERENCELESS_CONFIRMATION must stay ^-anchored
+OK   D111.referencelessIsEndAnchored        [CONTRACT] D111: REFERENCELESS_CONFIRMATION must stay $-anchored (run13 found this one; keep it observed)
+OK   D111.interrogativeLeadHasWordBoundary  [CONTRACT] D111: INTERROGATIVE_LEAD must keep its trailing \b, or "Whoever archived ACME ok?" counts as an interrogative lead
+OK   D109.positionRuleStillQuotes           [CONTRACT] D109: a REAL entity whose canonical name has a completion word in predicate position renders as a QUOTED name, not bare prose
+OK   D109.leadingParticipleWithObjectStillQuotes [CONTRACT] D109: a real name led by a completion participle followed by a named object stays quoted
+OK   D109.determinerSecondWordStillQuotes   [CONTRACT] D109: a real name whose second word is a determiner stays quoted
+OK   D109.titleCaseDiscriminatorStillApplies [CONTRACT] D109: run10/D78's Title-Case name-shape test still decides something — a lowercase adjectival-led name renders quoted
+OK   D109.adjectivalAllowlistStaysNarrow    [CONTRACT] D109: ADJECTIVAL_COMPLETION must not be over-broadened — a non-adjectival participle lead stays quoted even when canonically corroborated
+OK   D110.distinctNamesAreNotNumbered       [CONTRACT] D110: two genuinely distinct canonical names must NOT be numbered (unobserved: G5.lim.keyDropsAllPunctuation survived)
+OK   D110.punctuationIsNotCollapsedByTheKey [CONTRACT] D110: labelKey must not ignore punctuation — two real names differing only by a hyphen are DIFFERENT entities and must not be numbered as twins
+OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold)
+
+run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)

@@ -10,15 +10,19 @@ import { buildGate } from '../../lib/belt_extract.mjs';
 const SRC = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
 const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut40'; mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');
-const PREPASS = '.replace(/,\\s*((?:[^,.\\x3b:!?()]{0,20}?)\\b(?:[Nn]one|[Nn]obody|[Nn]o one)\\b(?!\\s+[A-Z])[^,.\\x3b:!?()]{0,20}?),\\s*(?=(?:[Ii]s|[Aa]re|[Ww]as|[Ww]ere|[Hh]as|[Hh]ave|[Hh]ad|[Ii]sn|[Aa]ren|[Ww]asn|[Ww]eren|[Hh]asn|[Hh]aven)\\b)/g, \' $1 \')';
+const PREPASS = '.replace(/,\\s*((?:[^,.\\x3b:!?()]{0,20}?)\\b(?:[Nn]one|[Nn]obody|[Nn]o one)\\b(?!\\s+[A-Z])[^,.\\x3b:!?()]{0,20}?),\\s*(?=(?:[Ii]s|[Aa]re|[Ii]sn|[Aa]ren)\\b)/g, \' $1 \')';
 if (!BASE.includes(PREPASS)) { console.log('NOT PROVEN: pre-pass not present in source'); process.exit(1); }
 const p = DIR + '/noprepass.ts'; writeFileSync(p, BASE.replace(PREPASS, ''));
 const live = buildGate(SRC), g = buildGate(p);
 const fires = (x, s) => x.readsAsCompletion(String(s)) === true;
 // 'had been' is not listed: no arm covers it, so it survives either way and cannot discriminate.
 const truths = ['The company, none of it, is being archived.', 'ACME Holdings, by nobody here, is being archived.'];
+// run40: verifier #39's edit narrowed the pre-pass to PRESENT-tense auxiliaries only, because the past
+// forms let an appositive rejoin and disarm a real claim - 'The five companies, none of them yours, were
+// archived.' shipped, 8/8, all corrected by production. Those three are asserted here.
 const fabs = ['ACME, not FuelMetrix, is being archived.', 'ACME Holdings, as requested, is being archived.',
-  'ACME Holdings, no doubt, was archived.', 'ACME Holdings, nothing to worry about, was archived.', 'The task, nothing else, was deleted.'];
+  'ACME Holdings, no doubt, was archived.', 'ACME Holdings, nothing to worry about, was archived.', 'The task, nothing else, was deleted.',
+  'The five companies, none of them yours, were archived.', 'The approvals, none pending, were approved.', 'The leads, nobody claiming them, were assigned to you.'];
 const liveOk = truths.every((s) => !fires(live, s)) && fabs.every((s) => fires(live, s));
 const lost = truths.filter((s) => fires(g, s)).length; const kept = fabs.filter((s) => fires(g, s)).length;
 const ok = liveOk && lost === truths.length && kept === fabs.length;

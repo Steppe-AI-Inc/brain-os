@@ -1,0 +1,40 @@
+=== verifier #31 v92-differential deploy gate — source C:\Users\Dell\dev\brain-os-verify-4941571\supabase\functions\sem-ai-command\index.ts
+ok    [CONTRACT] deployed v92 gate preserved byte-identical as LEGACY_PAST_COMPLETION
+ok    [CONTRACT] verifier #30 class stays closed — R1 negator-initial real NAME or TITLE
+ok    [CONTRACT] verifier #30 class stays closed — R2 idiom prefix outside the original list
+ok    [CONTRACT] verifier #30 class stays closed — R3 tight dash before an UPPERCASE name
+ok    [CONTRACT] verifier #30 class stays closed — R4 adverbial between auxiliary and participle
+ok    [CONTRACT] verifier #30 class stays closed — R5 negator in a leading PP
+ok    [CONTRACT] ledger closure holds — #65 D27 rename-arrow (production row 9dda919c)
+ok    [CONTRACT] ledger closure holds — #64 D16 one-delimiter-away
+ok    [CONTRACT] ledger closure holds — #65 D25 read-only amnesty
+ok    [CONTRACT] ledger closure holds — #66 D40 claims:[] summary
+ok    [CONTRACT] ledger closure holds — BUG-002 production rows
+ok    [CONTRACT] negator-bearing NAMES: every fabrication caught (48)
+ok    [CONTRACT] negator-bearing NAMES: every truthful negative survives (60)
+ok    [CONTRACT] dash-before-CAPITAL truthful negative survives — "No company named Ulaanbaatar — North Depot w"
+ok    [CONTRACT] dash-before-CAPITAL truthful negative survives — "No unit at Erdenet — Copper Works was archiv"
+ok    [CONTRACT] dash-before-CAPITAL truthful negative survives — "No site at Darkhan — Steel Yard was deleted."
+ok    [CONTRACT] dash-before-CAPITAL truthful negative survives — "No record of Shangri-La — Facilities was arc"
+ok    [CONTRACT] the paired dash fabrication is caught LEXICALLY — "Ulaanbaatar — North Depot was archived."
+ok    [CONTRACT] the paired dash fabrication is caught LEXICALLY — "Erdenet — Copper Works has been deleted."
+ok    [CONTRACT] no disambiguation shape reads as a completion (17)
+ok    [CONTRACT] no whole-span lookahead in the belt
+ok    [CONTRACT] no whole-span lookbehind in the belt
+ok    [CONTRACT] no inline modifier group in the belt
+ok    [DEFECT] V31-F1 nameInternal destroys no truthful Title-Case negative v92 preserves (240 shapes)
+ok    [CONTRACT] V31-F1 COVERAGE: the paired negator-NAME fabrications must stay caught
+ok    [DEFECT] V31-F2 a completion word inside a NAME is not read as a completion (14 shapes v92 preserves)
+ok    [DEFECT] V31-F3 R-AUXGAP destroys no attributed TRUE history v92 preserves (60 shapes)
+FAIL  [DEFECT] V31-F3b the negator lexicon covers ordinary contracted negations — NEGATED_CLAUSE does not recognise couldn't, wouldn't, shouldn't, won't — the R-AUXGAP whole-summary guard is therefore blind to them
+ok    [CONTRACT] V31-F4 corpus valid: deployed v92 corrects all 17 of them
+ok    [DEFECT] V31-F4 no suite-pinned "accepted residual" is a fabrication v92 corrects (17 pinned)
+ok    [CONTRACT] NON-VACUOUS: the belt still fires on an obvious fabrication
+ok    [CONTRACT] NON-VACUOUS: the belt still spares an obvious truthful negative
+ok    [CONTRACT] NON-VACUOUS: the decision window still corrects end-to-end
+ok    [CONTRACT] NON-VACUOUS: the decision window still ships a truthful answer
+
+33 passed, 1 failed
+
+RED — candidate is NOT fit to deploy over v92:
+  - [DEFECT] V31-F3b the negator lexicon covers ordinary contracted negations — NEGATED_CLAUSE does not recognise couldn't, wouldn't, shouldn't, won't — the R-AUXGAP whole-summary guard is therefore blind to them

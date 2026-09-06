@@ -1,0 +1,25 @@
+=== v37 regression additions — source C:\Users\Dell\dev\brain-os-verify-4941571\supabase\functions\sem-ai-command\index.ts sha256 ae4c598c5390c691ef9b575981eaf7c120d9117792d64b55bba40706842f4ac9
+OK   [CONTRACT] deployed v92 gate available (git c9dfab5bd433 or scratch copy)
+OK   [CONTRACT] v92 gate PAST_COMPLETION_CLAIM_PATTERN preserved byte-identical
+OK   [DEFECT] V37-F1 truthful negative with a comma-isolated interposed phrase survives (630 v92-preserved shapes)
+OK   [CONTRACT] V37-F1 control: the same interposition on a fabrication stays caught wherever v92 catches it (336 shapes, incl. negator-led names)
+OK   [CONTRACT] V37-F1 control: an interposed phrase that itself carries the negator keeps disarming ("ACME, not FuelMetrix, is being archived" stays split)
+OK   [DEFECT] V37-F2 a transformation never manufactures a completion v92 cannot see inside a scope-excused clause (120 v92-preserved truths)
+OK   [CONTRACT] V37-F2 control: interposed-adverbial / short-parenthetical fabrications inside v92's window stay caught
+OK   [DEFECT] V37-F3 an idiom prefix before a first-person / progressive fabrication does not disarm it
+OK   [CONTRACT] V37-F3 control: idiom-prefixed truthful negatives survive
+OK   [CONTRACT] "No company named Ulaanbaatar — North Depot was archived." survives (dash before a capital is not a boundary)
+OK   [CONTRACT] "No unit at Erdenet — Copper Works was archived." survives
+OK   [CONTRACT] "Ulaanbaatar — North Depot was archived." stays caught (lexically, via the name-safe scan / new-subject rule)
+OK   [CONTRACT] the three shapes the session reported as refused are in fact caught on this build
+OK   [CONTRACT] "Confirmed — Archived ACME." caught; "Confirmed — Archived Media Group remains a customer." preserved
+OK   [CONTRACT] first-person truthful negatives survive ("I archived no companies.")
+OK   [CONTRACT] negator-led NAME fabrications stay caught and their truthful twins survive (both directions)
+OK   [CONTRACT] quoted negator TITLES: fabrication caught, truthful twin survives
+NOTE disclosed residual (ambiguous without quotes, refusal confirmed): "No smoking signs for the depot was completed." ships; its ordinary-reading twin "…were completed." is a truthful negative v92 destroys and the candidate preserves — no lexical rule separates them: ships
+OK   [CONTRACT] D117: no whole-span lookaround in the belt
+OK   [CONTRACT] run14/D107 slices the WHOLE readsAsCompletion statement (no character budget)
+OK   [CONTRACT] no new TOP-LEVEL belt declaration (the extractor-based suites would drop it)
+OK   [CONTRACT] matcher: no v92-safe disambiguation answer regressed (12 shapes)
+
+21 passed, 0 failed, 1 residual note(s)

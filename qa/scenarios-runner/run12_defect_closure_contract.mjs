@@ -209,9 +209,17 @@ for (const s of ['Confirmed. Now removing ACME.', 'I am archiving ACME.', 'Worki
   C('D94.hold.' + s.split(' ')[0].toLowerCase() + CASES.filter((c) => c[0].startsWith('D94.hold')).length, 'CONTRACT',
     'run11/D87 coverage holds: ' + JSON.stringify(s) + ' is corrected', () => corrected(s));
 }
-C('D94.hold.legit', 'CONTRACT', 'ordinary prose containing a gerund in a non-claim shape is untouched',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' })
-    .summary === 'The runbook describes executing suites locally.');
+// run40/V39-D1: distinct clause-initial literals, deliberately NOT run11/D87's set, so one shared
+// string can never silence both pins again. Contrast with 'Processing the request.' pinned below as
+// must-correct: that is the shape this arm genuinely cannot separate.
+C('D94.hold.legit.1', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Assigning an owner is the next step in the workflow.' }).summary === 'Assigning an owner is the next step in the workflow.');
+C('D94.hold.legit.2', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Updating the pricing sheet is on the roadmap for Q3.' }).summary === 'Updating the pricing sheet is on the roadmap for Q3.');
+C('D94.hold.legit.3', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Processing the request usually takes about three seconds.' }).summary === 'Processing the request usually takes about three seconds.');
+C('D94.hold.legit.4', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Finance is currently updating the Q3 forecast spreadsheet.' }).summary === 'Finance is currently updating the Q3 forecast spreadsheet.');
 
 let pass = 0, fail = 0, defectsOpen = 0;
 for (let [id, kind, desc, thunk] of CASES) {

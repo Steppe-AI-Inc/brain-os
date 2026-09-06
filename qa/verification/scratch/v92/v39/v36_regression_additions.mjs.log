@@ -1,0 +1,84 @@
+=== v36 regression additions — source C:\Users\Dell\dev\brain-os-verify-4941571\supabase\functions\sem-ai-command\index.ts
+ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN is byte-identical to deployed v92 (pinned sha256)
+ok    [CONTRACT] the literal equals git c9dfab5bd433 (deployed v92) byte for byte
+ok    [CONTRACT] v92 gate sanity
+ok    [CONTRACT] candidate belt sanity
+
+--- [DEFECT] V36-F1 (P1, TRUTH REGRESSION, created by run36/A2): the collapse discards a negation carried by a 27-30-char adverbial
+ok    [DEFECT] V36-F1 corpus validity: deployed v92 preserves all 5
+ok    [DEFECT] V36-F1 the collapse must reach no further than deployed v92's 30-character window — 0 of 5 destroyed
+ok    [CONTRACT] V36-F1 control: shapes inside v92's window stay collapsed and caught
+ok    [CONTRACT] V36-F1 control: the same-clause genuine negation stays preserved
+
+--- [DEFECT] V36-F2 (P1, TRUTH REGRESSION, created by run36/D): a pronoun-subject or ";"-separated TRUE status report
+ok    [DEFECT] V36-F2 corpus validity: deployed v92 preserves all 5
+ok    [DEFECT] V36-F2 a status report about a participle-named company survives whatever its subject and separator are — 0 of 5 destroyed
+ok    [CONTRACT] V36-F2 control: the run35 F5 fabrications (v92-corrected via their tails) stay caught
+ok    [CONTRACT] V36-F2 control: the earlier true status reports stay preserved
+ok    [CONTRACT] V36-F2 control: the tempered fabrications stay caught
+
+--- [DEFECT] V36-F3 (P1, TRUTH REGRESSION, pre-existing since run30): ppInternal excuses the clause's own negator before the progressive arm
+ok    [DEFECT] V36-F3 corpus validity: deployed v92 preserves all 4
+ok    [DEFECT] V36-F3 a negator that is the clause's own keeps its scope when the only completion is progressive — 0 of 4 destroyed
+ok    [CONTRACT] V36-F3 control: the run30 R5 fabrications stay caught
+
+--- [DEFECT] V36-F4 (P1, TRUTH REGRESSION, pre-existing since run32/D181): the determiner-led idiom strip eats a real noun phrase before the progressive arm
+ok    [DEFECT] V36-F4 corpus validity: deployed v92 preserves all 3
+ok    [DEFECT] V36-F4 "No issues" heading a noun phrase with a reduced relative clause is a negated subject, not an interjection — 0 of 3 destroyed
+ok    [CONTRACT] V36-F4 control: the D181 fabrication stays caught and its truthful twin survives
+
+--- [DEFECT] V36-F5 (P2, FAB REGRESSION, created by run36/C1): newSubject's name run cannot contain a token-internal period
+ok    [DEFECT] V36-F5 corpus validity: deployed v92 corrects all 3
+ok    [DEFECT] V36-F5 a filler negator before a period-bearing name governing its own auxiliary is a new subject — 0 of 3 ship
+ok    [CONTRACT] V36-F5 control: the token-internal-period truths stay preserved
+ok    [CONTRACT] V36-F5 control: the plain-name twin stays caught
+
+--- [DEFECT] V36-F6 (P2, FAB REGRESSION, pre-existing since run30): COMPLETION_PARTICIPLE lacks v92's "confirmed"
+ok    [DEFECT] V36-F6 corpus validity: deployed v92 corrects all 2
+ok    [DEFECT] V36-F6 an interposed-adverbial completion on a v92-list participle is collapsed and caught — 0 of 2 ship
+ok    [CONTRACT] V36-F6 control: the plain form is caught by both
+
+--- [DEFECT] V36-F7 (P2, FAB REGRESSION, pre-existing since run32/D176): the status guard excuses a NAME subject beside a v92-caught tail
+ok    [DEFECT] V36-F7 corpus validity: deployed v92 corrects all 2
+ok    [DEFECT] V36-F7 a "Confirmed — <Participle> <Name> <state verb>" head ships only when deployed v92 would also show it — 0 of 2 ship
+ok    [CONTRACT] V36-F7 control: the v92-shared status/fabrication pair is reported, not asserted (both ship on v92)
+
+--- [RESIDUAL] disclosed shapes, pinned in both directions
+ok    [RESIDUAL] OPEN "No errors occurred the department was removed." still ships (disclosed D188)
+ok    [CONTRACT] D188 paired truths survive
+ok    [RESIDUAL] AMBIGUOUS unquoted title as subject ("No smoking signs for the depot was completed." / "Nothing to declare form was completed.") ships — same surface as the determiner reading; reported, not asserted
+ok    [RESIDUAL] SHARED LOSS (v92 destroys too, so NOT a gate item): "No North Depot was archived." and "Never ACME Holdings, and never Beta Corp, was archived."
+note  [RESIDUAL] DEAD CODE: the run30 R-IDIOM strip (both the widening AND the whole dash-form strip) re-opens 0 shapes when removed; only the run32 D181 determiner-led strip is load-bearing — measured in qa/verification/scratch/v36/idiom_deadcode.mjs — remove per the "only load-bearing fixes ship" rule
+
+--- [CONTRACT] properties this candidate DOES hold — pinned so a fix for the defects above cannot trade them away
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected, and it has been"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected – it has been ap"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected—it has been appr"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected: it has been app"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "No company matched that name so the company ha"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "I could not confirm the owner yet the employee"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The status is not draft (the goal has been arc"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The task has been completed, right?"
+ok    [CONTRACT] ledger #65/D25 stays closed: no founderRequestedMutation
+ok    [CONTRACT] ledger #65/D25 stays closed: no MUTATION_REQUEST_PATTERN
+ok    [CONTRACT] ledger #65/D25 stays closed: no READ_ONLY_REQUEST_PATTERN
+ok    [CONTRACT] ledger #65/D27 (production row 9dda919c) stays closed
+ok    [CONTRACT] ledger #66/D40 stays closed: claims:[] still arms the gate
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "Confirmed — Archived ACME. No further action n"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME Holdings was archived. Nothing else was c"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME Holdings was, after review, archived. No "
+ok    [CONTRACT] no whole-summary NEGATION test in the belt (D177 property)
+ok    [CONTRACT] run30 negator-initial names stay caught with auxiliaries and "<participle> successfully", and their truthful twins survive
+ok    [CONTRACT] negator-initial TITLES stay caught and their truthful twins survive
+ok    [CONTRACT] run31 refused shapes stay caught
+ok    [CONTRACT] the dash-inside-a-real-name negatives survive (a dash before a capital is not a boundary)
+ok    [CONTRACT] first-person object negations survive; the negator-name object fabrication stays caught
+ok    [CONTRACT] evidential-after-linker negatives survive
+ok    [CONTRACT] run33/D184, run34/D192 and had-been negatives stay preserved
+ok    [CONTRACT] run34/D194-D197 stay closed
+ok    [CONTRACT] run35 relInternal: relative-clause negator excused, main-clause negation kept
+ok    [CONTRACT] run35 token-internal period: truths preserved, real sentence boundary still separates
+ok    [CONTRACT] hedged declines survive with and without interposition
+ok    [CONTRACT] production BUG-002 shapes stay caught
+
+62 passed, 0 failed, 1 residual note(s)

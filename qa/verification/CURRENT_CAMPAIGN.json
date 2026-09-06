@@ -1,10 +1,10 @@
 {
- "campaign": 99,
- "verifier": 39,
+ "campaign": 100,
+ "verifier": 40,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, tenth round)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, eleventh round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "ae4c598c5390c691",
+ "index_sha256_prefix": "3798ad2f819749ff",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,15 +15,16 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 98,
-  "verifier": 38,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 72e4d45 (V38-D2: verifier #37 F2b length-preserving parenthetical pushed the aux-to-participle distance past v92 window, shipping 200/200 generated parenthetical fabrications v92 corrects; V38-S1: v92_parity_contract green only because its corpus had no parentheticals in that position). It PREPARED its own fix, adopted here.",
-  "artifact_commit": "4102676 on verify-72e4d45-campaign98 (local to that worktree)"
+  "campaign": 99,
+  "verifier": 39,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 4941571 (V39-D1: EXECUTION_IN_PROGRESS, an arm v92 does not have, read a CLAUSE-INITIAL gerund as an execution claim and destroyed 28 of 29 ordinary product-help answers, persisting the false refusal to work_orders.output; V39-D2: this session comma pre-pass disarmed 8/8 real claims via an appositive; V39-S1: the only two pins on that arm rested on the SAME mid-clause string). It PREPARED its own fix, adopted here.",
+  "artifact_commit": "adf9426 on verify-4941571-campaign99 (local to that worktree)"
  },
- "what_this_campaign_did": "Adopted verifier #38 sentence-local v92 parity backstop verbatim - the first fix in this campaign whose truth-regression set is empty BY CONSTRUCTION rather than by corpus - and composed it with this session fix44b negator-pronoun comma pre-pass. Deleted run14 character budget (2000/2600/4000, silently truncating each time) in favour of a scan to the statement end that throws if it cannot find it. Retargeted three verifier-authored pins from that budget to the property they protected, each proven non-vacuous by reverting run14 and confirming all three go red.",
+ "what_this_campaign_did": "Adopted verifier #39 three edits verbatim (punctuation-flattened second pass for the ?/! split; comma pre-pass narrowed to present-tense auxiliaries; the gerund arm no longer fires on a bare clause-initial participle). Closed V39-D4, which #39 left as a direction, by replacing CONFIRMED_COMPLETION closed state-verb lexicon with a morphological test. Gave run11/D87 and run12/D94 four distinct clause-initial literals each, written so #39 own vacuity checker can read them.",
  "implementing_session_evidence_not_to_be_trusted": {
   "battery": "34 suites executed / 0 failures",
-  "verifier38_committed_gate": "29 passed / 0 failed (was 28/1 on 72e4d45)",
+  "verifier39_committed_gate": "20 passed / 1 failed - the single failure is its deliberately-RED entity test",
+  "verifier38_committed_gate": "29 passed / 0 failed",
   "verifier37_committed_gate": "21 passed / 0 failed",
   "verifier36_committed_gate": "62 passed / 0 failed",
   "verifier35_committed_gate": "56 passed / 0 failed",
@@ -32,15 +33,19 @@
   "verifier32_committed_gate": "101 passed / 0 failed",
   "verifier30_probe": "PASS",
   "generative_adversarial": "25/0",
-  "adversarial_probe": "0 mismatches",
+  "labelled_sweep": "0 fabrications shipped / 0 truths destroyed on 3,760 labelled rows",
   "run15": "57/0, D117 intact",
-  "mutation_proof": "1/1 on the composed comma pre-pass; the backstop safety is structural, not corpus-measured",
+  "mutation_proof": "1/1 on the narrowed comma pre-pass, with 8/8 appositive fabrications held caught",
   "deno": "23 == baseline",
-  "HARNESS_CHANGE": "run14 D107 no longer slices with a character budget; it scans to the statement end and throws. Three verifier pins retargeted to that property, each proven to go red if the budget returns.",
-  "CORRECTED_BY_V38": "\"No North Depot was archived.\" is destroyed by v92 too, so earlier ledger framing of it as a truth cost was wrong; the three \"refused\" shapes are caught; V31-F3b is still genuinely open."
+  "CORRECTED_BY_V39": [
+   "\"five shipped fixes\" was four and a half - the R-AUXGAP arm is fully masked by the backstop and reverting it alone changes nothing; #31 own mutation proof already printed it as a no-op and this session did not act on it",
+   "identifier delta re-derived at 190 added / 0 removed",
+   "v30_regression_additions.mjs is unrunnable from any cwd; v92.lf.ts is CRLF despite its name"
+  ],
+  "VACUITY_COUNT": "fifth vacuous-corpus recurrence this campaign (D177 pin, R-IDIOM deadness proof, generative truth frames, v92_parity parentheticals, now the gerund pins)"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #38 FAIL stands against 72e4d45 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
  "DESIGN_NOTE_entity_positive_signal": {
   "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
   "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
@@ -53,5 +58,5 @@
   "cost_and_risk": "A name set referenced INSIDE the belt block collides with the extractor suites (run15-run19, v92_open_regression_contract): verifier #36 measured that a referenced top-level const outside the block takes 7/10 suites to ReferenceError. The set must be threaded in a form the brace-balanced extractors tolerate (e.g. read at call time from a closure variable the harnesses can stub), which is a harness change as well as a belt change. Not attempted while a verifier is running; proposed for the round after #38.",
   "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
  },
- "NEXT_STEP_BOTH_SOURCES_AGREE": "Verifier #38 judged the belt at its ceiling: \"the next durable gain is deciding against structured evidence, not another regex arm.\" That matches the design note recorded two rounds earlier - canonicalById is a real per-turn RLS-scoped read already in scope at the belt and usable as a POSITIVE-only signal. It is a harness change as well as a belt change (a name set referenced inside the belt block collides with the extractor suites), so it is the next round work, not a mid-verifier edit."
+ "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund."
 }

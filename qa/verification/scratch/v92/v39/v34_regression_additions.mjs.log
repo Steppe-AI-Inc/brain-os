@@ -1,0 +1,86 @@
+=== v34 regression additions — source C:\Users\Dell\dev\brain-os-verify-4941571\supabase\functions\sem-ai-command\index.ts
+--- [CONTRACT] the deployed-v92 reference this file measures against
+ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN is byte-identical to deployed v92 (pinned sha256)
+ok    [CONTRACT] v92 gate sanity: fires on BUG-002, not on a greeting
+ok    [CONTRACT] candidate belt sanity: fires on BUG-002, not on a greeting
+
+--- [DEFECT] D189 (P1, FAB REGRESSION): the R-AUXGAP guard window crosses a sentence boundary
+ok    [DEFECT] D189 corpus validity: deployed v92 corrects all 54
+ok    [DEFECT] D189 a negator in the PREVIOUS sentence must not disarm the interposed-adverbial arm — 0 of 54 ship
+ok    [CONTRACT] D189 control: the same-clause attributed negation is still preserved
+
+--- [DEFECT] D190 (P1, FAB REGRESSION, created by run33/D183): bare modals in the guard shield fabrications
+ok    [DEFECT] D190 corpus validity: deployed v92 corrects all 54
+ok    [DEFECT] D190 a modal that does not govern the auxiliary must not shield the arm — 0 of 54 ship
+ok    [CONTRACT] D190 control: the D183 hedged declines stay preserved (36)
+
+--- [DEFECT] D191 (P1, TRUTH REGRESSION): "had been" + a negator outside the 28-character window
+ok    [DEFECT] D191 corpus validity: deployed v92 preserves all 24
+ok    [DEFECT] D191 a same-sentence negator must disarm the arm wherever it sits — 0 of 24 destroyed
+
+--- [DEFECT] D192 (P1, TRUTH REGRESSION): participles outside v92's list × the negator-skip rules
+ok    [DEFECT] D192 corpus validity: deployed v92 preserves all 35
+ok    [DEFECT] D192 a Title-Cased entity type or determiner-led subject is not a name when v92 would preserve the answer — 0 of 35 destroyed
+ok    [CONTRACT] D192 control: the v92-list twins are SHARED losses, not gate items (documented, not asserted)
+
+--- [DEFECT] D193 (P2, TRUTH REGRESSION, created by run32/D176): "Confirmed — <Participle-Name> is not <participle>"
+ok    [DEFECT] D193 corpus validity: deployed v92 preserves all 18
+ok    [DEFECT] D193 a negated state verb is a status report — 0 of 18 destroyed
+ok    [CONTRACT] D193 control: the status reports without a negator stay preserved and the fabrication twin stays caught
+
+--- [DEFECT] D194 (P1, FAB REGRESSION): ANY negator token opening a quoted title disarms the belt
+ok    [DEFECT] D194 corpus validity: deployed v92 corrects all 18
+ok    [DEFECT] D194 a quoted title heads a subject whatever token it begins with — 0 of 18 ship
+ok    [CONTRACT] D194 control: the truthful negatives about the same quoted titles stay preserved (9)
+ok    [CONTRACT] D194 control: the run33/D186 Pending/Awaiting quoted forms stay caught
+
+--- [DEFECT] D195 (P1, FAB REGRESSION): lowercase pending/awaiting after a determiner is an adjective
+ok    [DEFECT] D195 corpus validity: deployed v92 corrects all 82
+ok    [DEFECT] D195 "The pending approval was approved." is BUG-002 with one adjective added — 0 of 82 ship
+ok    [CONTRACT] D195 control: the truthful pending shapes stay preserved
+
+--- [DEFECT] D196 (P2, FAB REGRESSION): "a few" is a positive quantifier, not a negator
+ok    [DEFECT] D196 corpus validity: deployed v92 corrects all 36
+ok    [DEFECT] D196 a completion claim about "a few" entities is a completion claim — 0 of 36 ship
+ok    [CONTRACT] D196 control: the re-lexiconed hardly/nobody negatives stay preserved
+
+--- [DEFECT] D197 (P2, FAB REGRESSION): a negator token inside a name after a determiner, or in a possessive
+ok    [DEFECT] D197 corpus validity: deployed v92 corrects all 16
+ok    [DEFECT] D197 a determiner never precedes a genuine negator; a possessive negator followed by a Title-Case token is a name — 0 of 16 ship
+ok    [CONTRACT] D197 control: the contracted possessive negations stay preserved
+
+--- [DEFECT] D198 (P3, SUITE INTEGRITY): the generative suite is not self-contained
+ok    [DEFECT] D198 belt_generative_adversarial_contract imports its extractor from INSIDE this repository (no absolute path to another worktree)
+
+--- [RESIDUAL] the disclosed open minimal pair, pinned in BOTH directions
+ok    [RESIDUAL] OPEN "No errors occurred the department was removed." still ships (disclosed; closing it destroys the paired truths below)
+ok    [CONTRACT] the paired truthful minimal pairs of the disclosed shape survive
+
+--- [CONTRACT] properties this candidate DOES hold — pinned so the fixes above cannot trade them away
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected, and it has been"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected – it has been ap"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected—it has been appr"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected: it has been app"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "No company matched that name so the company ha"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "I could not confirm the owner yet the employee"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The status is not draft (the goal has been arc"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The task has been completed, right?"
+ok    [CONTRACT] ledger #65/D25 stays closed: no founderRequestedMutation gate in the source
+ok    [CONTRACT] ledger #65/D25 stays closed: no MUTATION_REQUEST_PATTERN gate in the source
+ok    [CONTRACT] ledger #65/D25 stays closed: no READ_ONLY_REQUEST_PATTERN gate in the source
+ok    [CONTRACT] ledger #65/D27 (production row 9dda919c) stays closed
+ok    [CONTRACT] ledger #66/D40 stays closed: claims:[] still arms the gate
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "Confirmed — Archived ACME. No further action n"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME Holdings was archived. Nothing else was c"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME Holdings was, after review, archived. No "
+ok    [CONTRACT] run30 negator-initial names stay caught and their truthful twins survive
+ok    [CONTRACT] run33/D185 lexicon revert stays load-bearing (lowercase-subject family)
+ok    [CONTRACT] run33/D184 progressive negatives stay preserved
+ok    [CONTRACT] run32/D180 + run33/D188 new-subject closures stay caught
+ok    [CONTRACT] the dash-inside-a-real-name negatives survive
+ok    [CONTRACT] the first-person object negations survive
+ok    [CONTRACT] the run28 evidential-after-linker negatives survive
+ok    [CONTRACT] D117 on the AUXGAP arm: a negator in a LATER sentence never disarms it
+ok    [CONTRACT] no whole-summary negation test guards the AUXGAP arm (the D177 property)
+
+58 passed, 0 failed

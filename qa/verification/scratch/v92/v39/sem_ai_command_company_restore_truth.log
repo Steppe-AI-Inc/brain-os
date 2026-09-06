@@ -1,0 +1,53 @@
+PASS restore clarification resolves to restoreCompanyIds (real test3 id)
+PASS archive clarification still resolves to archiveCompanyIds
+PASS absent actionType defaults to archive (backward-compatible)
+PASS task restore clarification resolves to restoreTaskIds
+PASS goal restore clarification resolves to restoreGoalIds
+PASS person restore clarification resolves to restoreEmploymentPersonIds
+PASS employee restore clarification resolves to restoreEmploymentPersonIds
+PASS channel has no restore field (deletion has no restore concept)
+PASS false "restored" claim (explicit phrasing) with zero real ids is caught
+PASS documented scope boundary: bare "active" phrasing (the literal original incident text) is NOT caught by this regex by design - closed structurally instead, not here
+PASS corrector does not fire when a real restore was actually attempted
+PASS corrector does not false-positive on ordinary unrelated company text
+PASS CRITICAL: a truthful "test3 is archived" state description is never corrupted into a false correction
+PASS task: "is archived" state description not caught
+PASS goal: present-tense "is already restored" state description not caught
+PASS goal: past-tense "was" is intentionally NOT excluded (documented trade-off)
+PASS person: "is currently ended" state description not caught
+PASS a real completion claim ("I archived...") is still caught even with an unrelated "is" elsewhere in the sentence
+PASS archived company + requested active -> lifecycle transition, blocked from raw patch
+PASS requesting literal archived target -> lifecycle transition, blocked from raw patch
+PASS active -> planning on a non-archived company is NOT a lifecycle transition, allowed
+PASS planning -> paused on a non-archived company is NOT a lifecycle transition, allowed
+PASS CRITICAL: "archive test3" contradicts a pending actionType:restore (the real incident)
+PASS symmetric case: "restore test3" contradicts a pending actionType:archive
+PASS bare "yes" never contradicts (no verb at all)
+PASS "that one" never contradicts (no verb at all)
+PASS "do it" never contradicts (no verb at all)
+PASS an agreeing reply ("restore test3" when actionType is restore) does not contradict
+PASS an agreeing reply ("archive" when actionType is archive) does not contradict
+PASS CRITICAL: false "test3 is already archived" claim is caught against real status=active
+PASS contradiction carries the real, fresh status (active), not the false claim
+PASS symmetric case: false "is active" claim caught against real status=archived
+PASS a TRUE "is archived" state description (real status matches) is never flagged
+PASS a TRUE "is active" state description (real status matches) is never flagged
+PASS false "archived" claim against a real status of planning is still caught (not archived is not archived)
+PASS no contradiction when the summary never claims a specific state for the company
+PASS CRITICAL: truthful "is currently employed" answer (naturally phrased in direct response to the read question) is suppressed, not falsely denied (the real incident 2 case)
+PASS grounded "is currently employed" claim against real active=true is confirmed true, not contradicted
+PASS false "is currently employed" claim against real active=false is still caught as a contradiction
+PASS a genuine verb-based completion claim ("was restored") still fires claimsPersonLifecycleChange when the paired state claim is contradicted (real active=false), not confirmed-true - suppression does not become a blanket bypass
+PASS corrector does not fire when a real restore was actually attempted (unaffected by grounding)
+PASS claimsCompanyLifecycleChange without a companies argument still behaves as before (no regression from the generic refactor)
+PASS symmetric case: a truthful "is currently active" claim about a company whose own name contains "Company" is suppressed too
+PASS CRITICAL: real incident 3 - a genuine confirmation QUESTION with a real pendingAction set is never treated as a false company completion claim
+PASS CRITICAL: real incident 3 - the same confirmation QUESTION is never treated as a false person completion claim
+PASS sanity check: the same gerund-form confirmation text DOES fire when pendingAction is absent - proves the guard above is doing real work, not masking an already-passing case
+PASS a genuine false completion claim with no pendingAction this turn is still caught (pendingAction guard is not a blanket bypass)
+PASS bare "end" (no -ed/-ing suffix) no longer matches the person verb alternation - a real question phrasing gap independent of the pendingAction guard
+PASS "ended" (real suffix) still fires the person corrector after the bare-"end" tightening
+PASS "ending" (real suffix) still fires the person corrector after the bare-"end" tightening
+PASS an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design)
+
+ALL REGRESSIONS PASSED

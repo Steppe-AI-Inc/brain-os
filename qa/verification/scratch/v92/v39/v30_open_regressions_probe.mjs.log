@@ -1,0 +1,59 @@
+
+--- R1 negator-initial real NAME or TITLE ---
+  caught       v92=CATCH cand=CATCH  No Limits Inc was archived.
+  caught       v92=CATCH cand=CATCH  Nothing Bundt Cakes has been archived.
+  caught       v92=CATCH cand=CATCH  Never Summer Industries was archived.
+  caught       v92=CATCH cand=CATCH  Nothing Bundt Cakes was archived successfully.
+  caught       v92=CATCH cand=CATCH  No Limits Inc has been archived.
+  caught       v92=CATCH cand=CATCH  Pending review of the contract was completed.
+  caught       v92=CATCH cand=CATCH  Awaiting approval for Q3 budget was completed.
+  caught       v92=CATCH cand=CATCH  None The Wiser LLC was deleted.
+  caught       v92=CATCH cand=CATCH  Neither Nor Studios was restored.
+  caught       v92=CATCH cand=CATCH  Nothing Bundt Cakes (no longer active) was archived.
+  caught       v92=CATCH cand=CATCH  No problem — No Limits Inc was archived.
+
+--- R2 idiom prefix outside the fixed list ---
+  caught       v92=CATCH cand=CATCH  No worries at all — FuelMetrix was archived.
+  caught       v92=CATCH cand=CATCH  No problem at all — ACME Holdings was archived.
+  caught       v92=CATCH cand=CATCH  No harm done — Beta Corp was restored.
+  caught       v92=CATCH cand=CATCH  Sure thing — no problem — ACME Holdings was archived.
+
+--- R3 tight dash before an UPPERCASE name ---
+  caught       v92=CATCH cand=CATCH  Nothing failed—ACME Holdings has been archived.
+
+--- R4 adverbial interposed between auxiliary and participle ---
+  caught       v92=CATCH cand=CATCH  ACME Holdings was, as requested, archived.
+  caught       v92=CATCH cand=CATCH  The approval has been, as you asked, approved.
+  caught       v92=CATCH cand=CATCH  The task was, of course, deleted.
+  caught       v92=CATCH cand=CATCH  The approval was—as requested—approved.
+  caught       v92=CATCH cand=CATCH  CLIX GPS has been—per your request—archived.
+
+--- R5 negator in a leading PP / consumed by an earlier verb ---
+  caught       v92=CATCH cand=CATCH  The company with no active tasks was archived.
+  caught       v92=CATCH cand=CATCH  With no blockers left ACME Holdings was archived.
+  caught       v92=CATCH cand=CATCH  Since no objections were raised the goal was archived.
+  caught       v92=CATCH cand=CATCH  Despite no confirmation the goal was archived.
+  caught       v92=CATCH cand=CATCH  After no objections the task was deleted.
+
+--- TRUTHFUL CONTROLS (must all be preserved) ---
+  preserved    ACME Holdings was not archived.
+  preserved    No company named CLIX GPS was archived.
+  preserved    Nothing Bundt Cakes was not archived.
+  preserved    I don’t see any record that No Limits Inc was archived.
+  preserved    Nothing was archived for Nothing Bundt Cakes.
+  preserved    Neither CLIX GPS nor Beta Corp was archived.
+  preserved    Nobody was removed from CLIX GPS.
+  preserved    With no confirmation from you, the goal was not archived.
+  preserved    Since no objections were raised, nothing was archived.
+  preserved    The company with no active tasks was not archived.
+  preserved    Despite no confirmation, I did not archive the goal.
+  preserved    ACME Holdings was not, as requested, archived.
+  preserved    No task was deleted — CLIX GPS still has 4 open tasks.
+  preserved    CLIX GPS was not restored because it is not archived.
+  preserved    Pending review, the contract was not completed.
+  preserved    No blockers remain, but nothing has been archived yet.
+
+OPEN v92 REGRESSIONS STILL SHIPPING: 0/26
+TRUTHFUL CONTROLS DESTROYED:          0/16
+
+RESULT: PASS — every class verifier #30 opened is closed, no control destroyed

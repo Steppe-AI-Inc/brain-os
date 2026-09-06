@@ -13511,3 +13511,80 @@ mutation 1/1 on the composed pre-pass; deno 23 == baseline.
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #38's
 FAIL stands against 72e4d45 and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 101. VERIFIER #39 FAIL CLOSED — the campaign's worst user-facing defect, found in an arm v92 never had
+
+Verifier #39 returned **FAIL** on candidate 4941571 / index.ts ae4c598c. Its first finding is the most
+consequential of the whole campaign, and it was invisible to ten verifiers and to every suite here.
+
+**V39-D1 (P1, TRUTH REGRESSION).** `EXECUTION_IN_PROGRESS` **does not exist in v92 at all**. Its arms run
+per clause, so a clause that merely BEGINS with a gerund reads as an execution claim. v92 fires on 0 of
+29 ordinary sentences; the candidate fired on 28:
+
+    "Archiving a company from chat is handled on the Companies page."
+    "Restoring a company requires founder approval."
+    "Deleting a task needs your confirmation first."
+    "Finance is currently updating the Q3 forecast spreadsheet."
+
+`legacyProseFallback` needs only no mutation claim, a non-deterministic model and an ungrounded turn —
+which a read-only "how do I archive a company?" satisfies. The true answer was replaced with "I can't
+actually do that from chat — nothing was changed." **and persisted to `work_orders.output`**, so a
+reload and the next turn's history read the destroyed text back. index.ts's own §26 calls this the
+worse failure direction, and the belt was doing it to plain product help.
+
+**V39-S1, why every gate stayed green.** The only two pins on that arm — run11/D87 and run12/D94 —
+rested on the SAME single string, "The runbook describes executing suites locally.", where the gerund
+sits MID-clause. The arm reads CLAUSE-INITIAL gerunds, so the pins could never observe it. run12
+simultaneously pins "Processing the request." as must-correct, which is exactly the shape the arm
+cannot separate. **Fifth vacuous-corpus recurrence this campaign.** Both pins now carry four distinct
+clause-initial sentences each, written as explicit literals because #39's own vacuity check reads the
+`summary:` literals directly — a first rewrite used a loop over a variable, which satisfied the intent
+while hiding the strings from the checker, and making the code match the checker is the honest
+direction. Non-vacuity confirmed: the new pins pass on the fix and fail on the candidate, 3 and 4.
+
+**V39-D2 (P1, FABRICATION REGRESSION) — created by this session's own fix last round.** The
+negator-pronoun comma pre-pass rejoins the appositive, and the merged clause hands a negator to the
+completion verb: "The five companies, none of them yours, were archived." shipped, 8/8, all corrected
+by v92. #39 corrected its own first reading here — it deleted the pre-pass, and the generative P22
+caught that immediately (54/198 wrong), because the pre-pass does have a real purpose on progressive
+predicates `LEGACY_PAST_COMPLETION` never sees. The fix is a NARROWING, to present-tense auxiliaries
+only, not a deletion. That is the second time this campaign a suite this session wrote has caught a
+verifier's over-broad first draft.
+
+**ITS THREE EDITS, ADOPTED.** The `?`/`!` sentence-split gap closed by testing both the raw summary and
+a punctuation-flattened copy; the pre-pass narrowed; and the gerund arm required to be more than a
+clause-initial participle. On top of them this session closed **V39-D4**, which #39 left as a
+direction: `CONFIRMED_COMPLETION`'s disarm lexicon is a closed list of state verbs ("appears" is in it,
+"appear" is not), so four truthful policy statements were destroyed. Replaced with a morphological
+test — a Title-Case participle followed by a content noun is a participial ADJECTIVE ("Archived
+companies drop out of the selector"), while one followed by a determiner or preposition takes an object
+and is a real claim ("Assigned the task to Bob"). A first attempt keyed only on "followed by a
+lowercase word" and disarmed that real claim; run15's D117 caught it within one run. Function words are
+used as a closed class deliberately — unlike names, linking verbs and linking words, where every closed
+list in this campaign has failed, function words genuinely are closed in English.
+
+**WHAT #39 CORRECTED IN THIS SESSION'S OWN RECORD.** "Five shipped fixes" was four and a half: reverting
+the R-AUXGAP arm alone changes nothing, and it is fully masked by the backstop — #31's own committed
+mutation proof already printed `F3.auxGap (mutation was a no-op)` and this session did not act on it.
+It also re-derived the identifier delta (190 added / 0 removed), found `v30_regression_additions.mjs`
+unrunnable from any cwd, and noted `v92.lf.ts` is CRLF despite its name.
+
+**WHAT IT CONFIRMED.** #38's "empty truth-regression set by construction" is TRUE for the backstop arm —
+578 strings, 0 violations, plus a structural argument — but NARROW: it says nothing about
+`EXECUTION_IN_PROGRESS`, which is where D1 lived. CONTRACT 5's narrowing is honest at all 11 injection
+positions. run14's budget is genuinely gone: it reverted run14 itself, watched all three retargeted
+pins go red, and restored run14 byte-identically. 26/26 ledger production shapes still caught.
+
+**ON THE CEILING.** #39 agrees `canonicalById` as a POSITIVE-only signal is the right next move and has
+shipped the first regression test RED on purpose (`V39-C-ENTITY.beltConsultsKnownEntityNames`, paired
+with `absenceIsNeverUsedAsEvidence` which passes today and must keep passing). But it adds the
+correction that matters: **the largest truth cost was never world-knowledge-bound** — 28 destroyed
+answers came from an ordinary English gerund.
+
+EVIDENCE on the new candidate 3798ad2f: battery 34 suites / 0 failures; #39's own gate 20/1, the single
+failure being its deliberately-RED entity test; #38's 29/0; #37's 21/0; #36's 62/0; #35's 56/0; #34's
+58/0; #33's 92/1; #32's 101/0; #30's probe PASS; generative 25/0; labelled sweep 0/0 both directions;
+run15 57/0 with D117 intact; mutation 1/1 with 8/8 fabrications held; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #39's FAIL
+stands against 4941571 and is not inherited. Production remains v92; rollback c9dfab5b from git.

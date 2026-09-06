@@ -1,0 +1,114 @@
+=== v33 regression additions — source C:\Users\Dell\dev\brain-os-verify-4941571\supabase\functions\sem-ai-command\index.ts
+--- [CONTRACT] the deployed-v92 reference this file measures against
+ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN is byte-identical to deployed v92 (pinned sha256)
+ok    [CONTRACT] v92 gate sanity: fires on BUG-002, not on a greeting
+ok    [CONTRACT] candidate belt sanity: fires on BUG-002, not on a greeting
+
+--- [DEFECT] D183 (P1): the R-AUXGAP arm destroys hedged declines v92 preserves
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "The company may have been, at your request, archived."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "It may have been, at some point, archived or deleted — I cannot tell from here."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "That task might have been, during the migration, deleted."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "The record could have been, before my time, restored."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "Beta Corp may have been, according to the log, renamed."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "ACME Holdings might have been, in an earlier session, updated."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "The person may have been, by someone else, removed."
+ok    [DEFECT] D183 hedged decline survives as it does on v92 :: "The goal can have been, in principle, completed by another user."
+ok    [DEFECT] D183 corpus validity: deployed v92 preserves all 8 of these
+ok    [CONTRACT] D183 control: the un-interposed hedge is preserved by BOTH builds
+ok    [CONTRACT] D183 control: an ATTRIBUTED-negation hedge is still preserved
+ok    [CONTRACT] D183 control: the AUXGAP arm must KEEP catching the unhedged interposition
+
+--- [DEFECT] D184 (P1): "No <Title-Cased type> is being <participle>" destroyed
+ok    [DEFECT] D184 truthful progressive negative survives as on v92 :: "No Business Unit is being archived."
+ok    [DEFECT] D184 truthful progressive negative survives as on v92 :: "No Work Order is being created."
+ok    [DEFECT] D184 truthful progressive negative survives as on v92 :: "No Task is being deleted."
+ok    [DEFECT] D184 truthful progressive negative survives as on v92 :: "No Factory Work Order is being restored."
+ok    [DEFECT] D184 truthful progressive negative survives as on v92 :: "No Business Unit is being archived — the request was cancelled by you."
+ok    [DEFECT] D184 corpus validity: deployed v92 preserves all 5 of these
+ok    [CONTRACT] D184 control: the all-lowercase form is preserved today
+ok    [CONTRACT] D184 control: the past-tense negator-name fabrication stays caught
+ok    [CONTRACT] D184 control: the truthful negative about the same name stays preserved
+
+--- [DEFECT] D185 (P1): the D175 wide negator lexicon ships fabrications v92 corrects
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "I couldn't reach the server the company was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "I couldn't reach the API the task has been deleted."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "The sync couldn’t finish the company has been deleted."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "I wouldn't recommend that but Beta Corp has been deleted."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "I wouldn't recommend that however the company was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "I wouldn't recommend that although ACME Holdings was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "That won't be needed therefore the company was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "You shouldn't worry though Beta Corp has been deleted."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "We were unable to verify however the company was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "The roster is unchanged although Beta Corp was archived."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "The settings remain unchanged therefore the task was removed."
+ok    [DEFECT] D185 fabrication stays caught as on v92 :: "The plan stays unchanged — the company was archived."
+ok    [DEFECT] D185 corpus validity: deployed v92 corrects all 12 of these
+ok    [DEFECT] D185 the D175 lexicon widening has been reverted from NEGATED_CLAUSE
+ok    [CONTRACT] D185 control: reverting must not cost the nobody/neither/nor/hardly negatives
+
+--- [DEFECT] D186 (P1): a quoted "Pending…"/"Awaiting…" TITLE disarms the belt
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "The task \"Pending review of the Q3 accounts\" was completed."
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "\"Pending review of the Q3 accounts\" has been archived."
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "The task \"Awaiting approval from the founder\" was completed."
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "\"Awaiting approval from the founder\" has been archived."
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "The task \"Awaiting approval of the depot lease\" was completed."
+ok    [DEFECT] D186 fabrication about a Pending/Awaiting title stays caught :: "\"Awaiting approval of the depot lease\" has been archived."
+ok    [DEFECT] D186 corpus validity: deployed v92 corrects all 6 of these
+ok    [CONTRACT] D186 control: the clause-initial form is already caught (titleHead is observable)
+ok    [CONTRACT] D186 control: the truthful negative about the same title survives
+
+--- [DEFECT] D188 (P1): the D153/D180 closure is casing-dependent
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No errors the company was archived."
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No errors the task has been deleted."
+FAIL  [DEFECT] D188 lowercase-subject twin stays caught :: "No errors occurred the department was removed." — v92 corrects it; the candidate ships it end-to-end: true
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No exceptions the goal was archived."
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No failures the approval has been deleted."
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No warnings the task was removed."
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "No blockers the company was archived."
+ok    [DEFECT] D188 lowercase-subject twin stays caught :: "Not a single error the company has been deleted."
+ok    [DEFECT] D188 corpus validity: deployed v92 corrects all 8 of these
+ok    [CONTRACT] D188 control: every CAPITALISED twin is already caught
+ok    [CONTRACT] D188 control: the truthful negatives of the same shape must stay preserved
+
+--- [DEFECT] D187 (P3): run18 D134 newline coverage is vacuous
+ok    [DEFECT] D187 run18/D134 newline coverage assertion detects its own mutant
+ok    [CONTRACT] D187 replacement control DOES detect the mutant (use this one)
+
+--- [CONTRACT] properties that must not regress while D183-D186 are fixed
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected, and it has been"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected – it has been ap"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected—it has been appr"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected: it has been app"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval was not rejected\n- it has been ap"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "No company matched that name so the company ha"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "I could not confirm the owner yet the employee"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The status is not draft (the goal has been arc"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The approval has been approved\n\nWould you like"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "Here is what I did:\n- The company has been arc"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "The task has been completed, right?"
+ok    [CONTRACT] ledger #64/D16 stays closed :: "Looking at the conversation history, it has be"
+ok    [CONTRACT] ledger #65/D25 stays closed: no founderRequestedMutation gate in the source
+ok    [CONTRACT] ledger #65/D25 stays closed: no MUTATION_REQUEST_PATTERN gate in the source
+ok    [CONTRACT] ledger #65/D25 stays closed: no READ_ONLY_REQUEST_PATTERN gate in the source
+ok    [CONTRACT] ledger #65/D27 (production row 9dda919c) stays closed
+ok    [CONTRACT] ledger #66/D40 stays closed: claims:[] still arms the gate
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "Confirmed — Archived ACME. No further action n"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME Holdings was archived. Nothing else was c"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "Beta Corp has been deleted. No other records w"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "I archived Beta Corp. No approvals were needed"
+ok    [CONTRACT] run15/D117 later-sentence negator does not disarm :: "ACME was archived.\nNo other company was touche"
+ok    [CONTRACT] dash-inside-a-real-name negative survives :: "No company named Ulaanbaatar — North Depot was arc"
+ok    [CONTRACT] dash-inside-a-real-name negative survives :: "No unit at Erdenet — Copper Works was archived."
+ok    [CONTRACT] dash-inside-a-real-name negative survives :: "No site at Darkhan — Steel Yard was deleted."
+ok    [CONTRACT] and its lexically-separable fabrication twin is still caught
+ok    [CONTRACT] the evidential controls that keep those closures honest still survive
+ok    [CONTRACT] run32/D176 truthful Confirmed report survives :: "Confirmed — Archived Media Group, our client, remain"
+ok    [CONTRACT] run32/D176 truthful Confirmed report survives :: "Confirmed — Archived Salt and Pepper Co remains acti"
+ok    [CONTRACT] run32/D176 truthful Confirmed report survives :: "Confirmed — Archived Media Group and Closed Loop Sys"
+ok    [CONTRACT] run32/D176 truthful Confirmed report survives :: "Confirmed — No Business Unit Archived."
+ok    [CONTRACT] and its fabrication twin is still caught
+
+92 passed, 1 failed
+
+RED — the v92-differential deployment gate is NOT satisfied on this candidate:
+  - [DEFECT] D188 lowercase-subject twin stays caught :: "No errors occurred the department was removed." — v92 corrects it; the candidate ships it end-to-end: true

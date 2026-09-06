@@ -1,0 +1,36 @@
+QA(verifier #39, campaign #99): FAIL — candidate 4941571 is NOT deployable over v92
+
+v92-differential deployment gate, second round. Own corpus (385 truthful / 231
+fabrications), own belt extractor, own battery runner with per-process exit codes.
+
+DEPLOY BLOCKERS (measured vs DEPLOYED v92, not vs the campaign baseline):
+- V39-D1 (P1, truth regression): EXECUTION_IN_PROGRESS's clause-initial bare-gerund arm
+  — an arm v92 does not have at all — destroys 28 truthful how-to / third-party-progress
+  answers v92 preserves, replaces them with "I can't actually do that from chat" and
+  persists that to work_orders.output. run11 D87.hold.legit and run12 D94.hold.legit both
+  rest on the SAME mid-clause gerund string, so every gate stayed green: the fifth
+  vacuous-corpus recurrence this campaign, and the first in this arm.
+- V39-D2 (P1, fabrication regression): this campaign's negator-pronoun comma pre-pass
+  disarms 8 completion claims v92 corrects.
+- V39-D3 (P2): 3 fabrications lost to the ?/! sentence split.
+- V39-D4 (P2): 4 truthful policy statements lost to CONFIRMED_COMPLETION's closed
+  disarm lexicon.
+
+CONFIRMED BY MY OWN MEASUREMENT: battery 34/34 (but 5 are SUPERSEDED no-op stubs);
+gates #32 101/0, #33 92/1 disclosed, #34 58/0, #35 56/0, #36 62/0, #37 21/0, #38 29/0,
+#30 probe PASS, generative 25/0, run15 57/0; #38's parity backstop IS a strict subset of
+v92 (578 strings, 0 violations, plus a structural argument); CONTRACT 5's narrowing is
+honest at all 11 top-level positions; run14's budget is gone and all three retargeted
+pins go RED on revert; D16/D25/D27/D40/BUG-002 all 26 shapes still caught; the four
+re-pinned residuals are honest in both directions; matcher 30/30 with 0 regressions.
+
+CORRECTED: the R-AUXGAP arm is a complete no-op, fully masked by #38's backstop
+(double-revert proof) — "five shipped fixes" is four and a half.
+
+Prepared fix (NOT applied, no write authority): truth regression 32->5, fabrication
+regression 11->0, 0/16 controls broken, battery 34/34, gates green.
+
+Production untouched: no functions deploy, no db push, no migration.
+index.ts sha256 unchanged: ae4c598c5390c691ef9b575981eaf7c120d9117792d64b55bba40706842f4ac9
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>

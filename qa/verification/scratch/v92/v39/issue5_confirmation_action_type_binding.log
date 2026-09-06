@@ -1,0 +1,10 @@
+
+issue5_confirmation_action_type_binding: 10/10 passed
+
+Demonstrated live defect (production behavior today):
+  entityType="company", actionType=<absent, because "assign" is not in the enum>
+  -> resolves to "archiveCompanyIds"  <-- ARCHIVES THE COMPANY
+  after fix:
+  -> resolves to undefined  <-- refuses, falls through to the LLM path
+
+issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with the fixed contract

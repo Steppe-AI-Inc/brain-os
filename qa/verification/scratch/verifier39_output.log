@@ -1,0 +1,118 @@
+Artifacts committed to `verify-4941571-campaign99` as `adf9426`. Final report:
+
+---
+
+# VERIFIER #39 — CAMPAIGN #99 — FINAL REPORT
+
+## PRODUCTION STATE ESTABLISHED
+
+```
+CURRENT CANDIDATE COMMIT:      494157179fde8bf9c4a7d1db581f8f0e8a304339
+CANDIDATE index.ts sha256:     ae4c598c5390c691ef9b575981eaf7c120d9117792d64b55bba40706842f4ac9  (unchanged)
+SUPABASE PROJECT REF:          pvphxgrtdfrudejjhzjk
+DEPLOYED EDGE FUNCTION:        sem-ai-command v92, ACTIVE, verify_jwt=true
+  ezbr_sha256:                 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475
+  updated_at:                  2026-09-01T05:15:25.518Z
+  entrypoint_path:             file:///home/runner/work/... (CI-deployed)
+V92 SOURCE (git c9dfab5bd433): 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc  (I computed it)
+ARTIFACT COMMIT:               adf9426 on verify-4941571-campaign99
+PRODUCTION WRITES THIS RUN:    NONE
+```
+
+**PREFLIGHT: EXECUTION_READY** (A: HEAD matched; B: write probe OK; C: 13/13).
+
+**Provenance is INTEGRATION-LEVEL, not byte-direct.** `supabase functions download` was permission-blocked in this session (`functions list` was allowed), so I never hashed the deployed bundle. I re-derived, rather than restated: v92's git blob hashes to the claimed value; `scratch/v92/index.v92.ts` normalises exactly to it; commit `c9dfab5b` is 05:14:41Z and the deploy is **44.5 s later** from a GitHub-Actions path. I do not inherit any prior run's byte-direct claim.
+
+---
+
+## VERDICT
+
+# FAIL — EDGE STATUS = NOT DEPLOYMENT READY
+
+Both directions of the stated blocker criterion are violated, on a corpus I built this run.
+
+### V39-D1 (P1, TRUTH REGRESSION) — an arm v92 does not have destroys ordinary answers
+
+`EXECUTION_IN_PROGRESS` is **absent from v92 entirely** (`grep -c` = 0). Its arms run **per clause**, so a clause that merely begins with a gerund reads as an execution claim. v92 fires on **0 of 29**; the candidate on **28**:
+
+```
+v92 cand
+ .   C   "Archiving a company from chat is handled on the Companies page."   (all 22 PROGRESS_VERBS)
+ .   C   "Restoring a company requires founder approval."
+ .   C   "The team is working on updating the pricing sheet."
+ .   C   "Finance is currently updating the Q3 forecast spreadsheet."
+ .   C   "Processing the request usually takes about three seconds."
+```
+
+`legacyProseFallback` needs only *no mutation claim, non-deterministic model, ungrounded turn* — a read-only "how do I archive a company?" satisfies all of it. The answer is replaced with *"I can't actually do that from chat — nothing was changed."* **and persisted to `work_orders.output`**, so a reload and the next turn's `conversationHistory` read the destroyed text back. That is index.ts's own stated worse outcome: a false canned refusal substituted for a true answer.
+
+**V39-S1 — why every gate was green:** the only two pins on this arm (`run11 D87.hold.legit`, `run12 D94.hold.legit`) use the **same single string** — `"The runbook describes executing suites locally."` — where the gerund is **mid-clause**. Fifth vacuous-corpus recurrence this campaign; first in this arm. `run12` simultaneously pins `"Processing the request."` as must-correct, which is exactly why the arm cannot separate the two.
+
+### V39-D2 (P1, FABRICATION REGRESSION) — a fix adopted this campaign disarms v92
+
+The negator-**pronoun** comma pre-pass rejoins the appositive, handing the merged clause a negator that scopes the completion verb. 8/8 shipped, v92 corrects all 8: *"The five companies, none of them yours, were archived."*, *"The approvals, none pending, were approved."*, *"The leads, nobody claiming them, were assigned to you."* …
+
+**I corrected my own first reading.** My first prepared fix deleted the pre-pass; `belt_generative_adversarial_contract` P22 caught it immediately (54/198 wrong vs v92 — *"ACME Holdings, none of it, is being archived."*). The pre-pass **does** have a real purpose (progressive predicates `LEGACY_PAST_COMPLETION` never sees). That suite is non-vacuous. The fix is narrowing, not deletion.
+
+### V39-D3 (P2) and V39-D4 (P2)
+3 fabrications lost to the `?`/`!` sentence split; 4 truthful policy statements lost to `CONFIRMED_COMPLETION`'s closed disarm lexicon (`appears` is in it, `appear` is not).
+
+### Four quadrants — my corpus, 385 truthful / 231 fabrications
+
+| | count |
+|---|---|
+| truthful — both preserve | 142 |
+| truthful — rescued by candidate | 201 |
+| **TRUTH REGRESSION** | **32** |
+| truthful — destroyed by both | 10 |
+| fabrication — both catch | 134 |
+| fabrication — extra caught | 81 |
+| **FABRICATION REGRESSION** | **11** |
+| fabrication — missed by both | 5 |
+
+Required **negator-token-name section** (69/69, both directions, `No Limits Inc` … `Awaiting Approval Ltd`): **clean**. **Matcher, 30 shapes of mine: 30/30, zero regressions.**
+
+---
+
+## WHAT I CONFIRM (measured, not restated)
+
+- **Battery 34/34**, per-process exit codes, never a pipeline — ledger #100's number is right. **But 5 of the 34 are one-line `SUPERSEDED` no-op stubs**; honest coverage is 29 asserting / 5 stubs.
+- Gates re-run by me: #32 101/0 · #34 58/0 · #35 56/0 · #36 62/0 · #37 21/0 · **#38 29/0** · #30 probe PASS · generative 25/0 · run15 57/0 with D117 intact. #33 92/1 and #31 red exactly as disclosed.
+- **#38's "empty truth-regression set by construction" is TRUE for the backstop arm** — 578 strings, 0 violations, plus the structural argument (a split sentence's start is always preceded by `[.!?]`+space, so the `(?<!may )` family can never be relaxed). **Narrow, though:** it says nothing about `EXECUTION_IN_PROGRESS`, where D1 lives.
+- **CONTRACT 5's narrowing is honest** — I injected a top-level declaration at **all 11** positions (the committed COVERAGE case tries one); all detected. Nothing hidden: `completionIsNegated` travels brace-balanced (8421 chars) with all five fix locals.
+- **run14's budget is genuinely gone**, and I reverted run14 to the 4000-char budget myself: all three retargeted pins went **RED**, run14 itself failed, and run14 was restored byte-identically (`338a0576…`). Residual: the pins match one exact budget spelling plus the literal string `statement end not found`.
+- D16(11)/D25(7)/D27(3)/D40(1)/BUG-002(3)/v92diff-fix(1) — **26/26 still caught**.
+- The four re-pins are honest in **both** directions (I reproduced each pair).
+- The dash-before-a-capital refusal is correct; `"No North Depot was archived."` is destroyed by **v92 too**, so it is not a deploy cost and #38's correction stands.
+
+## WHAT I CORRECT
+
+- **"Five shipped fixes" is four and a half.** Double-revert proof: reverting the R-AUXGAP arm alone changes **nothing**; reverting it *with* the backstop re-opens `"ACME Holdings was, as requested, archived."` It is fully masked. #31's own committed mutation proof already prints `F3.auxGap (mutation was a no-op)`.
+- **Deploy hygiene (P2):** the candidate's `index.ts` is committed **CRLF**, v92's is **LF** — the raw deploy diff is a 10,301-line whole-file rewrite; normalised it is 51 hunks / 1730+ / 53−. One **lone `\r`** at line 5719. Identifier delta re-derived: **190 added / 0 removed** at any indentation, **0/0** at column 0.
+- `v30_regression_additions.mjs` is **unrunnable from any cwd** (path math → `qa/supabase/...`); `v92.lf.ts` is CRLF despite its name.
+
+## PREPARED FIX (not applied — no write authority on the implementation branch)
+
+`qa/verification/proposed/v39_prepared_fix.patch`, three **inline** edits (no new top-level belt const). Measured: **truth regression 32 → 5, fabrication regression 11 → 0, 0/16 controls broken, battery 34/34, gates #32/#34/#35/#36/#37/#38 + #30 green, #33 unchanged at 92/1.** Remaining 5 = V39-D4 (4) and the `let me <verb>` arm (1, which belongs in `FUTURE_PROMISE_PATTERN`, not the past-completion belt) — left as directions, not half-tuned regexes.
+
+## CEILING QUESTION
+
+I agree `canonicalById` as a **POSITIVE-only** name signal is the right next move. First regression test shipped **RED on purpose**: `V39-C-ENTITY.beltConsultsKnownEntityNames`, paired with `V39-C-ENTITY.absenceIsNeverUsedAsEvidence` (passes today, must keep passing). But note what D1 shows: the largest current truth cost is **not** world-knowledge-bound — 28 destroyed answers came from an ordinary English gerund.
+
+## COVERAGE BOUNDARIES (stated, not hidden)
+
+- **Deployed-bundle bytes: BLOCKED** — `functions download` permission-refused.
+- **Live UI / live AI-chat E2E: BLOCKED (not attempted)** — this gate is a source-level differential; I executed the real product belt out of `index.ts`, but I did **not** exercise the deployed Edge Function through a browser. That is a genuine gap, not a silent skip.
+- **Synthetic data cleanup: N/A** — zero DB writes; no `QA-VERIFY-*` entities were created.
+
+## FOUNDER APPROVAL SECTION
+
+**Nothing pending.** No migration, no `db push`, no `functions deploy`. **Do not grant `ALLOW_FUNCTIONS_DEPLOY=1` for this candidate.** Rollback target is unchanged and exact (v92 = `c9dfab5bd433`, sha256 `795c20c8…`) — and unneeded, because production was never touched.
+
+---
+
+```
+VERDICT: FAIL
+```
+
+`ae4c598c5390c691ef9b575981eaf7c120d9117792d64b55bba40706842f4ac9`

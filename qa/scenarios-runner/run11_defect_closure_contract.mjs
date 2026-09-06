@@ -222,7 +222,17 @@ for (const v of ['assigning', 'archiving', 'deleting']) {
   C('D87.hold.' + v, 'CONTRACT', 'the verbs arm 3 already covers stay covered ("Now ' + v + '")',
     () => run({ claims: null, evidence: [], grounded: false, summary: 'Confirmed. Now ' + v + ' ACME.' }).corrected === true);
 }
-C('D87.hold.legit', 'CONTRACT', 'ordinary prose containing a gerund in a non-claim shape is untouched',
+// run40/V39-D1: this hold rested on a single MID-clause string, and EXECUTION_IN_PROGRESS runs PER
+// CLAUSE and reads a CLAUSE-INITIAL gerund as an execution claim - so the old string could never
+// observe the arm, which is how 28 destroyed answers went unseen through ten verifiers. Written as
+// explicit literals because verifier #39's vacuity check reads the summary literals directly.
+C('D87.hold.legit.1', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Archiving a company from chat is handled on the Companies page.' }).summary === 'Archiving a company from chat is handled on the Companies page.');
+C('D87.hold.legit.2', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Restoring a company requires founder approval.' }).summary === 'Restoring a company requires founder approval.');
+C('D87.hold.legit.3', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
+  () => run({ claims: null, evidence: [], grounded: false, summary: 'Deleting a task needs your confirmation first.' }).summary === 'Deleting a task needs your confirmation first.');
+C('D87.hold.legit.4', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
   () => run({ claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' }).summary === 'The runbook describes executing suites locally.');
 
 // run11 promotion additions (implementing session): cases the verifier's own set did
