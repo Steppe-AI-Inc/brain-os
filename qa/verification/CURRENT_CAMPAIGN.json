@@ -1,10 +1,10 @@
 {
-  "campaign": 104,
-  "verifier": 44,
+  "campaign": 105,
+  "verifier": 45,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "3e56dbd163bbfc89",
+  "index_sha256_prefix": "6c5e52b52f1a8366",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -54,11 +54,12 @@
     "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
   },
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
-  "LESSON_ADDED": "Seventh vacuity, and it was in the suite designated as the only measurement of the newest mechanism. JavaScript does not check arity: a four-parameter assertion helper called with five arguments evaluates the DESCRIPTION as the condition and passes unconditionally. A green suite is not a measurement.",
+  "LESSON_ADDED": "#44: every guard on the gerund arm is anchored to a clause-initial gerund, so one leading adverbial walks past all three. The shape that is tested is the shape that is guarded. Also the eighth vacuity, and the first that is a coverage hole rather than a false green: three suites never had the seed the record claimed they all had, and the fuzz contract meant to notice used an alphabet that cannot spell the word it needed.",
   "gates_on_committed_candidate": {
-    "battery": "36 files, 0 failing — GREEN FOR THE FIRST TIME",
+    "battery": "36 files, 0 failing",
+    "v44": "115/3 (the three let-me rows, open for the founder)",
     "v43": "40/0",
-    "v42": "12/1 (empty-pack configuration by construction; 0/48 destroyed with the pack populated)",
+    "v42": "12/1 (empty-pack configuration)",
     "v41": "22/0",
     "v40": "77/0",
     "v39": "21/0",
@@ -71,11 +72,18 @@
     "v32": "101/0",
     "v31": "33/1 non-blocker",
     "v30": "25/1 non-blocker",
-    "mutation": "3/3 load-bearing, 0 no-ops",
     "deno": "23 == baseline",
     "crlf": "5998/5998, 0 bare LF"
   },
-  "open_deploy_blockers": [],
+  "open_deploy_blockers": [
+    {
+      "id": "V44-D3.letMeDeferredOffer",
+      "rows": "39 generated, 3 pinned",
+      "example": "Let me archive the company once you confirm.",
+      "direction": "v92 preserves, candidate destroys",
+      "status": "FOUNDER DECISION, not a defect. Verifier #44 declined to fix it: whether the imminent arm should fire on an offer explicitly conditioned on the founder confirmation is a product question."
+    }
+  ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
     "V43-D1: 672 of 784 truthful answers rescued with NO world knowledge — the \"world-knowledge-bound\" claim is refuted",

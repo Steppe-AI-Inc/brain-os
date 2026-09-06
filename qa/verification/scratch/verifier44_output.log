@@ -1,0 +1,84 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #44 — CAMPAIGN #104 — FINAL REPORT
+
+**CHANGE VERIFIED:** candidate `3f6e05cfb751aeaac5796defd10c37ea24075bf8` as a production deploy over deployed Edge Function v92 (`sem-ai-command`, project `pvphxgrtdfrudejjhzjk`).
+
+## STEP 1 — production bytes
+
+| | |
+|---|---|
+| Deployed v92 | git `c9dfab5bd433`, index.ts sha256 `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`, 321,370 bytes |
+| Confirmed by me | `git show c9dfab5bd433:…` hashes to `795c20c8…` and is **byte-identical** to all three committed reference copies (`index.v92.ts`, `v92.lf.ts`, and my own extraction) |
+| Provenance level | **git → reference-copy byte-direct.** Live→git inherited from ledger #108 — `supabase functions download`/`list` are refused by this session's command classifier, as the prompt anticipated. Not re-opened, not overstated. |
+| Candidate | index.ts sha256 `3e56dbd163bbfc89…` at start **and at end**, tree clean, never modified. |
+
+## VERDICT
+
+**FAIL**
+
+## STEP 5 — deployability call
+
+**Candidate `3f6e05c` is NOT fit to deploy over v92.** Four classes of truthful answer that deployed v92 preserves are destroyed, and two classes of fabrication that deployed v92 corrects are shipped. Under the stated bar ("if any truthful answer v92 preserves is destroyed, or any fabrication v92 corrects is shipped, that is a FAIL"), this fails on both halves. Do not ask `ALLOW_FUNCTIONS_DEPLOY=1`. **EDGE STATUS = NOT DEPLOYMENT READY.**
+
+## What I found (all on a corpus I built myself: 3,952 template rows over four name halves + 484 generated product-help rows)
+
+| id | class | direction | size |
+|---|---|---|---|
+| **V44-D1** P1 | `Now`/`Currently` + gerund product help | **truth destroyed** | **352 / 352** |
+| **V44-D2** P1 | `working on <gerund>` with any subject | **truth destroyed** | **66 / 66** |
+| V44-D3 P2 | `let me <verb>` deferred offer (`…once you confirm`) | truth destroyed | 39 / 39 |
+| V44-D4 P2 | `(is\|are) (being\|getting) <participle>` as a state | truth destroyed | 27 / 27 |
+| **V44-D5** P1 | coordinated negator-initial NAME — `"No Limits Inc and Beta Corp were archived."` | **fabrication shipped** | 13 / 15 names |
+| **V44-D6** P1 | mid-clause negator-initial NAME/title — `"The approval for Pending review of the Q3 ledger has been approved."` | **fabrication shipped** | 6 rows |
+| V44-D7 P2 | 3 of 13 belt suites never inject `knownEntityNames`; run28's never-throws fuzz alphabet cannot spell `Confirmed` | suite integrity | 8th vacuity |
+
+**D1/D2 are ledger #39's class recurring.** Every guard #39 and #40 installed is anchored `^\s*<gerund>`; a single leading adverbial walks past all three. `"Now archiving is only available from the Companies page."` becomes *"I can't actually do that from chat — nothing was changed."*
+
+**D5 refutes a live closure claim.** `v92_open_regression_contract`'s `D-V92-R1 … closed (0 of 7 ship)` is measured on seven **simple-subject** rows. A coordinator breaks `nameInternal`'s contiguous-capitalised-run test and the class re-opens.
+
+## STEP 3d — the green was the reason for suspicion, and it held up
+
+Answering "there are no known open blockers — find one": the battery is genuinely 36/0 and every one of the fifteen verifier gates sits exactly where the handoff predicted. **The same candidate destroys 484 of 484 generated truthful product-help sentences.** The gates are green on their corpora, not on their classes.
+
+## Confirmed clean — re-derived, not restated
+
+- **Q5** ledger #64 D16, #65 D25, #65 D27 (production row 9dda919c), #66 D40, BUG-002: **28 shapes I re-typed, 28 caught, 0 regressions.** Genuinely closed.
+- **Matcher:** 32 disambiguation shapes I chose: 32/32 correct, **0** v92-DEAD-END → candidate wrong-intent SELECT. The candidate also *fixes* a v92 prototype-pollution bug (`actionType:"constructor"`).
+- **Mutation proof:** 21 reverts, **0 dead fixes.** Five looked like no-ops on the base corpus and each was then proven load-bearing on a targeted probe (`relInternal` 3/8, `quotedHead` 3/6, V43-D6 second-sentence 3/6, modal blanking 7/8, bare idiom strip 1/6).
+- **STEP 4 CONTRACT 5 narrowing: sound.** The hazard is specific and real; the narrowing carries two coverage assertions I re-ran (an injected top-level `const nx` IS caught, an injected local is not). It hides nothing.
+- **run18/run19/run28 re-pins: honest.** Each pins the fabrication *and* the paired real name; I confirmed the paired names independently (negname truth-regression quadrant = 0).
+- **run14/D107:** the "2000→2600 window" description is stale — run39 deleted the budget and installed a real statement scanner that throws rather than truncating.
+- **run15 57/0, D117 no-whole-span-lookahead: confirmed.** Battery re-derived per-process: **36 files, 0 failing** (31 asserting + 5 SUPERSEDED stubs, 1,192 assertion lines).
+- **The three shapes the session says it REFUSED to close are all in fact caught.** The refusal disclosure is stale.
+- **`"No North Depot was archived."`** — the session's argument that it is indistinguishable from `"No Limits Inc was archived."` is **correct**; both readings are real, deployed v92 destroys it too. Not a regression, not a blocker.
+
+## STEP 2 Q1/Q3/Q6/Q7
+
+- Only one file changes under `supabase/functions/`. LF-normalised diff: **52 hunks, 1,738 added, 52 removed**. Declaration delta **204 added, 0 removed** (486→690, re-derived; ledger #90's count superseded).
+- **P3 deploy-surface finding:** the candidate's git blob is **100% CRLF**; v92's is **100% LF**, with no `.gitattributes` rule for the path. No functional risk found (no `new RegExp(\`…\`)`, no `split('\n')` anywhere in the file), but the post-deploy byte check would pass only via LF-normalisation and the pinned sha becomes `core.autocrlf`-dependent — the exact fragility this repo already added `.gitattributes` entries to fix elsewhere.
+- **Q3:** no declaration removed, but v92's `&& !result.pendingAction` gate exemption is deliberately gone (run8/D59), so every truth regression above also applies on clarification/disambiguation turns where v92 never runs the gate. The suite named for that class is a SUPERSEDED stub.
+- **Q6 rollback:** exact and available — `git c9dfab5bd433`, sha256 `795c20c8…`, taken from git.
+
+## FIX PREPARED (never applied — index.ts byte-preserved)
+
+`qa/verification/scratch/v44/v44_build_fix.mjs` → `fix44.ts`. Five belt edits, no new declaration.
+**Measured:** truth regression 35 → **0**; fabrication regression 19 → **6**; generated corpus 484 → **48**. **Every gate holds at its exact current number** (battery 36/0, v30–v43 all identical) and three extra fabrications are newly caught. My own gate: **67/51 on the candidate → 108/10 on the fix.**
+
+## Not measured — real coverage gaps, not skipped
+
+- **`deno check` — BLOCKED.** No `deno` on PATH; `npx deno@2 check` refused by the classifier. **The 23-error baseline is unverified by me.** I did confirm no inline modifier group, that every belt regex constructs in V8, and that the predicate survives 4,000 fuzzed strings *including* the `Confirmed —` shapes run28's own fuzz cannot reach.
+- Live `functions download`/`list` — BLOCKED (classifier); provenance inherited per ledger #108.
+- No browser, no live Edge invocation, no database. Source differential end to end. No `QA-VERIFY-*` data was created, so there is nothing to clean up.
+
+## Artifacts — committed to `verify-3f6e05c-campaign104` (commit `83a283c`)
+
+`qa/verification/proposed/v44_known_failure_modes_entry_110.md` · `v44_PROMOTION_NOTE.md` · `v44_regression_additions.mjs` (118 checks, exits nonzero on any failure, locates index.ts from `SEM_INDEX_SRC` or any cwd) · `qa/verification/scratch/v44/` (harness, corpus, four-quadrant measurement, mutation proof, six adversarial probes, prepared fix + builder) · `CURRENT_CAMPAIGN.json` checkpointed.
+
+---
+
+**VERDICT: FAIL**
+
+`3e56dbd163bbfc89ae1a9107763dee2eea684dabedfa7301fcb40d21bc2ca717`

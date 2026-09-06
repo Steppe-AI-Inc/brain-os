@@ -26,6 +26,14 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
+
+// Verifier #42's ruling: every extractor injects the entity-name set as an EMPTY Set by default,
+// so a name being ABSENT proves nothing and the belt's positive-only signal is inert here. This is
+// what makes "an empty set produces byte-identical verdicts" the structural default of the whole
+// battery rather than a control someone has to remember to run. `new Function` bodies execute in
+// global scope, so this one assignment reaches every belt-build site in this file.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC
   // run30/V30-F2: this file sits in qa/scenarios-runner, so the repo root is TWO levels up, not
@@ -299,9 +307,18 @@ console.log('\n--- [CONTRACT] structural invariants');
   check('CONTRACT', 'noInlineModifierGroup ((?i:)/(?-i:)) outside comments', !/\(\?-?i:/.test(noComments));
   // fuzz: the predicate must never throw on arbitrary founder-facing prose.
   let threw = 0;
-  const chars = 'abcXYZ .,;:—-()\'"0123456789\n\t?!';
+  // v44/V44-D7: this alphabet was 'abcXYZ .,;:—-()\'"0123456789\n\t?!' — 32 characters that CANNOT
+  // SPELL "Confirmed". This contract's job is to prove the predicate never throws, and the only
+  // shape that CAN throw is the `Confirmed — <Participle> <Name>` family the entity signal reaches.
+  // The fuzz therefore could not reach the one input it existed to cover. Eighth vacuity of the
+  // campaign, and the first that is a coverage hole rather than a false green.
+  // The alphabet now spans the full lowercase range and the capitals that open a participle, and the
+  // seeded prefixes make the family reachable BY CONSTRUCTION rather than by luck — random strings
+  // over any alphabet essentially never spell a specific ten-letter word.
+  const chars = 'abcdefghijklmnopqrstuvwxyzACDRSMEG .,;:—-()\'"0123456789\n\t?!';
+  const SEEDS = ['Confirmed — Archived ', 'Confirmed - Removed ', 'Confirmed — Sent ', ''];
   for (let i = 0; i < 2000; i++) {
-    let s = ''; const n = 1 + Math.floor(Math.random() * 90);
+    let s = SEEDS[i % SEEDS.length]; const n = 1 + Math.floor(Math.random() * 90);
     for (let j = 0; j < n; j++) s += chars[Math.floor(Math.random() * chars.length)];
     try { belt.readsAsCompletion(s); belt.completionIsNegated(s); } catch { threw++; }
   }

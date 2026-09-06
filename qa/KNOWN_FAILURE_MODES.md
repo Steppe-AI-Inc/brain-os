@@ -14155,3 +14155,77 @@ deno 23 == baseline; CRLF 5,998 / bare LF 0.
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #43's
 FAIL stands against `0007a02` and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 110. VERIFIER #44 FAIL CLOSED — a leading adverbial walks past every gerund guard, and three suites never had the seed I said they all had
+
+Verifier #44 returned **FAIL** on `3f6e05c` / index.ts `3e56dbd1`. Fifteenth consecutive FAIL, and the
+first against a candidate with an empty blocker list and a fully green battery. It built its own
+corpus — 3,952 template rows across four name halves plus 484 generated product-help rows — and the
+green separated immediately: **35 truthful and 19 fabrication rows moved the wrong way, and 484 of
+484 generated product-help sentences deployed v92 preserves were destroyed.**
+
+**V44-D1 (P1) — `Now`/`Currently` + gerund. 352 of 352 destroyed, 0 by v92.** Every guard #39 and #40
+installed on this arm is anchored `^<gerund>`, so a single leading adverbial walks past all three.
+`"Now archiving is only available from the Companies page."` was replaced with the canned refusal.
+**Third recurrence of the class this ledger already carries twice.**
+
+**V44-D2 (P1) — `working on <gerund>` with any subject. 66 of 66.** No subject test at all, so
+somebody else's work reads as this turn executing. Guard 1 rescues only the clause-initial form —
+*the shape that is tested is the shape that is guarded*, which is why it went unseen.
+
+**V44-D3 (P2) — `let me <verb>` on a DEFERRED offer. 39 of 39. THIS ONE IS THE FOUNDER'S.**
+`"Let me archive the company once you confirm."` Deployed v92 preserves all 39. #44 declined to fix it
+and said so plainly: whether that arm should fire on an offer explicitly conditioned on the founder's
+confirmation is a product decision, not a regex one. **It is the only remaining failure and it is
+open on purpose.**
+
+**V44-D4 (P2) — `(is|are) (being|getting) <participle>` as a generic habitual. 27 of 27.**
+**V44-D5 (P1) — coordinated negator-initial name. 13 of 15 leak.** `nameInternal`'s subjectRun needs a
+contiguous capitalised run; a coordinator breaks it. `v92_open_regression_contract`'s
+`D-V92-R1 … closed (0 of 7 ship)` was measured on **seven simple-subject rows** — the seventh time a
+closure claim was true of its corpus and false of its class.
+**V44-D6 (P1) — a negator-initial title that is not clause-initial.** `titleHead` fires only
+clause-initially, and `adjective` and `detName` need the determiner immediately before, so an ordinary
+title like *Pending review of the Q3 ledger* satisfies none of them and any completion claim about it
+is uncatchable.
+
+**V44-D7 (P2, THE EIGHTH VACUITY, AND A CORRECTION OF MY OWN RECORD).** Ledger #107 and the campaign
+record state that *"EVERY extractor injects it as an EMPTY Set by default."* **False.** `run18`,
+`run28` and `v92_open_regression_contract` build the belt with no seed and throw `ReferenceError` on
+the whole `Confirmed — <Participle> <Name>` family — proven, not inferred. They pass today only
+because none of them contains a row of that shape. And run28's *"predicate never throws (2000-case
+fuzz)"*, the contract whose job is to notice, used a 32-character alphabet that **cannot spell the
+word "Confirmed"**. First vacuity in this campaign that is a coverage hole rather than a false green.
+The three seeds are added; run28's alphabet now spans lowercase plus the capitals that open a
+participle, and the family is seeded **by construction**, because random strings over any alphabet
+essentially never spell a specific ten-letter word.
+
+**#44's FIVE-EDIT FIX IS ADOPTED** and reproduces its own build byte-for-byte (`d7afe7b2`): both
+`^`-anchored product-help guards take an optional leading adverbial, the `working on` arm is bound to
+a first-person subject or the clause head, the passive-progressive arm gets a relative-clause
+lookbehind, `subjectRun` tolerates a coordinator inside the capitalised run, and `detName` sees a
+determiner plus noun head. Truth regression 35 to 0, fabrication 19 to 6, the 484-row corpus 484 to 48.
+
+**TWO OF THE FOUR REMAINING GROUPS CLOSED HERE, both measured.** V44-D6: a capitalised
+`Pending`/`Awaiting` directly after a preposition heads a NAME, exactly as `titleHead` already treats
+the clause-initial case — the position changes, the reading does not. **4 fabrication regressions to 0.**
+V44-D4: a passive whose agent is STATED and is not this turn is not a claim that this turn did it.
+**27 to 0.** Both mutation-proven load-bearing.
+
+**AND THE CAMPAIGN'S OWN MACHINERY CAUGHT ME MAKING #40's MISTAKE.** My first D4 guard listed
+`by (?:the|a|an|our|their|its|[A-Z])` inside `EXECUTION_IN_PROGRESS`, which is built with the `i`
+flag — so the `[A-Z]` was case-folded to *any letter* and the guard would have stood down on `"by me"`
+too, the exact opposite of its purpose. Verifier #41's `V41-C6` contract went red within one run.
+**Under `/i` no explicit capital test can work at all**, so the agent list is determiners only.
+A second error the same round: my first anchor for that guard was the tail `|moved|granted|declined)`,
+which the `was|were` branch **also** ends with, so the lookahead landed on an alternation nobody meant
+to touch while the target still fired. **An anchor that matches the wrong site is not a weaker fix,
+it is a different one.**
+
+EVIDENCE on the new candidate `6c5e52b5`: battery **36 files / 0 failing**; #44's gate **115 passed /
+3 failed** (the three `let me` rows, open for the founder); #43 40/0; #42 12/1; #41 22/0; #40 77/0;
+#39 21/0; #38 29/0; #37 21/0; #36 61/0; #35 55/0; #34 57/0; #33 93/0; #32 101/0; v30 25/1 and v31
+33/1 (non-blockers); deno 23 == baseline; CRLF 5,998 / bare LF 0; both new edits mutation-proven.
+
+STATUS: NOT DEPLOYMENT READY. One open group, and it is a product question for the founder rather
+than a defect. Production remains v92; rollback c9dfab5b from git.

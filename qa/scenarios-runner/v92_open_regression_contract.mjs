@@ -22,6 +22,14 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+
+// Verifier #42's ruling: every extractor injects the entity-name set as an EMPTY Set by default,
+// so a name being ABSENT proves nothing and the belt's positive-only signal is inert here. This is
+// what makes "an empty set produces byte-identical verdicts" the structural default of the whole
+// battery rather than a control someone has to remember to run. `new Function` bodies execute in
+// global scope, so this one assignment reaches every belt-build site in this file.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
 if (!existsSync(SRC)) { console.log('FAIL  cannot locate index.ts at ' + SRC); process.exit(1); }
