@@ -13661,3 +13661,66 @@ EVIDENCE on the new candidate 30d3a640: battery 34 suites / 0 failures; #40's ow
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #40's FAIL
 stands against 4cf2a88 and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 103. THE LESSON FROM #40 APPLIED MECHANICALLY — TWO MORE BLOCKERS WERE SITTING IN THE DISCLOSURE LIST
+
+Verifier #40's finding was that a deploy blocker had been mis-filed as a disclosed residual and
+survived four verifiers that way. Rather than record that as a lesson, it was turned into a suite:
+`qa/scenarios-runner/standing_reds_classification_contract.mjs` takes every shape this ledger has
+ever labelled "disclosed", "residual", "shared with v92" or "known truth cost", **ignores the label**,
+and re-derives the classification from the deploy rule alone. It found **two more blockers** in the
+disclosure list on the very first run, both carried since verifier #37.
+
+**BLOCKER A — `"No errors node.js was archived."` — v92 CORRECTS it, the candidate SHIPS it.**
+Labelled "disclosed residual (#37)". It is not one row. Generated across 5 filler negators, 6
+participles and 6 bare lowercase names: **180 of 180 shipped**, with the capitalised control at 0 and
+the truthful control at 0. Root cause: the `newSubject` arm ends a negator's scope only when the new
+subject is CAPITALISED or DETERMINER-headed, so a bare lowercase name is swallowed by the negator.
+
+**CLOSED, and the closure took four wrong turns, every one caught by measurement rather than review:**
+1. A multi-word lowercase alternative is greedy and swallows the negated phrase's own head noun with
+   the second subject, leaving a zero-length span. All 180 still shipped and it read as "no change".
+2. A non-empty-span guard destroyed four truthful shapes the committed gates hold, among them
+   `"Hardly any records were deleted."` and `"No record we found was archived."`
+3. Scoping that guard by a second determiner list let `"that was"` through as a subject and destroyed
+   `"There is no company that was archived today."` — v35's V35-F7 control caught it.
+4. Applying the guard to EVERY subject match re-opened **V40-D4**, the blocker verifier #40 had just
+   closed, plus five more. **A widening must be additive: it may admit new matches, never remove
+   existing ones.** The final form excludes function words inside the new alternative and scopes the
+   span test by the SHAPE of the match, so exactly one list exists and the other two arms are
+   untouched. 180 → 0, both controls 0, battery clean, every verifier gate green, deno 23 == baseline.
+
+**BLOCKER B — `"Confirmed - Archived Media Group. It is still active."` — v92 PRESERVES it, the
+candidate DESTROYS it, and the false refusal it substitutes is persisted to `work_orders.output`.**
+Labelled "disclosed open (#37)". A structural guard was built and **refuted by measurement**: it
+closes the truth blocker and simultaneously re-opens fabrications v92 corrects — v38's D6 (a
+ledger-closed production shape), v35's F5 (4 shipping end-to-end), v36's F2 controls, v37's, v39's D4
+and v40's D2. Seven battery suites and six gates. `"Confirmed - Archived ACME."` and
+`"Confirmed - Archived Media Group."` are the same surface string with different referents.
+**Verifier #37 said this class needs the entity list rather than a regex, and this is the measurement
+that proves it rather than a restatement of the claim.** The refuted edit is kept behind
+`V41_CONFIRMED_NAMEPHRASE=1` in the builder so the refutation is reproducible, not remembered.
+
+**CONSEQUENCE, AND IT CHANGES THE PLAN.** The structured-evidence work — `canonicalById` at
+index.ts:4769 as a POSITIVE-only name signal, which verifier #39 pinned as the deliberately-red
+`V39-C-ENTITY.beltConsultsKnownEntityNames` — is **no longer the agreed next improvement. It is on
+the critical path to deploy**, because a truthful answer deployed v92 preserves cannot be rescued
+without it and the deploy rule does not permit shipping that.
+
+**THE NEW SUITE IS RED ON THE COMMITTED CANDIDATE AND SAYS SO IN THOSE WORDS.** Its failure text
+states DEPLOY IS BLOCKED and explicitly refuses the phrase "disclosed residual" for its own output,
+because that sentence is what let a blocker sit red through four verifiers.
+
+**TWO PROCESS TRAPS RECORDED AGAINST MYSELF THIS ROUND.** A shell heredoc ate one level of
+backslashes again, so every `\s` and `\w` in a probe's CONSTRUCTED regexes became a literal letter;
+both guards matched nothing and the measurement returned "the guard changes nothing", which is
+indistinguishable from an honest null result. Caught only by comparing against an equivalent regex
+LITERAL. Probes now carry self-checks that fail outright if a guard matches nothing. Separately, a
+replacement STRING ending in `*$')` contained `$'`, which `String.replace` expands to the rest of the
+input, silently splicing a second copy of the whole file in; the only symptom appeared much later as
+a staleness check counting 4 linker lists where there are 2. **Replacer functions, never replacement
+strings.**
+
+STATUS: index.ts is UNCHANGED and verifier #41 is running against `884567a`. The prepared fix for
+blocker A lives in `qa/verification/scratch/v92/fix_lowercase_subject.ts` and is applied only after
+#41 returns, merged with whatever it finds. Production remains v92; rollback c9dfab5b from git.
