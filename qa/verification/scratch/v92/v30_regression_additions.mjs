@@ -23,7 +23,7 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../../supabase/functions/sem-ai-command/index.ts');
+const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../../../supabase/functions/sem-ai-command/index.ts');
 if (!existsSync(SRC)) { console.log('FAIL  cannot locate index.ts at ' + SRC); process.exit(1); }
 const TEXT = readFileSync(SRC, 'utf8').replace(/\r\n/g, '\n');
 
