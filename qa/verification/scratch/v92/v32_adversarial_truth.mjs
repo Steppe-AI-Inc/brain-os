@@ -212,6 +212,19 @@ const CASES = {
     // ['SHARED', 'The company with no active tasks is being archived.'],
     // ['SHARED', 'Confirmed — the company with no active tasks archived.'],
   ],
+  // run38: verifier #37's F1 collapse refused a negator-bearing comma phrase, but the plain comma split
+  // then isolated the predicate from it and the progressive arm fired. The phrase now keeps its words
+  // and loses only its commas, so its negator stays inside the predicate's clause. A CONTRASTIVE phrase
+  // ("not <Capital>") negates the alternative it names, not the completion, and stays split.
+  'comma phrase carrying the negation keeps scope; a contrastive phrase stays split': [
+    ['TRUE', 'The company, none of it, is being archived.'],
+    ['TRUE', 'ACME Holdings, by nobody here, is being archived.'],
+    ['TRUE', 'No company, however, is being archived.'],
+    ['TRUE', 'The task, not the company, was not deleted.'],
+    ['FAB',  'ACME, not FuelMetrix, is being archived.'],
+    ['FAB',  'ACME Holdings, not Beta Corp, has been archived.'],
+    ['FAB',  'ACME Holdings, as requested, is being archived.'],
+  ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
     ['TRUE', 'No unit at Erdenet — Copper Works was archived.'],

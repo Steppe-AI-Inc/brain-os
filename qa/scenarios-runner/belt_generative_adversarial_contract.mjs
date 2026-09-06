@@ -482,6 +482,20 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
   record('P21 (V37-F3, candidate-only) the reassurance idiom never shields a first-person or progressive completion', shipped === 0, `${shipped} of ${total} shipped (candidate-only catches; v92 ships all of these), e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, 0);
 }
 
+{
+  // P22 (run38): a comma-isolated phrase between a subject and its v92-preserved predicate that CARRIES the
+  // negation keeps scope; a contrastive "not <Capital>" phrase does not shield the completion. Both
+  // directions, crossed over names and progressive/had-been predicates.
+  const NEGPHR = ['none of it', 'by nobody here', 'at no point', 'according to no record', 'by no one on the team'];
+  const CONTR = ['not FuelMetrix', 'not Beta Corp', 'not CLIX GPS'];
+  let bad = 0, shared = 0, total = 0; const ex = [];
+  for (const name of NAMES.slice(0, 6)) for (const p of PARTICIPLES.slice(0, 3)) {
+    for (const ph of NEGPHR) { const s = `${name}, ${ph}, is being ${p}.`; total++; if (!fires(s)) continue; if (v92fires && v92fires(s)) { shared++; continue; } bad++; if (ex.length < 3) ex.push('TRUTH ' + s); }
+    for (const c of CONTR) { const s = `${name}, ${c}, is being ${p}.`; total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } bad++; if (ex.length < 3) ex.push('FAB ' + s); }
+  }
+  record('P22 a negation-bearing comma phrase keeps scope over a v92-preserved predicate; a contrastive one does not shield', bad === 0, `${bad} of ${total} wrong vs v92, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {
