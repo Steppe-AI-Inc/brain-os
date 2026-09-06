@@ -315,8 +315,13 @@ console.log('\n--- [DEFECT] D187 (P3): run18 D134 newline coverage is vacuous');
   // run36: verifier #35's C1 splice made a period a boundary only before whitespace/end, so the
   // splitter text this anchor pinned no longer exists. Re-anchored on the new text; the mutant still
   // removes ONLY the newline from the boundary class, which is what this check exists to observe.
-  const NEEDLE = String.raw`(?:[!?,\x3b\n]|\.(?=\s|$))+|:\s|\s(?:and|but)`;
-  const mutated = TEXT.replace(NEEDLE, String.raw`(?:[!?,\x3b]|\.(?=\s|$))+|:\s|\s(?:and|but)`);
+  // run42: the and/but alternative gained a `(?<!\bgoing ahead)` lookbehind, so an anchor that
+  // reached across it stopped matching. RE-ANCHORED, which is exactly what this check's own failure
+  // message asks for, and deliberately SHORTER than before: it now pins only the boundary CLASS,
+  // which is the thing the assertion is actually about. The mutant still removes ONLY the newline
+  // from that class, so the property being observed is unchanged.
+  const NEEDLE = String.raw`(?:[!?,\x3b\n]|\.(?=\s|$))+|:\s`;
+  const mutated = TEXT.replace(NEEDLE, String.raw`(?:[!?,\x3b]|\.(?=\s|$))+|:\s`);
   if (mutated === TEXT) {
     check('CONTRACT', 'D187 harness: the belt clause splitter anchor is still present', false,
       'anchor not found — re-derive this check rather than deleting it');

@@ -13826,3 +13826,114 @@ output are explicitly not verdicts. The watchdog's own logging is a real defect 
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #41's
 FAIL stands against `884567a` and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 106. VERIFIER #42 FAIL CLOSED — the imminent arms had never been guarded at all, and a correction of ledger #104
+
+Verifier #42 returned **FAIL** on candidate `4f35700` / index.ts `ed3983df`. Thirteenth consecutive
+FAIL. Own corpus: 669 truthful negatives / 259 fabrications, generated from its own pools with the
+labelled negator-token-NAME section in both directions: **135 truth regressions, 0 fabrication
+regressions**, 230 truths rescued vs v92, 76 extra fabrications caught.
+
+**V42-D1 (P1, DEPLOY BLOCKER) — the `EXECUTION_IN_PROGRESS` imminent arms have no subject guard.**
+```
+"You are about to archive ACME Holdings — this cannot be undone."     v92 preserves — candidate DESTROYS
+"The finance team is in the process of updating the company."         v92 preserves — candidate DESTROYS
+"Are you about to archive ACME Holdings? I cannot do that from chat." v92 preserves — candidate DESTROYS
+```
+140 realistic guidance sentences generated across second person, third person, conditional and
+interrogative: **98 destroyed, 49 of 70 in EACH half.** v92 preserves all 140. The class is **not**
+casing-dependent, so #41's proper-name lesson neither explains nor covers it. The three guards on
+this arm all require a clause-initial gerund or `<Subject> is <gerund>`, and an imminent match is
+neither, so **not one of them can fire**. The arms were added at run12/D94 and had never been guarded.
+The last row is the sharpest: a **correct refusal** was replaced by the canned refusal and persisted.
+
+**THE SIXTH VACUITY, PROVEN BY GREP.** The only imminent-arm coverage in the entire estate — 35
+suites plus twelve gates — is `run12_defect_closure_contract.mjs:202-203`, and all of it is
+first-person fabrications that must be CAUGHT. **Not one row anywhere generated the truth direction
+of the class.** run40 added `D94.hold.legit` after #39, but only for the GERUND arm.
+
+**V42-D2 (P1) — the participle-initial-name shape is a CLASS, not the one disclosed row.** 48 of 48
+generated rows, 614 of 654 in the wider probe. Its third member is a **QUESTION**
+(`"Confirmed - Archive Archived Media Group?"`), which cannot be a past-completion claim under any
+reading and therefore **does not need the entity signal**. The fabrication twins all stay caught, so
+the referent really is the discriminator for the rest.
+
+**FIXED HERE, six edits, all mutation-proven.** #42 offered a direction rather than a patch: an
+imminent phrase describes an action NOT YET TAKEN, so it is only an execution claim when the
+ASSISTANT is the subject. A first-person requirement went onto the four imminent alternations;
+`going ahead and|kicking off` keeps a clause-initial form because run12/D94 pins
+`"Kicking off the archive of ACME Holdings."` as a fabrication that must be caught.
+
+That created a real tension: `"Starting the archive of ACME Holdings requires founder approval."`
+must SURVIVE while `"Starting the archive of ACME now."` must be CAUGHT — both clause-initial and
+subjectless. The discriminator already existed (guard 1: a clause-initial gerund followed by a FINITE
+VERB is descriptive, not an announcement), but **its gerund list never contained `starting` or
+`kicking`, so it could not fire on the very shape it would have excused.** Adding the two verbs makes
+the existing guard do its job instead of adding a second rule beside it.
+
+The clause splitter also breaks a COORDINATED verb phrase and throws its subject away:
+`"The founder is going ahead and archiving ACME Holdings himself."` split into
+`["The founder is going ahead", "archiving ACME Holdings himself"]`, and the second half is a bare
+gerund with no finite verb — the announcement shape — while the subject that made it guidance sits in
+the other half where no guard can see it. Widened by exactly one lookbehind, because this splitter is
+the code that destroyed 97 of 130 truthful negatives when it was last widened at run16/D125.
+
+RESULT: V42-D1 **98 → 0 of 140**, all ten templates surviving in both halves, and all nine imminent
+fabrications still caught. Mutation proof **6/6 load-bearing, 0 no-ops**, with the fabrication count
+held at 9/9 in every reverted build so a "rescue" cannot be the arm being switched off.
+
+**#42's RULING ON THE ENTITY SIGNAL, ADOPTED.** Option 1 (reference the names in the belt), with a
+mandatory amendment, and **option 2 is NOT authorised — #37's pinned list is not edited.** The
+amendment corrects this session's design note: an inline reference does NOT leave the extractors
+untouched, and that is a **feature**, because a `ReferenceError` is louder than the silent drop #37's
+contract exists to prevent. So the belt reads ONE free identifier, every extractor injects it as an
+**empty Set by default** — which makes the design's own third control ("an empty set must produce
+byte-identical verdicts") the *structural default of the whole battery* rather than a measurement
+someone must remember to run — and one dedicated non-extractor suite injects a populated set.
+
+**AND IT CORRECTED THE CAMPAIGN'S CRITICAL PATH.** The entity signal closes V42-D2 and nothing else.
+V42-D1 was the larger class and no name signal touches it. **D1 first, then the entity signal for D2**
+— which is the order this round actually followed.
+
+**A RETRACTION OF LEDGER #104.** That entry recorded "reverting V41-F1 re-opens 144 destroyed
+truths". On the shipped bytes #42 measured **0 of 17,475** sentences changing in the general space and
+**8 of 3,200** in a space engineered to isolate it, all 8 the bare-subject shape
+`"Archiving can be undone."` V41-F1 was added **beside** the older object-shaped guard, not as a
+**replacement** of it, and #104 says replacement. My 144 was corpus-specific and is withdrawn. The fix
+is not dead and must not be removed on this evidence — that is ledger #99's mistake in the other
+direction — but the campaign's number for it was wrong.
+
+**STILL OPEN, ONE BLOCKER.** `"Confirmed - Archived Media Group. It is still active."` — 36 of 48
+rows. It needs the entity signal, now the only thing between this candidate and a deploy question.
+
+**DISCLOSED BY #42, NOT FIXED HERE.** CONTRACT 5's two coverage assertions are asymmetric: the first
+fails loudly if its anchor moves, the second is written `mutated === TEXT || …` and would **pass
+vacuously** if its anchor `let n = -1;` ever disappeared. Both anchors exist today so the contract is
+live, but one is a refactor away from furniture in a campaign whose defining failure is exactly that.
+
+**PROVENANCE, AND IT IS A REAL GAP FOR A DEPLOY DECISION.** `supabase functions download` and
+`supabase link` are refused by the verifier sessions' command classifier, so "deployed v92 == git
+c9dfab5b" rests on the version number, the CI entrypoint path and timestamps — **integration-level,
+not byte-direct**. It could not be refuted either. Closing it needs one `functions download` from an
+unrestricted shell, and that should happen before any deploy is called done.
+
+**MY OWN ERRORS THIS ROUND, all caught by measurement.** A shell heredoc ate a level of backslashes
+for the FIFTH time, so a guard anchor matched nothing. An alternation was inserted one character past
+a group's closing paren, which put `|starting|kicking` at the TOP LEVEL of the regex — four battery
+suites and four gates went red at once; **an alternation inserted one character too late is not a
+narrower rule, it is a different regex.** And the mutation harness scored the question stand-down
+against rows another edit already rescued, printing NO-OP for a live fix: a mutation harness that
+tests the wrong rows reports a live fix as dead, the mirror of reporting a dead fix as live.
+
+**v33's D187 anchor was RE-DERIVED, not deleted**, which is what its own failure message instructs
+and what run36 had already done once. It now pins only the boundary CLASS, which is what the
+assertion is about, so the splitter lookbehind does not silently disarm it.
+
+EVIDENCE on the new candidate `c9404590`: battery 35 files / 1 failing (standing-reds, red because
+the candidate must not be deployed); #42's gate 12/1; #41 22/0; #40 77/0; #33 93/0; #32 101/0;
+#34 57/0; #35 55/0; #36 61/0; #37 21/0; #38 29/0; #39 20/1 and v30 25/1 and v31 33/1 (all three
+re-derived as non-blockers); generative 25/0; labelled sweep clean both directions; mutation 6/6 with
+zero no-ops; deno 23 == baseline; CRLF 5989 / bare LF 0.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #42's
+FAIL stands against `4f35700` and is not inherited. Production remains v92; rollback c9dfab5b from git.

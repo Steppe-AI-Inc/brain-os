@@ -4,3 +4,5 @@
 [2026-09-06 21:53:19] attempt 1: BLOCKED — PROVIDER_CAPACITY (resets 11:50pm)
 [2026-09-06 21:53:19] attempt 1: sleeping 7121s until retry eligibility
 [2026-09-06 23:52:00] attempt 2: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-4f35700)
+[2026-09-07 00:12:38] attempt 2: exited rc=0 log_bytes=7225
+[2026-09-07 00:12:38] attempt 2: verifier produced a real report (7225 bytes); watchdog done. The verdict is read from the report, not from rc.

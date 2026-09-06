@@ -1,10 +1,10 @@
 {
-  "campaign": 102,
-  "verifier": 42,
+  "campaign": 103,
+  "verifier": 43,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "ed3983dfb367a4ad",
+  "index_sha256_prefix": "c9404590b39d3ea5",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -54,12 +54,13 @@
     "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
   },
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
-  "LESSON_ADDED": "#41's rule, adopted: when a fix is validated on a corpus whose objects are all lowercase placeholders, it has been validated on the half of the class that does not occur in production. Generate the class; do not sample it. #40 closed the generic-object half of the gerund arm and left the proper-name half 83% broken.",
+  "LESSON_ADDED": "#42: the imminent arms were validated only in the direction they were built for — every row in the entire estate was a first-person fabrication that must be CAUGHT, and not one generated the truth direction. Sixth vacuity. Generate BOTH directions of every class, not just the one the arm exists for.",
   "gates_on_committed_candidate": {
-    "battery": "35 files, 1 failing — standing_reds_classification_contract, RED because the candidate must not be deployed",
+    "battery": "35 files, 1 failing — standing_reds_classification_contract, RED because ONE blocker remains open",
+    "v42": "12/1 (V42-D2, entity-dependent)",
     "v41": "22/0",
     "v40": "77/0",
-    "v39": "20/1 (entity test red by design)",
+    "v39": "20/1 (red by design)",
     "v38": "29/0",
     "v37": "21/0",
     "v36": "61/0",
@@ -67,33 +68,31 @@
     "v34": "57/0",
     "v33": "93/0",
     "v32": "101/0",
-    "v31": "33/1 — re-derived by #41 as NOT a blocker (lexicon assertion at the wrong locus; 0 regressions on 10 contracted-modal truthful negatives). Its harness should stop printing a deploy verdict it cannot support.",
-    "v30": "25/1 — re-derived by #41 as NOT a blocker (flat const list counts LOCALS; superseded by the narrowed CONTRACT 5)",
+    "v31": "33/1 — non-blocker, re-derived by #41 and #42",
+    "v30": "25/1 — stale inventory pin, non-blocker",
     "generative": "25/0",
     "labelled_sweep": "clean both directions",
-    "mutation": "3/3 load-bearing, 0 no-ops",
+    "mutation": "6/6 load-bearing, 0 no-ops",
     "deno": "23 == baseline"
   },
   "open_deploy_blockers": [
     {
-      "id": "B.confirmedNamePhrase",
+      "id": "V42-D2.participleInitialNames",
       "row": "Confirmed - Archived Media Group. It is still active.",
+      "size": "36 of 48 generated rows",
       "direction": "v92 preserves, candidate destroys, refusal persisted",
-      "status": "NO PATTERN-LEVEL FIX EXISTS (ledger #103, refuted across six gates). Requires the entity signal."
+      "status": "THE ONLY REMAINING BLOCKER. Needs the entity signal. Verifier #42 ruled on the design: option 1 plus a mandatory amendment; option 2 (editing #37 pinned list) is NOT authorised."
     }
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
-    "V41-D1 gerund arm, proper-name object: 1100/1320 -> 0",
-    "V41-D2 CONFIRMED arm, determiner-negator object: 4/4 -> 0",
-    "Blocker A bare-lowercase new subject (ledger #103): 180/180 -> 0"
+    "V42-D1 imminent arms had no subject guard: 98/140 -> 0/140, both halves",
+    "V42-D2 question member: a question is never a past-completion claim, closed without the entity signal"
   ],
-  "verifier_42_status": {
-    "state": "BLOCKED — PROVIDER_CAPACITY",
-    "attempt": 1,
-    "blocked_at": "2026-09-06T21:53:19+08:00",
-    "provider_reset_stated": "11:50pm",
-    "retry_owner": "verifier-watchdog.sh pid 37243 (detached OS process, sleeping 7121s)",
-    "note": "The watchdog owns the retry, not this session and not the verifier. The pinned SHA makes the retry a RESUMPTION. Do not re-dispatch; that would open a second campaign against the same bytes."
-  }
+  "entity_signal_ruling": "#42: belt reads ONE free identifier; EVERY extractor injects it as an EMPTY Set by default, which makes \"an empty set produces byte-identical verdicts\" the structural default of the whole battery rather than a measurement someone must remember to run; one dedicated non-extractor suite injects a populated set and proves the positive signal. Option 2 is NOT authorised: verifier #37 pinned declaration list is not edited.",
+  "retraction": "Ledger #104 recorded \"reverting V41-F1 re-opens 144 destroyed truths\". WITHDRAWN. #42 measured 0 of 17,475 in the general space and 8 of 3,200 in an engineered space. V41-F1 was added BESIDE the older object-shaped guard, not as a replacement of it. The fix is not dead and must not be removed on this evidence.",
+  "open_disclosed": [
+    "CONTRACT 5 second coverage assertion is written `mutated === TEXT || ...` and would pass vacuously if its anchor `let n = -1;` disappeared. Make it fail-loud like the first.",
+    "Provenance is INTEGRATION-LEVEL, not byte-direct: verifier sessions cannot run `supabase functions download`. Close with one download from an unrestricted shell before any deploy is called done."
+  ]
 }
