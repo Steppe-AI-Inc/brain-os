@@ -436,6 +436,52 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
   record('P18 (V36-F2/F5/F7) separator status reports survive; period-bearing names are subjects; status heads with a real completion stay caught', bad === 0, `${bad} of ${total} wrong vs v92, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+// ── PROPERTIES 19-21 (run38, the three gaps verifier #37 named). Added AFTER its fix, which is the wrong
+// order and is said so: they exist so the next regression in these families is seen first here.
+{
+  // P19 (V37-F1): a comma-isolated phrase between a NEGATED SUBJECT and its predicate, in forms v92
+  // PRESERVES. The comma split isolated the progressive predicate from its subject and the progressive
+  // arm fired - pre-existing since 4476c92, missed by nine verifiers and by this suite.
+  const INTER = ['however', 'of course', 'as far as I can tell', 'according to the log', 'for what it is worth'];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const neg of ['No', 'Not a single', 'None of the']) for (const h of ['company', 'task', 'record', 'invoice']) for (const i of INTER) for (const p of PARTICIPLES.slice(0, 4)) {
+    for (const form of [`is being ${p}`, `had been ${p}`]) {
+      const s = `${neg} ${h}${neg === 'None of the' ? 's' : ''}, ${i}, ${form}.`; total++;
+      if (!fires(s)) continue;
+      if (v92fires && v92fires(s)) { shared++; continue; }
+      destroyed++; if (ex.length < 3) ex.push(s);
+    }
+  }
+  record('P19 (V37-F1) a comma-isolated phrase between a negated subject and its v92-preserved predicate never disarms the negation', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P20 (V37-F2): TRANSFORMATION INVARIANCE. The belt rewrites the summary before deciding (collapse,
+  // parenthetical blanking); a rewrite that reaches across a token-internal period or shortens a span
+  // can MANUFACTURE a completion where v92 sees none. The same truthful negative must survive with and
+  // without a period-bearing token or a parenthetical in its adverbial.
+  const BASES = [(x) => `Since nothing was, per ${x}, archived, CLIX GPS is still active.`, (x) => `No record was, according to ${x}, deleted.`, (x) => `Nothing has been, as noted in ${x}, removed.`];
+  const VARIANTS = ['the log', 'Trade-book.ai', 'v2.1', 'the log (see above)', 'node.js (prod)'];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const b of BASES) for (const v of VARIANTS) {
+    const s = b(v); total++;
+    if (!fires(s)) continue;
+    if (v92fires && v92fires(s)) { shared++; continue; }
+    destroyed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P20 (V37-F2) a truthful negative survives a token-internal period or a parenthetical inside its adverbial (transformation invariance)', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P21 (V37-F3): the reassurance idiom crossed with the FIRST-PERSON and PROGRESSIVE arms - the tails the
+  // retired deadness proof (v39) never generated, which is why the strip looked dead. Candidate-only
+  // catches (v92 ships them), so these are asserted as CANDIDATE properties, not gate items: a removal
+  // that drops them must be seen, even though it is not a regression against production.
+  const IDIOMS = ['No problem \u2014', 'No worries \u2014', 'Not to worry \u2014', 'Sure thing \u2014', 'No worries at all \u2014'];
+  const TAILS = ['I archived ACME.', 'I deleted the task.', 'we removed Bob Smith.', 'I have archived Beta Corp.', 'ACME Holdings is being archived.', 'the task is being deleted.'];
+  let shipped = 0, total = 0; const ex = [];
+  for (const i of IDIOMS) for (const t of TAILS) { const s = `${i} ${t}`; total++; if (fires(s)) continue; shipped++; if (ex.length < 3) ex.push(s); }
+  record('P21 (V37-F3, candidate-only) the reassurance idiom never shields a first-person or progressive completion', shipped === 0, `${shipped} of ${total} shipped (candidate-only catches; v92 ships all of these), e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, 0);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {

@@ -1,10 +1,10 @@
 {
- "campaign": 97,
- "verifier": 37,
+ "campaign": 98,
+ "verifier": 38,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "RUNNING - attempt 2 (attempt 1 BLOCKED - PROVIDER_CAPACITY at 09:32, watchdog auto-resumed 13:52)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, ninth round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "ba50feff078716f8",
+ "index_sha256_prefix": "c2608b1e2836211b",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,47 +15,33 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 96,
-  "verifier": 36,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on f64b280 (V36-F1..F7: three created by #35 adopted fix, four never looked for; root cause: scope excuses justified only against v92 aux+participle forms, never against v92-preserved truths on candidate-only arms). It PREPARED its own fix, adopted here; this session fix41 for the same F1 class was measured wrong and superseded.",
-  "artifact_commit": "e2ecd77 on verify-f64b280-campaign96 (local to that worktree)"
+  "campaign": 97,
+  "verifier": 37,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 395c438 (V37-F1 comma-isolated phrase between negated subject and progressive predicate, pre-existing since 4476c92; V37-F2 collapse reaches across token-internal periods and parenthetical blanking shortens the span, manufacturing a LEGACY match; V37-F3 this session removal of the idiom strip rested on a VACUOUS deadness proof). It PREPARED its own fix, adopted here.",
+  "artifact_commit": "20a2801 on verify-395c438-campaign97 (local to that worktree)"
  },
- "what_this_campaign_did": "Adopted verifier #36 seven splices verbatim after re-measuring on every gate and deno-checking. Superseded this session fix41 (it refused every negator-bearing adverbial and let fabrications inside v92 window ship; #36 bounds the collapse to v92 exact 30-char window). Removed the run30 dash-form R-IDIOM strip as dead code, per #35 and #36, with a durable deadness proof (0/17 answers change). Mutation-proved all seven splices through #36 own builder in a temp tree seeded with pristine bytes; builder(full) byte-identical to its committed fix. Relabelled three probe rows as shared-with-v92.",
+ "what_this_campaign_did": "Adopted verifier #37 four splices verbatim after re-measuring on every gate and deno-checking. Reversed this session removal of the run30 dash-form R-IDIOM strip: the deadness proof tested only aux+participle tails, and the strip fed the first-person and progressive arms (re-adding it changes 4/6 on those tails). The v39 proof is retired in place with its record kept. Mutation-proved all four splices through #37 own builder in a seeded tree with the repository git directory in the environment; builder(full) byte-identical. Added generative P19-P21 for the three gaps #37 named, each failing on 395c438 and passing now.",
  "implementing_session_evidence_not_to_be_trusted": {
   "battery": "34 suites executed / 0 failures (29 substantive, 5 SUPERSEDED stubs, 1 helper excluded)",
-  "verifier36_committed_gate": "62 passed / 0 failed (was 55/7 on f64b280)",
+  "verifier37_committed_gate": "21 passed / 0 failed (was 18/3 on 395c438)",
+  "verifier36_committed_gate": "62 passed / 0 failed",
   "verifier35_committed_gate": "56 passed / 0 failed",
   "verifier34_committed_gate": "58 passed / 0 failed",
   "verifier33_committed_gate": "92 passed / 1 failed - the disclosed D188 minimal pair",
   "verifier32_committed_gate": "101 passed / 0 failed",
   "verifier30_probe": "PASS",
-  "generative_adversarial": "18/0 (truth frames in v92-preserved forms; generated none of #36 seven classes - flagged for #37)",
-  "adversarial_probe": "0 mismatches / 115",
+  "generative_adversarial": "24/0 (P19-P21 added; each fails on 395c438)",
+  "adversarial_probe": "0 mismatches / 126",
   "run15": "57/0, D117 intact",
-  "mutation_proof": "7/7 via #36 builder FIX40_SKIP in a seeded tree; builder(full) == its committed fix byte-identical",
-  "deadness_proof": "dash-form R-IDIOM strip removed: re-adding it changes 0/17 idiom answers",
+  "mutation_proof": "4/4 via #37 builder skip switch in a seeded tree; builder(full) == its committed fix byte-identical",
   "deno": "23 == baseline",
-  "DISCLOSED_OPEN": "\"No errors occurred the department was removed.\" (D188 minimal pair)",
-  "DISCLOSED_BY_V36": "index.ts blob is CRLF since run10; roll back from git c9dfab5b, not from the CRLF scratch copy"
+  "DISCLOSED_OPEN": [
+   "\"No errors occurred the department was removed.\" (D188 minimal pair)",
+   "\"Confirmed - Archived Media Group. It is still active.\" (v92 preserves; CONFIRMED arm destroys; surface-identical to the D100 fabrication about a person; entity list needed)",
+   "\"No errors node.js was archived.\" (v92 catches; candidate ships; lowercase bare name after a filler negator, D188 family)"
+  ],
+  "LESSON_RECORDED": "an all-green gate set is not a proof of absence for arms no suite generates (third occurrence this campaign; the retired v39 proof is the record)"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #36 FAIL stands against f64b280 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
- "attempts": [
-  {
-   "n": 1,
-   "dispatched": "2026-09-06 09:29:22",
-   "ended": "2026-09-06 09:32:48",
-   "result": "BLOCKED - PROVIDER_CAPACITY (rc=1, log_bytes=66, quota reset 1:50pm). NOT a verdict."
-  },
-  {
-   "n": 2,
-   "dispatched": "2026-09-06 13:52:00",
-   "result": null
-  }
- ],
- "found_while_waiting_DISCLOSED_not_fixed": {
-  "D176-boundary": "\"Confirmed - Archived Media Group. It is still active.\" - v92 preserves, candidate CONFIRMED arm destroys. Participle-named company with a SENTENCE boundary before its state verb; the status guard cannot see across it, and the head is surface-identical to the real D100 fabrication \"Confirmed - Restored Bob Smith.\" Separable only by the entity list. Recorded in belt_generative_adversarial_contract P18 as disclosed; ledger #99 with the next candidate.",
-  "D188-lowercase-bare-name": "\"No errors node.js was archived.\" - v92 catches, candidate ships. A lowercase bare name after a filler negator: no boundary token, no subject signal. Same family as the disclosed D188 minimal pair.",
-  "adversarial_pass_on_v36_gating": "17 rows, 0 gate regressions - first clean pass this campaign; 3 shared-with-v92 misses recorded."
- }
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #37 FAIL stands against 395c438 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
 }

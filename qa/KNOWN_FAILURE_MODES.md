@@ -13383,3 +13383,63 @@ generative 18/0; hand-written probe 0 mismatches / 115; run15 57/0 with D117 int
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #36's
 FAIL stands against f64b280 and is not inherited. Production remains v92; rollback c9dfab5b (from git).
+
+## 99. VERIFIER #37 FAIL CLOSED — its fix adopted; this session's dead-code removal reversed on a vacuous proof
+
+Verifier #37 returned **FAIL** on candidate 395c438 / index.ts ba50feff after a provider-capacity block
+the watchdog rode out. Three findings and a prepared fix (4 splices, skip-switch builder). It
+confirmed everything it re-derived: verifier #36's gate 62/0, #35's 56/0, #34's 58/0, CONTRACT 5 sound
+with a brace-aware extractor, all re-pins honest with 0/200 paired names destroyed, run15 57/0, the
+three refused shapes now caught.
+
+**V37-F1 (P1, PRE-EXISTING since 4476c92, missed by nine verifiers and by this session's generative
+suite).** "No company, however, is being archived." destroyed. The comma split isolates the progressive
+predicate from its negated subject, and the progressive arm — which v92 lacks — fires on the isolated
+predicate. 1,026 / 1,026 generated shapes. Every campaign relative to 4476c92 or v92 inherited it.
+
+**V37-F2 (P1, from #35's collapse).** The collapse's content class reaches across a token-internal
+period ("per Trade-book.ai", "v2.1"), and the one-space parenthetical blanking shortens the span, so a
+LEGACY match is MANUFACTURED where v92 has none, and the LEGACY-gated excuses adopted from #36 then
+excuse a genuine negator. "Since nothing was, per Trade-book.ai, archived, CLIX GPS is still active."
+destroyed, 140/180. Ledger #98's "reaches exactly v92's window" was not true byte-wise.
+
+**V37-F3 (P2, candidate-only) — THIS SESSION'S REMOVAL WAS WRONG.** Ledger #98 removed the run30
+dash-form R-IDIOM strip as dead code, on a deadness proof showing re-adding it changed 0/17 answers.
+Verifier #37 showed the proof was VACUOUS: all 17 rows had an aux+participle tail, which the later
+rules catch either way, but the strip ALSO fed the first-person and progressive arms — "No problem — I
+archived ACME." was caught at f64b280 and shipped after the removal, 115 of its 2,288-row family.
+Re-measured here on the tails the proof lacked: re-adding the strip changes 4 of 6 answers. v92 ships
+all of these, so it is not a gate regression, but code was removed on evidence that did not cover the
+arms the code served. The strip is RE-ADDED by the adopted fix. The v39 proof is RETIRED in place with
+its record kept, not deleted. Two verifiers had reported the strip dead and this session measured it
+on every gate it holds — every gate was green without it — and none of that was evidence about arms no
+suite generates. That is the third time this campaign that a gate set which is all green has been
+mistaken for a proof of absence.
+
+ITS FOUR SPLICES, adopted verbatim: F1 — a comma-isolated interposed phrase between a subject and its
+predicate is collapsed so the subject's negator keeps scope (an earlier version that kept the phrase's
+words let 45 negator-name fabrications ship; recorded so it is not retried); F2a — the collapse window
+matches v92's byte-wise; F2b — a blanked parenthetical keeps its length; F3 — the strip re-added ahead
+of D181. MUTATION PROOF through its own builder, in a temp tree seeded with the pristine 395c438
+bytes and the repository's git directory in the environment for the v92 reference: builder(full) is
+byte-identical to its committed fix and all four splices prove load-bearing, 4/4.
+
+THE SUITE gains the three properties #37 named as missing, each proven to FAIL on 395c438 and pass
+now: P19 subject–predicate interposition in v92-preserved forms; P20 transformation invariance — the
+same truthful negative must survive with and without a period-bearing token or a parenthetical in its
+adverbial; P21 the reassurance idiom crossed with the first-person and progressive arms, asserted as a
+candidate property so a removal that drops those catches is seen even though production ships them.
+
+DISCLOSED OPEN, carried from the checkpoint: "Confirmed — Archived Media Group. It is still active."
+(v92 preserves, the CONFIRMED arm destroys; surface-identical to the real D100 fabrication about a
+person, separable only by the entity list) and "No errors node.js was archived." (v92 catches, the
+candidate ships; a lowercase bare name after a filler negator, the D188 family). Plus the D188 minimal
+pair. Stale disclosure corrected: the three "refused" run31 shapes are caught on this build.
+
+EVIDENCE on the new candidate c2608b1e: battery 34 suites / 0 failures; verifier #37's own gate 21/0
+(was 18/3); #36's 62/0; #35's 56/0; #34's 58/0; #33's 92/1 (D188); #32's 101/0; #30's probe PASS;
+generative 24/0; hand-written probe 0 mismatches / 126; run15 57/0 with D117 intact; mutation 4/4
+via #37's builder; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #37's
+FAIL stands against 395c438 and is not inherited. Production remains v92; rollback c9dfab5b from git.

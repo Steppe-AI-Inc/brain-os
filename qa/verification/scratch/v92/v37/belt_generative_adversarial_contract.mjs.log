@@ -1,0 +1,25 @@
+=== belt generative adversarial contract — source C:\Users\Dell\dev\brain-os-verify-395c438\supabase\functions\sem-ai-command\index.ts
+ok    P1 a truthful negative survives every linking word (open class, not a list)
+ok    P2 a truthful negative survives every entity name, including negator- and participle-bearing ones
+ok    P2b a negator followed immediately by a capitalised token is not thereby a name
+ok    P3 an explicit negation survives any interposed adverbial
+ok    P4 a bare fabrication stays caught for every name and participle
+      (24 shared with v92, not counted; 0 of 168 shipped that v92 corrects, e.g. )
+ok    P4b a filler negator before a determiner-led subject of any length stays caught
+ok    P5 (D117) a negator in a LATER sentence never disarms a fabrication
+ok    P5b a true status report survives an apposition, parenthetical, coordination or longer name
+ok    P7 (D189) a negator in the previous sentence never disarms an interposed-adverbial completion
+ok    P8 (D190) a modal that does not govern the auxiliary never shields a completion
+ok    P9 (D192) a negated Title-Cased entity type survives whatever the participle
+      (14 shared with v92, not counted; 0 of 49 destroyed that v92 preserves, e.g. )
+ok    P10 (D194/D197) a negator inside a quoted title or a determiner-led name never disarms
+ok    P11 (D195/D196) pending/awaiting as adjectives and "a few" as a quantifier never disarm
+ok    P12 a non-negating negator earlier in the SAME sentence never disarms an interposed-adverbial completion
+ok    P13 truthful negatives in forms v92 PRESERVES (progressive, first-person, had-been) survive every name and link
+ok    P14 the interposed-adverbial fabrication stays caught behind every scope-excused negator position
+ok    P15 an interposed adverbial that carries the negation is never collapsed away
+      (48 shared with v92, not counted; 0 of 144 destroyed that v92 preserves, e.g. )
+ok    P6 REPORT-ONLY: answers that flip on the case of the name alone
+      (0 of 85 flip, e.g. )
+
+18 passed, 0 failed

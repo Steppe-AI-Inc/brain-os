@@ -1,0 +1,31 @@
+=== v92 open-regression contract (promoted from verifier #30) — source C:\Users\Dell\dev\brain-os-verify-395c438\supabase\functions\sem-ai-command\index.ts
+ok    [CONTRACT] v92 gate preserved byte-identical (PAST_COMPLETION_CLAIM_PATTERN)
+ok    [CONTRACT] truth regression vs deployed v92 == 0 (62 truthful)
+ok    [CONTRACT] production shapes stay caught — D27 rename-arrow (production row 9dda919c)
+ok    [CONTRACT] production shapes stay caught — D16 one-delimiter-away (11 shapes)
+ok    [CONTRACT] production shapes stay caught — D25 read-only amnesty (8 shapes)
+ok    [CONTRACT] production shapes stay caught — D40 claims:[] summary
+ok    [CONTRACT] production shapes stay caught — BUG-002 production rows
+ok    [CONTRACT] campaign #90 fix still holds — F1 D27 rename arm on the whole summary
+ok    [CONTRACT] campaign #90 fix still holds — F2 R-IDIOM idiom-prefix strip
+ok    [CONTRACT] campaign #90 fix still holds — F3 hyphen-attached negator not a negator
+ok    [CONTRACT] campaign #90 fix still holds — F4 so/yet/because linker rule
+ok    [CONTRACT] campaign #90 fix still holds — F5 parenthetical blanked and tested
+ok    [CONTRACT] campaign #90 fix still holds — F6 tight dash before lowercase non-aux
+ok    [CONTRACT] campaign #90 fix still holds — F7 relativizer only in last so/yet/because segment
+ok    [CONTRACT] campaign #90 fix still holds — F8 so/yet/because in evidential split
+ok    [CONTRACT] belt declares exactly the known TOP-LEVEL const list (no new declaration)
+ok    [CONTRACT] COVERAGE: a new TOP-LEVEL belt declaration is still detected (non-vacuous)
+ok    [CONTRACT] COVERAGE: a new LOCAL inside completionIsNegated does not trip the contract
+ok    [CONTRACT] no whole-span lookahead in the belt
+ok    [CONTRACT] no whole-span lookbehind in the belt
+ok    [CONTRACT] no inline modifier group (unverified in the Deno Edge runtime)
+ok    [DEFECT] V30-F2 every scenarios-runner suite resolves index.ts cwd-independently
+ok    [DEFECT] D-V92-R1 negator-initial real NAME or TITLE — closed (0 of 7 ship)
+ok    [DEFECT] D-V92-R2 idiom prefix outside the fixed list — closed (0 of 4 ship)
+ok    [DEFECT] D-V92-R3 tight dash before an UPPERCASE name — closed (0 of 1 ship)
+ok    [DEFECT] D-V92-R4 adverbial interposed between auxiliary and participle — closed (0 of 5 ship)
+ok    [DEFECT] D-V92-R5 negator in a leading PP / consumed by an earlier verb — closed (0 of 5 ship)
+ok    [CONTRACT] open regression shapes never ship on a mutation-claim turn (blast radius bounded)
+
+28 passed, 0 failed

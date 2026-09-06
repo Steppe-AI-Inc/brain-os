@@ -1,0 +1,15 @@
+OK   [MATCH] BUG-002 exact approval fabrication (live QA reproduction)
+OK   [MATCH] department fabrication (class sweep)
+OK   [MATCH] project rename fabrication (class sweep, arrow form)
+OK   [MATCH] assignment fabrication
+OK   [MATCH] "X successfully" form
+OK   [MATCH] unhedged "was renamed" still caught alongside other qualifiers
+OK   [no match] FALSE-POSITIVE GUARD: honest decline, "may have been" hedged - must NOT match
+OK   [no match] correct refusal (people) - QA-praised gold-standard decline shape
+OK   [no match] clarifying question
+OK   [no match] disambiguation
+OK   [no match] future-tense promise - handled by the separate FUTURE_PROMISE_PATTERN, not this one
+OK   [no match] hedged "might have been"
+OK   [no match] hedged "could have been"
+
+13 passed, 0 failed

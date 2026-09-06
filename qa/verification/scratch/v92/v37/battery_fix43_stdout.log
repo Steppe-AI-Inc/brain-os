@@ -1,0 +1,36 @@
+EXIT=0 belt_generative_adversarial_contract.mjs :: 18 passed, 0 failed
+EXIT=0 claim_segmentation_and_present_tense_fp.mjs :: claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+EXIT=0 company_ref_no_bare_name_join.mjs :: company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)
+EXIT=0 current_turn_and_continuity_contract.mjs :: current_turn_and_continuity_contract: 17/17 passed
+EXIT=0 d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs :: d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_ver
+EXIT=0 issue5_confirmation_action_type_binding.mjs :: issue5_confirmation_action_type_binding: 10/10 passed
+EXIT=0 lifecycle_evidence_and_output_persistence_contract.mjs :: lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match 
+EXIT=0 mixed_claim_grounding.mjs :: mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+EXIT=0 org_selector_scoping_coverage.mjs :: org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)
+EXIT=0 past_completion_gate_behavior.mjs :: past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+EXIT=0 per_resource_grounding_contract.mjs :: per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+EXIT=0 run10_defect_closure_contract.mjs :: v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observat
+EXIT=0 run11_defect_closure_contract.mjs :: v11_regression_additions: 46 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do 
+EXIT=0 run12_defect_closure_contract.mjs :: v12_regression_additions: 71 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do 
+EXIT=0 run13_defect_closure_contract.mjs :: run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run14_defect_closure_contract.mjs :: run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run15_defect_closure_contract.mjs :: run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run16_defect_closure_contract.mjs :: run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run17_defect_closure_contract.mjs :: run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run18_defect_closure_contract.mjs :: run18_defect_closure_contract: 52 pass, 0 fail (0 open #78 defects reproduce; 0 CONTRACT failures = guards tha
+EXIT=0 run19_defect_closure_contract.mjs :: 62 passed, 0 failed
+EXIT=0 run28_defect_closure_contract.mjs :: 117 passed, 0 failed
+EXIT=0 run8_defect_closure_contract.mjs :: run8_defect_closure_contract: 40/40 passed
+EXIT=0 sem_ai_command_company_restore_truth.mjs :: ALL REGRESSIONS PASSED
+EXIT=0 sem_ai_command_confirmation_truth.mjs :: ALL REGRESSIONS PASSED
+EXIT=0 sem_ai_command_execution_plan_truth.mjs :: ALL REGRESSIONS PASSED
+EXIT=0 sem_ai_command_factory_verification_selection.mjs :: ALL REGRESSIONS PASSED
+EXIT=0 sem_ai_command_named_person_lookup_truth.mjs :: ALL REGRESSIONS PASSED
+EXIT=0 sem_ai_command_past_completion_claim_regex.mjs :: 13 passed, 0 failed
+EXIT=0 sem_ai_command_source_invariants_drift_guard.mjs :: 13 passed, 0 failed
+EXIT=0 structured_claim_laundering_contract.mjs :: OK   C9   [CONTRACT  ] on the ORDINARY path envelope.summary IS the rendered summary (live == persisted)
+EXIT=0 structured_claim_verification.mjs :: structured_claim_verification: 42/42 passed
+EXIT=0 v92_open_regression_contract.mjs :: 28 passed, 0 failed
+EXIT=0 v92_parity_contract.mjs :: v92_parity_contract: 46 passed, 0 failed
+
+BATTERY on C:\Users\Dell\dev\brain-os-verify-395c438\qa\verification\scratch\v37\fix43\index.ts: 34 suites, 0 nonzero exits

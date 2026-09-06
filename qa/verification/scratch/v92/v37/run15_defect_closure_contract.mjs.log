@@ -1,0 +1,59 @@
+OK   D116.notX_theOtherOne                      [DEFECT] D116 (P1): "not acme, the other one" must not bind ACME — the founder excluded it
+OK   D116.anythingExcept                        [DEFECT] D116 (P1): "anything except acme holdings" must not bind Acme Holdings
+OK   D116.dontArchive                           [DEFECT] D116 (P1): "don't archive acme" must not archive ACME
+OK   D116.noNotBeta                             [DEFECT] D116 (P1): "no, not beta" must not bind Beta
+OK   D116.everythingBut                         [DEFECT] D116 (P1): "everything but acme" must not bind Acme
+OK   D116.negationInTiedRawBranch               [DEFECT] D116 (P1): a negated reply must not bind through the D102 raw tie-break either
+OK   D116.hold.plainNameStillBinds              [CONTRACT] D116 fix must NOT break the ordinary case: a plain naming reply still binds
+OK   D116.hold.multiMentionStillDeadEnds        [CONTRACT] D116 fix must not disturb D106: a reply naming two options still dead-ends
+OK   D116.hold.negatorInAnotherClauseDeadEnds   [CONTRACT] run16/D123: "acme holdings, no rush" dead-ends (fail closed) — the LLM path resolves it, the deterministic path never guesses
+OK   D116.hold.selectionFillerStillBinds        [CONTRACT] run16/D123 LIMIT: selection filler around a name still binds ("yes, archive acme holdings please")
+OK   D116.hold.nameContainingNegatorStillBinds  [CONTRACT] D116 LIMIT: the option's OWN label is removed before the negator test — a real name containing "no" cannot disarm itself
+OK   D117.suffixDisarms.0                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Archived ACME. No further action needed."
+OK   D117.suffixDisarms.1                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Deleted ACME, nothing else was changed."
+OK   D117.suffixDisarms.2                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Restored Bob Smith. No changes to his tasks."
+OK   D117.suffixDisarms.3                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Archived ACME; no other companies were touched."
+OK   D117.suffixDisarms.4                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Assigned the task to Bob. Nothing is pending."
+OK   D117.suffixDisarms.5                       [DEFECT] D117: a negation word later in the summary must not disarm the belt — "Confirmed — Removed Bob Smith. There is no undo."
+OK   D117.hold.baseShapeStillCaught             [CONTRACT] D117 fix must not weaken the base shape: "Confirmed — Archived ACME." stays caught
+OK   D117.hold.d112ExamplesStillSurvive         [CONTRACT] D117 fix must not reopen D112: the two ledger-named truthful answers still survive
+OK   D118.truthfulNegativeDestroyed.0           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "Confirmed — no company was archived."
+OK   D118.truthfulNegativeDestroyed.1           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "Confirmed — nothing was archived."
+OK   D118.truthfulNegativeDestroyed.2           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "Nothing was archived — the id did not resolve."
+OK   D118.truthfulNegativeDestroyed.3           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "No company was deleted."
+OK   D118.truthfulNegativeDestroyed.4           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "Confirmed — the company was not archived."
+OK   D118.truthfulNegativeDestroyed.5           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "None of the tasks were completed."
+OK   D118.truthfulNegativeDestroyed.6           [DEFECT] D118: a truthful NEGATIVE answer must not be destroyed — "Confirmed — no tasks were assigned."
+OK   D118.hold.realCompletionsStillCaught       [CONTRACT] D118 fix must not blind the legacy arm: real completions stay caught
+OK   D119.absentBranchAssertionSurvives.0       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Terminated Bob Smith"
+OK   D119.absentBranchAssertionSurvives.1       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Wiped All Data"
+OK   D119.absentBranchAssertionSurvives.2       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Revoked Access"
+OK   D119.absentBranchAssertionSurvives.3       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Suspended Bob Smith"
+OK   D119.absentBranchAssertionSurvives.4       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Disabled the account"
+OK   D119.absentBranchAssertionSurvives.5       [DEFECT] D119: an execution assertion must not ship verbatim as an option label — "Purged the records"
+OK   D120.progressiveLabelSurvives.0            [DEFECT] D120: a progressive execution assertion must not ship as an option label — "Now removing ACME."
+OK   D120.progressiveLabelSurvives.1            [DEFECT] D120: a progressive execution assertion must not ship as an option label — "I'm now removing ACME."
+OK   D120.progressiveLabelSurvives.2            [DEFECT] D120: a progressive execution assertion must not ship as an option label — "Archiving ACME as we speak."
+OK   D120.progressiveLabelSurvives.3            [DEFECT] D120: a progressive execution assertion must not ship as an option label — "Executing the plan."
+OK   D126.dropObservedInPipeline.0              [CONTRACT] run16/D126: an unresolvable option ("Terminated Bob Smith") is DROPPED by the real pipeline, not merely relabelled
+OK   D126.dropObservedInPipeline.1              [CONTRACT] run16/D126: an unresolvable option ("Now removing ACME.") is DROPPED by the real pipeline, not merely relabelled
+OK   D126.dropObservedInPipeline.2              [CONTRACT] run16/D126: an unresolvable option ("ACME Holdings.") is DROPPED by the real pipeline, not merely relabelled
+OK   D126.dropObservedInPipeline.3              [CONTRACT] run16/D126: an unresolvable option ("") is DROPPED by the real pipeline, not merely relabelled
+OK   D126.mixedDrop                             [CONTRACT] run16/D126: the MIXED case — the unresolvable option goes, the resolvable one stays under its canonical name
+OK   D126.resolvableNeverDropped                [CONTRACT] run16/D126 LIMIT: the drop is not over-broad — two canonically-known options both survive, canonical names shown
+OK   D124.employeeAliasResolves                 [CONTRACT] run16/D124: entityType 'employee' resolves through the canonical alias to person| — two real people are shown BY NAME
+OK   D124.unlistedTypeIsDropped                 [CONTRACT] run16/D124: an unresolvable option whose entityType is outside every map is dropped like any other
+OK   V15.specificityUsesNormalisedLength        [CONTRACT] mutant M03 survived: specificity must rank on the NORMALISED label length, so quoting cannot inflate rank
+OK   V15.residualJoinsWithSpace                 [CONTRACT] mutant M06 survived: removing the winner must leave a separator, so neighbouring words cannot fuse into a spurious label match
+OK   V15.d113AgreementIsEqualityNotContainment  [CONTRACT] mutant M21 survived: a label CONTAINING the canonical name must still be replaced by it, never survive verbatim
+OK   V15.duplicateRealNamesDeadEnd              [CONTRACT] two distinct entities sharing a name must dead-end, never coin-flip between them
+OK   V15.canonicalPresentReplacesEveryAssertion [CONTRACT] D113 rule 1: with a canonical row, NO execution assertion survives as a label (0/6 sampled)
+OK   V15.canonicalPresentKeepsRealNames         [CONTRACT] D113 rule 1: with a canonical row, real completion-shaped names keep their identity (0/6 destroyed)
+OK   V15.cyrillicConfusableRendersCanonical     [CONTRACT] D113 rule 1: a Cyrillic homoglyph of the canonical name renders the CANONICAL spelling
+OK   V15.questionBeltNoAssertionLeaks           [CONTRACT] D114: no first-person interrogative-led assertion survives the belt still asserting a completion
+OK   V15.questionBeltKeepsClarifications        [CONTRACT] D98/D114: legitimate clarifications with completion vocabulary in a noun phrase survive
+OK   V15.absentBranchNeverShowsModelText        [CONTRACT] D119: a label for an entity absent from the canonical read is never the model's text, benign or not (retires run8/D72b)
+OK   V15.absentBranchListedAssertionReplaced    [CONTRACT] D113 rule 2: an assertion using ON-LIST vocabulary is still replaced in the absent branch
+OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string
+
+run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)

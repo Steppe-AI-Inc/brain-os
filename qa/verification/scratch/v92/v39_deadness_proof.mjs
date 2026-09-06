@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+// RETIRED (run38). This proof claimed the run30 dash-form R-IDIOM strip was dead because re-adding it changed
+// 0/17 idiom answers. Verifier #37 showed the family was VACUOUS: every one of the 17 rows had an
+// aux+participle tail, which the later rules catch with or without the strip - but the strip ALSO fed
+// the first-person and progressive arms, and 'No problem - I archived ACME.' shipped once it was removed
+// (115 of its 2,288-row family). The strip is RE-ADDED in the adopted fix43. This file is kept, inert,
+// as the record of a deadness proof that did not cover the arms the code served; it now exits 0 and
+// prints that record, so the lesson stays in the tree rather than being deleted.
+console.log('RETIRED: v39 deadness proof was vacuous (aux+participle tails only); the strip is re-added in fix43. See ledger #99.');
+process.exit(0);
+// ---- original text follows, unreachable ----
+#!/usr/bin/env node
 // DEADNESS PROOF for the run30 dash-form R-IDIOM strip, removed in fix42. Verifiers #35 and #36 both
 // reported it dead; this shows it: re-adding the strip to the shipped bytes changes NO answer on the
 // idiom family, in either direction, because the dash-before-lowercase split, newSubject, quotedHead
