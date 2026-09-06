@@ -13724,3 +13724,105 @@ strings.**
 STATUS: index.ts is UNCHANGED and verifier #41 is running against `884567a`. The prepared fix for
 blocker A lives in `qa/verification/scratch/v92/fix_lowercase_subject.ts` and is applied only after
 #41 returns, merged with whatever it finds. Production remains v92; rollback c9dfab5b from git.
+
+## 104. VERIFIER #41 FAIL CLOSED — the gerund arm was 83% broken for PROPER NAMES, the half #40 did not close
+
+Verifier #41 returned **FAIL** on candidate `884567a` / index.ts `30d3a640`. Twelfth consecutive FAIL.
+Its own corpus: 539 truthful / 293 fabrications, with the labelled negator-token-NAME section in both
+directions — **truth regression 0, fabrication regression 0**, truth improvement 344, fabrication
+improvement 75. It confirmed every gate number this session reported, the battery at 34 files /
+1,178 assertions / 0 failures, all 22 production shapes closed, and the matcher at 32/32 with 17
+divergences from v92 all in the safe direction.
+
+**V41-D1 (P1, DEPLOY BLOCKER) — the fourth recurrence of the gerund arm, and the sharpest.**
+```
+"Archiving ACME Holdings throws a permission error."     v92 preserves — the candidate DESTROYS
+"Removing Bob Smith revokes his access immediately."     v92 preserves — the candidate DESTROYS
+```
+22 gerunds x 6 proper names x 10 ordinary predicates = **1,320 truthful sentences. Deployed v92
+preserves 1,320 of 1,320. The candidate destroyed 1,100 — 83.3%** — replacing each with a canned
+refusal that is itself false and is persisted to `work_orders.output`. Control, same predicates with
+a generic lowercase object: **0 of 660 destroyed.**
+
+ROOT CAUSE, and it is a lesson about how a fix gets validated. #39 found this arm destroying
+gerund-initial sentences. #40 replaced its verb whitelist with a "structural" test. That test has two
+escapes and a proper-name object defeats both at once: guard A is still a CLOSED finite-verb list
+(throws, revokes, triggers, generates, queues, resets are simply not on it), and guard B can only
+fire when the OBJECT IS LOWERCASE, so a capitalised name can never match it. **#40 closed the
+generic-object half and left the proper-name half fully open** — and the proper-name half is the one
+the product actually produces, because a Brain OS answer names the company or the person the founder
+asked about. #41's rule for the next round, adopted here verbatim: **when a fix is validated on a
+corpus whose objects are all lowercase placeholders, it has been validated on the half of the class
+that does not occur in production. Generate the class; do not sample it.**
+
+**V41-D2 (P1, DEPLOY BLOCKER) — inverted polarity in the CONFIRMED arm.** `"Confirmed — Archived no
+records."`, `"… Archived nothing."`, `"… Deleted none of them."`, `"… Removed no one."` are truthful
+negatives; v92 preserves all four and the candidate destroyed all four. Two causes compound: the
+X-guard's negative lookahead has a stoplist that *includes* `no|nothing|none`, so those are exactly
+the words that do not get its protection; and the arm's negation check runs only up to the end of the
+matched participle, so an OBJECT negator is outside the checked span by construction.
+
+**V41-D3 (P3, REPORT-ONLY, shared with v92)** — the gerund guard's verb alternation carries `/i`, so
+`works?` matches the capitalised NAME word "Works" and 18 of 24 in-progress fabrications about such
+names are missed. v92 misses them too. #41 pinned it **paired with a CONTRACT that fails the instant
+the class stops being shared with v92**, so it can never become a standing red read as furniture.
+
+**ITS TWO FIXES ARE ADOPTED.** V41-F1 replaces guard B's object-shaped test with an object-AGNOSTIC
+one: a descriptive sentence has a FINITE VERB after the gerund phrase, a progress announcement is a
+verbless fragment. No verb whitelist, and the casing of the object is irrelevant. V41-F2 extends the
+X-guard's disjunct to the determiner negators, case-sensitively, so `"Confirmed — Archived No Limits
+Inc."` stays caught. Measured here on the merged build: D1 **1,100 → 0**, D2 **4 → 0**.
+
+**MERGED WITH THIS SESSION'S OWN BLOCKER A** (ledger #103, the bare-lowercase new-subject
+alternative): the two sets of edits touch different arms and compose cleanly. 180 of 180 lowercase
+fabrications v92 corrects still close, both its controls hold, and #41's own gate reads 22/0 on the
+merged build.
+
+**MUTATION PROOF, 3/3 LOAD-BEARING, ZERO NO-OPS.** Reverting V41-F1 re-opens 144 destroyed truths;
+reverting V41-F2 re-opens all 4; reverting the bare-lowercase alternative re-ships all 36 probe
+fabrications. #41's own 9-mutation harness reports its M7 as **"BUILD FAILED: MUTATION ANCHOR MISSING
+(harness is lying about the product)"** on this build — which is correct behaviour, not a gap: its
+anchor is the literal V41-F2 itself rewrote. A harness whose anchor has moved must fail loudly rather
+than report a pass it never measured, and that arm is re-proven here against the new literal.
+
+**#41 CORRECTED THIS SESSION'S REPORTING, AND THE CORRECTION IS THE #40 PATTERN AGAIN.** Ledger #101
+reported "verifier30_probe: PASS" and did not report that `v30_regression_additions` (25/1) and
+`v31_regression_additions` (33/1) are both RED. **Two red gates reported only by their green sibling.**
+#41 re-derived both behaviourally and found neither is a blocker — v30's is harness obsolescence
+(its flat const list counts LOCALS, superseded by the narrowed CONTRACT 5, which #41 proved still
+fails for the reason it exists) and v31's is a lexicon assertion at the wrong locus, closed inline in
+the R-AUXGAP lookbehind, with 0 regressions on 10 contracted-modal truthful negatives. Both are now
+in the expected-red list with their reasons, and v31's harness **should stop printing a deploy
+verdict it cannot support**.
+
+**IT ALSO NARROWED THIS SESSION'S REFUSALS.** Of the three shapes recorded as refused, `"Not a single
+task moved — Bob Smith was removed."` IS now caught, and `"No problem the log shows ACME was
+archived."` is caught by the widened idiom strip (mutation-proven). The refusal now covers less than
+was claimed. The dash-before-a-CAPITAL refusal stands and #41 confirms it is correct. It also
+confirmed this session's argument that `"No North Depot was archived."` is a shared truth cost and
+not a blocker, since v92 destroys it too.
+
+**STILL OPEN, AND IT IS A BLOCKER, NOT A RESIDUAL.** `"Confirmed - Archived Media Group. It is still
+active."` — v92 preserves, the candidate destroys. Ledger #103 proved no pattern-level rule closes it
+without re-opening fabrications v92 corrects across six gates. `standing_reds_classification_contract`
+is RED on this candidate for exactly this row and says DEPLOY IS BLOCKED in those words. The
+structured-evidence work is on the critical path.
+
+**A FOURTH HEREDOC BACKSLASH INCIDENT.** Writing the mutation proof through a shell heredoc ate one
+level of backslashes again, so `\S` and `\s` in an anchor became literal letters and the anchor
+silently missed. It surfaced as "1 no-op" — the exact reading a genuinely dead fix would produce.
+Files containing backslashes are written with the file tool from now on, without exception.
+
+EVIDENCE on the new candidate `ed3983df`: battery 35 files / 1 failing (the standing-reds gate, red
+because the candidate must not be deployed); #41's gate 22/0; #40's 77/0; #33's 93/0; #32's 101/0;
+#34 57/0; #35 55/0; #36 61/0; #37 21/0; #38 29/0; #39 20/1 (entity test red by design); v30 25/1 and
+v31 33/1 (both re-derived by #41 as non-blockers); generative 25/0; labelled sweep clean both
+directions; mutation 3/3 with zero no-ops; deno 23 == baseline; CRLF 5989 / bare LF 0.
+
+**INFRASTRUCTURE.** #41's watchdog process exited without writing a terminal state and its stdout log
+stayed 0 bytes, while the verifier itself ran to completion and wrote every artifact. The verdict was
+read from the artifacts, never inferred from the dead process — process disappearance and empty
+output are explicitly not verdicts. The watchdog's own logging is a real defect and is recorded.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #41's
+FAIL stands against `884567a` and is not inherited. Production remains v92; rollback c9dfab5b from git.

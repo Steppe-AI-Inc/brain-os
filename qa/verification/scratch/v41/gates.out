@@ -1,0 +1,205 @@
+  33/  7 exit=0    qa/verification/proposed/v10_regression_additions.mjs
+        FAIL R10.flag.quiet         [CONTRACT] a pendingAction with nothing to gate does NOT set the flag (observed TRUE on 65ade7c — null !== undefined; see D80)
+        FAIL D78.simple past        [DEFECT] D78: sentence-shaped option label "ACME deleted" is not rendered/persisted as a label THREW Cannot read properties of undefined (reading 'label')
+        FAIL D78.first person       [DEFECT] D78: sentence-shaped option label "I archived ACME" is not rendered/persisted as a label THREW Cannot read properties of undefined (reading 'label')
+        FAIL D78.done-colon         [DEFECT] D78: sentence-shaped option label "Done: ACME deleted" is not rendered/persisted as a label THREW Cannot read properties of undefined (reading 'label')
+        FAIL D78.present tense      [DEFECT] D78: sentence-shaped option label "ACME is now archived" is not rendered/persisted as a label THREW Cannot read properties of undefined (reading 'label')
+        FAIL D78.legit              [CONTRACT] D72 still holds: a legit name with a completion WORD ("Closed Loop Systems") survives as a label THREW Cannot read properties of undefined (reading 'label')
+        FAIL D79.taskTitle          [DEFECT] D79: a legitimate task title containing "was approved" keeps its name in the evidence line
+        v10_regression_additions: 33 pass, 7 fail (5 open #70 defects reproduce; 2 CONTRACT failures = guards/observations that do not hold as claimed)
+  43/  1 exit=1    qa/verification/proposed/v11_regression_additions.mjs
+        OK   V11.turn.countNull         [CONTRACT] a failed head-count query degrades to the window length and stays self-consistent
+        OK   V11.order.failClosed       [CONTRACT] the buildContext/create_pending_work_order ordering check fails CLOSED when an anchor moves
+        OK   V11.durable.expired        [CONTRACT] an EXPIRED durable pending action can never bind
+        FAIL D86.hold.d72               [CONTRACT] D72 control: "Closed Loop Systems" must still survive as a real name THREW Cannot read properties of undefined (reading 'label')
+        v11_regression_additions: 43 pass, 1 fail (0 open #71 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)
+  66/  2 exit=1    qa/verification/proposed/v12_regression_additions.mjs
+        FAIL D91.hold.d72                   [CONTRACT] D72 control: "Closed Loop Systems" must still survive as a real name
+        FAIL D95.distinctOutOfContext       [DEFECT] D95: two refused options with NO contextPack row must still render distinguishable labels
+        v12_regression_additions: 66 pass, 2 fail (1 open #72 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)
+null/null exit=1    qa/verification/proposed/v13_mutation_proof.mjs
+  59/  1 exit=1    qa/verification/proposed/v13_regression_additions.mjs
+        FAIL D103.hold.numbered               [CONTRACT] the committed D95 case still holds: two out-of-context options render distinguishably
+        v13_regression_additions: 59 pass, 1 fail (0 open #73 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)
+null/null exit=1    qa/verification/proposed/v14_mutation_proof.mjs
+        baseline: 0 failures across run8/10/12/13/14
+                      expected a failure matching /D106\.hold/ — none. Failures: (none at all)
+                      run15/D119 RETIRED run8/D72b on the record; the absent branch is now dropped
+  64/  2 exit=1    qa/verification/proposed/v14_regression_additions.mjs
+        FAIL D107.predicateCoversAllFour            [CONTRACT] D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION) THREW readsAsCompletion not f
+        FAIL D113.hold.absentId                     [CONTRACT] an id absent from the canonical read falls back to the typed reference
+        v14_regression_additions: 64 pass, 2 fail (0 open #74 defects reproduce; 2 CONTRACT failures = guards that do not hold as claimed)
+null/null exit=0    qa/verification/proposed/v15_mutation_proof.mjs
+        SUPERSEDED    M14 D122 COVERAGE (structural): the fail-closed guard line alone is removed — the source-invariant guard must refuse it
+null/null exit=1    qa/verification/proposed/v15_regression_additions.mjs
+          throw new Error('the D117/D118 NEGATED_CLAUSE negator list did not survive extraction — refusing to report on a slice that is not the product');
+        Error: the D117/D118 NEGATED_CLAUSE negator list did not survive extraction — refusing to report on a slice that is not the product
+null/null exit=0    qa/verification/proposed/v16_mutation_proof.mjs
+null/null exit=1    qa/verification/proposed/v16_regression_additions.mjs
+          if (!src.includes(lit)) throw new Error('matcher literal missing from index.ts: ' + lit);
+        Error: matcher literal missing from index.ts: const NEGATED_MENTION =
+null/null exit=0    qa/verification/proposed/v17_mutation_proof.mjs
+null/null exit=1    qa/verification/proposed/v17_regression_additions.mjs
+          if (i < 0) throw new Error('anchor not found: ' + anchor);
+        Error: anchor not found: const COMPLETION_VOCAB =
+null/null exit=1    qa/verification/proposed/v18_mutation_proof.mjs
+null/null exit=1    qa/verification/proposed/v18_regression_additions.mjs
+          if (!src.includes(lit)) throw new Error('product literal missing from index.ts: ' + lit);
+        Error: product literal missing from index.ts: const COMPLETION_VOCAB =
+null/null exit=1    qa/verification/proposed/v19_mutation_proof.mjs
+                      no expected case failed (0 other failures: )
+  53/  8 exit=1    qa/verification/proposed/v19_regression_additions.mjs
+        FAIL D138.nameTripsContradictionGuard."Restored Furniture Co" [DEFECT] D138 (P3, inherited; "Activated…" since run17/D127): the founder typing the company's OWN NAME trips commandContradictsActionType, so the option cann
+        FAIL D138.nameTripsContradictionGuard."Activated Carbon Mongolia" [DEFECT] D138 (P3, inherited; "Activated…" since run17/D127): the founder typing the company's OWN NAME trips commandContradictsActionType, so the option 
+        FAIL D138.nameTripsContradictionGuard."Reactivated Metals LLC" [DEFECT] D138 (P3, inherited; "Activated…" since run17/D127): the founder typing the company's OWN NAME trips commandContradictsActionType, so the option can
+        FAIL D138.nameTripsContradictionGuard."Unarchived Records Ltd" [DEFECT] D138 (P3, inherited; "Activated…" since run17/D127): the founder typing the company's OWN NAME trips commandContradictsActionType, so the option can
+        OK   D132.hold.prototypeKeysFailClosedViaTheORDINALPath   [CONTRACT] D133 opened a SECOND way to reach a hostile option — an ordinal reply skips the label match entirely; it must fail closed too
+        53 passed, 8 failed
+          CONTRACT failures (something that was true is now broken): 4
+          DEFECT failures (defects reproduced, expected until fixed): 4
+null/null exit=1    qa/verification/proposed/v20_mutation_proof.mjs
+  94/  8 exit=1    qa/verification/proposed/v20_regression_additions.mjs
+        FAIL [DEFECT] D139.zeroRelativizer."It is not true ACME Holding was archived." — "It is not true ACME Holding was archived." readsAsCompletion=true expected=false :: a TRUE read-only answer; firing here replaces it with 
+        FAIL [DEFECT] D139.zeroRelativizer."There is no sign the task was reassigned." — "There is no sign the task was reassigned." readsAsCompletion=true expected=false :: a TRUE read-only answer; firing here replaces it with 
+        FAIL [DEFECT] D139.zeroRelativizer."The audit log has no entry ACME Holding wa" — "The audit log has no entry ACME Holding was archived." readsAsCompletion=true expected=false :: a TRUE read-only answer; firing here repl
+        FAIL [DEFECT] D139.zeroRelativizer."There is no evidence Bed Bath and Beyond w" — "There is no evidence Bed Bath and Beyond was deleted." readsAsCompletion=true expected=false :: a TRUE read-only answer; firing here repl
+        FAIL [CONTRACT] D139.limit.nonAuxLeadIn."I found no evidence ACME Holding was arc" — "I found no evidence ACME Holding was archived." readsAsCompletion=true expected=false :: no finite aux before the negator
+        --- D132 (CONTRACT): a prototype-key type must fail closed, never throw, never inherit
+        94 passed, 8 failed
+        FAILURES:
+null/null exit=1    qa/verification/proposed/v21_mutation_proof.mjs
+ 129/  7 exit=1    qa/verification/proposed/v21_regression_additions.mjs
+        FAIL [DEFECT] D146.linkerOverreach."There is no log or ticket ACME was deleted." — "There is no log or ticket ACME was deleted." readsAsCompletion=true expected=false :: truthful negative; survives at d34af15 and 52e830f
+        FAIL [DEFECT] D146.linkerOverreach."There is no record or evidence Closed Loop S" — "There is no record or evidence Closed Loop Systems was archived." readsAsCompletion=true expected=false :: truthful negative; survives 
+        FAIL [DEFECT] D146.linkerOverreach."I have no note or memo ACME was archived." — "I have no note or memo ACME was archived." readsAsCompletion=true expected=false :: truthful negative; survives at d34af15 and 52e830f, de
+        FAIL [DEFECT] D146.linkerOverreach."There is no record, log or ticket showing AC" — "There is no record, log or ticket showing ACME was deleted." readsAsCompletion=true expected=false :: truthful negative; survives at d3
+        FAIL [DEFECT] D146.linkerOverreach."There is no activity since the company was c" — "There is no activity since the company was created in 2019." readsAsCompletion=true expected=false :: truthful negative; survives at d3
+        --- issue #5 class B (CONTRACT): fail-closed on an absent actionType
+        v21_regression_additions: 129 pass, 7 fail (6 DEFECT reproductions = open defects, 1 CONTRACT failures = guards that do not hold as claimed)
+        FAILURES (DEFECT entries are expected to fail on this candidate — that is the point):
+null/null exit=1    qa/verification/proposed/v22_mutation_proof.mjs
+ 232/ 10 exit=1    qa/verification/proposed/v22_regression_additions.mjs
+        FAIL [CONTRACT] D146.truthfulNegativeSurvives."There is no record since March ACME was arch" — "There is no record since March ACME was archived." readsAsCompletion=true expected=false
+        FAIL [CONTRACT] D146.truthfulNegativeSurvives."There is no entry while ACME was archived la" — "There is no entry while ACME was archived last quarter." readsAsCompletion=true expected=false
+        OK   [CONTRACT] D146.linkedFabricationCaught."There was no failure however ACME was archiv"
+        FAIL [DEFECT] D153.droppedLinkerFabricationMissed."There was no activity before ACME was archiv" — "There was no activity before ACME was archived." readsAsCompletion=false expected=true :: caught at b32e0e4 and 54ebecc,
+        FAIL [DEFECT] D153.droppedLinkerFabricationMissed."There was no activity after ACME was archive" — "There was no activity after ACME was archived." readsAsCompletion=false expected=true :: caught at b32e0e4 and 54ebecc, 
+        OK   [DEFECT] D147b.clauseInitialNegatorFreePass."Nothing failed however ACME was archived."
+        v22_regression_additions: 232 pass, 10 fail (2 DEFECT reproductions = open defects, 0 RESIDUAL moves, 8 CONTRACT failures = guards that do not hold as claimed)
+        FAILURES (DEFECT entries are expected to fail on this candidate — that is the point):
+null/null exit=1    qa/verification/proposed/v23_mutation_proof.mjs
+ 297/ 19 exit=1    qa/verification/proposed/v23_regression_additions.mjs
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There were no blockers so ACME was archived." — "There were no blockers so ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re-broa
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There was no objection because ACME was arch" — "There was no objection because ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There was no objection since ACME was archiv" — "There was no objection since ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re-b
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There was no activity while ACME was archive" — "There was no activity while ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re-br
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There was no approval yet ACME was archived." — "There was no approval yet ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re-broa
+        FAIL [RESIDUAL] D153.droppedLinkerTrade."There was no error or ACME was archived." — "There was no error or ACME was archived." readsAsCompletion=true expected=false :: DELIBERATE, DISCLOSED trade (D146): re-broadening t
+        v23_regression_additions: 297 pass, 19 fail (6 DEFECT reproductions = open defects, 6 RESIDUAL moves, 7 CONTRACT failures = guards that do not hold as claimed)
+        FAILURES (DEFECT entries are expected to fail on this candidate — that is the point):
+null/null exit=1    qa/verification/proposed/v24_mutation_proof.mjs
+ 203/  4 exit=1    qa/verification/proposed/v24_regression_additions.mjs
+        OK   [CONTRACT] D147b.clauseInitialLeakClosed "Nothing failed however ACME was archived."
+        FAIL [CONTRACT] D144.firstPersonCompletionCaught "I removed the channel binding."  expected=true got=false
+        --- fail-closed [CONTRACT]: an option with no usable actionType never enters the gate
+        OK   [CONTRACT] prior.D125.andErrors "ACME was archived and no errors occurred."
+        FAIL [RESIDUAL] D159.renamedArrowArmUnreachable "Renamed: ACME -> Beta Corp"  expected=false got=true  — LEGACY_PAST_COMPLETION ships an arm `\brenamed:\s*.+(→|->)`, but readsAsCompletion splits clauses on `:\s` FIRST, s
+        203 passed, 4 failed
+          [CONTRACT] failures: 3   [DEFECT] reproductions: 0   [RESIDUAL] moves: 1
+        failures:
+null/null exit=1    qa/verification/proposed/v25_mutation_proof.mjs
+ 437/  3 exit=1    qa/verification/proposed/v25_regression_additions.mjs
+        FAIL [CONTRACT] D156.activeEvidentialSurvives "No evidence although requested shows ACME was archived."  expected=false got=true
+        FAIL [CONTRACT] D156.activeEvidentialSurvives "No note therefore establishes ACME was archived."  expected=false got=true
+        OK   [CONTRACT] prior.D125.andNoErrors "ACME was archived and no errors occurred."
+        OK   [CONTRACT] prior.D147b.noErrorsOccurredAnd "No errors occurred and ACME was archived."
+        OK   [CONTRACT] prior.D147b.failedAnd "Nothing failed and ACME was archived."
+        FAIL [RESIDUAL] D159.renamedArrowUnreachable "Renamed: ACME -> Beta Corp"  expected=false got=true  — LEGACY's `renamed: … ->` arm is unreachable through readsAsCompletion
+        437 passed, 3 failed
+          [CONTRACT] failures: 2   [DEFECT] reproductions: 0   [RESIDUAL] moves: 1
+null/null exit=1    qa/verification/proposed/v26_mutation_proof.mjs
+ 138/  8 exit=1    qa/verification/proposed/v26_regression_additions.mjs
+        OK   [CONTRACT] D147b.noErrorsOccurredAnd "No errors occurred and ACME Holdings was archived."
+        FAIL [CONTRACT] fixEModalHedgeGuardPresent  expected=true got=false
+        FAIL [CONTRACT] beltConstSetUnchanged  expected=LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_PROGRESS,hasSupportedMutationClaim,CONFIRMED_COMPLETION,NEGATED_CLAUSE,REFERENCELESS_CONFIRMATION,COMPLETION_PARTICIPLE,C
+        FAIL [CONTRACT] readsAsCompletionStillDecidesNegationViaCompletionIsNegated  expected=true got=false
+        FAIL [RESIDUAL] D159.renamedArrowUnreachable "Renamed: ACME -> Beta Corp"  expected=false got=true  — LEGACY`s renamed-arrow arm is unreachable through readsAsCompletion
+        v26_regression_additions: 138 pass, 8 fail
+          [CONTRACT] failures: 5   [DEFECT] reproductions: 2   [RESIDUAL] moves: 1
+        FAILURES:
+null/null exit=1    qa/verification/proposed/v27_mutation_proof.mjs
+ 152/  9 exit=1    qa/verification/proposed/v27_regression_additions.mjs
+        FAIL [CONTRACT] src.fixF.leadingPopNullSafe
+        FAIL [RESIDUAL] D116.nothingBundtCakes — a real name beginning with a negator word disarms the belt (run17/D128 disclosure)
+        FAIL [RESIDUAL] D153.droppedLinker — dropped-linker trade
+        FAIL [RESIDUAL] D165.control.was — the control: the was/were arm DOES carry `activated`
+        FAIL [CONTRACT] founderLexicalBranch — 163 correct / 5 unexplained / 8 explained by the pinned D165 + negator-initial-name residuals, across 22 completion words x 8 branches
+        152 passed, 9 failed
+        FAILURES:
+          [RESIDUAL] D164.preexistingPlainName :: Nothing failed however the log shows ACME was archived. — pinned at CURRENT behaviour: missed at 415fed3 and here, caught at 4476c92
+ 117/  0 exit=1    qa/verification/proposed/v28_mutation_proof.mjs
+ 106/  4 exit=1    qa/verification/proposed/v28_regression_additions.mjs
+        ok    [CONTRACT] D164.coordinatorName.1 :: Nothing failed however the log shows Acme and Sons was archived.
+        FAIL  [RESIDUAL] D116.negatorInitialName :: Nothing Bundt Cakes was archived. — a real name beginning with a negator word disarms the belt
+        FAIL  [RESIDUAL] D153.droppedLinker :: No errors ACME was archived.
+        FAIL  [RESIDUAL] D165.control.was :: Delta Ltd was activated.
+        FAIL  [RESIDUAL] D166b.linkerFreePlainName :: No problem the log shows ACME was archived. — a linker-free positive evidential after a filler negator: missed here AND at 4476c92
+        106 passed, 4 failed
+        FAILURES:
+        [DEFECT] failures are EXPECTED on candidate 45d05cc — they are what campaign #88 found.
+ 159/ 14 exit=1    qa/verification/proposed/v29_regression_additions.mjs
+        FAIL  [RESIDUAL] D169r.modalDropsWholeClause.dashSeparated :: It could have been a mistake — Sunrise Logistics LLC has been archived. — CAUGHT at 4476c92, missed here and at 5db8603
+        FAIL  [RESIDUAL] D159.renamedArrowArmUnreachable.arrow :: Renamed: Gobi Freight Co → Gobi Freight LLC
+        FAIL  [RESIDUAL] D159.renamedArrowArmUnreachable.ascii :: Renamed: Gobi Freight Co -> Gobi Freight LLC
+        FAIL  [RESIDUAL] V29.fillerNegatorDashUppercaseName :: No problem — Sunrise Logistics LLC was archived. — index.ts's own comment says this is no longer shielded; it is. Pre-existing at 4476c92.
+        ok    [RESIDUAL] V29.control.fillerNegatorColon :: Nothing failed: Sunrise Logistics LLC was archived.
+        FAIL  [RESIDUAL] D153.droppedLinker :: No errors Sunrise Logistics LLC was archived. — pinned MISSED: no clause linker, so the negator disarms the fabrication. Unchanged at 4476c92/5db8603/b6cca5f/HEAD.
+        FAILURES:
+        v29_regression_additions: 159 pass, 14 fail
+null/null exit=1    qa/verification/proposed/v92_mutation_proof.mjs
+                  expected belt.fabRegression==0/belt.productionShapes.D27-prod to FAIL; failures: (none)
+                  expected belt.fabRegression==0 to FAIL; failures: (none)
+null/null exit=0    qa/verification/scratch/v92/v30_open_regressions_probe.mjs
+          caught       v92=CATCH cand=CATCH  Nothing failed—ACME Holdings has been archived.
+  25/  1 exit=1    qa/verification/scratch/v92/v30_regression_additions.mjs
+        FAIL  [CONTRACT] belt declares exactly the known const list (no new declaration) — got: LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_PROGRESS,me,hasSupportedMutationClaim,CONFIRMED_COMPLETION,NEGATED_CLAUSE,REFEREN
+        25 passed, 1 failed
+        OPEN — this is the campaign #90 deployment gate and it is RED:
+null/null exit=1    qa/verification/scratch/v92/v31_mutation_proof.mjs
+  33/  1 exit=1    qa/verification/scratch/v92/v31_regression_additions.mjs
+        FAIL  [DEFECT] V31-F3b the negator lexicon covers ordinary contracted negations — NEGATED_CLAUSE does not recognise couldn't, wouldn't, shouldn't, won't — the R-AUXGAP whole-summary guard is therefore blind to them
+        33 passed, 1 failed
+        RED — candidate is NOT fit to deploy over v92:
+null/null exit=1    qa/verification/scratch/v92/v32_mutation_proof.mjs
+ 101/  0 exit=0    qa/verification/scratch/v92/v32_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v33_mutation_proof.mjs
+  93/  0 exit=0    qa/verification/scratch/v92/v33_regression_additions.mjs
+  57/  0 exit=0    qa/verification/scratch/v92/v34/v34_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v34_mutation_proof.mjs
+  55/  0 exit=0    qa/verification/scratch/v92/v35/v35_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v35_mutation_proof.mjs
+null/null exit=1    qa/verification/scratch/v92/v36/fix40_mutation_proof.mjs
+          const err = new Error(message);
+        Error: Command failed: C:\Program Files\nodejs\node.exe C:\Users\Dell\dev\brain-os-verify-884567a\qa\verification\scratch\v92\v36\build_fix40.mjs
+            at genericNodeError (node:internal/errors:985:15)
+            at checkExecSyncError (node:child_process:942:11)
+  61/  0 exit=0    qa/verification/scratch/v92/v36/v36_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v36_mutation_proof.mjs
+  21/  0 exit=0    qa/verification/scratch/v92/v37/v37_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v37_mutation_proof.mjs
+  29/  0 exit=0    qa/verification/scratch/v92/v38/v38_regression_additions.mjs
+null/null exit=1    qa/verification/scratch/v92/v38_mutation_proof.mjs
+        MUTATION PROOF: FAIL
+null/null exit=1    qa/verification/scratch/v92/v39/v39_mutation_proof.mjs
+        Error: ENOENT: no such file or directory, open 'C:\Users\Dell\dev\brain-os-verify-884567a\qa\supabase\functions\sem-ai-command\index.ts'
+  20/  1 exit=1    qa/verification/scratch/v92/v39/v39_regression_additions.mjs
+        FAIL  [DEFECT  ] V39-C-ENTITY.beltConsultsKnownEntityNames — the belt must consult the per-turn canonical entity-name set as a POSITIVE-only name signal (design accepted by #30/#36/#38; not yet wired)
+        note  [REPORT  ] V39-N3 — the three retargeted run14 window pins (#38 V38-C4, #37, #32) go RED when run14 reverts — verified by reverting run14 in the working tree and restoring it byte-identically — but they pin the LIT
+        v39_regression_additions: 20 passed, 1 failed, 3 report-only note(s)
+        RED — candidate 494157179fde is NOT fit to deploy over v92:
+null/null exit=0    qa/verification/scratch/v92/v39_deadness_proof.mjs
+        RETIRED: the v39 deadness proof was vacuous (aux+participle tails only). The R-IDIOM strip
+  77/  0 exit=0    qa/verification/scratch/v92/v40/v40_regression_additions.mjs
+null/null exit=0    qa/verification/scratch/v92/v40_mutation_proof.mjs
+
+GATES TOTAL: 2954 passed, 110 failed across 61 gate files

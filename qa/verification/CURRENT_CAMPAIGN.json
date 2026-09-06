@@ -1,10 +1,10 @@
 {
-  "campaign": 101,
-  "verifier": 41,
+  "campaign": 102,
+  "verifier": 42,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "30d3a640e9e4adc9",
+  "index_sha256_prefix": "ed3983dfb367a4ad",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -54,9 +54,10 @@
     "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
   },
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
-  "LESSON_ADDED": "#40 found a blocker mis-filed as a disclosed residual. That lesson is now a SUITE, not a note: standing_reds_classification_contract re-derives every disclosed/residual/shared label from the deploy rule and ignores the label. It found two more blockers on its first run. Never write \"disclosed residual\" about a row the rule calls a blocker.",
+  "LESSON_ADDED": "#41's rule, adopted: when a fix is validated on a corpus whose objects are all lowercase placeholders, it has been validated on the half of the class that does not occur in production. Generate the class; do not sample it. #40 closed the generic-object half of the gerund arm and left the proper-name half 83% broken.",
   "gates_on_committed_candidate": {
-    "battery": "35 files, 1 failing — standing_reds_classification_contract is RED and DEPLOY IS BLOCKED",
+    "battery": "35 files, 1 failing — standing_reds_classification_contract, RED because the candidate must not be deployed",
+    "v41": "22/0",
     "v40": "77/0",
     "v39": "20/1 (entity test red by design)",
     "v38": "29/0",
@@ -66,23 +67,25 @@
     "v34": "57/0",
     "v33": "93/0",
     "v32": "101/0",
+    "v31": "33/1 — re-derived by #41 as NOT a blocker (lexicon assertion at the wrong locus; 0 regressions on 10 contracted-modal truthful negatives). Its harness should stop printing a deploy verdict it cannot support.",
+    "v30": "25/1 — re-derived by #41 as NOT a blocker (flat const list counts LOCALS; superseded by the narrowed CONTRACT 5)",
+    "generative": "25/0",
+    "labelled_sweep": "clean both directions",
+    "mutation": "3/3 load-bearing, 0 no-ops",
     "deno": "23 == baseline"
   },
   "open_deploy_blockers": [
     {
-      "id": "A.lowercaseBareName",
-      "row": "No errors node.js was archived.",
-      "direction": "v92 corrects, candidate ships",
-      "size": "180 of 180 generated rows",
-      "status": "FIX PREPARED AND MEASURED in qa/verification/scratch/v92/fix_lowercase_subject.ts; applied only after verifier #41 returns"
-    },
-    {
       "id": "B.confirmedNamePhrase",
       "row": "Confirmed - Archived Media Group. It is still active.",
       "direction": "v92 preserves, candidate destroys, refusal persisted",
-      "size": "6 measured shapes",
-      "status": "NO PATTERN-LEVEL FIX EXISTS — a structural guard was built and refuted across six gates. Requires the entity signal."
+      "status": "NO PATTERN-LEVEL FIX EXISTS (ledger #103, refuted across six gates). Requires the entity signal."
     }
   ],
-  "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects."
+  "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
+  "closed_this_round": [
+    "V41-D1 gerund arm, proper-name object: 1100/1320 -> 0",
+    "V41-D2 CONFIRMED arm, determiner-negator object: 4/4 -> 0",
+    "Blocker A bare-lowercase new subject (ledger #103): 180/180 -> 0"
+  ]
 }

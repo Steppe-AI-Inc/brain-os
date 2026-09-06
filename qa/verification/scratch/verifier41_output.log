@@ -1,0 +1,81 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #41 — CAMPAIGN #101 — FINAL REPORT
+
+```
+CHANGE VERIFIED: candidate 884567acb771e13a0235c80dd519424c74aaa9ed vs DEPLOYED v92
+SCENARIOS: 9 executed, 7 passed, 2 failed, 0 blocked
+CANONICAL GRAPH:      N/A (this change is Edge-function text classification only; no DB mutation)
+UI ↔ DB:              N/A — see COVERAGE GAP below
+AI ↔ DB:              FAIL — two P1 classes make the assistant print a false refusal in place of a true answer
+DEPENDENCIES:         PASS (deploy surface = 1 file; 0 config/import-map/other-function changes)
+PERMISSIONS:          N/A (no RLS/auth surface touched)
+RELOAD/PERSISTENCE:   N/A
+IDEMPOTENCY:          N/A
+```
+
+## VERDICT: **FAIL**
+
+**EDGE STATUS = NOT DEPLOYMENT READY. Production stays v92. Do not request `ALLOW_FUNCTIONS_DEPLOY` on this SHA.**
+
+## FOUND
+
+**V41-D1 (P1, deploy blocker).** The gerund arm destroys a truthful *descriptive* sentence whose object is a **proper name**.
+
+| | |
+|---|---|
+| `"Archiving ACME Holdings throws a permission error."` | v92 **preserves** → candidate **destroys** |
+| `"Removing Bob Smith revokes his access immediately."` | v92 **preserves** → candidate **destroys** |
+| `"Deactivating CLIX GPS stops new runs but keeps history."` | v92 **preserves** → candidate **destroys** |
+
+Generated 22 gerunds × 6 proper names × 10 ordinary predicates = **1,320 truthful sentences. v92 preserves 1,320/1,320. The candidate destroys 1,100 (83.3%)**, each replaced with "I can't actually do that from chat" — itself false. Control with a generic lowercase object: **0/660**.
+
+**V41-D2 (P1, deploy blocker).** `"Confirmed — Archived no records."`, `"… nothing."`, `"… none of them."`, `"… no one."` — v92 preserves all four, the candidate destroys all four.
+
+## ROOT CAUSE
+
+**D1** — verifier #40 replaced the gerund arm's verb whitelist with a "structural" test that has two escapes a proper-name object defeats simultaneously: guard A is a **closed finite-verb list** (throws, fails, triggers, revokes, generates, reorders, queues, resets, consumes, starts, gives, returns, stops are not on it); guard B is `^<Gerund>\s+(?:an?\b|(?:[a-z]+\s+){0,2}[a-z]+s\b)`, which **can only fire when the object is lowercase**. #40 closed the generic-object half of #39's class and left the proper-name half — the form a Brain OS answer actually takes — fully open. **Fourth recurrence of this arm.**
+
+**D2** — two compounding: (1) **inverted polarity** — the X-guard's stoplist lists `no|nothing|none` inside a *negative* lookahead, so those are precisely the words that do **not** get its protection; (2) the arm's negation check runs on text up to the **end of the matched participle** (run19/D134), so an object negator is outside the checked span **by construction**.
+
+## SYSTEMIC IMPACT
+
+Same-class search performed. **V41-D3 (P3, report-only, shared with v92)**: the gerund guard's finite-verb alternation carries `/i`, so a company **name** ending in a verb word ("Erdenet Copper **Works**") reads as a finite verb — 18/24 in-progress fabrications about such names are missed. Also found and classified as shared-with-v92, not blockers: 7 first-person claims the attributive-noun exclusion excuses; `"No Business Unit was archived."` (lexically indistinguishable from `"No Limits Inc was archived."`, both destroyed by v92 too). Full `/i`-over-`[A-Z]` sweep of the belt: **0 findings**, shipped with its own non-vacuity proof.
+
+## FIXED — **FIX PREPARED**, not applied
+
+`qa/verification/proposed/v41_prepared_fix.mjs` (anchored, throws if an anchor moved, never writes to `index.ts`). V41-F1 replaces guard B with an **object-agnostic** finite-verb test (no verb whitelist); V41-F2 extends the X-guard's second disjunct with the lowercase determiner negators (regex is case-sensitive, so `"Confirmed — Archived No Limits Inc."` stays caught).
+
+| measure | candidate | + fix |
+|---|---|---|
+| V41-D1 truthful destroyed (1,320) | **1,100** | **0** |
+| V41-D2 truthful destroyed (4) | **4** | **0** |
+| round-2 truth regressions (53) | **13** | **0** |
+| truth / fab regression vs v92 | 0 / 0 | 0 / 0 |
+| `qa/scenarios-runner` battery | 0 fail | **0 fail** |
+| every `scratch/v92` gate | v30 25/1 … v40 77/0 | **identical** |
+
+## TESTED — measured by me, nothing restated
+
+My own corpus (**539 truthful / 293 fabrications**, incl. the required negator-token-NAME section both directions): truthRegression **0**, fabRegression **0**, truthImprovement 344, fabImprovement 75. Battery from the filesystem: **34 files, 29 asserting + 5 SUPERSEDED, 1,178 assertions, 0 failures, 0 exit-vs-text disagreements** (ledger #101's 34/0 confirmed). All 22 production shapes (#64 D16, #65 D25/D27 row `9dda919c`, #66 D40) still corrected — **Q5 closed**. 9/9 re-pins honest. **CONTRACT 5's narrowing is honest**: a *referenced* top-level const breaks run15 57/0→41/16, run16 53/0→47/6, run17 43/0→25/18, run18 52/0→18/34 and CONTRACT 5 catches it; a local trips nothing. run15 **57/0**. Q3 **0 reintroductions**. Q6 rollback exact, LF, available. Q7 **one file**. Mutation proof: **9 mutations, 0 no-ops** — R-AUXGAP load-bearing 4/6, so ledger #101's correction is **confirmed**. Matcher: **32/32**, 17 divergences from v92 all in the safe direction; E2E arming 10/10. Identifier delta re-derived: belt top-level **2 → 13**; whole-file top-level **33 → 33**.
+
+Standing reds re-derived from the deploy rule: v30 25/1 (harness obsolescence), v31 33/1 (V31-F3b is a *lexicon* assertion — behaviourally 0 regressions / 9 shared with v92), v39 20/1 (red by design). **All three correctly non-blockers** — but ledger #101 reports only `verifier30_probe: PASS` and omits that v30 and v31 gates are red, and `v31_regression_additions` prints "NOT fit to deploy over v92" on an assertion that cannot support it. Both flagged.
+
+## PRODUCTION
+
+**Nothing was written.** No deploy, no `db push`, no migration, no DB write, no `QA-VERIFY-*` synthetic data created (this campaign is source/text-level only — nothing to clean up). `supabase functions list` was the only live call. `index.ts` is byte-identical, asserted before every temporary edit and again at the end.
+
+## BLOCKERS (founder action)
+
+1. **Do not deploy 884567a.** Apply `v41_prepared_fix.mjs`, re-run `v41_regression_additions.mjs` (expect 22/0) and the full battery, then a **fresh** verifier on the new SHA.
+2. **Coverage gap, stated not hidden:** `supabase functions download` and `supabase link` are blocked by this session's command classifier, so my v92 provenance is **INTEGRATION-LEVEL + TEMPORAL, not byte-direct** (live `updated_at` 2026-09-01T05:15:25.518Z is 44 s after c9dfab5b's author date; the git blob hashes to `795c20c8…`; the candidate carries v92's gate byte-identically). No browser/UI/AI-chat tooling was available either, so **UI-truth and live AI-chat checks are BLOCKED, not skipped**. A session with `functions download` should close the provenance link the rest of the way.
+
+**Commit:** `19c0e47` on `verify-884567a-campaign101` (local; not pushed — no write authority on the implementation branch).
+
+---
+
+VERDICT: **FAIL**
+
+`30d3a640e9e4adc94bb0c3a51bf251c0984425d8e3fc2bd97710210d82212726`

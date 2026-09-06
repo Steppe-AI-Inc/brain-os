@@ -22,8 +22,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const ROOT = 'C:/Users/Dell/dev/brain-os/';
-const SRC = ROOT + 'supabase/functions/sem-ai-command/index.ts';
-const OUT = ROOT + 'qa/verification/scratch/v92/fix_lowercase_subject.ts';
+const SRC = process.env.V41_LC_IN || ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const OUT = process.env.V41_LC_OUT || ROOT + 'qa/verification/scratch/v92/fix_lowercase_subject.ts';
 
 let text = readFileSync(SRC, 'utf8');
 const before = text;
