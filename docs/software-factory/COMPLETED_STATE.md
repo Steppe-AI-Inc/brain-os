@@ -35,7 +35,7 @@ open work can break it, because neither stream has written to production.
 
 ## 2. THE EDGE TRUTHFULNESS CAMPAIGN — LARGE, NOT SHIPPED
 
-Ten consecutive independent verifiers (#30–#39) have failed the candidate. **Nothing is deployed.**
+Eleven consecutive independent verifiers (#30–#40) have failed the candidate. **Nothing is deployed.**
 Production still runs v92. This is the single biggest body of work in flight.
 
 ### What the campaign is fixing
@@ -62,6 +62,9 @@ is read back by the next turn. Two failure directions:
 
 Each verifier found real defects the previous round introduced or missed. The recurring cause, now
 recorded five times: **a suite was green only because its corpus never generated the shape.** The
+eleventh verifier found the opposite and worse case: a test that **did** fail, correctly, every single
+round, and was written off in prose each time as an accepted residual. It was a genuine deploy
+blocker, red for the whole campaign. A gate left red long enough stops being read as a failure. The
 worst instance, found by verifier #39, is worth stating plainly — an arm the deployed version does not
 have was reading an ordinary sentence that merely *begins with a gerund* as a claim, and destroyed
 **28 of 29** ordinary product-help answers, for example:
@@ -79,7 +82,7 @@ code both used the same sentence with the gerund in the middle where the code ca
 | 8 verifier gate files, each re-runnable against any build | SOURCE VERIFIED |
 | Generative adversarial suite, 25 properties generated from grammar rather than enumerated | SOURCE VERIFIED, proven to fail on 5 historical builds |
 | Labelled differential sweep, 3,760 rows carrying intended truth values | SOURCE VERIFIED, proven to fail on 3 historical builds |
-| 100 ledger entries recording every defect, fix, retraction and dead end | — |
+| 102 ledger entries recording every defect, fix, retraction and dead end | — |
 
 ### Open, disclosed, not fixed
 

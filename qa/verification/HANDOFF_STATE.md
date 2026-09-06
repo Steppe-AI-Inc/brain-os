@@ -10,7 +10,7 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 | What | Where |
 |---|---|
 | Current campaign, verifier number, exact SHA, all gate numbers | `qa/verification/CURRENT_CAMPAIGN.json` |
-| Every defect class, every fix, every retraction, entries #90–#101 | `qa/KNOWN_FAILURE_MODES.md` (read #99, #100, #101 first) |
+| Every defect class, every fix, every retraction, entries #90–#102 | `qa/KNOWN_FAILURE_MODES.md` (read #99, #100, #101, #102 first) |
 | The candidate under test | `supabase/functions/sem-ai-command/index.ts` |
 | Verifier artifacts, one directory per verifier | `qa/verification/scratch/v92/v3*/` |
 | Reusable probes and proofs this session wrote | `qa/verification/scratch/v92/v4*_*.mjs` |
@@ -20,18 +20,16 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 
 ## 2. STATE RIGHT NOW
 
-- **Candidate:** commit `4cf2a88f720b90e5f8aeddaefa85cfbb6db2cdd4`, `index.ts` sha256
-  `3798ad2f819749ff36daf6dd522a9e00cfe95a521ceb6bf92f810fa6de6f2901`.
-  Later commits (`ce6d2e3`, `9a62331`) touch **only** `qa/` — the deploy surface is unchanged.
-- **Verifier #40 is RUNNING** on that SHA (worktree `brain-os-verify-4cf2a88`, watchdog pid 33911,
-  dispatched 20:16). Its verdict is the next event. A `Monitor` task was watching
-  `qa/verification/scratch/watchdog-verifier40_output.state`; **re-arm it after compaction** —
+- **Candidate:** commit `884567acb771e13a0235c80dd519424c74aaa9ed`, `index.ts` sha256
+  `30d3a640e9e4adc94bb0c3a51bf251c0984425d8e3fc2bd97710210d82212726`.
+  It carries verifier #40's four structural edits, adopted after re-measuring here.
+- **Verifier #41 is RUNNING** on that SHA (worktree `brain-os-verify-884567a`, watchdog pid 35120,
+  dispatched 21:00). Its verdict is the next event. A `Monitor` task was watching
+  `qa/verification/scratch/watchdog-verifier41_output.state`; **re-arm it after compaction** —
   monitors do not survive. Terminal markers: `watchdog done`, `BLOCKED`, `exhausted`.
 - **Nothing is deployed. Production is still v92.** No DB write, no migration, no `functions deploy`
   has happened in this entire campaign.
 - **Rollback:** `git c9dfab5bd433`, `index.ts` sha256 `795c20c82301aba1…`. Take it FROM GIT.
-
----
 
 ## 3. THE STANDING CONTRACT (unchanged, from the founder)
 
@@ -47,7 +45,7 @@ Verdicts are read from the verifier's OUTPUT TEXT, never from an exit code, and 
 `BLOCKED — EXECUTION_MODE` / `BLOCKED — OTHER`.
 
 **Ask `ALLOW_FUNCTIONS_DEPLOY=1?` exactly once, and only after a fresh verifier PASSES on the exact
-bytes.** Ten verifiers have failed in a row; do not anticipate a pass.
+bytes.** Eleven verifiers have failed in a row; do not anticipate a pass.
 
 ---
 
@@ -76,13 +74,15 @@ Every verifier gate lives at `qa/verification/scratch/v92/v3*/v3*_regression_add
 
 ---
 
-## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE
+## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`30d3a640`)
 
-battery 34/0 · #39 20/1 (its entity test is RED BY DESIGN) · #38 29/0 · #37 21/0 · #36 62/0 ·
-#35 56/0 · #34 58/0 · #33 92/1 (disclosed D188 pair) · #32 101/0 · #30 probe PASS ·
-generative 25/0 · labelled sweep 0/0 · run15 57/0 · deno 23.
+battery 34/0 · #40 77/0 (was 45/32) · **#33 93/0 — green for the first time in the campaign** ·
+#39 20/1 (its entity test is RED BY DESIGN) · #38 29/0 · #37 21/0 · #36 61/0 · #35 55/0 ·
+#34 57/0 · #32 101/0 · #30 probe PASS · generative 25/0 · labelled sweep 0/0 ·
+adversarial probe clean · mutation 16/16 with zero no-ops · deno 23.
 
----
+**#39's entity test is the ONLY expected red.** Anything else red is a real failure, not furniture —
+see the sixth lesson in §6.
 
 ## 6. THE LESSON THAT COST THE MOST — READ THIS BEFORE WRITING ANY FIX
 
@@ -96,6 +96,15 @@ because its corpus never generated the shape:
 4. `v92_parity_contract` (911 strings, 7 parentheticals, none in the position that mattered)
 5. the two gerund pins (both rested on the SAME string with the gerund mid-clause, so the arm that
    destroyed 28 ordinary answers was never observed)
+
+**Sixth, from verifier #40, and it is the opposite and worse.** `"No errors occurred the department
+was removed."` is a fabrication production corrects and the candidate shipped. It was RED in this
+repository's own `v33` gate for the WHOLE campaign, and every round since #33 — including every
+summary written here — recorded that single failure as "the disclosed D188 residual". It is not a
+residual; by the deploy rule it is a blocker. Five suites could not fail. This one DID fail, correctly,
+every round, and was explained away in prose each time. **A gate that stays red long enough stops
+being read as a failure and starts being read as furniture.** Re-derive the CLASSIFICATION of every
+standing red from the deploy rule, not from its label.
 
 **And: a closed list over an open class always leaks.** It has failed on names, linking words,
 evidential verbs, state verbs, gerunds and finite verbs. Function words are the one legitimate closed
@@ -113,7 +122,7 @@ from a regression (that mistake produced 11,760 false alarms in one sweep here).
 
 ---
 
-## 7. WHAT THE CAMPAIGN DID (verifiers #30–#39, all FAIL)
+## 7. WHAT THE CAMPAIGN DID (verifiers #30–#40, all FAIL)
 
 Each verifier failed the candidate, and from #34 onward each also **prepared its own fix**, which this
 session adopted verbatim after re-measuring and deno-checking it. Highlights only; the ledger has all:
