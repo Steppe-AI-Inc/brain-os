@@ -11,7 +11,7 @@ import { buildGate } from '../../lib/belt_extract.mjs';
 // today so it was not lying, but it measured another checkout by construction and died on any
 // machine without that path. Same shape as the eighth vacuity: a contract that cannot reach
 // the input it exists for.
-const SRC = process.env.SEM_INDEX_SRC || new URL('../../../supabase/functions/sem-ai-command/index.ts', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const SRC = process.env.SEM_INDEX_SRC || new URL('../../../../supabase/functions/sem-ai-command/index.ts', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut31';
 mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');

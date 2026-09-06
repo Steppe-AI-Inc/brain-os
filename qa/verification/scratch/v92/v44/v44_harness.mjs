@@ -14,7 +14,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, '../../../..');
+// v45/V45-N4: ROOT was one level short, so V92_PATH became <repo>/qa/qa/verification/... and this
+// harness — the mutation proof for the fix adopted in the candidate it shipped with — could not run
+// from any working directory. Five levels, not four.
+const ROOT = resolve(HERE, '../../../../..');
 export const CAND_PATH = process.env.SEM_INDEX_SRC
   || [resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts'),
       resolve(process.cwd(), 'supabase/functions/sem-ai-command/index.ts')].find(existsSync);
