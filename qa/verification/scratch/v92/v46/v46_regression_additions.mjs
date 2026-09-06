@@ -61,6 +61,25 @@ const V92_RE = new Function(v92Line.trim() + '\nreturn PAST_COMPLETION_CLAIM_PAT
 const v92Fires = (s) => V92_RE.test(String(s));
 const fires = (s) => belt.readsAsCompletion(String(s));
 
+// ── CORRECTION CARRIED FORWARD (V46-D8). Deployed v92 does NOT overwrite the model's prose with
+// one arm. It has TWO, and the past-completion arm is explicitly gated on
+// `!claimsFutureActionWithNoPlan`. The candidate carries the SAME gate on legacyProseFallback.
+// A row that v92's FUTURE_PROMISE arm destroys is therefore v92 PARITY, not a truth regression.
+// Modelling only PAST_COMPLETION_CLAIM_PATTERN overstates the differential — it is the same
+// "measured against the wrong thing" mistake this campaign has now made three times, and my own
+// first-pass harness made it too (35 reported where 28 is true). Every differential below uses
+// v92Destroys(), never v92Fires() alone.
+const v92FPLine = V92_LF.split('\n').find((l) => l.includes('const FUTURE_PROMISE_PATTERN'));
+if (!v92FPLine) throw new Error('v46: v92 FUTURE_PROMISE_PATTERN missing — update this suite, do not let it pass');
+const V92_FP = new Function(v92FPLine.trim() + '\nreturn FUTURE_PROMISE_PATTERN;')();
+const candFPLine = SRC_LF.split('\n').find((l) => l.includes('const FUTURE_PROMISE_PATTERN'));
+if (!candFPLine) throw new Error('v46: candidate FUTURE_PROMISE_PATTERN missing — update this suite');
+const CAND_FP = new Function(candFPLine.trim() + '\nreturn FUTURE_PROMISE_PATTERN;')();
+// what deployed v92 does to the model's prose, across BOTH of its arms
+const v92Destroys = (s) => v92Fires(s) || V92_FP.test(String(s));
+// what the candidate does, across both of ITS arms
+const candDestroys = (s) => CAND_FP.test(String(s)) || fires(s);
+
 // ═════════════════════════════════════════════════════ CONTRACTS (must keep holding)
 
 // C1 — the deploy surface stays one file, and v92 loses nothing.
@@ -155,11 +174,17 @@ check('CONTRACT', 'C8b no inline (?i:)-style modifier groups (unsupported in the
                    'I am going to archive the company', 'Let me go ahead and archive the company'])
     for (const c of ['once you confirm.', 'if you approve.', 'as soon as you say go.', 'only after your approval.',
                      'when you confirm.', 'provided you approve.', 'unless you object.']) rows.push(h + ' ' + c);
-  const destroyed = rows.filter((s) => !v92Fires(s) && fires(s));
-  check('DEFECT', 'V46-D1/V45-D1 conditioned offers must not be destroyed (' + rows.length + ' rows)',
+  // CORRECTED SIZING (V46-D8): 7 of these 35 are "I am going to archive…", which deployed v92's
+  // OWN future-promise arm destroys. Those are v92 parity. The real class is 28.
+  const parity = rows.filter((s) => v92Destroys(s));
+  const destroyed = rows.filter((s) => !v92Destroys(s) && candDestroys(s));
+  check('CONTRACT', 'C9a the conditioned-offer class is sized against BOTH v92 prose arms (28, not 35)',
+    parity.length === 7 && destroyed.length + parity.length === rows.length,
+    'parity=' + parity.length + ' regressions=' + destroyed.length + ' of ' + rows.length);
+  check('DEFECT', 'V46-D1/V45-D1 conditioned offers must not be destroyed (' + (rows.length - parity.length) + ' rows, v92-parity rows excluded)',
     destroyed.length === 0, destroyed.length + ' destroyed, e.g. ' + JSON.stringify(destroyed[0] || ''));
   // the unconditioned claim the arm exists for must stay caught either way
-  check('CONTRACT', 'C9 the UNCONDITIONED claim the arm exists for stays caught',
+  check('CONTRACT', 'C9b the UNCONDITIONED claim the arm exists for stays caught',
     ['Let me archive the company.', "I'm about to archive it.", 'Let me go ahead and archive the company.'].every(fires));
 }
 
@@ -168,8 +193,9 @@ check('CONTRACT', 'C8b no inline (?i:)-style modifier groups (unsupported in the
   const rows = ['Not processing the request.', 'Not executing the plan.',
     'Not executing the plan without your approval.', 'Not processing the changes until you confirm.',
     'Never processing the request twice.', 'No longer processing the request.',
-    'Hardly processing the request at this volume.', 'Neither processing the request nor executing the plan.'];
-  const destroyed = rows.filter((s) => !v92Fires(s) && fires(s));
+    'Hardly processing the request at this volume.', 'Neither processing the request nor executing the plan.',
+    'No longer executing the plan.'];
+  const destroyed = rows.filter((s) => !v92Destroys(s) && candDestroys(s));
   check('DEFECT', 'V46-D3 truthful negated-progressive refusals must not be destroyed (' + rows.length + ' rows)',
     destroyed.length === 0, destroyed.length + ' destroyed, e.g. ' + JSON.stringify(destroyed[0] || ''));
   check('DEFECT', 'V46-D3 root cause: the short-circuit must also test the progressive vocabulary',
@@ -236,7 +262,11 @@ check('CONTRACT', 'C8b no inline (?i:)-style modifier groups (unsupported in the
   const dir = path.join(ROOT, 'qa/verification/scratch/v92');
   const walk = (d, acc = []) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const f = path.join(d, e.name); if (e.isDirectory()) walk(f, acc); else if (e.name.endsWith('.mjs')) acc.push(f); } return acc; };
-  const off = fs.existsSync(dir) ? walk(dir).filter((f) => /['"][A-Za-z]:[\\/]/.test(fs.readFileSync(f, 'utf8'))) : [];
+  // A drive-letter literal that is ASSIGNED or CONCATENATED is a hard-coded path. One that sits
+  // inside a regex literal (preceded by `/`) is a DETECTOR for this very defect — not an instance
+  // of it. Distinguishing them is the difference between a real finding and a self-inflicted one.
+  const off = fs.existsSync(dir) ? walk(dir).filter((f) =>
+    /(?:^|[^/])['"][A-Za-z]:[\\/][^'"]{3,}['"]/m.test(fs.readFileSync(f, 'utf8'))) : [];
   check('DEFECT', 'V46-D6 no campaign artifact hard-codes an absolute path into another checkout',
     off.length === 0, off.length + ' offenders, e.g. ' + (off[0] ? path.relative(ROOT, off[0]) : ''));
 }
@@ -259,6 +289,72 @@ check('CONTRACT', 'C8b no inline (?i:)-style modifier groups (unsupported in the
   }
   check('DEFECT', 'V46-D2 the cited runtime probe compares two DIFFERENT builds',
     !selfCompare && !/const ROOT = '[A-Za-z]:/.test(fs.existsSync(probe) ? fs.readFileSync(probe, 'utf8') : ''), detail);
+}
+
+// D8 — V46-D9 (NEW this run): the candidate WIDENED v92's FUTURE_PROMISE_PATTERN to curly
+// apostrophes. Directionally right — the same sentence should not behave differently because of
+// typography — but it propagates v92's own over-firing to the apostrophe form an LLM actually
+// emits by default, and it destroys TRUTHFUL clarifying replies that carry no completion claim
+// at all. FUTURE_PROMISE_PATTERN has no exclusion for "I'll <do X> once you <give me Y>".
+{
+  const rows = ['I’ll assign this once you tell me who.',
+    'I’ll need the company name before I can create it.',
+    'I’ll create it as soon as you pick a company.'];
+  const destroyed = rows.filter((s) => !v92Destroys(s) && candDestroys(s));
+  check('DEFECT', 'V46-D9 curly-apostrophe clarifying replies must not be destroyed (' + rows.length + ' rows)',
+    destroyed.length === 0, destroyed.length + ' destroyed, e.g. ' + JSON.stringify(destroyed[0] || ''));
+  check('CONTRACT', 'C12 the promise the arm exists for is still caught in BOTH apostrophe forms',
+    ['I’m going to archive ACME Holdings.', "I'm going to archive ACME Holdings."].every((s) => CAND_FP.test(s)));
+}
+
+// D9 — V46-D4: CONTRACT 5's narrowing (top-level declarations only) leaves ONE real hazard site
+// unflagged. A local const inside the readsAsCompletion .map() CALLBACK is not a top-level
+// declaration, so the narrowed detector ignores it — but run15's extractor slices readsAsCompletion
+// to the first semicolon, so such a local breaks that suite with an opaque SyntaxError. The
+// narrowing's stated premise ("locals are safe, completionIsNegated is extracted brace-balanced")
+// is true for completionIsNegated and FALSE for readsAsCompletion's callback body.
+{
+  const c5 = path.join(ROOT, 'qa/scenarios-runner/v92_open_regression_contract.mjs');
+  const txt = fs.existsSync(c5) ? fs.readFileSync(c5, 'utf8') : '';
+  check('DEFECT', 'V46-D4 CONTRACT 5 covers the readsAsCompletion .map() callback hazard site',
+    /readsAsCompletion[\s\S]{0,600}?callback|mapCallbackLocal|\.map\(\) callback/.test(txt),
+    'CONTRACT 5 has coverage assertions for a top-level const and for a completionIsNegated local, but none for a local inside the readsAsCompletion .map() callback — the one site where a local IS the hazard');
+  // and keep the two directions CONTRACT 5 does cover honest
+  check('CONTRACT', 'C13 CONTRACT 5 still pins an exact top-level declaration sequence (it can still fail)',
+    /declared\.join\(','\) === EXPECTED\.join\(','\)/.test(txt));
+  check('CONTRACT', 'C14 both CONTRACT 5 coverage assertions fail loud on a moved anchor',
+    (txt.match(/mutated !== TEXT/g) || []).length >= 2);
+}
+
+// D10 — the fresh truthful shapes I generated this run must never regress. These are CONTRACTS
+// (they hold today) and exist so a future widening cannot quietly take them.
+{
+  const FRESH_TRUTH = [
+    'Although nothing was archived, the list looks shorter.',
+    'Unless you confirm, nothing will be archived.',
+    'Rather than archive it, I left ACME Holdings active.',
+    'Instead of archiving it, I only renamed the label.',
+    'Has ACME Holdings been archived yet?',
+    'Whereas no task was completed, three were reopened.',
+    'If you had confirmed, the company would have been archived.',
+    'ACME Holdings would have been archived if you had confirmed.',
+  ];
+  const lost = FRESH_TRUTH.filter((s) => !v92Destroys(s) && candDestroys(s));
+  check('CONTRACT', 'C15 fresh truthful shapes (subordinate/counterfactual/interrogative) survive',
+    lost.length === 0, lost.length + ' lost, e.g. ' + JSON.stringify(lost[0] || ''));
+  check('CONTRACT', 'C16 the belt does not throw or hang on degenerate input', (() => {
+    for (const t of ['', ' '.repeat(5000), '('.repeat(2000), 'a'.repeat(50000), '.'.repeat(20000)]) {
+      const t0 = Date.now(); try { belt.readsAsCompletion(t); } catch { return false; }
+      if (Date.now() - t0 > 2000) return false;
+    }
+    return true;
+  })());
+  check('CONTRACT', 'C17 no canned corrective result.summary string trips the belt', (() => {
+    for (const m of SRC_LF.matchAll(/result\.summary\s*=\s*(['"`])([\s\S]{20,600}?)\1\s*;/g)) {
+      if (candDestroys(m[2])) return false;
+    }
+    return true;
+  })());
 }
 
 // ═════════════════════════════════════════════════════

@@ -14405,3 +14405,52 @@ EVIDENCE on the new candidate `db0aa635`: battery **36 files / 0 failing**; #43 
 v30 25/1 and v31 33/1; deno 23 == baseline; CRLF 6,003 / bare LF 0; the 8 refusals restored 8/8.
 
 STATUS: NOT DEPLOYMENT READY. Production remains v92; rollback c9dfab5b from git.
+
+## 113. THE INSTRUMENT WAS WRONG FOR THE WHOLE CAMPAIGN — deployed v92 has TWO prose-overwrite arms and every differential modelled one
+
+Verifier #46's second pass found the deepest defect in the campaign, and it is not in the candidate.
+
+**Every differential in this campaign — seventeen verifiers and every gate under `qa/` — has modelled
+deployed v92 as ONE regex, `PAST_COMPLETION_CLAIM_PATTERN`.** v92 has **two** prose-overwrite arms.
+Verified here directly against `qa/verification/scratch/v92/index.v92.ts`, not accepted from the
+report:
+
+```
+FUTURE_PROMISE_PATTERN         v92 index.ts:4195
+  -> claimsFutureActionWithNoPlan                    :4196-4198
+  -> overwrites result.summary                       :4199
+
+PAST_COMPLETION_CLAIM_PATTERN  v92 index.ts:4239
+  -> claimsPastCompletionWithNoGrounding,
+     EXPLICITLY GATED ON !claimsFutureActionWithNoPlan  :4240-4242
+  -> overwrites result.summary                       :4243
+```
+
+**The consequence is directional and always inflates the same number.** A summary v92's FUTURE arm
+destroys was counted as *"v92 preserves it"*, so the candidate destroying it read as a **truth
+regression** when it is **v92 parity**.
+
+Re-derived here on a 64-row generation of the open conditioned-offer class:
+
+| | one-arm model (what the campaign used) | both arms (correct) |
+|---|---|---|
+| truth regressions | **64** | **48** |
+| rows mis-counted as regressions | — | **16**, all `I am going to archive …` |
+| rows the correction would ADD | — | **0** |
+
+**EVERY REGRESSION COUNT IN THIS RECORD PRODUCED BY THE ONE-ARM MODEL IS SUSPECT AND MUST BE
+RE-DERIVED RATHER THAN RESTATED** — including counts written by this session. The error is strictly
+one-directional: it can only have overstated regressions, never hidden one, so **no past PASS is
+called into question** and no fix adopted on those numbers is invalidated. But no count should be
+quoted again without re-deriving it.
+
+**THE CORRECT INSTRUMENT IS NOW SHARED:** `qa/verification/lib/v92_reference.mjs` exports
+`v92Destroys(s)` and `v92Arm(s)`, extracts both literals from the pinned v92 source rather than
+hard-coding them, and **carries a self-check that throws if the two arms are not distinguishable** —
+so it cannot silently degenerate into the one-arm model it replaces. `v47_two_arm_rederivation.mjs`
+is the measurement above and asserts the correction is one-directional.
+
+This is the campaign's own defining failure at the level of the measuring device rather than a suite:
+for seventeen rounds the thing every verdict was measured against was incomplete, and it was
+incomplete in the direction that manufactures work. The brief for #46 asked it to find the next
+instance of *"a fix measured against the corpus that was already green"*. It found the instrument.
