@@ -94,5 +94,14 @@
     "tool": "scripts/factory-runner/verify-deployed-bytes.sh <git-ref> — also the post-deploy check",
     "note": "Supersedes every \"integration-level, not byte-direct\" caveat in verifier reports #41 and #42 and in the promotion notes."
   },
-  "retraction_2": "CURRENT_CAMPAIGN.json critical_path and ledger #103 claimed the participle-initial-name class \"cannot be rescued by any pattern rule without re-opening fabrications v92 corrects\". REFUTED by verifier #43: 672 of 784 rows closed by three regex edits with zero fabrication cost. It was an assumption carried for four rounds, never a measurement. Before declaring a residual irreducible, generate the class and count it."
+  "retraction_2": "CURRENT_CAMPAIGN.json critical_path and ledger #103 claimed the participle-initial-name class \"cannot be rescued by any pattern rule without re-opening fabrications v92 corrects\". REFUTED by verifier #43: 672 of 784 rows closed by three regex edits with zero fabrication cost. It was an assumption carried for four rounds, never a measurement. Before declaring a residual irreducible, generate the class and count it.",
+  "db_batch_state": {
+    "finding": "A, B, C, D and 202609040001 are ALL recorded as applied in production migration history. C and 202609040001 were EXPLICITLY EXCLUDED from the authorization.",
+    "verified": "migration history only, read-only, via supabase migration list run from two repos",
+    "not_verified": "the schema objects themselves — needs DBTEST_PG_URL (founder boundary) or Docker (not running)",
+    "not_this_workstream": "qa/dbtest/apply-report.json is a PGlite run, not production; the only CI workflow is path-filtered to supabase/functions/** and never runs db push",
+    "consequence": "The scoped A/B/D authorization can no longer be exercised as written — the apply set is empty and selective_apply_abd.sh will refuse. Per the standing contract this is a \"previous approval conditions can no longer be satisfied\" case, which is an explicit trigger to return to the founder.",
+    "ask": "a READ-ONLY DBTEST_PG_URL, which turns live_preflight_abd.mjs --post into a per-migration LIVE VERIFIED/FAILED verdict and confirms or refutes the exclusions",
+    "writes_performed": "none"
+  }
 }
