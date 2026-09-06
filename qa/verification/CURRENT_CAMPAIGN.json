@@ -43,5 +43,17 @@
   "LESSON_RECORDED": "an all-green gate set is not a proof of absence for arms no suite generates (third occurrence this campaign; the retired v39 proof is the record)"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #37 FAIL stands against 395c438 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #37 FAIL stands against 395c438 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+ "DESIGN_NOTE_entity_positive_signal": {
+  "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
+  "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
+  "what_it_resolves": [
+   "\"No North Depot was archived.\" - preserved when no such entity exists, caught when one does",
+   "\"Confirmed - Archived Media Group. It is still active.\" - preserved when Archived Media Group is a known company (the truth direction, the worse failure direction)",
+   "\"Nothing Bundt Cakes was archived.\" - caught when the company exists"
+  ],
+  "what_stays_lexical": "a fabrication about a name that does NOT exist in the workspace: on an ungrounded turn the fabricated entity is never in contextPack (verifier #30 noted this), so the D188 minimal pair and lowercase bare names remain regex-bound.",
+  "cost_and_risk": "A name set referenced INSIDE the belt block collides with the extractor suites (run15-run19, v92_open_regression_contract): verifier #36 measured that a referenced top-level const outside the block takes 7/10 suites to ReferenceError. The set must be threaded in a form the brace-balanced extractors tolerate (e.g. read at call time from a closure variable the harnesses can stub), which is a harness change as well as a belt change. Not attempted while a verifier is running; proposed for the round after #38.",
+  "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
+ }
 }
