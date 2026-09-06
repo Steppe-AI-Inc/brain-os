@@ -10,7 +10,7 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 | What | Where |
 |---|---|
 | Current campaign, verifier number, exact SHA, all gate numbers | `qa/verification/CURRENT_CAMPAIGN.json` |
-| Every defect class, every fix, every retraction, entries #90–#104 | `qa/KNOWN_FAILURE_MODES.md` (read #102, #103 and #104 first) |
+| Every defect class, every fix, every retraction, entries #90–#107 | `qa/KNOWN_FAILURE_MODES.md` (read #102, #106 and #107 first) |
 | The candidate under test | `supabase/functions/sem-ai-command/index.ts` |
 | Verifier artifacts, one directory per verifier | `qa/verification/scratch/v92/v3*/` |
 | Reusable probes and proofs this session wrote | `qa/verification/scratch/v92/v4*_*.mjs` |
@@ -20,14 +20,15 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 
 ## 2. STATE RIGHT NOW
 
-- **Candidate:** commit `4f35700127b271d3e8cf68afb3ac0d5f772c4c5f`, `index.ts` sha256
-  `ed3983dfb367a4adfd98fc8b160fa7a29ef733e3a4c1d0f44979bc40e66d33b8`. CRLF 5989 / bare LF 0.
-  It carries verifier #41's two fixes plus this session's bare-lowercase new-subject fix.
-- **Verifier #42 is RUNNING** on that SHA (worktree `brain-os-verify-4f35700`, watchdog pid 37243,
-  dispatched 21:36). **Re-arm the watcher after compaction** with
-  `bash scripts/factory-runner/watch-verifier-artifacts.sh 42 /c/Users/Dell/dev/brain-os-verify-4f35700 60`
-  — it watches the ARTIFACTS as well as the watchdog, because #41's watchdog died silently with a
+- **Candidate:** commit `0007a02abd1855f438ccf9e5c735ac0ea42ae4ff`, `index.ts` sha256
+  `7b9fd136cdc0379b2efeb56e2adf0738df8c980e6b7153cea43900d65405c0cd`. CRLF 5998 / bare LF 0.
+- **Verifier #43 is RUNNING** (worktree `brain-os-verify-0007a02`, watchdog pid 42466). **Re-arm the
+  watcher after compaction** with
+  `bash scripts/factory-runner/watch-verifier-artifacts.sh 43 /c/Users/Dell/dev/brain-os-verify-0007a02 60`
+  — it follows the ARTIFACTS as well as the watchdog, because #41's watchdog died silently with a
   0-byte log while the verifier ran to completion. **Silence is not a verdict.**
+- **The entity signal is WIRED** (ledger #107). Verifier #39's `V39-C-ENTITY` test was red by design
+  for four rounds and is now green; v39 reads 21/0 for the first time.
 - **Nothing is deployed. Production is still v92.** No DB write, no migration, no `functions deploy`.
 - **Rollback:** `git c9dfab5bd433`, `index.ts` sha256 `795c20c82301aba1…`. Take it FROM GIT.
 
@@ -45,7 +46,7 @@ Verdicts are read from the verifier's OUTPUT TEXT, never from an exit code, and 
 `BLOCKED — EXECUTION_MODE` / `BLOCKED — OTHER`.
 
 **Ask `ALLOW_FUNCTIONS_DEPLOY=1?` exactly once, and only after a fresh verifier PASSES on the exact
-bytes.** Twelve verifiers have failed in a row; do not anticipate a pass.
+bytes.** Thirteen verifiers have failed in a row; do not anticipate a pass.
 
 ---
 
@@ -74,24 +75,28 @@ Every verifier gate lives at `qa/verification/scratch/v92/v3*/v3*_regression_add
 
 ---
 
-## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`ed3983df`)
+## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`7b9fd136`)
 
-battery **35 files, 1 failing** · #41 22/0 · #40 77/0 · #33 93/0 · #32 101/0 · #34 57/0 · #35 55/0 ·
-#36 61/0 · #37 21/0 · #38 29/0 · generative 25/0 · labelled sweep clean · mutation 3/3 · deno 23.
+battery **36 files, 1 failing** · #42 12/1 · #41 22/0 · #40 77/0 · #38 29/0 · #37 21/0 · #36 61/0 ·
+#35 55/0 · #34 57/0 · #33 93/0 · #32 101/0 · generative 25/0 · entity positive contract 5/0 ·
+labelled sweep clean · deno 23 · CRLF 5998 / bare LF 0.
 
-**FOUR reds are expected, and only these four.** Anything else red is a real failure.
+**FOUR reds are expected, and only these four.**
 
 | Gate | Reads | Why |
 |---|---|---|
-| `v39` | 20/1 | its entity test is RED BY DESIGN until the entity signal is wired |
-| `v30` | 25/1 | harness obsolescence — its flat const list counts LOCALS. #41 re-derived it: NOT a blocker |
-| `v31` | 33/1 | lexicon assertion at the wrong locus, closed inline in the R-AUXGAP lookbehind. #41 re-derived it: NOT a blocker. Its harness wrongly prints a deploy verdict it cannot support |
-| `standing_reds_classification_contract` | 1 blocker | **THE CANDIDATE IS NOT DEPLOYABLE.** One genuine blocker remains |
+| `standing_reds_classification_contract` | 1 blocker | the unknown-entity case; it reports the rescue, states the condition, and refuses to rule |
+| `v42` | 12/1 | its D2 test measures the EMPTY-set configuration — a verifier should re-derive it |
+| `v30` | 25/1 | stale inventory pin over belt LOCALS. #41 and #42 both re-derived it: NOT a blocker |
+| `v31` | 33/1 | lexicon assertion at the wrong locus. NOT a blocker; its harness no longer prints a deploy verdict |
 
-**The one open blocker:** `"Confirmed - Archived Media Group. It is still active."` — v92 preserves it,
-the candidate destroys it and persists the false refusal. Ledger #103 proves no pattern-level rule
-closes it without re-opening fabrications v92 corrects across six gates. **The structured-evidence
-work is ON THE CRITICAL PATH TO DEPLOY** — see `qa/verification/ENTITY_SIGNAL_DESIGN.md`.
+**`v39` is now 21/0.** It was 20/1 by design for four rounds. If it is ever 20/1 again, the entity
+signal has been unwired.
+
+**The one open question:** `"Confirmed - Archived Media Group. It is still active."` is rescued when
+the name is in the per-turn context pack and still destroyed when it is not, because absence
+deliberately proves nothing. **A verifier must rule whether that blocks a deploy.** Do not call it a
+residual — ledger #102 is what that word costs.
 
 ## 6. THE LESSON THAT COST THE MOST — READ THIS BEFORE WRITING ANY FIX
 
@@ -105,6 +110,12 @@ because its corpus never generated the shape:
 4. `v92_parity_contract` (911 strings, 7 parentheticals, none in the position that mattered)
 5. the two gerund pins (both rested on the SAME string with the gerund mid-clause, so the arm that
    destroyed 28 ordinary answers was never observed)
+
+**Eighth, from verifier #42.** The imminent arms of the in-progress belt had **never been guarded at
+all** — 98 of 140 ordinary guidance sentences destroyed, evenly across both halves, where production
+preserves every one. The only coverage anywhere in 35 suites and twelve gates was two lines of
+first-person fabrications that must be CAUGHT. **Not one row in the entire estate generated the
+other direction.** Generate BOTH directions of every class, not only the one the arm exists for.
 
 **Seventh, from verifier #41, and it is the most expensive so far.** #39 found the gerund arm
 destroying truthful sentences. #40 replaced its verb whitelist with a structural test and validated
@@ -140,7 +151,7 @@ from a regression (that mistake produced 11,760 false alarms in one sweep here).
 
 ---
 
-## 7. WHAT THE CAMPAIGN DID (verifiers #30–#41, all FAIL)
+## 7. WHAT THE CAMPAIGN DID (verifiers #30–#42, all FAIL)
 
 Each verifier failed the candidate, and from #34 onward each also **prepared its own fix**, which this
 session adopted verbatim after re-measuring and deno-checking it. Highlights only; the ledger has all:
