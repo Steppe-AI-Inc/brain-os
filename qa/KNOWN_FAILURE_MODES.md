@@ -14320,3 +14320,88 @@ product question alone) and **54/0 with the prepared option**; #44 115/3 → 118
 
 STATUS: NOT DEPLOYMENT READY, and the single reason is a product question. Production remains v92;
 rollback c9dfab5b from git.
+
+## 112. VERIFIER #46 FAIL CLOSED (partly) — the guard I adopted last round destroyed 8 truthful refusals, and the evidence I published for it compared a build against itself
+
+Verifier #46 returned **FAIL** on `e06bebc` / index.ts `d0de7e7e`. Eighteenth consecutive FAIL. Its
+own 682-row corpus: **35 truth regressions (all the conditioned-offer class) and 0 fabrication
+regressions**, 167 rescued, 107 newly caught, identical under populated and empty entity packs. Then
+**8 more truth regressions found by attacking the guard this session adopted** — 43 in total across
+two classes.
+
+**V46-D3 (P1, DEPLOY BLOCKER, AND IT IS MINE).** The V45-N2 short-circuit I adopted last round —
+`if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c)) return false;` — rests on a premise
+that is true for the LEGACY arm and **false for `EXECUTION_IN_PROGRESS`**, whose vocabulary is
+gerunds and idioms that appear in neither list. A negated progressive therefore short-circuits to
+"not negated" and the belt fires on a truthful refusal:
+
+```
+"Not processing the request."                              v92 passes — candidate FIRED
+"Not executing the plan without your approval."            v92 passes — candidate FIRED
+"Neither processing the request nor executing the plan."   v92 passes — candidate FIRED
+```
+
+Eight of eight. The founder-facing effect is the belt's own stated worst outcome: **the assistant
+declining to act — the exact sentence the confirm-before-mutate product exists to produce — replaced
+with "I can't actually do that from chat", which is itself false, and persisted.**
+#46's prepared fix is adopted: the arm whose vocabulary is gerunds must also be consulted before
+short-circuiting. Reproduced here with a REAL before/after taken from **git**, not from a path:
+**8/8 destroyed by my guard, 0/8 after the fix**, and the guard still short-circuits plain prose.
+
+**V46-D2 — AND HERE IS HOW IT SHIPPED, WHICH IS WORSE THAN THE DEFECT.**
+`v46_runtime_probe.mjs`, the artifact I published as evidence for that guard, built `before` from
+`index.ts` and `after` from `fix46.ts` — **after I had already copied fix46 over index.ts.** Both
+were sha256 `d0de7e7e…`. **The probe compared the candidate against itself.** Its "1.24–1.44× on
+ordinary prose" was noise, and its "**0 verdict changes of 9**" was **0 by construction and could
+never have failed**. I wrote that number into the ledger and into a report to the founder as evidence
+that the change was safe. It was the campaign's defining vacuity class, in my own evidence, for the
+change that caused the defect — and its 9 rows contained no negated progressive, so even a valid
+comparison would have missed it. **RETRACTED in full.**
+
+**V46-D1 — the runtime discrepancy is settled, and NEITHER of us was right.** #45 measured 657 ms and
+called it quadratic; I measured single-digit ms and called it linear; #46 shows both were measured on
+shapes that never enter the expensive path. Ordinary prose is **linear** (e=0.99). **One unsplittable
+clause carrying SKIPPED negators is CUBIC** (e=2.97): 0.36 ms at 500 chars → 507 ms at 8 KB → 3.9 s
+at 16 KB, doubled per turn because `readsAsCompletion` has two call sites. Mechanism: the scan loop
+breaks at the first negator it does not skip, so ordinary text is cheap, but every *skipped* negator
+costs a full `newSubject` recomputation — O(n²) each, O(n³) when their count scales with length.
+**One skipped negator is enough**: the single word `pending`, or one negator-token company name.
+Reachable — `max_tokens: 8192` allows a ~25–32 KB summary, there is no length cap before the belt,
+and the splitter treats `and` as a boundary only before a lowercase token, so a run-on list of
+capitalised names joined by `and` is one clause by construction. Not a truth regression and not a
+deploy blocker on its own, but it is a CPU-exhaustion characteristic the candidate introduces and
+v92 does not have, and the founder should have the number before deploying.
+**My own two hypotheses were both refuted before this landed** — I tested five input shapes and both
+entry points and got linear every time. I had the wrong shapes.
+
+**V46-D5 ATTEMPTED AND WITHDRAWN, on my own measurement.** `CONFIRMED_COMPLETION` is missing `closed`
+and `added`, which its sibling lists carry, so `"Confirmed — Closed ACME."` escapes while
+`"Confirmed — Archived ACME."` is caught. I built the fix; it closes those and it also **destroys 2
+of 8 truthful rows about entities actually named "Added Value Ltd" / "Added Dimension Inc" — with
+their names in the entity pack.** I could not explain the interaction, and v92 catches none of the
+rows the fix would gain. **Destroying a truthful answer to win a catch production does not have is
+the wrong trade**, so it is not shipped. The measurement is handed on rather than the guess.
+
+**STILL OPEN after this round** — `v46_regression_additions.mjs` reads 6 defects on the applied
+bytes: the conditioned-offer class (**the founder's product decision**, 35 rows), the cubic growth
+exponent, D5 above, the ordinal binding below, and two artifact-hygiene classes.
+
+**V46-D7 (P2, NEW, NOT FIXED HERE) — the ordinal path binds a destructive option on a reply that
+names TWO options.** The matcher's own rule is *"FAIL CLOSED, and NEVER INTERPRET"*. It takes the
+ordinal from the **first** matching notation and then strips **every** notation before its
+"ordinal-only" test, so `"option 1, option 2"` binds A and arms `archiveCompanyIds` where v92
+dead-ends. `"option 1 #2"` binds 1 while `"#2 the first one"` binds 2 — which wins depends only on
+which regex alternative fires first. #46 prepared a fix (collect all distinct ordinals, bind only
+when there is exactly one; 0 failures, 4 leaks closed, 8 legitimate selections preserved). Left for
+the next round rather than reimplemented from a description.
+
+**V46-D6/D2 — 43 artifacts hard-code an absolute path into a different checkout**, and I reported
+that class CLOSED for two proofs last round. `v44_mutation_proof.mjs` genuinely is fixed.
+`v31_mutation_proof.mjs` is **not**: it still hard-codes another path, exits 1, and reports three
+FALSE `NOT PROVEN` results for fixes #46 proved load-bearing. My claim was wrong.
+
+EVIDENCE on the new candidate `db0aa635`: battery **36 files / 0 failing**; #43 40/0; #42 12/1;
+#41 22/0; #40 77/0; #39 21/0; #38 29/0; #37 21/0; #36 61/0; #35 55/0; #34 57/0; #33 93/0; #32 101/0;
+v30 25/1 and v31 33/1; deno 23 == baseline; CRLF 6,003 / bare LF 0; the 8 refusals restored 8/8.
+
+STATUS: NOT DEPLOYMENT READY. Production remains v92; rollback c9dfab5b from git.

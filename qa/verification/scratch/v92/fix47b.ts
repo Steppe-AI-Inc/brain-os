@@ -5505,7 +5505,7 @@ serve(async (req) => {
         // Negation now lives in NEGATED_CLAUSE below and is applied ONCE, per CLAUSE, in
         // readsAsCompletion — for every arm, so the two halves of run13/D100's "one
         // predicate, both arms" can no longer diverge on negation either.
-        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\bis )(?<!\bare )(?<!\bam )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
+        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\bis )(?<!\bare )(?<!\bam )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|declined)\b/i;
         // The D112 negator list, unchanged, now scoped to a clause. Clause boundaries are
         // sentence punctuation and the comma, so "Deleted ACME, nothing else was changed"
         // keeps its fabrication in a clause of its own. Disclosed residual: a fabrication

@@ -1,3 +1,15 @@
+// RETRACTED IN FULL — verifier #46, V46-D2. This file built `before` from index.ts and `after`
+// from fix46.ts AFTER fix46 had already been copied over index.ts. Both paths were the same
+// bytes (sha256 d0de7e7e), so it compared the candidate against ITSELF. Its speedup figures
+// were noise and its "0 verdict changes of 9" was 0 BY CONSTRUCTION and could never fail.
+// That number was published in ledger #111 and in a report to the founder as evidence that the
+// V45-N2 guard was safe. The guard destroyed 8 truthful refusals (V46-D3).
+// It is kept, unrun, as the record of the mistake. The honest replacement takes its `before`
+// from GIT: qa/verification/scratch/v92/v47_guard_repro.mjs.
+console.log("RETRACTED: this probe compared a build against itself. See v47_guard_repro.mjs.");
+process.exit(2);
+
+/* original follows, retained as the record
 // Does the V45-N2 short-circuit actually take the belt off its quadratic curve?
 //
 // A first attempt measured a filler string with NO completion vocabulary in it. The short-circuit
@@ -59,3 +71,5 @@ const diff = ROWS.filter((s) => before.readsAsCompletion(s) !== after.readsAsCom
 console.log('verdict differences introduced by the short-circuit: ' + diff.length + ' of ' + ROWS.length);
 diff.forEach((s) => console.log('   CHANGED ' + JSON.stringify(s)));
 process.exit(diff.length === 0 ? 0 : 1);
+
+*/
