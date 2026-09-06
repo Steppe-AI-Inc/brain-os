@@ -12,6 +12,14 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
+
+// Verifier #42's ruling: every extractor injects the entity-name set as an EMPTY Set by default,
+// so a name being ABSENT proves nothing and the belt's positive-only signal is inert here. This is
+// what makes "an empty set produces byte-identical verdicts" the structural default of the whole
+// battery rather than a control someone has to remember to run. `new Function` bodies execute in
+// global scope, so this one assignment reaches every belt-build site in this file.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+
 function resolveRun14() {
   let d = process.cwd();
   for (let i = 0; i < 8; i++) {
@@ -39,7 +47,7 @@ const detype = (s) => s.replace(/\(c: string\): boolean =>/g, '(c) =>').replace(
 function beltSlice(text) { const a = text.indexOf('const LEGACY_PAST_COMPLETION'); const b = text.indexOf('const legacyProseFallback'); if (a < 0 || b <= a) throw new Error('belt not found'); return text.slice(a, b); }
 function buildBelt(text) {
   const body = detype(beltSlice(text)).replace(/const hasSupportedMutationClaim =[\s\S]*?\);\n/, '');
-  return new Function(body + '\nreturn { readsAsCompletion, LEGACY_PAST_COMPLETION };')();
+  return new Function('const knownEntityNames = new Set();\n' + body + '\nreturn { readsAsCompletion, LEGACY_PAST_COMPLETION };')();
 }
 function buildDecision(text) {
   const a = text.indexOf('const LEGACY_PAST_COMPLETION'); const b = text.indexOf('\n        if (rewriteFromStructure) {', a);

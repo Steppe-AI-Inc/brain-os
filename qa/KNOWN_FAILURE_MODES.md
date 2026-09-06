@@ -13937,3 +13937,73 @@ zero no-ops; deno 23 == baseline; CRLF 5989 / bare LF 0.
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #42's
 FAIL stands against `4f35700` and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 107. THE ENTITY SIGNAL IS WIRED — verifier #39's deliberately-red test is green for the first time
+
+Verifier #42 ruled on the design and this round implements it. `V39-C-ENTITY.beltConsultsKnownEntityNames`
+has been RED **on purpose** since verifier #39 as the first regression test for this work. It is now
+GREEN, and v39's gate reads **21/0** for the first time in the campaign.
+
+**WHAT IT DOES.** The belt consults the per-turn canonical entity names as a **POSITIVE-ONLY** signal:
+a capitalised phrase that EQUALS a known name is a NAME, never a predicate. The phrase compared
+includes the participle, which is the whole trick — in the truthful row the entire phrase
+`"Archived Media Group"` is the company's name, while in the fabrication the name is `"ACME Holdings"`
+and `"Archived ACME Holdings"` is not a name at all. Ledger #103 proved by refutation that no rule
+over the text alone separates those two, across six gates. Only the referent does.
+
+The set is built beside the maps it comes from — `companyNameById`, `personNameById`, `taskTitleById`
+and `runtimeLabels`, the last of which carries rows created THIS turn that are absent from every
+context-pack map by definition (run8/D67) and are exactly the rows a founder is most likely asking
+about. It is declared ~900 lines above the belt, far outside every extracted region, so verifier
+#37's "no new TOP-LEVEL declaration in the belt block" contract is untouched — which is what #42's
+"option 2 is NOT authorised" required.
+
+**#42's AMENDMENT, AND IT IS THE BEST PART OF THE DESIGN.** An inline reference makes the belt slice
+carry a FREE IDENTIFIER, so every extractor must inject it or throw. **That is a feature.** A
+`ReferenceError` is louder than the silent drop #37's contract exists to prevent. Twenty-one
+harnesses threw on the first run and were found by RUNNING them, not by guessing. Every one now
+injects an **empty Set** by default, which makes the design's own third control — *an empty set must
+produce byte-identical verdicts* — **the structural default of the whole battery** rather than a
+measurement someone has to remember to run. Absence therefore cannot quietly become evidence, and
+`V39-C-ENTITY.absenceIsNeverUsedAsEvidence` keeps passing by construction.
+
+Thirteen harnesses took a stub threaded into their belt-build call. Eleven build the belt at three or
+four sites with different argument shapes, and those take a single process-level default instead:
+`new Function` bodies execute in global scope, so one assignment reaches every build site in the
+file, including ones added later. Per-call-site bookkeeping is what goes stale silently.
+
+**THE ONE SUITE THAT POPULATES THE SET** is `qa/scenarios-runner/entity_signal_positive_contract.mjs`
+(#42's point 4). The empty default proves the signal is SAFE; it cannot prove the signal WORKS,
+because an inert guard and a neutral guard print the same table — a trap this campaign walked into
+while prototyping this very signal. So that suite asserts, and leads with its own non-vacuity check:
+**18 truthful reports destroyed with the set empty, 0 destroyed once the names are known**, the
+fabrication twins about other entities all still caught, and no verdict anywhere moved by absence.
+
+**MUTATION PROOF, 2/2 LOAD-BEARING.** Disabling the positive test re-destroys all six probe rows.
+Flipping its POLARITY inverts everything at once — 6/6 known rows destroyed, 0/6 unknown rows
+destroyed, 0/3 fabrications caught — which is exactly the disaster the positive-only rule exists to
+prevent, and it is now observed rather than asserted. A first version of that proof deleted the whole
+disjunct, left a malformed expression, and scored the SyntaxError as load-bearing: **a mutation that
+breaks the parse proves the text is present, not that the logic does anything.**
+
+**WHAT IS HONESTLY NOT CLOSED.** The rescue is conditional on the name being in the per-turn context
+pack. When it is not, the row is still destroyed, because absence deliberately proves nothing there.
+`standing_reds_classification_contract` now measures the row under BOTH configurations and says so in
+those words, and it **stays RED**: it reports the rescue, states the condition, and explicitly refuses
+to answer whether the unknown-entity case blocks a deploy, because that is a verifier's ruling and
+because the word "residual" is what let a real blocker sit red through four verifiers (ledger #102).
+
+**A LINE-ENDING NEAR-MISS.** The first build of the declaration inserted plain `\n` into a file that
+is stored CRLF-only, producing 9 bare LFs against a pinned 5,989 / 0. **No gate checks that**, which
+is precisely why it matters — it would have made every future diff of this file misreport what
+changed. Rebuilt with CRLF: 5,998 / 5,998 / 0 bare LF.
+
+EVIDENCE on the new candidate `7b9fd136`: battery **36 files** (the new positive contract) / 1 failing
+— `standing_reds`, red pending the ruling above; **v39 21/0 for the first time**; #42's gate 12/1
+(its D2 test measures the EMPTY-set configuration, which a verifier should re-derive); #41 22/0;
+#40 77/0; #33 93/0; #32 101/0; #34 57/0; #35 55/0; #36 61/0; #37 21/0; #38 29/0; v30 25/1 and v31
+33/1 (non-blockers); generative 25/0; labelled sweep clean; entity positive contract 5/0; mutation
+2/2 with zero no-ops; deno 23 == baseline; CRLF 5,998 / bare LF 0.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA.
+Production remains v92; rollback c9dfab5b from git.

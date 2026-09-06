@@ -106,7 +106,7 @@ function buildBelt() {
   const body = parts.join('\n').replace(/\(c: string\): boolean/g, '(c)').replace(/\(s: string\)/g, '(s)');
   if (/:\s*(string|boolean|number|any)\b/.test(body)) throw new Error('a TS annotation survived — refusing to guess');
   // eslint-disable-next-line no-new-func
-  return new Function(body + '\nreturn readsAsCompletion;')();
+  return new Function('const knownEntityNames = new Set();\n' + body + '\nreturn readsAsCompletion;')();
 }
 let readsAsCompletion;
 try { readsAsCompletion = buildBelt(); } catch (e) {

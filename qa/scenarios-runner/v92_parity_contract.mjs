@@ -34,7 +34,7 @@ function buildBelt() {
   const slice = src.slice(a, b).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
     .replace(/\(c:\s*string\)\s*:\s*boolean\s*=>/g, '(c) =>').replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('v92_parity: TS annotation survived — refusing');
-  return new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  return new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
 }
 const readsAsCompletion = buildBelt();
 const candFires = (s) => readsAsCompletion(String(s)) === true;
@@ -52,7 +52,7 @@ function buildMatcher(text, tag) {
     .replace(/function resolveClarificationField\([^)]*\)\s*:\s*[^{]*\{/, 'function resolveClarificationField(entityType, actionType) {')
     .replace(/\((\w+): PendingActionOption\)/g, '($1)').replace(/:\s*PendingActionOption\b/g, '').replace(/\(([a-zA-Z]+): string\)/g, '($1)').replace(/:\s*string\b/g, '').replace(/:\s*boolean\b/g, '').replace(/:\s*unknown\b/g, '');
   const body = detype([braced('const CLARIFICATION_ENTITY_ACTION_FIELD'), line('ARCHIVE_VERB_PATTERN'), line('RESTORE_VERB_PATTERN'), braced('function resolveClarificationField('), braced('function commandContradictsActionType('), braced('function matchDisambiguationOption(')].join('\n'));
-  return new Function(body + `\nreturn function decide(command, options) {\n  const matchedOption = matchDisambiguationOption(command, options);\n  if (!matchedOption) return 'DEAD-END';\n  ${detype(site)}\n  ${detype(fieldLine)}\n  return (matchedOption && !contradicted && field) ? 'SELECT:' + field + ':' + matchedOption.id : 'DEAD-END';\n};`)();
+  return new Function('const knownEntityNames = new Set();\n' + body + `\nreturn function decide(command, options) {\n  const matchedOption = matchDisambiguationOption(command, options);\n  if (!matchedOption) return 'DEAD-END';\n  ${detype(site)}\n  ${detype(fieldLine)}\n  return (matchedOption && !contradicted && field) ? 'SELECT:' + field + ':' + matchedOption.id : 'DEAD-END';\n};`)();
 }
 
 // ---- runner

@@ -76,7 +76,7 @@ function buildBelt(text) {
   let slice = text.slice(a, b).replace(/=\s*\((\w+):\s*string\)\s*:\s*boolean\s*=>/g, '= ($1) =>');
   const codeOnly = slice.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   if (/:\s*(string|boolean|number|any)\b/.test(codeOnly)) throw new Error('TypeScript annotation survived stripping');
-  const out = new Function('const verifiedClaims = [];\n' + slice +
+  const out = new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice +
     '\nreturn { readsAsCompletion, completionIsNegated, NEGATED_CLAUSE };')();
   if (typeof out.readsAsCompletion !== 'function') throw new Error('readsAsCompletion missing from the slice');
   return out;

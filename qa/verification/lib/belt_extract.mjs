@@ -126,7 +126,7 @@ export function buildGate(srcPath, mutate = (code) => code) {
   const body = mutate(parts.join('\n'));
   // eslint-disable-next-line no-new-func
   const exported = present.filter((n) => n !== 'PROGRESS_VERBS');
-  const f = new Function(body + '\nreturn { ' + exported.join(', ') + ' };');
+  const f = new Function('const knownEntityNames = new Set();\n' + body + '\nreturn { ' + exported.join(', ') + ' };');
   return { ...f(), source: body, present };
 }
 
@@ -135,7 +135,7 @@ export function buildMatcher(srcPath, mutate = (code) => code) {
   const src = readSource(srcPath);
   const fn = mutate(detype(extractFunction(src, 'matchDisambiguationOption')));
   // eslint-disable-next-line no-new-func
-  const f = new Function(fn + '\nreturn matchDisambiguationOption;');
+  const f = new Function('const knownEntityNames = new Set();\n' + fn + '\nreturn matchDisambiguationOption;');
   return f();
 }
 
@@ -145,7 +145,7 @@ export function buildClarificationField(srcPath, mutate = (code) => code) {
   const fn = detype(extractFunction(src, 'resolveClarificationField'));
   const body = mutate(table + '\n' + fn);
   // eslint-disable-next-line no-new-func
-  return new Function(body + '\nreturn resolveClarificationField;')();
+  return new Function('const knownEntityNames = new Set();\n' + body + '\nreturn resolveClarificationField;')();
 }
 
 // Re-composes the REAL disambiguation-resolution branch (index.ts:2696-2731) out of the

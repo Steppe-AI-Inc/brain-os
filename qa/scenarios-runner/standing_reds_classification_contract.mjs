@@ -93,6 +93,47 @@ for (const r of ROWS) {
   console.log('        ' + JSON.stringify(r.s) + '   [ledger label: ' + r.label + ']');
 }
 
+// THE ENTITY SIGNAL CHANGED WHAT THE D100 ROW MEANS, so it is re-measured under BOTH
+// configurations instead of being left as one number. The belt now consults the per-turn canonical
+// entity names as a POSITIVE-only signal, and this harness — like every extractor — injects an
+// EMPTY set. The count above is therefore the UNKNOWN-ENTITY case: the honest worst case, and not
+// the whole truth.
+{
+  const NAME = 'archived media group';
+  const ROW = 'Confirmed - Archived Media Group. It is still active.';
+  let knownFires = null;
+  try {
+    const src = readFileSync(SRC, 'utf8').replace(/\r\n/g, '\n');
+    const a = src.indexOf('const LEGACY_PAST_COMPLETION');
+    const b = src.indexOf('const legacyProseFallback');
+    const detype = (t) => t
+      .replace(/\((\w+):\s*string\)\s*:\s*boolean\s*=>/g, '($1) =>')
+      .replace(/\((\w+):\s*string\)\s*=>/g, '($1) =>')
+      .replace(/:\s*string\b/g, '').replace(/:\s*boolean\b/g, '')
+      .replace(/:\s*unknown\b/g, '').replace(/:\s*number\b/g, '');
+    const slice = detype(src.slice(a, b).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n'))
+      .replace(/const hasSupportedMutationClaim =[^;]*;/, '');
+    const seed = 'const knownEntityNames = new Set(' + JSON.stringify([NAME]) + ');\nconst verifiedClaims = [];\n';
+    const f = new Function(seed + slice + '\nreturn readsAsCompletion;')();
+    knownFires = f(ROW) === true;
+  } catch (e) { knownFires = null; }
+  if (knownFires === false) {
+    console.log('');
+    console.log('ENTITY SIGNAL: the D100 row IS RESCUED once the entity name is KNOWN to the turn.');
+    console.log('  It is still destroyed when the name is NOT in the per-turn context pack, because');
+    console.log('  absence there deliberately proves nothing — the pack is truncated. So this row is');
+    console.log('  CONDITIONALLY closed, and the condition is real rather than a formality.');
+    console.log('  A VERIFIER MUST RULE whether the unknown-entity case blocks a deploy. That is not');
+    console.log('  answered here, and the word "residual" is not used for it: that word is exactly what');
+    console.log('  let a genuine blocker sit red through four verifiers (ledger #102).');
+  } else if (knownFires === true) {
+    console.log('');
+    console.log('ENTITY SIGNAL: populating the name set does NOT rescue the D100 row. Either the signal');
+    console.log('  is not wired or it is wired and inert. Check entity_signal_positive_contract.mjs,');
+    console.log('  which is the only suite that measures the POSITIVE direction.');
+  }
+}
+
 console.log('');
 console.log('rows ' + ROWS.length + '  derived-BLOCKER ' + blockers + '  mislabelled-as-shared ' + mislabelled);
 const bad = blockers + mislabelled;

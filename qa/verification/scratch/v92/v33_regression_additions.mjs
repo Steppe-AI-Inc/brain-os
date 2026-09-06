@@ -82,7 +82,7 @@ const beltBlock = (src) => {
 function buildBelt(src) {
   const slice = detype(stripCommentLines(beltBlock(src))).replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('TS annotation survived in belt block');
-  const fn = new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  const fn = new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
   return (s) => fn(String(s)) === true;
 }
 function buildDecision(src) {

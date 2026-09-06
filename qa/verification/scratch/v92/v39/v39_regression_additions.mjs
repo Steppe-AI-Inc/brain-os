@@ -48,7 +48,7 @@ function buildBelt(src) {
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('TypeScript annotation survived stripping — refusing');
   for (const n of ['readsAsCompletion', 'completionIsNegated', 'NEGATED_CLAUSE', 'LEGACY_PAST_COMPLETION', 'EXECUTION_IN_PROGRESS'])
     if (!slice.includes('const ' + n)) throw new Error('belt slice is missing ' + n + ' — refusing');
-  return new Function('const verifiedClaims = [];\n' + slice
+  return new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice
     + '\nreturn { readsAsCompletion, LEGACY_PAST_COMPLETION, NEGATED_CLAUSE, EXECUTION_IN_PROGRESS };')();
 }
 const BELT = buildBelt(TEXT);

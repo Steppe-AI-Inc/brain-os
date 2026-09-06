@@ -55,6 +55,14 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
+
+// Verifier #42's ruling: every extractor injects the entity-name set as an EMPTY Set by default,
+// so a name being ABSENT proves nothing and the belt's positive-only signal is inert here. This is
+// what makes "an empty set produces byte-identical verdicts" the structural default of the whole
+// battery rather than a control someone has to remember to run. `new Function` bodies execute in
+// global scope, so this one assignment reaches every belt-build site in this file.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 function findUp(rel) { let d = HERE; for (let i = 0; i < 12; i++) { const p = join(d, rel); if (existsSync(p)) return p; const u = dirname(d); if (u === d) break; d = u; } return null; }
 const SRC = process.env.SEM_INDEX_SRC || findUp('supabase/functions/sem-ai-command/index.ts');
@@ -75,7 +83,7 @@ const beltBlock = (src) => { const a = src.indexOf('const LEGACY_PAST_COMPLETION
 function buildBelt(src) {
   const slice = detype(stripComments(beltBlock(src))).replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('TS annotation survived in belt block');
-  const fn = new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  const fn = new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
   return (s) => fn(String(s)) === true;
 }
 function buildDecision(src) {

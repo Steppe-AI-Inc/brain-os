@@ -63,6 +63,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
+
+// Verifier #42's ruling: every extractor injects the entity-name set as an EMPTY Set by default,
+// so a name being ABSENT proves nothing and the belt's positive-only signal is inert here. This is
+// what makes "an empty set produces byte-identical verdicts" the structural default of the whole
+// battery rather than a control someone has to remember to run. `new Function` bodies execute in
+// global scope, so this one assignment reaches every belt-build site in this file.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 function findUp(rel) {
   let d = HERE;
@@ -100,7 +108,7 @@ const beltBlock = (src) => {
 function buildBelt(src) {
   const slice = detype(stripCommentLines(beltBlock(src))).replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('TS annotation survived in belt block');
-  const fn = new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  const fn = new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
   return (s) => fn(String(s)) === true;
 }
 function buildDecision(src) {

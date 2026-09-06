@@ -98,7 +98,7 @@ function buildBelt(src) {
     'REFERENCELESS_CONFIRMATION', 'completionIsNegated', 'readsAsCompletion']) {
     if (!slice.includes(need)) throw new Error('belt slice is missing ' + need + ' — extractor is stale, refusing to run');
   }
-  const built = new Function('const verifiedClaims = [];\n' + slice + '\nreturn { readsAsCompletion, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, completionIsNegated };')();
+  const built = new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn { readsAsCompletion, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, completionIsNegated };')();
   if (typeof built.readsAsCompletion !== 'function') throw new Error('readsAsCompletion did not build — refusing to run');
   return built;
 }

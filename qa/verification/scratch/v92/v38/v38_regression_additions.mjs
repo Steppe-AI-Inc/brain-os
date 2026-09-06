@@ -63,7 +63,7 @@ function buildBelt(text) {
     .replace(/\(c:\s*string\)\s*:\s*boolean\s*=>/g, '(c) =>')
     .replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('v38: TypeScript survived stripping — refusing to pass');
-  return new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  return new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
 }
 const belt = buildBelt(src);
 const candFires = (s) => belt(String(s)) === true;

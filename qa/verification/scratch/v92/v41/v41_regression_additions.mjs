@@ -119,7 +119,7 @@ function buildGate(src) {
     parts.push(detype(c)); present.push(n);
   }
   const exported = present.filter((n) => n !== 'PROGRESS_VERBS');
-  return new Function(parts.join('\n') + '\nreturn { ' + exported.join(', ') + ' };')();
+  return new Function('const knownEntityNames = new Set();\n' + parts.join('\n') + '\nreturn { ' + exported.join(', ') + ' };')();
 }
 function buildMatcher(src) {
   const m = /(^|\n)function\s+matchDisambiguationOption\s*\(/.exec(src);
