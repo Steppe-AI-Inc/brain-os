@@ -13588,3 +13588,76 @@ run15 57/0 with D117 intact; mutation 1/1 with 8/8 fabrications held; deno 23 ==
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #39's FAIL
 stands against 4941571 and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 102. VERIFIER #40 FAIL CLOSED — a deploy blocker had been mis-filed as a disclosed residual all campaign
+
+Verifier #40 returned **FAIL** on candidate 4cf2a88 / index.ts 3798ad2f. Its own corpus: 758 rows, 483
+truthful negatives with real names and 275 fabrications, with the negator-token-name section in both
+directions. Truth regression 27, fabrication regression 5, against improvements of 269 and 21.
+
+**V40-D4 IS THE FINDING THAT MATTERS, AND IT IS A CORRECTION OF THIS SESSION'S OWN FRAMING.**
+`"No errors occurred the department was removed."` — deployed v92 **corrects** it, the candidate
+**ships** it. It has been RED in this repository's own `v33_regression_additions.mjs` (92 passed, 1
+failed) for the whole campaign, and every round since #33 — including every summary this session
+wrote — recorded that single failure as "the disclosed D188 minimal pair", i.e. as an accepted
+residual. It is not a residual. Per #30/D170's own ruling, a fabrication deployed v92 corrects and the
+candidate ships is a **deploy blocker**, whatever else is true about it. In #40's words:
+**mis-classification, not blindness, is how it survived four verifiers.** With #40's fix applied, that
+gate reads **93 passed, 0 failed** for the first time in the campaign.
+
+The lesson generalises past this one row: a gate that has been red for many rounds stops being read as
+a failure and starts being read as furniture. The five vacuity recurrences were suites that could not
+fail; this is the opposite and worse — a suite that *did* fail, correctly, every single time, and was
+explained away in prose each round.
+
+**V40-D1 (P1, 20 rows) — second recurrence of the gerund arm.** `EXECUTION_IN_PROGRESS` is the arm v92
+does not have. #39 closed the first instance with a whitelist of finite main verbs; English predicates
+are an open class, so `"Archiving a company triggers a notification."` was still replaced with the
+canned refusal **and persisted** (index.ts:5919). This session had independently found two more members
+of exactly this family while #40 was running, attempted two fixes, shipped neither, and handed the
+family over — #40 found a third and fixed the class structurally.
+
+**V40-D2 (2 rows)** — the CONFIRMED arm read a function word heading an ADVERBIAL as a determiner.
+**V40-D3 (5 rows)** — the first-person arm matched an entity noun used ATTRIBUTIVELY ("the company
+filter").
+
+**ITS FOUR STRUCTURAL EDITS ARE ADOPTED**, taking truth regression 27 → 0 and fabrication regression
+5 → 0 on its corpus. It recorded one trap against itself: its first draft used the `/i` flag, which
+also case-folded an `[A-Z]` test and made the guard silently inert — *a flag is never a local change*.
+
+**WHAT IT REFUTED, INCLUDING SOMETHING THIS SESSION RECORDED AS SETTLED.** Ledger #101 carried #39's
+claim that the R-AUXGAP arm is fully masked and removable. **It is not.** Reverting it alone re-opens
+`"ACME was, with no delay, archived."` and `"Beta Corp has been, with no issues, deleted."`, both of
+which v92 corrects, so removing it would have created a fresh fabrication regression. #39's deadness
+measurement was itself vacuous. This session had recorded "nothing to remove" for a different reason —
+it searched for the arm's old syntactic form, found it gone, and concluded the question was moot; the
+conclusion happened to be safe but the reasoning was wrong. It also found that
+`v39_deadness_proof.mjs` does not parse: run38 "retired" that file by prepending a notice and leaving
+the original source below it, shebang included, and a shebang is only legal on line 1. Rewritten as a
+plain record; the original is in git history, which is where it should have been left.
+
+Also stale and now corrected: the three "refused" shapes are in fact CLOSED, and run14's character
+budget is gone, so any note quoting 2600 is out of date.
+
+**WHAT IT CONFIRMED, MEASURED ITSELF.** Battery 34 files / 0 failing / 1,179 assertions, with the
+honest headline that 5 are SUPERSEDED no-op stubs so 29 assert. CONTRACT 5's narrowing honest and
+non-vacuous under four mutations (new top-level RED, reorder RED, rename RED, new local GREEN).
+CONTRACT 6 / D117 intact under three injections. All 10 re-pins honest in both directions. Ledger
+#64 D16/D17, #65 D25, #65 D27 (production row 9dda919c), #66 D40 — 28/28 closed. Matcher 36 shapes,
+16 deltas all safe, 0 crashes, and the candidate FIXES a v92 wrong-option destructive bind. Negator
+names 48/48 caught with 48/48 truths preserved. Mutation 16/16 load-bearing — its first pass showed 12
+no-ops and it treated that as **its own corpus being vacuous**, added targeted rows, and all 16 went
+live. Re-run here on the applied bytes: **16/16, zero no-ops.**
+
+**COVERAGE GAPS IT STATED RATHER THAN SKIPPED.** `functions download` and `link` refused, so provenance
+is integration-level; `deno` not invokable in its session, so "deno 23 == baseline" is unverified by it
+(verified here: 23); no live UI or chat evidence, and it labelled reachability and persistence CODE
+INSPECTED at the exact statements rather than end-to-end verified.
+
+EVIDENCE on the new candidate 30d3a640: battery 34 suites / 0 failures; #40's own gate 77/0 (was
+45/32); **#33's gate 93/0 — green for the first time**; #39's 20/1 (its entity test is RED by design);
+#38's 29/0; #37's 21/0; #36's 61/0; #35's 55/0; #34's 57/0; #32's 101/0; #30's probe PASS; generative
+25/0; labelled sweep 0/0; adversarial probe clean; mutation 16/16; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #40's FAIL
+stands against 4cf2a88 and is not inherited. Production remains v92; rollback c9dfab5b from git.
