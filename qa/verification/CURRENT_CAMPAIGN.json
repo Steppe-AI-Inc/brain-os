@@ -1,10 +1,10 @@
 {
-  "campaign": 105,
-  "verifier": 45,
+  "campaign": 106,
+  "verifier": 46,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "6c5e52b52f1a8366",
+  "index_sha256_prefix": "d0de7e7eadfb5e0a",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -54,10 +54,11 @@
     "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
   },
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
-  "LESSON_ADDED": "#44: every guard on the gerund arm is anchored to a clause-initial gerund, so one leading adverbial walks past all three. The shape that is tested is the shape that is guarded. Also the eighth vacuity, and the first that is a coverage hole rather than a false green: three suites never had the seed the record claimed they all had, and the fuzz contract meant to notice used an alphabet that cannot spell the word it needed.",
+  "LESSON_ADDED": "#45 sized the conditioned-offer class at 117 where the record said 39, and it landed on my own prepared option: I had built it against the gate that pins 3 rows and called it complete when that gate went green. A fix measured against the corpus that was already green is measured against the wrong thing.",
   "gates_on_committed_candidate": {
     "battery": "36 files, 0 failing",
-    "v44": "115/3 (the three let-me rows, open for the founder)",
+    "v45": "53/1 — the product question alone; 54/0 with the prepared option",
+    "v44": "115/3 — same class; 118/0 with the prepared option",
     "v43": "40/0",
     "v42": "12/1 (empty-pack configuration)",
     "v41": "22/0",
@@ -73,15 +74,15 @@
     "v31": "33/1 non-blocker",
     "v30": "25/1 non-blocker",
     "deno": "23 == baseline",
-    "crlf": "5998/5998, 0 bare LF"
+    "crlf": "6003/6003, 0 bare LF"
   },
   "open_deploy_blockers": [
     {
-      "id": "V44-D3.letMeDeferredOffer",
-      "rows": "39 generated, 3 pinned",
+      "id": "V45-D1.conditionedOffer",
+      "rows": "117 of 196 generated (the record previously said 39)",
       "example": "Let me archive the company once you confirm.",
-      "direction": "v92 preserves, candidate destroys",
-      "status": "FOUNDER DECISION, not a defect. Verifier #44 declined to fix it: whether the imminent arm should fire on an offer explicitly conditioned on the founder confirmation is a product question."
+      "direction": "v92 preserves all 196, candidate destroys 117",
+      "status": "FOUNDER PRODUCT DECISION. Option PREPARED not applied: qa/verification/scratch/v92/v45_build_letme_option.mjs -> fix45_letme.ts. With it, v45 gate 54/0 and v44 gate 118/0, battery 36/0, and the unconditioned claim the arm exists for stays caught."
     }
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -111,5 +112,6 @@
     "consequence": "The scoped A/B/D authorization can no longer be exercised as written — the apply set is empty and selective_apply_abd.sh will refuse. Per the standing contract this is a \"previous approval conditions can no longer be satisfied\" case, which is an explicit trigger to return to the founder.",
     "ask": "a READ-ONLY DBTEST_PG_URL, which turns live_preflight_abd.mjs --post into a per-migration LIVE VERIFIED/FAILED verdict and confirms or refutes the exclusions",
     "writes_performed": "none"
-  }
+  },
+  "unresolved_discrepancy": "V45-N2 runtime. Verifier #45 measured 657 ms at 33,639 chars and reads the belt as quadratic. Re-measured here: worst case 6.46 ms, growth roughly LINEAR — a hundredfold discrepancy, UNRESOLVED. The short-circuit it suggested is adopted and measured honestly (1.24-1.44x on ordinary prose, neutral where the vocabulary is present, 0 verdict changes). See qa/verification/scratch/v92/v46_runtime_probe.mjs. Hand to the next verifier; do not agree with either number without re-deriving it."
 }
