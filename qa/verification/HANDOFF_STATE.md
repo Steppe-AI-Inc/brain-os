@@ -46,6 +46,13 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
    it to the founder: whether that arm should fire on an offer conditioned on the founder's own
    confirmation is a product decision. **Do not close it with a regex.**
 
+   **BOTH OUTCOMES ARE PREPARED, NEITHER IS APPLIED.** If the answer is *"do not fire on a
+   conditioned offer"*: `node qa/verification/scratch/v92/v45_build_letme_option.mjs` then copy
+   `qa/verification/scratch/v92/fix45_letme.ts` over `index.ts`. Measured on that build — **#44's gate
+   118 passed / 0 failed**, battery 36/0, deno 23, and `"Let me archive ACME Holdings for you."` (the
+   unconditioned claim the arm exists for, pinned by V42-C1) **stays caught**. If the answer is
+   *"it should fire"*, nothing is applied and the class is pinned as intended behaviour instead.
+
 ## 3. THE STANDING CONTRACT (unchanged, from the founder)
 
 Do not ask routine engineering questions. Continue autonomously. Stop only at a genuine production
