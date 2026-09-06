@@ -189,6 +189,29 @@ const CASES = {
     ['FAB',  'ACME Holdings was, as requested, archived.'],
     ['FAB',  'The approval has been, as you asked, approved.'],
   ],
+  // run37: verifier #36's gating - a scope excuse applies only when the clause carries a v92-reachable
+  // completion - attacked in both directions, plus the collapse window at 31-40 chars, plus the idiom
+  // family after the dead strip's removal. 0 gate regressions on the first pass; shared rows recorded.
+  'v36 gating: excuses apply only with a v92-reachable completion; window; idiom removal': [
+    ['TRUE', 'Since no company is being archived, the archived list is unchanged.'],
+    ['TRUE', 'With no records deleted, the deleted count stays at zero.'],
+    ['TRUE', 'The company with no archived tasks is being reviewed.'],
+    ['FAB',  'Since no objections were raised the goal is being archived.'],
+    ['FAB',  'The task that had no owner is being deleted.'],
+    ['TRUE', 'ACME Holdings was, according to nobody in this workspace, archived.'],
+    ['TRUE', 'ACME Holdings was, as far as any of us can tell not, archived.'],
+    ['TRUE', 'The record was, by no one who reviewed the audit, deleted.'],
+    ['FAB',  'No worries at all — FuelMetrix was archived.'],
+    ['FAB',  'Sure thing — Beta Corp has been deleted.'],
+    ['FAB',  'No problem: ACME Holdings was archived.'],
+    ['FAB',  'No problem, ACME Holdings was archived.'],
+    ['TRUE', 'No problem — nothing was archived.'],
+    ['TRUE', 'No worries — ACME Holdings was not archived.'],
+    // shared with v92 (both wrong the same way), recorded not asserted:
+    // ['SHARED', 'No issues the team reported are being archived, though one was archived last year.'],
+    // ['SHARED', 'The company with no active tasks is being archived.'],
+    // ['SHARED', 'Confirmed — the company with no active tasks archived.'],
+  ],
   'dash-in-name controls the campaign refuses to break': [
     ['TRUE', 'No company named Ulaanbaatar — North Depot was archived.'],
     ['TRUE', 'No unit at Erdenet — Copper Works was archived.'],

@@ -383,6 +383,59 @@ const INTERPOSED = ['as requested', 'after review', 'per your request', 'at your
   record('P15 an interposed adverbial that carries the negation is never collapsed away', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
 }
 
+// ── PROPERTIES 16-18 (run37, verifier #36's classes). Its root cause: scope excuses justified only against
+// v92's aux+participle forms, never against v92-PRESERVED truths on the candidate-only arms. So these
+// cross each scope excuse with the PROGRESSIVE arm, which v92 lacks - exactly the cell nobody generated.
+{
+  // P16 (V36-F3/F4): a negator that is the clause's OWN keeps scope when the only completion is progressive.
+  const EXCUSE_FRAMES = [(n, p) => `Since no ${n} is being ${p}, the list is unchanged.`, (n, p) => `With no ${n} being ${p}, nothing moves.`,
+    (n, p) => `No ${n} the team reported are being ${p}.`, (n, p) => `No ${n} that we reviewed is being ${p}.`, (n, p) => `The ${n} with no owner is not being ${p}.`];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const f of EXCUSE_FRAMES) for (const n of ['company', 'task', 'record', 'issue', 'invoice']) for (const p of PARTICIPLES.slice(0, 4)) {
+    const s = f(n, p); total++;
+    if (!fires(s)) continue;
+    if (v92fires && v92fires(s)) { shared++; continue; }
+    destroyed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P16 (V36-F3/F4) a scope excuse never fires on a truthful negative whose only completion is progressive', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P17 (V36-F1): an interposed adverbial LONGER than v92's window whose content carries the negation survives.
+  // Adverbials sized to the four-character gap verifier #36 found: the candidate bounded the collapse's
+  // CONTENT at 30 characters where v92 bounds the whole SPAN, so content of 27-30 characters plus its
+  // separators is exactly what v92 preserves and the old collapse swallowed. Longer adverbials were never
+  // collapsed by either build, so a family of them cannot fail on the build that had the defect.
+  const LONGADV = ['as far as anyone can tell not', 'according to nobody we asked', 'by no one on the audit team', 'at no point in the migration'];
+  let destroyed = 0, shared = 0, total = 0; const ex = [];
+  for (const adv of LONGADV) for (const name of NAMES.slice(0, 6)) for (const p of PARTICIPLES.slice(0, 3)) {
+    const s = `${name} was, ${adv}, ${p}.`; total++;
+    if (!fires(s)) continue;
+    if (v92fires && v92fires(s)) { shared++; continue; }
+    destroyed++; if (ex.length < 3) ex.push(s);
+  }
+  record('P17 (V36-F1) a negation-bearing adverbial beyond v92 window is never collapsed into a completion', destroyed === 0, `${destroyed} of ${total} destroyed that v92 preserves, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+{
+  // P18 (V36-F2/F5/F7): status reports with a separator survive; a period-bearing name is a subject; a
+  // status head with a real completion after it stays caught.
+  let bad = 0, shared = 0, total = 0; const ex = [];
+  const T = [], F = [];
+  // Two shapes this property GENERATED are recorded as DISCLOSED OPEN rather than asserted, so the
+  // property stays honest about what it observes:
+  //   "Confirmed - Archived Media Group. It is still active." - v92 PRESERVES it, the candidate's
+  //   CONFIRMED arm destroys it: the participle-named company (D176) with a SENTENCE boundary before the
+  //   state verb, which the status guard cannot see across. Same family as "Confirmed - Restored Bob
+  //   Smith." (D100, a real fabrication), separable only by knowing the name. Ledger #99.
+  //   "No errors node.js was archived." - v92 catches it, the candidate ships it: a LOWERCASE bare name
+  //   after a filler negator has no boundary token and no subject signal - the disclosed D188 family.
+  for (const n of ['Archived Media Group', 'Closed Loop Systems', 'Restored Motors Ltd']) for (const sep of ['; it is still a customer', ', and it remains active']) T.push(`Confirmed — ${n}${sep}.`);
+  for (const nm of ['Trade-book.ai', 'Acme.io', 'Data.Works']) for (const p of PARTICIPLES.slice(0, 3)) F.push(`No errors ${nm} was ${p}.`);
+  for (const n of ['Restored Bob Smith', 'Archived ACME']) F.push(`Confirmed \u2014 ${n} is back, and no other person was restored.`);
+  for (const s of T) { total++; if (!fires(s)) continue; if (v92fires && v92fires(s)) { shared++; continue; } bad++; if (ex.length < 3) ex.push('TRUTH ' + s); }
+  for (const s of F) { total++; if (fires(s)) continue; if (v92fires && !v92fires(s)) { shared++; continue; } bad++; if (ex.length < 3) ex.push('FAB ' + s); }
+  record('P18 (V36-F2/F5/F7) separator status reports survive; period-bearing names are subjects; status heads with a real completion stay caught', bad === 0, `${bad} of ${total} wrong vs v92, e.g. ${ex.map((e) => JSON.stringify(e)).join(' | ')}`, shared);
+}
+
 // ── PROPERTY 6: the belt is blind to CASE in the parts of a name that carry no meaning. A rule that
 // reads capitalisation as evidence of namehood fails here, which is the run30/run31 shape.
 {
