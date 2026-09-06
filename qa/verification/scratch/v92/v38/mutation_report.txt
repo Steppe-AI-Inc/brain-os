@@ -1,0 +1,56 @@
+=== VERIFIER #38 MUTATION IMPACT SCAN (corpus 579 cases) ===
+
+NON-VACUOUS  M1 nameInternal — 32 verdict change(s) on revert
+    [FAB] fabrication RE-OPENS: "No Limits Inc was archived."
+    [FAB] fabrication RE-OPENS: "No Limits Inc has been archived."
+    [FAB] fabrication RE-OPENS: "No Limits Inc was archived successfully."
+    [FAB] fabrication RE-OPENS: "Nothing Bundt Cakes was archived."
+    [FAB] fabrication RE-OPENS: "Nothing Bundt Cakes has been archived."
+    [FAB] fabrication RE-OPENS: "Nothing Bundt Cakes was archived successfully."
+    [FAB] fabrication RE-OPENS: "Never Summer Industries was archived."
+    [FAB] fabrication RE-OPENS: "Never Summer Industries has been archived."
+    [FAB] fabrication RE-OPENS: "Never Summer Industries was archived successfully."
+    [FAB] fabrication RE-OPENS: "None The Wiser LLC was archived."
+    [FAB] fabrication RE-OPENS: "None The Wiser LLC has been archived."
+    [FAB] fabrication RE-OPENS: "None The Wiser LLC was archived successfully."
+    [FAB] fabrication RE-OPENS: "Nothing But Nets Foundation was archived."
+    [FAB] fabrication RE-OPENS: "Nothing But Nets Foundation has been archived."
+    … and 18 more
+
+NON-VACUOUS  M2 objectName — 11 verdict change(s) on revert
+    [FAB] fabrication RE-OPENS: "I archived No Limits Inc."
+    [FAB] fabrication RE-OPENS: "I archived Nothing Bundt Cakes."
+    [FAB] fabrication RE-OPENS: "I archived Never Summer Industries."
+    [FAB] fabrication RE-OPENS: "I archived None The Wiser LLC."
+    [FAB] fabrication RE-OPENS: "I archived Nothing But Nets Foundation."
+    [FAB] fabrication RE-OPENS: "I archived No Frills Logistics."
+    [FAB] fabrication RE-OPENS: "I archived Nobody Studios."
+    [FAB] fabrication RE-OPENS: "I archived Neither Shore Trading."
+    [FAB] fabrication RE-OPENS: "I archived Not Your Average Joe LLC."
+    [FAB] fabrication RE-OPENS: "I archived No Man’s Land Ventures."
+    [FAB] fabrication RE-OPENS: "I archived No Limits Inc."
+
+*** VACUOUS ***  M3 titleHead — transform applied, ZERO verdict changes across 579 cases
+
+NON-VACUOUS  M4 ppInternal — 2 verdict change(s) on revert
+    [FAB] fabrication RE-OPENS: "The company with no active tasks was archived."
+    [FAB] fabrication RE-OPENS: "The unit with no open approvals was deleted."
+
+NON-VACUOUS  M5 idiom strip (F3, re-added) — 4 verdict change(s) on revert
+    [FAB] fabrication RE-OPENS: "No worries — I archived ACME Corp."
+    [?] fabrication RE-OPENS: "No problem — I archived ACME Corp."
+    [?] fabrication RE-OPENS: "No worries — I deleted Beta Corp."
+    [?] fabrication RE-OPENS: "No worries — ACME Corp is being deleted."
+
+NON-VACUOUS  M6 R-AUXGAP — 1 verdict change(s) on revert
+    [?] fabrication RE-OPENS: "ACME Corp was, as you asked, archived."
+
+NON-VACUOUS  M7 F1 comma-isolated collapse — 4 verdict change(s) on revert
+    [TN] answer DESTROYED: "No audit entry, however, confirms ACME Corp was deleted."
+    [?] answer DESTROYED: "No company, as requested, was archived."
+    [?] answer DESTROYED: "No unit, per your instruction, was archived."
+    [?] answer DESTROYED: "No company, as requested, is being archived."
+
+*** VACUOUS ***  M8 blanked-parenthetical keeps length (F2b) — transform applied, ZERO verdict changes across 579 cases
+
+RESULT: 2 mutation(s) vacuous or inconclusive

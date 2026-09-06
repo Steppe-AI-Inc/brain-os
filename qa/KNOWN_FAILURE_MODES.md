@@ -13443,3 +13443,71 @@ via #37's builder; deno 23 == baseline.
 
 STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #37's
 FAIL stands against 395c438 and is not inherited. Production remains v92; rollback c9dfab5b from git.
+
+## 100. VERIFIER #38 FAIL CLOSED — the belt reaches its ceiling, and the harness stops guessing budgets
+
+Verifier #38 returned **FAIL** on candidate 72e4d45 / index.ts c2608b1e after a provider-capacity
+block. One P1, one suite-integrity finding, a prepared fix, and an answer to the question this session
+put to it about the floor of a regex belt.
+
+**V38-D2 (P1, created by verifier #37's F2b splice, adopted last round).** Making the blanked
+parenthetical length-preserving pushed the auxiliary-to-participle distance past v92's own
+`[^.]{0,30}` window, so completion claims carrying a parenthetical ship where v92 corrects them: 72 on
+a 2,400-string sweep, **200/200** on its generated contract, with **0** truthful-negative-shaped
+strings affected in either direction. The previous candidate caught 5 of 7 spot-checked shapes, so
+last round made this worse. F2b is nevertheless load-bearing — it reproduced #37's justification shape,
+which dies on a plain revert — so the fix had to be additive rather than a revert.
+
+**V38-S1 (suite integrity).** `v92_parity_contract` sat at 46/0 the whole time because its 911-string
+corpus holds only 7 parentheticals and none in the auxiliary-to-participle position. Green meant "never
+generated", not "absent". That is the **fourth** time this campaign an all-green set was mistaken for
+proof of absence, after the D177 pin, the R-IDIOM deadness proof and the generative suite's own truth
+frames.
+
+**ITS FIX, ADOPTED.** A sentence-local v92 parity backstop: `readsAsCompletion` first splits the summary
+on sentence boundaries and fires if any sentence satisfies v92's own gate with no negator and no modal
+hedge. It is structural rather than another pattern arm — it fires only where v92 already fires, so its
+truth-regression set is empty **by construction**, which is the first fix in this campaign whose safety
+does not rest on a corpus. Composed with this session's fix44b (the negator-pronoun comma pre-pass) as
+fix46; both edits are in different positions and compose cleanly.
+
+**THE HARNESS STOPS GUESSING.** #38 flagged that its fix leaves 107 characters of headroom in run14's
+slicing window and that verifier #32 was burned at 102. The composed statement is 4,122 characters
+against a 4,000 window, so the warning landed immediately. That window had been widened three times
+(2000, 2600, 4000) and each time it TRUNCATED silently first — a truncated slice still contains all
+four belt names, so run14's D107 four-belt CONTRACT could pass on a slice that is not the statement.
+The budget is now **deleted**: run14 scans to the statement's real end with a brace-, string- and
+regex-aware reader and throws if it cannot find it. Proven non-vacuous by renaming one belt inside the
+statement, which makes D107 fail as it should.
+
+**THREE VERIFIER-AUTHORED PINS RETARGETED, and this needs saying plainly.** #38's V38-C4, #37's window
+pin and #32's window pin all assert the same obsolete mechanism: "run14 uses an N-character window and
+the statement fits inside it". Their shared purpose is that D107 must never test a truncated predicate,
+which now holds by construction. Editing another author's gate is normally the wrong move, so each edit
+replaces ONLY the boolean and message inside the existing call, and each is proven non-vacuous by
+temporarily reverting run14 to a budget and confirming all three go red. A first attempt replaced whole
+brace-delimited blocks, guessed the boundaries wrong and broke all three files; that attempt was
+reverted from git rather than repaired in place. One of the three (#32's) had already drifted on its
+own: its regex was reading a different assertion's 900-character window and reporting it as run14's.
+
+**ITS ANSWER ON THE FLOOR, WHICH THIS SESSION ACCEPTS.** #38's judgment: "the belt is at its ceiling;
+the next durable gain is deciding against structured evidence, not another regex arm." It reached that
+independently of the design note recorded in the checkpoint two rounds earlier, which observed that
+`canonicalById` — a real per-turn RLS-scoped read of the workspace's own rows — is already in scope at
+the belt and could serve as a POSITIVE-only signal. Both point at the same next step, and it is a
+harness change as well as a belt change because a name set referenced inside the belt block collides
+with the extractor suites. Recorded for the next round rather than started under a running verifier.
+
+**CORRECTIONS #38 MADE TO THIS SESSION'S DISCLOSURES:** the three "refused" shapes are in fact caught;
+"No North Depot was archived." is destroyed by v92 too and is therefore **not** a regression, so the
+ledger's framing of it as a cost was wrong; V31-F3b is still genuinely open. It confirmed the D188
+lowercase run-on residual as irreducible, its minimal pair structural, with the candidate preserving
+12/12 truthful twins where v92 destroys 11/12.
+
+EVIDENCE on the new candidate ae4c598c: battery 34 suites / 0 failures; #38's own gate 29/0 (was 28/1);
+#37's 21/0; #36's 62/0; #35's 56/0; #34's 58/0; #33's 92/1 (the disclosed D188 pair); #32's 101/0;
+#30's probe PASS; generative 25/0; hand-written probe 0 mismatches; run15 57/0 with D117 intact;
+mutation 1/1 on the composed pre-pass; deno 23 == baseline.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #38's
+FAIL stands against 72e4d45 and is not inherited. Production remains v92; rollback c9dfab5b from git.

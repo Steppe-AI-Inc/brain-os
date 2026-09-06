@@ -1,0 +1,33 @@
+Verification complete.
+
+## PREFLIGHT: EXECUTION_READY
+
+## STEP 1 — Production bytes
+
+Deployed `sem-ai-command` (`pvphxgrtdfrudejjhzjk`): **version 92**, `ezbr_sha256 33255b31…`, `updated_at 2026-09-01T05:15:25.518Z` — obtained by running `functions list` myself. `git cat-file blob c9dfab5bd433` → **`795c20c8…` CONFIRMED**.
+
+**Provenance is INTEGRATION-LEVEL, not byte-direct** — `functions download` was refused by a harness permission rule, so I never hashed the deployed bytes. The link rests on: the deployed `entrypoint_path` being a CI runner path, a **44.5-second** gap between commit and deploy, and v92's gate (read from git bytes) being exactly one whole-summary `PAST_COMPLETION_CLAIM_PATTERN.test(...)`. I do not claim more than that.
+
+## STEP 5 — Deployability
+
+**FAIL — EDGE STATUS = NOT DEPLOYMENT READY.**
+
+**V38-D2 (P1, created by this commit).** Verifier #37's F2b splice made the parenthetical blank length-preserving, pushing the aux→participle distance past v92's `[^.]{0,30}` window. Completion claims carrying a parenthetical are **shipped** where v92 **corrects** them — 72 on a 2,400-string sweep, **200/200** on my generated contract, **0** truthful-negative-shaped strings affected either way. The previous candidate `395c438` caught 5 of 7 spot-checked shapes: **this commit made it worse.** F2b is nevertheless load-bearing (I reproduced #37's justification shape, which dies on a plain revert), so the fix must be additive.
+
+The deeper failure is **V38-S1**: `v92_parity_contract` sits at 46/0 while this is open, because its 911-string corpus holds only 7 parentheticals and none in the aux→participle position. Green meant "never generated," not "absent" — the third round running that an all-green set was mistaken for proof of absence.
+
+**What I confirmed as honest:** battery **35/35 exit 0** measured from real child exit status (29 substantive + 5 self-announcing stubs + 1 helper — the ledger's 34 is accurate); CONTRACT 5's narrowing still goes RED on a top-level injection and green on a local (my own mutation test); run15 **57/0**; run14's window spans the statement with 350 chars headroom; D16/D25/D27/D40 all closed; matcher **0 wrong-intent regressions**, 16/16 declining replies DEAD-END; identifier delta re-derived **205 added / 0 removed**.
+
+**Corrections to the session's disclosures:** the three "refused" shapes are in fact **caught**; `"No North Depot was archived."` is destroyed by v92 too, so it is **not** a regression; **V31-F3b is still genuinely open** (0 truth regressions vs v92, but real). V38-D1's lowercase run-on residual I confirm **irreducible** — its minimal pair is structural, and the candidate preserves 12/12 truthful twins v92 destroys 11/12 of.
+
+**FIX PREPARED, not applied** (`v38_prepared_fix.patch`): a sentence-local v92 parity backstop — structural, firing only where v92 already fires, so its truth-regression set is empty *by construction*. Battery 0/35, exact parity with the candidate on every prior gate, v38 regression 29/0, property 200/200 → 0/200. **Caveat: it leaves 107 chars of run14 headroom** — verifier #32 was burned at 102. That, plus the D177 pin and D1's undecidable minimal pair, is my answer to the floor question: **the belt is at its ceiling; the next durable gain is deciding against structured evidence, not another regex arm.**
+
+Two process notes against my own work: I caught my first fix draft being mis-escaped so it only *looked* sentence-local (it evaded the D177 pin while violating its purpose) — rebuilt via a script with self-checks. And my mutation scan initially called titleHead and F2b "vacuous" purely because my corpus lacked discriminating shapes; both are load-bearing.
+
+**Coverage gaps, stated rather than skipped:** no browser tools this session, so UI and live AI-chat truth are **BLOCKED** — my evidence is INTEGRATION VERIFIED (the real shipped gate executed from source bytes), not LIVE VERIFIED end-to-end. No `QA-VERIFY-*` data was created and no DB or production writes occurred; this campaign was entirely source-level, so there is nothing to clean up. `supabase/` was never modified.
+
+Commit `4102676` on `verify-72e4d45-campaign98`.
+
+FAIL
+
+`c2608b1e2836211b20fa5052e841966045b4f14be2b2c60194b6719cc80b5461`

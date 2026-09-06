@@ -1,10 +1,10 @@
 {
- "campaign": 98,
- "verifier": 38,
+ "campaign": 99,
+ "verifier": 39,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, ninth round)",
+ "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, tenth round)",
  "closure_commit": "(the commit carrying this file)",
- "index_sha256_prefix": "c2608b1e2836211b",
+ "index_sha256_prefix": "ae4c598c5390c691",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
  "v92": {
   "deployed_version": 92,
@@ -15,35 +15,32 @@
   "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
  },
  "prior": {
-  "campaign": 97,
-  "verifier": 37,
-  "verdict": "FAIL - NOT DEPLOYMENT READY on 395c438 (V37-F1 comma-isolated phrase between negated subject and progressive predicate, pre-existing since 4476c92; V37-F2 collapse reaches across token-internal periods and parenthetical blanking shortens the span, manufacturing a LEGACY match; V37-F3 this session removal of the idiom strip rested on a VACUOUS deadness proof). It PREPARED its own fix, adopted here.",
-  "artifact_commit": "20a2801 on verify-395c438-campaign97 (local to that worktree)"
+  "campaign": 98,
+  "verifier": 38,
+  "verdict": "FAIL - NOT DEPLOYMENT READY on 72e4d45 (V38-D2: verifier #37 F2b length-preserving parenthetical pushed the aux-to-participle distance past v92 window, shipping 200/200 generated parenthetical fabrications v92 corrects; V38-S1: v92_parity_contract green only because its corpus had no parentheticals in that position). It PREPARED its own fix, adopted here.",
+  "artifact_commit": "4102676 on verify-72e4d45-campaign98 (local to that worktree)"
  },
- "what_this_campaign_did": "Adopted verifier #37 four splices verbatim after re-measuring on every gate and deno-checking. Reversed this session removal of the run30 dash-form R-IDIOM strip: the deadness proof tested only aux+participle tails, and the strip fed the first-person and progressive arms (re-adding it changes 4/6 on those tails). The v39 proof is retired in place with its record kept. Mutation-proved all four splices through #37 own builder in a seeded tree with the repository git directory in the environment; builder(full) byte-identical. Added generative P19-P21 for the three gaps #37 named, each failing on 395c438 and passing now.",
+ "what_this_campaign_did": "Adopted verifier #38 sentence-local v92 parity backstop verbatim - the first fix in this campaign whose truth-regression set is empty BY CONSTRUCTION rather than by corpus - and composed it with this session fix44b negator-pronoun comma pre-pass. Deleted run14 character budget (2000/2600/4000, silently truncating each time) in favour of a scan to the statement end that throws if it cannot find it. Retargeted three verifier-authored pins from that budget to the property they protected, each proven non-vacuous by reverting run14 and confirming all three go red.",
  "implementing_session_evidence_not_to_be_trusted": {
-  "battery": "34 suites executed / 0 failures (29 substantive, 5 SUPERSEDED stubs, 1 helper excluded)",
-  "verifier37_committed_gate": "21 passed / 0 failed (was 18/3 on 395c438)",
+  "battery": "34 suites executed / 0 failures",
+  "verifier38_committed_gate": "29 passed / 0 failed (was 28/1 on 72e4d45)",
+  "verifier37_committed_gate": "21 passed / 0 failed",
   "verifier36_committed_gate": "62 passed / 0 failed",
   "verifier35_committed_gate": "56 passed / 0 failed",
   "verifier34_committed_gate": "58 passed / 0 failed",
   "verifier33_committed_gate": "92 passed / 1 failed - the disclosed D188 minimal pair",
   "verifier32_committed_gate": "101 passed / 0 failed",
   "verifier30_probe": "PASS",
-  "generative_adversarial": "24/0 (P19-P21 added; each fails on 395c438)",
-  "adversarial_probe": "0 mismatches / 126",
+  "generative_adversarial": "25/0",
+  "adversarial_probe": "0 mismatches",
   "run15": "57/0, D117 intact",
-  "mutation_proof": "4/4 via #37 builder skip switch in a seeded tree; builder(full) == its committed fix byte-identical",
+  "mutation_proof": "1/1 on the composed comma pre-pass; the backstop safety is structural, not corpus-measured",
   "deno": "23 == baseline",
-  "DISCLOSED_OPEN": [
-   "\"No errors occurred the department was removed.\" (D188 minimal pair)",
-   "\"Confirmed - Archived Media Group. It is still active.\" (v92 preserves; CONFIRMED arm destroys; surface-identical to the D100 fabrication about a person; entity list needed)",
-   "\"No errors node.js was archived.\" (v92 catches; candidate ships; lowercase bare name after a filler negator, D188 family)"
-  ],
-  "LESSON_RECORDED": "an all-green gate set is not a proof of absence for arms no suite generates (third occurrence this campaign; the retired v39 proof is the record)"
+  "HARNESS_CHANGE": "run14 D107 no longer slices with a character budget; it scans to the statement end and throws. Three verifier pins retargeted to that property, each proven to go red if the budget returns.",
+  "CORRECTED_BY_V38": "\"No North Depot was archived.\" is destroyed by v92 too, so earlier ledger framing of it as a truth cost was wrong; the three \"refused\" shapes are caught; V31-F3b is still genuinely open."
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #37 FAIL stands against 395c438 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #38 FAIL stands against 72e4d45 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
  "DESIGN_NOTE_entity_positive_signal": {
   "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
   "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
@@ -55,5 +52,6 @@
   "what_stays_lexical": "a fabrication about a name that does NOT exist in the workspace: on an ungrounded turn the fabricated entity is never in contextPack (verifier #30 noted this), so the D188 minimal pair and lowercase bare names remain regex-bound.",
   "cost_and_risk": "A name set referenced INSIDE the belt block collides with the extractor suites (run15-run19, v92_open_regression_contract): verifier #36 measured that a referenced top-level const outside the block takes 7/10 suites to ReferenceError. The set must be threaded in a form the brace-balanced extractors tolerate (e.g. read at call time from a closure variable the harnesses can stub), which is a harness change as well as a belt change. Not attempted while a verifier is running; proposed for the round after #38.",
   "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
- }
+ },
+ "NEXT_STEP_BOTH_SOURCES_AGREE": "Verifier #38 judged the belt at its ceiling: \"the next durable gain is deciding against structured evidence, not another regex arm.\" That matches the design note recorded two rounds earlier - canonicalById is a real per-turn RLS-scoped read already in scope at the belt and usable as a POSITIVE-only signal. It is a harness change as well as a belt change (a name set referenced inside the belt block collides with the extractor suites), so it is the next round work, not a mid-verifier edit."
 }

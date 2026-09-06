@@ -1,0 +1,12 @@
+V38-FIX-1 — v92 parity backstop (sentence-local).
+File: supabase/functions/sem-ai-command/index.ts
+
+REPLACE the literal:
+  const readsAsCompletion = (s) => REFERENCELESS_CONFIRMATION.test(s)
+
+WITH:
+  const readsAsCompletion = (s) => String(s).split(/(?<=[.!?])\s+/).some((q) => LEGACY_PAST_COMPLETION.test(q) && !NEGATED_CLAUSE.test(q) && !/\b(?:may|might|could|can|would|should)\b(?:\s+\w+){0,4}\s+(?:have|has|had)\s+been\b|\b(?:could|would|should|wo)n['’]?t\b/i.test(q)) || REFERENCELESS_CONFIRMATION.test(s)
+
+(the remainder of the readsAsCompletion expression is unchanged)
+
+Rebuild/verify with: node qa/verification/scratch/v38/build_fix.mjs

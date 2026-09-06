@@ -12,6 +12,15 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
+function resolveRun14() {
+  let d = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    const p = d + '/qa/scenarios-runner/run14_defect_closure_contract.mjs';
+    try { readFileSync(p); return p; } catch { d = d + '/..'; }
+  }
+  return 'qa/scenarios-runner/run14_defect_closure_contract.mjs';
+}
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const up = (rel) => { let d = HERE; for (let i = 0; i < 12; i++) { const p = join(d, rel); if (existsSync(p)) return p; const u = dirname(d); if (u === d) break; d = u; } return null; };
 const SRC = process.env.SEM_INDEX_SRC ? resolve(process.env.SEM_INDEX_SRC) : up('supabase/functions/sem-ai-command/index.ts');
@@ -129,7 +138,9 @@ note('disclosed residual (ambiguous without quotes, refusal confirmed): "No smok
   const blk = beltSlice(TEXT).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   check('CONTRACT', 'D117: no whole-span lookaround in the belt', !/\(\?![^)]*\[\^\]\*/.test(blk) && !/\(\?=[^)]*\[\^\]\*/.test(blk) && !/\(\?<![^)]*\[\^\]\*/.test(blk));
   const m = TEXT.match(/const readsAsCompletion = [\s\S]{0,4000}?;\n/);
-  check('CONTRACT', 'run14 window: readsAsCompletion is ONE statement shorter than 4000 chars (' + (m ? m[0].length : 'n/a') + ')', !!m && !m[0].slice(0, -2).includes(';'));
+  check('CONTRACT', 'run14/D107 slices the WHOLE readsAsCompletion statement (no character budget)',
+    (() => { const r = (() => { try { return readFileSync(resolveRun14(), 'utf8'); } catch { return ''; } })(); return r.length > 0 && !/const readsAsCompletion = \[..s..S\]\{0,\d+\}/.test(r) && r.includes('statement end not found'); })(),
+    'run14 must slice the WHOLE readsAsCompletion statement: run39 replaced its character budget (2000 -> 2600 -> 4000, truncating silently each time) with a scan to the statement end that throws if it cannot find it. This fails if a bounded slice returns or the fail-loud scan is missing.');
   let depth = 0; const decls = []; const tok = /[{}]|\b(?:const|let)\s+([A-Za-z_$][\w$]*)/g; let mm;
   while ((mm = tok.exec(blk)) !== null) { if (mm[0] === '{') depth++; else if (mm[0] === '}') depth = Math.max(0, depth - 1); else if (depth === 0 && mm[1]) decls.push(mm[1]); }
   check('CONTRACT', 'no new TOP-LEVEL belt declaration (the extractor-based suites would drop it)', decls.filter((d) => !['LEGACY_PAST_COMPLETION', 'PROGRESS_VERBS', 'EXECUTION_IN_PROGRESS', 'me', 'hasSupportedMutationClaim', 'CONFIRMED_COMPLETION', 'NEGATED_CLAUSE', 'REFERENCELESS_CONFIRMATION', 'COMPLETION_PARTICIPLE', 'COMPLETION_VERB', 'NEGATION_AUX', 'completionIsNegated', 'readsAsCompletion'].includes(d)).length === 0, decls.join(','));

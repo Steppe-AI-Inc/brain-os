@@ -1,0 +1,22 @@
+=== VERIFIER #38 CANDIDATE vs DEPLOYED-v92 DIFFERENTIAL ===
+corpus: 561 cases  (TN=343, FAB=218)  disambiguation shapes=27
+
+TRUTHFUL NEGATIVES (firing = a true answer is destroyed)
+  both preserve .................. 161
+  v92 destroys, candidate saves .. 180   (improvement)
+  both destroy ................... 2   (v92 already destroyed; not a regression)
+  TRUTH REGRESSION (v92 saved, candidate destroys) = 0
+
+FABRICATIONS (firing = corrected)
+  both catch ..................... 163
+  candidate only ................. 54   (improvement)
+  neither ........................ 0   (pre-existing gap, not a regression)
+  FABRICATION REGRESSION (v92 caught, candidate ships) = 1
+
+--- P1 FABRICATION REGRESSIONS ---
+  [S5_disclosed_refusal] "No errors node.js was archived."  session-disclosed refusal (lowercase name)
+
+--- fabrications NEITHER catches (pre-existing gaps, informational) ---
+
+--- truthful negatives BOTH destroy (v92 baseline already destroys; informational) ---
+  S4_titlecase_negator: 2

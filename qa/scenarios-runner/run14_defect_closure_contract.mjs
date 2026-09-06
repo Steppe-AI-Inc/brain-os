@@ -110,6 +110,9 @@ const labels = (opts, context = {}) => run({ summary: 'ok',
 const O = (l, id) => ({ label: l, id, entityType: 'company', actionType: 'archive' });
 
 const CASES = [];
+// run39: last non-space character before an index - tells a regex literal from a division operator
+// in the statement scan below.
+function prevNonSpace(text, i) { let j = i - 1; while (j >= 0 && /\s/.test(text[j])) j--; return j >= 0 ? text[j] : ''; }
 const C = (id, kind, desc, thunk) => CASES.push([id, kind, desc, thunk]);
 
 // =====================================================================================
@@ -206,8 +209,31 @@ C('D107.bothArmsShareThePredicate', 'CONTRACT',
 C('D107.predicateCoversAllFour', 'CONTRACT',
   'D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION)',
   () => {
-    const p = src.match(/const readsAsCompletion = [\s\S]{0,4000}?;\r?\n/); // run19/D131: widened for the longer R9b predicate; run30/D171: widened again for the R-AUXGAP arm; run32/D179: widened to 4000 after verifier #32 measured the statement at 2735 against a 2600 window - the window must SPAN the statement or the four-belt check silently tests a truncated slice, and 102 characters of headroom was a trap. The bound only has to SPAN the statement so it can be sliced - it is not a complexity cap, and widening it cannot weaken the four-belt check below.
-    if (!p) throw new Error('readsAsCompletion not found — update this harness');
+    // run39: the character budget is GONE. It was 2000, then 2600, then 4000, widened every time the
+    // predicate grew, and each time it silently TRUNCATED first - a truncated slice still contains the
+    // four names, so this CONTRACT could pass on a slice that is not the statement. Verifier #38 flagged
+    // the remaining 107 characters of headroom as the next instance. The slice is now scanned to the
+    // statement's real end and FAILS LOUDLY if that end is not found, so no budget is ever guessed again.
+    const BSLASH = String.fromCharCode(92);
+    const start = src.indexOf('const readsAsCompletion =');
+    if (start < 0) throw new Error('readsAsCompletion not found - update this harness');
+    let k = start, depth = 0, inRe = false, inStr = '', prev = '';
+    for (; k < src.length; k++) {
+      const ch = src[k];
+      if (inStr) { if (ch === inStr && prev !== BSLASH) inStr = ''; }
+      else if (inRe) {
+        if (ch === '[' && prev !== BSLASH) { while (k < src.length && !(src[k] === ']' && src[k - 1] !== BSLASH)) k++; }
+        else if (ch === '/' && prev !== BSLASH) inRe = false;
+      }
+      else if (ch === '"' || ch === "'" || ch === '`') inStr = ch;
+      else if (ch === '/' && '=(,:[!&|?{};+*%~^<>'.includes(prevNonSpace(src, k))) inRe = true;
+      else if (ch === '(' || ch === '[') depth++;
+      else if (ch === ')' || ch === ']') depth--;
+      else if (ch === ';' && depth === 0) break;
+      prev = ch;
+    }
+    if (k >= src.length) throw new Error('readsAsCompletion statement end not found - update this harness, do not widen a budget');
+    const p = [src.slice(start, k + 1)];
     return ['LEGACY_PAST_COMPLETION', 'EXECUTION_IN_PROGRESS', 'CONFIRMED_COMPLETION', 'REFERENCELESS_CONFIRMATION']
       .every((n) => p[0].includes(n + '.test('));
   });

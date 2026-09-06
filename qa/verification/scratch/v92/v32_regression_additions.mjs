@@ -37,6 +37,15 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
+function resolveRun14() {
+  let d = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    const p = d + '/qa/scenarios-runner/run14_defect_closure_contract.mjs';
+    try { readFileSync(p); return p; } catch { d = d + '/..'; }
+  }
+  return 'qa/scenarios-runner/run14_defect_closure_contract.mjs';
+}
+
 // ── source location: SEM_INDEX_SRC, else walk up from this file ───────────────────────────
 const HERE = dirname(fileURLToPath(import.meta.url));
 function findUp(rel) {
@@ -293,9 +302,9 @@ check('CONTRACT', 'run15/D117 structural guard is still present in the battery',
   const w = t.match(/const readsAsCompletion = \[\\s\\S\]\{0,(\d+)\}\?;/);
   const win = w ? Number(w[1]) : (t.match(/\{0,(\d+)\}\?;\\r\?\\n/) || [])[1];
   const a = TEXT.indexOf('const readsAsCompletion ='), b2 = TEXT.indexOf('const legacyProseFallback');
-  check('CONTRACT', 'run14/D107 slicing window still SPANS the readsAsCompletion statement',
-    !win || Number(win) >= (b2 - a),
-    'window=' + win + ' statement span=' + (b2 - a) + ' — if the statement outgrows the window the D107 four-belt check silently tests a truncated slice');
+  check('CONTRACT', 'run14/D107 slices the WHOLE readsAsCompletion statement (no character budget)',
+    (() => { const r = (() => { try { return readFileSync(resolveRun14(), 'utf8'); } catch { return ''; } })(); return r.length > 0 && !/const readsAsCompletion = \[..s..S\]\{0,\d+\}/.test(r) && r.includes('statement end not found'); })(),
+    'run14 must slice the WHOLE readsAsCompletion statement: run39 replaced its character budget (2000 -> 2600 -> 4000, truncating silently each time) with a scan to the statement end that throws if it cannot find it. This fails if a bounded slice returns or the fail-loud scan is missing.');
 }
 
 // =====================================================================================
