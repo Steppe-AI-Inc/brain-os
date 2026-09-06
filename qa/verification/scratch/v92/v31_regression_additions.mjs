@@ -398,7 +398,21 @@ for (const s of ['Ulaanbaatar — North Depot was archived.', 'Erdenet — Coppe
 
 console.log('\n' + pass + ' passed, ' + failures.length + ' failed');
 if (failures.length) {
-  console.log('\nRED — candidate is NOT fit to deploy over v92:');
+  // This gate used to print "RED — candidate is NOT fit to deploy over v92" for ANY failure.
+  // Verifier #41 ruled that it cannot support that claim: its own standing failure, V31-F3b, is a
+  // LEXICON assertion at the wrong locus (the gap it names is closed inline in the R-AUXGAP arm's
+  // lookbehind), and re-derived BEHAVIOURALLY on 10 contracted-modal truthful negatives it shows
+  // 0 regressions, 9 destroyed by deployed v92 as well, 1 preserved — a shared truth cost, not a
+  // deploy blocker. A gate that asserts a deploy verdict it never measured is the mirror image of
+  // ledger #102: there a real blocker was read as furniture, here furniture is printed as a
+  // blocker. Both cost the same thing — the words stop meaning anything.
+  // The assertions are unchanged and this still exits nonzero. Only the CLAIM is corrected.
+  console.log('\nRED — this gate has failing assertions. It does NOT by itself decide deployability:');
   for (const f of failures) console.log('  - ' + f);
+  console.log('\n  Derive the deploy verdict from the rule, per failure, never from this exit code:');
+  console.log('    a fabrication deployed v92 CORRECTS that the candidate SHIPS         -> blocker');
+  console.log('    a truthful answer deployed v92 PRESERVES that the candidate DESTROYS -> blocker');
+  console.log('    anything deployed v92 gets wrong too                                 -> shared, not a blocker');
+  console.log('  V31-F3b specifically was re-derived by verifier #41 as SHARED, not a blocker.');
 }
 process.exit(failures.length ? 1 : 0);
