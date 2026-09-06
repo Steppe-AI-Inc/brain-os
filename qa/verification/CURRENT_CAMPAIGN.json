@@ -2,7 +2,7 @@
  "campaign": 97,
  "verifier": 37,
  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
- "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, eighth round)",
+ "status": "RUNNING - attempt 2 (attempt 1 BLOCKED - PROVIDER_CAPACITY at 09:32, watchdog auto-resumed 13:52)",
  "closure_commit": "(the commit carrying this file)",
  "index_sha256_prefix": "ba50feff078716f8",
  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
@@ -39,5 +39,23 @@
   "DISCLOSED_BY_V36": "index.ts blob is CRLF since run10; roll back from git c9dfab5b, not from the CRLF scratch copy"
  },
  "verdict": null,
- "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #36 FAIL stands against f64b280 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then."
+ "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #36 FAIL stands against f64b280 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+ "attempts": [
+  {
+   "n": 1,
+   "dispatched": "2026-09-06 09:29:22",
+   "ended": "2026-09-06 09:32:48",
+   "result": "BLOCKED - PROVIDER_CAPACITY (rc=1, log_bytes=66, quota reset 1:50pm). NOT a verdict."
+  },
+  {
+   "n": 2,
+   "dispatched": "2026-09-06 13:52:00",
+   "result": null
+  }
+ ],
+ "found_while_waiting_DISCLOSED_not_fixed": {
+  "D176-boundary": "\"Confirmed - Archived Media Group. It is still active.\" - v92 preserves, candidate CONFIRMED arm destroys. Participle-named company with a SENTENCE boundary before its state verb; the status guard cannot see across it, and the head is surface-identical to the real D100 fabrication \"Confirmed - Restored Bob Smith.\" Separable only by the entity list. Recorded in belt_generative_adversarial_contract P18 as disclosed; ledger #99 with the next candidate.",
+  "D188-lowercase-bare-name": "\"No errors node.js was archived.\" - v92 catches, candidate ships. A lowercase bare name after a filler negator: no boundary token, no subject signal. Same family as the disclosed D188 minimal pair.",
+  "adversarial_pass_on_v36_gating": "17 rows, 0 gate regressions - first clean pass this campaign; 3 shared-with-v92 misses recorded."
+ }
 }
