@@ -200,3 +200,13 @@ Required one-time activation in shared Supabase project `pvphxgrtdfrudejjhzjk`:
 Privacy rule: file contents are never silently exported to an external model. Without explicit authorization, the file is stored and tracked, deterministic metadata analysis runs, and Brain OS must not claim that it read the binary contents.
 
 Google Drive continues to be a durable queue only until the Google/Nango connector worker is configured.
+
+## 2026-09-06 — Provider connection repair checkpoint (not deployed)
+
+Work is isolated on `codex/sem-brain-v1`, starting at `99f8d55`; master/live backend were not modified. See `docs/MODEL-CONNECTIONS-2026-09-06.md` for exact changed files, evidence, tests, migration, rollout and rollback.
+
+Prepared: DeepSeek V4 Flash/Pro text support, safe provider transport, bounded connection tests, founder-only test-before-activation, atomic configuration/audit update, missing-key fail-closed behavior, picker and cost comparison. 47 offline tests pass; shared modules pass strict TypeScript. Frontend comparison has no new diagnostics, but the baseline/full build is not clean in the reused dependency environment.
+
+Important: live `sem-ai-command` v92 is newer than this branch. Reconcile the narrow patch with current production changes before any shared-backend deployment. The new connection tester may be deployed independently after approval for synthetic diagnostics; it never reads company documents or creates tasks. No deployment or migration was performed, and no live success is claimed for DeepSeek or the failing models. `DEEPSEEK_API_KEY` is still required in Supabase secrets.
+
+Old failed work-order messages include engineering cleanup notes, not necessarily raw API errors. In particular, "unverified model catalog" does NOT establish that the OpenAI organization needs verification. Obtain a fresh, authenticated connection-test result before diagnosing account access.

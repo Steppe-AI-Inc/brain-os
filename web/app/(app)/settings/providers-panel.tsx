@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
-import { createAiProvider, setActiveProvider, deleteAiProvider } from "@/lib/data/ai-providers";
+import { createAiProvider, setActiveProvider, deleteAiProvider, testAiProviderConnection } from "@/lib/data/ai-providers";
 import { SUPPORTED_MODELS } from "@/lib/usage/pricing";
 
 type ProviderRow = {
@@ -27,15 +27,31 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
+  const [checks, setChecks] = useState<Record<string, { ok: boolean; message: string }>>({});
+  function test(id: string) {
+    setBusy(id);
+    startTransition(async () => {
+      try {
+        const result = await testAiProviderConnection(id);
+        setChecks((previous) => ({ ...previous, [id]: result }));
+      } catch {
+        setChecks((previous) => ({ ...previous, [id]: { ok: false, message: "Test failed. Try again after checking your connection." } }));
+      } finally { setBusy(null); }
+    });
+  }
+
   const models = SUPPORTED_MODELS.filter((m) => m.provider === providerChoice);
 
   function activate(id: string) {
     setActionError(null);
     setBusy(id);
     startTransition(async () => {
-      const result = await setActiveProvider(id);
-      setBusy(null);
-      if (result) setActionError(result);
+      try {
+        const result = await setActiveProvider(id);
+        if (result) setActionError(result);
+      } catch {
+        setActionError("Activation could not finish. Refresh to check which model is active.");
+      } finally { setBusy(null); }
     });
   }
 
@@ -43,9 +59,12 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
     setActionError(null);
     setBusy(id);
     startTransition(async () => {
-      const result = await deleteAiProvider(id);
-      setBusy(null);
-      if (result) setActionError(result);
+      try {
+        const result = await deleteAiProvider(id);
+        if (result) setActionError(result);
+      } catch {
+        setActionError("Could not remove provider. Check your connection and try again.");
+      } finally { setBusy(null); }
     });
   }
 
@@ -60,8 +79,11 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
             <code className="rounded bg-secondary px-1 py-0.5 text-xs">OPENAI_API_KEY</code>{" "}
             /{" "}
             <code className="rounded bg-secondary px-1 py-0.5 text-xs">ANTHROPIC_API_KEY</code>
-            ), set once outside this app. If the active provider&apos;s key isn&apos;t set, chat
-            falls back to a deterministic planner rather than failing.
+            / <code className="rounded bg-secondary px-1 py-0.5 text-xs">DEEPSEEK_API_KEY</code>
+            ), set outside this app. Every activation runs a small, billable JSON connection test;
+            a failed test keeps the current model. No company documents are sent during a test.
+            DeepSeek text models cannot inspect images. Activating a provider allows future chat
+            context to be sent to that provider; choose according to your company's data policy.
           </p>
           <form action={formAction} className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
@@ -77,12 +99,13 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
                 <SelectContent>
                   <SelectItem value="openai">OpenAI</SelectItem>
                   <SelectItem value="anthropic">Anthropic</SelectItem>
+                  <SelectItem value="deepseek">DeepSeek</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="model">Model</Label>
-              <Select name="model" required disabled={!providerChoice}>
+              <Select key={providerChoice} name="model" required disabled={!providerChoice}>
                 <SelectTrigger id="model" className="w-56">
                   <SelectValue placeholder={providerChoice ? "Select model" : "Pick a provider first"} />
                 </SelectTrigger>
@@ -110,29 +133,34 @@ export function ProvidersPanel({ providers }: { providers: ProviderRow[] }) {
       <Card className="overflow-hidden border-border/80 shadow-none">
         <div className="flex flex-col divide-y divide-border">
           {providers.map((p) => (
-            <div key={p.id} className="flex items-center gap-4 px-4 py-3 text-sm">
+            <div key={p.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{p.label}</div>
                 <div className="text-xs text-muted-foreground">
                   {p.provider} · {p.model}
                 </div>
               </div>
+              {checks[p.id] && <p role="status" className={`order-last w-full text-xs ${checks[p.id].ok ? "text-muted-foreground" : "text-destructive"}`}>{checks[p.id].message}</p>}
+              <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => test(p.id)}>
+                {busy === p.id ? "Checking…" : "Test connection"}
+              </Button>
               {p.is_active ? (
                 <Badge>Active</Badge>
               ) : (
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={busy === p.id}
+                  disabled={busy !== null}
                   onClick={() => activate(p.id)}
                 >
-                  Make active
+                  Test & activate
                 </Button>
               )}
               <button
                 type="button"
                 className="text-muted-foreground hover:text-destructive"
-                disabled={busy === p.id}
+                disabled={busy !== null}
+                aria-label={`Remove ${p.label}`}
                 onClick={() => remove(p.id)}
               >
                 <Trash2 className="h-3.5 w-3.5" />

@@ -167,6 +167,7 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
   const providerGroups = [
     { provider: "openai", label: "OpenAI" },
     { provider: "anthropic", label: "Anthropic" },
+    { provider: "deepseek", label: "DeepSeek · text only" },
   ] as const;
 
   function onChange(value: unknown) {
@@ -231,10 +232,10 @@ function ProviderSelector({ providers }: { providers: ProviderRow[] }) {
       </Select>
       <span className="text-[11px] text-muted-foreground">
         {pending
-          ? "Switching model…"
+          ? "Testing connection before switching…"
           : active
-            ? "Selection is stored in Supabase. The matching provider API key must be configured in Edge Function secrets."
-            : "No active model — Brain OS will use its deterministic fallback planner."}
+            ? "Changing models runs a small, billable connection test. Future context goes to the selected provider."
+            : "Select and test a model in Settings. Missing API credentials produce an error, not simulated work."}
       </span>
       {error && <span className="text-[11px] font-medium text-destructive">{error}</span>}
     </div>

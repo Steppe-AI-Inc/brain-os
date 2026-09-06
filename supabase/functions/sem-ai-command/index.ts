@@ -11,6 +11,9 @@
 //   ANTHROPIC_API_KEY — only needed if an `ai_providers` row is marked active with
 //     provider='anthropic' (see migration 202608260001). No active row falls back to
 //     the OpenAI env-var behavior above, unchanged.
+//   DEEPSEEK_API_KEY — needed for the optional DeepSeek V4 text-only provider.
+// Provider transport patch 2026-09-06: shared compatibility/error handling;
+// missing keys fail closed. Reconcile with live backend before deployment.
 //
 // Streams the response as Server-Sent Events: `delta` (incremental text), `usage`
 // (running token count as the provider reports it), `done` (the final parsed result +
@@ -30,6 +33,7 @@
 // because of it.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildProviderRequest, callProviderStreaming, isProvider, PROVIDER_SECRETS, ProviderError, type Provider, type Usage, type ImageAttachment } from "../_shared/model-provider.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -221,138 +225,7 @@ function sseEvent(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
-/**
- * Reads a provider's SSE response body, calling onEvent(parsedJson) per `data:` line.
- * Tolerant of chunk boundaries not aligning with SSE frames, and of individual
- * malformed frames (skipped, not fatal — one bad frame shouldn't kill the stream).
- */
-async function consumeSSE(response: Response, onEvent: (data: any) => void): Promise<void> {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      const payload = trimmed.slice(5).trim();
-      if (!payload || payload === "[DONE]") continue;
-      try {
-        onEvent(JSON.parse(payload));
-      } catch {
-        // skip malformed frame
-      }
-    }
-  }
-}
-
-type Usage = { input_tokens?: number; output_tokens?: number };
-type StreamResult = { text: string; stopReason: string | null };
-type ImageAttachment = { name: string; mimeType: string; dataUrl: string };
-
-async function callAnthropicStreaming(
-  model: string,
-  key: string,
-  contextForModel: unknown,
-  imageAttachments: ImageAttachment[],
-  onDelta: (text: string) => void,
-  onUsage: (usage: Usage) => void
-): Promise<StreamResult> {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: JSON.stringify(contextForModel, null, 2) },
-          ...imageAttachments.map((attachment) => ({
-            type: 'image',
-            source: { type: 'base64', media_type: attachment.mimeType, data: attachment.dataUrl.slice(attachment.dataUrl.indexOf(',') + 1) },
-          })),
-        ],
-      }],
-      temperature: 0.2,
-      stream: true,
-    }),
-  });
-  if (!r.ok) {
-    const errBody = await r.json().catch(() => ({}));
-    throw { status: r.status, body: errBody };
-  }
-  let accumulated = "";
-  let stopReason: string | null = null;
-  await consumeSSE(r, (evt) => {
-    if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && typeof evt.delta.text === 'string') {
-      accumulated += evt.delta.text;
-      onDelta(evt.delta.text);
-    } else if (evt.type === 'message_start' && evt.message?.usage) {
-      onUsage({ input_tokens: evt.message.usage.input_tokens, output_tokens: evt.message.usage.output_tokens });
-    } else if (evt.type === 'message_delta' && evt.usage) {
-      onUsage({ output_tokens: evt.usage.output_tokens });
-      if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
-    }
-  });
-  return { text: accumulated, stopReason };
-}
-
-async function callOpenAIStreaming(
-  model: string,
-  key: string,
-  contextForModel: unknown,
-  imageAttachments: ImageAttachment[],
-  onDelta: (text: string) => void,
-  onUsage: (usage: Usage) => void
-): Promise<StreamResult> {
-  const r = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      input: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: JSON.stringify(contextForModel, null, 2) },
-            ...imageAttachments.map((attachment) => ({ type: 'input_image', image_url: attachment.dataUrl })),
-          ],
-        },
-      ],
-      max_output_tokens: 8192,
-      temperature: 0.2,
-      stream: true,
-    }),
-  });
-  if (!r.ok) {
-    const errBody = await r.json().catch(() => ({}));
-    throw { status: r.status, body: errBody };
-  }
-  let accumulated = "";
-  let stopReason: string | null = null;
-  await consumeSSE(r, (evt) => {
-    if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
-      accumulated += evt.delta;
-      onDelta(evt.delta);
-    } else if (evt.type === 'response.completed' && evt.response?.usage) {
-      onUsage({ input_tokens: evt.response.usage.input_tokens, output_tokens: evt.response.usage.output_tokens });
-    } else if (evt.type === 'response.incomplete' && evt.response?.incomplete_details?.reason) {
-      stopReason = evt.response.incomplete_details.reason;
-    }
-  });
-  return { text: accumulated, stopReason };
-}
+// Provider transport is shared with sem-ai-provider-test. Business policy stays here.
 
 // Deterministic $/token lookup — no reason to call an LLM to estimate its own cost.
 // [inputPer1M, outputPer1M] in USD. Update as pricing/models change.
@@ -365,6 +238,9 @@ const PRICING_PER_1M: Record<string, [number, number]> = {
   'claude-opus-5': [5.0, 25.0],
   'claude-sonnet-5': [2.0, 10.0],
   'claude-haiku-4-5': [1.0, 5.0],
+  // DeepSeek peak UTC rates, no cache discount; conservative estimate (2026-09-06).
+  'deepseek-v4-flash': [0.44, 1.32],
+  'deepseek-v4-pro': [1.32, 3.96],
   // Historical rows remain billable after the selectable catalog moves forward.
   'gpt-4.1-mini': [0.4, 1.6],
   'gpt-4.1': [2.0, 8.0],
@@ -409,14 +285,16 @@ async function embedText(text: string, key: string | undefined): Promise<number[
   return result;
 }
 
-type ProviderRow = { provider: 'openai' | 'anthropic'; model: string };
+type ProviderRow = { provider: Provider; model: string };
 async function getActiveProvider(supabase: any): Promise<ProviderRow | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('ai_providers')
     .select('provider,model')
     .eq('is_active', true)
     .limit(1)
     .maybeSingle();
+  if (error) throw new Error('Cannot read AI provider configuration.');
+  if (data && !isProvider(data.provider)) throw new ProviderError('unsupported_provider', 'Configured provider is unsupported.', 400);
   return data || null;
 }
 
@@ -565,7 +443,7 @@ serve(async (req) => {
   let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
   let channelId: string | null = null;
   let imageAttachments: ImageAttachment[] = [];
-  let providerName: 'openai' | 'anthropic' = 'openai';
+  let providerName: Provider = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
   try {
     auth = req.headers.get('Authorization') || '';
@@ -603,12 +481,7 @@ serve(async (req) => {
       if (channelCheck.data) channelId = requestedChannelId;
     }
 
-    const ctx = await buildContext(supabase, command, channelId, openaiKey);
-    contextPack = { ...ctx.pack, imageAttachments: imageAttachments.map(({ name, mimeType }) => ({ name, mimeType })) };
-    contextErrors = ctx.errors;
-    tokenEstimate = estimateTokens({ command, contextPack });
-    const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
-    if(tokenEstimate > hardMax) return json({ error:'Token preflight hard stop', tokenEstimate, hardMax }, 413);
+    // Resolve and validate the selected provider before spending on retrieval.
 
     // No active ai_providers row = today's exact behavior (hardcoded OpenAI + env model).
     // A row only ever changes providerName/model; it never supplies the key itself —
@@ -618,12 +491,18 @@ serve(async (req) => {
       providerName = activeProvider.provider;
       model = activeProvider.model;
     }
+    buildProviderRequest({ provider: providerName, model, key: Deno.env.get(PROVIDER_SECRETS[providerName]), system: SYSTEM_PROMPT, context: {}, images: imageAttachments });
+    const ctx = await buildContext(supabase, command, channelId, openaiKey);
+    contextPack = { ...ctx.pack, imageAttachments: imageAttachments.map(({ name, mimeType }) => ({ name, mimeType })) };
+    contextErrors = ctx.errors;
+    tokenEstimate = estimateTokens({ command, contextPack });
+    const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
+    if(tokenEstimate > hardMax) return json({ error:'Token preflight hard stop', tokenEstimate, hardMax }, 413);
   } catch (e: any) {
-    return json({ error: e?.message || String(e) }, 500);
+    return json({ error: e?.message || 'AI preflight failed', code: e instanceof ProviderError ? e.code : 'preflight' }, e instanceof ProviderError ? e.status : 500);
   }
 
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-  const key = providerName === 'anthropic' ? anthropicKey : openaiKey;
+  const key = Deno.env.get(PROVIDER_SECRETS[providerName]);
 
   // ---- Streaming response from here on: the LLM call + everything that depends on
   // its fully-parsed output (forced-approval scan, transactional persist, audit log). ----
@@ -653,30 +532,14 @@ serve(async (req) => {
         let stopReason: string | null = null;
         const usageRef: { current: Usage | null } = { current: null };
 
-        if(!key){
-          const fb = fallbackPlan(command, contextPack);
-          resultText = JSON.stringify(fb);
-          model = 'fallback-no-api-key';
-          if (fb.summary) send({ type: 'delta', text: fb.summary });
-        } else if (providerName === 'anthropic') {
-          const r = await callAnthropicStreaming(
-            model, key,
-            { profile:{id:profile.id,role:profile.role}, command, contextPack },
-            imageAttachments,
-            (delta) => send({ type: 'delta', text: delta }),
-            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
-          );
-          resultText = r.text; stopReason = r.stopReason;
-        } else {
-          const r = await callOpenAIStreaming(
-            model, key,
-            { profile:{id:profile.id,role:profile.role}, command, contextPack },
-            imageAttachments,
-            (delta) => send({ type: 'delta', text: delta }),
-            (u) => { usageRef.current = { ...usageRef.current, ...u }; send({ type: 'usage', ...usageRef.current }); }
-          );
-          resultText = r.text; stopReason = r.stopReason;
-        }
+        const response = await callProviderStreaming({
+          provider: providerName, model, key, system: SYSTEM_PROMPT,
+          context: { profile:{id:profile.id,role:profile.role}, command, contextPack },
+          images: imageAttachments,
+          onDelta: (text) => send({ type: 'delta', text }),
+          onUsage: (u) => { usageRef.current = u; send({ type: 'usage', ...u }); },
+        });
+        resultText = response.text; stopReason = response.stopReason;
 
         let result: any;
         try {
@@ -971,7 +834,7 @@ serve(async (req) => {
         if (workOrderId) {
           await supabase.rpc('mark_work_order_failed', { p_work_order_id: workOrderId, p_error: errorMessage }).catch(() => {});
         }
-        send({ type: 'error', error: errorMessage });
+        send({ type: 'error', error: errorMessage, code: e instanceof ProviderError ? e.code : 'execution' });
       } finally {
         controller.close();
       }

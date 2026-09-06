@@ -53,12 +53,12 @@ function CapabilityCostGraphic({
               <div>
                 <div className="mb-1 flex justify-between text-[10px] text-muted-foreground">
                   <span>Capability</span>
-                  <span>{model.capabilityScore}/100</span>
+                  <span>{model.capabilityScore === null ? "Not evaluated" : `${model.capabilityScore}/100`}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-secondary">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${model.capabilityScore}%`, backgroundColor: model.color }}
+                    style={{ width: `${model.capabilityScore ?? 0}%`, backgroundColor: model.color }}
                   />
                 </div>
               </div>
@@ -84,7 +84,7 @@ function CapabilityCostGraphic({
 }
 
 export function ModelBudgetAnalyzer({ activeModel }: { activeModel: string | null }) {
-  const [provider, setProvider] = useState<"all" | "openai" | "anthropic">("all");
+  const [provider, setProvider] = useState<"all" | "openai" | "anthropic" | "deepseek">("all");
   const [inputTokens, setInputTokens] = useState(8_000);
   const [outputTokens, setOutputTokens] = useState(2_000);
   const [monthlyRuns, setMonthlyRuns] = useState(1_000);
@@ -96,14 +96,14 @@ export function ModelBudgetAnalyzer({ activeModel }: { activeModel: string | nul
           model,
           monthlyCost: estimateMonthlyCost(model, inputTokens, outputTokens, monthlyRuns),
         }))
-        .sort((a, b) => b.model.capabilityScore - a.model.capabilityScore),
+        .sort((a, b) => (b.model.capabilityScore ?? -1) - (a.model.capabilityScore ?? -1)),
     [provider, inputTokens, outputTokens, monthlyRuns]
   );
 
   const bestValue = useMemo(
     () =>
       [...rows]
-        .filter((row) => row.model.capabilityScore >= 88)
+        .filter((row) => row.model.capabilityScore !== null && row.model.capabilityScore >= 88)
         .sort((a, b) => a.monthlyCost - b.monthlyCost)[0],
     [rows]
   );
@@ -120,11 +120,11 @@ export function ModelBudgetAnalyzer({ activeModel }: { activeModel: string | nul
             <p className="max-w-3xl text-sm text-muted-foreground">
               Compare current Brain OS text/agent models using one standard workload. Prices are
               deterministic; the provisional capability score becomes authoritative only after
-              Brain OS runs its own task-quality evaluations.
+              Brain OS runs its own task-quality evaluations. DeepSeek is unscored; its cost uses conservative peak-hour rates verified September 6, 2026. A catalog listing does not prove your API account has access.
             </p>
           </div>
-          <div className="flex gap-2">
-            {(["all", "openai", "anthropic"] as const).map((value) => (
+          <div className="flex flex-wrap gap-2">
+            {(["all", "openai", "anthropic", "deepseek"] as const).map((value) => (
               <Button
                 key={value}
                 size="sm"
@@ -226,12 +226,12 @@ export function ModelBudgetAnalyzer({ activeModel }: { activeModel: string | nul
                 <div className="rounded-lg bg-secondary/55 p-2">
                   <BrainCircuit className="mb-1 h-3.5 w-3.5" />
                   <p className="text-[10px] text-muted-foreground">Capability</p>
-                  <p className="text-sm font-semibold">{model.capabilityScore}/100</p>
+                  <p className="text-sm font-semibold">{model.capabilityScore === null ? "Not evaluated" : `${model.capabilityScore}/100`}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/55 p-2">
                   <Zap className="mb-1 h-3.5 w-3.5" />
                   <p className="text-[10px] text-muted-foreground">Speed</p>
-                  <p className="text-sm font-semibold">{model.speedScore}/5</p>
+                  <p className="text-sm font-semibold">{model.speedScore === null ? "Not evaluated" : `${model.speedScore}/5`}</p>
                 </div>
                 <div className="rounded-lg bg-secondary/55 p-2">
                   <Gauge className="mb-1 h-3.5 w-3.5" />

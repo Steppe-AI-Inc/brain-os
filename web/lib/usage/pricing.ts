@@ -7,13 +7,13 @@
  */
 
 export type ModelProfile = {
-  provider: "openai" | "anthropic";
+  provider: "openai" | "anthropic" | "deepseek";
   model: string;
   label: string;
   inputPer1M: number;
   outputPer1M: number;
-  capabilityScore: number;
-  speedScore: number;
+  capabilityScore: number | null;
+  speedScore: number | null;
   contextTokens: number;
   tier: "frontier" | "advanced" | "balanced" | "efficient";
   bestFor: string;
@@ -25,6 +25,22 @@ export type ModelProfile = {
 export const PRICING_SNAPSHOT_DATE = "2026-08-24";
 
 export const MODEL_CATALOG: ModelProfile[] = [
+  {
+    provider: "deepseek", model: "deepseek-v4-flash", label: "DeepSeek V4 Flash",
+    inputPer1M: 0.44, outputPer1M: 1.32, capabilityScore: null, speedScore: null,
+    contextTokens: 1_000_000, tier: "efficient", color: "#2563eb",
+    bestFor: "Text-only routine summaries and extraction; evaluate on your own tasks before rollout",
+    sourceUrl: "https://api-docs.deepseek.com/quick_start/pricing",
+    pricingNote: "Verified 2026-09-06: peak UTC rates, cache miss, no discounts; off-peak may cost less. Thinking disabled.",
+  },
+  {
+    provider: "deepseek", model: "deepseek-v4-pro", label: "DeepSeek V4 Pro",
+    inputPer1M: 1.32, outputPer1M: 3.96, capabilityScore: null, speedScore: null,
+    contextTokens: 1_000_000, tier: "advanced", color: "#4f46e5",
+    bestFor: "Text-only planning and drafts; requires a separate DeepSeek API account",
+    sourceUrl: "https://api-docs.deepseek.com/quick_start/pricing",
+    pricingNote: "Verified 2026-09-06: peak UTC rates, cache miss, no discounts; off-peak may cost less. Thinking disabled.",
+  },
   {
     provider: "openai",
     model: "gpt-5.6-sol",

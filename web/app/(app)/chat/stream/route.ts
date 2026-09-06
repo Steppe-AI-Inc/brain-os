@@ -34,9 +34,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (!edgeRes.ok || !edgeRes.body) {
-    const text = await edgeRes.text().catch(() => "");
-    return new Response(JSON.stringify({ error: text || `Edge Function error ${edgeRes.status}` }), {
-      status: edgeRes.status || 500,
+    const failure = await edgeRes.json().catch(() => null);
+    const message = typeof failure?.error === "string"
+      ? failure.error : "AI backend could not complete the request. Check the provider connection in Settings.";
+    return new Response(JSON.stringify({ error: message, code: failure?.code }), {
+      status: edgeRes.ok ? 502 : edgeRes.status,
       headers: { "Content-Type": "application/json" },
     });
   }
