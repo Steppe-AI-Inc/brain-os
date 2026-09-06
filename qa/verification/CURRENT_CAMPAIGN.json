@@ -1,10 +1,10 @@
 {
-  "campaign": 103,
-  "verifier": 43,
+  "campaign": 104,
+  "verifier": 44,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "7b9fd136cdc0379b",
+  "index_sha256_prefix": "3e56dbd163bbfc89",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -54,13 +54,14 @@
     "why_now": "Verifier #38 was asked whether the belt has reached the floor of a regex approach. This is the answer if it says yes: the remaining residuals separate on world knowledge, and the world knowledge is already in scope."
   },
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
-  "LESSON_ADDED": "#42: the imminent arms were validated only in the direction they were built for — every row in the entire estate was a first-person fabrication that must be CAUGHT, and not one generated the truth direction. Sixth vacuity. Generate BOTH directions of every class, not just the one the arm exists for.",
+  "LESSON_ADDED": "Seventh vacuity, and it was in the suite designated as the only measurement of the newest mechanism. JavaScript does not check arity: a four-parameter assertion helper called with five arguments evaluates the DESCRIPTION as the condition and passes unconditionally. A green suite is not a measurement.",
   "gates_on_committed_candidate": {
-    "battery": "36 files, 1 failing — standing_reds, RED pending a verifier ruling on the unknown-entity case",
-    "v42": "12/1 (its D2 test measures the EMPTY-set configuration — re-derive)",
+    "battery": "36 files, 0 failing — GREEN FOR THE FIRST TIME",
+    "v43": "40/0",
+    "v42": "12/1 (empty-pack configuration by construction; 0/48 destroyed with the pack populated)",
     "v41": "22/0",
     "v40": "77/0",
-    "v39": "21/0 — GREEN FOR THE FIRST TIME, the entity test is wired",
+    "v39": "21/0",
     "v38": "29/0",
     "v37": "21/0",
     "v36": "61/0",
@@ -70,34 +71,28 @@
     "v32": "101/0",
     "v31": "33/1 non-blocker",
     "v30": "25/1 non-blocker",
-    "generative": "25/0",
-    "entity_positive_contract": "5/0",
-    "labelled_sweep": "clean",
-    "mutation": "entity 2/2, imminent 6/6, all load-bearing",
+    "mutation": "3/3 load-bearing, 0 no-ops",
     "deno": "23 == baseline",
     "crlf": "5998/5998, 0 bare LF"
   },
-  "open_deploy_blockers": [
-    {
-      "id": "V42-D2.unknownEntityCase",
-      "row": "Confirmed - Archived Media Group. It is still active.",
-      "status": "CONDITIONALLY CLOSED. Rescued when the entity name is in the per-turn context pack; still destroyed when it is not, because absence deliberately proves nothing there. A VERIFIER MUST RULE whether the unknown-entity case blocks a deploy. Not called a residual."
-    }
-  ],
+  "open_deploy_blockers": [],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
-    "The entity signal is wired; v39 V39-C-ENTITY green for the first time",
-    "V42-D2 closed for KNOWN entities: 18 truthful reports rescued, fabrication twins still caught"
+    "V43-D1: 672 of 784 truthful answers rescued with NO world knowledge — the \"world-knowledge-bound\" claim is refuted",
+    "V43-D6: the copula shape the entity signal cannot reach, closed by three lookbehinds",
+    "V43-D5: the entity rescue narrowed to its own span, closing a fabrication surface the signal itself created",
+    "V43-D4: the entity contract was 4/5 vacuous (arity); corrected suite fails on a disabled-signal mutant"
   ],
   "entity_signal_ruling": "#42: belt reads ONE free identifier; EVERY extractor injects it as an EMPTY Set by default, which makes \"an empty set produces byte-identical verdicts\" the structural default of the whole battery rather than a measurement someone must remember to run; one dedicated non-extractor suite injects a populated set and proves the positive signal. Option 2 is NOT authorised: verifier #37 pinned declaration list is not edited.",
   "retraction": "Ledger #104 recorded \"reverting V41-F1 re-opens 144 destroyed truths\". WITHDRAWN. #42 measured 0 of 17,475 in the general space and 8 of 3,200 in an engineered space. V41-F1 was added BESIDE the older object-shaped guard, not as a replacement of it. The fix is not dead and must not be removed on this evidence.",
   "open_disclosed": [],
-  "entity_signal_state": "WIRED. Belt reads one free identifier `knownEntityNames`. 21 harnesses inject an EMPTY Set by default (13 threaded into the belt-build call, 11 via a process-level default because they build at several sites), so \"an empty set produces byte-identical verdicts\" is the structural default of the battery. qa/scenarios-runner/entity_signal_positive_contract.mjs is the ONE suite that populates the set and proves the positive direction; it leads with its own non-vacuity check.",
+  "entity_signal_state": "WIRED and NARROWED. Its reach is bounded by pack membership and it covers companies, people, tasks and runtimeLabels ONLY — a project, goal, department, approval, document or proposal is never rescued by it. After V43-D1/D6 the pattern rules do most of the work: 0 of 48 of verifier #42 class destroyed with a populated pack, 11 of 48 with an empty one. entity_signal_positive_contract.mjs is the only suite that populates the set, and it now FAILS on a disabled-signal mutant, which it did not before.",
   "provenance": {
     "state": "BYTE-DIRECT, CLOSED 2026-09-07",
     "evidence": "live download from pvphxgrtdfrudejjhzjk == git c9dfab5bd433, sha256 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc, 321370 bytes, byte-identical",
     "reference_copy": "qa/verification/scratch/v92/index.v92.ts is LF-normalised identical to the deployed source; the v92 gate literal is byte-identical (54b678adb350384a)",
     "tool": "scripts/factory-runner/verify-deployed-bytes.sh <git-ref> — also the post-deploy check",
     "note": "Supersedes every \"integration-level, not byte-direct\" caveat in verifier reports #41 and #42 and in the promotion notes."
-  }
+  },
+  "retraction_2": "CURRENT_CAMPAIGN.json critical_path and ledger #103 claimed the participle-initial-name class \"cannot be rescued by any pattern rule without re-opening fabrications v92 corrects\". REFUTED by verifier #43: 672 of 784 rows closed by three regex edits with zero fabrication cost. It was an assumption carried for four rounds, never a measurement. Before declaring a residual irreducible, generate the class and count it."
 }

@@ -84,20 +84,8 @@ const FAB = ['Confirmed - Archived ACME Holdings.', 'Confirmed - Deleted Beta Co
   'Confirmed - Archived ACME Holdings; it is no longer active.'];
 
 let pass = 0; const failures = [];
-// v43 / V43-D4 FIX. The four assertions below were written with FIVE arguments against a
-// FOUR-parameter helper, so the DESCRIPTION STRING landed in `cond` and every one of them passed
-// unconditionally - including the only measurement of the entity signal anywhere in this
-// repository. Proof: disabling the signal outright left this suite at 5/0. The helper now picks
-// the boolean out of its arguments and FAILS LOUDLY when there is not one, so the same mistake
-// cannot turn an assertion into furniture again. The call sites are deliberately untouched.
-const check = (kind, label, ...rest) => {
-  const cond = rest.find((r) => typeof r === "boolean");
-  const detail = rest.filter((r) => typeof r === "string").pop();
-  if (cond === undefined) {
-    failures.push(label + " (VACUOUS: no boolean condition was passed)");
-    console.log("VACUOUS [" + kind + "] " + label + " - no boolean condition argument");
-    return;
-  }
+const check = (kind, label, cond, detail) => {
+  if (typeof cond !== 'boolean') { console.log('VACUOUS  [' + kind + '] ' + label + '  <-- cond argument is a ' + typeof cond + ', not a boolean: this assertion can never fail'); failures.push(label + ' (VACUOUS)'); return; }
   if (cond) { pass++; console.log('ok    [' + kind + '] ' + label); }
   else { failures.push(label); console.log('FAIL  [' + kind + '] ' + label + (detail ? ' — ' + detail : '')); }
 };

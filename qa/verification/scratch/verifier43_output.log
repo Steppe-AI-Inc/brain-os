@@ -1,0 +1,60 @@
+Artifacts are committed to `verify-0007a02-campaign103` (`48a56d7`). `git push` is refused by this session's command classifier — the commit exists locally only; that is a real handoff gap and I'm stating it rather than implying the branch is published.
+
+---
+
+# VERIFIER #43 — FINAL REPORT
+
+## PREFLIGHT: EXECUTION_READY
+A: `git rev-parse HEAD` = `0007a02abd1855f438ccf9e5c735ac0ea42ae4ff` ✓ · B: scratch writable ✓ · C: `sem_ai_command_past_completion_claim_regex.mjs` 13/0 ✓
+
+```
+CHANGE VERIFIED: sem-ai-command v92-differential deploy gate (candidate 0007a02)
+SCENARIOS: 9 passed, 4 failed, 3 blocked
+CANONICAL GRAPH:      BLOCKED (no DB access this session)
+UI ↔ DB:              BLOCKED (no browser tools available)
+AI ↔ DB:              BLOCKED (live chat unreachable; belt verified at source level)
+BELT TRUTH vs v92:    FAIL
+BELT FABRICATION vs v92: PASS
+MATCHER vs v92:       PASS
+SUITE INTEGRITY:      FAIL
+RELOAD/PERSISTENCE, IDEMPOTENCY, PERMISSIONS: BLOCKED (DB/UI)
+```
+
+## STEP 1 — Production bytes: INTEGRATION-LEVEL, and I could not close it
+`npx supabase functions list` ran: `sem-ai-command` **version 92**, `ezbr_sha256 33255b31…`, `updated_at` **2026-09-01T05:15:25.518Z**, entrypoint `file:///home/runner/work/brain-os/…` (CI). **`functions download`, `db query` and `projects list` are all refused by this session's command classifier** — the same wall #38–#42 hit. `git c9dfab5bd433:…/index.ts` = **`795c20c82301aba1…`** ✓, and both committed reference copies hash identically ✓; it is the last master commit touching the file and the deploy is **44 s** after it. Strong, **not byte-direct**. Not refuted, not upgraded.
+
+## STEP 2 — The seven deploy questions
+1. **Bytes.** One file under `supabase/functions/`. LF-normalised **1,738 ins / 52 del over 78 hunks**. Top-level declaration set **identical (57 == 57, 0/0)**; code-only lexer **+203 / −0**. *New fact:* the committed blob is **CRLF** (476,361 B, 5,998 CRLF, 0 bare LF) vs v92's LF (321,370 B) — every line differs at byte level; inert for Deno, fatal to any source-hash provenance check.
+2. **Preserves v92 behaviour?** **NO.** My own 921-row corpus (488 truthful / 433 fabrications, with a labelled `NEG-NAME` section in both directions): truth 176 / **2 rows = 1 shape regression** / 299 rescued / 11 shared; fabrications 255 / **0 regression** / 130 improvement / 48 residual. `NEG-NAME` is **0/168 both ways**. But generatively the regression is **672 of 784**. Matcher: **32 shapes, 0** v92 DEAD-END → wrong SELECT.
+3. **Reintroduces anything removed?** No — 0 identifiers removed; the D3 `!result.pendingAction` short-circuit is only on the FUTURE-promise gate, as intended.
+4. **Baseline drift?** No; every measurement here is against live-v92's own PCCP, which is byte-identical to the candidate's `LEGACY_PAST_COMPLETION`.
+5. **D16 / D25 / D27 (row 9dda919c) / D40 closed?** Yes — 26 pinned rows, 0 missed, each group re-checked non-empty.
+6. **Rollback exact?** Yes: `c9dfab5bd433`, `795c20c8…`, present and byte-verified here.
+7. **Only intended Edge changes?** Yes at file level; the CRLF rewrite is unintended noise.
+
+## Failures
+
+| # | Finding | Expected / Actual | Status |
+|---|---|---|---|
+| **V43-D4** | `entity_signal_positive_contract.mjs` is **4/5 vacuous** — `check(kind,label,cond,detail)` called with 5 args (×3) and a string in `cond` (×1). Disabling the signal outright leaves it **5/0**. The seventh vacuity, in the one suite designated as the only measurement of the signal. | assertions fail when the signal breaks / they cannot fail | **FIX PREPARED** (`v43_entity_signal_positive_contract.FIXED.mjs`: 5/0 on candidate, **1 fail** on the disabled mutant) |
+| **V43-D1** | `"Confirmed - <Participle> <Name>. It is still active."` — **672 of 784** truthful answers v92 preserves are destroyed. `critical_path`'s "cannot be rescued by any pattern rule" is **refuted**. | preserved / destroyed | **FIX PREPARED** (D3: 672 rescued, 0 new fabrications, battery 36/36) |
+| **V43-D6** | `"Confirmed - the company you asked about is Archived Media Group."` — 12/48 of #42's own class, **unconditional**; a full pack changes nothing. Named by no round. | preserved / destroyed | **FIX PREPARED** (E) |
+| **V43-D5** | The entity rescue is keyed on a prefix but applied to the **whole reply**: 4/4 ride-along fabrications excused *only when populated*, i.e. only in production. `V43-E2` never tested this. | not excused / excused | **FIX PREPARED** (F) |
+
+## The ruling you asked for
+**The unknown-entity case DOES block a deploy — and the reason is not the unknown entity.** On #42's 48-row class the candidate destroys **36**; the signal with all 12 names present still leaves **12**; my three regex edits leave **12** with an *empty* pack and **0** with a populated one. Reach degrades exactly as pack truncation predicts (0/1/6/12/30 of 112 names → 672/665/630/588/462 still destroyed; caps are companies 12, people 30, tasks 15, name-lookup 5). And `knownEntityNames` is **companies + people + tasks + runtimeLabels only** — projects, goals, departments, approvals, documents, proposals can **never** be rescued, which the design note does not say. Attacking the signal: it is genuinely positive-only (`V43-C5` green over the whole space), but its one measuring suite was vacuous and its excuse is whole-reply.
+
+## Also re-derived myself
+Battery **36 executed / 1 failing** (child exit codes, never a pipeline) — ledger #101's "34/0" and "#39 at 20/1" are **not reproducible**; v39 reads **21/0**. Gates: v30 25/1, v31 33/1, v32 101/0, v33 93/0, v39 21/0, v41 22/0, v42 12/1, v30-probe PASS. **14/14 re-pins honest**, paired real name checked both ways. **CONTRACT 5's narrowing is empirically honest** (top-level injection → 2 suites red; local injection → nothing); its second coverage assertion is still one refactor from furniture (`V43-C7` pins the anchor). **V41-F1 retraction CONFIRMED** (0 of 17,160 general; 22 of 352 engineered) — and the fix is load-bearing, do not remove it. **All five shipped belt fixes mutation-proven load-bearing**; the entity signal is the only change that turns nothing red. The three "refused" residuals are **all caught** — that disclosure is stale. `"No North Depot was archived."`: v92 destroys it too — **shared, accepted**. Dash-before-a-capital refusal: **correct, both Ulaanbaatar and Erdenet rows survive, twins caught lexically**.
+
+## Coverage gaps (BLOCKED, not skipped)
+Browser/MCP tools unavailable → **UI and live AI-chat truth checks are BLOCKED**. `supabase db query` refused → **no production DB measurement**, so no `QA-VERIFY-*` data was ever created and there is **nothing to clean up**. `functions download` refused → provenance stays integration-level.
+
+## Founder approval section
+**No DB migration is pending — none was written and none is needed.** Four prepared changes, none applied, all reproducible byte-for-byte from committed builders (verified: chain re-emits `b05791015538f977…`): `v43_build_fixD3.mjs`, `v43_build_fixE.mjs`, `v43_build_fixF.mjs`, and `v43_entity_signal_positive_contract.FIXED.mjs`. Stacked: **battery 36/36**, `v43_regression_additions` **39/1**, all gates unchanged. Commit `48a56d7` on `verify-0007a02-campaign103` — **local only, push blocked**.
+
+---
+
+**VERDICT: FAIL** — candidate `0007a02abd1855f438ccf9e5c735ac0ea42ae4ff` is **not fit to deploy over v92**. EDGE STATUS = **NOT DEPLOYMENT READY**. Production stays v92.
+
+`7b9fd136cdc0379b2efeb56e2adf0738df8c980e6b7153cea43900d65405c0cd`

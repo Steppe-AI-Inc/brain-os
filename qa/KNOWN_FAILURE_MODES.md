@@ -14050,3 +14050,108 @@ Also fixed this round, per #42's disclosure: CONTRACT 5's second coverage assert
 `mutated === TEXT || …` and would have **passed vacuously** if its anchor `let n = -1;` ever moved —
 the campaign's defining failure mode sitting inside a coverage check whose job is to prevent it. It
 now requires `mutated !== TEXT` like its sibling and reports a moved anchor as a broken harness.
+
+## 109. VERIFIER #43 FAIL CLOSED — the suite I wrote to measure the entity signal was 4/5 vacuous, and "world-knowledge-bound" was never measured
+
+Verifier #43 returned **FAIL** on candidate `0007a02` / index.ts `7b9fd136`. Fourteenth consecutive
+FAIL. Its corpus: 921 rows, 488 truthful / 433 fabrications, with a labelled negator-name section in
+both directions — **1 distinct truth-regression shape, 0 fabrication regressions**, 299 truths
+rescued vs v92, 130 fabrication improvements.
+
+**V43-D4 (P0, THE SEVENTH VACUITY, AND IT IS MINE).** `entity_signal_positive_contract.mjs` — the
+suite ledger #107 designated as *the only place the entity signal is measured anywhere* — was **4/5
+vacuous.** Its helper is `check(kind, label, cond, detail)`; four call sites passed **five**
+arguments, so the DESCRIPTION STRING landed in the `cond` slot and every one of them passed
+unconditionally. JavaScript does not check arity.
+
+Proven side by side on the identical build, with the entity test disabled outright:
+
+```
+corrected suite on the disabled-signal mutant : 1 failed  (exit 1)
+MY suite        on the disabled-signal mutant : 5 passed, 0 failed
+```
+
+So "entity positive contract 5/0" in ledger #107 and the checkpoint measured nothing. #43 also
+showed the consequence across the estate: reverting the entity signal turned **nothing** red anywhere
+except `standing_reds`, which was red at baseline anyway. My separate mutation proof did exercise the
+signal and was real — but the permanent guard was not, and the permanent guard is the thing that
+matters. **Ledger #107 wrote "if it is vacuous, the signal is unmeasured" into #43's own prompt. It
+was.** The corrected helper picks the boolean out of its arguments and fails loudly when there is
+none; `V43-D4.noAssertionHelperIsCalledOverArity` pins the class, not the instance, and the only
+other hit in the estate is inside a documented SUPERSEDED stub that never runs.
+
+**V43-D1 (P1) — "world-knowledge-bound" was an assumption, and it is REFUTED.** `CURRENT_CAMPAIGN.json`
+said the D100 row "cannot be rescued by any pattern rule without re-opening fabrications v92
+corrects". Ledger #103 concluded that from six gates going red. On a generated space of
+`"Confirmed - <Participle> <Name>. <state continuation>"` the candidate destroyed **672 of 784**
+truthful answers — not one row. And the candidate **already rescued the identical sentence** with no
+world knowledge whatever when the continuation sat in the SAME sentence. The only difference was a
+window `(?:[^.]|\.(?!\s|$)){0,80}?` that cannot step over a full stop. A blind widening to `[^]` was
+measured and **rejected** (it ships `run15/D117.suffixDisarms`); the accepted fix adds a second
+bounded alternative — one sentence boundary, the next sentence must open with an anaphor, strong
+state verbs only, Title-Case object required. **672 rescued, 0 new fabrications.**
+
+**V43-D6 (P1) — a second truth shape the entity signal cannot reach at all.** `"Confirmed - the
+company you asked about is Archived Media Group."` — the signal's capture requires the participle
+immediately after the dash, so a **fully populated pack changes nothing**. 12 of verifier #42's own
+48 rows, unconditional, and no round had named it. Closed by three present-tense copula lookbehinds:
+a completion participle right after `is/are/am` is a STATE, never the event.
+
+**V43-D5 (P2) — a fabrication surface the signal itself creates.** The rescue is keyed on a PREFIX
+and was applied to the WHOLE REPLY, so `"Confirmed - Archived Media Group and Beta Corp."` and
+`"Confirmed - Sent Parcel Co. Deleted ACME Holdings too."` were excused **only when the set is
+populated — i.e. only in production, where it never is empty.** v92 misses them too, so not a v92
+regression, but my `V43-E2` could not see it: its rows were chosen so the captured phrase is not a
+known name. Narrowed to the span the rescue actually reasoned about.
+
+**THE THREE FIXES ARE ADOPTED.** Applying them in sequence reproduces #43's own stacked build
+**byte-for-byte** (`b0579101…`), which is the check that the adoption is the verifier's work and not
+a paraphrase of it.
+
+**ONE CORRECTION OF MY OWN ON TOP.** The stacked build read **deno 25** against the 23-error
+baseline: fix F uses `__m.index`, which TypeScript types as optional. Verifier sessions cannot run
+deno — #41 recorded that — so this was mine to catch. `(__m.index ?? 0)` on both uses; deno back to
+23, behaviour byte-identical on every suite.
+
+**MUTATION PROOF, 3/3 LOAD-BEARING, 0 no-ops**, re-derived on the applied bytes. Reverting D3
+re-destroys all four probe truths **with an empty pack** — which is the point of it: D3 needs no
+world knowledge. Reverting E re-destroys all four copula rows. Reverting F drops the ride-along
+fabrications caught from 3/4 to 1/4. My first D3 anchor was wrong and reported a false no-op; a
+mutation anchor that does not match reports a live fix as dead.
+
+**THE DEPLOY-RELEVANT NUMBER, re-derived here rather than carried from the report.** Verifier #42's
+48-row class on the applied bytes: **0 of 48 destroyed with the pack populated** — the production
+configuration — and **11 of 48 with an EMPTY pack**, down from 36. v92 destroys 0 of 48, so every one
+would be a regression against production. `v42`'s own gate still reads 12/1 because, like every
+extractor-based harness, it injects an empty set by construction and therefore measures the empty
+case.
+
+**`standing_reds_classification_contract` IS GREEN**, and the battery is **36 files / 0 failing**, for
+the first time in the campaign.
+
+**WHAT #43 SAID ABOUT PROVENANCE, AND WHY IT IS NOW SUPERSEDED.** It recorded provenance as
+integration-level, not byte-direct, and said plainly it could not close it — `functions download` is
+refused in verifier sessions, the same wall #38–#42 hit. Ledger #108 closed it from an unrestricted
+shell: the live source is byte-identical to `c9dfab5bd433`. #43's caveat was correct **for its
+session** and should not be read as an open item.
+
+**#43 CONFIRMED, independently:** the V41-F1 retraction in ledger #106 is right (0 of 17,160 general,
+22 of 352 engineered, all `"<Gerund> can be undone."`), and the fix is load-bearing and must not be
+removed; all 14 re-pins re-derive as honest with paired names checked in both directions; the
+dash-before-a-capital refusal is correct; and **the three shapes this session recorded as "refused"
+are all CAUGHT** — that disclosure is stale.
+
+**STILL DISCLOSED.** `knownEntityNames` is built from companies, people, tasks and `runtimeLabels`
+**only**, so a project, goal, department, approval, document or proposal can never be rescued by the
+signal — which the design note did not say. And the pack is capped (`companies .limit(12)`,
+`people .limit(30)`, `tasks .limit(15)`), so the signal's reach degrades with pack membership:
+with 0/1/6/12/30 of 112 names present, 672/665/630/588/462 rows stay destroyed **before** fix D3,
+which is why D3 mattering more than the signal is the correct reading.
+
+EVIDENCE on the new candidate `3e56dbd1`: battery **36 files / 0 failing**; #43's gate 40/0; #42 12/1
+(empty-pack configuration); #41 22/0; #40 77/0; #39 21/0; #38 29/0; #37 21/0; #36 61/0; #35 55/0;
+#34 57/0; #33 93/0; #32 101/0; v30 25/1 and v31 33/1 (non-blockers); mutation 3/3 with zero no-ops;
+deno 23 == baseline; CRLF 5,998 / bare LF 0.
+
+STATUS: NOT DEPLOYMENT READY until a fresh independent verifier passes on the NEW exact SHA. #43's
+FAIL stands against `0007a02` and is not inherited. Production remains v92; rollback c9dfab5b from git.

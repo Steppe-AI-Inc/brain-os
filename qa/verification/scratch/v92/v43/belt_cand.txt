@@ -1,0 +1,261 @@
+const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+
+        // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
+        // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
+        // ACME." was corrected — the same claim, two outcomes. One shared verb list now
+        // feeds every arm, plus the broader progressive shapes the narrow arms missed
+        // ("Processing the request", "Working on archiving", "I am archiving",
+        // "Currently archiving"). Still defense-in-depth: evidence remains primary.
+        const PROGRESS_VERBS = 'assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending';
+        // run12/D94: the residual is now covered rather than left undisclosed —
+        // passive-progressive ("is being archived", "is getting archived"), imminent
+        // ("about to", "in the process of", "going ahead and", "proceeding to",
+        // "starting the", "kicking off"), and the polite first person ("let me archive").
+        // Still lexical and English-only: this is defense-in-depth, and evidence stays
+        // primary. A shape outside this list does not ship a fabricated completion on a
+        // turn that HAS execution evidence — it is re-rendered from that evidence.
+        const EXECUTION_IN_PROGRESS = new RegExp(
+          '\\b(' +
+          'executing (?:the )?(?:plan|request|action|changes?)' +
+          '|working on (?:' + PROGRESS_VERBS + ')' +
+          '|processing (?:the |your )?(?:plan|request|action|changes?)' +
+          '|i(?:\'|’)?m (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
+          '|i am (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
+          '|(?:now|currently) (?:' + PROGRESS_VERBS + ')' +
+          // Passive progressive takes PAST PARTICIPLES ("is being archived"), not the
+          // gerunds the other arms use — the original arm could never match it.
+          // run19/D137: present-tense "is/are <participle>" is a STATE ("ACME is archived",
+          // "the task is completed"), not a mutation this turn — and the belt destroyed those
+          // truthful state answers (incl. the file's own must-never-touch "test3 is archived.
+          // Should I restore it?"). Past tense "was/were <participle>" is the completion event
+          // (also caught by LEGACY); present tense fires ONLY when explicitly progressive
+          // ("is being archived", "is getting archived").
+          '|(?:was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|moved|granted|declined)' +
+          '|(?:is|are) (?:being|getting) (?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)' +
+          // A bare gerund LEADING the reply is the same claim without a subject
+          // ("Archiving ACME as we speak.").
+          '|^(?:' + PROGRESS_VERBS + ') ' +
+          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)(?:about to|going to|proceeding to|starting to) (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate|add|send)' +
+          '|(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?in the process of (?:' + PROGRESS_VERBS + ')' +
+          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)(?:going ahead and|kicking off) (?:the )?(?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
+          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)starting the (?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
+          '|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)' +
+          ')\\b', 'i');
+        // A supported mutation/assignment claim is the only thing that can account for
+        // completion wording. State, existence, historical and verification claims cannot —
+        // that asymmetry is exactly what L7/L8/L9/L10 exploited.
+        const hasSupportedMutationClaim = verifiedClaims.some((v) => v.verdict === 'supported'
+          && (v.claim.type === 'mutation_result' || v.claim.type === 'assignment'));
+        // run8/D59: `&& !result.pendingAction` is the EXACT D3 short-circuit 606cfa8
+        // removed from the prose-era gate — the structured-claim rewrite re-introduced
+        // it here, so "The approval has been approved. Should I also archive ACME?"
+        // (fabricated completion + a pendingAction + no claims) shipped uncorrected and
+        // persisted. Removed again; the correction branch below preserves the gated
+        // pending prompt so a genuine clarification is corrected, not stranded. (The
+        // FUTURE-promise gate keeps its pendingAction exclusion on purpose — a future
+        // promise WITH a pending question is honest.)
+        // run13/D100+D103c: "Confirmed — <completion>." is the one shape where a bare
+        // participle (no auxiliary, so LEGACY_PAST_COMPLETION never saw it) reads to the
+        // founder as a finished action — "Confirmed — Restored Bob Smith.",
+        // "Confirmed — the company (option 1)." The backend no longer composes either
+        // (the replay site renders a quoted CHOICE, or a neutral acknowledgement when the
+        // label names nothing), so this is defense-in-depth for any path that still could.
+        // Genuine deterministic-* turns are excluded below, so a legitimate imperative
+        // confirmation summary ("Confirmed — Archive ACME?") is unaffected.
+        // run14/D112: the original `.*` carried no negation handling and no part-of-speech
+        // constraint, so the belt fired on a completion word used in a NEGATION ("the
+        // company is not archived"), as a NOUN ("the archived list", "3 archived
+        // companies") or in an explicit not-done statement ("still pending, not approved") —
+        // nine truthful founder-facing answers of sixteen, each replaced with "I can't
+        // actually do that from chat", which is itself false. Destroying a true answer and
+        // substituting a false one is a worse outcome than the fabrication this belt exists
+        // to catch. A completion word directly preceded by a determiner or a cardinal is
+        // a noun, not a claim (that part-of-speech guard stays here).
+        // run15/D117+D118: D112's negation handling was a `(?![^]*\b(?:not|...)\b)` lookahead
+        // INSIDE this one regex — a WHOLE-SUMMARY test, and applied to ONE arm only. Both
+        // are recurrences of classes this ledger already recorded: a negation word in a
+        // later sentence ("Confirmed — Archived ACME. No further action needed.") disarmed
+        // the belt for the fabrication beside it (the mechanism struck down at ledger
+        // #5277), while LEGACY_PAST_COMPLETION and EXECUTION_IN_PROGRESS had no negation
+        // handling at all, so "no company was archived" was still destroyed (#4905).
+        // Negation now lives in NEGATED_CLAUSE below and is applied ONCE, per CLAUSE, in
+        // readsAsCompletion — for every arm, so the two halves of run13/D100's "one
+        // predicate, both arms" can no longer diverge on negation either.
+        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
+        // The D112 negator list, unchanged, now scoped to a clause. Clause boundaries are
+        // sentence punctuation and the comma, so "Deleted ACME, nothing else was changed"
+        // keeps its fabrication in a clause of its own. Disclosed residual: a fabrication
+        // and a negator in the SAME clause ("Archived ACME with no issues") still disarms
+        // that clause; evidence, not this belt, remains the primary defence.
+        // run18/D131: "without" is REMOVED from the negator list. It is a name word
+        // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
+        // qualifier ("archived without incident") far more often than a genuine negation, and
+        // treating it as a negator both destroyed real names and disarmed real completions.
+        const NEGATED_CLAUSE = /(?<!-)\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b(?!-)/i;
+        // run13/D103c: the other half of the same shape carries no completion word at
+        // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
+        // definite phrase naming a TYPE, never an instance, so it confirms nothing the
+        // founder can check while reading as though something was settled. Anchored to
+        // end-of-string, so a confirmation that goes on to say something checkable
+        // ("Confirmed — the company you asked about is in Ulaanbaatar") is untouched;
+        // D103.hold.substantive is what observes that anchor.
+        const REFERENCELESS_CONFIRMATION = /^\s*confirmed\s*[—–-]\s*the\s+[a-z]+(\s+[a-z]+)?(\s*\(option\s+\d+\))?\s*[.!]?\s*$/i;
+        // run13/D100: the two drift arms below each carried their OWN copy of this
+        // pattern list, so extending one silently left the other behind. One predicate,
+        // both arms — a new completion shape cannot be half-covered again.
+        // run15/D117+D118: negation is decided HERE, once, per clause, for every arm. A
+        // clause carrying a negator is a truthful negative and is skipped; any other clause
+        // asserting a completion makes the whole summary read as one. (The semicolon in the
+        // clause splitter is written as \x3b so this stays a single statement for the
+        // source-extracting suites, which slice this predicate up to its first `;`.)
+        // run16/D125: the splitter knew only [.!?,;], so a fabrication followed by a negator
+        // in the SAME typographic clause ("archived – no undo available", "archived (no undo
+        // available)", "archived without incident", "archived and no errors occurred") was
+        // disarmed — four shapes d724d8c had caught. Dashes, colon, parentheses, newline and
+        // the conjunctions and/but/without are boundaries now; the residual is a negator
+        // inside one bare clause with no separator at all.
+        // run17/D128 (P1): run16/D125 widened the clause splitter to and/but/without, dashes,
+        // parentheses and colons — and inside a NOUN PHRASE those are not clause boundaries.
+        // "No company named Salt and Pepper Co was archived." split into ["No company named
+        // Salt", "Pepper Co was archived"] and the truthful negative was destroyed: 97/130 on
+        // the verifier's corpus, 0/130 one candidate earlier — the D112 class again, in the
+        // direction index.ts itself calls the worse one. The splitter is back to sentence
+        // punctuation, the comma and the newline. What decides negation is no longer "a
+        // negator anywhere in the clause" but ORDER: a negator disarms a clause only when it
+        // PRECEDES the completion vocabulary ("no company … was archived", "the company is
+        // not archived"); a negator that follows the verb ("archived – no undo available",
+        // "archived without incident", "archived and no errors occurred") is a qualifier on a
+        // completion that was still asserted, and the belt fires. Disclosed residual: a real
+        // name that itself begins with a negator word before the verb ("Nothing Bundt Cakes
+        // was archived") disarms the belt; evidence, not this belt, remains primary.
+        // run18/D130 (P1): run17/D128's order rule compared the negator to the first
+        // COMPLETION WORD — but a completion word used as a NOUN ("the archived list") or in
+        // a NAME ("Closed Loop Systems", "Archived Media Group") sits before the negator and
+        // was mistaken for the completion verb, so "Closed Loop Systems was not archived."
+        // read as a completion and the true answer was destroyed (24/26 real names). The
+        // comparison is now against the VERBAL completion only: an auxiliary immediately
+        // governing a past participle ("was archived", "has been restored", "were not
+        // deleted"), or the "<participle> successfully" form. A leading name word is a noun,
+        // not a verb, and is never the reference point. Present-tense "is/are archived" is a
+        // STATE, not a completion event, so it is deliberately excluded from the verbal set
+        // (that is what lets "ACME is archived but was not deleted." survive).
+        const COMPLETION_PARTICIPLE = /\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|confirmed)\b/i;
+        const COMPLETION_VERB = /\b(?:has|have|had|was|were)(?:\s+(?:not|been|being|already|just|recently|successfully|also|now))*\s+(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b|\b(?:archived|deleted|updated|created|restored|removed|completed|renamed|approved|rejected|assigned|reassigned|moved|sent|cleared|granted|declined|ended|activated|deactivated)\s+successfully\b/i;
+        // A clause is a TRUTHFUL NEGATIVE (not a completion assertion) when it carries a
+        // negator AND either there is no verbal completion in it at all (the completion words
+        // are nouns/names), or the negator falls at/before that verb's PARTICIPLE — i.e. it
+        // negates the verb ("was NOT archived") rather than trailing it ("archived — no undo").
+        // run19/D131 (R9b): the previous rule ("negator before the verb's participle disarms")
+        // over-caught, so a fabrication whose only separator was and/but/a dash escaped ONLY
+        // because run18 refused those boundaries (they occur in names). The negator-before-verb
+        // test is refined: a negator that precedes the completion verb disarms it only when it
+        // actually scopes over the verb — i.e. the negator directly precedes the verb (n >=
+        // m.index is impossible here; kept for symmetry), OR a relative/complement marker
+        // (that/which/who/whom) sits between the negator and the verb (the verb is inside the
+        // negated noun phrase: "no record THAT X was archived"), OR no finite auxiliary/modal
+        // has occurred before the negator yet (the negator is the clause's own, not a
+        // subordinate one). A trailing "no errors" after a real "was archived" no longer
+        // disarms. Verifier #19 measured this: 0 of 9 paired real names destroyed, 0 new false
+        // positives on a 61-case corpus, 5 of the 9 residual fabrications now caught.
+        const NEGATION_AUX = /\b(?:is|are|am|was|were|has|have|had|do|does|did|can|could|will|would|should|may|might|must)\b/i;
+        const completionIsNegated = (c: string): boolean => {
+          // run31/D170+D172: a negator TOKEN can sit where it negates NOTHING. Taking the first
+          // match blindly let fabrications deployed v92 corrects through the belt. Each position
+          // below is skipped and the scan CONTINUES, so a real negator later in the same clause
+          // ("Nothing Bundt Cakes was not archived") still disarms it.
+          //   nameInternal  the negator opens a proper name used as the SUBJECT. Capitalisation
+          //                 alone does not establish that - at sentence start every negator is
+          //                 capitalised, and "Confirmed - No Business Unit Archived." is a TRUE
+          //                 report v92 shows the founder. So an AUXILIARY must govern the run
+          //                 ("Nothing Bundt Cakes HAS BEEN archived"). A lowercase noun in
+          //                 between ("No ACME Holdings task was completed") or a bare participle
+          //                 with no auxiliary leaves it a determiner. A lowercase "nor" anywhere
+          //                 means a genuine neither/nor negation.
+          //   objectName    the negator opens a proper name used as the OBJECT of a completion
+          //                 the speaker claims ("I archived No Limits Inc."). A genuine negator
+          //                 there is lowercase ("I archived no companies."), which is the test.
+          //   titleHead     clause-initial "Pending"/"Awaiting" heading a titled subject.
+          //   ppInternal    the negator sits in a prepositional phrase modifying something other
+          //                 than the completion ("The company with no active tasks was archived").
+          let n = -1;
+          const scan = new RegExp(NEGATED_CLAUSE.source, 'gi');
+          for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
+            const after = c.slice(mm.index + mm[0].length);
+            const FN_WORDS = "(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)"; const capLead = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(after);
+            const subjectRun = new RegExp("^\\s+(?:[A-Z][\\w&.’'-]*\\s+){0,5}?[A-Z][\\w&.’'-]*\\s+(?:(?:was|were|has|have|had|been)\\b|" + COMPLETION_PARTICIPLE.source.slice(2) + "\\s+successfully\\b)").test(after);
+            const nameInternal = capLead && subjectRun && !/\bnor\b/.test(c);
+            const objectName = capLead && new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\\s+(?:the |that |this |its |our )?$', 'i').test(c.slice(0, mm.index));
+            const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && (mm.index === c.search(/\S/) || /["“‘']\s*$/.test(c.slice(0, mm.index)));
+            const newSubject = !/\bnor\b/.test(c) && ((sre) => { for (let sm = sre.exec(c); sm !== null; sm = sre.exec(c)) { if (sm.index <= mm.index + mm[0].length) continue; const span = c.slice(mm.index + mm[0].length, sm.index); if (/^[a-z][\w.&'-]*\s+(?:was|were|has been|have been|had been)\b/.test(sm[0]) && !new RegExp('^\\s*(?!' + FN_WORDS + '\\b)[a-z][a-z-]*\\s*$').test(span)) continue; const endsFiniteVerb = /^\s*(?:[a-z]+(?<![sui])s\s+)?[a-z]+(?:ed|en)\s*$/.test(span) && !/\b(?:showed|proved|indicated|confirmed|stated|recorded|suggested|reported|mentioned|noted|revealed|implied|found|said|established|named|called|titled|listed|marked|dated|assigned|labell?ed|entitled|known|shown|seen|held|described|referenced)\s*$/.test(span); const endsLinked = !endsFiniteVerb && new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s*$', 'i').test(span); const linksAName = new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s+[A-Z]').test(span); if (!endsLinked && !linksAName) return true; } return false; })(/(?:\b[A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*){0,4}|\b(?:the|that|this|these|those|its|their|our|his|her|my|your)\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*(?:\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*){0,3}|\b(?!(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)\b)[a-z][\w.&'-]*)\s+(?:was|were|has been|have been|had been)\b/g);
+            const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index)) && LEGACY_PAST_COMPLETION.test(c);
+            const relInternal = /\w,?\s+(?:that|which|who|whom|whose)\s+(?:[\w’'-]+\s+){0,4}$/i.test(c.slice(0, mm.index)) && !(/^(?:not|never|nowhere)$/i.test(mm[0]) && /\b(?:is|are|was|were|has|have|had|been|being|do|does|did|can|could|will|would|should|may|might|must)\s+$/i.test(c.slice(0, mm.index))) && !/^(?:isn|aren|wasn|weren|hasn|haven|didn|don|cannot|can)/i.test(mm[0]);
+            const quotedHead = /["“‘']\s*$/.test(c.slice(0, mm.index)) && /^\s*\S/.test(after);
+            const adjective = /^(?:pending|awaiting)$/i.test(mm[0]) && /\b(?:the|a|an|your|our|their|its|my|his|her|all|any|each|every|this|that|these|those|some|several)\s+$/i.test(c.slice(0, mm.index));
+            const fewQuant = /^few$/i.test(mm[0]) && /\b(?:a|the|these|those|several)\s+$/i.test(c.slice(0, mm.index));
+            const detName = /^[A-Z]/.test(mm[0]) && (/\b(?:the|a|an|our|your|their|its|my|his|her)\s+$/i.test(c.slice(0, mm.index)) && /^\s+[A-Z]/.test(after) || /^[’']s\s+[A-Z]/.test(after));
+            if (nameInternal || objectName || titleHead || ppInternal || relInternal || newSubject || quotedHead || adjective || fewQuant || detName) continue;
+            n = mm.index;
+            break;
+          }
+          if (n < 0) return false;
+          const m = COMPLETION_VERB.exec(c);
+          if (m === null) return true;
+          const rel = m[0].search(COMPLETION_PARTICIPLE);
+          const p = m.index + (rel < 0 ? 0 : rel);
+          if (n > p) return false;
+          // run22/D151 (R-ZR2, clause-initial free pass removed): a negator disarms the
+          // completion verb it precedes UNLESS a clause-linker sits between them. A coordinator
+          // (and/but) counts only after a LOWERCASE token ("no errors and X was archived" links;
+          // "no record Salt and Pepper Co was archived" is name-internal); a subordinator
+          // (although/though/however/therefore) links anywhere. The old third disjunct
+          // (!NEGATION_AUX before the negator => always disarm) is DELETED: it gave a
+          // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
+          // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
+          // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
+          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '') || new RegExp((c.slice(n, m.index).split(/\b(?:although|though|however|therefore|so|yet|because)\b/i).length > 1 ? '^\\s*(?:(?:in|of|at|on|from|within|across|among|between|for|by|under|over|per)\\s+(?:\\w+\\s+){0,3})?' : '\\b') + '(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\\b', 'i').test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore|so|yet|because)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
+            || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index))
+              || (c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).length > 1 && !NEGATED_CLAUSE.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '')));
+        };
+        // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
+        // colon FOLLOWED BY SPACE — so a filler negator set off by punctuation ("No problem —
+        // ACME was archived", "Nothing failed: ACME was archived") no longer shields the
+        // fabrication beside it, while a hyphenated or conjunction-bearing NAME ("Salt and
+        // Pepper Co"), a parenthetical ("No entity (including ACME) was archived") and a clock
+        // time ("14:30") are left whole. Parentheses are deliberately NOT boundaries: the
+        // order rule already catches "archived (no undo available)" because the negator
+        // trails the verb. The "Confirmed —" prefix is handled by testing CONFIRMED_COMPLETION
+        // on the whole string, so splitting the dash cannot blind it. (One statement — the
+        // source-extracting suites slice this up to its first `;`.)
+        // run19/D134 (P1): CONFIRMED_COMPLETION is a whole-string match (so "Confirmed — as
+        // requested, Restored Bob Smith." is caught by the later-clause participle), but the
+        // negation was checked on clause[0] only — so a truthful "Confirmed — <benign>, <verb>
+        // was not <done>." had its negator ignored and the true answer destroyed. Negation is
+        // now checked on the CLAUSE THAT CONTAINS the matched completion word: the text up to
+        // the end of the CONFIRMED match, last clause. (Optional chaining keeps it null-safe
+        // and a single statement for the source-extracting suites.)
+        // run23/D155 (fallback 1, Deno-safe): the third .some() arm below is a first-person
+        // active-voice completion, tested CASE-SENSITIVELY (no /i) so its object must be a proper
+        // name ([A-Z]) or a real entity noun — "I removed it from my draft" / "I restored order"
+        // are NOT claims, "I deleted Beta Corp" / "I deleted the company" are. It lives INLINE (no
+        // new const: run15-18 assemble the belt from a named-const list and would drop a new one)
+        // and uses NO (?-i:) modifier (unverified in the Deno Edge runtime — a bad modifier fails
+        // to construct at module load and takes the whole function down).
+        // v92-differential/D27 (P1, REGRESSION vs deployed v92 — production row 9dda919c): the
+        // `renamed: "X" → "Y"` completion-report arm inherited from PAST_COMPLETION_CLAIM_PATTERN
+        // was UNREACHABLE here because the clause splitter below breaks on ":\s" before any arm
+        // sees the colon (verifier #29 called it "decorative" — it is the exact shape v92 corrects
+        // and this build shipped). Tested on the WHOLE summary, before the split, exactly as v92
+        // does. The arrow format is a completion report, not a truthful negative; measured 0
+        // truthful destroyed on the 303-case v92-differential corpus.
+        // run31/D171 (R-AUXGAP, rebuilt): an adverbial interposed between auxiliary and
+        // participle is cut apart by the clause splitter, so no clause carries a whole
+        // completion. Verifier #31 showed the first version was net-negative: its guard read a
+        // negator lexicon blind to couldn/wouldn/shouldn/won-t, so attributed TRUE history was
+        // destroyed. That lexicon gap is closed above, and the window is v92's own 30 rather
+        // than 40, so this reaches no shape v92 never touched. Participles come from
+        // COMPLETION_PARTICIPLE itself, never a private copy (D100).
+        const readsAsCompletion = (s) => [String(s), String(s).replace(/[?!]/g, ' ')].some((__s) => __s.split(/(?<=[.!?])\s+/).some((q) => LEGACY_PAST_COMPLETION.test(q) && !NEGATED_CLAUSE.test(q) && !/\b(?:may|might|could|can|would|should)\b(?:\s+\w+){0,4}\s+(?:have|has|had)\s+been\b|\b(?:could|would|should|wo)n['’]?t\b/i.test(q))) || REFERENCELESS_CONFIRMATION.test(s) || /\brenamed:\s*.+(→|->)/i.test(String(s))
+          || (!(/^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\s+(?!(?:the|a|an|this|that|these|those|its|their|our|my|your|his|her|to|for|from|with|by|in|on|at|of|and|or|but|it|them|him|us|me|you|all|any|each|every|some|no|nothing|none)\b)[a-z]|^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\s+(?:no longer|not|never|no|nothing|none|nobody|no one|neither|nor)\b/.test(String(s)) || ((__p) => __p !== null && knownEntityNames.has(__p.toLowerCase()))((String(s).match(/^\s*[Cc]onfirmed\s*[—–-]\s*((?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)(?:\s+[A-Z][\w&'’-]*(?:\.[\w&'’-]+)*)+)/) || [])[1] || null) || /^\s*[Cc]onfirmed\s*[—–-][^.!?]*\?/.test(String(s)) || !LEGACY_PAST_COMPLETION.test(String(s)) && /^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\b(?:(?!\b(?:not|never|no|nobody|nothing|none|neither|nor)\b)(?:[^.]|\.(?!\s|$))){0,80}?\b(?:(?:remains|remain|stays|stay|continues|continue|still|exists|looks|appears|seems)\b|(?:is|are|was|were|has|have|had)\b(?!\s+(?:complete|completed|successful|finished|done|archived|deleted|removed|updated|created|restored|renamed|approved|rejected|granted|sent|moved|added|cleared|ended)\b))/.test(String(s))) && CONFIRMED_COMPLETION.test(String(s)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[!?,\x3b\n]|\.(?=\s|$)|:\s/).pop() ?? ''))
+          || String(s).replace(new RegExp('(?<!\\b(?:couldn|wouldn|shouldn|won|can|isn|wasn|weren|hasn|haven|didn|don)[\'’]?t\\s)(?<!\\b(?:couldn|wouldn|shouldn|won|can|isn|wasn|weren|hasn|haven|didn|don)[\'’]?t\\s(?:have|has)\\s)(\\b(?:was|were|has been|have been)\\b)(?=[^.]{0,30}\\b' + COMPLETION_PARTICIPLE.source.slice(2) + ')\\s*[,—–]\\s*[^.]{0,30}?[,—–]\\s*(?=' + COMPLETION_PARTICIPLE.source.slice(2) + ')', 'gi'), '$1 ').replace(/^\s*(?:(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\s+at all)?\s*[—–-]\s*)+/i, '').replace(/^\s*(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\s+at all)?\s+(?=(?:the|a|an|our|their|my|its|his|her)\s+\w)/i, (i0, o0, t0) => (LEGACY_PAST_COMPLETION.test(t0.slice(o0 + i0.length)) ? '' : i0)).replace(/,\s*((?:[^,.\x3b:!?()]{0,20}?)\b(?:[Nn]one|[Nn]obody|[Nn]o one)\b(?!\s+[A-Z])[^,.\x3b:!?()]{0,20}?),\s*(?=(?:[Ii]s|[Aa]re|[Ii]sn|[Aa]ren)\b)/g, ' $1 ').replace(/,\s*(?:(?:(?!\b(?:not|never|no|nobody|nothing|none|neither|nor)\b)[^,.\x3b:!?()]){1,40}?),\s*(?=(?:is|are|was|were|has|have|had|isn|aren|wasn|weren|hasn|haven|shows?|showed|indicates?|indicated|confirms?|confirmed|suggests?|suggested|reports?|reported)\b)/gi, ' ').split(/(?:[!?,\x3b\n]|\.(?=\s|$))+|:\s|(?<!\bgoing ahead)\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|[—–](?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.replace(/\([^()]*\)/g, (p0) => ' '.repeat(p0.length)).replace(/\b(?:may|might|could|can|would|should)\s+(?:(?:not|never|also|already|just|now|still|well|very|quite|really|truly|indeed|perhaps|possibly|probably|conceivably|previously|recently|actually|certainly|definitely|surely|maybe|in|fact|and|or|by|then|somehow|otherwise)\s+){0,3}(?:have been|has been|had been)\s+[a-z]+/gi, ' ').trim()).concat((String(s).match(/\([^()]*\)/g) || []).map((p) => p.slice(1, -1).trim())).some((c) => !completionIsNegated(c)
+            && (LEGACY_PAST_COMPLETION.test(c) || (EXECUTION_IN_PROGRESS.test(c) && !/^\s*(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending|processing|executing|working|starting|kicking)\b(?:(?!\b(?:I|we)\b)[^.]){0,90}?\s(?:is|are|was|were|isn|aren|requires?|needs?|takes?|keeps?|ends|leaves?|means?|happens?|stays?|remains?|gets?|becomes?|costs?|involves?|depends?|applies|allows?|lets?|makes?|does|do|notifies|switches|drops?|hides?|shows?|works?|can|cannot|will|would|should|must|archives|deletes|creates|updates|removes|assigns|restores|renames|closes|clears|sends|adds|reopens|preserves|affects)\b/i.test(c) && !/^\s*(?:[Aa]ssigning|[Rr]eassigning|[Uu]pdating|[Cc]reating|[Mm]oving|[Aa]rchiving|[Rr]estoring|[Dd]eleting|[Rr]emoving|[Ee]nding|[Rr]enaming|[Cc]losing|[Cc]learing|[Gg]ranting|[Dd]eclining|[Aa]pproving|[Rr]ejecting|[Cc]ompleting|[Aa]ctivating|[Dd]eactivating|[Aa]dding|[Ss]ending)\s+(?:an?\b|(?:[a-z]+\s+){0,2}[a-z]+s\b|(?:\S+\s+){1,8}?(?<!\b(?:the|a|an|its|their|our|my|your|his|her|this|that|these|those|of|in|on|at|to|for|from|with|by|and|or|but|no|some|any|all|each|every|two|three|several|many|few)\s)(?:(?!(?:as|its|his|this|us|thus|plus|less|yes|hers|ours|yours|theirs|always|perhaps|sometimes|unless|whereas|besides|various|previous|obvious|serious|numerous|instead|indeed|ahead|else|ok)\b)[a-z]{3,}(?:s|es|ed)\b|(?:is|are|was|were|has|have|had|can|cannot|will|would|should|must|may|might|does|do|did)\b))/.test(c) && !/(?:^|\s)(?!(?:I|We|i|we)\b)(?:[A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*){0,3}|(?:[Tt]he|[Oo]ur|[Yy]our|[Tt]heir)\s+[a-z][\w-]*(?:\s+[a-z][\w-]*){0,2})\s+(?:is|are|was|were)\s+(?:now\s+|currently\s+|just\s+)?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending|working\s+on|processing|executing)\b/.test(c)) || /(?:^|\b[Cc]onfirmed\s*[—–-]\s*)(?:and |but |so |then )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:[A-Z]|(?:company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)\b(?![ \t]+(?!(?:from|to|for|in|on|at|by|with|and|or|but|so|because|as|per|via|after|before|since|yesterday|today|now|just|already|successfully|earlier|then|too|also|instead)\b)[a-z]))/.test(c)));
+        
