@@ -1,45 +1,49 @@
-// PREPARED, NOT APPLIED. The `let me` deferred-offer class (V44-D3) is a PRODUCT decision the
-// founder has not made, so this builds the option WITHOUT choosing it. If the answer is "the arm
-// should not fire on an offer conditioned on my confirmation", this is a one-command apply. If the
-// answer is "it should fire", nothing here is used and the class is pinned as intended behaviour.
+// PREPARED, NOT APPLIED. The conditioned-offer class (V44-D3 / V45-D1) is a PRODUCT decision the
+// founder has not made, so this builds the option WITHOUT choosing it.
 //
-// THE CLASS. Deployed v92 preserves all 39 generated rows; the candidate destroys them and
-// substitutes "I can't actually do that from chat — nothing was changed.", which strands the founder
-// mid-clarification:
+// THE CLASS, as verifier #45 measured it — 14 openers x 14 user-conditioned tails, 196 rows,
+// deployed v92 preserves all 196, the candidate destroys 117:
 //   "Let me archive the company once you confirm."
-//   "Let me restore the company if you approve."
-//   "Let me delete that only after your approval."
+//   "I'm about to archive the company once you confirm."
+//   "Let me archive the company as soon as you say go."
+//   "Let me archive the company subject to your confirmation."
+// The candidate replaces them with "I can't actually do that from chat — nothing was changed." and
+// persists that to work_orders.output, which strands the founder mid-clarification with a statement
+// that is itself false: archive and restore ARE chat capabilities.
 //
-// THE RULE, if it is wanted: `let me <verb>` is an imminent-action claim EXCEPT when the same clause
-// carries an explicit condition on the founder's own act — once/if/after/unless/when you confirm,
-// approve, say so, or give the go-ahead. A conditioned offer is a request for permission, which is
-// the opposite of a claim to have acted. The condition words are function words plus a short closed
-// list of the founder-act verbs the product actually uses; that list is the thing to argue with.
+// A FIRST VERSION OF THIS FILE WAS TOO NARROW AND I REPORTED IT AS COMPLETE. It guarded only the
+// `let me` alternation with a short tail list, which closed 7 of #45's 10 pinned rows and left the
+// `I'm about to` opener and the "as soon as you say go" / "subject to your confirmation" tails
+// untouched. It looked finished because verifier #44's gate — which pins 3 rows — went green.
+// #45 generated the class properly and it is roughly three times the recorded size. That is the
+// campaign's own recurring lesson landing on my own work again: a fix measured against the corpus
+// that was already green is measured against the wrong thing.
 //
-// Deliberately NOT done: switching the `let me` arm off. It exists for
-// "Let me archive ACME Holdings for you." — an unconditioned imminent claim — and verifier #44's
-// V42-C1 pins that row as one that must stay caught.
+// THE RULE, if it is wanted: the imminent arm stands down when the SAME CLAUSE carries an explicit
+// condition on the FOUNDER'S OWN ACT. The condition has to name the user to exist, which is what
+// makes it a narrow test rather than a general softening — an offer that asks permission is the
+// opposite of a claim to have acted.
+//
+// Deliberately NOT done: switching the arm off. It exists for "Let me archive ACME Holdings for
+// you." and verifier #44's V42-C1 pins that row as one that must stay caught.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const ROOT = 'C:/Users/Dell/dev/brain-os/';
-const SRC = process.env.V45L_IN || ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const SRC = process.env.V45L_IN || ROOT + 'qa/verification/scratch/v92/fix46.ts';
 const OUT = process.env.V45L_OUT || ROOT + 'qa/verification/scratch/v92/fix45_letme.ts';
 
 let text = readFileSync(SRC, 'utf8');
 const before = text;
 
-// The `let me` alternation, taken from the shipped bytes. Anchored on its full verb list so it
-// cannot match a neighbouring branch — the mistake made once already this round, where a tail shared
-// with the was/were branch put a guard on an alternation nobody meant to touch.
-const ANCHOR = "'|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)' +";
-if (!text.includes(ANCHOR)) { console.log('STALE: the let-me alternation was not found verbatim'); process.exit(2); }
-
-// No [A-Z] anywhere: EXECUTION_IN_PROGRESS carries the `i` flag, and a capital class inside it folds
-// to any letter. That is verifier #40's finding and verifier #41's V41-C6 contract, and it caught
-// exactly this mistake in this session one round ago.
-const COND = "(?![^.]{0,80}?\\\\b(?:once|if|after|unless|when|provided|assuming)\\\\s+(?:you|your)\\\\b)";
-const NEW = "'|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)" + COND + "' +";
-text = text.replace(ANCHOR, () => NEW);
+// Applied as a guard on the EXECUTION_IN_PROGRESS arm rather than per-branch, so every opener is
+// covered by construction — per-branch guarding is exactly how the first version came up short.
+// No [A-Z] anywhere: this sits beside a regex built with the `i` flag, and verifier #40's finding
+// plus verifier #41's V41-C6 contract are both about a capital class folding to any letter.
+const ANCHOR = "(EXECUTION_IN_PROGRESS.test(c)";
+const n = text.split(ANCHOR).length - 1;
+if (n !== 1) { console.log('STALE: expected exactly 1 EXECUTION_IN_PROGRESS test site, found ' + n); process.exit(2); }
+const GUARD = "(EXECUTION_IN_PROGRESS.test(c) && !/\\b(?:once|if|after|unless|when|provided|assuming|as soon as|subject to|pending)\\b[^.]{0,40}?\\byou(?:r|rs)?\\b/i.test(c)";
+text = text.replace(ANCHOR, () => GUARD);
 
 if (text === before) { console.log('NO-OP: nothing changed'); process.exit(2); }
 writeFileSync(OUT, text);

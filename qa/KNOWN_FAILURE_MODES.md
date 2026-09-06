@@ -14229,3 +14229,94 @@ EVIDENCE on the new candidate `6c5e52b5`: battery **36 files / 0 failing**; #44'
 
 STATUS: NOT DEPLOYMENT READY. One open group, and it is a product question for the founder rather
 than a defect. Production remains v92; rollback c9dfab5b from git.
+
+## 111. VERIFIER #45 — FAIL on ONE class, and it is the founder's product question. Everything else is clean.
+
+Verifier #45 returned **FAIL** on `b386767` / index.ts `6c5e52b5`. Sixteenth consecutive FAIL, and the
+first whose entire remaining failure is a question nobody but the founder can answer.
+
+**ITS DIFFERENTIAL, on a 594-row corpus of its own (298 truthful negatives with real names, 296
+fabrications, no rows shared with any prior verifier), with a labelled negator-token-name section in
+both directions:**
+
+| quadrant vs deployed v92 | count |
+|---|---|
+| **truth regression** (v92 preserves, candidate destroys) | **0** |
+| **fabrication regression** (v92 catches, candidate ships) | **0** |
+| truth improved | 195 |
+| fabrication improved | 41 |
+
+The absolute misses — 11 of 298 truths, 1 of 296 fabrications — are rows **deployed v92 gets wrong
+too**. Shared holes, not regressions. A separate 409-row adversarial battery returned 18 P1s, **all
+18 inside the one class below**, and 0 fabrication regressions.
+
+**V45-D1 (THE ONLY BLOCKER, AND IT IS A PRODUCT DECISION).** `EXECUTION_IN_PROGRESS` — an arm v92
+does not have — fires on an offer explicitly conditioned on the founder's confirmation. 14 openers ×
+14 user-conditioned tails = 196 rows; **v92 preserves all 196; the candidate destroys 117.**
+`LEGACY_PAST_COMPLETION` fires on **none** of them, so it is purely the imminent arm. The
+unconditioned forms are still caught 9/14 where v92 catches 0/14 — the arm does earn its keep.
+
+**THE CAMPAIGN RECORD SIZED THIS AT "39 generated rows, 3 pinned". IT IS 117.** #45 reached openers
+and tails the record never listed — `I'm about to…`, `I am going to…`, `Let me go ahead and…`, and
+*as soon as you say go*, *subject to your confirmation*, *provided you confirm*. In its own words
+that correction matters more than the verdict does.
+
+**AND IT LANDED ON MY OWN PREPARED OPTION.** I had built the founder's option against verifier #44's
+gate, which pins **three** rows, and reported it as complete because that gate went green. Rebuilt
+against the real class: the guard now sits on the arm rather than on one alternation, so every opener
+is covered by construction. **#45's gate 54/0 and #44's gate 118/0 with the option applied**, battery
+36/0, and `"Let me archive ACME Holdings for you."` — the unconditioned claim the arm exists for,
+pinned by V42-C1 — **stays caught**. Still PREPARED, still not applied; the decision is the founder's.
+*A fix measured against the corpus that was already green is measured against the wrong thing.*
+
+**#45's PRODUCT OPINION, recorded because it was asked for and is not a fix:** firing on a conditioned
+offer does three bad things at once — it destroys a true sentence, substitutes a **false** one
+(archive and restore genuinely are chat capabilities; `archiveCompanyIds` is real), and strands the
+conversation with no way to answer. If the arm stands down anywhere, the conditional-on-the-user
+reading is the safest possible place, because the condition has to name the user to exist.
+
+**FOUR NON-BLOCKING FINDINGS, ALL CLOSED HERE.**
+* **V45-D2** — the entity rescue was the only one of four `Confirmed —` branches without the
+  interposed-prefix tolerance its three siblings carry, so `"Confirmed — as requested, Archived Media
+  Group."` was destroyed *even with the name in the pack*. One arm extended and its sibling left
+  behind is run13/D100's class exactly. Closed, 3/3.
+* **V45-D6** — the imminent idiom list carried the GERUND forms and not the BASE forms, and the clause
+  splitter's stand-down lookbehind was anchored to `going ahead` alone, so `"Let me go ahead and
+  archive the company."` escaped the imminent arm *and* the future-promise gate: 60 of 192 rows.
+  Closed in both places, 4/4.
+* **V45-N3** — `detName`'s determiner test carried `/i` over an explicit `[a-z]` slot: the V41-C6
+  class in the lowercase direction. #45 measured it inert across 6,600 rows; made case-sensitive.
+* **V45-N4** — two QA artifacts that cannot reach their input: `v44_mutation_proof.mjs` resolves ROOT
+  one level short and is dead where it sits, and `v31_mutation_proof.mjs` hard-codes a path into a
+  **different worktree**. Same shape as the eighth vacuity.
+
+**V45-N2 — RUNTIME, WHICH NOBODY IN 45 VERIFICATIONS HAD MEASURED, AND WHERE I COULD NOT REPRODUCE
+ITS NUMBERS.** #45 reports the belt as quadratic: 657 ms at 33,639 characters against v92's 0.085 ms,
+called twice per turn. Its suggested guard is adopted — a clause containing no completion vocabulary
+at all cannot be a negated completion, so the per-negator scan loop is skipped. Measured here:
+**1.24–1.44× on ordinary prose, neutral where the vocabulary is present, 0 verdict changes of 9.**
+**But my worst case is 6.46 ms at 33,639 characters, not 657 ms, and the growth reads roughly LINEAR.**
+That is a hundredfold discrepancy and I have not resolved it. It is recorded as unresolved and handed
+to the next verifier rather than smoothed into agreement; the guard is reported as verdict-neutral and
+as a saving on vocabulary-free clauses, which is what was actually measured.
+
+**#45 ALSO RETIRED A STALE DISCLOSURE AND CONFIRMED A REFUSAL.** The three shapes recorded as
+"refused" — `"No errors ACME was archived."`, `"No problem the log shows ACME was archived."`,
+`"Not a single task moved - Bob Smith was removed."` — are **all caught** on these bytes with their
+paired real names surviving. And `"No North Depot was archived."` is destroyed by the candidate **and
+by v92**, so the refusal stands; #45 notes the one thing that could decide it is `knownEntityNames`,
+which the `Confirmed —` arm alone currently consults.
+
+**Provenance: #45 confirmed it is closed and did not re-open it.** It verified the byte link at the
+git-object level on the committed artifact and stated plainly that `functions download` is refused in
+its session, so the strongest thing it personally executed was the version/ezbr observation.
+
+**Identifier delta re-derived: 482 → 687, 205 added, 0 removed.** Nothing v92 declares was dropped.
+
+EVIDENCE on the new candidate `d0de7e7e`: battery **36 files / 0 failing**; #45's gate **53/1** (the
+product question alone) and **54/0 with the prepared option**; #44 115/3 → 118/0 with the option;
+#43 40/0; #42 12/1; #41 22/0; #40 77/0; #39 21/0; #38 29/0; #37 21/0; #36 61/0; #35 55/0; #34 57/0;
+#33 93/0; #32 101/0; v30 25/1 and v31 33/1 (non-blockers); deno 23 == baseline; CRLF 6,003 / bare LF 0.
+
+STATUS: NOT DEPLOYMENT READY, and the single reason is a product question. Production remains v92;
+rollback c9dfab5b from git.
