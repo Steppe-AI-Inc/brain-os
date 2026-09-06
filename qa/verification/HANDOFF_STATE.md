@@ -10,7 +10,7 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 | What | Where |
 |---|---|
 | Current campaign, verifier number, exact SHA, all gate numbers | `qa/verification/CURRENT_CAMPAIGN.json` |
-| Every defect class, every fix, every retraction, entries #90–#103 | `qa/KNOWN_FAILURE_MODES.md` (read #102 and #103 first) |
+| Every defect class, every fix, every retraction, entries #90–#104 | `qa/KNOWN_FAILURE_MODES.md` (read #102, #103 and #104 first) |
 | The candidate under test | `supabase/functions/sem-ai-command/index.ts` |
 | Verifier artifacts, one directory per verifier | `qa/verification/scratch/v92/v3*/` |
 | Reusable probes and proofs this session wrote | `qa/verification/scratch/v92/v4*_*.mjs` |
@@ -20,15 +20,15 @@ Written 2026-09-06 by the implementing session, for a fresh session after contex
 
 ## 2. STATE RIGHT NOW
 
-- **Candidate:** commit `884567acb771e13a0235c80dd519424c74aaa9ed`, `index.ts` sha256
-  `30d3a640e9e4adc94bb0c3a51bf251c0984425d8e3fc2bd97710210d82212726`.
-  It carries verifier #40's four structural edits, adopted after re-measuring here.
-- **Verifier #41 is RUNNING** on that SHA (worktree `brain-os-verify-884567a`, watchdog pid 35120,
-  dispatched 21:00). Its verdict is the next event. A `Monitor` task was watching
-  `qa/verification/scratch/watchdog-verifier41_output.state`; **re-arm it after compaction** —
-  monitors do not survive. Terminal markers: `watchdog done`, `BLOCKED`, `exhausted`.
-- **Nothing is deployed. Production is still v92.** No DB write, no migration, no `functions deploy`
-  has happened in this entire campaign.
+- **Candidate:** commit `4f35700127b271d3e8cf68afb3ac0d5f772c4c5f`, `index.ts` sha256
+  `ed3983dfb367a4adfd98fc8b160fa7a29ef733e3a4c1d0f44979bc40e66d33b8`. CRLF 5989 / bare LF 0.
+  It carries verifier #41's two fixes plus this session's bare-lowercase new-subject fix.
+- **Verifier #42 is RUNNING** on that SHA (worktree `brain-os-verify-4f35700`, watchdog pid 37243,
+  dispatched 21:36). **Re-arm the watcher after compaction** with
+  `bash scripts/factory-runner/watch-verifier-artifacts.sh 42 /c/Users/Dell/dev/brain-os-verify-4f35700 60`
+  — it watches the ARTIFACTS as well as the watchdog, because #41's watchdog died silently with a
+  0-byte log while the verifier ran to completion. **Silence is not a verdict.**
+- **Nothing is deployed. Production is still v92.** No DB write, no migration, no `functions deploy`.
 - **Rollback:** `git c9dfab5bd433`, `index.ts` sha256 `795c20c82301aba1…`. Take it FROM GIT.
 
 ## 3. THE STANDING CONTRACT (unchanged, from the founder)
@@ -45,7 +45,7 @@ Verdicts are read from the verifier's OUTPUT TEXT, never from an exit code, and 
 `BLOCKED — EXECUTION_MODE` / `BLOCKED — OTHER`.
 
 **Ask `ALLOW_FUNCTIONS_DEPLOY=1?` exactly once, and only after a fresh verifier PASSES on the exact
-bytes.** Eleven verifiers have failed in a row; do not anticipate a pass.
+bytes.** Twelve verifiers have failed in a row; do not anticipate a pass.
 
 ---
 
@@ -74,22 +74,24 @@ Every verifier gate lives at `qa/verification/scratch/v92/v3*/v3*_regression_add
 
 ---
 
-## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`30d3a640`)
+## 5. EXPECTED GATE NUMBERS ON THE CURRENT CANDIDATE (`ed3983df`)
 
-battery **35 files, 1 failing** · #40 77/0 · #33 93/0 · #39 20/1 · #38 29/0 · #37 21/0 · #36 61/0 ·
-#35 55/0 · #34 57/0 · #32 101/0 · #30 probe PASS · generative 25/0 · labelled sweep 0/0 · deno 23.
+battery **35 files, 1 failing** · #41 22/0 · #40 77/0 · #33 93/0 · #32 101/0 · #34 57/0 · #35 55/0 ·
+#36 61/0 · #37 21/0 · #38 29/0 · generative 25/0 · labelled sweep clean · mutation 3/3 · deno 23.
 
-**TWO reds are expected, and only these two.** #39's entity test is red by design.
-`standing_reds_classification_contract` is red because **THE CANDIDATE IS NOT DEPLOYABLE** — it
-carries two blockers that the ledger had filed as disclosed residuals since verifier #37:
+**FOUR reds are expected, and only these four.** Anything else red is a real failure.
 
-| Blocker | Direction | State |
+| Gate | Reads | Why |
 |---|---|---|
-| `"No errors node.js was archived."` | v92 corrects, candidate ships, 180 of 180 rows | Fix prepared and fully measured at `qa/verification/scratch/v92/fix_lowercase_subject.ts`. Apply after #41 returns. |
-| `"Confirmed - Archived Media Group. It is still active."` | v92 preserves, candidate destroys, refusal persisted | **No pattern-level fix exists.** A structural guard was built and refuted across six gates. Needs the entity signal. |
+| `v39` | 20/1 | its entity test is RED BY DESIGN until the entity signal is wired |
+| `v30` | 25/1 | harness obsolescence — its flat const list counts LOCALS. #41 re-derived it: NOT a blocker |
+| `v31` | 33/1 | lexicon assertion at the wrong locus, closed inline in the R-AUXGAP lookbehind. #41 re-derived it: NOT a blocker. Its harness wrongly prints a deploy verdict it cannot support |
+| `standing_reds_classification_contract` | 1 blocker | **THE CANDIDATE IS NOT DEPLOYABLE.** One genuine blocker remains |
 
-**The structured-evidence work is now ON THE CRITICAL PATH TO DEPLOY**, not an agreed next
-improvement. See ledger #103.
+**The one open blocker:** `"Confirmed - Archived Media Group. It is still active."` — v92 preserves it,
+the candidate destroys it and persists the false refusal. Ledger #103 proves no pattern-level rule
+closes it without re-opening fabrications v92 corrects across six gates. **The structured-evidence
+work is ON THE CRITICAL PATH TO DEPLOY** — see `qa/verification/ENTITY_SIGNAL_DESIGN.md`.
 
 ## 6. THE LESSON THAT COST THE MOST — READ THIS BEFORE WRITING ANY FIX
 
@@ -103,6 +105,15 @@ because its corpus never generated the shape:
 4. `v92_parity_contract` (911 strings, 7 parentheticals, none in the position that mattered)
 5. the two gerund pins (both rested on the SAME string with the gerund mid-clause, so the arm that
    destroyed 28 ordinary answers was never observed)
+
+**Seventh, from verifier #41, and it is the most expensive so far.** #39 found the gerund arm
+destroying truthful sentences. #40 replaced its verb whitelist with a structural test and validated
+it on a corpus whose objects were all lowercase placeholders. That test's object guard can only fire
+on a LOWERCASE object, so a capitalised name defeats it, and the arm stayed **83% broken for proper
+names — 1,100 of 1,320 truthful sentences destroyed**, where v92 preserves all 1,320. **When a fix is
+validated on a corpus of lowercase placeholder objects, it has been validated on the half of the
+class that does not occur in production.** A Brain OS answer names the company or the person the
+founder asked about. **Generate the class; do not sample it.**
 
 **Sixth, from verifier #40, and it is the opposite and worse.** `"No errors occurred the department
 was removed."` is a fabrication production corrects and the candidate shipped. It was RED in this
@@ -129,7 +140,7 @@ from a regression (that mistake produced 11,760 false alarms in one sweep here).
 
 ---
 
-## 7. WHAT THE CAMPAIGN DID (verifiers #30–#40, all FAIL)
+## 7. WHAT THE CAMPAIGN DID (verifiers #30–#41, all FAIL)
 
 Each verifier failed the candidate, and from #34 onward each also **prepared its own fix**, which this
 session adopted verbatim after re-measuring and deno-checking it. Highlights only; the ledger has all:
