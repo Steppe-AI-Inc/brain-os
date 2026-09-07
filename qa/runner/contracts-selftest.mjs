@@ -54,6 +54,22 @@ assert(gen.some((s) => s.history === 'prior_fabricated_claim' && s.pattern === '
 const genProj = generateScenarios(lib, { contractId: 'project_lifecycle' });
 assert(genProj.some((s) => s.channel === 'brain' && s.action === 'edit' && s.pattern === 'UNSUPPORTED_OPERATION'), 'project edit via brain (no field) generates only the honest-decline scenario');
 
+// Concurrency + viewport axes (directive §7): valid-only, policy-marked.
+const genAxes = generateScenarios(lib, { contractId: 'company_lifecycle', viewports: ['desktop', 'mobile'] });
+assert(genAxes.some((s) => s.pattern === 'STALE_STATE' && s.verdict_policy === 'BLOCKED_POLICY_UNDEFINED'), 'concurrent_editable contract yields a STALE_STATE scenario marked policy-undefined');
+assert(genAxes.some((s) => s.pattern === 'MOBILE_BASIC_ACCEPTANCE' && s.viewport), 'mobile viewport yields a MOBILE_BASIC_ACCEPTANCE scenario');
+assert(!generateScenarios(lib, { contractId: 'goal_lifecycle' }).some((s) => s.pattern === 'STALE_STATE'), 'non-concurrent contract yields no STALE_STATE scenario');
+
+// Scheduler contract-gap branch (directive §13) on a stub world with the inventory fully executed.
+{
+  const { selectNextWork } = await import('./lib/scheduler.mjs');
+  const stubWorld = { bugQueue: { bugs: [] }, handoff: {}, campaignQueue: { items: [] }, fixes: [], caps: caps.filter((c) => c.status !== 'NOT_TESTED'), failing: [], flaky: [], notTested: [], blocked: [] };
+  const w = selectNextWork(stubWorld, {});
+  assert(w.kind === 'contract_gap' && /transition|role/.test(w.label), 'scheduler schedules contract gaps before exploratory', w.kind + ' ' + w.label);
+  const w2 = selectNextWork({ ...stubWorld, handoff: { last_contract_gap_key: w.contract_gap_key } }, {});
+  assert(w2.kind === 'exploratory', 'gap key recorded -> falls through to exploratory', w2.kind);
+}
+
 // Dimensions are additive and bounded.
 const dims = dimensionCoverage(lib, caps, bugs);
 assert(dims.state_coverage.total > 0 && dims.transition_coverage.total > 0, 'dimension coverage computes states/transitions');

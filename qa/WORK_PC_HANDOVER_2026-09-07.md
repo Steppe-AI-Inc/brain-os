@@ -152,6 +152,18 @@ credential).
 - **BUG-017 sharper:** a task created 8 minutes earlier was already outside the 15-of-34 chat
   window — the capped list is not newest-first.
 
+## QA architecture upgrade (12:40–13:00Z) — per the Development Constitution directive
+Added `qa/contracts/` (26 universal test patterns with declared oracles; 11 capability
+contracts with flag→obligation derivation; shared-primitive impact registry; continuity
+invariants CI-01..08; defect-class index) and `qa/runner/lib/contracts.mjs`, integrated
+**additively** into `compute-coverage.mjs` (new `dimensions`, headline unchanged) and
+`scheduler.mjs` (impact-based regression after a changed build; contract-gap scheduling after
+full inventory execution). Proven by `qa/runner/contracts-selftest.mjs`. Governance defines
+authorization but **no lifecycle semantics** — those contracts are marked
+`BLOCKED - PRODUCT POLICY UNDEFINED` rather than inferred from the UI. Five directive-named
+files do not exist in the repo and were not fabricated (see `qa/contracts/README.md`).
+**Ask for the Home PC:** add `changed_primitives` + `files_changed` to fix reports.
+
 ## Production readiness — unchanged verdict, sharper reasons
 Single-founder use with UI verification of every Brain claim: usable now. Team use: **not yet**.
 Seven open P1s, all execution-truth (BUG-002, 005, 010, 014, 018, 020, 021). The

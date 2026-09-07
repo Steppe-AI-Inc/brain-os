@@ -109,7 +109,7 @@ export function impactPlan(changedPrimitives, lib, inventoryCaps = []) {
  * Generate valid, high-value scenarios from a contract's state machine - not a Cartesian product.
  * Each scenario carries its oracle (pattern + contract policy) or is marked policy-undefined.
  */
-export function generateScenarios(lib, { contractId, actors = ['founder'], channels = ['ui', 'brain'], historyConditions = ['clean', 'prior_fabricated_claim'], reloadConditions = ['none', 'navigate_away_and_back'] } = {}) {
+export function generateScenarios(lib, { contractId, actors = ["founder"], channels = ["ui", "brain"], historyConditions = ["clean", "prior_fabricated_claim"], reloadConditions = ["none", "navigate_away_and_back"], viewports = ["desktop"] } = {}) {
   const c = lib.contracts.contracts?.[contractId];
   if (!c) return [];
   const rules = lib.contracts.derivation_rules || {};
@@ -153,6 +153,16 @@ export function generateScenarios(lib, { contractId, actors = ['founder'], chann
   }
   if (c.flags?.parent_resource) push({ action: 'archive parent with children (people, project, manager link)', actor: 'founder', channel: 'mixed', pattern: 'PARENT_ARCHIVED_CHILD_BEHAVIOR', expected: policyBlocked.has('cascade_to_children_on_archive') || policyBlocked.has('direct_reports_of_ended_manager') ? 'RECORD OBSERVED BEHAVIOUR ONLY' : 'per contract policy', verdict_policy: (policyBlocked.has('cascade_to_children_on_archive') || policyBlocked.has('direct_reports_of_ended_manager')) ? 'BLOCKED_POLICY_UNDEFINED' : 'DEFINED' });
   if (c.flags?.tenant_scoped) push({ action: 'act on this entity from a foreign organization', actor: 'foreign_manager', channel: 'brain', pattern: 'FOREIGN_ORG_ACTOR', expected: 'authorization denied; DB unchanged; no success claim; foreign data not exposed', verdict_policy: 'DEFINED' });
+  // CONCURRENCY axis: only for contracts that declare concurrent editing; oracle is undefined unless
+  // the contract states a concurrency policy, so the scenario is emitted as policy-undefined.
+  if (c.flags?.concurrent_editable) {
+    const t = (c.transitions || []).find((x) => x.from && x.to && x.from !== x.to) || (c.transitions || [])[0];
+    if (t) push({ state: t.from, action: t.action, actor: 'founder', channel: 'ui', concurrency: 'read in surface A, mutate via surface B (brain), act on stale view in A', pattern: 'STALE_STATE', expected: c.policy_status?.concurrency ? c.policy_status.concurrency : 'RECORD OBSERVED BEHAVIOUR ONLY - no lost-update policy declared', verdict_policy: c.policy_status?.concurrency ? 'DEFINED' : 'BLOCKED_POLICY_UNDEFINED' });
+  }
+  // VIEWPORT axis: one mobile acceptance scenario per contract that has a UI transition.
+  if (viewports.includes('mobile') && (c.transitions || []).some((t) => (t.surfaces || []).some((s) => String(s).startsWith('ui:')))) {
+    push({ action: (c.transitions || []).find((t) => (t.surfaces || []).some((s) => String(s).startsWith('ui:')))?.action, actor: 'founder', channel: 'ui', viewport: 'mobile (390x844)', pattern: 'MOBILE_BASIC_ACCEPTANCE', expected: 'action completes at mobile viewport; EN/MN navigation works; no horizontal overflow hides the control', verdict_policy: 'DEFINED' });
+  }
   return out.map((s) => ({ ...s, obligations_of_contract: obligations }));
 }
 

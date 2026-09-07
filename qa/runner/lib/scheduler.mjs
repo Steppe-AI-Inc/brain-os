@@ -11,7 +11,7 @@ import { P, RUNNER_DIR } from './paths.mjs';
 // Contract layer (qa/contracts/, added 2026-09-07). Static import: selectNextWork() is called
 // synchronously by the supervisor, so a dynamic import here would be a syntax error, not a
 // feature. contracts.mjs depends only on fs/path/paths.mjs - no cycle.
-import { loadContracts, inferChangedPrimitives, impactPlan } from './contracts.mjs';
+import { loadContracts, inferChangedPrimitives, impactPlan, dimensionCoverage } from './contracts.mjs';
 
 const readJson = (p, fallback = null) => {
   try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; }
@@ -186,6 +186,31 @@ export function selectNextWork(world, ctx = {}) {
         + 'capability you could not reach is BLOCKED with a blocked_reason - not PASS.',
     };
   }
+
+  // ---- 14. CONTRACT GAPS (added 2026-09-07, additive). Once every catalogued capability has been
+  // executed, the contract dimensions can still show uncovered state transitions, roles or tenant
+  // boundaries. Those are scheduled before open-ended exploratory work so the richer coverage
+  // dimensions actually drive the queue. Roles/tenant boundaries that need a second credential are
+  // listed, not silently dropped - the director records them BLOCKED with the reason.
+  try {
+    const lib = loadContracts();
+    if (lib.present) {
+      const dims = dimensionCoverage(lib, world.caps, bugs);
+      const gaps = [...(dims.transition_coverage?.uncovered || []).map((t) => 'transition ' + t), ...(dims.role_coverage?.uncovered || []).map((r) => 'role ' + r)];
+      const key = 'gaps:' + gaps.slice(0, 12).join('|');
+      if (gaps.length && handoff.last_contract_gap_key !== key) {
+        return {
+          hasWork: true, state: 'QA_STARTING', kind: 'contract_gap', priority: 'P2',
+          contract_gap_key: key,
+          label: gaps.length + ' contract-coverage gap(s): ' + gaps.slice(0, 3).join(', ') + (gaps.length > 3 ? ', ...' : ''),
+          directive: 'Every catalogued capability is executed or blocked, but qa/contracts dimensions show uncovered items: '
+            + gaps.slice(0, 12).join('; ') + '. For each: generate scenarios with generateScenarios() for the contract, execute only those whose '
+            + 'verdict_policy is DEFINED, and record policy-undefined ones as observed behaviour. A role or tenant boundary that needs a '
+            + 'second credential is BLOCKED with blocked_reason, never inferred. When done, set handoff.last_contract_gap_key = "' + key + '".',
+        };
+      }
+    }
+  } catch { /* optional layer */ }
 
   // ---- Exploratory. Reached only once the whole inventory has been executed, at which point
   // the charter's standing 25-30% exploratory budget is the remaining work. It is unbounded by

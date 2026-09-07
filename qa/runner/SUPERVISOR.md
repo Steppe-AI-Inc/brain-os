@@ -30,7 +30,17 @@ Windows Task Scheduler (logon + 30-min self-heal sweep)
 | `lib/config.mjs` | Regenerates `mcp-servers.json` + `qa-director-settings.json` on every boot (absolute paths must never go stale silently). |
 | `lib/env.mjs` | Bounded probes: network, git, deployed build (`supabase functions list` via the npx-cached exe). |
 | `hooks/block-destructive.mjs` | PreToolUse guard — the *real* technical barrier from CLAUDE.md §22. 13-case behavioural test on record. |
+| `lib/contracts.mjs` | Contract-driven layer (2026-09-07, additive): loads `qa/contracts/*.json`, derives test obligations from capability contracts, maps changed primitives to regression families (`impactPlan`), generates valid-only oracle-carrying scenarios, and computes additive coverage dimensions. Proven by `contracts-selftest.mjs`. |
+| `contracts-selftest.mjs` | Deterministic assertions over the real contract files and a scheduler smoke (impact branch, contract-gap branch). Run after any change to `qa/contracts/`. |
 | `CAMPAIGN_QUEUE.json` | Named suites the coverage ledger can't express (50/100/200-turn runs etc.). |
+
+Scheduler additions (both additive, both fall through to the standing order when nothing applies):
+**3b impact regression** — when the deployed SHA moved and fix reports are present, the changed
+shared primitives (explicit `changed_primitives`, else inferred from `file_path_hints`) select the
+regression families and capabilities to run first; a changed execution primitive means broad
+AI-mutation regression, a CSS-only change never schedules long-context runs. **14 contract gaps** —
+once every capability is executed/blocked, uncovered transitions/roles from the contract
+dimensions are scheduled before exploratory work. See `qa/contracts/README.md`.
 | `autonomy-acceptance.mjs` | Acceptance tests C, D, E, F, G; writes `AUTONOMY_ACCEPTANCE.json`. |
 | `install-autostart.ps1` | Task Scheduler registration (install / `-Verify` / `-Uninstall`). |
 
