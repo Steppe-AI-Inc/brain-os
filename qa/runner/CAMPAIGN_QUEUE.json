@@ -85,9 +85,11 @@
       "id": "C001-REMAINING-CRUD",
       "order": 80,
       "priority": "P2",
-      "status": "QUEUED",
+      "status": "DONE",
       "title": "C001 remainder - Org Business Units (dual-model), Projects CRUD, Goals, Tasks edit, multi-action commands",
-      "directive": "Finish the C001 coverage that was paused when issue #5 arrived: Organisation Business Units in both models, Projects CRUD, Goals, Tasks editing, and multi-action commands. Missing UI edit controls count as defects, not as untestable. Continue probing whether descendants of archived companies remain operationally actionable rather than merely displayed incorrectly."
+      "directive": "Finish the C001 coverage that was paused when issue #5 arrived: Organisation Business Units in both models, Projects CRUD, Goals, Tasks editing, and multi-action commands. Missing UI edit controls count as defects, not as untestable. Continue probing whether descendants of archived companies remain operationally actionable rather than merely displayed incorrectly.",
+      "completed_at": "2026-09-07T13:09:00Z",
+      "evidence": "Executed 2026-09-07 against v92 on registered fixtures. Projects CRUD: CAP-PROJECT-CREATE-UI PASS, CAP-PROJECT-EDIT-UI PASS, CAP-PROJECT-DELETE-UI PASS, CAP-PROJECT-EDIT-CHAT-ABSENT FAIL (BUG-002). Goals: CAP-GOAL-EDIT-UI PASS (goal-detail archived-parent marker missing -> BUG-006 evidence). Tasks edit: CAP-TASK-EDIT-UI PASS (company link preserved; picker display BUG-016), CAP-TASK-EDIT-CHAT-ABSENT PASS w/ caveat, named-task lookup BUG-017. Multi-action: CAP-CHAT-MULTI-ACTION PASS. Org Business Units, both models: UI parity probe (type settable, parent chat-only) PASS-as-probe; chat create-BU-under FAIL (BUG-020); chat set-parent FAIL (BUG-021, half-applies with contradictory receipt). Missing UI edit controls recorded as defects/parity facts, not untestable. Descendants of archived companies: operationally actionable, not merely misdisplayed - Set manager/invite/onboarding live, manager links persist (BUG-013), ended manager stays live manager (BUG-019)."
     },
     {
       "id": "C002-TEAM-READY-SECURITY",
