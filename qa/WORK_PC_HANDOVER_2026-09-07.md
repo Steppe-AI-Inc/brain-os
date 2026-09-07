@@ -137,6 +137,21 @@ a synthetic fixture — founder decision needed**); approval decide (no way to r
 approval; the 8 pending are real); fresh-session truth and multi-user persona (need a second
 credential).
 
+## Late additions (12:13–12:25Z)
+- **BUG-023 (P1)** — the issue #5 founder transcript, new outcome: the clarification offered a
+  **wrong** company (BUG-020), the pending action **survived navigation** (item F passes), a bare
+  "yes" **bound to the substitute** (item D fails), the assign **half-applied** (person created with
+  no company), and the receipt claimed a company *and an invented parent* (item L fails). No
+  archive fired — the Class B fix holds for its own vector. Orphan fixture `QA-C002-PENDING-01`.
+- **BUG-010 reproducibility bound:** three expansion attempts (relationship claim, assignment
+  claim, and a re-run of the original rename shape) did **not** contaminate; the model cited
+  structured fields and answered correctly. Contamination has reproduced **1 time in 4** — real,
+  severe when it fires, but **intermittent**, and so far only on a fabricated *new name*. The
+  regression must repeat the shape N times, not once.
+- **BUG-002 determinism:** fabricated project rename **3 of 3** today.
+- **BUG-017 sharper:** a task created 8 minutes earlier was already outside the 15-of-34 chat
+  window — the capped list is not newest-first.
+
 ## Production readiness — unchanged verdict, sharper reasons
 Single-founder use with UI verification of every Brain claim: usable now. Team use: **not yet**.
 Seven open P1s, all execution-truth (BUG-002, 005, 010, 014, 018, 020, 021). The
