@@ -1,0 +1,44 @@
+
+v59_chain: 47 passed, 21 failed
+  FAIL A [model nothing] "bring back Gamma" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":true,"imp":true,"intent":null,"final":"Gamma is back — restored."}
+  FAIL A [model nothing] "when you get a chance, archive Alpha" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "do me a favour and archive Alpha" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":true,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "list the tasks, then archive Alpha" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":true,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "Alpha-г архивла" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":{"verb":"архивла","field":null},"final":"No change was made — that request did not resolve to an operation I can execute from chat."}
+  FAIL A [model nothing] "архивла Alpha" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":{"verb":"архивла","field":null},"final":"No change was made — that request did not resolve to an operation I can execute from chat."}
+  FAIL A [model nothing] "Beta сэргээ" executes server-side (deterministic report, no fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":{"verb":"сэргээ","field":null},"final":"No change was made — that request did not resolve to an operation I can execute from chat."}
+  FAIL A [model nothing] "archive Alpha?" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":true,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "I nearly archived Alpha yesterday" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "get Alpha archived" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha has been archived."}
+  FAIL A [model nothing] "Alpha back to active" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha is active again."}
+  FAIL A [model nothing] "shelve Alpha" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha shelved — archived."}
+  FAIL A [model nothing] "retire the company Alpha" → no execution AND a receipt (never the fabrication)
+       {"calls":[],"allowed":false,"imp":false,"intent":null,"final":"Alpha has been archived."}
+  FAIL B [model requestIntent] "bring back Gamma" → receipt or truthful unresolved line, never the fabrication
+       {"calls":[],"allowed":true,"imp":true,"intent":{"verb":"restore","field":null},"final":"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored."}
+  FAIL B [model requestIntent] "bring back the company Gamma" → receipt or truthful unresolved line, never the fabrication
+       {"calls":[],"allowed":true,"imp":true,"intent":{"verb":"restore","field":null},"final":"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored."}
+  FAIL B [model requestIntent] "reactivate Gamma" → receipt or truthful unresolved line, never the fabrication
+       {"calls":[],"allowed":true,"imp":true,"intent":{"verb":"restore","field":null},"final":"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored."}
+  FAIL B [model requestIntent] "unarchive Gamma" → receipt or truthful unresolved line, never the fabrication
+       {"calls":[],"allowed":true,"imp":true,"intent":{"verb":"restore","field":null},"final":"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored."}
+  FAIL B [model requestIntent] "Alpha back to active" → receipt or truthful unresolved line, never the fabrication
+       {"calls":[["restore_company","00000001-0000-4000-8000-000000000000"]],"allowed":false,"imp":false,"intent":{"verb":"restore","field":null},"final":"Alpha: was already active."}
+  FAIL C [model nothing] "restore task QA-7" → receipt names the task (the command noun)
+       No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+  FAIL C [model nothing] "archive the goal Growth" → receipt names the goal (the command noun)
+       No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+  FAIL C [model nothing] "restore the person Bob" → receipt names the person (the command noun)
+       No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).

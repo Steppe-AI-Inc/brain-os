@@ -1,0 +1,94 @@
+[
+  {
+    "file": "v46_regression_additions.mjs",
+    "exit": 1,
+    "passed": 33,
+    "failed": 3,
+    "fails": [
+      "FAIL [CONTRACT] C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6466 bareLF=0",
+      "FAIL [DEFECT] V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.59  (2.26 ms at 1 KB -> 82.23 ms at 4 KB)",
+      "FAIL [DEFECT] V46-D5 CONFIRMED_COMPLETION carries the same participles as its sibling lists  -- missing: closed, added — so \"Confirmed — Closed ACME.\" escapes while \"Confirmed — Archived ACME.\" is caught",
+      "FAILURES:"
+    ]
+  },
+  {
+    "file": "v48_regression_additions.mjs",
+    "exit": 0,
+    "passed": 58,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v49_regression_additions.mjs",
+    "exit": 0,
+    "passed": 14,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v50_regression_additions.mjs",
+    "exit": 0,
+    "passed": 12,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v51_regression_additions.mjs",
+    "exit": 0,
+    "passed": 14,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v52_regression_additions.mjs",
+    "exit": 0,
+    "passed": 14,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v53_regression_additions.mjs",
+    "exit": 1,
+    "passed": 33,
+    "failed": 1,
+    "fails": [
+      "FAIL  [CONTRACT] V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433",
+      "FAILING: V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433"
+    ]
+  },
+  {
+    "file": "v54_regression_additions.mjs",
+    "exit": 0,
+    "passed": 9,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v55_regression_additions.mjs",
+    "exit": 0,
+    "passed": 19,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v56_regression_additions.mjs",
+    "exit": 0,
+    "passed": 129,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v57_regression_additions.mjs",
+    "exit": 0,
+    "passed": 306,
+    "failed": 0,
+    "fails": []
+  },
+  {
+    "file": "v58_regression_additions.mjs",
+    "exit": 0,
+    "passed": 48,
+    "failed": 0,
+    "fails": []
+  }
+]

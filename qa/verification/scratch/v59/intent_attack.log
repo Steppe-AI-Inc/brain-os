@@ -1,0 +1,87 @@
+FN [model absent]: 18720 mutation requests; no intent 2287; fabrication SHIPS 2287 (12.2%)
+      416  when you get a chance  e.g. "When you get a chance, archive ACME"
+      416  do me a favour  e.g. "Do me a favour and archive ACME"
+      416  after listing  e.g. "list the tasks, then archive ACME"
+      130  typo dbl space  e.g. "assign  company ACME"
+       37  would you mind -ing ?  e.g. "Would you mind assigning acme?"
+       26  bare  e.g. "assign acme"
+       26  cap  e.g. "Assign acme"
+       26  please  e.g. "please assign acme"
+       26  can you  e.g. "can you assign acme"
+       26  could you please ?  e.g. "could you please assign acme?"
+       26  lets  e.g. "let's assign acme"
+       26  go ahead and  e.g. "Go ahead and assign acme"
+FN [model mutation]: 18720 mutation requests; no intent 0; fabrication SHIPS 0 (0.0%)
+FN [model other]: 18720 mutation requests; no intent 18720; fabrication SHIPS 18720 (100.0%)
+      416  bare  e.g. "archive ACME"
+      416  cap  e.g. "Archive ACME"
+      416  please  e.g. "please archive ACME"
+      416  can you  e.g. "can you archive ACME"
+      416  could you please ?  e.g. "could you please archive ACME?"
+      416  would you mind -ing ?  e.g. "Would you mind archiving ACME?"
+      416  I want you to  e.g. "I want you to archive ACME"
+      416  lets  e.g. "let's archive ACME"
+      416  go ahead and  e.g. "Go ahead and archive ACME"
+      416  kindly  e.g. "Kindly archive ACME"
+      416  when you get a chance  e.g. "When you get a chance, archive ACME"
+      416  before EOD  e.g. "Before EOD, archive ACME"
+FN [model read]: 18720 mutation requests; no intent 18720; fabrication SHIPS 18720 (100.0%)
+      416  bare  e.g. "archive ACME"
+      416  cap  e.g. "Archive ACME"
+      416  please  e.g. "please archive ACME"
+      416  can you  e.g. "can you archive ACME"
+      416  could you please ?  e.g. "could you please archive ACME?"
+      416  would you mind -ing ?  e.g. "Would you mind archiving ACME?"
+      416  I want you to  e.g. "I want you to archive ACME"
+      416  lets  e.g. "let's archive ACME"
+      416  go ahead and  e.g. "Go ahead and archive ACME"
+      416  kindly  e.g. "Kindly archive ACME"
+      416  when you get a chance  e.g. "When you get a chance, archive ACME"
+      416  before EOD  e.g. "Before EOD, archive ACME"
+HAND [model absent]: 19/40 ship; ["let Bob go","get rid of task QA-1","drop the goal G1","kill the project Alpha","Alice reports to Bob from now on","Bob is Alice’s manager now","archive ACME?","get ACME archived","ACME — out of the active list please","ACME back to active","QA-1 → Bob","give QA-1 to Bob","Bob takes over QA-1","wrap up QA-1","shelve project Alpha","retire the company Beta","bin the task QA-1","scrap the goal G1","Bob-ыг ажлаас чөлөөл"]
+HAND [model mutation]: 0/40 ship; []
+HAND [model other]: 32/40 ship; ["let Bob go","get rid of task QA-1","drop the goal G1","kill the project Alpha","Alice reports to Bob from now on","Bob is Alice’s manager now","archive ACME?","get ACME archived","ACME — out of the active list please","put ACME in the archive","take ACME out of the archive","ACME back to active","QA-1 → Bob","give QA-1 to Bob","Bob takes over QA-1","wrap up QA-1","shelve project Alpha","retire the company Beta","bin the task QA-1","scrap the goal G1","ACME-г архивла","Bob-ыг ажлаас чөлөөл","ACME компанийг сэргээ","QA-1 таскийг Bob-д оноо","Alice-ийн менежерийг Bob болго","ok archive ACME","archive: ACME","ARCHIVE ACME NOW","plz archive acme","archive acme pls"]
+HAND [model read]: 40/40 ship; ["let Bob go","get rid of task QA-1","drop the goal G1","kill the project Alpha","Alice reports to Bob from now on","Bob is Alice’s manager now","archive ACME?","get ACME archived","ACME — out of the active list please","put ACME in the archive","take ACME out of the archive","ACME back to active","QA-1 → Bob","give QA-1 to Bob","Bob takes over QA-1","wrap up QA-1","shelve project Alpha","retire the company Beta","bin the task QA-1","scrap the goal G1","yes","yep do it","option two","the first one","B","confirm","go for it","approved","ACME-г архивла","Bob-ыг ажлаас чөлөөл"]
+FP verb-headed reads [model absent]: 800; intent 111; truthful answer REPLACED 111 (13.9%)
+    make sense of the manager of Alice -> {"verb":"make","field":null}
+    rename suggestions for the company ACME -> {"verb":"rename","field":null}
+    rename suggestions for the project Alpha -> {"verb":"rename","field":null}
+    rename suggestions for the task QA-1 -> {"verb":"rename","field":null}
+    rename suggestions for the goal G1 -> {"verb":"rename","field":null}
+    rename suggestions for the people in Sales -> {"verb":"rename","field":null}
+    rename suggestions for our companies -> {"verb":"rename","field":null}
+    rename suggestions for the department Sales -> {"verb":"rename","field":null}
+    rename suggestions for the approval 123 -> {"verb":"rename","field":null}
+    rename suggestions for the manager of Alice -> {"verb":"rename","field":null}
+    rename suggestions for the employee Bob -> {"verb":"rename","field":null}
+    approve of the company ACME -> {"verb":"approve","field":null}
+    approve of the project Alpha -> {"verb":"approve","field":null}
+    approve of the task QA-1 -> {"verb":"approve","field":null}
+    approve of the goal G1 -> {"verb":"approve","field":null}
+    approve of the people in Sales -> {"verb":"approve","field":null}
+FP verb-headed reads [model other]: 800; intent 0; truthful answer REPLACED 0 (0.0%)
+FP verb-headed reads [model read]: 800; intent 0; truthful answer REPLACED 0 (0.0%)
+NEG/HYP/DRAFT/CONV [model absent]: 19/40 truthful answers replaced
+    don’t archive ACME yet -> No change was made — you asked me not to, so nothing was executed.
+    never delete QA-1 -> No change was made — you asked me not to, so nothing was executed.
+    I decided not to archive ACME -> No change was made — you asked me not to, so nothing was executed.
+    we agreed not to restore Beta -> No change was made — you asked me not to, so nothing was executed.
+    please do not rename Alpha -> No change was made — you asked me not to, so nothing was executed.
+    suppose we restore Beta -> No change was made — that read as a hypothetical, not an instruction — say the word and I 
+    the fire drill is at 3pm -> No change was made — that request did not resolve to an operation I can execute from chat.
+    the store will reopen Monday -> No change was made — that request did not resolve to an operation I can execute from chat.
+    I approve of this plan -> No change was made — deciding an approval from chat is not available yet — use the Approva
+    the merge went well last year -> No change was made — that request did not resolve to an operation I can execute from chat.
+    draft an email to Bob about the merge -> No change was made — that request did not resolve to an operation I can execute from chat.
+    write a memo on fire safety at ACME -> No change was made — that request did not resolve to an operation I can execute from chat.
+    brainstorm names for the new hire -> No change was made — that request did not resolve to an operation I can execute from chat.
+    history of the ACME archive -> No change was made — I could not resolve which company you meant (searched the active and 
+    the archive room is full -> No change was made — I could not resolve which company you meant (searched the active and 
+    our new hire starts Monday -> No change was made — that request did not resolve to an operation I can execute from chat.
+    the invite list is long -> No change was made — inviting someone from chat is not available yet — use the People page
+    the reject pile is growing -> No change was made — deciding an approval from chat is not available yet — use the Approva
+    the delete key is broken -> No change was made — that request did not resolve to an operation I can execute from chat.
+NEG/HYP/DRAFT/CONV [model other]: 0/40 truthful answers replaced
+NEG/HYP/DRAFT/CONV [model read]: 0/40 truthful answers replaced
+
+v59_intent_attack: 19 passed, 0 failed

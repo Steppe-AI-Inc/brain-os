@@ -1,0 +1,38 @@
+{
+  "pass": 234,
+  "fails": 6,
+  "nonExec": 0,
+  "nonRows": [],
+  "failures": [
+    {
+      "name": "C1 imperative \"list the tasks, then archive Alpha\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":true}"
+    },
+    {
+      "name": "C1 imperative \"do me a favour and archive Alpha\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":true}"
+    },
+    {
+      "name": "C1 imperative \"Alpha-г архивла\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":false}"
+    },
+    {
+      "name": "C1 imperative \"архивла Alpha\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":false}"
+    },
+    {
+      "name": "C1 imperative \"Beta сэргээ\" -> restore_company(Beta) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null}"
+    },
+    {
+      "name": "C11 task request with nothing resolved -> receipt names task, not company",
+      "ok": false,
+      "detail": "No change was made — I could not resolve which company you meant (searched the active and archived companies you can access)."
+    }
+  ]
+}

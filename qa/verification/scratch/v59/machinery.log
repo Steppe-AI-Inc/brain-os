@@ -1,0 +1,21 @@
+  pack arrays: companies, archivedCompanies, projects, tasks, memories, agents, products, inventory, approvals, people, goals, companyRelationships, personAssignments, financialReports, channels, departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors, archivedTasks
+  capped queries in buildContext: 25; without count:'exact': 2 [
+  "memories('id,company_id,entity_type,entity_id,fac)",
+  "work_orders('command,output,created_at')"
+]
+  legacy context.counts array-length fallbacks (only when the exact count is null): 11
+  recordExecution(…, true) literal sites: 34 {"confirmed plan action (already_* excluded)":1,"changed&&postcondition!==false":4,"returned rows (DELETE/UPDATE … RETURNING)":4,"update returning rows":7,"changed&&postcondition===true":2,"backend reason":4,"insert returning id (no separate re-read)":12}
+
+v59_machinery: 44 passed, 4 failed
+  FAIL 2D companies query is status<>archived ordered newest first with an exact count
+       from('companies').select('id,name,status,organization_type,strategic_priority,risk_score')
+  FAIL 2D archived companies query is status=archived ordered newest first with an exact count
+  FAIL 2G create family: recordCreate passes the re-read membership as the postcondition (seen.has(id)), never a literal true
+       recordExecution(resourceType, 'create', id, ok, { postcondition: { exists: ok }, rowsAffected: ok ? 1 : 0 }); }
+  FAIL 2G the claim verifier admits a mutation claim only against evidence with postconditionPassed (evidenceIndex built from passing rows)
+       const evidenceIndex = new Map();
+        for (const e of claimExecutionEvidence) {
+          if (!e.postconditionPassed) continue;
+          const key = e.resourceType + '|' + e.id;
+          if (!evidenceIndex.has(key)) evidenceIndex.set(key, new Set());
+          evidenceIndex.get(key).add(e.actio

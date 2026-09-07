@@ -1,0 +1,100 @@
+{
+  "pass": 55,
+  "fails": [
+    {
+      "name": "A [model nothing] \"Alpha-г архивла\" executes server-side (deterministic report, no fabrication)",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":{\"verb\":\"архивла\",\"field\":null},\"final\":\"No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).\"}"
+    },
+    {
+      "name": "A [model nothing] \"архивла Alpha\" executes server-side (deterministic report, no fabrication)",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":{\"verb\":\"архивла\",\"field\":null},\"final\":\"No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).\"}"
+    },
+    {
+      "name": "A [model nothing] \"Beta сэргээ\" executes server-side (deterministic report, no fabrication)",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":{\"verb\":\"сэргээ\",\"field\":null},\"final\":\"No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).\"}"
+    },
+    {
+      "name": "A [model nothing] \"archive Alpha?\" → no execution AND a receipt (never the fabrication)",
+      "ok": null,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":true,\"intent\":null,\"final\":\"Alpha has been archived.\"}"
+    },
+    {
+      "name": "A [model nothing] \"I nearly archived Alpha yesterday\" → no execution AND a receipt (never the fabrication)",
+      "ok": null,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":null,\"final\":\"Alpha has been archived.\"}"
+    },
+    {
+      "name": "A [model nothing] \"Alpha back to active\" → no execution AND a receipt (never the fabrication)",
+      "ok": null,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":null,\"final\":\"Alpha is active again.\"}"
+    },
+    {
+      "name": "A [model nothing] \"shelve Alpha\" → no execution AND a receipt (never the fabrication)",
+      "ok": null,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":null,\"final\":\"Alpha shelved — archived.\"}"
+    },
+    {
+      "name": "A [model nothing] \"retire the company Alpha\" → no execution AND a receipt (never the fabrication)",
+      "ok": null,
+      "detail": "{\"calls\":[],\"allowed\":false,\"imp\":false,\"intent\":null,\"final\":\"Alpha has been archived.\"}"
+    },
+    {
+      "name": "B [model requestIntent] \"bring back Gamma\" → receipt or truthful unresolved line, never the fabrication",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":true,\"imp\":true,\"intent\":{\"verb\":\"restore\",\"field\":null},\"final\":\"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"}"
+    },
+    {
+      "name": "B [model requestIntent] \"bring back the company Gamma\" → receipt or truthful unresolved line, never the fabrication",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":true,\"imp\":true,\"intent\":{\"verb\":\"restore\",\"field\":null},\"final\":\"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"}"
+    },
+    {
+      "name": "B [model requestIntent] \"reactivate Gamma\" → receipt or truthful unresolved line, never the fabrication",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":true,\"imp\":true,\"intent\":{\"verb\":\"restore\",\"field\":null},\"final\":\"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"}"
+    },
+    {
+      "name": "B [model requestIntent] \"unarchive Gamma\" → receipt or truthful unresolved line, never the fabrication",
+      "ok": false,
+      "detail": "{\"calls\":[],\"allowed\":true,\"imp\":true,\"intent\":{\"verb\":\"restore\",\"field\":null},\"final\":\"Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"}"
+    },
+    {
+      "name": "B [model requestIntent] \"Alpha back to active\" → receipt or truthful unresolved line, never the fabrication",
+      "ok": false,
+      "detail": "{\"calls\":[[\"restore_company\",\"00000001-0000-4000-8000-000000000000\"]],\"allowed\":false,\"imp\":false,\"intent\":{\"verb\":\"restore\",\"field\":null},\"final\":\"Alpha: was already active.\"}"
+    }
+  ],
+  "shipped": [
+    {
+      "cmd": "bring back the company Gamma",
+      "final": "Gamma: no company by that name (searched the active and archived companies you can access) — nothing was restored."
+    },
+    {
+      "cmd": "archive Alpha?",
+      "final": "Alpha has been archived."
+    },
+    {
+      "cmd": "did you archive Alpha?",
+      "final": "Yes, Alpha has been archived."
+    },
+    {
+      "cmd": "I nearly archived Alpha yesterday",
+      "final": "Alpha has been archived."
+    },
+    {
+      "cmd": "Alpha back to active",
+      "final": "Alpha is active again."
+    },
+    {
+      "cmd": "shelve Alpha",
+      "final": "Alpha shelved — archived."
+    },
+    {
+      "cmd": "retire the company Alpha",
+      "final": "Alpha has been archived."
+    }
+  ]
+}

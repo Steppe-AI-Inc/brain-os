@@ -1,0 +1,28 @@
+  1  v46_regression_additions.mjs             33/3
+      FAIL [CONTRACT] C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6466 bareLF=0
+      FAIL [DEFECT] V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.59  (2.26 ms at 1 KB -> 82.23 ms at 4 KB)
+      FAIL [DEFECT] V46-D5 CONFIRMED_COMPLETION carries the same participles as its sibling lists  -- missing: closed, added — so "Confirmed — Closed ACME." escapes while "Confirmed — Archived ACME." is cau
+      FAILURES:
+  0  v48_regression_additions.mjs             58/0
+
+  0  v49_regression_additions.mjs             14/0
+
+  0  v50_regression_additions.mjs             12/0
+
+  0  v51_regression_additions.mjs             14/0
+
+  0  v52_regression_additions.mjs             14/0
+
+  1  v53_regression_additions.mjs             33/1
+      FAIL  [CONTRACT] V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433
+      FAILING: V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433
+  0  v54_regression_additions.mjs             9/0
+
+  0  v55_regression_additions.mjs             19/0
+
+  0  v56_regression_additions.mjs             129/0
+
+  0  v57_regression_additions.mjs             306/0
+
+  0  v58_regression_additions.mjs             48/0
+
