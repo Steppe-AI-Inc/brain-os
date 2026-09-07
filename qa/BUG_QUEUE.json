@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T13:12:00Z",
+  "last_updated": "2026-09-07T13:20:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 8,
-    "open_p2": 8,
+    "open_p2": 9,
     "open_p3": 5,
-    "total_open": 21,
+    "total_open": 22,
     "total_closed": 5
   },
   "bugs": [
@@ -1117,6 +1117,21 @@
         "go ahead"
       ],
       "two_path_diagnosis": "TWO CODE PATHS handle affirmatives inconsistently. \"that one\"/\"ok\"/\"go ahead\" return in 0 tokens / $0.00 - the DETERMINISTIC clarification path recognised them as affirmatives, found no representable actionType for an ASSIGN (the fail-closed resolveClarificationField), and emitted a \"Confirmed -\" prefix plus the old question (BUG-025). \"yes\"/\"sure\"/\"yeah\" cost ~40k tokens - they reached the LLM path, which bound to the Brain-offered substitute and half-executed (BUG-023). \"do it\"/\"confirm\" reached the LLM path and re-asked. The founder-facing consequence: the same clarification behaves three different ways depending on the word chosen."
+    },
+    {
+      "bug_id": "OBS-AGENT-AUTHORITY-DRIFT",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "Factory agent brain-os-product-architect now has has_production_authority=true / execution_provider=claude_code_background; on 2026-08-29 it was null/false \"by explicit design\" (design-only agent). Founder confirmation required - authority drift on a production agent is a governance event, not a QA verdict",
+      "discovered_by": "work-pc-independent-qa (read-only query, 2026-09-07 13:20Z)",
+      "discovered_at": "2026-09-07T13:20:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "evidence": "select name, execution_provider, has_production_authority from public.agents -> brain-os-product-architect | claude_code_background | true (1 real run, status done). qa/KNOWN_FAILURE_MODES.md ~line 160: \"brain-os-product-architect and brain-os-release-operator correctly have execution_provider=null / has_production_authority=false ... design-only/independent-gate agents by explicit design\".",
+      "expected": "If intended: governance/agents and KNOWN_FAILURE_MODES updated in the same change (CLAUDE.md §24). If not intended: revert and find the path that granted it.",
+      "what_is_NOT_claimed": "No evidence of unauthorized escalation: the adversarial employee UPDATE in factory_agent_registry_adversarial leaves the row unchanged (repaired assertion). The drift is between two founder-side states, source unknown from this seat.",
+      "regression_requirement": "Snapshot agents.execution_provider/has_production_authority per agent into governance and assert equality in the factory adversarial script (precondition-checked, not assumed).",
+      "_qa_boundary": "Work PC did not modify product code or agent definitions."
     }
   ]
 }

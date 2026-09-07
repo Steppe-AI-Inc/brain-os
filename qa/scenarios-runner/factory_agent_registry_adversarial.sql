@@ -66,6 +66,13 @@ end $$;
 -- this migration, already proven founder/admin-only) - an ordinary authenticated
 -- employee cannot flip has_production_authority/execution_provider on any row, not even
 -- their "own" agent by any stretch, since agents have no creator/owner concept at all.
+-- 2026-09-07 repair: the original asserted `execution_provider is null` AFTER the attempt, which
+-- silently depends on the real agent still having no provider. Blocked now means UNCHANGED by the
+-- employee's attempt, whatever the row held before (precondition-independent).
+do $$
+begin
+  perform set_config('faa.t4_before', coalesce((select coalesce(execution_provider,'<null>') || '|' || coalesce(has_production_authority::text,'<null>') from public.agents where name = 'brain-os-product-architect'), '<missing>'), true);
+end $$;
 set local role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub','9c92a8d5-853c-4ef3-846a-f4fe8c42d97a','role','authenticated')::text, true);
 do $$
@@ -77,10 +84,10 @@ end $$;
 reset role;
 do $$
 declare
-  v_still_null boolean;
+  v_after text;
 begin
-  select execution_provider is null into v_still_null from public.agents where name = 'brain-os-product-architect';
-  perform set_config('faa.t4_self_escalation_blocked', coalesce(v_still_null, true)::text, true);
+  select coalesce((select coalesce(execution_provider,'<null>') || '|' || coalesce(has_production_authority::text,'<null>') from public.agents where name = 'brain-os-product-architect'), '<missing>') into v_after;
+  perform set_config('faa.t4_self_escalation_blocked', (v_after = current_setting('faa.t4_before', true))::text, true);
 end $$;
 
 -- FACTORY_STATUS_CANNOT_BE_SPOOFED_VIA_FAKE_AGENT_RUN: real defect found by an
@@ -122,18 +129,17 @@ end $$;
 -- FACTORY_AGENT_RUN_REFERENCES_CANONICAL_AGENT + FACTORY_STATUS_DERIVED_FROM_REAL_RUN:
 -- real agent_runs rows in each state, confirm agents_with_live_status computes correctly
 -- from actual run rows, not a stored/fakeable status.
+-- 2026-09-07 repair: the original reused the REAL brain-os-db-security-engineer agent, whose real
+-- historical agent_runs now decide its live status, so "no run yet -> IDLE" could never hold. A
+-- synthetic agent created inside this rolled-back transaction has exactly the runs this script
+-- gives it, which is what the derivation assertions are about.
 do $$
 declare
   v_agent_id uuid;
 begin
-  select id into v_agent_id from public.agents where name = 'brain-os-db-security-engineer';
-  if v_agent_id is null then
-    insert into public.agents (name, role, execution_provider, has_production_authority)
-    values ('brain-os-db-security-engineer', 'security', 'claude_code_background', true)
-    returning id into v_agent_id;
-  else
-    update public.agents set execution_provider = 'claude_code_background', has_production_authority = true where id = v_agent_id;
-  end if;
+  insert into public.agents (name, role, execution_provider, has_production_authority)
+  values ('qa-synthetic-status-probe-' || substr(md5(random()::text), 1, 8), 'security', 'claude_code_background', true)
+  returning id into v_agent_id;
   perform set_config('faa.dbse_agent_id', v_agent_id::text, true);
 end $$;
 

@@ -8,9 +8,15 @@ begin;
 create temp table sc118 (role text, tbl text, op text, result text) on commit drop;
 grant insert, select on sc118 to authenticated;
 
--- Seed rows (as postgres) to UPDATE/DELETE/SELECT against.
-insert into public.tasks (id, company_id, title, status, created_by_profile_id) values
- ('118a0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed task','queued','46bf57d3-33b3-47b4-8302-126726a92775');
+-- Seed rows to UPDATE/DELETE/SELECT against. The seed TASK is inserted AS THE FOUNDER: production
+-- trigger tasks_force_creator stamps created_by_profile_id from the caller, so a postgres insert
+-- would store creator NULL and make the employee SELECT cell HIDDEN for the wrong reason
+-- (fixture rule, 2026-09-07 - see README). Documents/financial_reports have no such trigger.
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub','cbcc41cf-830d-4600-8545-3b9e22c8297f','role','authenticated')::text, true);
+insert into public.tasks (id, company_id, title, status) values
+ ('118a0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed task','queued');
+reset role;
 insert into public.documents (id, company_id, title, sensitivity) values
  ('118d0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed doc','internal');
 insert into public.financial_reports (id, company_id, period) values
@@ -45,7 +51,10 @@ select pg_temp.run_matrix('employee');
 reset role;
 
 -- re-seed the rows the employee may have deleted (defensive; employee delete should be ZERO-ROWS anyway)
-insert into public.tasks (id, company_id, title, status, created_by_profile_id) values ('118a0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed task','queued','46bf57d3-33b3-47b4-8302-126726a92775') on conflict (id) do nothing;
+set local role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub','cbcc41cf-830d-4600-8545-3b9e22c8297f','role','authenticated')::text, true);
+insert into public.tasks (id, company_id, title, status) values ('118a0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed task','queued') on conflict (id) do nothing;
+reset role;
 insert into public.documents (id, company_id, title, sensitivity) values ('118d0000-0000-0000-0000-000000000001','ed8ae510-ddbc-4be6-9d9e-d1f725b1381d','SC118 seed doc','internal') on conflict (id) do nothing;
 
 -- manager

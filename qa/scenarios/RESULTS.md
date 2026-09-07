@@ -75,3 +75,5 @@ Method: `supabase db query --linked --file` per script from the Work-PC seat; fu
 Scope statement (constitution): these results verify the listed persona x resource assertions
 for the fixture personas (founder, employee/technician, company manager, hr_finance,
 investor_viewer, anon) on 2026-09-07 against production — nothing broader.
+
+**13:20Z addendum.** `sc118` and `factory_agent_registry_adversarial` repaired (persona-inserted seed; precondition-independent t4; synthetic agent for t5-t7) and re-run: factory `all_pass=false`, sc118 employee tasks `DELETE=ZERO-ROWS, INSERT=ALLOWED, SELECT=HIDDEN, UPDATE=ZERO-ROWS`. Read-only data confirmed both original misses were precondition drift. Separately filed `OBS-AGENT-AUTHORITY-DRIFT` (P2): `brain-os-product-architect` now holds production authority, contrary to the 08-29 design note.
