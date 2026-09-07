@@ -770,3 +770,29 @@ time (reinforces why those two, not the agent's own summary, are the real accept
 source repo's own `.gitattributes` discipline plus Claude Code's install mechanism — neither of
 which this repo's own `.gitattributes` (including #48's fix) can reach or protect. Full evidence:
 `qa/verification/CURRENT_CAMPAIGN.json` (`verify-461ec6e-phase6-plugin-skill-lifecycle`).
+
+
+## Governance reset + P1 package (2026-09-07) — architecture contracts and product-invariant suites
+
+Enforcement for `governance/OPERATING_TRUTH_MODEL.md`, `governance/CANONICAL_WORK_CONTRACT.md` and
+`docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` (see `qa/KNOWN_FAILURE_MODES.md` #119-#125). All
+run with plain node from the filesystem; none needs a deploy or a database except the `.sql` suite.
+
+| Suite | Invariant |
+|---|---|
+| `architecture_collection_envelope_contract.mjs` | every pack collection carries shown/total/truncated from an exact count; total never from array length |
+| `architecture_mutation_envelope_contract.mjs` | every mutation site records an ExecutionResultEnvelope; no ungated `postconditionPassed: true`; create family re-reads its ids; output persisted every turn with a verdict |
+| `architecture_final_claim_contract.mjs` | mutation-intent turn + empty ledger ⇒ deterministic receipt, whatever the tense, trailing question, pendingAction or claims shape; read requests never rewritten on text shape; intent derived from the request only |
+| `architecture_archived_parent_policy_contract.mjs` | one archived-parent policy (web + Edge mirror); every child→companies join through COMPANY_REF; People controls consult the policy; picker semantics |
+| `architecture_lifecycle_rpc_only_contract.mjs` | lifecycle wrappers only through callLifecycleRpc (verified ⇔ changed && postconditionPassed; already_* a truthful no-op); Edge resolves company targets server-side across statuses, never by context-window membership |
+| `architecture_org_scope_helper_contract.mjs` | no page compares against the organization sentinel directly; helper semantics executed |
+| `architecture_impact_registry_contract.mjs` | every shared primitive has a registry entry; homes exist; regression families resolve; web/Edge mirrors export the same names |
+| `company_lifecycle_matrix.mjs` | the eleven founder cases + ambiguity, zero hits, RPC error, unconfirmed postcondition, denied; executed against the real executor slice |
+| `grounding_precedence_canonical_over_history.mjs` | UNVERIFIED history marker; receipt kept; durable channel state outranks stored output; expired/untyped durable rows yield; prompt precedence rule pinned |
+| `mutation_receipt_equals_ledger.mjs` | person-assignment receipt renders manager vs company from the executed diff; company lifecycle lines equal RPC reasons |
+| `tenant_authorization_lifecycle.sql` | cross-org archive/restore denied and DB unchanged; positive controls; not_found (rolled back; DB session required) |
+
+Harness convention introduced here: `qa/scenarios-runner/_gate_extract.mjs` `REQUEST_SIDE_DEFAULTS`
+puts the request-side names (`command`, `factLines`, `lifecycleReports`, …) above every executed
+window with **no mutation intent by default**; a suite that exercises fabrication correction sets
+`globalThis.command` to a mutation-intent command first.
