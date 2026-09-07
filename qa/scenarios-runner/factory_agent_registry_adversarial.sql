@@ -14,8 +14,9 @@
 -- INCIDENT 2026-09-07 (Work PC): this file relied on an EXTERNAL wrapper for BEGIN/ROLLBACK. A
 -- sweep that selected scripts by the presence of the word "rollback;" matched the comment above,
 -- ran the file UNWRAPPED, and its writes persisted to production (definition_hash of
--- brain-os-implementation-engineer overwritten with the simulated value; a synthetic agent and
--- runs persisted; the real brain-os-db-security-engineer's runs set to rejected). The file is
+-- brain-os-implementation-engineer overwritten with the simulated value; one stray empty
+-- agent_runs row inserted on the real brain-os-db-security-engineer - its three genuine runs
+-- were already rejected beforehand and were NOT changed; a synthetic agent + run persisted). The file is
 -- now self-wrapping so it can never run outside a transaction again. See qa/KNOWN_FAILURE_MODES.md.
 begin;
 
