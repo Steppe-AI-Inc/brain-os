@@ -5,27 +5,55 @@
   "note": "Home PC never sets bug status. Only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-002.",
   "root_cause": "The truthfulness gate reasoned about the SHAPE of the reply (tense, keywords) and exempted any turn with a pendingAction. A fabricated completion followed by a question was therefore never examined. Verifier round #50 had restored the pendingAction skip for parity with deployed v92; the founder ruled that v92 parity is not deployability.",
   "defect_class": "EXECUTION_TRUTH",
-  "changed_primitives": ["MutationIntent from the REQUEST (verb patterns on the command, the model's action arrays, bare confirmations) — never from the reply", "ExecutionResultEnvelope: the only admissible evidence for a success claim is executed && postcondition_verified", "Never-silent receipt: intent + no verified execution + no lifecycle report ⇒ 'No change was made — <reason>' rendered from the ledger and the request", "belt consumers gated on request intent, never on pendingAction; the belt is defence-in-depth"],
-  "changed_files": ["supabase/functions/sem-ai-command/index.ts", "governance/OPERATING_TRUTH_MODEL.md", "qa/scenarios-runner/architecture_final_claim_contract.mjs", "qa/scenarios-runner/run8_defect_closure_contract.mjs", "qa/scenarios-runner/_gate_extract.mjs", "qa/verification/proposed/v49..v53_regression_additions.mjs (pendingAction-term pins SUPERSEDED)"],
-  "regression_tests": ["qa/scenarios-runner/architecture_final_claim_contract.mjs (51/51: the Work-PC matrix × claims:null / [] / state-only × trailing-question variant; bare 'yes'; verified envelope survives; read requests untouched; static: no pendingAction term on either consumer, intent derived from the request only)", "qa/scenarios-runner/run8_defect_closure_contract.mjs (40/40; D59 re-reversed)", "qa/scenarios-runner/structured_claim_verification.mjs (42/42), structured_claim_laundering_contract.mjs"],
+  "changed_primitives": [
+    "MutationIntent from the REQUEST (verb patterns on the command, the model's action arrays, bare confirmations) — never from the reply",
+    "ExecutionResultEnvelope: the only admissible evidence for a success claim is executed && postcondition_verified",
+    "Never-silent receipt: intent + no verified execution + no lifecycle report ⇒ 'No change was made — <reason>' rendered from the ledger and the request",
+    "belt consumers gated on request intent, never on pendingAction; the belt is defence-in-depth"
+  ],
+  "changed_files": [
+    "supabase/functions/sem-ai-command/index.ts",
+    "governance/OPERATING_TRUTH_MODEL.md",
+    "qa/scenarios-runner/architecture_final_claim_contract.mjs",
+    "qa/scenarios-runner/run8_defect_closure_contract.mjs",
+    "qa/scenarios-runner/_gate_extract.mjs",
+    "qa/verification/proposed/v49..v53_regression_additions.mjs (pendingAction-term pins SUPERSEDED)"
+  ],
+  "regression_tests": [
+    "qa/scenarios-runner/architecture_final_claim_contract.mjs (51/51: the Work-PC matrix × claims:null / [] / state-only × trailing-question variant; bare 'yes'; verified envelope survives; read requests untouched; static: no pendingAction term on either consumer, intent derived from the request only)",
+    "qa/scenarios-runner/run8_defect_closure_contract.mjs (40/40; D59 re-reversed)",
+    "qa/scenarios-runner/structured_claim_verification.mjs (42/42), structured_claim_laundering_contract.mjs"
+  ],
   "verification": {
     "unit": "battery 53/53 on 1048b9e",
     "source_invariants": "deno classes unchanged; CRLF pure; v48–v55 gates green (v46 at its recorded standing reds)",
-    "independent_verification": "verifier #56 — not claimed passed here",
+    "independent_verification": "verifier #56 (campaign #116) FAILED the first candidate e79eb65 under the contract bar (ledger #126: request-intent regex false negatives/positives, command-name fallback executing on questions/negations/unrelated entities, punctuated names). Closed structurally in 32a2d75 (ledger #127: structured requestIntent + request lexicon, imperative-only exact-or-ask fallback; #56 suite 129/0 and promoted; mutation proof 8/8). Verifier #57 (campaign #117) is running on 712760d — NOT claimed passed here.",
     "live": "NOT RUN by the Home PC"
   },
   "deploy_provenance": {
-    "fix_commit": "1048b9e (branch p1/execution-truth-governance)",
-    "edge_index_sha256": "4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e",
+    "fix_commit": "32a2d75 (branch p1/execution-truth-governance; candidate under verification 712760d)",
+    "edge_index_sha256": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871",
     "edge_function_version": "NOT DEPLOYED — production remains v92 (version 92, ezbr 33255b31…)",
     "web_deployment": "n/a (Edge only)"
   },
   "work_pc_retest": {
-    "unsupported_mutation_paths": ["projects (rename)", "approvals (approve)", "departments (permanent delete)"],
+    "unsupported_mutation_paths": [
+      "projects (rename)",
+      "approvals (approve)",
+      "departments (permanent delete)"
+    ],
     "expected": "Every phrasing in the matrix — with or without a trailing question — yields 'No change was made — <reason>.' plus any pending question; no success or completion wording; DB unchanged. A supported mutation (archive a synthetic company) still executes and is receipted from the RPC.",
-    "regressions": ["BRAIN_CHAT_ZERO_EXECUTED_OPERATIONS_CANNOT_REPORT_SUCCESS", "BRAIN_CHAT_PENDING_ACTION_NEVER_EXEMPTS_A_CLAIM", "BRAIN_CHAT_MUTATION_INTENT_TURN_NEVER_SILENT", "BRAIN_CHAT_SUCCESS_REQUIRES_POSTCONDITION"]
+    "regressions": [
+      "BRAIN_CHAT_ZERO_EXECUTED_OPERATIONS_CANNOT_REPORT_SUCCESS",
+      "BRAIN_CHAT_PENDING_ACTION_NEVER_EXEMPTS_A_CLAIM",
+      "BRAIN_CHAT_MUTATION_INTENT_TURN_NEVER_SILENT",
+      "BRAIN_CHAT_SUCCESS_REQUIRES_POSTCONDITION"
+    ]
   },
   "safety": "Approval 358eddeb-c6ac-4a85-ab26-77dc3960fcba is a REAL record — do not decide it. Use synthetic fixtures.",
   "ready_for_retest": false,
-  "reported_at": "2026-09-07"
+  "reported_at": "2026-09-07",
+  "superseded_reports": [
+    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)"
+  ]
 }

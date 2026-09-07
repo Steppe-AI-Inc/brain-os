@@ -4,27 +4,56 @@
   "note": "Home PC never sets bug status. This is a report for the Work-PC QA Director; only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-010.",
   "root_cause": "Three structural causes, none prompt-level: (1) work_orders.output was persisted only when a correction gate fired, so an uncorrected fabrication stayed as the RPC p_output snapshot and re-entered the next turn's conversationHistory as fact; (2) history entries were bare {command, summary} with no verdict, placed beside the canonical arrays with prose alone telling the model which to trust; (3) the durable chat_channel_state row was read LAST in the pending-action precedence, behind the previous turn's stored output. The explicit anti-guess instruction could not outrank data handed to the model without a marker.",
   "defect_class": "GROUNDING_PRECEDENCE",
-  "changed_primitives": ["ExecutionResultEnvelope (turn ledger persisted every turn)", "turnVerdict on work_orders.output", "narrative tier with verified / executedOperationCount / rejectedClaimCount and the [UNVERIFIED] marker", "pendingAction precedence: durable channel state > stored output > legacy", "prompt: five-tier grounding precedence stated as a binding rule"],
-  "changed_files": ["supabase/functions/sem-ai-command/index.ts", "governance/OPERATING_TRUTH_MODEL.md", "qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs", "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs", "qa/scenarios-runner/run11_defect_closure_contract.mjs", "qa/scenarios-runner/_gate_extract.mjs"],
-  "regression_tests": ["qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs (16/16: executes the real narrative mapping and the real precedence expression)", "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs (35/35: persist-every-turn + verdict pinned)", "qa/scenarios-runner/run11_defect_closure_contract.mjs (50/50: durable-first precedence)"],
+  "changed_primitives": [
+    "ExecutionResultEnvelope (turn ledger persisted every turn)",
+    "turnVerdict on work_orders.output",
+    "narrative tier with verified / executedOperationCount / rejectedClaimCount and the [UNVERIFIED] marker",
+    "pendingAction precedence: durable channel state > stored output > legacy",
+    "prompt: five-tier grounding precedence stated as a binding rule"
+  ],
+  "changed_files": [
+    "supabase/functions/sem-ai-command/index.ts",
+    "governance/OPERATING_TRUTH_MODEL.md",
+    "qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs",
+    "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs",
+    "qa/scenarios-runner/run11_defect_closure_contract.mjs",
+    "qa/scenarios-runner/_gate_extract.mjs"
+  ],
+  "regression_tests": [
+    "qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs (16/16: executes the real narrative mapping and the real precedence expression)",
+    "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs (35/35: persist-every-turn + verdict pinned)",
+    "qa/scenarios-runner/run11_defect_closure_contract.mjs (50/50: durable-first precedence)"
+  ],
   "verification": {
     "unit": "qa/scenarios-runner battery 53/53 on commit 1048b9e (node, no network)",
     "source_invariants": "architecture_* contracts 8/8 green; deno check by class unchanged (TS7006 x10, TS2322 x6, TS7034, TS7005, TS2339; zero TS2448/TS2454/TS2304/TS2552/TS2551); index.ts CRLF-pure",
-    "independent_verification": "verifier #56 dispatched as a top-level isolated process on the candidate (see qa/verification/CURRENT_CAMPAIGN.json verifier56_*). This report does NOT claim it passed.",
+    "independent_verification": "verifier #56 (campaign #116) FAILED the first candidate e79eb65 under the contract bar (ledger #126: request-intent regex false negatives/positives, command-name fallback executing on questions/negations/unrelated entities, punctuated names). Closed structurally in 32a2d75 (ledger #127: structured requestIntent + request lexicon, imperative-only exact-or-ask fallback; #56 suite 129/0 and promoted; mutation proof 8/8). Verifier #57 (campaign #117) is running on 712760d — NOT claimed passed here.",
     "live": "NOT RUN by the Home PC (no authenticated user JWT available to this session). Live A/B must be re-run by the Work PC after deployment."
   },
   "deploy_provenance": {
-    "fix_commit": "1048b9e (branch p1/execution-truth-governance)",
-    "edge_index_sha256": "4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e",
+    "fix_commit": "32a2d75 (branch p1/execution-truth-governance; candidate under verification 712760d)",
+    "edge_index_sha256": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871",
     "edge_function_version": "NOT DEPLOYED — production remains v92 (ezbr 33255b31…); deploy only via founder ALLOW_FUNCTIONS_DEPLOY=1",
     "web_deployment": "NOT DEPLOYED — reaches production only through a pull request into protected master"
   },
   "work_pc_retest": {
-    "steps": ["Same account, same build, same model. In a channel where a fabricated mutation claim exists (or create one with an unsupported mutation request), ask for the exact current title as stored in the database right now.", "Ask the identical question in a fresh channel.", "Expected: both answers equal the DB value; the contaminated channel's answer explicitly acknowledges the earlier message ('an earlier message in this channel said X; the current data shows Y').", "Reload the contaminated channel: the prior fabricated turn must render as the persisted receipt / UNVERIFIED marker, never as the raw success text."],
-    "regressions": ["BRAIN_CHAT_HISTORY_NEVER_OUTRANKS_FRESH_CANONICAL_STATE", "BRAIN_CHAT_UNVERIFIED_TURN_NEVER_REENTERS_HISTORY_AS_FACT", "BRAIN_CHAT_DURABLE_CHANNEL_STATE_OUTRANKS_STALE_OUTPUT"]
+    "steps": [
+      "Same account, same build, same model. In a channel where a fabricated mutation claim exists (or create one with an unsupported mutation request), ask for the exact current title as stored in the database right now.",
+      "Ask the identical question in a fresh channel.",
+      "Expected: both answers equal the DB value; the contaminated channel's answer explicitly acknowledges the earlier message ('an earlier message in this channel said X; the current data shows Y').",
+      "Reload the contaminated channel: the prior fabricated turn must render as the persisted receipt / UNVERIFIED marker, never as the raw success text."
+    ],
+    "regressions": [
+      "BRAIN_CHAT_HISTORY_NEVER_OUTRANKS_FRESH_CANONICAL_STATE",
+      "BRAIN_CHAT_UNVERIFIED_TURN_NEVER_REENTERS_HISTORY_AS_FACT",
+      "BRAIN_CHAT_DURABLE_CHANNEL_STATE_OUTRANKS_STALE_OUTPUT"
+    ]
   },
   "fixture_notes": "No fixture mutation required. Channels e7fd21c6 / 1ea479c7 remain as recorded by the Work PC.",
   "ready_for_retest": false,
   "ready_for_retest_condition": "Set true by the Home PC only after the Edge deploy is byte-verified (verify-deployed-bytes.sh) and the web PR is merged; both are founder-gated.",
-  "reported_at": "2026-09-07"
+  "reported_at": "2026-09-07",
+  "superseded_reports": [
+    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)"
+  ]
 }

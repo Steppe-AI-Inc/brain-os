@@ -5,19 +5,53 @@
   "product_decision_recorded": "Archiving a company is reversible and destroys nothing (governance/CANONICAL_WORK_CONTRACT.md §3-§4). Under an archived parent, descendants are PRESERVED and MARKED; lifecycle-dependent controls are DISABLED with the visible reason 'Company is archived — restore it first'; active selectors exclude them; restore is symmetric. No destructive cascade. The founder may overrule this policy; it is stated in one place.",
   "root_cause": "Only the badge consumed the parent's status; set-manager, invite and onboarding gated on the person's own active/company_id. There was a display, not a policy.",
   "defect_class": "ARCHIVED_PARENT_LEAK",
-  "changed_primitives": ["ArchivedParentPolicy: web/lib/policy/archived-parent.ts (parentPolicy / canActOnParent) mirrored in supabase/functions/_shared/parent-policy.ts", "COMPANY_REF canonical join fragment adopted in 22 files (every child→companies join)"],
-  "changed_files": ["web/lib/policy/archived-parent.ts", "supabase/functions/_shared/parent-policy.ts", "web/app/(app)/people/people-table.tsx", "web/lib/data/*.ts (COMPANY_REF adoption)", "governance/CANONICAL_WORK_CONTRACT.md", "qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs"],
+  "changed_primitives": [
+    "ArchivedParentPolicy: web/lib/policy/archived-parent.ts (parentPolicy / canActOnParent) mirrored in supabase/functions/_shared/parent-policy.ts",
+    "COMPANY_REF canonical join fragment adopted in 22 files (every child→companies join)"
+  ],
+  "changed_files": [
+    "web/lib/policy/archived-parent.ts",
+    "supabase/functions/_shared/parent-policy.ts",
+    "web/app/(app)/people/people-table.tsx",
+    "web/lib/data/*.ts (COMPANY_REF adoption)",
+    "governance/CANONICAL_WORK_CONTRACT.md",
+    "qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs"
+  ],
   "scope": {
-    "fixed": ["People: set-manager, invite and onboarding are disabled under an archived parent with the reason; the badge stays"],
-    "not_in_this_package": ["Projects / departments / goals / tasks / documents lifecycle-dependent controls (they keep the badge); creation/assignment selectors already exclude archived companies via getCompaniesForSelection. Registered as the next lifecycle-completeness item in docs/architecture/CAPABILITY_IMPACT_REGISTRY.yaml — do NOT retest expecting those surfaces to be gated."]
+    "fixed": [
+      "People: set-manager, invite and onboarding are disabled under an archived parent with the reason; the badge stays"
+    ],
+    "not_in_this_package": [
+      "Projects / departments / goals / tasks / documents lifecycle-dependent controls (they keep the badge); creation/assignment selectors already exclude archived companies via getCompaniesForSelection. Registered as the next lifecycle-completeness item in docs/architecture/CAPABILITY_IMPACT_REGISTRY.yaml — do NOT retest expecting those surfaces to be gated."
+    ]
   },
-  "regression_tests": ["qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs (15/15: policy decisions executed; every child→companies join through COMPANY_REF; People controls consult the policy)", "qa/scenarios-runner/people_mark_archived_parent_company.sql (existing)"],
-  "verification": { "unit": "battery 53/53; web tsc / eslint / next build clean", "independent_verification": "verifier #56 covers the Edge mirror; the web surface awaits the Work PC's browser acceptance", "live": "NOT RUN by the Home PC" },
-  "deploy_provenance": { "fix_commit": "1048b9e", "web_deployment": "NOT DEPLOYED — PR into protected master pending" },
+  "regression_tests": [
+    "qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs (15/15: policy decisions executed; every child→companies join through COMPANY_REF; People controls consult the policy)",
+    "qa/scenarios-runner/people_mark_archived_parent_company.sql (existing)"
+  ],
+  "verification": {
+    "unit": "battery 53/53; web tsc / eslint / next build clean",
+    "independent_verification": "verifier #56 (campaign #116) FAILED the first candidate e79eb65 under the contract bar (ledger #126: request-intent regex false negatives/positives, command-name fallback executing on questions/negations/unrelated entities, punctuated names). Closed structurally in 32a2d75 (ledger #127: structured requestIntent + request lexicon, imperative-only exact-or-ask fallback; #56 suite 129/0 and promoted; mutation proof 8/8). Verifier #57 (campaign #117) is running on 712760d — NOT claimed passed here.",
+    "live": "NOT RUN by the Home PC"
+  },
+  "deploy_provenance": {
+    "fix_commit": "32a2d75 (branch p1/execution-truth-governance; candidate under verification 712760d)",
+    "web_deployment": "NOT DEPLOYED — PR into protected master pending"
+  },
   "work_pc_retest": {
-    "steps": ["Archive a synthetic company with people under it. /people: rows show the Archived badge; the manager cell is disabled with title 'Company is archived — restore it first'; invite and onboarding disabled with the same reason.", "Restore the company. /people: controls re-enable with no other action.", "Chat: 'set the manager of <person under archived company> to <other>' — expected refusal receipt with the same reason (Edge mirror), no mutation."],
-    "regressions": ["ARCHIVED_PARENT_DISABLES_LIFECYCLE_CONTROLS_WITH_REASON", "ARCHIVED_PARENT_RESTORE_IS_SYMMETRIC"]
+    "steps": [
+      "Archive a synthetic company with people under it. /people: rows show the Archived badge; the manager cell is disabled with title 'Company is archived — restore it first'; invite and onboarding disabled with the same reason.",
+      "Restore the company. /people: controls re-enable with no other action.",
+      "Chat: 'set the manager of <person under archived company> to <other>' — expected refusal receipt with the same reason (Edge mirror), no mutation."
+    ],
+    "regressions": [
+      "ARCHIVED_PARENT_DISABLES_LIFECYCLE_CONTROLS_WITH_REASON",
+      "ARCHIVED_PARENT_RESTORE_IS_SYMMETRIC"
+    ]
   },
   "ready_for_retest": false,
-  "reported_at": "2026-09-07"
+  "reported_at": "2026-09-07",
+  "superseded_reports": [
+    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)"
+  ]
 }
