@@ -3114,7 +3114,7 @@ serve(async (req) => {
           : ([] as LifecycleLookupRow[]);
         const taskLifecycleById = new Map(taskLifecycleRows.map((t) => [t.id, t]));
         const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
-        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
+        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && contextArchivedTaskIds.has(id)))];
         void contextArchivedTaskIds;
         const taskTitleById = new Map([
           ...((contextPack?.tasks || []).map((t: any) => [t.id, t.title])),

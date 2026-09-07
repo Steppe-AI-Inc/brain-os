@@ -70,6 +70,7 @@ concepts:
     selectors: [company pickers on people, projects, tasks, goals, departments, documents, leads]
     ai_interactions: [archive company, restore company, is X archived]
     regression_families: [company_lifecycle_matrix, sem_ai_command_company_restore_truth, architecture_lifecycle_rpc_only_contract, lifecycle_evidence_and_output_persistence_contract, company_archive_ownership, tenant_authorization_lifecycle]
+    notes: task and goal lifecycle ids resolve server-side too (ledger #131); deleteTaskIds / pendingDeleteTaskIds stay gated by contextTaskIds on purpose (a permanent deletion targets a row the caller was shown); creation against an archived parent stays gated
 
   archived_parent_policy:
     description: one policy for descendants of an archived / inactive / deleted parent

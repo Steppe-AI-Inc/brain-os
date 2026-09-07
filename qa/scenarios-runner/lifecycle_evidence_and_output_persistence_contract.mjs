@@ -90,14 +90,15 @@ const GOAL_SLICE = slice(
   'const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(\' \') : null;',
   'the goal archive/restore loops');
 
-const runTask = new AsyncFunction('supabase', 'archiveTaskIds', 'restoreTaskIds', 'taskTitleById', 'recordExecution',
+// P1 / verifier #58 F2: the task loops re-read lifecycle ids server-side; the harness supplies the resolved set.
+const runTask = new AsyncFunction('supabase', 'archiveTaskIds', 'restoreTaskIds', 'taskTitleById', 'recordExecution', 'requestedTaskLifecycleIds', 'taskLifecycleById',
   TASK_SLICE + '\n; return taskArchiveRestoreReport;');
 // P1: the company loops now also fold server-side resolution outcomes (disambiguation,
 // unresolved names) into the report and may arm a pendingAction on the result.
 const runCompany = new AsyncFunction('supabase', 'archiveCompanyIds', 'restoreCompanyIds', 'companyNameById', 'recordExecution',
   'lifecycleDisambiguation', 'lifecycleUnresolvedLines', 'result',
   COMPANY_SLICE + '\n; return archiveRestoreReport;');
-const runGoal = new AsyncFunction('supabase', 'archiveGoalIds', 'restoreGoalIds', 'goalTitleById', 'lifecycleReasonText', 'recordExecution',
+const runGoal = new AsyncFunction('supabase', 'archiveGoalIds', 'restoreGoalIds', 'goalTitleById', 'lifecycleReasonText', 'recordExecution', 'requestedGoalLifecycleIds', 'goalLifecycleById',
   GOAL_SLICE + '\n; return goalArchiveRestoreReport;');
 
 const GOAL_REASON_TEXT = { archived: 'archived', restored: 'restored', already_archived: 'was already archived', already_active: 'was already active', denied: 'no permission', not_found: 'could not be found' };
@@ -107,12 +108,12 @@ async function evidenceFor(kind, rpcName, rpcResult) {
   const rec = (resourceType, action, id, postconditionPassed) => { if (typeof id === 'string' && id.length > 0) seen.push({ resourceType, action, id, postconditionPassed }); };
   const sb = rpcStub({ [rpcName]: rpcResult });
   const names = mkMap({ [ID]: 'QA fixture' });
-  if (kind === 'task-archive') await runTask(sb, [ID], [], names, rec);
-  else if (kind === 'task-restore') await runTask(sb, [], [ID], names, rec);
+  if (kind === 'task-archive') await runTask(sb, [ID], [], names, rec, [ID], new Map([[ID, { id: ID, title: 'QA fixture', status: 'queued' }]]));
+  else if (kind === 'task-restore') await runTask(sb, [], [ID], names, rec, [ID], new Map([[ID, { id: ID, title: 'QA fixture', status: 'archived' }]]));
   else if (kind === 'company-archive') await runCompany(sb, [ID], [], names, rec, [], [], { pendingAction: null });
   else if (kind === 'company-restore') await runCompany(sb, [], [ID], names, rec, [], [], { pendingAction: null });
-  else if (kind === 'goal-archive') await runGoal(sb, [ID], [], names, GOAL_REASON_TEXT, rec);
-  else if (kind === 'goal-restore') await runGoal(sb, [], [ID], names, GOAL_REASON_TEXT, rec);
+  else if (kind === 'goal-archive') await runGoal(sb, [ID], [], names, GOAL_REASON_TEXT, rec, [ID], new Map([[ID, { id: ID, title: 'QA fixture', status: 'active' }]]));
+  else if (kind === 'goal-restore') await runGoal(sb, [], [ID], names, GOAL_REASON_TEXT, rec, [ID], new Map([[ID, { id: ID, title: 'QA fixture', status: 'archived' }]]));
   else throw new Error('unknown kind ' + kind);
   return seen;
 }

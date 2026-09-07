@@ -3420,7 +3420,7 @@ serve(async (req) => {
         const commandLeadClause = commandClauses.length > 1 ? commandClauses.slice(0, -1).join(' ') : '';
         const commandConditionalLead = /^\s*(?:if|unless|once|when|whenever|after|before|as soon as|only if|provided|providing|assuming|in case|until|while|should)\b/.test(commandLeadClause);
         const commandImperativePosition = IMPERATIVE_HEAD_RE.test(commandLower) || (commandLeadClause.length > 0 && !commandConditionalLead && IMPERATIVE_HEAD_RE.test(commandLastClause));
-        const commandFallbackAllowed = commandImperativePosition && !modelResolvedOtherTarget && !modelEmittedArchive && !modelEmittedRestore && !commandIsQuestion && !commandNegatedLead && !commandReadLead && (!modelRequestIntent || (modelRequestIntent.kind === 'mutation' && (modelRequestIntentEntity === null || modelRequestIntentEntity === 'company' || modelRequestIntentEntity === 'other')));
+        const commandFallbackAllowed = !modelResolvedOtherTarget && !modelEmittedArchive && !modelEmittedRestore && !commandIsQuestion && !commandNegatedLead && !commandReadLead && (!modelRequestIntent || (modelRequestIntent.kind === 'mutation' && (modelRequestIntentEntity === null || modelRequestIntentEntity === 'company' || modelRequestIntentEntity === 'other')));
         function normaliseName(v: unknown): string { return String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
         async function resolveCompanyLifecycleTargets(action: string, rawIds: unknown, rawNames: unknown, commandName: string | null): Promise<string[]> {
           const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x) => typeof x === 'string' && COMPANY_UUID_RE.test(x)) as string[])];

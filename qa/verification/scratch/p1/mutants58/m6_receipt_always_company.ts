@@ -6326,7 +6326,7 @@ serve(async (req) => {
             : failed ? `the operation did not succeed (${failed.error})`
             : attempted ? 'the operation did not confirm in the database'
             : (verb && UNSUPPORTED_FROM_CHAT[verb]) ? UNSUPPORTED_FROM_CHAT[verb]
-            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which ${entity} you meant (searched the active and archived ${entity === 'company' ? 'companies' : entity + 's'} you can access)`)(
+            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which company you meant (searched the active and archived ${entity === 'company' ? 'companies' : entity + 's'} you can access)`)(
                 (modelIntent && typeof modelIntent.entityType === 'string' && ['company', 'task', 'goal', 'person', 'project', 'department'].includes(modelIntent.entityType)) ? String(modelIntent.entityType)
                 : /Task/.test(String(requestedIntent.field || '')) ? 'task' : /Goal/.test(String(requestedIntent.field || '')) ? 'goal' : 'company')
             : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'

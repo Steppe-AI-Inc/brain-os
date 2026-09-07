@@ -3833,7 +3833,7 @@ serve(async (req) => {
           : ([] as LifecycleLookupRow[]);
         const goalLifecycleById = new Map(goalLifecycleRows.map((g) => [g.id, g]));
         const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
-        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
+        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
         const goalTitleById = new Map([...((contextPack?.goals || []).map((g: any) => [g.id, g.title])), ...goalLifecycleRows.map((g) => [g.id, g.title])]);
         const goalArchiveRestoreLines: string[] = [];
         for (const id of requestedGoalLifecycleIds) if (!goalLifecycleById.has(id)) goalArchiveRestoreLines.push(`Goal "${goalTitleById.get(id) || 'that goal'}": could not be found (searched the active and archived goals you can access) — nothing was ${requestedRestoreGoalIds.includes(id) ? 'restored' : 'archived'}.`);

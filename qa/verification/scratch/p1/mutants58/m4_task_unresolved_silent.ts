@@ -3128,7 +3128,7 @@ serve(async (req) => {
           not_found: 'could not be found',
         };
         const taskArchiveRestoreLines: string[] = [];
-        for (const id of requestedTaskLifecycleIds) if (!taskLifecycleById.has(id)) taskArchiveRestoreLines.push(`Task "${taskTitleById.get(id) || 'that task'}": could not be found (searched the active and archived tasks you can access) — nothing was ${requestedRestoreTaskIds.includes(id) ? 'restored' : 'archived'}.`);
+        for (const id of []) if (!taskLifecycleById.has(id)) taskArchiveRestoreLines.push(`Task "${taskTitleById.get(id) || 'that task'}": could not be found (searched the active and archived tasks you can access) — nothing was ${requestedRestoreTaskIds.includes(id) ? 'restored' : 'archived'}.`);
         for (const id of archiveTaskIds) {
           const { data, error } = await supabase.rpc('archive_task', { p_task_id: id });
           const name = taskTitleById.get(id) || id;

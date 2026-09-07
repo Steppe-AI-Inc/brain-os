@@ -82,11 +82,19 @@ const bad = await callLifecycleRpc(stub(null), { ...CALL, id: 'not-a-uuid' });
 check('invalid id never reaches the RPC', bad.envelope.executed === false && bad.envelope.error === 'invalid_id');
 
 // 4. The Edge executor: same RPCs, server-side resolution, no context-window gate.
-const edge = read('supabase/functions/sem-ai-command/index.ts');
+// The Edge source honours SEM_INDEX_SRC so mutation proofs can point this contract at a scratch copy.
+const edge = readFileSync(process.env.SEM_INDEX_SRC ? resolve(process.env.SEM_INDEX_SRC) : resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts'), 'utf8').replace(/
+/g, '
+');
 check('edge calls archive_company / restore_company', /supabase\.rpc\('archive_company'/.test(edge) && /supabase\.rpc\('restore_company'/.test(edge));
 check('edge resolves lifecycle targets server-side across statuses', /async function resolveCompanyLifecycleTargets\(/.test(edge) && /from\('companies'\)\.select\('id,name,status'\)\.in\('id', ids\)/.test(edge) && /\.ilike\('name'/.test(edge));
 check('edge no longer gates archive/restore on context membership (BUG-014)', !/restoreCompanyIds = \[\.\.\.new Set\(requestedRestoreIds\.filter\(\(id\): id is string => typeof id === 'string' && contextCompanyIds\.has\(id\)\)\)\]/.test(edge) && !/archiveCompanyIds = \[\.\.\.new Set\(requestedArchiveIds\.filter\(\(id\): id is string => typeof id === 'string' && contextCompanyIds\.has\(id\)\)\)\]/.test(edge));
 check('edge: zero hits and several hits both leave a line (never silent)', /no company by that name/.test(edge) && /more than one company matches/.test(edge));
+// Verifier #58 V58-D2: task and goal lifecycle ids resolve server-side too — never by the pack window.
+check('edge: task lifecycle ids are re-read from tasks, never filtered by the context window', /taskLifecycleById\.has\(id\)/.test(edge) && !/restoreTaskIds = \[\.\.\.new Set\(requestedRestoreTaskIds\.filter\(\(id\): id is string => typeof id === 'string' && contextArchivedTaskIds\.has\(id\)\)\)\]/.test(edge) && !/archiveTaskIds = \[\.\.\.new Set\(requestedArchiveTaskIds\.filter\(\(id\): id is string => typeof id === 'string' && contextTaskIds\.has\(id\)\)\)\]/.test(edge));
+check('edge: goal lifecycle ids are re-read from goals, never filtered by the context window', /goalLifecycleById\.has\(id\)/.test(edge) && !/(?:archive|restore)GoalIds = \[\.\.\.new Set\(requested(?:Archive|Restore)GoalIds\.filter\(\(id\): id is string => typeof id === 'string' && contextGoalIds\.has\(id\)\)\)\]/.test(edge));
+check('edge: archivedTasks is placed in the pack (the prompt resolves task restores from it)', /archivedTasks:archivedTasks\.data\|\|\[\]/.test(edge));
+check('edge: unresolved task / goal ids leave a truthful line', /could not be found \(searched the active and archived tasks you can access/.test(edge) && /could not be found \(searched the active and archived goals you can access/.test(edge));
 check('prompt no longer equates window absence with deletion', !/that is real signal it does not currently exist/.test(edge) && /absence from a context window is NEVER/.test(edge));
 
 console.log(`\narchitecture_lifecycle_rpc_only_contract: ${pass} passed, ${failures.length} failed`);
