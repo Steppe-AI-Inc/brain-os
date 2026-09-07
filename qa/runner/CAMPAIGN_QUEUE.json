@@ -75,9 +75,11 @@
       "id": "C002-ISSUE5-L-MUTATION-CLAIM-PARITY",
       "order": 70,
       "priority": "P1",
-      "status": "QUEUED",
+      "status": "DONE",
       "title": "Issue #5 item L - mutation result must equal final claim",
-      "directive": "For every mutating command, assert that what the database actually did equals what Brain finally claimed it did. This is the generic guard behind BUG-002: it must reason structurally about the operations actually executed, not about how the response is phrased or what it ends with. Build it as a reusable check other suites call, not a one-off."
+      "directive": "For every mutating command, assert that what the database actually did equals what Brain finally claimed it did. This is the generic guard behind BUG-002: it must reason structurally about the operations actually executed, not about how the response is phrased or what it ends with. Build it as a reusable check other suites call, not a one-off.",
+      "completed_at": "2026-09-07T13:08:00Z",
+      "evidence": "Reusable guard qa/runner/lib/mutation-truth.mjs (assertMutationTruth: structural diff of before/after canonical snapshots vs conservatively parsed receipt claims; violations CLAIM_WITHOUT_MUTATION, MUTATION_WITHOUT_RECEIPT, CLAIMED_RELATIONSHIP_ABSENT, CONTRADICTORY_RECEIPT, SUCCESS_VOCABULARY_WITHOUT_ACTION). Proven by qa/runner/mutation-truth-selftest.mjs on the real 2026-09-07 receipts: BUG-002, BUG-018 (claim without mutation), BUG-012 (wrong relationship receipt), BUG-021 (contradictory + unreceipted type flip), BUG-023 (claimed company absent), BUG-025 (Confirmed with no action), plus honest controls (explicit rename, multi-action, honest decline) passing and a silent mutation caught. Suites call it after any mutating command; it is the executable form of UNIVERSAL_TEST_PATTERNS.MUTATION_TRUTH."
     },
     {
       "id": "C001-REMAINING-CRUD",

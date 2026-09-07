@@ -32,6 +32,8 @@ Windows Task Scheduler (logon + 30-min self-heal sweep)
 | `hooks/block-destructive.mjs` | PreToolUse guard — the *real* technical barrier from CLAUDE.md §22. 13-case behavioural test on record. |
 | `lib/contracts.mjs` | Contract-driven layer (2026-09-07, additive): loads `qa/contracts/*.json`, derives test obligations from capability contracts, maps changed primitives to regression families (`impactPlan`), generates valid-only oracle-carrying scenarios, and computes additive coverage dimensions. Proven by `contracts-selftest.mjs`. |
 | `contracts-selftest.mjs` | Deterministic assertions over the real contract files and a scheduler smoke (impact branch, contract-gap branch). Run after any change to `qa/contracts/`. |
+| `lib/mutation-truth.mjs` | Reusable MUTATION_TRUTH guard (Issue #5 item L): `assertMutationTruth({receipt, before, after})` diffs two canonical snapshots, parses the receipt conservatively into claims, and reports CLAIM_WITHOUT_MUTATION / MUTATION_WITHOUT_RECEIPT / CLAIMED_RELATIONSHIP_ABSENT / CONTRADICTORY_RECEIPT / SUCCESS_VOCABULARY_WITHOUT_ACTION. Structural, phrasing-independent; any suite can call it. |
+| `mutation-truth-selftest.mjs` | Replays the 2026-09-07 production receipts and DB diffs (BUG-002/012/018/021/023/025 + honest controls) through the guard. |
 | `CAMPAIGN_QUEUE.json` | Named suites the coverage ledger can't express (50/100/200-turn runs etc.). |
 
 Scheduler additions (both additive, both fall through to the standing order when nothing applies):
