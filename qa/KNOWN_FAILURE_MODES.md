@@ -14485,3 +14485,59 @@ was neither:
 asserts the fixed three-test guard is present and fails loudly if the two-test form ever returns,
 instead of reporting STALE and passing quietly. A reproduction that stops reproducing should become
 an assertion, not a no-op.
+
+## 115. THE ORDINAL PATH ARMED A DESTRUCTIVE ACTION ON AN AMBIGUOUS REPLY — closed, and re-classified as a blocker
+
+Verifier #46 found this and labelled it **P2**. I am recording it as a **deploy blocker** and closing
+it, because the campaign's own rule says so: deployed v92 **fails closed** here and does nothing,
+while the candidate picks an option and arms `archiveCompanyIds` against a real company. A candidate
+that is *less safe than production on a destructive path* is a regression whatever its P-label, and
+the matcher's own stated rule is **"FAIL CLOSED, and NEVER INTERPRET"** (run15/D116).
+
+**THE DEFECT, exactly.** `ordMatch` took the ordinal from the **FIRST** matching notation, while
+`rest` stripped **EVERY** notation before its "is this reply ordinal-only?" test. A second reference
+was therefore **invisible to the decision**: the reply looked ordinal-only and the first notation won.
+
+```
+                            deployed v92   candidate (before)
+"option 1, option 2"        dead-end       BINDS option 1  -> arms archiveCompanyIds
+"option 1 #2"               dead-end       BINDS 1
+"the first one number 2"    dead-end       BINDS 2
+"#2 the first one"          dead-end       BINDS 2
+```
+
+The last two are the tell: which option wins depended only on which regex alternative happened to
+match first, not on anything the founder wrote.
+
+**THE FIX follows from the defect rather than patching its symptoms.** Anything `rest` strips as an
+ordinal notation **is** an ordinal reference and must be counted. All four notations are collected —
+`option N`, `number N`, `#N`, bare digits, and the ordinal words — and the path binds only when the
+reply refers to **exactly one distinct option**. Two references is ambiguity, which is precisely the
+case the dead-end exists for. The code carries the coupling as a comment: the four notations
+collected are the same four `rest` removes, and adding one there without adding it here re-opens the
+whole defect.
+
+**MEASURED, both directions:** 4 of 4 leaks closed; **8 of 8 legitimate single selections preserved**
+(`option 2 please`, `the second one`, `#3`, `number 3`, `3`, `yes option 2`, `option 1`,
+`the third one`); 5 of 5 already-correct dead-ends unchanged (`option 1 or 2`, `option 1 and 2`,
+`not option 2`, `acme 2`, `don't archive acme holdings`). A matcher that dead-ends on everything is
+not safer, it is broken, which is why the second number matters as much as the first.
+**Mutation-proven:** relaxing the requirement from "exactly one" to "at least one" re-opens 4 of 4
+while all 8 legitimate selections keep binding, so the requirement is doing the work and nothing else
+is.
+
+**TWO TRAPS CAUGHT BY MY OWN CHECKS THIS TIME.** The type check went 23 → 28: `new Set()` without a
+type parameter makes `ordN` `unknown`. The fix is `Number(...)` rather than a `Set<number>` generic
+or a `: number` annotation — **the extractors that rebuild this function strip TypeScript ANNOTATIONS
+but not GENERIC parameters**, so `new Set<number>()` would have survived into the JavaScript they
+evaluate and broken every matcher gate. And once the fix was applied, the probe's `before` and
+`after` were the same bytes and its **non-vacuity assertion failed loudly** — the exact
+compare-against-itself vacuity that let a truth regression ship two rounds ago, caught this time by
+the assertion written for it. Its baseline now comes from **git**.
+
+EVIDENCE on the new candidate `a55f5b2a`: battery **36 files / 0 failing**; every gate at its exact
+expected number (#43 40/0, #41 22/0, #40 77/0, #39 21/0, #33 93/0, #32 101/0, v30 25/1, v31 33/1);
+deno **23 == baseline**; CRLF 6,017 / bare LF 0.
+
+Remaining open on this candidate: the conditioned-offer class (**the founder's product decision**),
+the cubic growth exponent, and the withdrawn `closed|added` participle gap.

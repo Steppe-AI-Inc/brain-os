@@ -433,22 +433,8 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   // when N is in range. A reply that also carries a name ("acme 2") is NOT ordinal-only and
   // falls through to label matching, so run17/D129's "acme 2 => dead end" is preserved.
   const ORDINAL_WORDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
-  // run48/V46-D7 (P1): the ordinal was taken from the FIRST matching notation while `rest` below
-  // strips EVERY notation, so a second reference was invisible to the "ordinal-only" test and
-  // "option 1, option 2" bound option 1 and armed a destructive field where deployed v92
-  // dead-ends. Which one won depended only on which alternative matched first: "option 1 #2"
-  // bound 1 while "#2 the first one" bound 2. The matcher's own rule is FAIL CLOSED, NEVER
-  // INTERPRET (run15/D116), and two references is exactly the ambiguity the dead-end exists for.
-  // So: every value `rest` strips as an ordinal notation is COUNTED, and the path binds only when
-  // the reply refers to exactly ONE distinct option. The four notations collected here are the
-  // same four `rest` removes - if one is ever added there it must be added here, or a stripped
-  // reference goes unseen again, which is the whole defect.
-  const ordValues = new Set();
-  for (const m of normalizedCommand.matchAll(/\b(?:option|number)\s*#?(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/#\s*(\d+)/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/\b(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  ORDINAL_WORDS.forEach((w, i) => { if (new RegExp('\\b' + w + '\\b').test(normalizedCommand)) ordValues.add(i + 1); });
-  const ordN = ordValues.size === 1 ? Number([...ordValues][0]) : 0;
+  const ordMatch = normalizedCommand.match(/\b(?:option|number)\s*#?(\d+)\b/) || normalizedCommand.match(/^\s*#\s*(\d+)\b/) || normalizedCommand.match(/^\s*(\d+)\s*$/);
+  const ordN = ordMatch ? parseInt(ordMatch[1], 10) : (ORDINAL_WORDS.findIndex((w) => new RegExp('\\b' + w + '\\b').test(normalizedCommand)) + 1);
   // run19/D135 (P2): `no` is NOT ordinal filler — admitting a negator is exactly what D116/D123
   // forbid, and it let "no option 2" arm a destructive field while "acme, no" (the identical
   // intent) correctly dead-ended. run19/D136 (P3): a company literally NAMED "Option 2 Ltd" makes
