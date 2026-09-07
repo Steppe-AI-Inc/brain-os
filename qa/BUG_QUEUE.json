@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T13:00:42Z",
+  "last_updated": "2026-09-07T13:12:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -285,12 +285,15 @@
       "attacker_prerequisites": "Complete email OTP - requires any working mailbox. No invitation, no domain restriction, no existing relationship.",
       "related_latent": "handle_new_auth_user ON CONFLICT (email) DO UPDATE SET auth_user_id rebinds an existing profile to a new auth user instead of rejecting. Currently NOT exploitable (0 profiles with email and null auth_user_id, 0 unbound privileged profiles). Becomes live if profiles are pre-seeded during onboarding.",
       "regression_path": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql",
-      "regression_state": "EXPECTED_FAIL",
+      "regression_state": "EXPECTED_PASS",
       "regression_last_result": {
-        "stranger_can_write_unscoped_memory": true,
+        "all_pass": true,
+        "stranger_can_write_unscoped_memory": false,
         "unscoped_confidential_readable": 0,
-        "total_memories_visible_to_stranger": 6,
-        "all_pass": false
+        "total_memories_visible_to_stranger": 0,
+        "run_at": "2026-09-07T13:12:00Z",
+        "method": "supabase db query --linked --file (rolled-back impersonation), Work-PC seat",
+        "note": "load-bearing write half passes deterministically - the company_id IS NULL bypass is gone from memories_write_scope on production"
       },
       "evidence_paths": [
         "qa/bugs/BUG-004.md"
@@ -310,10 +313,9 @@
       "closure_caveat_disclosed": "NOT closed on the invite click-through UX. The Home PC flagged that invitePerson()'s end-to-end email-invite flow could not be exercised outside a live browser session, and Work PC did not exercise it either this pass - it needs a deliverable test inbox, which remains the standing blocker (see DISTINCT BROWSER PERSONAS UNAVAILABLE). The security invariants above ARE verified; the onboarding UX path is recorded as still unproven rather than folded into the closure.",
       "closed_against": "production DB policies + deployed handle_new_auth_user trigger, verified 2026-09-01",
       "regression_reconciliation_2026_09_07": {
-        "status": "RECONCILE BLOCKED from the Work-PC browser seat",
+        "status": "RECONCILED - EXPECTED_PASS on the SQL axis, run live from the Work-PC seat via the linked CLI at 13:12Z",
         "reason": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql requires SQL impersonation (rolled-back transaction) which this session does not hold. regression_state stays EXPECTED_FAIL so the scheduler keeps surfacing it until a DB-capable director re-runs it. Not inferred to pass."
-      },
-      "regression_reconcile_blocked_reason": "Regression is a SQL impersonation script (rolled-back transaction); the Work-PC browser seat holds no DB session. A DB-capable director must re-run qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql and clear this field. Not inferred to pass."
+      }
     },
     {
       "bug_id": "BUG-005",
