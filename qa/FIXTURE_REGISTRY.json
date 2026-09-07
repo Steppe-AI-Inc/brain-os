@@ -326,6 +326,23 @@
       "registered_at": "2026-09-07T12:04:30Z",
       "created_via": "product UI (/companies Add company)",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-APPROVAL-TASK-01",
+      "kind": "task",
+      "resource_type": "task",
+      "name": "QA-C002-APPROVAL-TASK-01",
+      "synthetic_display_name": "QA-C002-APPROVAL-TASK-01",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987)",
+      "purpose": "Synthetic approval carrier for CAP-APPROVAL-DECIDE-UI (created with Approval required checked; medium/low). Observation at creation: no approval record appeared on /approvals from the flag alone.",
+      "cleanup": "Delete via /tasks editor when retired.",
+      "registered_at": "2026-09-07T12:10:24Z",
+      "created_via": "product UI (/tasks Add task)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
