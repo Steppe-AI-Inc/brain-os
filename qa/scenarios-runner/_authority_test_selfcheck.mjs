@@ -1,73 +1,43 @@
-// Self-check for production_write_authority.regression.test.mjs.
+// Self-check for production_write_authority.regression.test.mjs, route 2.
 //
 // A test that asserts "no credential here" passes trivially on a machine where the DETECTOR is
-// broken. Every assertion in that file needs a witness proving it can fail. This file plants a
-// realistic artifact for each route in a temp tree and runs the real detector against it — never a
-// shell re-implementation, because the last two attempts to check this through `node -e` strings
-// had their regexes mangled by shell escaping and reported a working detector as blind.
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
-import os from 'node:os';
+// broken. Route 2 now reports through qa/lib/secret_evidence.mjs's four-state classifier, so this
+// self-check proves two things: (1) the test file really does delegate to that classifier — not to a
+// regex of its own that could drift — and (2) the classifier, fed the three artifacts that matter,
+// gives PRESENT / PRESENT / REDACTED. The third is the actual state of this machine, and it is the
+// one an over-eager detector gets wrong.
+//
+// Never a shell re-implementation: the last two attempts to check this through `node -e` strings had
+// their regexes mangled by shell escaping and reported a working detector as blind.
+import { readFileSync } from 'node:fs';
+import { classifySecret, EVIDENCE } from '../lib/secret_evidence.mjs';
 
-const tmp = mkdtempSync(join(os.tmpdir(), 'authcheck-'));
-mkdirSync(join(tmp, 'web'), { recursive: true });
-
-// A JWT-shaped service-role key, and an sb_secret_-shaped one. Both fake, both the right SHAPE.
-const FAKE_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + 'A'.repeat(40) + '.' + 'B'.repeat(43);
-const FAKE_SB = 'sb_secret_' + 'C'.repeat(32);
-
-writeFileSync(join(tmp, 'web', '.env.local'), 'SUPABASE_SERVICE_ROLE_KEY="' + FAKE_JWT + '"\n');
-writeFileSync(join(tmp, '.env.production.local'), 'SUPABASE_SERVICE_ROLE_KEY=' + FAKE_SB + '\n');
-// And the state actually on this machine: the NAME present, the value redacted by Vercel.
-writeFileSync(join(tmp, 'web', '.env.qa.local'), 'SUPABASE_SERVICE_ROLE_KEY="[REDACTED]"\n');
-
-// Reproduce the detector by IMPORTING nothing — instead run the real test file with REPO pointed at
-// the temp tree, via the same mechanism the test uses to locate the repo.
 const testFile = new URL('./production_write_authority.regression.test.mjs', import.meta.url);
-const src = await import('node:fs').then((fs) => fs.readFileSync(testFile, 'utf8'));
+const src = readFileSync(testFile, 'utf8');
 
-// Extract the detector's regex and loop exactly as written, so this checks the shipped code path.
-const SECRET = /(^|=|["'\s])(eyJ[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{10,})/;
-if (!src.includes(String(SECRET).slice(1, -1))) {
-  console.log('SELF-CHECK STALE: the detector regex in the test no longer matches the one here.');
-  console.log('Re-derive this self-check against the shipped regex rather than deleting it.');
-  rmSync(tmp, { recursive: true, force: true });
+// (1) The shipped test must route through the classifier.
+const delegates = src.includes("from '../lib/secret_evidence.mjs'") && src.includes('classifySecret(')
+  && src.includes('EVIDENCE.PRESENT');
+console.log('route-2 delegates to qa/lib/secret_evidence.mjs : ' + (delegates ? 'YES' : 'NO'));
+if (!delegates) {
+  console.log('SELF-CHECK STALE: route 2 no longer reports through the classifier. Re-derive this check.');
   process.exit(2);
 }
 
-const fs = await import('node:fs');
-const scan = (dir) => {
-  const out = [];
-  let entries = [];
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
-  for (const e of entries) {
-    if (!e.isFile() || !e.name.startsWith('.env')) continue;
-    const p = join(dir, e.name);
-    let text = '';
-    try { text = fs.readFileSync(p, 'utf8'); } catch { continue; }
-    for (const line of text.split(/\r?\n/)) {
-      if (/^\s*#/.test(line)) continue;
-      if (/SERVICE_ROLE|SUPABASE_SERVICE/i.test(line) && SECRET.test(line)) { out.push(p); break; }
-    }
-  }
-  return out;
-};
+// (2) The classifier sees what it must see. Fake values, correct SHAPES.
+const FAKE_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + 'A'.repeat(40) + '.' + 'B'.repeat(43);
+const FAKE_SB = 'sb_secret_' + 'C'.repeat(32);
+const jwt = classifySecret('"' + FAKE_JWT + '"').state;
+const sb = classifySecret(FAKE_SB).state;
+const red = classifySecret('"[REDACTED]"').state;
 
-const hits = [...scan(tmp), ...scan(join(tmp, 'web'))];
-const foundJwt = hits.some((p) => p.endsWith('.env.local'));
-const foundSb = hits.some((p) => p.endsWith('.env.production.local'));
-const ignoredRedacted = !hits.some((p) => p.endsWith('.env.qa.local'));
+console.log('planted JWT-shaped key                 : ' + jwt);
+console.log('planted sb_secret_-shaped key          : ' + sb);
+console.log('Vercel "[REDACTED]" placeholder        : ' + red);
 
-console.log('planted JWT-shaped key detected      : ' + (foundJwt ? 'YES' : 'NO'));
-console.log('planted sb_secret_-shaped key detected: ' + (foundSb ? 'YES' : 'NO'));
-console.log('Vercel "[REDACTED]" placeholder ignored: ' + (ignoredRedacted ? 'YES' : 'NO'));
-
-rmSync(tmp, { recursive: true, force: true });
-
-const ok = foundJwt && foundSb && ignoredRedacted;
+const ok = jwt === EVIDENCE.PRESENT && sb === EVIDENCE.PRESENT && red === EVIDENCE.REDACTED;
 console.log('');
 console.log(ok
-  ? 'SELF-CHECK PASS — the detector finds real key material and does not cry wolf on a redaction.'
+  ? 'SELF-CHECK PASS — the detector finds real key shapes and does not cry wolf on a redaction.'
   : 'SELF-CHECK FAIL — the detector is blind or over-eager; the route-2 assertion proves nothing.');
 process.exit(ok ? 0 : 1);

@@ -113,7 +113,11 @@ const GATE_NAMES = [
 const REQUIRED = new Set(['LEGACY_PAST_COMPLETION', 'PROGRESS_VERBS', 'EXECUTION_IN_PROGRESS',
   'CONFIRMED_COMPLETION', 'REFERENCELESS_CONFIRMATION', 'readsAsCompletion']);
 
-export function buildGate(srcPath, mutate = (code) => code) {
+// `names` is the positive entity signal (knownEntityNames). It defaults to EMPTY on purpose — the
+// battery's structural default is "no pack" so a verdict that needs the pack must SAY so by passing
+// one. After V48-D3 the first-person active arm consults the pack for a capitalised object, exactly
+// as deployed v92 behaves on that shape, so suites asserting those catches supply the names.
+export function buildGate(srcPath, mutate = (code) => code, names = []) {
   const src = readSource(srcPath);
   const parts = [];
   const present = [];
@@ -126,8 +130,8 @@ export function buildGate(srcPath, mutate = (code) => code) {
   const body = mutate(parts.join('\n'));
   // eslint-disable-next-line no-new-func
   const exported = present.filter((n) => n !== 'PROGRESS_VERBS');
-  const f = new Function('const knownEntityNames = new Set();\n' + body + '\nreturn { ' + exported.join(', ') + ' };');
-  return { ...f(), source: body, present };
+  const f = new Function('__n', 'const knownEntityNames = new Set(__n.map((v) => String(v).trim().toLowerCase()));\n' + body + '\nreturn { ' + exported.join(', ') + ' };');
+  return { ...f(names), source: body, present };
 }
 
 // ---- matchDisambiguationOption --------------------------------------------------

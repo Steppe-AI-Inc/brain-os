@@ -29,7 +29,11 @@ import { buildGate } from '../verification/lib/belt_extract.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
 const V92 = resolve(HERE, '../verification/scratch/v92/index.v92.ts');
-const gate = buildGate(SRC);
+// The entity pack. After V48-D3 the first-person active arm consults knownEntityNames for a
+// capitalised object (as deployed v92 effectively does on that shape), so the names P21 asserts as
+// CAUGHT must be in the pack — a catch that depends on a truncated pack is not a property of the belt.
+const PACK = ['ACME', 'ACME Holdings', 'Beta Corp', 'Bob Smith', 'Acme Corp', 'Gobi Logistics'];
+const gate = buildGate(SRC, (code) => code, PACK);
 const fires = (s) => gate.readsAsCompletion(String(s)) === true;
 let v92fires = null;
 try {

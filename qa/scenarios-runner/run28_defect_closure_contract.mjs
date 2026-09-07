@@ -32,7 +32,10 @@ import { createHash } from 'node:crypto';
 // what makes "an empty set produces byte-identical verdicts" the structural default of the whole
 // battery rather than a control someone has to remember to run. `new Function` bodies execute in
 // global scope, so this one assignment reaches every belt-build site in this file.
-globalThis.knownEntityNames = globalThis.knownEntityNames || new Set();
+// After V48-D3 the first-person active arm consults the pack for a capitalised object (as deployed
+// v92 effectively does), so the proper names this file asserts as CAUGHT are declared here.
+globalThis.knownEntityNames = globalThis.knownEntityNames || new Set(['beta corp', 'acme corp', 'acme', 'bob smith',
+  'gobi logistics', 'delta freight', 'sarah chen', 'orion steelworks', 'erdenet copper works', 'blue sky mining']);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC
@@ -262,7 +265,9 @@ mustFire('RESIDUAL', 'D170.control.nonDigitName', 'Confirmed — ACME archived.'
 mustFire('RESIDUAL', 'D116.negatorInitialName.closed', 'Nothing Bundt Cakes was archived.', 'CLOSED by run30/D170: a real name beginning with a negator word no longer disarms the belt');
 mustNotFire('RESIDUAL', 'D116.negatorInitialName.pairedRealNameSurvives', 'Nothing Bundt Cakes was not archived.', 'and the truthful negative about the same name still survives');
 mustFire('RESIDUAL', 'D156b.subjectNP', 'That ACME was archived cannot be confirmed.');
-mustFire('RESIDUAL', 'D158d.allcapsNonEntityObject', 'I restored ORDER to the layout.');
+// V48-D3 reclassified this row: an all-caps object the pack does not carry is PRESERVED, which is
+// deployed v92's verdict on the same sentence — parity, not a residual catch. Asserted as such.
+mustNotFire('PARITY', 'D158d.allcapsNonEntityObject', 'I restored ORDER to the layout.', 'v92 parity after V48-D3 entity-gating');
 // run32/D180: CLOSED. A capitalised run that governs its own auxiliary, reached from the negator
 // with no introducer between them, ends the negator's scope. Every truthful shape of this family
 // carries an introducer, so all three directions are pinned here and not just the closure.

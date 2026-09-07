@@ -77,12 +77,17 @@ const slice = extractWide(src);
 if (/\btype\s+\w+\s*=/.test(slice) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.test(slice)) {
   throw new Error('TypeScript survived stripping — fix _gate_extract.mjs rather than letting this pass');
 }
+// index.ts derives knownEntityNames (line ~3423) from the four name maps ABOVE the extracted window,
+// and after V48-D3 the belt inside the window consults it. Mirror the derivation exactly from the
+// same injected maps so the harness never invents a pack the code under test would not have had.
+const KNOWN_ENTITY_NAMES_PREAMBLE = 'const knownEntityNames = new Set([...companyNameById.values(), ...personNameById.values(), ...taskTitleById.values(), ...runtimeLabels.values()]'
+  + '.filter((v) => typeof v === "string" && v.trim().length > 0).map((v) => v.trim().toLowerCase()));';
 const fn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno', 'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById',
   // run7/D50-D51: the deterministic report state is computed above the window in
   // index.ts and only its two derived values are referenced inside — injected here.
   'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',
-  slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
+  KNOWN_ENTITY_NAMES_PREAMBLE + slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
 // The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
 // the PRODUCTION default (debug OFF) rather than whatever the host happens to have set.

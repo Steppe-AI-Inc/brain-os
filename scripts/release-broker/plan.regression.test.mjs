@@ -37,6 +37,12 @@ const manifest = (over = {}) => ({
   package_commit: COMMIT,
   approved_migrations: [A, B, D],
   excluded_migrations: [C, X],
+  execution_model: 'SELECTIVE_CURATION',
+  selective_execution: {
+    mechanism: 'curated-migration-directory',
+    verified_by: 'scripts/release-broker/plan.regression.test.mjs::EXCLUDED_MIGRATION_NEVER_ENTERS_THE_CURATED_DIRECTORY',
+    excluded_scope: [C.version, X.version],
+  },
   rollback: { kind: 'forward_fix_only', note: 'No down migration prepared.' },
   ...over,
 });
@@ -54,7 +60,8 @@ const facts = (over = {}) => {
     ciConclusion: 'success',
     ancestorOfMaster: true,
     workflowProjectRef: REF,
-    inputs: { authorization_id: 'AUTH-2026-09-08-001', git_commit: COMMIT, confirm_project_ref: REF },
+    inputs: { authorization_id: 'AUTH-2026-09-08-001', git_commit: COMMIT, confirm_project_ref: REF,
+      selective_execution_verified: true },
     now: new Date('2026-09-08T10:00:00Z'),
     ...over,
   };
@@ -93,10 +100,107 @@ test('BROKER_REFUSES_PENDING_MIGRATION_NOT_NAMED_IN_MANIFEST — the September 2
   assert.deepEqual(r.unaccounted.sort(), [C.filename, X.filename].sort());
 });
 
-test('naming them as EXCLUDED is what makes the same batch authorizable', () => {
+// Naming them as excluded is NECESSARY but no longer SUFFICIENT — see the execution-model tests
+// below. The manifest must also declare that this is a partial release and say what its scope is.
+test('a fully declared and independently verified partial release is authorizable', () => {
   const r = buildApplyPlan(facts());
   assert.equal(r.decision, 'APPLY');
   assert.deepEqual(r.excludedVersions, [C.version, X.version].sort());
+  assert.equal(r.executionModel, 'SELECTIVE_CURATION');
+  assert.deepEqual(r.pendingVersions, [A, B, C, D, X].map((m) => m.version).sort());
+});
+
+// ── ACTUAL_PENDING_SET == AUTHORIZED_PENDING_SET ────────────────────────────────────────────────
+// The founder's correction to the first cut of this core: accounting for C and X under
+// excluded_migrations let the release proceed with the authorization reading as though the tree
+// matched what was approved. It did not. A partial release must be declared, scoped and verified,
+// and the default must be equality.
+
+test('BROKER_REFUSES_A_MANIFEST_THAT_DOES_NOT_DECLARE_ITS_EXECUTION_MODEL', () => {
+  const m = manifest();
+  delete m.execution_model;
+  const r = buildApplyPlan(facts({ manifest: m }));
+  assert.equal(r.decision, 'REFUSE');
+  assert.equal(r.code, REFUSAL.EXECUTION_MODEL_UNDECLARED);
+});
+
+test('BROKER_REFUSES_ALL_PENDING_WHEN_THE_TREE_HOLDS_MORE_THAN_WAS_AUTHORIZED', () => {
+  // A/B/D authorized, C and X pending and NOT excluded — declared as a full release, which is a
+  // lie about the tree. The broker must not narrow the apply set to the intersection.
+  const r = buildApplyPlan(facts({
+    manifest: manifest({ execution_model: 'ALL_PENDING', excluded_migrations: [],
+      selective_execution: undefined }),
+  }));
+  assert.equal(r.decision, 'REFUSE');
+  // The unaccounted check fires first and is the more specific complaint; either refusal is
+  // correct, and asserting the disjunction keeps the test honest about the ordering.
+  assert.ok([REFUSAL.PENDING_MIGRATION_NOT_IN_MANIFEST, REFUSAL.ACTUAL_PENDING_SET_NOT_AUTHORIZED]
+    .includes(r.code), 'unexpected code: ' + r.code);
+});
+
+test('BROKER_REFUSES_ALL_PENDING_THAT_ALSO_LISTS_EXCLUSIONS', () => {
+  const r = buildApplyPlan(facts({ manifest: manifest({ execution_model: 'ALL_PENDING' }) }));
+  assert.equal(r.code, REFUSAL.EXECUTION_MODEL_CONTRADICTS_MANIFEST);
+});
+
+test('BROKER_REFUSES_ALL_PENDING_THAT_LEAVES_AUTHORIZED_WORK_UNAPPLIED', () => {
+  // The other direction of the equality: authorized work that is not pending. It cannot reach the
+  // ACTUAL_PENDING_SET_NOT_AUTHORIZED check, because an approved version is absent from the pending
+  // set for only two reasons and both have an earlier, more specific guard — the file is missing at
+  // the checkout (FILE_MISSING_AT_CHECKOUT) or it is already applied remotely
+  // (APPROVED_ALREADY_APPLIED). Asserting the specific code here would be asserting something the
+  // core cannot produce, so this test pins the REFUSAL and names the guard that owns each case.
+  const missing = buildApplyPlan(facts({
+    manifest: manifest({ execution_model: 'ALL_PENDING', approved_migrations: [A, B, D],
+      excluded_migrations: [], selective_execution: undefined }),
+    migrationFilesAtCheckout: [...PRIOR_FILES, A.filename, B.filename],
+  }));
+  assert.equal(missing.decision, 'REFUSE');
+  assert.equal(missing.code, REFUSAL.FILE_MISSING_AT_CHECKOUT);
+
+  const alreadyApplied = buildApplyPlan(facts({
+    manifest: manifest({ execution_model: 'ALL_PENDING', approved_migrations: [A, B, D],
+      excluded_migrations: [], selective_execution: undefined }),
+    appliedVersions: [...PRIOR, D.version],
+  }));
+  assert.equal(alreadyApplied.decision, 'REFUSE');
+  assert.equal(alreadyApplied.code, REFUSAL.APPROVED_ALREADY_APPLIED);
+});
+
+test('BROKER_REFUSES_SELECTIVE_CURATION_WITH_NO_SELECTIVE_EXECUTION_BLOCK', () => {
+  const m = manifest();
+  delete m.selective_execution;
+  assert.equal(buildApplyPlan(facts({ manifest: m })).code, REFUSAL.SELECTIVE_EXECUTION_UNVERIFIED);
+});
+
+test('BROKER_REFUSES_WHEN_THE_DECLARED_SCOPE_DOES_NOT_MATCH_THE_EXCLUSIONS', () => {
+  // The declaration says only C is being held back; the manifest actually holds back C and X. The
+  // approver reading the declaration would not learn that X is also being skipped.
+  const m = manifest();
+  m.selective_execution = { ...m.selective_execution, excluded_scope: [C.version] };
+  assert.equal(buildApplyPlan(facts({ manifest: m })).code, REFUSAL.SELECTIVE_EXECUTION_SCOPE_MISMATCH);
+});
+
+test('BROKER_REFUSES_A_PARTIAL_RELEASE_THE_SUBSTRATE_HAS_NOT_VERIFIED', () => {
+  // A manifest may not certify its own selectivity. Only the substrate says whether the curation
+  // mechanism was actually proven for this run.
+  const r = buildApplyPlan(facts({
+    inputs: { authorization_id: 'AUTH-2026-09-08-001', git_commit: COMMIT, confirm_project_ref: REF },
+  }));
+  assert.equal(r.decision, 'REFUSE');
+  assert.equal(r.code, REFUSAL.SELECTIVE_EXECUTION_UNVERIFIED);
+});
+
+test('BROKER_REFUSES_A_PARTIAL_RELEASE_THAT_STILL_MISSES_A_PENDING_FILE', () => {
+  // Approved ∪ excluded must be the WHOLE pending set even under selective curation.
+  const extra = '202609050001_something_nobody_mentioned.sql';
+  const r = buildApplyPlan(facts({
+    migrationFilesAtCheckout: [...PRIOR_FILES, A.filename, B.filename, C.filename, D.filename,
+      X.filename, extra],
+  }));
+  assert.equal(r.decision, 'REFUSE');
+  assert.equal(r.code, REFUSAL.PENDING_MIGRATION_NOT_IN_MANIFEST);
+  assert.deepEqual(r.unaccounted, [extra]);
 });
 
 // ── the rest of the refusal surface ─────────────────────────────────────────────────────────────

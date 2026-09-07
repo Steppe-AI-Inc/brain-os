@@ -26,6 +26,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { classifySecret, EVIDENCE, describeFinding } from '../lib/secret_evidence.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..');
@@ -93,7 +94,9 @@ test('ROUTE_1b_no_supabase_credential_in_the_os_store', () => {
 // tell those two states apart, because "the variable is named here" and "the key is readable here"
 // are entirely different findings and only one of them is an exposure.
 test('ROUTE_2_no_service_role_key_readable_on_disk', () => {
-  const SECRET = /(^|=|["'\s])(eyJ[A-Za-z0-9_-]{20,}|sb_secret_[A-Za-z0-9_-]{10,})/;
+  // Four-state evidence (qa/lib/secret_evidence.mjs): ABSENT / REDACTED / PRESENT / VALIDATED_LIVE.
+  // Only PRESENT (or VALIDATED_LIVE) is an exposure. REDACTED — the state of this machine — is not.
+  const findings = [];
   const found = [];
   const scan = (dir) => {
     let entries = [];
@@ -105,12 +108,17 @@ test('ROUTE_2_no_service_role_key_readable_on_disk', () => {
       try { text = readFileSync(p, 'utf8'); } catch { continue; }
       for (const line of text.split(/\r?\n/)) {
         if (/^\s*#/.test(line)) continue;
-        if (/SERVICE_ROLE|SUPABASE_SERVICE/i.test(line) && SECRET.test(line)) { found.push(p); break; }
+        const m = line.match(/^\s*(SUPABASE_SERVICE_ROLE_KEY|[A-Z0-9_]*SERVICE_ROLE[A-Z0-9_]*)\s*=\s*(.*)$/i);
+        if (!m) continue;
+        const c = classifySecret(m[2]);
+        findings.push(describeFinding(p + ' ' + m[1], m[2]));
+        if (c.state === EVIDENCE.PRESENT || c.state === EVIDENCE.VALIDATED_LIVE) { found.push(p); break; }
       }
     }
   };
   scan(REPO);
   scan(join(REPO, 'web'));
+  for (const f of findings) console.log('  ' + f);
   assert.deepEqual(found, [],
     'A Supabase service-role key is readable in: ' + found.join(', ') + '. A service-role key '
     + 'bypasses row-level security entirely and needs no CLI, no token and no CI to write '
@@ -119,7 +127,13 @@ test('ROUTE_2_no_service_role_key_readable_on_disk', () => {
     + 'Sensitive in Vercel so it cannot be pulled back.');
 });
 
-test('ROUTE_2b_no_vercel_session_token_on_disk', () => {
+// CLASSIFIED BY CAPABILITY, NOT PRESENCE (founder instruction, 2026-09-07). Read-only probes showed
+// every Sensitive variable is type Secret/Hidden and `env pull` writes [REDACTED], so this session
+// cannot obtain the service-role key through Vercel: NOT a DB write route. What the session CAN
+// presumably do is `vercel deploy --prod` and `vercel env add/rm` — a web-app production route,
+// owned by the GitHub/Vercel identity separation plan. The assertion is kept (a logged-in CLI on an
+// agent machine is still a production deploy path) but it is not a P1 DB finding.
+test('ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route', () => {
   const candidates = [
     join(process.env.APPDATA || '', 'xdg.data', 'com.vercel.cli', 'auth.json'),
     join(os.homedir(), '.local', 'share', 'com.vercel.cli', 'auth.json'),

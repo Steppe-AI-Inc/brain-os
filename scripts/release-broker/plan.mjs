@@ -45,6 +45,11 @@ export const REFUSAL = {
   EXCLUDED_ALREADY_APPLIED: 'EXCLUDED_ALREADY_APPLIED',
   PENDING_MIGRATION_NOT_IN_MANIFEST: 'PENDING_MIGRATION_NOT_IN_MANIFEST',
   APPLY_SET_NOT_EQUAL_TO_MANIFEST: 'APPLY_SET_NOT_EQUAL_TO_MANIFEST',
+  EXECUTION_MODEL_UNDECLARED: 'EXECUTION_MODEL_UNDECLARED',
+  EXECUTION_MODEL_CONTRADICTS_MANIFEST: 'EXECUTION_MODEL_CONTRADICTS_MANIFEST',
+  ACTUAL_PENDING_SET_NOT_AUTHORIZED: 'ACTUAL_PENDING_SET_NOT_AUTHORIZED',
+  SELECTIVE_EXECUTION_UNVERIFIED: 'SELECTIVE_EXECUTION_UNVERIFIED',
+  SELECTIVE_EXECUTION_SCOPE_MISMATCH: 'SELECTIVE_EXECUTION_SCOPE_MISMATCH',
   NOTHING_TO_APPLY: 'NOTHING_TO_APPLY',
 };
 
@@ -232,10 +237,94 @@ export function buildApplyPlan({
       { unaccounted });
   }
 
+  // ── ACTUAL_PENDING_SET == AUTHORIZED_PENDING_SET ────────────────────────────────────────────
+  // Accounting for every pending file is necessary but NOT sufficient. A manifest that lists C and
+  // E under excluded_migrations accounts for them — and then curation deletes them and the release
+  // proceeds, with the authorization reading as though the tree matched. It did not. The approver
+  // approved A/B/D against a tree that also held C and E, and the only record that the release was
+  // partial lives in a field nobody re-reads at approval time.
+  //
+  // So the default relationship is EQUALITY: what production will have pending is exactly what the
+  // founder authorized. A partial release is permitted only when the manifest declares a selective
+  // execution model explicitly, names the excluded scope in that declaration, and the SUBSTRATE
+  // independently confirms the selective mechanism was verified — a manifest may not certify its
+  // own selectivity. Anything else fails closed.
+  const pendingVersions = migrationFilesAtCheckout
+    .map((f) => f.slice(0, 12))
+    .filter((v) => VERSION.test(v) && !appliedSet.has(v))
+    .sort();
+  const approvedVersions = approved.map((m) => String(m.version)).sort();
+  const excludedVersionsSorted = excluded.map((m) => String(m.version)).sort();
+  const model = manifest.execution_model;
+
+  if (model !== 'ALL_PENDING' && model !== 'SELECTIVE_CURATION') {
+    return refuse(REFUSAL.EXECUTION_MODEL_UNDECLARED,
+      'The manifest does not declare execution_model. It must be either ALL_PENDING (the apply set '
+      + 'is the entire pending set) or SELECTIVE_CURATION (a partial release, which carries extra '
+      + 'requirements). An undeclared model is refused rather than defaulted, because the default '
+      + 'that felt obvious to whoever wrote the tool is exactly what put C and 202609040001 into '
+      + 'production.',
+      { declared: model === undefined ? null : String(model) });
+  }
+
+  if (model === 'ALL_PENDING') {
+    if (excludedVersionsSorted.length > 0) {
+      return refuse(REFUSAL.EXECUTION_MODEL_CONTRADICTS_MANIFEST,
+        'execution_model is ALL_PENDING but the manifest also lists excluded migrations ['
+        + excludedVersionsSorted.join(' ') + ']. The two cannot both be true.',
+        { excluded: excludedVersionsSorted });
+    }
+    if (pendingVersions.join(',') !== approvedVersions.join(',')) {
+      return refuse(REFUSAL.ACTUAL_PENDING_SET_NOT_AUTHORIZED,
+        'Production has pending [' + pendingVersions.join(' ') + '] but the founder authorized ['
+        + approvedVersions.join(' ') + ']. Under ALL_PENDING these must be identical. The apply set '
+        + 'is not silently narrowed to the intersection: a release that would leave authorized work '
+        + 'unapplied, or that would face unauthorized work, is refused so the manifest can be '
+        + 'rewritten against the tree that actually exists.',
+        { pending: pendingVersions, approved: approvedVersions });
+    }
+  } else {
+    // SELECTIVE_CURATION. The exclusions must be declared IN the selective-execution block, not
+    // merely present elsewhere in the file, so the scope of the partial release is the thing being
+    // approved rather than a consequence of it.
+    const se = manifest.selective_execution;
+    if (!se || typeof se !== 'object' || !se.mechanism || !se.verified_by
+        || !Array.isArray(se.excluded_scope)) {
+      return refuse(REFUSAL.SELECTIVE_EXECUTION_UNVERIFIED,
+        'execution_model is SELECTIVE_CURATION but the manifest carries no complete '
+        + 'selective_execution block. It must name the mechanism, the regression that verifies it '
+        + '(verified_by), and the exact excluded_scope.',
+        { selective_execution: se === undefined ? null : se });
+    }
+    const declaredScope = se.excluded_scope.map(String).sort();
+    if (declaredScope.join(',') !== excludedVersionsSorted.join(',')) {
+      return refuse(REFUSAL.SELECTIVE_EXECUTION_SCOPE_MISMATCH,
+        'selective_execution.excluded_scope [' + declaredScope.join(' ') + '] does not equal the '
+        + "manifest's excluded_migrations [" + excludedVersionsSorted.join(' ') + '].',
+        { declaredScope, excluded: excludedVersionsSorted });
+    }
+    const union = approvedVersions.concat(excludedVersionsSorted).sort();
+    if (pendingVersions.join(',') !== union.join(',')) {
+      return refuse(REFUSAL.ACTUAL_PENDING_SET_NOT_AUTHORIZED,
+        'Production has pending [' + pendingVersions.join(' ') + '] but approved ∪ excluded is ['
+        + union.join(' ') + ']. Even a selective release must describe the entire pending set.',
+        { pending: pendingVersions, union });
+    }
+    // The substrate says whether the selective mechanism was independently verified for THIS run.
+    // A manifest asserting its own trustworthiness is not evidence.
+    if (inputs.selective_execution_verified !== true) {
+      return refuse(REFUSAL.SELECTIVE_EXECUTION_UNVERIFIED,
+        'The substrate did not confirm that the selective execution mechanism (' + se.mechanism
+        + ') was independently verified for this run. Selective execution is the mechanism that '
+        + 'decides which authorized work reaches production, so it is exactly the mechanism that '
+        + 'may not be taken on trust.',
+        { mechanism: String(se.mechanism), verified_by: String(se.verified_by) });
+    }
+  }
+
   // ── the curated set: what the substrate keeps, and what it must delete ───────────────────────
   // Keep (already-applied ∪ approved). The CLI then cannot apply anything else even if it wanted
   // to — that physical impossibility is the mechanism, not the equality check that follows it.
-  const approvedVersions = approved.map((m) => String(m.version)).sort();
   const curatedKeep = [];
   const curatedDelete = [];
   for (const f of migrationFilesAtCheckout) {
@@ -260,7 +349,9 @@ export function buildApplyPlan({
     applySet,
     curatedKeep,
     curatedDelete,
-    excludedVersions: excluded.map((m) => String(m.version)).sort(),
+    excludedVersions: excludedVersionsSorted,
+    executionModel: model,
+    pendingVersions,
     projectRef: refs[0],
   };
 }
