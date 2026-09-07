@@ -308,6 +308,24 @@
       "registered_at": "2026-09-07T11:58:43Z",
       "created_via": "product UI (/people Add person)",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-COMPANY-MULTI-TWIN",
+      "kind": "company",
+      "resource_type": "company",
+      "name": "QA-MULTI-CO-TWIN",
+      "synthetic_display_name": "QA-MULTI-CO-TWIN",
+      "canonical_id": null,
+      "_canonical_id_note": "capture from the /projects form hidden company_id if a mutation by id is ever needed",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "purpose": "Synthetic near-twin of QA-MULTI-CO for CAP-ENTITY-RESOLUTION-CLASS-B (partial/ambiguous names on destructive commands; both candidates registered so wrong-target execution is safely observable).",
+      "cleanup": "Archive via /companies kebab when retired.",
+      "registered_at": "2026-09-07T12:04:30Z",
+      "created_via": "product UI (/companies Add company)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
