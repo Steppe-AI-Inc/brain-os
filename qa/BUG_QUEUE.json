@@ -312,7 +312,8 @@
       "regression_reconciliation_2026_09_07": {
         "status": "RECONCILE BLOCKED from the Work-PC browser seat",
         "reason": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql requires SQL impersonation (rolled-back transaction) which this session does not hold. regression_state stays EXPECTED_FAIL so the scheduler keeps surfacing it until a DB-capable director re-runs it. Not inferred to pass."
-      }
+      },
+      "regression_reconcile_blocked_reason": "Regression is a SQL impersonation script (rolled-back transaction); the Work-PC browser seat holds no DB session. A DB-capable director must re-run qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql and clear this field. Not inferred to pass."
     },
     {
       "bug_id": "BUG-005",

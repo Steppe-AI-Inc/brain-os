@@ -127,7 +127,10 @@ export function selectNextWork(world, ctx = {}) {
   }
 
   // ---- 4. Regressions whose expected state should have flipped by now.
-  const flippable = bugs.filter((b) => b.regression_state === 'EXPECTED_FAIL' && b.status === 'CLOSED');
+  // A reconciliation that this seat provably cannot perform (e.g. a SQL-impersonation regression
+  // from a browser-only session) carries regression_reconcile_blocked_reason. It is skipped here
+  // - not dropped: summarise() counts it and a DB-capable director clears the field when it re-runs.
+  const flippable = bugs.filter((b) => b.regression_state === 'EXPECTED_FAIL' && b.status === 'CLOSED' && !b.regression_reconcile_blocked_reason);
   if (flippable.length) {
     return {
       hasWork: true, state: 'QA_STARTING', kind: 'regression_reconcile', priority: 'P2',
@@ -232,6 +235,7 @@ export function summarise(world) {
     open_p0: openBugs.filter((b) => b.severity === 'P0').length,
     open_p1: openBugs.filter((b) => b.severity === 'P1').length,
     ready_for_retest: (world.bugQueue.bugs || []).filter((b) => RETEST_STATUSES.has(b.status)).length,
+    reconcile_blocked: (world.bugQueue.bugs || []).filter((b) => b.regression_reconcile_blocked_reason).length,
     capabilities: world.caps.length,
     fail: world.failing.length,
     flaky: world.flaky.length,
