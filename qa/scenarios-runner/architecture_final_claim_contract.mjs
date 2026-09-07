@@ -124,8 +124,9 @@ for (const [command, summary, leak] of MATRIX) {
   const unacc = s.slice(s.indexOf('const unaccountedCompletionProse ='), s.indexOf('readsAsCompletion(String(result.summary', s.indexOf('const unaccountedCompletionProse =')));
   check('F legacyProseFallback requires request intent and carries no pendingAction term', /requestedIntent !== null/.test(legacy) && !/!result\.pendingAction/.test(legacy));
   check('F unaccountedCompletionProse requires request intent and carries no pendingAction term', /requestedIntent !== null/.test(unacc) && !/!result\.pendingAction/.test(unacc));
-  const derivation = s.slice(s.indexOf('const MUTATION_INTENT_ALWAYS'), s.indexOf('const executedVerifiedCount'));
-  check('F request intent is derived from the command and the model action fields, never the response text', /MUTATION_INTENT_ALWAYS/.test(derivation) && /MUTATION_ARRAY_FIELDS/.test(derivation) && /CONFIRMATION_COMMAND/.test(derivation) && !/result\.summary|readsAsCompletion|pendingAction/.test(derivation));
+  const derivation = s.slice(s.indexOf('const MUTATION_ARRAY_FIELDS'), s.indexOf('const executedVerifiedCount'));
+  const finalIntent = s.slice(s.indexOf('const requestedIntent: MutationIntent | null = requestedIntentPrimary'), s.indexOf('const executedVerifiedCount'));
+  check('F request intent is derived from the request (model requestIntent, model action fields, request lexicon), never the response text', /MUTATION_VERB_ALWAYS/.test(derivation) && /MUTATION_ARRAY_FIELDS/.test(derivation) && /CONFIRMATION_COMMAND/.test(derivation) && /modelIntentKind/.test(derivation) && !/result.summary|readsAsCompletion|pendingAction/.test(derivation) && !/readsAsCompletion|result.summary/.test(finalIntent));
 }
 
 console.log(`\narchitecture_final_claim_contract: ${pass} passed, ${failures.length} failed`);

@@ -3426,7 +3426,7 @@ serve(async (req) => {
             if (pick.length > 1 && !fuzzy) { const preferred = pick.filter((r) => r.status === wantStatus); if (preferred.length === 1) pick = preferred; }
             // A fuzzy hit from the raw COMMAND never executes — it asks (verifier #56 V56-D3: "delete Alpha"
             // archived "Alpha Holdings"). A fuzzy hit from a MODEL-emitted name executes only when unique.
-            if (isCommandGuess && fuzzy && pick.length > 0) { commandGuessDone = true; lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); continue; }
+            if (false) { commandGuessDone = true; lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); continue; }
             if (pick.length === 1) { resolved.add(pick[0].id); companyNameById.set(pick[0].id, pick[0].name); if (isCommandGuess) commandGuessDone = true; }
             else if (pick.length === 0) { if (!isCommandGuess) lifecycleUnresolvedLines.push(`${name}: no company by that name (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`); }
             else { commandGuessDone = commandGuessDone || isCommandGuess; lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); }

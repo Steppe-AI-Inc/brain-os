@@ -1,0 +1,8 @@
+file:///C:/Users/Dell/dev/brain-os/qa/verification/proposed/v56_regression_additions.mjs:83
+if (!/async function resolveCompanyLifecycleTargets/.test(LIFECYCLE_SLICE) || !/supabase\.rpc\('archive_company'/.test(LIFECYCLE_SLICE)) throw new Error('not the production lifecycle window');
+                                                                                                                                               ^
+
+Error: not the production lifecycle window
+    at file:///C:/Users/Dell/dev/brain-os/qa/verification/proposed/v56_regression_additions.mjs:83:144
+
+Node.js v24.19.0

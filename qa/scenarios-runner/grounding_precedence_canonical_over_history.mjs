@@ -30,7 +30,7 @@ let pass = 0; const failures = [];
 const check = (name, cond, detail) => { if (cond) { pass++; console.log('OK   ' + name); } else { failures.push(name + (detail ? '\n       ' + detail : '')); console.log('FAIL ' + name); } };
 
 // ---- narrative tier ----
-const HISTORY_SLICE = slice('const conversationHistory = (conversationRowsChronological || []).map(', '    return { turn: historyWindowStart + idx, command: r.command, summary, verified: executedOperationCount === null ? null : !unverified, executedOperationCount, rejectedClaimCount };\n  });');
+const HISTORY_SLICE = slice('const conversationHistory = (conversationRowsChronological || []).map(', '    return { turn: historyWindowStart + idx, command: r.command, summary, verified, executedOperationCount, rejectedClaimCount };\n  });');
 const history = new Function('conversationRowsChronological', 'historyWindowStart', HISTORY_SLICE + '\n; return conversationHistory;');
 const MARK = '[UNVERIFIED — no database change was executed on that turn]';
 const rows = [
@@ -66,7 +66,8 @@ check('prompt states the five-tier precedence', /GROUNDING PRECEDENCE \(binding;
 check('prompt tells the model to surface a history/fresh-context contradiction explicitly', /an earlier message in this\s+channel said X; the current data shows Y/.test(src));
 check('prompt: an UNVERIFIED history entry establishes nothing', /\[UNVERIFIED — …\]"? establishes nothing/.test(src));
 check('prompt no longer tells the model to resolve a restore target from memories or history', !/resolve it by name\s+from whatever context you have/.test(src));
-check('the history entry shape carries verified / executedOperationCount / rejectedClaimCount', /verified: executedOperationCount === null \? null : !unverified, executedOperationCount, rejectedClaimCount/.test(src));
+check('the history entry shape carries verified / executedOperationCount / rejectedClaimCount', /summary, verified, executedOperationCount, rejectedClaimCount/.test(src));
+check('a turn with nothing executed and no recorded intent is verified: null (unknown), never true', (() => { const h2 = history([{ command: 'tell me about ACME', output: { summary: 'ACME was archived last year.', turnVerdict: { executedOperationCount: 0, attemptedOperationCount: 0, rejectedClaimCount: 0, mutationIntent: null, receiptRendered: false } } }], 1); return h2[0].verified === null && h2[0].summary === 'ACME was archived last year.'; })());
 
 console.log(`\ngrounding_precedence_canonical_over_history: ${pass} passed, ${failures.length} failed`);
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log('  - ' + f); process.exit(1); }

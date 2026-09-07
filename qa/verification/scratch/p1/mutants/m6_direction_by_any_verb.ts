@@ -3455,7 +3455,7 @@ serve(async (req) => {
         const restoreVerbAt = lifecycleVerbAt(RESTORE_VERB_PATTERN);
         const headLifecycleAction: string | null = archiveVerbAt < 0 && restoreVerbAt < 0 ? null : restoreVerbAt < 0 ? 'archive' : archiveVerbAt < 0 ? 'restore' : (archiveVerbAt <= restoreVerbAt ? 'archive' : 'restore');
         const archiveCompanyIds = await resolveCompanyLifecycleTargets('archive', requestedArchiveIds, result.archiveCompanyNames,
-          commandFallbackAllowed && headLifecycleAction === 'archive' ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
+          commandFallbackAllowed && ARCHIVE_VERB_PATTERN.test(String(command || '')) ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
         const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', requestedRestoreIds, result.restoreCompanyNames,
           commandFallbackAllowed && headLifecycleAction === 'restore' ? lifecycleCommandName(RESTORE_VERB_PATTERN) : null);
 

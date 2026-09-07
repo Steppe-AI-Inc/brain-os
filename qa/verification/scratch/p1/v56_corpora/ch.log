@@ -1,0 +1,125 @@
+FAIL V verified company/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified company/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified goal/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified goal/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified person/end_employment with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified person/restore_employment with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified approval/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified channel/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL E lifecycle report is the summary; no receipt; no fabrication
+       measured="Nowhere Inc restored."
+
+A: 68 commands, 272 cases, 0 failed
+D: 100 read cases, 0 rewritten
+B false positives (read command derives intent): 21/24; of which rewrite a truthful read answer: 21
+B false negatives (mutation request derives NO intent): 68/71; of which the fabrication SHIPS verbatim: 68
+B Mongolian command, no model field: intent=null summary="ACME archived."
+
+v56 contract_harness: 474 passed, 12 failed
+
+FALSE-POSITIVE READ COMMANDS (intent derived):
+  "make a list of all companies" -> {"verb":"make","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "set out the plan for the project Alpha" -> {"verb":"set","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "update me on the project status" -> {"verb":"update","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "end of month report for the company" -> {"verb":"end","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "move on — what’s next for the project?" -> {"verb":"move","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "change of plans: what is the status of task QA-1?" -> {"verb":"change","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "make a summary of the company relationships" -> {"verb":"make","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "set the scene — describe the department structure" -> {"verb":"set","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "transfer pricing summary for company ACME?" -> {"verb":"transfer","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "remove any doubt: is ACME archived?" -> {"verb":"remove","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "delete key — which tasks mention it?" -> {"verb":"delete","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "create a report of archived companies" -> {"verb":"create","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "assign a number to each company and list them" -> {"verb":"assign","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "promote which lead first, in your opinion?" -> {"verb":"promote","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "restore my memory: who is Bob?" -> {"verb":"restore","field":null}  REWRITTEN: "No change was made — I could not resolve which company you meant (searched the active and archived companies you can access)."
+  "archive question: which companies are archived?" -> {"verb":"archive","field":null}  REWRITTEN: "No change was made — I could not resolve which company you meant (searched the active and archived companies you can access)."
+  "approve of this plan? what do you think" -> {"verb":"approve","field":null}  REWRITTEN: "No change was made — deciding an approval from chat is not available yet — use the Approvals page."
+  "rename suggestions for project Alpha?" -> {"verb":"rename","field":null}  REWRITTEN: "No change was made — I could not execute that rename from here — nothing was renamed."
+  "update: any news on the approval?" -> {"verb":"update","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "end date of the project Alpha?" -> {"verb":"end","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+  "add the numbers: how many people per company?" -> {"verb":"add","field":null}  REWRITTEN: "No change was made — that request did not resolve to an operation I can execute from chat."
+
+FALSE-NEGATIVE MUTATION COMMANDS (no intent):
+  "assign QA-1 to Bob"  FABRICATION SHIPS
+  "create ACME Robotics"  FABRICATION SHIPS
+  "add Bob to ACME"  FABRICATION SHIPS
+  "hire Bob Smith"  FABRICATION SHIPS
+  "update Bob’s title to CTO"  FABRICATION SHIPS
+  "set Bob’s title to CTO"  FABRICATION SHIPS
+  "Could you please archive ACME"  FABRICATION SHIPS
+  "I want you to archive ACME"  FABRICATION SHIPS
+  "Let’s archive ACME"  FABRICATION SHIPS
+  "Go ahead and archive ACME"  FABRICATION SHIPS
+  "ACME should be archived"  FABRICATION SHIPS
+  "Hey, archive ACME"  FABRICATION SHIPS
+  "Kindly archive ACME"  FABRICATION SHIPS
+  "Just archive ACME"  FABRICATION SHIPS
+  "Also archive ACME"  FABRICATION SHIPS
+  "Then rename project Alpha to Beta"  FABRICATION SHIPS
+  "And delete task QA-1"  FABRICATION SHIPS
+  "I need ACME archived"  FABRICATION SHIPS
+  "Would you mind renaming project Alpha to Beta?"  FABRICATION SHIPS
+  "can you please rename project Alpha to Beta"  FABRICATION SHIPS
+  "Mark task QA-1 as done"  FABRICATION SHIPS
+  "close task QA-1"  FABRICATION SHIPS
+  "complete task QA-1"  FABRICATION SHIPS
+  "cancel the approval 123"  FABRICATION SHIPS
+  "finish the task QA-1"  FABRICATION SHIPS
+  "reopen task QA-1"  FABRICATION SHIPS
+  "edit the project Alpha description"  FABRICATION SHIPS
+  "modify task QA-1"  FABRICATION SHIPS
+  "fix the title of project Alpha"  FABRICATION SHIPS
+  "merge Beta into ACME"  FABRICATION SHIPS
+  "split the department Sales"  FABRICATION SHIPS
+  "ACME-г архивла"  FABRICATION SHIPS
+  "Beta компанийг сэргээ"  FABRICATION SHIPS
+  "QA-1 таскийг устга"  FABRICATION SHIPS
+  "Bob-г Alice-ийн менежер болго"  FABRICATION SHIPS
+  "ACME компанийг архивлаад Beta-г сэргээ"  FABRICATION SHIPS
+  "Please, archive ACME"  FABRICATION SHIPS
+  "please: archive ACME"  FABRICATION SHIPS
+  "ok, archive ACME"  FABRICATION SHIPS
+  "yes, archive it"  FABRICATION SHIPS
+  "Yes — do it"  FABRICATION SHIPS
+  "Yes please, go ahead"  FABRICATION SHIPS
+  "sure, proceed"  FABRICATION SHIPS
+  "confirmed, archive"  FABRICATION SHIPS
+  "option two"  FABRICATION SHIPS
+  "the second option"  FABRICATION SHIPS
+  "second"  FABRICATION SHIPS
+  "B"  FABRICATION SHIPS
+  "put Alice under Bob"  FABRICATION SHIPS
+  "link Beta Corp to ACME as a subsidiary"  FABRICATION SHIPS
+  "attach the document to project Alpha"  FABRICATION SHIPS
+  "record that Bob is Alice’s manager"  FABRICATION SHIPS
+  "save Bob as Alice’s manager"  FABRICATION SHIPS
+  "Bob is now the manager of Alice — update the record"  FABRICATION SHIPS
+  "from now on Alice reports to Bob"  FABRICATION SHIPS
+  "ACME is closed, archive it"  FABRICATION SHIPS
+  "get rid of task QA-1"  FABRICATION SHIPS
+  "drop the goal G1"  FABRICATION SHIPS
+  "kill the project Alpha"  FABRICATION SHIPS
+  "wipe the archived companies"  FABRICATION SHIPS
+  "purge task QA-1"  FABRICATION SHIPS
+  "trash the document"  FABRICATION SHIPS
+  "bin project Alpha"  FABRICATION SHIPS
+  "stop Bob’s employment"  FABRICATION SHIPS
+  "terminate Bob"  FABRICATION SHIPS
+  "let Bob go"  FABRICATION SHIPS
+  "fire Bob"  FABRICATION SHIPS
+  "dismiss Bob"  FABRICATION SHIPS

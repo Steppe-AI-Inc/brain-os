@@ -168,6 +168,33 @@ const verified = (t) => t.evidence.filter((e) => e.ok);
   const t = await turn({ command: 'delete task QA-1', result: { deleteTaskIds: ['11111111-1111-1111-1111-111111111111'] } });
   check('a task delete command produces no company line and no company RPC', t.calls.length === 0 && t.report === null, t.report);
 }
+// verifier #56 V56-D3 / D3b / D4 with an EXACT company name (the exact stage is the one that executes):
+// the raw command is a target source only for an imperative company-lifecycle command.
+{
+  const E = 'eeeeeeee-4444-4444-4444-444444444444';
+  const exactDb = () => [{ id: E, name: 'Alpha', status: 'active' }, ...DB()];
+  const t1 = await turn({ command: 'delete Alpha', result: { deleteTaskIds: ['11111111-1111-1111-1111-111111111111'] }, db: exactDb() });
+  check('D3 exact-named company is NOT archived when the model resolved the command to a task', t1.calls.length === 0 && t1.db.find((r) => r.id === E).status === 'active', JSON.stringify(t1.calls));
+  const t2 = await turn({ command: 'do not archive Alpha', db: exactDb() });
+  check('D3b a negated lead never executes (exact name)', t2.calls.length === 0 && t2.db.find((r) => r.id === E).status === 'active', JSON.stringify(t2.calls));
+  const t3 = await turn({ command: 'did you archive Alpha?', db: exactDb() });
+  check('D3b a question never executes (exact name)', t3.calls.length === 0, JSON.stringify(t3.calls));
+  const t4 = await turn({ command: 'if we archive Alpha, what happens to its people?', db: exactDb() });
+  check('D3b a hypothetical lead never executes (exact name)', t4.calls.length === 0, JSON.stringify(t4.calls));
+  const t5 = await turn({ command: 'archive Alpha', db: exactDb() });
+  check('the imperative twin of the same command DOES execute (positive control)', t5.calls.length === 1 && t5.calls[0][1] === E && t5.db.find((r) => r.id === E).status === 'archived', JSON.stringify(t5.calls));
+  const t6 = await turn({ command: 'archive Alpha', result: { requestIntent: { kind: 'read', action: 'archive', entityType: 'company', targetName: 'Alpha' } }, db: exactDb() });
+  check('the model classifying the request as a READ withholds the command fallback', t6.calls.length === 0, JSON.stringify(t6.calls));
+  // D4 both directions: the FIRST lifecycle verb decides; a lifecycle word inside the name never flips it.
+  const R = 'ffffffff-5555-5555-5555-555555555555';
+  const t7 = await turn({ command: 'restore Archived Assets Ltd', db: [{ id: R, name: 'Archived Assets Ltd', status: 'archived' }, ...DB()] });
+  check('D4 "restore Archived Assets Ltd": exactly one restore RPC, ends active, no stray archive question', t7.calls.length === 1 && t7.calls[0][0] === 'restore_company' && t7.calls[0][1] === R && t7.db.find((r) => r.id === R).status === 'active' && !t7.pendingAction && !/more than one|pick one/.test(t7.report || ''), JSON.stringify({ calls: t7.calls, pa: t7.pendingAction, report: t7.report }));
+  const t8 = await turn({ command: 'archive Restored Furniture Co', db: [{ id: R, name: 'Restored Furniture Co', status: 'active' }, ...DB()] });
+  check('D4 "archive Restored Furniture Co": exactly one archive RPC, ends archived', t8.calls.length === 1 && t8.calls[0][0] === 'archive_company' && t8.db.find((r) => r.id === R).status === 'archived', JSON.stringify(t8.calls));
+  // The model's own structured parse of the request is a name source (language-independent).
+  const t9 = await turn({ command: 'QA-SWARM-TEST-CO-VIA-CHAT компанийг сэргээ', result: { requestIntent: { kind: 'mutation', action: 'restore', entityType: 'company', targetName: 'QA-SWARM-TEST-CO-VIA-CHAT' } } });
+  check('requestIntent.targetName resolves a restore in another language', t9.calls.length === 1 && t9.calls[0][1] === A && t9.db.find((r) => r.id === A).status === 'active', JSON.stringify(t9.calls));
+}
 
 console.log(`\ncompany_lifecycle_matrix: ${pass} passed, ${failures.length} failed`);
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log('  - ' + f); process.exit(1); }

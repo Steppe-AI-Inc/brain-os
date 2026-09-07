@@ -1,0 +1,70 @@
+
+=== MUTANT m1_delete_receipt_block applied (index.ts sha 7f7624997499)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_final_claim_contract.mjs
+
+=== MUTANT m2_restore_pendingAction_skip_legacy applied (index.ts sha 7bfe88c92bd2)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_final_claim_contract.mjs, run8_defect_closure_contract.mjs
+
+=== MUTANT m2b_restore_pendingAction_skip_receipt applied (index.ts sha b4ec13a05fee)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_final_claim_contract.mjs
+
+=== MUTANT m3_create_postcondition_literal applied (index.ts sha f65c0bfc83f3)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: lifecycle_evidence_and_output_persistence_contract.mjs
+
+=== MUTANT m4_durable_read_last applied (index.ts sha 04eeabb7ef07)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: grounding_precedence_canonical_over_history.mjs, run11_defect_closure_contract.mjs
+
+=== MUTANT m5_drop_collection_envelope applied (index.ts sha 324e47efca9e)
+restored; index sha 4f5c85a920b7 (6s)
+  killed by: architecture_collection_envelope_contract.mjs
+
+=== MUTANT m6_handwritten_companies_join applied (people.ts sha 5118e37c9a8d)
+restored; index sha 4f5c85a920b7 (5s)
+  SURVIVED — no suite caught it
+
+=== MUTANT m7_handwritten_org_sentinel applied (people.ts sha bb772568e6b4)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_org_scope_helper_contract.mjs
+
+=== MUTANT m8_belt_without_intent applied (index.ts sha 24ea998638c2)
+restored; index sha 4f5c85a920b7 (6s)
+  killed by: architecture_final_claim_contract.mjs
+
+=== MUTANT m9_confirmation_drops_yes applied (index.ts sha 613fb62fc246)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_final_claim_contract.mjs, run10_defect_closure_contract.mjs
+
+=== MUTANT m10_receipt_skips_attempted applied (index.ts sha 53f913d3d779)
+restored; index sha 4f5c85a920b7 (6s)
+  SURVIVED — no suite caught it
+
+=== MUTANT m11_history_no_unverified_mark applied (index.ts sha ae4cda3b5c5b)
+restored; index sha 4f5c85a920b7 (6s)
+  killed by: grounding_precedence_canonical_over_history.mjs
+
+=== MUTANT m12_silent_nonexistent_id applied (index.ts sha 59c66bf080b8)
+restored; index sha 4f5c85a920b7 (5s)
+  SURVIVED — no suite caught it
+
+=== MUTANT m13_no_status_preference applied (index.ts sha b216df996bc9)
+restored; index sha 4f5c85a920b7 (5s)
+  SURVIVED — no suite caught it
+
+=== MUTANT m14_persist_only_on_correction applied (index.ts sha 30cfe48d3d68)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_mutation_envelope_contract.mjs, lifecycle_evidence_and_output_persistence_contract.mjs
+
+=== MUTANT m15_intent_from_summary applied (index.ts sha f2d7d362c53c)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: architecture_final_claim_contract.mjs, run10_defect_closure_contract.mjs
+
+=== MUTANT m16_evidence_index_ignores_postcondition applied (index.ts sha 41ccecee260e)
+restored; index sha 4f5c85a920b7 (5s)
+  killed by: structured_claim_laundering_contract.mjs, structured_claim_verification.mjs
+
+FINAL index.ts sha256 4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e

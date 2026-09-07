@@ -1,0 +1,11 @@
+ok    [CONTRACT] no block-scoped CONST is read before its declaration in the same block (temporal dead zone)
+ok    [CONTRACT] COVERAGE: the TDZ detector fires on the hazard and stays quiet on both safe shapes (non-vacuous)
+ok    [DEFECT] V54-P0-TDZ: the disambiguation branch must not read PAST_COMPLETION_CLAIM_PATTERN before its declaration
+ok    [DEFECT] V54-P0-TDZ: the disambiguation branch must not read COMPLETION_WORD before its declaration
+ok    [CONTRACT] belt_extract.buildDecide() is KNOWN to hoist the branch dependencies (documented blind spot, not a silent one)
+ok    [CONTRACT] source carries no forward-reference construct of the TS2448/TS2454 class (see CONTRACT 1)
+ok    [CONTRACT] claimsLifecycleClaim is byte-identical to deployed v92 (a shared arm must stay shared)
+ok    [CONTRACT] findEntityStateClaimContradiction is byte-identical to deployed v92 (a shared arm must stay shared)
+ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN literal is unchanged from deployed v92
+
+v48_regression_additions: 9 passed, 0 failed

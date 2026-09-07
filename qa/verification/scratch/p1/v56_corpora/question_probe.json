@@ -1,0 +1,139 @@
+{
+ "executed": 0,
+ "total": 19,
+ "rows": [
+  {
+   "command": "did you archive Alpha?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "Did we already archive Alpha?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "why did we archive Alpha?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "is it safe to delete Alpha?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "should I restore Beta?",
+   "name": "Beta Corp",
+   "calls": [],
+   "report": null,
+   "final": "archived"
+  },
+  {
+   "command": "can we restore Beta later?",
+   "name": "Beta Corp",
+   "calls": [],
+   "report": null,
+   "final": "archived"
+  },
+  {
+   "command": "what happens if I archive Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "who asked to archive Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "do not archive Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "never delete Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "I decided not to archive Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": "Alpha: more than one company matches — please pick one.",
+   "final": "active"
+  },
+  {
+   "command": "remind me to archive Alpha next week",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "before we archive Alpha, list its tasks",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "how do I restore Beta",
+   "name": "Beta Corp",
+   "calls": [],
+   "report": null,
+   "final": "archived"
+  },
+  {
+   "command": "explain how to archive Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "tell me why we should not delete Alpha",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "what would removing Alpha affect?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "is Alpha archived?",
+   "name": "Alpha Holdings",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  },
+  {
+   "command": "when did we end Bob",
+   "name": "Bob Trucking",
+   "calls": [],
+   "report": null,
+   "final": "active"
+  }
+ ]
+}

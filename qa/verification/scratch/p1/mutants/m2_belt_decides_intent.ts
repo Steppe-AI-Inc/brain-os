@@ -5507,7 +5507,7 @@ serve(async (req) => {
         // Final request intent: the request-side derivation alone. The belt (a property of the REPLY) never
         // decides whether a request carried intent — a read-vetoed lexicon hit is null, full stop
         // (verifier #56 V56-D2: the defence-in-depth tier rewrote truthful dated history on read requests).
-        const requestedIntent: MutationIntent | null = requestedIntentPrimary;
+        const requestedIntent: MutationIntent | null = requestedIntentPrimary ?? ((lexiconVerb !== null) ? { verb: lexiconVerb, field: null } : null);
         void lexiconReadVetoed;
         const executedVerifiedCount = claimExecutionEvidence.filter((e) => e.postconditionPassed).length;
 
