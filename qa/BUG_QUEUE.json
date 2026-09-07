@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:27:39Z",
+  "last_updated": "2026-09-07T11:29:58Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -504,7 +504,8 @@
         "drift_guard": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs run INDEPENDENTLY by the Work PC against a clean origin/master worktree: 8/8 pass, 30 canonical joins, 0 bare joins.",
         "scope_statement": "Live pixel proof covers tasks, goals, projects (this retest) plus departments and people (BUG-001 closure). The remaining join sites are source-and-guard verified, not individually pixel-verified. Closure is on the defect class as filed: no bare companies(name) join remains, and every high-value surface renders the archived marker."
       },
-      "regression_state": "EXPECTED_PASS"
+      "regression_state": "EXPECTED_PASS",
+      "work_pc_evidence_2026_09_07": "Goal DETAIL page /goals/6b85d2c2-... renders parent company \"QA-VERIFY-BU\" with no Archived marker, while /goals list, /people and /projects do mark it. One more concrete surface for the remainder class; verified live on the current deployment."
     },
     {
       "bug_id": "BUG-007",

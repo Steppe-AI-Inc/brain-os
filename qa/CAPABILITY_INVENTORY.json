@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:27:39Z",
+  "generated_at": "2026-09-07T11:29:58Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -619,9 +619,14 @@
         "UI",
         "RELOAD"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 7
+      "scenario_ids": [
+        "C002-goal-edit-ui"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 7,
+      "tested_against_sha": "8521b0e",
+      "evidence": "Live Playwright 2026-09-07 on registered fixture goal QA-BUG006-GOAL (6b85d2c2-f520-43a4-aeb3-76a311a89278). Detail page ellipsis -> Edit opens \"Edit goal\" (Title, Description). Set description, Save; full reload; reopened editor at 11:29:58Z shows the saved description and the untouched title. Persisted.",
+      "side_observations": "On the goal DETAIL page: (a) status badge reads \"Draft\" although the fixture was registered as an active goal and the list counts \"draft 1\" - either the fixture was created as draft or the status changed; not asserted as a defect, flagged for the fixture owner. (b) the parent \"QA-VERIFY-BU\" is rendered WITHOUT the Archived marker that /goals list, /people and /projects carry - appended as evidence to the ARCHIVED_PARENT_NOT_SURFACED remainder bug."
     },
     {
       "capability_id": "CAP-TASK-EDIT-UI",

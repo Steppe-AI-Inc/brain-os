@@ -122,7 +122,8 @@
       "cleanup": "RETAINED while BUG-006 regression needs a live archived-parent goal; archive via UI when retired.",
       "registered_at": "2026-09-02T09:08:47Z",
       "created_via": "product UI",
-      "entity_id": "6b85d2c2-f520-43a4-aeb3-76a311a89278"
+      "entity_id": "6b85d2c2-f520-43a4-aeb3-76a311a89278",
+      "note_2026_09_07": "Description set to \"C002 CAP-GOAL-EDIT-UI probe 2026-09-07 11:29Z\" (CAP-GOAL-EDIT-UI). Detail page shows status Draft - owner to confirm intended state."
     },
     {
       "fixture_id": "FX-BUG006-PROJECT",
