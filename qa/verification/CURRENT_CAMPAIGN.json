@@ -95,13 +95,13 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 115,
-  "verifier": 55,
-  "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
-  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, nineteenth round)",
-  "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "2bad0df120fef86c",
-  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "campaign": 116,
+  "verifier": 56,
+  "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
+  "status": "DISPATCH PENDING — verifier #56 on the P1 package",
+  "closure_commit": "1048b9ef771e836d3e987d5a336f8ebb8b5afd8a",
+  "index_sha256_prefix": "4f5c85a920b77aa4",
+  "branch": "p1/execution-truth-governance",
   "v92": {
     "deployed_version": 92,
     "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
@@ -117,18 +117,10 @@
     "artifact_commit": "verify-8eb8cbd-campaign114 @ 0f508f5 (artifacts written under v48_* names there; carried in-tree as v54_*)",
     "artifact": "qa/verification/proposed/v54_known_failure_modes_entry_118.md + qa/verification/scratch/verifier54_output.log"
   },
-  "what_this_campaign_did": "V54-P0-TDZ closed: both declarations moved to the top of the try block (:2620), above every use; pure regex literals, nothing between was needed. deno 23 -> 19 with ZERO TS2448/TS2454. #54 own tdz.mjs block-scope analysis now reports the declaration block enclosing the use; its runtime reduction hard-codes use-before-declaration and is not a post-fix instrument (its ORDER line is: use BEFORE decl = false). The seven battery suites that re-execute the structured-claim window in isolation (run8, run10-14, lifecycle_evidence, plus the two structured_claim suites) now inject both patterns ABOVE the window by name from the same source (_gate_extract.withPatternsAboveWindow) - the faithful direction; hoisting declarations from BELOW the window is the manufactured scope that hid the TDZ. #54 general TDZ detector promoted into the battery as qa/scenarios-runner/tdz_forward_reference_contract.mjs. 8 insertions / 4 deletions in index.ts.",
-  "implementing_session_evidence_not_to_be_trusted": {
-    "tdz": "runtime reduction on pre-fix bytes: ReferenceError (reproduced); #54 detector 5/4 pre-fix -> 9/0 post-fix; deno 23 -> 19, TS2448/TS2454 0; #54 tdz.mjs: decl block 2620 encloses the use",
-    "suites": "v54 detector 9/9, v53 34/34 (+3 notes), v52 16/16, v51 17/17, v50 16/16, v49 16/16, v48 58/58; semicolon contract 4/4; promoted TDZ contract 9/9",
-    "battery": "39 suites: 37 exit-0; 2 red = DB-P1 machine tests (by design). run8 40/40, run10 43/0, run11 49/0, run12 74/0, run13 60/0, run14 68/0, lifecycle 0 open #67; structured_claim 29/29 + 42/42",
-    "sweep_54": "3,952 truthful rows: 0 TR / 2,624 rescues (unchanged - the belt did not move)",
-    "v53_v52_differentials": "unchanged (#53 populated TR 16 = V53-O1 / FR 2 = V53-R3; #52 0/0)",
-    "matcher": "8/0",
-    "crlf": "0 bare LF; 8 insertions / 4 deletions vs 8eb8cbd"
-  },
+  "what_this_campaign_did": "P1 package for the Work-PC handover 2026-09-07 (BUG-010/014/002/012/013/011) implemented as the first feature under docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md: ExecutionResultEnvelope on every recordExecution site with fresh create-family postconditions; MutationIntent from the request (verb patterns, model action arrays, confirmation-shaped commands); never-silent receipt; server-side company lifecycle resolution across every status (restoreCompanyNames/archiveCompanyNames schema fields; contextCompanyIds no longer gates archive/restore); context.collections envelopes for every pack collection, companies split active/archived; narrative tier with verdict + UNVERIFIED marker; durable channel state first; work_orders.output persisted every turn with turnVerdict; person-assignment receipt from the executed diff; V55-D1 possessive fix carried. Web: callLifecycleRpc, archived-parent policy on People controls, manager picker semantics, Archived (N) affordance, COMPANY_REF in 22 files, scopeToActiveOrganization in 19 pages. Enforcement: 8 architecture_* contracts + company_lifecycle_matrix + grounding_precedence_canonical_over_history + mutation_receipt_equals_ledger + tenant_authorization_lifecycle.sql.",
+  "implementing_session_evidence_not_to_be_trusted": "battery 53/53; gates v48-v55 green, v46 33/3 (recorded standing reds: C8a stale CRLF pin, D1 growth exponent, D5 withdrawn); deno 19 by class (TS7006 x10, TS2322 x6, TS7034, TS7005, TS2339; zero runtime-fatal); index.ts CRLF 0 bare LF; web tsc/eslint/next build clean. RE-DERIVE ALL OF IT.",
   "verdict": null,
-  "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+  "rules": "FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule: a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only. Previous rule text: A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
   "DESIGN_NOTE_entity_positive_signal": {
     "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
     "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
@@ -146,7 +138,9 @@
   "gates_on_committed_candidate": {
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
-  "open_deploy_blockers": [],
+  "open_deploy_blockers": [
+    "verifier #56 has not run"
+  ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
     "V46-D3: the V45-N2 short-circuit I adopted destroyed 8 truthful refusals; fixed, 8/8 restored",
@@ -184,7 +178,7 @@
     "Instrument gap (from #54): v92 has a FOURTH prose path - findEntityStateClaimContradiction confirmed-true branch suppresses claimsCompanyDeleted/PersonDeleted; parity only because the function is byte-identical in both builds. #54 CONTRACT 4 pins byte-identity; the three-arm instrument (v92_reference.mjs) still omits it.",
     "V53-O1 (founder may overrule): a pack entry whose NAME IS a negation phrase, as subject of a belt-only arm - confirmed pack-conditional by #54.",
     "Empty-pack residual is now confined to ONE form on #54 corpus: negator-initial name in the POSSESSIVE (100 rows). Pack-conditional.",
-    "DECISION (founder may overrule): belt skips pendingAction turns (v92 parity; #51-#54 confirmed sound).",
+    "SUPERSEDED by the founder ruling 2026-09-07: the belt no longer skips pendingAction turns; both belt consumers gate on REQUEST intent (requestedIntent !== null) and never on pendingAction; a mutation-intent turn with no verified execution ends in the deterministic receipt. v49-v53 pendingAction-term pins are marked SUPERSEDED in place.",
     "chat_channel_state LIVE on deploy; durable pendingAction bind has no end-to-end coverage (db query gated).",
     "No live browser/AI-chat turn was observable by any verifier in this session type: the TDZ was proven at source, scope, type-check and JS-semantics level, never in a production SSE stream."
   ],
@@ -192,9 +186,9 @@
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
   "index_sha256_lf_prefix": "26972b1238c08d3e",
   "previous_campaign_pointer": {
-    "campaign": 108,
-    "verifier": 48,
-    "index_sha256_prefix": "90fdc7dc35117e52"
+    "campaign": 115,
+    "verifier": 55,
+    "index_sha256_prefix": "2bad0df120fef86c"
   },
   "record_corrections_applied": [
     "v31 32/2 (was 33/1)",
@@ -216,5 +210,20 @@
     "total": 19,
     "decomposition": "TS7006 x10 (implicit any parameter), TS2322 x6 (type assignability), TS7034 x1, TS7005 x1, TS2339 x1 - none runtime-fatal",
     "rule": "NEVER pin the count. Runtime-fatal classes (TS2448 used-before-declaration, TS2454 used-before-assigned, TS2304 cannot-find-name, TS2552/TS2551 misspelled identifier) must be ZERO. v92 itself has 7 (TS2322 x6 + TS2339)."
-  }
+  },
+  "deploy_rule": "FOUNDER RULING 2026-09-07: PRODUCT CONTRACT OUTRANKS V92 PARITY. The deploy bar is conformance to governance/OPERATING_TRUTH_MODEL.md (final-claim rule, request intent, never-silent receipt, envelopes, precedence, persistence). Deployed v92 is a reference corpus for truth-regression measurement; a class that matches v92 but violates the contract is a defect; an intended departure from v92 that satisfies the contract is not a failure.",
+  "verifier56_base_commit": "1048b9ef771e836d3e987d5a336f8ebb8b5afd8a",
+  "verifier56_index_sha256": "4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e",
+  "verifier56_started_at": null,
+  "verifier56_status": "not started",
+  "verifier56_findings": [],
+  "harness_changes_to_judge": [
+    "_gate_extract.mjs REQUEST_SIDE_DEFAULTS above every window (command \"\" by default = no intent)",
+    "run8/10/11/12/13/14 per-call command (default mutation intent; read cases pass \"\")",
+    "run8 D59 re-reversed; run11 V11.durable.livePrecedence inverted (durable first) + V11.durable.fallback added",
+    "lifecycle_evidence section S literals (company sites carry envelope detail; create family via recordCreate) and P6 inverted (persist every turn)",
+    "v49-v53 request-side globals + SUPERSEDED pendingAction-term pins; scratch/v53/harness.mjs self-check inverted",
+    "v92_open_regression_contract decision window takes requestedIntent",
+    "company_ref_no_bare_name_join counts ${COMPANY_REF}; org_selector_scoping_coverage accepts scopeToActiveOrganization"
+  ]
 }
