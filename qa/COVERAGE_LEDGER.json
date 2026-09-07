@@ -1,19 +1,19 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-07T12:52:11Z",
+  "generated_at": "2026-09-07T12:57:37Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
-  "required_capabilities": 106,
-  "executed_capabilities": 98,
-  "coverage_percentage": 92.5,
+  "required_capabilities": 110,
+  "executed_capabilities": 102,
+  "coverage_percentage": 92.7,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 0,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 63,
-    "FAIL": 34,
+    "PASS": 64,
+    "FAIL": 37,
     "BLOCKED": 8,
     "FLAKY": 1
   },
@@ -103,8 +103,8 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 19,
-      "FAIL": 20,
+      "PASS": 20,
+      "FAIL": 23,
       "BLOCKED": 0,
       "FLAKY": 1
     },
@@ -177,8 +177,8 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 29,
-      "FAIL": 27,
+      "PASS": 30,
+      "FAIL": 30,
       "BLOCKED": 0,
       "FLAKY": 1
     },
@@ -413,6 +413,21 @@
       "capability_id": "CAP-ISSUE5-B-VARIANT-SURE",
       "domain": "brain-chat",
       "bug_id": "BUG-023"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-YEAH",
+      "domain": "brain-chat",
+      "bug_id": "BUG-023"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-OK",
+      "domain": "brain-chat",
+      "bug_id": "BUG-025"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-GO-AHEAD",
+      "domain": "brain-chat",
+      "bug_id": "BUG-025"
     }
   ],
   "flaky_capabilities": [
@@ -424,10 +439,10 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 106 | PASS: 63 | FAIL: 34 | FLAKY: 1 | BLOCKED: 8 | NOT TESTED: 0 -> FAILED",
+  "headline": "Required capabilities: 110 | PASS: 64 | FAIL: 37 | FLAKY: 1 | BLOCKED: 8 | NOT TESTED: 0 -> FAILED",
   "dimensions": {
     "_doc": "ADDITIVE dimensions (2026-09-07). The headline capability coverage above is unchanged and remains the comparable historical metric. Coverage here is evidence-name matching over inventory + bug queue, deliberately conservative.",
-    "capability_coverage_pct_unchanged": 92.5,
+    "capability_coverage_pct_unchanged": 92.7,
     "state_coverage": {
       "covered": 23,
       "total": 28,

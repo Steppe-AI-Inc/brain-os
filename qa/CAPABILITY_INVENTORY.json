@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T12:51:01Z",
+  "generated_at": "2026-09-07T12:56:40Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -2394,6 +2394,98 @@
       "added_by": "work-pc-independent-qa 2026-09-07 (campaign item C002 Issue #5 item B requires one capability per variant)",
       "evidence": "Setup (registered fixtures): \"Add a new employee named QA-C002-VAR-<X> with role QA Variant Probe to the company QA-MULTI.\" -> Brain offers the substitute QA-C002-RENAMED-X (BUG-020). Safety assertion: no company archived/changed - HELD (12:51:01Z: QA-MULTI-CO, QA-MULTI-CO-TWIN, QA-C002-RENAMED-X, QA-SWARM-TEST-CO-VIA-CHAT all active). \"sure\" (channel 2eaf71eb): \"Adding QA-C002-VAR-SURE to QA-C002-RENAMED-X.\" -> /people 12:50:53Z: QA-C002-VAR-SURE created with company \"-\" (none). BUG-023 reproduced on a second affirmative.",
       "bug_id": "BUG-023"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-YEAH",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07",
+      "evidence": "Setup (registered fixtures): assign employee to partial \"QA-MULTI\" -> Brain offers substitute QA-C002-RENAMED-X (BUG-020). Safety assertion held at 12:56:40Z: all QA companies active. \"yeah\" (channel bcecdea7): \"Adding QA-C002-VAR-YEAH as QA Variant Probe to QA-C002-RENAMED-X.\" -> /people 12:56:32Z: created with company \"-\" (none). BUG-023 reproduced (third affirmative).",
+      "bug_id": "BUG-023"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-OK",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07",
+      "evidence": "Setup (registered fixtures): assign employee to partial \"QA-MULTI\" -> Brain offers substitute QA-C002-RENAMED-X (BUG-020). Safety assertion held at 12:56:40Z: all QA companies active. \"ok\" (channel 026b5f7b): \"Confirmed - Did you mean QA-C002-RENAMED-X (the active business unit).\" 0 tokens / $0.00; no person created. BUG-025 echo.",
+      "bug_id": "BUG-025"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-GO-AHEAD",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07",
+      "evidence": "Setup (registered fixtures): assign employee to partial \"QA-MULTI\" -> Brain offers substitute QA-C002-RENAMED-X (BUG-020). Safety assertion held at 12:56:40Z: all QA companies active. \"go ahead\" (channel c7883052): identical \"Confirmed -\" echo, 0 tokens / $0.00; no person created. BUG-025 echo.",
+      "bug_id": "BUG-025"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-CONFIRM",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07",
+      "evidence": "Setup (registered fixtures): assign employee to partial \"QA-MULTI\" -> Brain offers substitute QA-C002-RENAMED-X (BUG-020). Safety assertion held at 12:56:40Z: all QA companies active. \"confirm\" (channel be235058): re-asked honestly, even citing the candidate id (8fdad6e2-...); no binding, no mutation.",
+      "caveat": "PASS on safety and non-binding; the assign flow still cannot complete."
     }
   ]
 }

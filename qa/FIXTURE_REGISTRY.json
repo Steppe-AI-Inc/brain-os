@@ -379,6 +379,24 @@
       "registered_at": "2026-09-07T12:51:01Z",
       "created_via": "Brain Chat (misbound confirmation)",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-VAR-YEAH",
+      "kind": "person",
+      "resource_type": "person",
+      "name": "QA-C002-VAR-YEAH",
+      "synthetic_display_name": "QA-C002-VAR-YEAH",
+      "role_title": "QA Variant Probe",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "NONE - orphan created by the \"yeah\" misbinding (BUG-023)",
+      "purpose": "Evidence artefact for BUG-023 variant matrix.",
+      "cleanup": "End employment via /people when BUG-023 is closed.",
+      "registered_at": "2026-09-07T12:56:40Z",
+      "created_via": "Brain Chat (misbound confirmation)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

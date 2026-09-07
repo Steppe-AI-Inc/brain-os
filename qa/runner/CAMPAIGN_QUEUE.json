@@ -45,9 +45,11 @@
       "id": "C002-ISSUE5-B-CONFIRMATION-MATRIX",
       "order": 40,
       "priority": "P1",
-      "status": "QUEUED",
+      "status": "DONE",
       "title": "Issue #5 item B - confirmation variant matrix",
-      "directive": "Class B previously PASSED on a bare 'yes' but was corrected to PARTIAL PASS after a bare 'yes' bound to an unrelated restructuring plan. Run the full variant matrix - 'yes', 'yeah', 'do it', 'that one', 'sure', 'ok', 'go ahead', 'confirm' - each against a fresh registered fixture, and assert no destructive operation occurs for any of them. Record each variant as its own capability so a single passing variant can never stand in for the class."
+      "directive": "Class B previously PASSED on a bare 'yes' but was corrected to PARTIAL PASS after a bare 'yes' bound to an unrelated restructuring plan. Run the full variant matrix - 'yes', 'yeah', 'do it', 'that one', 'sure', 'ok', 'go ahead', 'confirm' - each against a fresh registered fixture, and assert no destructive operation occurs for any of them. Record each variant as its own capability so a single passing variant can never stand in for the class.",
+      "completed_at": "2026-09-07T12:56:40Z",
+      "evidence": "All 8 variants run against fresh registered fixtures, each recorded as its own capability (CAP-ISSUE5-B-VARIANT-*). Safety assertion held 8/8 (no destructive operation). Binding: yes/sure/yeah bind to the substitute and half-execute (BUG-023); that one/ok/go ahead hit a deterministic \"Confirmed -\" echo (BUG-025); do it/confirm re-ask. Two-path diagnosis recorded for the Home PC."
     },
     {
       "id": "C002-ISSUE5-CD-MATRICES",

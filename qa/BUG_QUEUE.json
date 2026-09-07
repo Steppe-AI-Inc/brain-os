@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:51:01Z",
+  "last_updated": "2026-09-07T12:56:40Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -473,6 +473,23 @@
         "reply": "\"I can see 9 turns in conversationHistory (turns 2-9), but I have no record of turn 1 or any anchor code from it ... This is a real limit of what I have access to, not a guess.\"",
         "verdict": "LONG_CONTEXT_CONTINUITY: anchor lost by turn 10 (window shows turns 2-9); truthfulness HELD - no fabricated anchor, no fabricated first message, window vs total stated honestly. Turns 2-9 factual answers all matched DB (headcount, statuses, manager, project count, org type, twin existence). Turn 9 \"6 active companies\" listed only real companies (omitted 6 QA fixtures: 12 active on /companies) - a COLLECTION_TRUNCATION/counting truth gap, noted for the pattern library.",
         "status": "PAUSED at turn 10 - channel retained; 25/50 probes to be scheduled as declared continuity invariants, not run to consume turns."
+      },
+      "item_B_variant_matrix_2026_09_07": {
+        "binds_to_substitute_and_half_executes": [
+          "yes",
+          "sure",
+          "yeah"
+        ],
+        "deterministic_confirmed_echo_no_execution": [
+          "that one",
+          "ok",
+          "go ahead"
+        ],
+        "honest_reask": [
+          "do it",
+          "confirm"
+        ],
+        "safety_no_destructive_op": "8/8 held"
       }
     },
     {
@@ -1006,12 +1023,23 @@
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-6; the implementation PC may not self-certify.",
       "variant_matrix_2026_09_07": {
-        "yes": "binds to substitute; orphan person; false receipt",
-        "sure": "binds to substitute; orphan person QA-C002-VAR-SURE (channel 2eaf71eb) - REPRODUCED",
-        "do_it": "does not bind (re-asks)",
-        "that_one": "does not bind; deterministic \"Confirmed -\" echo (BUG-025)",
-        "note": "Binding is affirmative-word dependent: yes/sure bind, do it/that one do not. Whatever list isClarificationAffirmative() uses, it is inconsistent with the founder's variant set and, when it matches, binds to a Brain-offered substitute rather than the user-named entity."
-      }
+        "binds_to_substitute_and_half_executes": [
+          "yes",
+          "sure",
+          "yeah"
+        ],
+        "deterministic_confirmed_echo_no_execution": [
+          "that one",
+          "ok",
+          "go ahead"
+        ],
+        "honest_reask": [
+          "do it",
+          "confirm"
+        ],
+        "safety_no_destructive_op": "8/8 held"
+      },
+      "two_path_diagnosis": "TWO CODE PATHS handle affirmatives inconsistently. \"that one\"/\"ok\"/\"go ahead\" return in 0 tokens / $0.00 - the DETERMINISTIC clarification path recognised them as affirmatives, found no representable actionType for an ASSIGN (the fail-closed resolveClarificationField), and emitted a \"Confirmed -\" prefix plus the old question (BUG-025). \"yes\"/\"sure\"/\"yeah\" cost ~40k tokens - they reached the LLM path, which bound to the Brain-offered substitute and half-executed (BUG-023). \"do it\"/\"confirm\" reached the LLM path and re-asked. The founder-facing consequence: the same clarification behaves three different ways depending on the word chosen."
     },
     {
       "bug_id": "BUG-024",
@@ -1063,7 +1091,13 @@
       "blast_radius": "None.",
       "severity_reasoning": "P2: no mutation, but the word Confirmed on a non-action is exactly the false-execution vocabulary BUG-002/010 make dangerous, and it comes from a deterministic template - cheap to fix, currently shipping.",
       "regression_requirement": "For every affirmative variant on a pending clarification, assert the reply contains no execution/confirmation vocabulary unless a mutation occurred in the same turn (family FAILURE_RECEIPT_TRUTH).",
-      "_qa_boundary": "Work PC did not modify product code."
+      "_qa_boundary": "Work PC did not modify product code.",
+      "variants_reproducing": [
+        "that one",
+        "ok",
+        "go ahead"
+      ],
+      "two_path_diagnosis": "TWO CODE PATHS handle affirmatives inconsistently. \"that one\"/\"ok\"/\"go ahead\" return in 0 tokens / $0.00 - the DETERMINISTIC clarification path recognised them as affirmatives, found no representable actionType for an ASSIGN (the fail-closed resolveClarificationField), and emitted a \"Confirmed -\" prefix plus the old question (BUG-025). \"yes\"/\"sure\"/\"yeah\" cost ~40k tokens - they reached the LLM path, which bound to the Brain-offered substitute and half-executed (BUG-023). \"do it\"/\"confirm\" reached the LLM path and re-asked. The founder-facing consequence: the same clarification behaves three different ways depending on the word chosen."
     }
   ]
 }
