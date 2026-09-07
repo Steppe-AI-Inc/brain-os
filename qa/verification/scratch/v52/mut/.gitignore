@@ -1,0 +1,2 @@
+# scratch mutants (5 MB of index.ts copies) — rebuild with build_mutants.mjs / build_closure.mjs
+*.ts

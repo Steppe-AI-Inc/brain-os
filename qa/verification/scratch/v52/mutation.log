@@ -1,0 +1,12 @@
+BASELINE candidate: TR=0 FR=2 RESCUE=308 GAIN=348
+closure_V52D1.ts                   changed=   2  TR=0 FR=0 RESCUE=308 GAIN=348  LOAD-BEARING  {"N-F":2}
+disable_entity_signal.ts           changed= 299  TR=1 FR=91 RESCUE=308 GAIN=139  LOAD-BEARING  {"N-F":28,"F-PLAIN":76,"Q-F":36,"LINK-F":152,"CONF-F":5,"CONF-T":1,"S3-F":1}
+revert_D1_question_guard.ts        changed= 292  TR=264 FR=2 RESCUE=308 GAIN=376  LOAD-BEARING  {"OFFER-T":264,"Q-F":28}
+revert_D2_arrow_past_cap.ts        changed=   6  TR=0 FR=8 RESCUE=308 GAIN=348  LOAD-BEARING  {"CAP-F":6}
+revert_D3_linkers.ts               changed=  88  TR=0 FR=46 RESCUE=308 GAIN=304  LOAD-BEARING  {"LINK-F":88}
+revert_D4_object_negator.ts        changed=  42  TR=22 FR=2 RESCUE=308 GAIN=368  LOAD-BEARING  {"CONF-T":22,"CONF-F":20}
+revert_auxgap_joiner.ts            changed=   0  TR=0 FR=2 RESCUE=308 GAIN=348  NO-OP on this corpus  {}
+revert_idiom_strip.ts              changed=   2  TR=0 FR=3 RESCUE=308 GAIN=347  LOAD-BEARING  {"S3-F":2}
+revert_nameInternal.ts             changed=   8  TR=0 FR=2 RESCUE=316 GAIN=348  LOAD-BEARING  {"S3-T":8}
+revert_ppInternal.ts               changed=   0  TR=0 FR=2 RESCUE=308 GAIN=348  NO-OP on this corpus  {}
+revert_titleHead.ts                changed=   1  TR=0 FR=3 RESCUE=308 GAIN=348  LOAD-BEARING  {"N-F":1}

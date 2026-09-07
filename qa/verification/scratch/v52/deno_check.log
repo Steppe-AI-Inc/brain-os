@@ -1,0 +1,141 @@
+[0m[32mCheck[0m supabase/functions/sem-ai-command/index.ts
+[0m[1mTS7006 [0m[ERROR]: Parameter 'o' implicitly has an 'any' type.
+  const usable = (o) => o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string';
+[0m[31m                  ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m474[0m:[0m[33m19[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Timeout' is not assignable to type 'number'.
+        timer = setTimeout(
+[0m[31m        ~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m1676[0m:[0m[33m9[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Timeout' is not assignable to type 'number'.
+        timer = setTimeout(() => reject(new Error(`${label} request timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+[0m[31m        ~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m1738[0m:[0m[33m9[0m
+
+[0m[1mTS2339 [0m[ERROR]: Property 'deletedEntities' does not exist on type '{ pendingAction?: PendingAction | null | undefined; pendingConfirmation?: { summary?: string | undefined; action?: Record<string, unknown> | undefined; } | null | undefined; resolvedEntities?: ResolvedEntities | ... 1 more ... | undefined; }'.
+  const recentlyDeletedEntities: DeletedEntities | null = lastTurnOutput?.deletedEntities ?? null;
+[0m[31m                                                                          ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2354[0m:[0m[33m75[0m
+
+[0m[1mTS2448 [0m[ERROR]: Block-scoped variable 'PAST_COMPLETION_CLAIM_PATTERN' used before its declaration.
+            const readsAsAssertion = PAST_COMPLETION_CLAIM_PATTERN.test(replayLabel) || COMPLETION_WORD.test(replayLabel);
+[0m[31m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2779[0m:[0m[33m38[0m
+
+    'PAST_COMPLETION_CLAIM_PATTERN' is declared here.
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m4778[0m:[0m[33m15[0m
+
+[0m[1mTS2454 [0m[ERROR]: Variable 'PAST_COMPLETION_CLAIM_PATTERN' is used before being assigned.
+            const readsAsAssertion = PAST_COMPLETION_CLAIM_PATTERN.test(replayLabel) || COMPLETION_WORD.test(replayLabel);
+[0m[31m                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2779[0m:[0m[33m38[0m
+
+[0m[1mTS2448 [0m[ERROR]: Block-scoped variable 'COMPLETION_WORD' used before its declaration.
+            const readsAsAssertion = PAST_COMPLETION_CLAIM_PATTERN.test(replayLabel) || COMPLETION_WORD.test(replayLabel);
+[0m[31m                                                                                        ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2779[0m:[0m[33m89[0m
+
+    'COMPLETION_WORD' is declared here.
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5054[0m:[0m[33m15[0m
+
+[0m[1mTS2454 [0m[ERROR]: Variable 'COMPLETION_WORD' is used before being assigned.
+            const readsAsAssertion = PAST_COMPLETION_CLAIM_PATTERN.test(replayLabel) || COMPLETION_WORD.test(replayLabel);
+[0m[31m                                                                                        ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2779[0m:[0m[33m89[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              personNameById: planNameById, companyNameById: planCompanyNameById,
+[0m[31m              ~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2830[0m:[0m[33m15[0m
+
+    The expected type comes from property 'personNameById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m366[0m:[0m[33m12[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              personNameById: planNameById, companyNameById: planCompanyNameById,
+[0m[31m                                            ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2830[0m:[0m[33m45[0m
+
+    The expected type comes from property 'companyNameById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m366[0m:[0m[33m50[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
+[0m[31m              ~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2831[0m:[0m[33m15[0m
+
+    The expected type comes from property 'taskTitleById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m366[0m:[0m[33m89[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
+[0m[31m                                                ~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m2831[0m:[0m[33m49[0m
+
+    The expected type comes from property 'goalTitleById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m366[0m:[0m[33m126[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'claim' implicitly has an 'any' type.
+        function verifyStructuredClaim(claim) {
+[0m[31m                                       ~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5161[0m:[0m[33m40[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'q' implicitly has an 'any' type.
+          .map(safeQuestionFragment).filter((q) => q !== null) as string[];
+[0m[31m                                             ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5240[0m:[0m[33m46[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'a' implicitly has an 'any' type.
+          .map(safeProseFragment).filter((a) => a !== null) as string[];
+[0m[31m                                          ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5242[0m:[0m[33m43[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'v' implicitly has an 'any' type.
+              const bare = (v) => String(v).replace(/[“”‘’"']/g, '').trim().toLowerCase();
+[0m[31m                            ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5318[0m:[0m[33m29[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 's' implicitly has an 'any' type.
+            const labelKey = (s) => s.replace(/[“”‘’"']/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+[0m[31m                              ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5396[0m:[0m[33m31[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 's' implicitly has an 'any' type.
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5698[0m:[0m[33m36[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'c' implicitly has an 'any' type.
+          ? rawClaims.some((c) => c && typeof c === 'object' && (c.type === 'mutation_result' || c.type === 'assignment'))
+[0m[31m                            ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5716[0m:[0m[33m29[0m
+
+[0m[1mTS7034 [0m[ERROR]: Variable 'unclaimedTypes' implicitly has type 'any[]' in some locations where its type cannot be determined.
+          const unclaimedTypes = [];
+[0m[31m                ~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5825[0m:[0m[33m17[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'o' implicitly has an 'any' type.
+          const paOptions = rawOptions.map((o) => safeProseFragment(o && o.label)).filter((l) => l !== null) as string[];
+[0m[31m                                            ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5842[0m:[0m[33m45[0m
+
+[0m[1mTS7006 [0m[ERROR]: Parameter 'l' implicitly has an 'any' type.
+          const paOptions = rawOptions.map((o) => safeProseFragment(o && o.label)).filter((l) => l !== null) as string[];
+[0m[31m                                                                                           ^[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5842[0m:[0m[33m92[0m
+
+[0m[1mTS7005 [0m[ERROR]: Variable 'unclaimedTypes' implicitly has an 'any[]' type.
+            ? unclaimedLines.filter((_, i) => !RESTATED_BY_LIFECYCLE_REPORT.has(unclaimedTypes[i]))
+[0m[31m                                                                                ~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-416c14c/supabase/functions/sem-ai-command/index.ts[0m:[0m[33m5856[0m:[0m[33m81[0m
+
+Found 23 errors.
+
+[0m[1m[31merror[0m: Type checking failed.
+
+EXIT=1
