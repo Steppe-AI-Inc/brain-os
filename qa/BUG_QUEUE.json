@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:30:47Z",
+  "last_updated": "2026-09-07T13:05:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -80,7 +80,7 @@
       "likely_component": "web/lib/data/departments.ts :: getDepartments(), plus the /departments table Company column renderer",
       "blast_radius": "Not data loss, corruption, or a security issue. DB stays coherent and restore works. Real impact: a user reorganizing the business sees a department under a company they just archived with no signal, so may believe the archive failed or act on a stale org picture. Workaround exists (/companies/archived) - hence P2, not P1.",
       "regression_path": "qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql",
-      "regression_state": "EXPECTED_FAIL",
+      "regression_state": "EXPECTED_PASS",
       "regression_last_result": {
         "precondition_parent_actually_archived": true,
         "parent_status_in_db": "archived",
@@ -102,7 +102,13 @@
       "closure_scope": "CLOSED FOR THE ORIGINALLY-REPORTED SCOPE ONLY: /departments and /people. Verified live - both pages now render an archived badge, and source on master confirms both data functions select companies(name, status).",
       "class_remains_open": "THE FAILURE CLASS IS NOT CLOSED. An independent source grep of origin/master finds 23 remaining bare companies(name) selects in web/lib/data/, including tasks.ts and goals.ts. The Home PC tracks the remainder as canonical Work Order 9016651a-b7c7-4dea-be33-06fbd621b8e0. Closing BUG-001 must not be read as closing ARCHIVED_PARENT_NOT_SURFACED.",
       "false_positive_avoided": "A naive /archiv/i page-text check matched on /tasks and /goals, which would have wrongly suggested they were fixed - those pages simply carry an 'Archived' nav link. Settled from source instead of trusting the heuristic.",
-      "test_defect_found_in_own_artifact": "The BUG-001 regression carried a hardcoded false for departments_query_exposes_parent_status, making all_pass structurally unreachable even after a correct fix. Corrected in C002: the SQL script now asserts only what SQL can legitimately observe (archive took effect, picker excludes), and the UI assertion is explicitly delegated to Playwright. Same correction applied to the BUG-003 regression, which had been comparing a simulation of the OLD dashboard query against non_archived and so could never pass."
+      "test_defect_found_in_own_artifact": "The BUG-001 regression carried a hardcoded false for departments_query_exposes_parent_status, making all_pass structurally unreachable even after a correct fix. Corrected in C002: the SQL script now asserts only what SQL can legitimately observe (archive took effect, picker excludes), and the UI assertion is explicitly delegated to Playwright. Same correction applied to the BUG-003 regression, which had been comparing a simulation of the OLD dashboard query against non_archived and so could never pass.",
+      "regression_reconciliation_2026_09_07": {
+        "axis": "browser (product layer)",
+        "evidence": "/departments at 11:32Z and 11:57Z: the only department of an archived company is rendered as \"QA-SWARM-DEPT-ARCHIVED-PARENT-TEST | QA-SWARM-TEST-CO-VIA-CHAT Archived\" (marked), and the registered department under the archived company was not presented as active/unmarked. Consistent with the BUG-001 closure on /departments.",
+        "caveat": "qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql was NOT re-executed from this seat (no DB session). A DB-capable director should re-run it; if it still reports contradiction_present=true, REOPEN.",
+        "remainder": "The 23-surface remainder of the class is BUG-006 (open) - this flip covers /departments only."
+      }
     },
     {
       "bug_id": "BUG-002",
@@ -224,7 +230,7 @@
       "relationship_to_bug_001": "Related theme (archived leaking into active surfaces) but MATERIALLY DIFFERENT root cause and fix: BUG-001 is a join omitting companies.status; BUG-003 is an aggregate omitting a WHERE filter. Fixing one does not fix the other, so filed separately rather than folded in.",
       "blast_radius": "No data loss/security/authorization impact. Founder headline metric materially wrong (10 of 18 counted companies are archived), and the error grows with every archive. CLAUDE.md 26: incorrect information is itself a production defect.",
       "regression_path": "qa/scenarios-runner/dashboard_company_count_excludes_archived.sql",
-      "regression_state": "EXPECTED_FAIL",
+      "regression_state": "EXPECTED_PASS",
       "regression_last_result": {
         "dashboard_current_expression_counts": 18,
         "non_archived_companies": 8,
@@ -240,7 +246,12 @@
       "_qa_boundary": "QA did NOT implement the fix.",
       "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
       "closed_at": "2026-09-01T06:13:13Z",
-      "closure_evidence": "Live UI verified: /dashboard now renders \"10\" under the label \"Active Companies\" (label was \"Companies\"). DB non_archived_companies = 10 at the same moment, so the figure and its authoritative list now agree exactly. The 125% overstatement is gone. The relabel is a genuine improvement beyond the reported fix - the number is now self-describing rather than merely self-consistent."
+      "closure_evidence": "Live UI verified: /dashboard now renders \"10\" under the label \"Active Companies\" (label was \"Companies\"). DB non_archived_companies = 10 at the same moment, so the figure and its authoritative list now agree exactly. The 125% overstatement is gone. The relabel is a genuine improvement beyond the reported fix - the number is now self-describing rather than merely self-consistent.",
+      "regression_reconciliation_2026_09_07": {
+        "axis": "browser (product layer)",
+        "evidence": "Dashboard \"Active Companies\" tracked the archive/restore of QA-SWARM-TEST-CO-VIA-CHAT exactly: 11 (11:13Z) -> 10 after archive (11:13:59Z, 11:17Z) -> 11 after UI restore (12:00:59Z), while 9-10 archived companies existed on /companies/archived. Archived companies are not counted.",
+        "caveat": "qa/scenarios-runner/dashboard_company_count_excludes_archived.sql was NOT re-executed from this seat. Re-run with a DB session to close the SQL axis."
+      }
     },
     {
       "bug_id": "BUG-004",
@@ -297,7 +308,11 @@
         "Invite-only membership infrastructure exists: company_invitations table plus create_company_invitation() and accept_company_invitation() RPCs."
       ],
       "closure_caveat_disclosed": "NOT closed on the invite click-through UX. The Home PC flagged that invitePerson()'s end-to-end email-invite flow could not be exercised outside a live browser session, and Work PC did not exercise it either this pass - it needs a deliverable test inbox, which remains the standing blocker (see DISTINCT BROWSER PERSONAS UNAVAILABLE). The security invariants above ARE verified; the onboarding UX path is recorded as still unproven rather than folded into the closure.",
-      "closed_against": "production DB policies + deployed handle_new_auth_user trigger, verified 2026-09-01"
+      "closed_against": "production DB policies + deployed handle_new_auth_user trigger, verified 2026-09-01",
+      "regression_reconciliation_2026_09_07": {
+        "status": "RECONCILE BLOCKED from the Work-PC browser seat",
+        "reason": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql requires SQL impersonation (rolled-back transaction) which this session does not hold. regression_state stays EXPECTED_FAIL so the scheduler keeps surfacing it until a DB-capable director re-runs it. Not inferred to pass."
+      }
     },
     {
       "bug_id": "BUG-005",
