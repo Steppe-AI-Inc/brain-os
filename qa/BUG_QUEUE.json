@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:08:05Z",
+  "last_updated": "2026-09-07T12:15:18Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -611,7 +611,8 @@
       "regression_requirement": "REQUIRED, permanent. After any turn in which the assistant claims a mutation, a following turn in the SAME channel asking for canonical state must equal (a) the DB and (b) the answer a fresh channel gives to the identical question. Assert all three agree. The fresh-channel control must be part of the assertion - without it, a suite can pass while contaminated and clean answers differ.",
       "implementation_recommendation": "Do not fix by prompt wording. Two structural options for the Home PC to evaluate: (1) never persist an assistant claim of a mutation that produced no corresponding execution record, so it cannot re-enter the prompt as history; (2) make DB-derived grounding explicitly authoritative over prior assistant assertions at prompt-assembly time, and mark historical assistant text as unverified. Option 1 also directly serves BUG-005 Class D (execution-result continuity).",
       "_qa_boundary": "Work PC reproduced, isolated with an A/B control, and verified zero blast radius. Work PC did NOT read or modify the sem-ai-command source. Root cause below the prompt-assembly layer is the Home PC to confirm.",
-      "per_verifier_instruction": "The implementation PC must NOT self-certify this. Closure requires an independent Work-PC session to re-run steps 1-7, including the fresh-channel control, against the then-deployed build."
+      "per_verifier_instruction": "The implementation PC must NOT self-certify this. Closure requires an independent Work-PC session to re-run steps 1-7, including the fresh-channel control, against the then-deployed build.",
+      "regression_expansion_2026_09_07_relationship_variant": "DID NOT REPRODUCE for a relationship claim. In channel 8fd059d3 (where the BUG-021 receipt had claimed \"X is now recorded as a business unit of Y\"), asking for the parent \"as stored in the database right now\" returned \"no parent company relationship stored ... no parent_of or other hierarchical relationship recorded in context.companyRelationships\" - correct, and self-correcting. Fresh-channel control (47693382) gave the same correct answer. Boundary hypothesis for the Home PC: contamination requires a CLEAN prior success claim; the BUG-021 receipt contained its own failure line, and the relationship answer was grounded in an explicit structured list the model cited. Next expansion uses a clean fabricated success on a task attribute."
     },
     {
       "bug_id": "BUG-011",
