@@ -172,7 +172,9 @@
       "registered_at": "2026-09-07T11:05:06Z",
       "created_via": "product UI (/people Add person)",
       "environment": "production",
-      "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z"
+      "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z",
+      "canonical_id": "10398be5-0d56-4169-8035-425b294b70cb",
+      "employment_state": "ENDED at 2026-09-07T11:45:21Z (CAP-PERSON-END-EMPLOYMENT-UI); still referenced as manager of PERSON-001 (BUG-019). Restore attempt follows."
     },
     {
       "fixture_id": "FX-C002-PERSON-03",

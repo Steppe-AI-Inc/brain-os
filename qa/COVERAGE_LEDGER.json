@@ -1,19 +1,19 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-07T11:43:38Z",
+  "generated_at": "2026-09-07T11:46:17Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "required_capabilities": 101,
-  "executed_capabilities": 85,
-  "coverage_percentage": 84.2,
+  "executed_capabilities": 86,
+  "coverage_percentage": 85.1,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
-    "NOT_TESTED": 11,
+    "NOT_TESTED": 10,
     "QUEUED": 0,
     "RUNNING": 0,
     "PASS": 57,
-    "FAIL": 27,
+    "FAIL": 28,
     "BLOCKED": 5,
     "FLAKY": 1
   },
@@ -46,11 +46,11 @@
       "FLAKY": 0
     },
     "people": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 4,
-      "FAIL": 0,
+      "FAIL": 1,
       "BLOCKED": 0,
       "FLAKY": 0
     },
@@ -165,11 +165,11 @@
   },
   "by_surface": {
     "UI": {
-      "NOT_TESTED": 5,
+      "NOT_TESTED": 4,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 27,
-      "FAIL": 4,
+      "FAIL": 5,
       "BLOCKED": 5,
       "FLAKY": 0
     },
@@ -233,6 +233,11 @@
       "capability_id": "CAP-COMPANY-RESTORE-CHAT",
       "domain": "companies",
       "bug_id": "BUG-014"
+    },
+    {
+      "capability_id": "CAP-PERSON-END-EMPLOYMENT-UI",
+      "domain": "people",
+      "bug_id": "BUG-019"
     },
     {
       "capability_id": "CAP-PERSON-REASSIGN-CHAT",
@@ -374,5 +379,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 101 | PASS: 57 | FAIL: 27 | FLAKY: 1 | BLOCKED: 5 | NOT TESTED: 11 -> FAILED"
+  "headline": "Required capabilities: 101 | PASS: 57 | FAIL: 28 | FLAKY: 1 | BLOCKED: 5 | NOT TESTED: 10 -> FAILED"
 }
