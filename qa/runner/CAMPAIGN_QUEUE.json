@@ -26,9 +26,10 @@
       "id": "C002-BUG007-CLASS-SWEEP",
       "order": 20,
       "priority": "P2",
-      "status": "QUEUED",
+      "status": "PARTIAL",
       "title": "BUG-007 class sweep - the other four entities missing a Shown counterpart",
-      "directive": "BUG-007 established that companies, people, projects, goals and inventory ship a Total with no Shown field, so the system prompt's truncation rule cannot fire for them. Companies is proven. Per CLAUDE.md #13, prove the CLASS rather than the instance: for projects, goals and inventory, create enough synthetic fixtures to exceed each entity's context window, then ask Brain a counting question and compare against DB truth. people is a special case - it currently answers correctly ONLY because the real total sits under its limit(30) window, so push it past 30 and confirm the defect is latent rather than absent. A green answer below the window is NOT evidence of a fix."
+      "directive": "BUG-007 established that companies, people, projects, goals and inventory ship a Total with no Shown field, so the system prompt's truncation rule cannot fire for them. Companies is proven. Per CLAUDE.md #13, prove the CLASS rather than the instance: for projects, goals and inventory, create enough synthetic fixtures to exceed each entity's context window, then ask Brain a counting question and compare against DB truth. people is a special case - it currently answers correctly ONLY because the real total sits under its limit(30) window, so push it past 30 and confirm the defect is latent rather than absent. A green answer below the window is NOT evidence of a fix.",
+      "partial_reason": "2026-09-07T12:45:05Z: below-window probe done for people/projects/companies/goals (see BUG-007.class_sweep_2026_09_07, BUG-024). Past-the-window fixture creation (people > 30, projects/goals/inventory > window) still owed; re-queue when fixture budget allows."
     },
     {
       "id": "C002-ISSUE5-A-EXACT-TRANSCRIPT",

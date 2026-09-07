@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T13:05:00Z",
+  "last_updated": "2026-09-07T12:45:05Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 8,
-    "open_p2": 6,
+    "open_p2": 7,
     "open_p3": 5,
-    "total_open": 19,
+    "total_open": 20,
     "total_closed": 5
   },
   "bugs": [
@@ -574,7 +574,15 @@
       "evidence_paths": [
         "qa/bugs/BUG-007.md"
       ],
-      "_qa_boundary": "QA did not implement the fix."
+      "_qa_boundary": "QA did not implement the fix.",
+      "class_sweep_2026_09_07": {
+        "channel": "90ca88b4-2e6b-4167-970b-0627dff4db01",
+        "people": "20 total / 20 shown - matches /people (20). BELOW the limit(30) window: latent, not proven fixed (per campaign directive).",
+        "projects": "8 total / 8 shown - matches /projects (8). Below window: latent.",
+        "companies": "21 total / 12 shown - Shown/Total pair correct; active/archived split fabricated (BUG-024).",
+        "goals": "9 total / 9 shown - /goals tabs show \"all 8\"; archived-goals count checked separately to settle the difference of 1.",
+        "remaining_per_directive": "Create fixtures to push people past 30 and projects/goals/inventory past their windows, then re-ask. Not done today (fixture volume); left QUEUED as PARTIAL on the campaign item."
+      }
     },
     {
       "bug_id": "BUG-008",
@@ -997,6 +1005,30 @@
       "regression_requirement": "Founder-suite items: (D) confirmation binds to pending_action_id + action_type + canonical IDs - assert the bound company id equals the id of the entity the USER named, never a substitute; (F) pending-action survival across reload/navigation - assert survival (passes) AND that a survived action is still correctly bound; (L) mutation-result-equals-final-claim - assert person.company_id == receipt company, and that the receipt names no relationship absent from companyRelationships.",
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-6; the implementation PC may not self-certify."
+    },
+    {
+      "bug_id": "BUG-024",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "Brain fabricates the active/archived split of companies (\"17 active, 4 archived\"; truth 12 active, 9 archived) while getting the total (21) and the window (12) right - and gives a different \"active\" count in every channel (6, 17; truth 12)",
+      "ai_truth_classification": "COUNT_BY_INFERENCE (CLAUDE.md §26: LLM must not count rows; splits must come from aggregates)",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T12:45:05Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "channel": "90ca88b4-2e6b-4167-970b-0627dff4db01",
+        "earlier_channel": "f37387cd-db4a-4bd8-8eb3-d8d49aa8239b (turn 9: \"6 active companies\")"
+      },
+      "expected": "Total, active and archived counts come from aggregate queries: 21 total, 12 active, 9 archived (UI: /companies 12 rows, /companies/archived 9 rows at 12:03Z; dashboard Active Companies 11 at 12:01Z before QA-MULTI-CO-TWIN was created, 12 after).",
+      "actual": "\"21 companies total: 17 active, 4 archived. You're seeing 12 of them right now - 9 more exist beyond this view.\" The window statement is correct; the split is invented. Turn 9 of the continuity run (12:30Z) answered \"6 active companies\" listing only real ones.",
+      "what_held": "The Shown/Total pair for companies (BUG-007 fix) is present and correct: 12 shown of 21 total. People (20/20) and projects (8/8) also stated shown vs total honestly - but both sit BELOW their windows, so that is not evidence the truncation rule fires for them.",
+      "blast_radius": "None - read-only. Truth defect only.",
+      "severity_reasoning": "P2: an executive aggregate shown to the founder is wrong by 5 companies in each direction, and the same question yields different numbers across channels. Not P1 because no execution claim is involved and the total itself is right.",
+      "regression_requirement": "For every entity type: ask total / active / archived / shown in a fresh channel and assert each equals an aggregate query (COUNT ... GROUP BY status), not the window; repeat in 3 channels and assert identical numbers. Add to COLLECTION_TRUNCATION family.",
+      "_qa_boundary": "Work PC did not modify product code."
     }
   ]
 }
