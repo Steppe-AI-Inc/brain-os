@@ -87,7 +87,58 @@ requirement is in `qa/BUG_QUEUE.json` under the bug.
 (`work_pc_session_2026_09_07`). Channels: e7fd21c6, 1ea479c7, 0e47b58d, f32e9d70,
 8f74aef6, 3c4dfaef. Commits on `qa/work-pc`: f1a9ff3, 44d344a, 2a565ab, plus this one.
 
-## 8. Next priorities (untouched today)
+## 8. Next priorities (as of the morning session)
 Cross-org isolation beyond the manager picker (org switcher + data scoping), BUG-010
 regression expansion, issue #5 continuity suite items A–L, 50/100/200-turn runs, remaining
 22 NOT_TESTED capabilities, TEAM-READY multi-org/security, exploratory synthetic scenarios.
+
+---
+
+# Session 2 addendum (11:23–12:13Z) — same build, v92 unchanged
+
+**Coverage 73.7% → 92.2% (94/102).** NOT_TESTED is now **0**: every capability is executed
+or explicitly BLOCKED with a reason. Commits on `qa/work-pc` up to this one.
+
+## New defects (all reproduced, evidenced, regression requirement in `BUG_QUEUE.json`)
+
+| ID | Sev | One line |
+|---|---|---|
+| **BUG-018** | **P1** | "undo that" after a chat rename → *"Renaming X back to Y."* — **no mutation** (DB unchanged at +10s/+44s); an explicit rename of the same company in a fresh channel executed in 10s. Fabricated execution on the undo verb, correct target. |
+| **BUG-020** | **P1** | Chat cannot resolve an **active** company on the BU-create and archive command paths that it resolves for questions, renames and project-create — deterministic (2/2 fresh channels), and it offers **real companies** (or already-archived ones) as substitutes. Sole BU-parent path in the product. |
+| **BUG-021** | **P1** | "X is a business unit of Y" **half-applies** (type flips to Business unit, no parent link) with a **self-contradicting receipt** — a system failure line followed by "X is now recorded as a business unit of Y". |
+| BUG-015 | P2 | Org selector scopes /people, /projects, /goals but **not** /companies, half the dashboard, or Brain Chat ("I don't have a way to determine which organization you have selected"). View filter, not a boundary. |
+| BUG-017 | P2 | Task named exactly in a command is invisible when outside the 15-of-32 context window — no named-task lookup (same class as the companies/people fix). |
+| BUG-019 | P2 | Ending a person's employment leaves them the **live manager** of active reports; unflagged; Brain states the stale link as fact. |
+| BUG-016 | P3 | Edit-task dialog shows "No company" for a task whose company is archived (value intact, display lies). |
+| BUG-022 | P3 | /companies row action labelled **"Delete"** performs an **archive** (its own dialog says so). |
+
+## Corrections to the morning handover — read these
+- **BUG-014:** the claim "unrecoverable by the founder / UI has no restore path" is **withdrawn**.
+  `/companies/archived` has Restore and Permanently delete; I restored the stuck fixture through
+  it at 12:00:33Z. What stands, still P1: the fresh-channel *"may have been permanently deleted"*
+  and the in-channel fabricated *"restored."* — neither reply pointed to the UI path.
+- **BUG-013** is reframed: the product's archive dialog *declares* "nothing attached is touched",
+  so non-cascade is design, not omission → `DESIGN_DECISION_REQUIRED`. Still a defect: live
+  Set-manager/invite/onboarding controls on people of an archived company.
+- **Fixture alert RESOLVED** — `QA-SWARM-TEST-CO-VIA-CHAT` is active again. No Home-PC action.
+- My 11:12Z probe "no UI archive path" was **wrong** (archive is the mislabelled "Delete");
+  recorded as a Work-PC error under `CAP-COMPANY-ARCHIVE-UI-MISSING`.
+
+## Passed (same rigor)
+Multi-action chat (one turn, two creates, receipt == mutations); department update via chat;
+project/department/task/goal UI edits and deletes; person end + restore employment (state
+symmetric); company archive via chat and restore via UI (round-trip symmetric, badges cleared,
+manager link intact); entity-resolution **Class A** (real, read-only, data matched UI); issue #5
+**Class B bare-"yes" regression PASS** (partial-name archive → clarification, "yes" did not bind).
+
+## Blocked (with reasons in the inventory)
+Permanent delete + delete-cascade (**session permission layer denied the irreversible click on
+a synthetic fixture — founder decision needed**); approval decide (no way to raise a synthetic
+approval; the 8 pending are real); fresh-session truth and multi-user persona (need a second
+credential).
+
+## Production readiness — unchanged verdict, sharper reasons
+Single-founder use with UI verification of every Brain claim: usable now. Team use: **not yet**.
+Seven open P1s, all execution-truth (BUG-002, 005, 010, 014, 018, 020, 021). The
+org selector is not a tenant boundary (BUG-015) and persona-level isolation is untestable
+from this seat. Gate = those P1s closed by independent Work-PC retest + a persona isolation sweep.

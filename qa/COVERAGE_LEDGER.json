@@ -1,6 +1,6 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-07T12:08:58Z",
+  "generated_at": "2026-09-07T12:13:47Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
@@ -9,12 +9,12 @@
   "coverage_percentage": 92.2,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
-    "NOT_TESTED": 1,
+    "NOT_TESTED": 0,
     "QUEUED": 0,
     "RUNNING": 0,
     "PASS": 62,
     "FAIL": 31,
-    "BLOCKED": 7,
+    "BLOCKED": 8,
     "FLAKY": 1
   },
   "by_domain": {
@@ -91,12 +91,12 @@
       "FLAKY": 0
     },
     "approvals": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 1,
       "FAIL": 1,
-      "BLOCKED": 0,
+      "BLOCKED": 1,
       "FLAKY": 0
     },
     "brain-chat": {
@@ -165,12 +165,12 @@
   },
   "by_surface": {
     "UI": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 30,
       "FAIL": 5,
-      "BLOCKED": 6,
+      "BLOCKED": 7,
       "FLAKY": 0
     },
     "BRAIN_CHAT": {
@@ -206,6 +206,11 @@
       "capability_id": "CAP-COMPANY-DELETE-UI",
       "domain": "companies",
       "reason": "Permission layer. The real permanent delete is the \"Permanently delete\" button on /companies/archived (the active-list \"Delete\" only archives - BUG-022). The Work-PC session's auto-mode classifier DENIED the click on the registered synthetic fixture QA-C002-RENAMED-X (8fdad6e2-...) as an irreversible production action. Not worked around. Needs explicit founder authorization for an irreversible delete of a registered synthetic fixture, or a staging environment."
+    },
+    {
+      "capability_id": "CAP-APPROVAL-DECIDE-UI",
+      "domain": "approvals",
+      "reason": "No synthetic approval can be generated from this seat, and the 8 pending approvals are REAL (incl. 358eddeb-...) and must not be decided. Attempts: (a) created task QA-C002-APPROVAL-TASK-01 with \"Approval required\" checked under QA-MULTI-CO - the flag appears on the card but NO approval record appeared on /approvals (still 8 pending / 20 total); (b) moving the card to the \"Needs Approval\" column is drag-only (the task editor has no status field) and the board's dnd-kit sensor did not respond to the keyboard sequence Space/ArrowRight/Space, nor to a synthetic mouse drag; (c) routing a high-risk chat command to an approval would require a permanent-delete-class action the founder has not authorized. Needs: a fixture-tagged way to raise a synthetic approval (or Home-PC guidance on what creates approval rows), then the decide-and-verify-execution test can run."
     },
     {
       "capability_id": "CAP-RELOAD-FRESH-SESSION-TRUTH",
@@ -404,5 +409,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 102 | PASS: 62 | FAIL: 31 | FLAKY: 1 | BLOCKED: 7 | NOT TESTED: 1 -> FAILED"
+  "headline": "Required capabilities: 102 | PASS: 62 | FAIL: 31 | FLAKY: 1 | BLOCKED: 8 | NOT TESTED: 0 -> FAILED"
 }

@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T12:08:05Z",
+  "generated_at": "2026-09-07T12:12:40Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -738,10 +738,15 @@
         "PERMISSION",
         "AUDIT"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-approval"
+      ],
+      "status": "BLOCKED",
       "campaign_1_item": 9,
-      "notes": "HIGH VALUE: approvals are the governance chokepoint. decideApproval must actually EXECUTE the deferred action, not just flip a status - this exact class of bug (approval approved, nothing executed) is documented in KNOWN_FAILURE_MODES."
+      "notes": "HIGH VALUE: approvals are the governance chokepoint. decideApproval must actually EXECUTE the deferred action, not just flip a status - this exact class of bug (approval approved, nothing executed) is documented in KNOWN_FAILURE_MODES.",
+      "tested_against_sha": "8521b0e",
+      "blocked_reason": "No synthetic approval can be generated from this seat, and the 8 pending approvals are REAL (incl. 358eddeb-...) and must not be decided. Attempts: (a) created task QA-C002-APPROVAL-TASK-01 with \"Approval required\" checked under QA-MULTI-CO - the flag appears on the card but NO approval record appeared on /approvals (still 8 pending / 20 total); (b) moving the card to the \"Needs Approval\" column is drag-only (the task editor has no status field) and the board's dnd-kit sensor did not respond to the keyboard sequence Space/ArrowRight/Space, nor to a synthetic mouse drag; (c) routing a high-risk chat command to an approval would require a permanent-delete-class action the founder has not authorized. Needs: a fixture-tagged way to raise a synthetic approval (or Home-PC guidance on what creates approval rows), then the decide-and-verify-execution test can run.",
+      "observation": "Possible truth gap for the Home PC to classify: a task can carry \"approval required\" with no corresponding approval item anywhere, so nobody is routed to decide it. If approvals are only created on status change, the flag alone is a dangling promise."
     },
     {
       "capability_id": "CAP-APPROVAL-DECIDE-CHAT-ABSENT",
