@@ -174,7 +174,7 @@
       "environment": "production",
       "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z",
       "canonical_id": "10398be5-0d56-4169-8035-425b294b70cb",
-      "employment_state": "ENDED at 2026-09-07T11:45:21Z (CAP-PERSON-END-EMPLOYMENT-UI); still referenced as manager of PERSON-001 (BUG-019). Restore attempt follows."
+      "employment_state": "ACTIVE (ended 11:44Z, restored 11:46Z via /people Restore employment). Still manager of PERSON-001."
     },
     {
       "fixture_id": "FX-C002-PERSON-03",

@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:45:21Z",
+  "generated_at": "2026-09-07T11:46:50Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -2224,6 +2224,29 @@
       },
       "evidence": "Selected CLIX GPS in the sidebar \"Current organization\" control, then visited /people, /projects, /companies, /goals, /dashboard and a fresh chat channel (e6a9225c-4834-4e0b-a88a-b0a5993bbd77). The selector persisted on every page.",
       "security_note": "No cross-org LEAK observed for the founder (who legitimately sees everything). The finding is that the selector is a UI view filter, not a tenant boundary, and the AI layer never receives it. Persona-level (non-founder) isolation is the real TEAM-READY gate and is still BLOCKED (CAP-BROWSER-PERSONA-MULTIUSER)."
+    },
+    {
+      "capability_id": "CAP-PERSON-RESTORE-EMPLOYMENT-UI",
+      "domain": "people",
+      "resource": "person",
+      "operation": "restore_employment",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "UI",
+        "RELOAD"
+      ],
+      "scenario_ids": [
+        "C002-end-employment"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "8521b0e",
+      "added_by": "work-pc-independent-qa 2026-09-07 - discovered live as the counterpart of CAP-PERSON-END-EMPLOYMENT-UI",
+      "evidence": "Row control title=\"Restore employment\" (lucide rotate-ccw) on the ended fixture QA-C002-MGR-PERSON-02. Click executed IMMEDIATELY with no confirmation dialog. \"Employment ended\" marker gone, \"Set manager\" control back, persisted across full reload at 11:46:50Z. End -> restore is symmetric in state.",
+      "note": "End employment confirms; restore does not. Defensible (restore is non-destructive) but worth a product decision. The manager link PERSON-001 -> PERSON-02 was never touched in either direction (BUG-019)."
     }
   ]
 }
