@@ -249,6 +249,23 @@
       "registered_at": "2026-09-07T11:35:59Z",
       "created_via": "Brain Chat",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-COMPANY-RENAMED-X",
+      "kind": "company",
+      "resource_type": "company",
+      "name": "QA-C002-RENAMED-X",
+      "synthetic_display_name": "QA-C002-RENAMED-X",
+      "canonical_id": "8fdad6e2-fffb-41bc-af0a-df8cab09110b",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "source_origin": "ADOPTED - same canonical id as the C002 Class B target QA-C002-CLASSB-TARGET (renamed during C002); id read from the /projects form hidden company_id",
+      "purpose": "Second ACTIVE synthetic company for parent-change tests (CAP-ORGBU-CHANGE-PARENT-CHAT).",
+      "cleanup": "RETAIN.",
+      "registered_at": "2026-09-07T11:48:25Z",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
