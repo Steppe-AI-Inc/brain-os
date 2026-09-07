@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:52:57Z",
+  "generated_at": "2026-09-07T11:55:55Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -345,9 +345,13 @@
         "UI",
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 2
+      "scenario_ids": [
+        "C002-department-chat"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 2,
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "evidence": "Fresh channel bf0a9fa0-077f-4d2a-a965-b8720e6e028a: \"Rename the department QA-C002-DEPT-01 to QA-C002-DEPT-01-RENAMED.\" -> \"Renamed QA-C002-DEPT-01 to QA-C002-DEPT-01-RENAMED.\" /departments after reload at 11:55:55Z: QA-C002-DEPT-01-RENAMED | QA-MULTI-CO, 2 rows (no duplicate). Registered fixture FX-C002-DEPT-01 under registered company FX-C002-COMPANY-MULTI. DB == UI == receipt."
     },
     {
       "capability_id": "CAP-DEPARTMENT-DELETE-CHAT-ABSENT",
