@@ -783,7 +783,7 @@
         "FRESH_SESSION": "BLOCKED"
       },
       "evidence": "RELOAD axis is evidenced by every capability executed today: each mutation (project create/edit, manager assign/reassign, archive, task edit, goal edit) was re-read after a full page reload and matched. FRESH_SESSION (new browser identity / second login) cannot be exercised from this seat without a second credential; per standing instruction no sign-out/sign-in cycling. Not inferred to PASS.",
-      "block_reason": "Requires a second authenticated session or persona credential (same blocker as CAP-BROWSER-PERSONA-MULTIUSER)."
+      "blocked_reason": "Requires a second authenticated session or persona credential (same blocker as CAP-BROWSER-PERSONA-MULTIUSER)."
     },
     {
       "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN",
