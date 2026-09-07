@@ -1,6 +1,6 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-07T12:02:05Z",
+  "generated_at": "2026-09-07T12:04:02Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
@@ -9,22 +9,22 @@
   "coverage_percentage": 90.2,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
-    "NOT_TESTED": 5,
+    "NOT_TESTED": 3,
     "QUEUED": 0,
     "RUNNING": 0,
     "PASS": 61,
     "FAIL": 30,
-    "BLOCKED": 5,
+    "BLOCKED": 7,
     "FLAKY": 1
   },
   "by_domain": {
     "companies": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 10,
       "FAIL": 1,
-      "BLOCKED": 0,
+      "BLOCKED": 1,
       "FLAKY": 0
     },
     "departments": {
@@ -118,12 +118,12 @@
       "FLAKY": 0
     },
     "relationships": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 1,
       "FAIL": 3,
-      "BLOCKED": 0,
+      "BLOCKED": 1,
       "FLAKY": 0
     },
     "qa-platform": {
@@ -165,12 +165,12 @@
   },
   "by_surface": {
     "UI": {
-      "NOT_TESTED": 2,
+      "NOT_TESTED": 1,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 30,
       "FAIL": 5,
-      "BLOCKED": 5,
+      "BLOCKED": 6,
       "FLAKY": 0
     },
     "BRAIN_CHAT": {
@@ -183,12 +183,12 @@
       "FLAKY": 1
     },
     "MIXED": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
       "PASS": 0,
       "FAIL": 2,
-      "BLOCKED": 0,
+      "BLOCKED": 1,
       "FLAKY": 0
     },
     "API": {
@@ -203,9 +203,19 @@
   },
   "blocked_capabilities": [
     {
+      "capability_id": "CAP-COMPANY-DELETE-UI",
+      "domain": "companies",
+      "reason": "Permission layer. The real permanent delete is the \"Permanently delete\" button on /companies/archived (the active-list \"Delete\" only archives - BUG-022). The Work-PC session's auto-mode classifier DENIED the click on the registered synthetic fixture QA-C002-RENAMED-X (8fdad6e2-...) as an irreversible production action. Not worked around. Needs explicit founder authorization for an irreversible delete of a registered synthetic fixture, or a staging environment."
+    },
+    {
       "capability_id": "CAP-RELOAD-FRESH-SESSION-TRUTH",
       "domain": "navigation",
       "reason": "Requires a second authenticated session or persona credential (same blocker as CAP-BROWSER-PERSONA-MULTIUSER)."
+    },
+    {
+      "capability_id": "CAP-CASCADE-DELETE-BU-WITH-EMPLOYEES",
+      "domain": "relationships",
+      "reason": "Same permission block as CAP-COMPANY-DELETE-UI: the permanent-delete click was denied by the session classifier. Archive-with-dependents (the reversible half) behaves per BUG-013: the BU-typed company archived while holding an active employee, no cascade."
     },
     {
       "capability_id": "CAP-QA-COMMAND-CENTER-DASHBOARD",
@@ -389,5 +399,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 102 | PASS: 61 | FAIL: 30 | FLAKY: 1 | BLOCKED: 5 | NOT TESTED: 5 -> FAILED"
+  "headline": "Required capabilities: 102 | PASS: 61 | FAIL: 30 | FLAKY: 1 | BLOCKED: 7 | NOT TESTED: 3 -> FAILED"
 }
