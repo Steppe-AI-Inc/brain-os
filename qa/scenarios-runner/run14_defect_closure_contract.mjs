@@ -209,8 +209,8 @@ C('D106.hold.unmentionedSameLength', 'CONTRACT',
 C('D107.bothArmsShareThePredicate', 'CONTRACT',
   'D107: BOTH drift arms must call readsAsCompletion(), not a private copy of the pattern list',
   () => {
-    const arm1 = src.match(/const legacyProseFallback =[\s\S]{0,900}?;\r?\n/);
-    const arm2 = src.match(/const unaccountedCompletionProse =[\s\S]{0,900}?;\r?\n/);
+    const arm1 = src.match(/const legacyProseFallback =[\s\S]{0,3000}?;\r?\n/);
+    const arm2 = src.match(/const unaccountedCompletionProse =[\s\S]{0,3000}?;\r?\n/);
     if (!arm1 || !arm2) throw new Error('drift arms not found — update this harness, do not let it pass');
     return arm1[0].includes('readsAsCompletion(') && arm2[0].includes('readsAsCompletion(');
   });

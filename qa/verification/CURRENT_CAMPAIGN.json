@@ -1,10 +1,10 @@
 {
-  "campaign": 109,
-  "verifier": 49,
+  "campaign": 110,
+  "verifier": 50,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
-  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, thirteenth round)",
+  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, fourteenth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "b54c0d655933c8bd",
+  "index_sha256_prefix": "5394485e91a7c74f",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -15,25 +15,24 @@
     "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
   },
   "prior": {
-    "campaign": 108,
-    "verifier": 48,
-    "verdict": "FAIL on 27bd9f0 — six open v92 regressions V48-D1..D6 (four never measured before because prior measurements used a development baseline), gaps D7/D8; three-arm instrument confirmed complete; V47-D5 refuted",
-    "artifact_commit": "ccaa1ae on verify-27bd9f0-campaign108",
-    "artifact": "qa/verification/proposed/v48_known_failure_modes_entry_118.md"
+    "campaign": 109,
+    "verifier": 49,
+    "verdict": "FAIL on 894c958 — V49-D1 (P1 truth, pendingAction-turn history recounts; never measured in 13 rounds), V49-D2 (P1 fabrication, INTRODUCED by the V48-D5 summary cap), V49-D3/D4 (P2 fabrications, pack-independent negator names), V49-D5/D6 (P2 truths, guard vocabulary), V49-D7 (P2 fabrication, INTRODUCED by the V48-D4 guard); C9 objectName guard dead",
+    "artifact_commit": "verify-894c958-campaign109",
+    "artifact": "qa/verification/proposed/v49_known_failure_modes_entry_118.md"
   },
-  "what_this_campaign_did": "Closed V48-D1, D2, D3, D4, D5 and D7 with five single-line edits to index.ts (D3 entity-gated first-person arm per #48 prepared fix; D2 subject/anchor prefix on processing/executing arms; D5 4000-char cap on readsAsCompletion input; D4 conditioned-offer guard copied to the FUTURE_PROMISE consumer; D1 narrow lowercase prep+quantifier rescue in the gerund-subject guard). Carried #48 tooling in-tree (qa/verification/scratch/v48). buildGate() now takes an entity pack (default empty). Four battery suites declare the names they assert as caught.",
+  "what_this_campaign_did": "Closed all seven V49 findings + C9. D1: on a pendingAction turn both belt consumers strip HISTORY-shaped clauses (aux+participle+temporal/agent marker) before the belt runs — can only move toward v92 parity on such turns; the D3 blanket short-circuit stays removed (undated fabrication + question still caught). D2: whole-summary cap restored for the belt (bounded cost) with a LEGACY_PAST_COMPLETION floor on the tail beyond 4,000 chars (v92-level coverage). D3: negator tokens inside a pack-recognised name are skipped (scan cursor advanced past the name). D4: lowercase-continued title run consulted against the pack. D5/D6: guard vocabulary (before/until/only with/but first/first; your confirmation|approval; just say yes) at BOTH consumers from one definition; the EXECUTION guard now tests the whole input, not the clause. D7: first-person arm anchors after a dash/semicolon too (;, no literal `;` in the declaration). C9: objectName guard deleted as unobservable. A \"nor-bypass\" edit was applied, found to be a no-op (case-sensitive exclusion never matched \"Nor\"), and REVERTED.",
   "implementing_session_evidence_not_to_be_trusted": {
-    "v48_suite": "58 passed / 0 failed (qa/verification/proposed/v48_regression_additions.mjs)",
-    "mutation_proof_own": "5/5 fixes load-bearing (D4 instrument was vacuous on first cut; corrected to evaluate the shipped IIFE)",
-    "v48_differential": "DIFFERENTIAL CLEAN — 0 truth / 0 fabrication regressions vs v92, both pack configurations",
-    "battery": "38 suites: 36 exit-0; 2 non-zero are DB-P1 machine tests red by design on the dev machine",
-    "v48_mutation_mjs": "13 load-bearing / 5 no-effect — SAME on unmodified 27bd9f0 in #48 worktree; #48 text says 17/1 (DISCREPANCY, unresolved)",
-    "v48_matcher": "8 candidate binds where v92 dead-ends (as #48: intended) / 0 dead-ends where v92 binds",
-    "parity_corpus": "all pinned rows still corrected",
-    "deno_check": "23 TS errors == baseline (via npx deno@2; deno not on PATH)",
-    "crlf": "0 bare LF; 5 insertions / 5 deletions in index.ts",
-    "v46_gate": "33/3 pre-existing (stale CRLF line-count pin; exponent 2.6 below the cap; closed|added)",
-    "v47_gate": "44/8 pre-existing (D2 pack trade; stale anchors; parity-corpus coverage gaps)"
+    "v49_suite": "16 passed / 0 failed — NOTE its belt term now evaluates the SHIPPED legacyProseFallback with result.pendingAction (first cut called readsAsCompletion directly and could not see the consumer fix); C3 and C9 rewritten accordingly",
+    "v48_suite": "58 passed / 0 failed",
+    "mutation_proof_v49": "7/7 fix components load-bearing (D1 strip, D2 tail floor, D3 cursor advance, D4 lowercase run, D5/D6 vocab, D6 whole-summary, D7 anchor)",
+    "v49_differential_populated": "CLEAN on 691 rows (G-PA-T 0/16 regressions, G-PA-F 6 gains) — harness candArm patched to evaluate the shipped consumer",
+    "v49_differential_empty": "NOT CLEAN — exactly the disclosed D6 trade: B-F FR=27, D-T TR=1, E-F FR=1 (+2 both-ship); no other section",
+    "v48_differential": "CLEAN both pack configurations",
+    "battery": "38 suites: 36 exit-0; 2 red = DB-P1 machine tests (by design); run14 D107 window widened 900->3000 (its slice could no longer reach the longer consumer line)",
+    "deno_check": "23 TS errors == baseline (one new TS18047 from the cursor advance was fixed without a cast)",
+    "matcher": "8 intended binds / 0 dead-ends (unchanged)",
+    "crlf": "0 bare LF; 6 insertions / 8 deletions in index.ts vs 894c958"
   },
   "verdict": null,
   "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
@@ -108,18 +107,25 @@
   "unresolved_discrepancy": "V45-N2 runtime. #45 measured 657 ms at 33,639 chars and read the belt as quadratic. Re-derived here across FIVE input shapes (punctuated prose with and without completion vocabulary, one long clause with and without it) and TWO entry points (readsAsCompletion, and the full legacyProseFallback decision window): EVERY ONE IS LINEAR at ~2x per doubling. Worst case anywhere is 10.9 ms for the full window at 33,639 chars. Both of my hypotheses — clause splitting, and entry point — are REFUTED. The discrepancy is UNEXPLAINED, not dismissed. Practically: ~10 ms per turn at any realistic length, not a deploy risk on this evidence; the relative cost over v92 single regex is 3-4 orders of magnitude and is real. Probes: v46_runtime_shapes.mjs, v46_runtime_entrypoint.mjs.",
   "INSTRUMENT_CORRECTION": "CAMPAIGN-WIDE. Deployed v92 has TWO prose-overwrite arms (FUTURE_PROMISE_PATTERN gating PAST_COMPLETION_CLAIM_PATTERN). Every differential in 17 verifiers modelled ONE. Use qa/verification/lib/v92_reference.mjs v92Destroys(); it self-checks that both arms are distinguishable. The error is ONE-DIRECTIONAL: it only ever overstated regressions, so no past PASS is invalidated, but NO COUNT IN THIS RECORD SHOULD BE QUOTED WITHOUT RE-DERIVING IT. Re-derived on the open class: 64 -> 48.",
   "open_not_blocking": [
-    "V48-D6 / V47-D2: negator-token name + head noun ships with an EMPTY/truncated pack while v92 corrects (by destroying; v92 also destroys the truthful determiner reading). UNSIZED TRADE — founder-level.",
-    "V46-D1: exponent ~2.6 below the 4,000-char cap; bounded at ~73 ms worst case by V48-D5, not linearised.",
-    "V46-D5 / V48-D8: CONFIRMED_COMPLETION missing closed|added; re-measure with the entity signal before withdrawing again.",
-    "#48 mutation.mjs 13/5 vs recorded 17/1 — record discrepancy, not a code change.",
-    "v46/v47 gate files carry stale pins/anchors (CRLF line count 6003 vs 6017; C11 nameInternal mutant; D7b repro anchor)."
+    "V48-D6 / V47-D2 / V49 B-F: negator-name + head noun ships with an EMPTY/truncated pack (27 rows) while v92 corrects by destroying (and destroys the truthful determiner reading). SIZED, still a founder-level trade; pack truncation frequency in production unknown.",
+    "Growth exponent below the 4,000-char cap ~2.6-3.8 on the pathological shape; bounded at ~73 ms, not linearised.",
+    "V46-D5 / V48-D8: CONFIRMED_COMPLETION missing closed|added.",
+    "R-AUXGAP gap negators (\"was, by no means, archived\") destroyed by BOTH builds — shared cost, 6 rows.",
+    "chat_channel_state read/write is LIVE on deploy (202609020001 is applied in production) — the 30-minute durable pendingAction path has no differential coverage (V49 Q4)."
   ],
   "founder_ruling": "APPLIED. The conditioned offer does not fire: an offer whose own clause conditions it on the founder confirmation is not a claim that anything happened. 48 of 64 rows to 0, every unconditioned claim still caught (5/5), mutation-proven. #44 gate 115/3 -> 118/0, #45 gate 53/1 -> 54/0.",
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
-  "index_sha256_lf_prefix": "1a3cbe8ea893e659",
+  "index_sha256_lf_prefix": "94ca9ec5f94dcfb2",
   "previous_campaign_pointer": {
     "campaign": 108,
     "verifier": 48,
     "index_sha256_prefix": "90fdc7dc35117e52"
-  }
+  },
+  "record_corrections_applied": [
+    "v31 32/2 (was 33/1)",
+    "v42 11/2 (was 12/1)",
+    "v47 43/9 (was 44/8)",
+    "#48 mutation.mjs 13/5 both trees (was 17/1)",
+    "empty-pack #48 differential has 1 truth regression (commit 2b04857 said 0/0 both packs)"
+  ]
 }
