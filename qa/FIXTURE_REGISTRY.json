@@ -192,6 +192,23 @@
       "created_via": "product UI (/people Add person)",
       "environment": "production",
       "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z"
+    },
+    {
+      "fixture_id": "FX-C002-COMPANY-MULTI",
+      "kind": "company",
+      "resource_type": "company",
+      "name": "QA-MULTI-CO",
+      "synthetic_display_name": "QA-MULTI-CO",
+      "canonical_id": "49ee1875-21b0-4285-bd45-dc1c05f3d987",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "source_origin": "ADOPTED - pre-existing synthetic QA company (hosts QA-MULTI-EMPLOYEE and QA-MULTI-TASK) found live; canonical id read from the /projects create form hidden company_id after selecting it",
+      "purpose": "ACTIVE shared company for C002 while LEGACY-C000-company-qa-swarm-test-co is stuck archived (BUG-014). First use: CAP-CHAT-MULTI-ACTION.",
+      "cleanup": "RETAIN; never archive without re-checking BUG-014 status first.",
+      "registered_at": "2026-09-07T11:34:07Z",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
