@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:15:18Z",
+  "last_updated": "2026-09-07T12:18:06Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -612,7 +612,8 @@
       "implementation_recommendation": "Do not fix by prompt wording. Two structural options for the Home PC to evaluate: (1) never persist an assistant claim of a mutation that produced no corresponding execution record, so it cannot re-enter the prompt as history; (2) make DB-derived grounding explicitly authoritative over prior assistant assertions at prompt-assembly time, and mark historical assistant text as unverified. Option 1 also directly serves BUG-005 Class D (execution-result continuity).",
       "_qa_boundary": "Work PC reproduced, isolated with an A/B control, and verified zero blast radius. Work PC did NOT read or modify the sem-ai-command source. Root cause below the prompt-assembly layer is the Home PC to confirm.",
       "per_verifier_instruction": "The implementation PC must NOT self-certify this. Closure requires an independent Work-PC session to re-run steps 1-7, including the fresh-channel control, against the then-deployed build.",
-      "regression_expansion_2026_09_07_relationship_variant": "DID NOT REPRODUCE for a relationship claim. In channel 8fd059d3 (where the BUG-021 receipt had claimed \"X is now recorded as a business unit of Y\"), asking for the parent \"as stored in the database right now\" returned \"no parent company relationship stored ... no parent_of or other hierarchical relationship recorded in context.companyRelationships\" - correct, and self-correcting. Fresh-channel control (47693382) gave the same correct answer. Boundary hypothesis for the Home PC: contamination requires a CLEAN prior success claim; the BUG-021 receipt contained its own failure line, and the relationship answer was grounded in an explicit structured list the model cited. Next expansion uses a clean fabricated success on a task attribute."
+      "regression_expansion_2026_09_07_relationship_variant": "DID NOT REPRODUCE for a relationship claim. In channel 8fd059d3 (where the BUG-021 receipt had claimed \"X is now recorded as a business unit of Y\"), asking for the parent \"as stored in the database right now\" returned \"no parent company relationship stored ... no parent_of or other hierarchical relationship recorded in context.companyRelationships\" - correct, and self-correcting. Fresh-channel control (47693382) gave the same correct answer. Boundary hypothesis for the Home PC: contamination requires a CLEAN prior success claim; the BUG-021 receipt contained its own failure line, and the relationship answer was grounded in an explicit structured list the model cited. Next expansion uses a clean fabricated success on a task attribute.",
+      "regression_expansion_2026_09_07_task_variant": "Could not obtain a clean fabricated success on a task attribute: the named task was outside the context window (BUG-017), so the model declined honestly in both the contaminated-channel and fresh-channel arms. No contamination possible without a false claim. Expansion needs an entity type with a working named lookup (company/person) and an unsupported operation - e.g. the BUG-002 project-rename shape already used, or a person-attribute edit."
     },
     {
       "bug_id": "BUG-011",
@@ -789,7 +790,8 @@
       "blast_radius": "None - read-only; task unchanged.",
       "severity_reasoning": "P2: honest, so no false belief is created; but any task-targeted command (assign owner, archive, restore, delete - all real chat fields) silently cannot reach roughly half the tasks. With 32 tasks today and a 15-row cap, this hits real work now.",
       "regression_requirement": "Mirror qa/scenarios-runner/sem_ai_command_named_person_lookup_truth.mjs for tasks: a 15-row capped list that excludes the named task plus a targeted lookup must merge it in; plus a live probe naming a task outside the window.",
-      "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup-parity hypothesis is drawn from the existing scenarios-runner test for people and is for the Home PC to confirm."
+      "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup-parity hypothesis is drawn from the existing scenarios-runner test for people and is for the Home PC to confirm.",
+      "additional_evidence_newest_task": "SHARPER: task QA-C002-APPROVAL-TASK-01, created via UI at 12:10Z, was already outside the window at 12:16-12:17Z in three separate fresh channels (dd2cee4b, 902c7ba6 and the priority-change attempt): \"The task list shown contains 15 of 34 total tasks, so this task may exist outside the visible window.\" So the capped list is NOT newest-first - the most recently created task is invisible to chat. Declines were honest (no fabrication); DB priority unchanged (medium). Any task-targeted chat command on new work is currently unreachable."
     },
     {
       "bug_id": "BUG-018",
