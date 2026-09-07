@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T10:34:16Z",
+  "last_updated": "2026-09-07T11:05:06Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -30,8 +30,8 @@
     "open_p0": 0,
     "open_p1": 3,
     "open_p2": 1,
-    "open_p3": 2,
-    "total_open": 6,
+    "open_p3": 3,
+    "total_open": 7,
     "total_closed": 5
   },
   "bugs": [
@@ -609,6 +609,23 @@
       "implementation_recommendation": "Do not fix by prompt wording. Two structural options for the Home PC to evaluate: (1) never persist an assistant claim of a mutation that produced no corresponding execution record, so it cannot re-enter the prompt as history; (2) make DB-derived grounding explicitly authoritative over prior assistant assertions at prompt-assembly time, and mark historical assistant text as unverified. Option 1 also directly serves BUG-005 Class D (execution-result continuity).",
       "_qa_boundary": "Work PC reproduced, isolated with an A/B control, and verified zero blast radius. Work PC did NOT read or modify the sem-ai-command source. Root cause below the prompt-assembly layer is the Home PC to confirm.",
       "per_verifier_instruction": "The implementation PC must NOT self-certify this. Closure requires an independent Work-PC session to re-run steps 1-7, including the fresh-channel control, against the then-deployed build."
+    },
+    {
+      "bug_id": "BUG-011",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "/people \"Set manager\" sheet: silent empty picker when no eligible manager exists, and it never shows the CURRENT manager it says it will replace",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:05:06Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai/people",
+      "expected": "(a) When the organization has no other person, the picker should say so (\"No eligible managers in <org>\") rather than render an empty list. (b) A sheet whose copy reads \"Changing it replaces <person>'s current manager\" should display that current manager (pre-selected or as text) so the user knows what they are replacing.",
+      "actual": "(a) With QA-SWARM-TEST-CO-VIA-CHAT holding one person, \"Pick a manager\" opened to a listbox with 0 options and no message. (b) After PERSON-001 already had manager PERSON-02, re-opening Set manager showed \"Pick a manager\" blank; the current manager was visible only in the table behind the sheet.",
+      "blast_radius": "None - display only. The underlying assignment/reassignment is correct and org-isolated (see CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI).",
+      "severity_reasoning": "P3: no data or truth defect in the product's state; a user could pick the wrong replacement only by not looking at the table. Filed because the sheet copy makes a promise (\"replaces the current manager\") the sheet itself does not let you verify.",
+      "regression_requirement": "UI regression: (a) open Set manager on the sole person of a synthetic org, assert a visible \"no eligible managers\" state; (b) assign a manager, re-open the sheet, assert the current manager is shown.",
+      "_qa_boundary": "Work PC did not modify product code."
     }
   ]
 }

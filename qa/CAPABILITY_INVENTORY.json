@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T10:34:16Z",
+  "generated_at": "2026-09-07T11:05:06Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -485,10 +485,18 @@
       "required_truth_axes": [
         "UI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-manager-assign-reassign-ui"
+      ],
+      "status": "PASS",
       "campaign_1_item": 5,
-      "expected_behavior": "PARITY PROBE: verify absence of any UI reassignment path."
+      "expected_behavior": "PARITY PROBE: verify absence of any UI reassignment path.",
+      "tested_against_sha": "8521b0e",
+      "probe_outcome": "PREMISE WAS WRONG - a UI reassignment path EXISTS and works. The inventory note (\"research indicates CHAT-ONLY with no UI equivalent\") is superseded by live inspection: every active /people row carries a \"Set manager\" control (lucide user-cog, title=\"Set manager\") opening a \"Set manager for <person>\" sheet with a per-organization manager picker. There is no UI/chat parity gap to log for reassignment.",
+      "evidence": "Live Playwright 2026-09-07 on registered fixtures only, all under QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de). ASSIGN: PERSON-001 -> QA-C002-MGR-PERSON-02 via Set manager -> Save; Manager column updated in-page and persisted across a full reload. REASSIGN: same control, picked QA-C002-MGR-PERSON-03 -> Save; Manager column now PERSON-03, PERSON-02 released (no longer listed as managing anyone), persisted across reload at 11:04:12Z. Exactly ONE manager relationship existed in the whole 18-row table afterwards - blast radius zero. REPLACE semantics confirmed (not additive).",
+      "cross_org_isolation_evidence": "The manager picker is org-scoped. With the company holding only the subject, the picker offered 0 candidates - it did NOT offer any of the 15 people from the other 10 organizations. With 2 and then 3 people in the company it offered exactly the other same-org people (1, then 2 options), never the subject themselves, never cross-org people.",
+      "ai_axis_evidence": "Fresh channel 0e47b58d-9c05-45b4-be19-d598d6f6ca91: \"QA-SWARM-PERSON-001-EDITED's manager is QA-C002-MGR-PERSON-03 (per their current person assignment). QA-C002-MGR-PERSON-02 does not currently manage anyone - no person assignment records list them as a manager.\" Matches UI and DB exactly, including the released prior manager. UI == DB == Brain Chat holds.",
+      "minor_ux_gaps": "See BUG-011 (P3): (a) picker with zero eligible managers renders a silent empty list, no \"no eligible managers in this organization\" hint; (b) the sheet says it \"replaces the current manager\" but opens blank and never shows WHO the current manager is."
     },
     {
       "capability_id": "CAP-PROJECT-CREATE-UI",
@@ -2048,6 +2056,30 @@
       ],
       "status": "PASS",
       "evidence": "T14 'how many companies are active?' -> '9'; DB active=9. Correct. Note vs BUG-007: the active count is right; BUG-007 concerns the archived/total split reported from the window, which remains the open defect."
+    },
+    {
+      "capability_id": "CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI",
+      "domain": "employment",
+      "resource": "person_assignment",
+      "operation": "assign_and_reassign_manager",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "UI",
+        "AI",
+        "RELATIONSHIP",
+        "RELOAD"
+      ],
+      "scenario_ids": [
+        "C002-manager-assign-reassign-ui"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "8521b0e",
+      "added_by": "work-pc-independent-qa 2026-09-07 - discovered live; the inventory had assumed no UI path existed",
+      "evidence": "See CAP-PERSON-REASSIGN-UI-MISSING.evidence / cross_org_isolation_evidence / ai_axis_evidence. Assign, reassign (replace), org-isolated picker, reload persistence and Brain Chat agreement all verified on synthetic fixtures under QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de)."
     }
   ]
 }
