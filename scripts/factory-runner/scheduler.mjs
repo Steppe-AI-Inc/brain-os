@@ -23,6 +23,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import * as provider from './provider.mjs';
+import * as supervisor from './supervisor.mjs';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
@@ -158,19 +159,35 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
       // serving it. Mark it 'blocked' with the real reason so it reads as retryable
       // provider capacity, never as an anonymous stale worker and NEVER as success.
       let capacity = null;
+      // run13/R-D6: the FULL log text must survive — the provider's stated reset time
+      // ('… resets 3:40am') sits AFTER the matched phrase, so passing only
+      // capacity.matched stripped the very thing computeRetryAfter parses, and every
+      // block silently fell back to the generic backoff.
+      let capacityRaw = '';
       try {
-        capacity = provider.classifyProviderOutput(await provider.getLogs(run.provider_run_id));
+        capacityRaw = await provider.getLogs(run.provider_run_id);
+        capacity = provider.classifyProviderOutput(capacityRaw);
       } catch {
         // Logs may be gone with the session; anonymous staleness is then the honest
         // classification and the existing STALE path already covers it.
       }
       if (capacity) {
-        await runSql(`
+        // 2026-09-03: classification alone recovered NOTHING — the run sat blocked
+        // forever because no retry_after existed for a supervisor to act on. Delegated
+        // to supervisor.recordCapacityBlock, which persists the provider's own stated
+        // reset time (or a bounded backoff) so the external supervisor can restart it
+        // without the dead session's participation. Falls back to the inline write if
+        // the retry columns are not migrated yet — never loses the classification.
+        try {
+          await supervisor.recordCapacityBlock(run.id, capacityRaw || capacity.matched, { attemptCount: 1 });
+        } catch {
+          await runSql(`
 update public.agent_runs
    set status = 'blocked'::work_status,
        blocked_reason = ${sqlEscape(`${capacity.classification}: ${capacity.matched} — retryable; provider quota, not a Factory failure`)},
        last_event = ${sqlEscape(capacity.classification)}
  where id = ${sqlEscape(run.id)}::uuid;`);
+        }
         capacityBlocked.push(run.id);
       } else {
         wentStale.push(run.id);

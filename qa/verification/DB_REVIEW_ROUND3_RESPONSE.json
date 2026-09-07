@@ -1,0 +1,204 @@
+{
+ "artifact": "qa/verification/DB_REVIEW_ROUND3_RESPONSE.json",
+ "what_this_is": "The IMPLEMENTING session's response to DB_REVIEW_ROUND2.json. It is a record of what was changed and why. It is NOT a verdict and NOT a verification: the session that wrote the fixes cannot certify them, and round 3 must be an independent review.",
+ "responds_to": "qa/verification/DB_REVIEW_ROUND2.json (round 2, base ead2226, all four migrations FAIL)",
+ "written_at": "2026-09-04T02:31:57.039Z",
+ "branch": "master",
+ "worktree": "C:/Users/Dell/dev/brain-os-bug006",
+ "closure_commits": {
+  "D_202609030001_agent_run_capacity_retry": "80074c2 (R-D1..R-D8, closed before this response)",
+  "B_202609020002_set_person_assignment_clear_manager": "5324518 (R-B1, R-B5)",
+  "A_202609020001_chat_channel_state": "a51ff58 (R-A1..R-A10)",
+  "C_202609020003_messaging_transport_foundation": "c6b56ab (R-C1..R-C7)",
+  "acceptance_artifacts": "d0d09c1 (R-ART1..R-ART9)"
+ },
+ "EVIDENCE_LEVEL": {
+  "level": "WITHDRAWN by the round-3 independent review (D-1 / BK-1 / BK-5). See ROUND3_REVIEW_OUTCOME and DB_REVIEW_ROUND4_RESPONSE.json.",
+  "superseded": "This block previously read CODE INSPECTED. That is no longer true, and the change is the most important update in this record.",
+  "how": "qa/dbtest/ runs PGlite — real PostgreSQL 18.3 compiled to WASM — under Node with no Docker and no machine-wide install. apply-migrations.mjs applies the FULL 81-file chain (81/81, 0 failures). acceptance.mjs then EXERCISES behaviour: 36/36 across the four migrations, each with its own verdict.",
+  "per_migration": {
+   "202609020001_chat_channel_state": "18/18 BEHAVIOURALLY VERIFIED (integration, not live)",
+   "202609020002_set_person_assignment_clear_manager": "5/5 BEHAVIOURALLY VERIFIED",
+   "202609020003_messaging_transport_foundation": "9/9 BEHAVIOURALLY VERIFIED",
+   "202609030001_agent_run_capacity_retry": "4/4 BEHAVIOURALLY VERIFIED"
+  },
+  "three_round_blocker_closed": "Rounds 1, 2 and this response all declared that no live DB evidence was obtainable. That blocker is closed for PARSE and INTEGRATION. It is NOT closed for security/persona enforcement.",
+  "what_is_still_NOT_proven": [
+   "RLS ENFORCEMENT PER PERSONA. PGlite runs single-user as superuser, so policies are proven to EXIST and be ATTACHED, never to refuse a real caller. This is the single largest remaining gap and it is a separate verdict.",
+   "Anything about production data, PostgREST behaviour, or Supabase-specific runtime.",
+   "Five neutralised lines, all pgvector-related, listed by name in every run. None belongs to the four migrations under test.",
+   "PostgREST request shaping and Supabase Auth JWT issuance (the harness sets request.jwt.claims directly)",
+   "Supabase-specific postgres role attributes (not superuser, BYPASSRLS) — every persona assertion is made after SET ROLE to a non-superuser, non-BYPASSRLS role so the difference cannot flatter a result",
+   "production data; post-apply live verification after an authorized push",
+   "INDEPENDENT round-3 review has not yet returned — this file is the implementing session's response, not a verdict"
+  ],
+  "shim_disclosure": "The bootstrap defines the Supabase roles, the auth schema and auth.uid/jwt/role, the storage schema and storage.foldername, the supabase_realtime publication, and an extensions schema of thin re-exports over REAL pgcrypto. pgvector is shimmed (domain + constant-returning <=> + skipped hnsw index). A migration passing only because the shim is more permissive than real Supabase is NOT validated — the shim is deliberately minimal, and it was already caught being WRONG once: auth.users lacked raw_user_meta_data, which the production handle_new_auth_user() trigger reads.",
+  "superseded_by_real_postgresql_ci": {
+   "workflow": ".github/workflows/migration-validation.yml",
+   "run_id": 33829327538,
+   "run_url": "https://github.com/Steppe-AI-Inc/brain-os/actions/runs/33829327538",
+   "commit": "master @ 7c955f3",
+   "jobs": {
+    "validate_pglite": "success",
+    "validate_real_postgresql": "success"
+   },
+   "real_engine": "PostgreSQL 15.19 (Debian 15.19-1.pgdg12+2) x86_64, pgvector/pgvector:pg15 service container, disposable, NOT production (URL refused if Supabase host)",
+   "log_archived_at": "qa/verification/ci/migration-validation-run33829327538-real-postgresql.log"
+  },
+  "real_postgresql_security_self_check": {
+   "current_user": "authenticated",
+   "session_user": "postgres",
+   "rolsuper": false,
+   "rolbypassrls": false,
+   "row_security": "on",
+   "has_public_usage": true,
+   "policy_filter": "login sees 2, authenticated sees 1",
+   "known_forbidden_insert": "failed with SQLSTATE 42501 (row-level security) — the expected authorization reason"
+  },
+  "pglite_wording": "PGlite results are now labelled RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED. They are fast integration smoke only.",
+  "per_migration_real_postgresql": {
+   "202609020001_chat_channel_state_durable_conversation": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609020002_set_person_assignment_clear_manager": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609020003_messaging_transport_foundation": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)"
+   },
+   "202609030001_agent_run_capacity_retry": {
+    "apply": "APPLIED",
+    "acceptance": "BEHAVIOURALLY VERIFIED (integration, not live)",
+    "security": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)",
+    "note": "now also adds agent_runs.execution_mode + CHECK (isolated_process | background_subagent)"
+   }
+  }
+ },
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET — round 3 independent review returned FAIL on all four; round 4 closes the findings and re-dispatches the independent reviewer. Migration C (202609020003) is SPLIT OUT of the A/B/D authorization batch on sequencing (C-1).",
+ "per_migration": {
+  "A_202609020001_chat_channel_state": {
+   "round_2_verdict": "FAIL - CHANGES REQUIRED",
+   "findings_addressed": [
+    "R-A1",
+    "R-A2",
+    "R-A3",
+    "R-A4",
+    "R-A5",
+    "R-A6",
+    "R-A7",
+    "R-A9",
+    "R-A10"
+   ],
+   "structural_change": "The trusted columns (pending_action_*, last_successful_mutation, compacted_*) are now SERVER-ONLY. The enforced rule is that a client may CLEAR trusted state but may never ASSERT it - clearing cannot fabricate, so expiry sweeps and the FK's own ON DELETE SET NULL keep working with no privileged path. Asserting requires a transaction-local flag only the three new SECURITY DEFINER RPCs can raise. This closes R-A1 and R-A2 together; narrowing the RLS policy alone would not have, because the same columns were directly writable by the channel's own creator.",
+   "R-A5_answered_honestly": "The header claimed application code treats the table's absence as 'no durable state'. No such code and no such feature gate exists. The header now states that this migration closes NONE of issue #5 Classes A/C/D/E and delivers no behaviour change - it is a schema down-payment and should be authorized on that basis or not at all.",
+   "R-A8_not_actioned": "Round 2 judged the `for all` write policy ACCEPTABLE here. No change made; recorded so its absence is deliberate rather than overlooked.",
+   "R-A11_not_actioned": "Not mirrored into supabase/schema-v0.7-production-core.sql. Deliberately deferred: the schema file is a mirror of what is LIVE, and this migration is not applied. Mirroring an unapplied migration into it would make the file lie in the more dangerous direction.",
+   "executable_evidence": "qa/scenarios-runner/chat_channel_state_trusted_columns_contract.mjs (51 cases, comment-stripped) + qa/verification/migration_a_mutation_proof.mjs (8/8 guards proven observable)"
+  },
+  "B_202609020002_set_person_assignment_clear_manager": {
+   "round_2_verdict": "FAIL - CHANGES REQUIRED",
+   "findings_addressed": [
+    "R-B1",
+    "R-B5"
+   ],
+   "structural_change": "Rebased on the true ancestor 202608290008 (not 202608280013), restoring the cross-company department guard the migration had silently deleted. A full-body diff against the ancestor now shows only the three intended deltas.",
+   "root_cause_recorded": "The author's pre-write check was 'confirm pg_proc.proconfig = search_path=\"\"'. Both candidate ancestors set search_path, so the chosen proxy was structurally INCAPABLE of detecting the drift it was chosen to detect. The header's verification step is now a full pg_get_functiondef diff.",
+   "rollback_was_also_wrong": "The rollback instruction named 202608280013, so executing it would have dropped the guard a second time under the banner of restoring safety. Corrected.",
+   "R-B2_not_actioned": "Explicitly INHERITED, NOT INTRODUCED by this migration (round 2's own classification): any company manager can hijack a person out of a company they have no authority over. It is a real defect and it is NOT closed here, because closing it inside a migration about clearing a manager would smuggle an unrelated authority change into a narrowly-scoped file. It needs its own change and its own review.",
+   "R-B3_judgement": "The manager same-company split was recorded by round 2 as a judgement call, not a defect. Unchanged.",
+   "R-B4_not_actioned": "The clear path is not reachable from the UI yet. True, and out of scope for the migration.",
+   "executable_evidence": "qa/scenarios-runner/function_redefinition_preserves_ancestor_guards.mjs - closes the CLASS: any migration redefining a function must preserve every raise-exception guard from the most recent prior definition, or declare the removal with a reason. 80 migrations, 28 redefinitions, 29 guards checked. Mutation-proven: deleting the restored guard reproduces R-B1 by name."
+  },
+  "C_202609020003_messaging_transport_foundation": {
+   "round_2_verdict": "FAIL - CHANGES REQUIRED",
+   "findings_addressed": [
+    "R-C1",
+    "R-C2",
+    "R-C3",
+    "R-C4",
+    "R-C5",
+    "R-C7"
+   ],
+   "structural_change": "Both R-C1 instances now have BEFORE INSERT OR UPDATE agreement triggers, using the pattern this repo already proved in 202608290008. R-C2's 'a disabled binding blocks sends at the queue' is enforced at the queue, INSERT-only so that disabling a binding mid-flight cannot leave a sender unable to RECORD a message the customer already received.",
+   "why_RLS_was_never_going_to_be_enough": "PostgreSQL referential-integrity checks ALWAYS bypass row security, so the FK on binding_id validated a binding the inserting user had no SELECT right to read. RLS on the referenced table does not protect it from being REFERENCED.",
+   "R-C6_not_actioned": "Founder-only `for all` on external_identity_bindings also removes manager READ. Left as-is deliberately: round 2 rated it LOW, and widening read on an identity-mapping table is an authority decision that should be made explicitly, not as a side effect of a defect-closure batch.",
+   "SEQUENCING_WARNING": "The standing plan guardrail is not to start messaging/Telegram/WhatsApp work before the Phase 11 acceptance gate, which has not run. This migration is hardened but is AHEAD OF ITS GATE. It should not be authorized for push on the strength of being correct. This is recorded in the migration header itself.",
+   "executable_evidence": "qa/scenarios-runner/messaging_transport_binding_agreement_contract.mjs (23 cases) + qa/verification/migration_c_mutation_proof.mjs (10/10)"
+  },
+  "D_202609030001_agent_run_capacity_retry": {
+   "round_2_verdict": "FAIL - CHANGES REQUIRED (regression: the D5 amendment was inert and D6 was vacuous)",
+   "findings_addressed": [
+    "R-D1",
+    "R-D2",
+    "R-D3",
+    "R-D4",
+    "R-D5",
+    "R-D6",
+    "R-D7",
+    "R-D8"
+   ],
+   "closed_in": "80074c2, before this response was written",
+   "headline": "R-D1: guard_agent_run_retry_columns() was SECURITY DEFINER, and PostgreSQL rebinds `current_user` to the function OWNER inside SECURITY DEFINER - so its bypass condition was ALWAYS TRUE and the trigger blocked nobody. Fixed with `session_user`, which is not rebound, at both sites.",
+   "still_open": [
+    "R-D9",
+    "R-D10",
+    "R-D11",
+    "R-D12",
+    "R-D13"
+   ],
+   "still_open_note": "All LOW. R-D13 (schema mirror) is deferred for the same reason as R-A11."
+  }
+ },
+ "acceptance_artifacts": {
+  "round_2_verdict": "FAIL - all four non-runnable and/or containing vacuous passes",
+  "findings_addressed": [
+   "R-ART1",
+   "R-ART2",
+   "R-ART4",
+   "R-ART5",
+   "R-ART6",
+   "R-ART7",
+   "R-ART8",
+   "R-ART9"
+  ],
+  "common_property": "Each script reported SUCCESS for a reason unrelated to what it existed to prove: one aborted before its assertions ran, one was refused by a PRIMARY KEY rather than the CHECK it tested, one by a FOREIGN KEY rather than the RLS it tested, and two asserted the pre-fix state.",
+  "R-ART3_partially_actioned": "The read/write tier distinction and cross-org isolation still have thin coverage. R-ART8's machine-decided verdict and R-ART7's fixed authority test improve it, but round 2's specific request for persona coverage of the manager-vs-founder tier boundary on external_identity_bindings, and any coverage at all of outbound_messages, is NOT fully met. Stated rather than quietly closed."
+ },
+ "self_reported_defects_introduced_and_caught_during_this_work": [
+  "Wrote a `check (true)` placeholder while restructuring migration C's uniqueness - a vacuous constraint, the exact R-D3 class this same round flagged. Removed before commit.",
+  "Wrote the trusted-write flag comment claiming is_local scoping meant the flag 'cannot leak into a later statement'. It expires at end of TRANSACTION, not end of function, so it would have left a direct table write in the same transaction trusted. Corrected, and each RPC now lowers the flag explicitly with is_local as the backstop.",
+  "Four of migration A's contract assertions were vacuous on first write: a renamed trigger still matched as a PREFIX. Found by the mutation proof, not by review.",
+  "Two of migration C's contract assertions were vacuous on first write: an index assertion spanned ACROSS statement boundaries, so downgrading a unique index to non-unique still passed. Found by the mutation proof.",
+  "The mutation harness itself was broken: `$$` in a JS string replacement is an escape for a literal `$`, silently corrupting SQL dollar-quoting in the mutants and producing two false 'unproven' results. Replacement now goes through a function."
+ ],
+ "what_round_3_should_attack_hardest": [
+  "The trusted-write flag in migration A. It is the single mechanism both R-A1 and R-A2 now depend on. Probe: can any path raise it without going through the three RPCs; does an exception inside an RPC leave it raised; does a nested SECURITY DEFINER call inherit it; is there any statement between the raise and the lowering that a client controls.",
+  "Migration A's guard rule 'a client may clear but never assert'. Find an ASSERTION that looks like a clear - e.g. writing a value identical to the stored one to slip past the `is distinct from` test, or clearing and re-asserting across two statements in one transaction.",
+  "Trigger FIRING ORDER in migration A. chat_channel_state_a_invalidate_compaction must run before chat_channel_state_guard_trusted_upd, and that depends entirely on alphabetical name ordering. Verify it empirically rather than by reading the names.",
+  "Migration C's agreement triggers under UPDATE, not just INSERT - can a row be inserted valid and then updated into disagreement.",
+  "Every new contract suite: they are SOURCE-TEXT contracts, so they prove the SQL says the right thing, never that PostgreSQL does the right thing. Treat a green contract as necessary and nowhere near sufficient.",
+  "The three new RPCs in migration A have never been called. Their argument order, ON CONFLICT behaviour, and interaction with the whole-or-nothing CHECK are entirely unexercised."
+ ],
+ "new_infrastructure": {
+  "harness": "qa/dbtest/ (apply-migrations.mjs, acceptance.mjs, bootstrap.sql)",
+  "ci": ".github/workflows/migration-validation.yml — runs both harnesses on every migration change, so no migration can reach production authorization on static review alone again",
+  "supervisor_security": "scripts/factory-runner/supervisor.injection.test.mjs (139 adversarial assertions) + supervisor.injection.mutation.mjs (5/5 proven). R-D9 (shell:true on the SQL transport) CLOSED."
+ },
+ "ROUND3_REVIEW_OUTCOME": {
+  "verdict": "FAIL (all four) — independent reviewer, verify-fbc5c79-campaign3 @ 3215ddd, qa/verification/DB_REVIEW_ROUND3_VERDICT.md",
+  "bookkeeping_corrections_applied_in_round4": {
+   "BK-1 (P1)": "The claim that SET ROLE to a non-superuser role means the superuser login \"cannot flatter a result\" was FALSE: SET ROLE does not change session_user, which migration D privileges. Retracted here and in the workflow header. Personas now run under session_user = qa_authenticator.",
+   "BK-2 (P2)": "what_is_still_NOT_proven carried stale PGlite-era text contradicting the per-migration verdicts; superseded by DB_REVIEW_ROUND4_RESPONSE.json.",
+   "BK-3 (P3)": "\"81/81\" is 80 migration files + the bootstrap shim, which the harness itself defines as ASSUMED, not verified. Stated as such from now on.",
+   "BK-4 (P3)": "The PGlite-only \"how\" text is superseded.",
+   "BK-5 (P1)": "SECURITY VERIFIED for D was OVERSTATED: two grant-level refusals and a pg_get_functiondef regex on a connection whose session_user the guards trust. Withdrawn."
+  },
+  "superseded_by": "qa/verification/DB_REVIEW_ROUND4_RESPONSE.json"
+ }
+}

@@ -1,0 +1,281 @@
+{
+  "artifact": "qa/verification/DB_REVIEW_202609020001-3.json",
+  "purpose": "Independent per-migration DB/security review verdicts. A PASS on any one migration does NOT imply PASS on any other — each section stands alone and must be read alone.",
+  "reviewer": "independent DB/Security verification session",
+  "reviewed_at": "2026-09-03",
+  "base_commit": "c9d00c5da7422cab591ab56290587cd86ce75aab",
+  "branch": "master",
+  "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
+
+  "concurrent_commit_during_review": {
+    "commit": "39aefd449522d06763f8ae15a3584e0b154c01e0",
+    "title": "Post-apply acceptance tests for the three migrations that lacked them",
+    "arrived": "mid-review, from a different session working in the same worktree",
+    "impact_on_these_verdicts": "NONE. `git diff c9d00c5 39aefd4 -- supabase/migrations/202609030001_agent_run_capacity_retry.sql` is empty — the migration body under review is byte-identical. Every verdict below still applies as written.",
+    "new_finding_it_created": "D8",
+    "process_hazard": "That session committed with `git add -A` and swept THIS session's uncommitted working files into its own commit — scripts/factory-runner/supervisor.mjs (an unreviewed in-progress security fix) plus two scratch probe files — under a commit message that describes none of them. Two agents committing from one worktree means one agent's unreviewed working tree can land under another's message and review. Worth a founder decision on worktree-per-session isolation."
+  },
+
+  "PRODUCTION_STATE_NOT_VERIFIED": {
+    "declared": true,
+    "why": "Every `npx supabase db query` invocation in this session was refused by the harness ('This command requires approval'), including read-only probes. No live database evidence of ANY kind was obtainable.",
+    "consequence": "No verdict in this file may be read as LIVE VERIFIED. Findings below are derived from the committed SQL/JS text plus locally EXECUTED JavaScript probes. Whether 202609030001 is applied to production is itself unverified.",
+    "unverified_items": [
+      "CURRENT APPLIED MIGRATION HEAD",
+      "whether public.claim_blocked_run_for_retry exists live",
+      "live proacl/GRANT state of the new function",
+      "live behaviour of every SQL assertion in qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql"
+    ]
+  },
+
+  "migrations": {
+    "202609020001_chat_channel_state_durable_conversation.sql": {
+      "verdict": "NOT_REVIEWED_IN_THIS_SESSION",
+      "note": "Absence of a verdict is NOT a pass. This session was scoped by its addendum to 202609030001 plus the factory runtime. A partial review exists at qa/verification/proposed/202609020001-channel-state-migration-review.md and was not re-derived here."
+    },
+    "202609020002_set_person_assignment_clear_manager.sql": {
+      "verdict": "NOT_REVIEWED_IN_THIS_SESSION",
+      "note": "Absence of a verdict is NOT a pass."
+    },
+    "202609020003_messaging_transport_foundation.sql": {
+      "verdict": "NOT_REVIEWED_IN_THIS_SESSION",
+      "note": "Absence of a verdict is NOT a pass."
+    },
+
+    "202609030001_agent_run_capacity_retry.sql": {
+      "verdict": "FAIL — CHANGES REQUIRED BEFORE PUSH",
+      "evidence_level": "CODE INSPECTED (SQL) + UNIT VERIFIED (JavaScript probes executed locally)",
+      "push_recommendation": "DO NOT PUSH AS WRITTEN. Not because it is dangerous to the existing schema — it is genuinely additive and rollback-safe — but because the retry loop it enables is unbounded in SQL, restarts unclassified failures, strands a run after its second block, and cannot be driven by its own supervisor's transport. Pushing it would ship a recovery mechanism that does not recover.",
+      "what_is_genuinely_correct": [
+        "Purely additive: nullable columns + one function + one partial index. No existing column changes type or meaning. `attempt_count integer not null default 1` is a non-volatile default, so no table rewrite on PG11+.",
+        "Rollback strategy is real and documented, and the runtime is feature-gated on the function existing, so a rollback needs no application rollback.",
+        "SECURITY DEFINER with `set search_path = ''` and fully schema-qualified references (`public.agent_runs`, `public.is_founder_or_admin`, `'blocked'::public.work_status`). `now()` resolves via the always-implicit pg_catalog — correct, not an oversight.",
+        "Explicit grant posture is present and is the correct shape for the 2026-08-31 standard: `revoke execute ... from anon, public` then `grant execute ... to authenticated`. EXECUTE is the only privilege a function has, so `revoke execute` is equivalent to `revoke all` here. anon is explicitly named — the #41/#43/#44 mistake was not repeated.",
+        "The internal `is_founder_or_admin()` check is present as defense-in-depth behind the grant, as required.",
+        "FOR UPDATE SKIP LOCKED + the status flip in the same transaction is the correct primitive for single-claim-per-row, and `order by ar.retry_after` makes selection deterministic.",
+        "The claim never writes 'done' — a blocked run can never be laundered into a success by the retry path.",
+        "requested_/actual_ provider/model are modelled as SEPARATE columns, which is the right schema for no-silent-fallback.",
+        "Retry metadata adds no rows and no new visibility: agent_runs RLS is row-level and untouched, so no task/company becomes visible to anyone who could not already see that run."
+      ],
+      "defects": [
+        {
+          "id": "D1",
+          "severity": "P1",
+          "title": "MAX_ATTEMPTS is never enforced anywhere in the live path — the retry loop is unbounded in SQL",
+          "expected": "A run at or beyond supervisor.MAX_ATTEMPTS (6) is not claimable; attempts are bounded.",
+          "actual": "The RPC's WHERE clause is `status='blocked' and retry_after is not null and retry_after <= now() and claimed_by is null`. attempt_count is INCREMENTED but never COMPARED. `supervisor.isRetryEligible()` does contain the cap — but `pollOnce()` never calls it, and structurally cannot: the RPC's RETURNS TABLE omits status, blocked_reason, retry_after and claimed_by, so the predicate has nothing to evaluate.",
+          "evidence": "grep across the repo: isRetryEligible appears only in supervisor.mjs:101 (its definition) and in supervisor.regression.test.mjs. Zero call sites in any live path. Locally executed probe confirms isRetryEligible(<claim-RPC row shape>) === false, i.e. the two are not even type-compatible.",
+          "user_impact": "A permanently capacity-limited campaign restarts forever, burning provider quota on each attempt, with no terminal state and no founder notification.",
+          "required_change": "Add `and ar.attempt_count < 6` (or a p_max_attempts argument defaulting to 6) to the claim SELECT, and surface attempt_count/max in the return so the supervisor can report exhaustion instead of silently doing nothing."
+        },
+        {
+          "id": "D2",
+          "severity": "P1",
+          "title": "Unclassified failures are claimable — the RPC never filters on blocked_reason",
+          "expected": "Only genuinely PROVIDER_CAPACITY_BLOCKED runs auto-restart. A crashed agent must not be relaunched on a timer.",
+          "actual": "The claim SELECT does not reference blocked_reason at all. Any agent_runs row that is 'blocked' and carries a retry_after is claimable. The only thing keeping crashes out today is the convention that recordCapacityBlock is the sole writer of retry_after — a convention, not a DB-enforced guarantee, and agent_runs.retry_after is writable by every company manager (see D5).",
+          "evidence": "Migration lines 100-108 vs supervisor.mjs:104, which does check blocked_reason but is never called.",
+          "user_impact": "A real bug loops instead of being escalated — the exact failure mode the migration's own comments say must not happen.",
+          "required_change": "Add `and ar.blocked_reason like 'PROVIDER_CAPACITY_BLOCKED%'` to the claim SELECT. The classification must gate the claim in SQL, not in an unreferenced JS helper."
+        },
+        {
+          "id": "D3",
+          "severity": "P1",
+          "title": "claimed_by is never reset — the second capacity block strands the Work Order permanently",
+          "expected": "A run capacity-blocked twice is recovered twice (up to the attempt cap).",
+          "actual": "The claim sets `claimed_by = p_claimed_by` and NOTHING in the entire codebase ever sets it back to null — not recordCapacityBlock, not the scheduler, not complete-run.mjs. Because the claim SELECT requires `claimed_by is null`, a run becomes permanently unclaimable after its first retry. attempt_count can therefore never exceed 2, making MAX_ATTEMPTS=6 and the 5-step backoff array unreachable by construction.",
+          "evidence": "grep -rn claimed_by across *.mjs/*.sql/*.ts: the only writer is the RPC itself (migration line 116).",
+          "user_impact": "The exact incident this migration exists to fix recurs on the second occurrence: a dead session means a dead company goal. Worse, the run sits in 'in_progress' with a fresh heartbeat, so it does not even age into STALE for the notification path to catch.",
+          "required_change": "recordCapacityBlock must set `claimed_by = null, claimed_at = null` when it re-blocks a run. MUST land together with D1/D2 — see the interaction note below.",
+          "class": "Same class as the archive/restore lifecycle-GUC incident: state set immediately before an operation and never reset after it, caught only by testing a REPEATED operation rather than by reading the code."
+        },
+        {
+          "id": "D1_D3_INTERACTION",
+          "severity": "P1 — process note, not a separate defect",
+          "title": "D3 is currently the only thing preventing D1's unbounded loop. Do not land a partial fix.",
+          "detail": "Fixing claimed_by-reset alone converts 'stranded after one retry' into 'restarts forever'. Fixing the attempt cap alone leaves the stranding. Both must be in the same migration, and qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql asserts both together."
+        },
+        {
+          "id": "D4",
+          "severity": "P1",
+          "title": "The supervisor cannot call its own RPC through its only implemented transport, and the failure is silently misreported as 'migration not applied'",
+          "expected": "pollOnce() claims an eligible run.",
+          "actual": "runSql() shells out to `npx supabase db query --linked`, a superuser postgres connection with no request.jwt.claims. `is_founder_or_admin()` is `coalesce((select role in (...) from profiles where auth_user_id = auth.uid()), false)` — with a null auth.uid() it returns FALSE. The RPC therefore raises 'Only the founder or an admin can claim...'. pollOnce wraps the call in a try/catch whose comment says 'Migration not applied (function absent) or DB unreachable' and returns `{available:false}`.",
+          "evidence": "supervisor.mjs:47-60 (transport) and :234-239 (catch); schema-v0.7-production-core.sql:747-750 (helper definition). NOT live-confirmed — the session could not run the query — but it follows directly from the committed definitions, and the regression script asserts it live as `D4_supervisor_cli_transport`.",
+          "user_impact": "The whole feature is plausibly dead on arrival, and reports itself as 'not migrated yet' rather than 'denied' — an operator would conclude the push had not happened.",
+          "required_change": "Two parts. (1) Decide the real caller identity: either the supervisor authenticates as a founder/service identity, or the function gains an explicitly-authorized non-JWT path — do not simply drop the founder check. (2) Regardless, pollOnce must distinguish 'function does not exist' (SQLSTATE 42883) from 'permission denied / raised exception' and report them differently. A silent no-op reported as an unavailable migration is qa/KNOWN_FAILURE_MODES.md #18's class exactly.",
+          "confidence": "HIGH on the logic, UNVERIFIED live."
+        },
+        {
+          "id": "D5",
+          "severity": "P2 (P1 if any factory agent_runs row carries a company_id whose managers are not already founder-tier)",
+          "title": "Claim authority is founder-only, but authority over the claim's INPUTS is not — a company manager can write every field the supervisor consumes",
+          "expected": "Restart state is founder/admin-controlled end to end.",
+          "actual": "`agent_runs_update_scope` permits UPDATE where `is_founder_or_admin() OR (company_id is not null and is_company_manager(company_id))`. A company manager can therefore set worktree, checkpoint_location, source_sha, branch, retry_after, claimed_by=null, attempt_count=0 and blocked_reason on any agent_run belonging to their company. They cannot call the claim RPC, but the founder-run supervisor will claim their forged row and act on their strings — including using worktree as a spawned session's cwd.",
+          "user_impact": "Manager-tier -> influence over an unattended, --permission-mode auto agent session's working directory and prompt content. Not anon, not an ordinary employee (insert is founder-only and ordinary employees have no UPDATE path), so this is an escalation between privileged tiers, not an unauthenticated hole.",
+          "required_change": "Either narrow agent_runs_update_scope for the retry/checkpoint columns specifically (a BEFORE UPDATE trigger rejecting non-founder writes to worktree/checkpoint_location/source_sha/retry_after/claimed_by/attempt_count is the smaller change and mirrors the lifecycle-guard pattern already used elsewhere in this schema), or have the supervisor re-derive worktree/branch from the canonical Work Order rather than trusting the agent_runs row. The runtime hardening below reduces the blast radius but does not remove the write path.",
+          "asserted_by": "qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql -> D5_manager_cannot_forge_retry_inputs"
+        },
+        {
+          "id": "D6",
+          "severity": "P3",
+          "title": "NO_SILENT_PROVIDER_FALLBACK is a schema-only guarantee — nothing writes or enforces the columns",
+          "expected": "A provider/model substitution is always visible.",
+          "actual": "requested_provider, requested_model, actual_provider, actual_model and fallback_reason are added by the migration and then written by nothing, anywhere. No CHECK constraint, no trigger, no application writer. The regression test asserts only that the migration text contains `add column if not exists <col>`.",
+          "evidence": "grep across *.mjs/*.ts/*.tsx: the only occurrences outside the migration are a comment in supervisor.mjs:246-247 and the column-name loop in supervisor.regression.test.mjs:192.",
+          "user_impact": "Today a substitution would leave all five columns null and be invisible — the guarantee reads as met while nothing enforces it.",
+          "required_change": "Populate requested_* at dispatch and actual_* at run start, and add a CHECK such as `(actual_provider is null or actual_provider = requested_provider or fallback_reason is not null)` so a substitution cannot be recorded without a stated reason."
+        },
+        {
+          "id": "D7",
+          "severity": "P3",
+          "title": "Grant is broader than the demonstrated need",
+          "actual": "EXECUTE is granted to `authenticated`, i.e. every logged-in user may call the function; only the internal check stops them. Per D4, no authenticated client actually calls this today — the intended caller is a server-side supervisor.",
+          "required_change": "Once D4 decides the real caller identity, narrow the grant to that identity. If the caller ends up being service_role or an internal definer context, the function needs no grant at all.",
+          "note": "Not exploitable on its own — the internal check holds — but it is the structural first line of defense and is currently wider than necessary."
+        },
+        {
+          "id": "D8",
+          "severity": "P2 (test-construction defect in brand-new, never-executed evidence)",
+          "title": "The post-apply acceptance test committed for this migration does not establish the claim its own commit message makes, and its key assertion is non-deterministic",
+          "file": "qa/scenarios-runner/post_apply_202609030001_capacity_retry.sql (commit 39aefd4)",
+          "commit_message_claim": "'UNCLASSIFIED failure never auto-restarted' and 'second supervisor never handed the same row'.",
+          "actual": [
+            "Fixtures eeee0001 (capacity-blocked) and eeee0003 (crashed: 'agent crashed: TypeError') are inserted in ONE statement, both with `retry_after = now() - interval '5 minutes'`. now() is transaction-stable, so the two values are byte-identical and `order by ar.retry_after limit 1` is a TIE broken arbitrarily by the planner.",
+            "Because the RPC has no blocked_reason filter (D2), BOTH rows are eligible. If the tie breaks toward eeee0001, the second claim returns eeee0003 and `unclassified_failure_not_claimed` correctly FAILS. If it breaks toward eeee0003, `eligible_run_was_claimed` fails instead while `unclassified_failure_not_claimed` PASSES VACUOUSLY — the crashed run was claimed first, and the assertion never looks at v_first.",
+            "`unclassified_failure_not_claimed` only ever inspects v_second, never v_first, so it cannot detect the crashed run being claimed FIRST — the most likely real-world case, since a crash usually precedes a quota block.",
+            "The test does not park pre-existing production rows before claiming. The RPC scans all of agent_runs, so any real blocked run with an older retry_after is claimed instead of the fixture and every assertion misfires. (No production residue — the transaction rolls back — but the result is not deterministic against live data.)"
+          ],
+          "why_it_matters": "The commit states these tests prove the behaviour, and simultaneously states they were not run ('failing before that is the correct signal that they ran too early'). So a behavioural claim was committed that has never been observed, and static analysis says at least one of its assertions must fail the first time it IS run. This is a migration-file-exists-therefore-applied error in test form.",
+          "required_change": "Give the fixtures distinct retry_after values so ordering is deterministic; assert on the SET of runs claimed across both calls, not on v_second alone; and neutralize pre-existing eligible rows first. qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql does all three and should be run alongside it.",
+          "note": "This does not detract from the rest of 39aefd4 — writing post-apply tests per migration is the right instinct, and the other two files were not reviewed here."
+        }
+      ],
+      "addendum_questions_answered": {
+        "retry_metadata_does_not_increase_visibility": "PASS (CODE INSPECTED). Columns are additive on an existing table; agent_runs RLS is row-level and unchanged; no new view or grant exposes rows.",
+        "retry_claims_cannot_be_forged_by_ordinary_employee_users": "PASS for ordinary employees (no INSERT, no UPDATE path, no EXECUTE outcome). FAIL for company managers — see D5.",
+        "claim_authority_is_founder_admin_only": "PASS as written, with the D4 caveat that the intended caller is also denied.",
+        "security_definer_has_safe_search_path": "PASS. `set search_path = ''` with fully schema-qualified references.",
+        "explicit_revoke_grant_posture": "PASS. anon and public explicitly revoked in the same file; see D7 for narrowing.",
+        "public_and_anon_cannot_execute": "PASS by code. NOT live-verified — factory_rpc_privilege_sweep.sql could not be run this session, and the standing rule requires it to be run against production before this migration is reported ready. That gate is OUTSTANDING.",
+        "for_update_skip_locked_prevents_double_claim": "PASS for the mechanism. Two supervisors racing take different rows or none, and the status flip is in the same transaction as the row lock. Not live-verified; the single-session half is asserted by the regression script (`second_claim_rows = 0`).",
+        "only_eligible_provider_capacity_blocked_runs_are_claimable": "FAIL — D2.",
+        "retry_after_enforced": "PASS by code (`retry_after is not null and retry_after <= now()`), asserted live by the regression script.",
+        "unclassified_failures_cannot_auto_restart": "FAIL — D2.",
+        "source_sha_mismatch_invalidates_checkpoint": "PASS (UNIT VERIFIED). planResume() fails closed on a mismatch AND on a null on either side; tests confirm both. Note this is enforced in JS only — the DB stores source_sha but does not police it.",
+        "requested_and_actual_stay_separate_and_fallback_cannot_hide_a_substitution": "PARTIAL — schema PASS, enforcement FAIL (D6).",
+        "attempt_count_monotonic": "PASS in the RPC (increment only). NOT monotonic overall: a company manager can reset it to 0 via direct UPDATE (D5).",
+        "cross_organization_agent_runs_remain_isolated": "PASS (CODE INSPECTED). The claim ignores company entirely and is founder/admin-gated, so it grants no cross-company read a founder did not already have. No new cross-tenant path is introduced.",
+        "rollback_safe": "PASS. Additive-only, documented drop sequence, runtime feature-gated on the function's existence."
+      }
+    }
+  },
+
+  "factory_runtime_review": {
+    "scope": "scripts/factory-runner/supervisor.mjs, scheduler.mjs, provider.mjs and their regression tests",
+    "verdict": "PARTIAL — the architecture is right and the classification layer is genuinely sound; the enforcement layer is not connected to the live path",
+    "evidence_level": "UNIT VERIFIED (node --test executed: 20/20 pass) + locally EXECUTED adversarial probes + CODE INSPECTED",
+    "findings": {
+      "PROCESS_LIFETIME_NOT_EQUAL_WORK_ORDER_LIFETIME": {
+        "verdict": "PASS (design) / BLOCKED (in practice, by D4)",
+        "detail": "The supervisor genuinely never needs the dead session: it reads durable state and spawns a new process, and never references provider_run_id. The invariant holds structurally. It cannot currently be exercised because of D4."
+      },
+      "exit_0_plus_capacity_text_classifies_BLOCKED_never_PASS": {
+        "verdict": "PASS (UNIT VERIFIED)",
+        "detail": "classifyProviderOutput is text-driven and independent of exit code; the scheduler marks status 'blocked' and never 'done'. This is the strongest part of the change."
+      },
+      "atomic_claiming": {"verdict": "PASS (mechanism) — see D1/D2/D3 for what the claim fails to FILTER"},
+      "checkpoint_injection": {"verdict": "PASS (UNIT VERIFIED). The resume prompt carries campaign, checkpoint pointer, sha, branch, and tells the session the prior attempt was blocked — not failed, not passed."},
+      "source_sha_validation": {"verdict": "PASS (UNIT VERIFIED), fails closed on null."},
+      "no_silent_provider_fallback": {"verdict": "FAIL — D6. Asserted by column existence only; no writer, no constraint."},
+      "bounded_backoff": {
+        "verdict": "FAIL (as wired)",
+        "detail": "computeRetryAfter implements the intended escalation [15,30,60,120,240] minutes, but scheduler.mjs:176 calls recordCapacityBlock(run.id, capacity.matched, { attemptCount: 1 }) with the attempt count HARDCODED to 1 and never reads the run's real attempt_count. Locally executed probe: designed +15/+30/+60/+120/+240 vs actual +15/+15/+15/+15/+15. Still bounded and never immediate, so not dangerous — but the escalation the design claims does not happen.",
+        "required_change": "Pass the run's actual attempt_count through from the agent_runs row."
+      },
+      "no_runaway_retry_loop": {
+        "verdict": "FAIL by design, currently masked by a second bug",
+        "detail": "See D1 (no cap in SQL, JS cap never called) and D3 (claimed_by never reset, which accidentally caps retries at one). The invariant is not actually enforced anywhere; it only appears to hold."
+      },
+      "claim_then_spawn_failure_strands_the_run": {
+        "severity": "P2",
+        "detail": "pollOnce claims the run (status -> in_progress, claimed_by set, heartbeat refreshed) and only then awaits execFileAsync('claude', ...). If the spawn throws — bad cwd, missing binary, provider still down — the exception propagates out of pollOnce with no compensating write. The run is left in_progress and claimed, which by D3 makes it permanently unclaimable, and the fresh heartbeat delays even the STALE path by 10 minutes.",
+        "required_change": "Wrap the spawn in try/catch and, on failure, restore status='blocked' with claimed_by=null and a backed-off retry_after."
+      }
+    },
+    "adversarial_boundary_attack": {
+      "instruction": "Explicitly required: attack the supervisor/RPC boundary via checkpoint_location, worktree, branch, source_sha, provider/model strings. The implementing session's hardening was treated as a claim to break, not a guarantee.",
+      "method": "Locally executed probes against the exported guards (qa/verification/scratch/attack_guards.mjs), not code reading.",
+      "results": [
+        {
+          "vector": "worktree — allowlist prefix without a path boundary",
+          "outcome": "BROKEN, then FIXED IN THIS SESSION",
+          "detail": "safeWorktree used a bare startsWith, so `C:\\Users\\Dell\\devil\\evil` and `C:\\Users\\Dell\\dev-attacker\\x` were both ACCEPTED as being inside `C:\\Users\\Dell\\dev` and returned verbatim as the spawn cwd. Empirically confirmed before the fix and after.",
+          "status": "Fixed in supervisor.mjs with a boundary-anchored comparison; two new regression tests added."
+        },
+        {
+          "vector": "worktree — no character allowlist (prompt-injection primitive)",
+          "outcome": "BROKEN, then FIXED IN THIS SESSION",
+          "detail": "Unlike every other metadata field, worktree had no character validation. `C:\\Users\\Dell\\dev\\brain-os\\nIGNORE PRIOR INSTRUCTIONS` (real newline) and `C:\\Users\\Dell\\dev\\brain-os\" & calc.exe & \"` both passed and were interpolated verbatim into the resume prompt, which is an instruction document handed to an agent running --permission-mode auto. End-to-end exploitation was blocked only incidentally, because the same malformed string is also used as cwd and would make the spawn fail — a coincidence, not a control.",
+          "status": "Fixed: strict drive-letter/segment allowlist, no traversal, normalized value returned."
+        },
+        {
+          "vector": "checkpoint_location / source_sha / branch / campaign / scenario — shell and prompt injection",
+          "outcome": "HOLDS",
+          "detail": "safeMeta's regexes exclude whitespace, quotes, backticks, $ and newlines, and reject '..'; malformed values render as explicit placeholders rather than being interpolated. The spawn uses execFile with an argv array and no shell, so no DB string can become a command. Confirmed by the existing tests and re-checked directly."
+        },
+        {
+          "vector": "checkpoint_location — 'no absolute paths' claim",
+          "outcome": "MINOR MISMATCH (not fixed)",
+          "detail": "The comment says a checkpoint is repo-relative with 'no absolute paths', but CHECKPOINT_RE permits a leading '/', so '/etc/passwd' passes. The value is only rendered into prompt text and never opened, so impact is presentational. Recorded, not fixed."
+        },
+        {
+          "vector": "provider/model strings",
+          "outcome": "NOT REACHABLE TODAY",
+          "detail": "requested_provider/requested_model are returned by the RPC but never used to build the spawn argv (the model is not passed at all), so they are inert as an injection vector. They are also never written (D6)."
+        },
+        {
+          "vector": "runSql shell:true",
+          "outcome": "HOLDS, with a caveat",
+          "detail": "runSql does use shell:true, but only for a fixed `npx supabase db query -f <locally generated tmp path>` argv; no DB-controlled string reaches it. The SQL body itself is built by string interpolation guarded by sqlEscape (single-quote doubling), which is adequate for literals. Acceptable, but it is the one remaining place where a future careless caller could introduce injection."
+        }
+      ],
+      "allowlist_root_judgment": {
+        "question": "Are the allowlist roots correct, and does a founder/admin-only write path make the residual risk acceptable?",
+        "answer": "The roots are TOO BROAD, and the write path is NOT founder/admin-only — which is the part of the premise that does not hold.",
+        "detail": "The second root is the entire `C:\\Users\\Dell\\dev` directory, so any directory that exists or comes to exist anywhere under it is a valid cwd for a spawned auto-permission session. That was a defensible trade when the write path was believed to be founder-only, but agent_runs_update_scope also grants UPDATE to company managers (D5), so the premise the hardening rests on is false. Recommendation: enumerate the real worktrees (git worktree list) into an explicit allowlist rather than trusting a parent directory, and close D5 so the input is genuinely founder-controlled. With both done, the residual risk is acceptable.",
+        "separate_governance_concern": "pollOnce spawns `claude --permission-mode auto --bg` in an environment whose Supabase CLI is deliberately left logged in (CLAUDE.md 22). That is precisely the unattended-agent-with-ambient-production-credentials shape of incident #16. The resume prompt correctly carries no deployment authorization and the tests pin that, but the spawned session inherits the machine's credentials regardless. Worth an explicit founder decision before the supervisor is ever run on a schedule."
+      }
+    }
+  },
+
+  "fixes_applied_in_this_session": [
+    {
+      "file": "scripts/factory-runner/supervisor.mjs",
+      "change": "safeWorktree hardened: boundary-anchored allowlist match, strict character allowlist, normalized return value.",
+      "status": "FIXED — UNIT VERIFIED (20/20 tests pass, adversarial probes re-run and now blocked)",
+      "authority": "Runtime JavaScript, within verifier fix authority. No database object touched."
+    },
+    {
+      "file": "scripts/factory-runner/supervisor.regression.test.mjs",
+      "change": "Two permanent regression tests for the path-boundary and character-allowlist classes.",
+      "status": "ADDED"
+    },
+    {
+      "file": "qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql",
+      "change": "Permanent rolled-back-transaction regression asserting D1-D5 plus authority, retry window, idempotency and attempt monotonicity.",
+      "status": "ADDED — NOT YET EXECUTED (no DB transport this session). Must be run by the next session with database access."
+    }
+  ],
+
+  "blocked_on_db_push": [
+    {
+      "item": "202609030001_agent_run_capacity_retry.sql corrections (D1, D2, D3, and the D4 caller decision)",
+      "status": "NOT PREPARED — deliberately",
+      "why": "This session could not run a single rolled-back transaction against production. Writing an amended migration whose only evidence is a second reading of the same text would manufacture the appearance of verification. The precise required changes are recorded per-defect above; the regression script encodes the acceptance criteria; the amendment belongs to a session that can actually execute it.",
+      "also_outstanding": "qa/scenarios-runner/factory_rpc_privilege_sweep.sql has NOT been run for claim_blocked_run_for_retry. The standing 2026-08-31 rule requires it before this migration may be reported ready."
+    }
+  ],
+
+  "hard_stop_respected": "No `supabase db push` was run, no migration was applied, and no production DDL was executed by this session."
+}

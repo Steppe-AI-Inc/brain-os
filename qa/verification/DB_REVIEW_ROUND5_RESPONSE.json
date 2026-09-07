@@ -1,0 +1,55 @@
+{
+ "artifact": "DB_REVIEW_ROUND5_RESPONSE",
+ "what_this_is": "The implementing session's response to the independent DB review, round 4 (qa/verification/DB_REVIEW_ROUND4_VERDICT.md, verify-96e1309-campaign4 @ b13173c: A PASS, B PASS, C FAIL, D FAIL). This file is a RESPONSE, not a verdict: the round-5 independent reviewer decides.",
+ "responds_to": "DB_REVIEW_ROUND4_VERDICT.md (reviewed candidate 96e1309)",
+ "supersedes": "DB_REVIEW_ROUND4_RESPONSE.json — its statement that C-3 was 'closed regardless' was WRONG (R4-3) and is withdrawn here",
+ "branch": "master",
+ "authorization_batch": {
+  "A_202609020001": "PASS in round 4; unchanged in round 5 except the R4-7 count correction in a comment",
+  "B_202609020002": "PASS in round 4; unchanged in round 5 (R4-8 recorded: v_current_company from people.company_id only — a canonical-company flip on an already-inconsistent person is possible; owed the next Work Order on this function, not a condition of this file)",
+  "D_202609030001": "in the batch after the round-5 review PASS",
+  "C_202609020003": "STILL SPLIT OUT on sequencing (C-1). R4-3 and R4-4 are closed/accepted in the SQL regardless, and this file no longer claims otherwise."
+ },
+ "findings": {
+  "R4-1 (P2, D)": {
+   "finding": "guard_agent_run_retry_columns omitted canonical_work_order_id, task_id, agent_id — columns the claim RPC RETURNS to the supervisor — under a comment claiming every returned column was guarded (the D-3 shape one round later). A company manager could re-target a blocked run at another task/agent before it resumed.",
+   "change": "202609030001: the three columns are guarded; the completeness comment is replaced by the mechanism that enforces it — qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs parses the claim's RETURN list and predicate and fails if any column is absent from the guard (it also fails if the claim starts returning a NEW column the guard does not name — proven by mutation).",
+   "observed_by": "personas D.R4-1.managerCannotRewrite.{canonical_work_order_id,task_id,agent_id} (the guard's own refusal AND stored value unchanged); agent_run_guard_covers_claim_returns.mjs; migration_round5_mutation_proof M1-M3, M5.",
+   "status": "CLOSED"
+  },
+  "R4-2 (P3, D)": { "finding": "last_event and last_heartbeat_at were manager-writable (a forged heartbeat is a forged 'still alive').", "change": "Both guarded.", "observed_by": "personas D.R4-1.managerCannotRewrite.{last_event,last_heartbeat_at}; mutation proof M4.", "status": "CLOSED" },
+  "R4-9 (P3, D)": { "finding": "The guard raised P0001, not 42501.", "change": "using errcode = '42501'.", "observed_by": "personas D.R4-9.guardRaises42501 (SQLSTATE on the real engine); guard-covers suite; mutation proof M6.", "status": "CLOSED" },
+  "R4-3 (P2, C)": {
+   "finding": "No channel-ownership guard: a manager could disable-then-repoint a founder-enabled binding onto the founder's channel, or simply CREATE a disabled binding pointing at it; the founder's later enable then routes the manager's external conversation into the founder's private channel. The round-4 response wrongly called C-3 'closed regardless'.",
+   "change": "202609020003: channel_transport_bindings_enable_requires_founder now requires, on INSERT and on ANY change of channel_id (no enabled precondition), that the target channel was created by the caller — or the caller is founder/admin. SECURITY INVOKER, so an invisible channel fails closed.",
+   "observed_by": "personas C.R4-3.managerCannotPlantBindingOnFounderChannel, C.R4-3.managerCannotTwoStepRepoint (row-checked), C.R4-3.founderCanBindAnyChannel (LIMIT), C.R3-C2.managerCanCreateDisabledBinding (description corrected: on a channel THEY CREATED); migration_round5_mutation_proof M7-M9 (ownership dropped; founder exemption dropped; ownership checked against the OLD channel).",
+   "status": "CLOSED"
+  },
+  "R4-4 (P3, C)": { "finding": "A manager may disable a founder-enabled binding; stated nowhere.", "change": "ACCEPTED IN WRITING in the SQL comment (fail-safe direction; re-enable stays founder/admin), and observed by personas C.R4-4.managerMayDisableOwnBinding.", "status": "ACCEPTED, scope stated" },
+  "R4-5 (P2, harness)": {
+   "finding": "The persona identity was a convention: SET SESSION AUTHORIZATION postgres succeeded inside the persona session because the login role is a superuser.",
+   "change": "On the real engine the persona suite now runs every persona statement on a SECOND connection authenticated AS qa_authenticator (qa/dbtest/db.mjs openPersonaDb; bootstrap gives the role a harness password). openPersonaDb proves on connect that SET SESSION AUTHORIZATION postgres and SET ROLE postgres are REFUSED by the engine, and personas H.R4-5 asserts it again inside a persona. On PGlite the SET SESSION AUTHORIZATION convention remains and is printed as 'PGlite emulation'.",
+   "observed_by": "CI log of the real-PostgreSQL job: 'persona connection: ENGINE-ENFORCED'; personas H.R4-5.personaCannotEscapeToSuperuser.",
+   "status": "CLOSED on the real engine; PGlite stays emulation (labelled)"
+  },
+  "R4-6 (P3, process)": { "finding": "No CI run existed on the reviewed commit; evidence was transferred from the parent.", "change": "The round-5 reviewer is dispatched on the exact commit the CI run executed on (no bookkeeping commit in between); the reviewer reads the run via gh.", "status": "CLOSED by process" },
+  "R4-7 (P3, ledger)": { "finding": "'Five live flag-only migrations' was one file too broad (202608290010 only SETS a flag).", "change": "Corrected in migration A's header and appended as a dated correction to KNOWN_FAILURE_MODES.md DB-R3 (history not rewritten): four guard-defining migrations, five GUCs.", "status": "CLOSED" },
+  "R4-8 (P3, B)": { "finding": "v_current_company from people.company_id only; NULL means unowned; a current NON-primary assignment elsewhere is not consulted.", "change": "RECORDED; owed the next Work Order on set_person_assignment. Not a condition of this file (reviewer's own classification).", "status": "RECORDED" },
+  "R4-10 (P3, harness)": { "finding": "apply-migrations.mjs printed 'applied 81/81', an engine-unaware PGlite disclaimer, and hard-coded the PGlite engine string into apply-report.json on the real-PostgreSQL job.", "change": "Count reads '80 migration files + the bootstrap shim'; the disclaimer is engine-aware; apply-report.json records the actual engine.", "status": "CLOSED" }
+ },
+ "local_evidence_pglite_only": {
+  "wording": "PGlite = SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED + RLS ENFORCEMENT (PGlite emulation). NOT SECURITY VERIFIED.",
+  "apply": "80 migration files + bootstrap shim, 0 failed",
+  "acceptance": "36/36",
+  "personas": "45/45 (34 prior + 11 round-4 closure/limit cases)",
+  "suites": "agent_run_guard_covers_claim_returns (new, 7/7); chat_channel_state_trusted_columns 51/51; messaging_transport 23/23; ancestor guards 0 dropped; migration_a 8/8; migration_c 10/10; migration_round4 10/10 (re-anchored); migration_round5 9/9",
+  "factory": "supervisor 35/35; provider 15/15"
+ },
+ "real_postgresql_ci": "Read it from the run on THIS commit (gh run list --commit <sha>); not copied here so that the reviewed commit and the CI commit are the same (R4-6)",
+ "still_NOT_proven": [
+  "whether any API-reachable role on a real Supabase project is a member of postgres/supabase_admin (A-1(c)) — needs a disposable Supabase project",
+  "PostgREST refusing SET/set_config — still load-bearing for the four LIVE guard-defining migrations",
+  "the INDEPENDENT round-5 review has not returned — this file is the implementing session's response, not a verdict"
+ ],
+ "AUTHORIZATION_RECOMMENDATION": "NOT YET. Ask 'Approve production DB migration?' exactly once, for A/B/D only, after the round-5 independent reviewer returns PASS on D (A and B already PASS) on a commit whose real-PostgreSQL CI run is green."
+}

@@ -1,0 +1,211 @@
+name: Validate migrations (real PostgreSQL)
+
+# WHY THIS EXISTS
+#
+# Three consecutive independent DB review rounds were forced to return the verdict
+# "CODE INSPECTED" — not because the reviewers were lax, but because the implementing
+# machine had no psql, no docker and no db-query access, so NOTHING had ever been parsed
+# or executed. Round 2 raised it as cross-cutting finding CC5. Careful reading cannot tell
+# you whether SQL parses, whether a trigger fires in the right order, or whether a CHECK
+# actually refuses a row.
+#
+# The standing rule is now: NO MIGRATION REACHES PRODUCTION AUTHORIZATION ON STATIC REVIEW
+# ALONE. This workflow is what makes that rule enforceable rather than aspirational.
+#
+# It runs the same two harnesses the implementing session runs locally, so a green CI run
+# and a green local run mean the same thing:
+#   qa/dbtest/apply-migrations.mjs  — applies the WHOLE chain, per-file verdicts
+#   qa/dbtest/acceptance.mjs        — exercises behaviour, per-migration verdicts
+#
+# TWO ENGINES, TWO EVIDENCE LEVELS — and the wording must never be inflated:
+#
+#   job `validate` (PGlite, real PostgreSQL compiled to WASM, in-process):
+#       FAST INTEGRATION SMOKE. Identical engine to the local harness, so CI and local
+#       cannot disagree for environmental reasons. Its persona results are labelled
+#       "RLS ENFORCEMENT (PGlite emulation)" and are NOT allowed to say SECURITY VERIFIED —
+#       a single-user WASM build whose role/GUC/extension surface has not been shown to
+#       match Supabase must not be quoted as proof of Supabase security semantics.
+#
+#   job `validate-real-postgresql` (a real PostgreSQL server in a service container, with
+#   pgvector, connected to as a login role that then SET ROLEs down to the API roles):
+#       THE SECURITY LAYER. The same three harnesses, pointed at the server by
+#       DBTEST_PG_URL. Before any persona test the harness runs the founder-mandated
+#       self-check (db.mjs securitySelfCheck): current_user really changed and
+#       session_user did not; the role is not a superuser and has no BYPASSRLS;
+#       row_security is on; the expected grant exists; a policy-filtered read returns only
+#       the allowed rows; a known-forbidden INSERT fails with SQLSTATE 42501 and for no other
+#       reason. Only this job may print SECURITY VERIFIED, and only per migration.
+#
+# ROUND 3 (independent DB review, D-1, P1): an earlier version of this header claimed that
+# SET ROLE to a non-superuser role meant the superuser login "cannot flatter a result".
+# That was FALSE — SET ROLE changes current_user, not session_user, and migration D's
+# guards trust session_user in ('postgres','supabase_admin'), so on the postgres login every
+# persona assertion for D was made on a connection its guards could not refuse. Personas now
+# run under SET SESSION AUTHORIZATION qa_authenticator (a non-superuser, non-BYPASSRLS LOGIN
+# role — PostgREST's shape), and the self-check refuses to produce any persona verdict while
+# session_user is a privileged identity. The concurrency step below is the only place the
+# FOR UPDATE SKIP LOCKED double-claim guarantee is exercised at all.
+#
+# What even the real-PostgreSQL job does NOT prove: PostgREST request shaping (including
+# whether PostgREST refuses SET/set_config — the property migration A no longer depends on),
+# Supabase Auth JWT issuance, the Supabase `postgres` role's exact attributes, and
+# production data. Supabase-only behaviour must be reproduced faithfully in bootstrap.sql or
+# tested in a disposable Supabase project.
+#
+# STATUS LADDER this workflow moves a migration along:
+#   CODE INSPECTED -> SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED (both jobs)
+#     -> RLS / GRANTS / SECURITY DEFINER VERIFIED -> SECURITY VERIFIED (real-PostgreSQL job only)
+#   Nothing is promoted from CODE INSPECTED to production-ready by static review.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'qa/dbtest/**'
+      - '.github/workflows/migration-validation.yml'
+  push:
+    branches: [ master ]
+    paths:
+      - 'supabase/migrations/**'
+      - 'qa/dbtest/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the validation harness
+        working-directory: qa/dbtest
+        run: npm ci || npm install
+
+      - name: Apply the full migration chain to a disposable database
+        working-directory: qa/dbtest
+        run: node apply-migrations.mjs
+        # Exits non-zero if ANY file fails to parse or execute. The report names the file
+        # and distinguishes PARSE_FAILED from EXECUTE_FAILED, because "does not parse" and
+        # "parses but the schema disagrees" are different findings with different owners.
+
+      - name: Behavioural acceptance (per-migration verdicts)
+        working-directory: qa/dbtest
+        run: node acceptance.mjs
+        # Each migration gets its OWN verdict. A pass on one implies nothing about the
+        # others, and this job must never be collapsed into a single combined PASS that
+        # could hide a failing migration.
+
+      - name: RLS persona enforcement (per-migration security verdicts)
+        working-directory: qa/dbtest
+        run: node personas.mjs
+        # Proves policies REFUSE A REAL CALLER, not merely that they exist. PGlite runs as
+        # superuser by default (which bypasses RLS), so this suite SET ROLEs down to
+        # `authenticated`/`anon` and SELF-CHECKS that enforcement is actually happening
+        # before asserting anything — otherwise every "denied" result could be a typo or a
+        # missing grant, and the run would report airtight security while proving nothing.
+
+      - name: Publish reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-validation-reports
+          path: |
+            qa/dbtest/apply-report.json
+            qa/dbtest/acceptance-report.json
+            qa/dbtest/personas-report.json
+          if-no-files-found: warn
+
+      - name: State what this run does NOT prove
+        if: always()
+        run: |
+          echo "This job proves: SQL PARSED + DDL EXECUTED + INTEGRATION VERIFIED, plus"
+          echo "RLS ENFORCEMENT (PGlite emulation). It is NOT SECURITY VERIFIED — that"
+          echo "label is reserved for the validate-real-postgresql job. It proves nothing"
+          echo "about production data and is NOT a substitute for the post-apply"
+          echo "verification performed against the live database after an authorized push."
+
+  validate-real-postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # pgvector's official image: stock PostgreSQL 15 (the Supabase major) + pgvector +
+        # contrib (pgcrypto). Disposable — created and destroyed with the job.
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_PASSWORD: dbtest
+          POSTGRES_USER: postgres
+          POSTGRES_DB: dbtest
+        ports: [ '5432:5432' ]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # NEVER a production URL. db.mjs refuses any Supabase project host outright.
+      DBTEST_PG_URL: postgres://postgres:dbtest@localhost:5432/dbtest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the validation harness
+        working-directory: qa/dbtest
+        run: npm ci || npm install
+
+      - name: Prove the engine is a real server and NOT production
+        run: |
+          psql "$DBTEST_PG_URL" -Atc "select version()"
+          psql "$DBTEST_PG_URL" -Atc "select current_user, inet_server_addr(), current_database()"
+          case "$DBTEST_PG_URL" in *supabase*|*pvphxgrtdfrudejjhzjk*) echo "REFUSED: production host"; exit 9;; esac
+
+      - name: Apply the full migration chain (real PostgreSQL)
+        working-directory: qa/dbtest
+        run: node apply-migrations.mjs
+        # SQL PARSED + DDL EXECUTED on a real server, including a REAL pgvector type.
+
+      - name: Behavioural acceptance (real PostgreSQL, per-migration verdicts)
+        working-directory: qa/dbtest
+        run: node acceptance.mjs
+
+      - name: Security self-check + RLS persona enforcement (real PostgreSQL, per-migration SECURITY verdicts)
+        working-directory: qa/dbtest
+        run: node personas.mjs
+        # The harness exits non-zero — before any persona assertion — unless the self-check
+        # proves: SET ROLE took effect (current_user != session_user), the test role is not
+        # a superuser and has no BYPASSRLS, row_security is on, the expected grant exists,
+        # a policy-filtered read returns only allowed rows, and a known-forbidden INSERT
+        # fails with 42501. A denial on a connection where that is unproven is not evidence.
+
+      - name: Double-claim under genuine concurrency (real PostgreSQL, two connections)
+        working-directory: qa/dbtest
+        run: node concurrency.mjs
+        # ROUND 3 / D-4: FOR UPDATE SKIP LOCKED cannot be exercised on single-connection
+        # PGlite. Two pg.Clients race inside open transactions; a block or a duplicate claim
+        # is a FAIL. On PGlite this script prints NO VERDICT and exits 0 — never a pass.
+
+      - name: Publish reports (real PostgreSQL)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-validation-reports-real-postgresql
+          path: |
+            qa/dbtest/apply-report.json
+            qa/dbtest/acceptance-report.json
+            qa/dbtest/personas-report.json
+          if-no-files-found: warn
+
+      - name: Evidence level reached by this job
+        if: always()
+        run: |
+          echo "This job proves, on a REAL PostgreSQL server with a self-checked non-superuser role:"
+          echo "  SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED -> RLS / GRANTS / SECURITY DEFINER"
+          echo "  BEHAVIOUR VERIFIED -> SECURITY VERIFIED, per migration, as printed above."
+          echo "It does NOT prove PostgREST shaping, Supabase Auth issuance, or anything about"
+          echo "production data. It is a prerequisite for, not a substitute for, the founder's"
+          echo "production authorization and the post-apply live verification."

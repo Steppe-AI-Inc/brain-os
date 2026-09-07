@@ -114,3 +114,36 @@ second, separate live test (deliberately try to get the model to write a
 financial/salary-derived fact as `internal` or `public`) before considering this
 invariant fully closed — the enforcement bug is fixed, the trust-the-model's-own-tagging
 design gap is not.
+
+## 8. A GUC is never authority. A client-settable setting cannot gate a privileged write.
+
+`set_config('app.*', ...)` / `SET app.*` can be executed by ANY role — anon, authenticated —
+because custom GUCs live in an unreserved namespace. A trigger or policy that treats such a
+flag as proof that "a trusted RPC opened this write" is therefore forgeable by construction;
+it holds today only because PostgREST exposes no `SET` statement, i.e. by transport, not by
+design. Established by the independent DB review, round 3 (2026-09-04), finding A-1, which
+planted a fabricated `last_successful_mutation` as `authenticated` in one statement on the
+prepared migration 202609020001 — and whose same-class sweep found the identical
+`app.*_lifecycle_rpc` flag-only pattern ALREADY LIVE in five pushed migrations
+(202608280013, 202608290001, 202608290008, 202608300002, 202608290010).
+
+**Rule:** a privileged write may be gated on the flag only TOGETHER with something a client
+cannot forge — the SECURITY DEFINER execution context (`current_user` = the RPC owner inside
+the definer function, `anon`/`authenticated` for a direct client write) — or on a mechanism
+that does not depend on PostgREST's surface at all. 202609020001 was corrected to the
+two-part gate in round 4. The five live migrations are an OPEN live-schema defect class
+(`qa/KNOWN_FAILURE_MODES.md`, entry "GUC-as-authority") owed their own migration; until it
+ships, that protection rests on PostgREST refusing `SET`, which nothing in this repo tests.
+
+## 9. Security evidence must be produced under the identity the code under test does NOT privilege.
+
+`SET ROLE` changes `current_user`; it does not change `session_user`. A guard written against
+`session_user in ('postgres','supabase_admin')` (the supervisor's direct-connection identity,
+migration 202609030001) refuses NOBODY on a connection whose login role is `postgres` — which
+is exactly how the first real-PostgreSQL CI job printed SECURITY VERIFIED for a guard it had
+never exercised (round 3, finding D-1). **Rule:** persona/security assertions run under a
+dedicated non-superuser, non-BYPASSRLS LOGIN identity (`qa_authenticator`, via
+`SET SESSION AUTHORIZATION`, PostgREST's shape), and the harness self-check refuses to produce
+any verdict while `session_user` is an identity the code privileges (`qa/dbtest/db.mjs`,
+`securitySelfCheck`). PGlite results remain "RLS ENFORCEMENT (PGlite emulation)"; only the
+real-PostgreSQL job may print SECURITY VERIFIED.
