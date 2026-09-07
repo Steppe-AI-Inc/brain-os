@@ -1,6 +1,3 @@
-// #50 instrument fix: this gate's builders never injected knownEntityNames (the battery's structural default
-// is an EMPTY Set). After V49-D3's cursor advance the belt reads it unconditionally, so the unpatched gate
-// CRASHED (ReferenceError) instead of reporting its stale 25/1. Injected at both builder sites.
 // VERIFIER #30 — campaign #90 regression additions (candidate-vs-DEPLOYED-v92 deployment gate).
 //
 // WHAT THIS PINS, AND WHY IT IS RED ON THE CANDIDATE ON PURPOSE.

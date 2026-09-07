@@ -98,5 +98,8 @@ export function v92ArmTurn(summary, { pendingAction = false } = {}) {
   if (candFutureFires('I will archive ACME Corp once you confirm.')) throw new Error('harness self-check: D4 guard not modelled');
   if (!candFutureFires('I will archive ACME Corp for you.')) throw new Error('harness self-check: FUTURE arm not modelled');
   if (v92ArmTurn('ACME Corp was archived.', { pendingAction: true }) !== null) throw new Error('harness self-check: v92 pendingAction switch');
-  if (candArm('ACME Corp was archived.', { pendingAction: true }) !== 'BELT') throw new Error('harness self-check: candidate belt must still run on a pendingAction turn');
+  // After verifier #50 (option 1 adopted): both belt consumers carry !result.pendingAction, so the belt
+  // does NOT run on a pendingAction turn — v92 parity there by construction. Pin the new shape.
+  if (candArm('ACME Corp was archived.', { pendingAction: true }) !== null) throw new Error('harness self-check: candidate belt must NOT run on a pendingAction turn (v92 term restored)');
+  if (candArm('ACME Corp was archived.', { pendingAction: false }) !== 'BELT') throw new Error('harness self-check: candidate belt must run off a pendingAction turn');
 }

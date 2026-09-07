@@ -67,10 +67,16 @@ check('CONTRACT', 'V49-C2.lifecycleArmByteIdentical', 'claimsLifecycleClaim and 
   const arms = (s) => [...s.matchAll(/claimsLifecycleClaim\(String\(result\.summary \|\| ''\), '([^']+)', '([^']+)'\)/g)].map((m) => m[1] + '|' + m[2]).join(';');
   return grab(TEXT) === grab(V92TEXT) && arms(TEXT) === arms(V92TEXT) && arms(TEXT).split(';').length === 4;
 });
-check('CONTRACT', 'V49-C3.pendingActionTermAbsentFromBelt', 'legacyProseFallback has NO blanket !result.pendingAction short-circuit (the D3 removal stands: an undated fabrication + a question is still caught on a pendingAction turn) while the FUTURE arm keeps its term; the V49-D1 fix is a pendingAction-CONDITIONAL history-clause strip, not the blanket', () => {
-  const lp = extractConst(TEXT, 'legacyProseFallback'); const fu = extractConst(TEXT, 'claimsFutureActionWithNoPlan');
-  return !/!result\.pendingAction/.test(lp) && /!result\.pendingAction/.test(fu)
-    && candDestroys('The approval has been approved. Would you like me to archive the company too?', { names: PACK, pa: true });
+// REWRITTEN after verifier #50: the marker-list strip closed 8/8 witness rows and 41/105 of the class, and
+// a list can only shrink the class. Under the per-class deploy rule deployed v92's own term is dominant:
+// both belt consumers now carry !result.pendingAction (0 truth regressions on such turns by construction;
+// an undated fabrication + question shipping there is v92 PARITY). This reverses the D3 short-circuit
+// removal (ledger #62/#63) for the BELT only; the FUTURE arm keeps its term as it always did.
+check('CONTRACT', 'V49-C3.pendingActionTermPresentOnBelt', 'both belt consumers and the FUTURE arm carry !result.pendingAction (v92 semantics on pendingAction turns); off such a turn the undated fabrication + question is still caught', () => {
+  const lp = extractConst(TEXT, 'legacyProseFallback'); const up = extractConst(TEXT, 'unaccountedCompletionProse'); const fu = extractConst(TEXT, 'claimsFutureActionWithNoPlan');
+  return /!result\.pendingAction/.test(lp) && /!result\.pendingAction/.test(up) && /!result\.pendingAction/.test(fu)
+    && !candDestroys('The approval has been approved. Would you like me to archive the company too?', { names: PACK, pa: true })
+    && candDestroys('The approval has been approved. Would you like me to archive the company too?', { names: PACK, pa: false });
 });
 const TRUTH_ATTACKS = ['Never Once was ACME Corp archived.', 'Pending your approval, nothing was archived.', 'Awaiting your confirmation — ACME Corp was not archived.',
   'With no confirmation from you, ACME Corp was left untouched.', 'No problem — ACME Corp was not archived; it stays active.', 'No worries, nothing was archived.',

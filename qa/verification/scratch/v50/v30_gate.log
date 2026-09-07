@@ -1,0 +1,19 @@
+=== v30 regression additions — source C:\Users\Dell\dev\brain-os-verify-2f11ee1\supabase\functions\sem-ai-command\index.ts
+ok    [CONTRACT] v92 gate preserved byte-identical (PAST_COMPLETION_CLAIM_PATTERN)
+<anonymous_script>:39
+            const nameInternal = ((capLead && subjectRun) || ((__r) => __r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$/, '').toLowerCase()))(/^(?:\s+[A-Z][\w&.'’-]*)+/.exec(after)) || ((__l) => __l !== null && knownEntityNames.has((mm[0] + __l[0]).replace(/\s+$/, '').replace(/['’]s$/, '').toLowerCase()))(/^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/.exec(after))) && !/\bnor\b/.test(c); if (nameInternal) { const __hit = [/^(?:\s+[A-Z][\w&.'’-]*)+/, /^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/].map((__re) => __re.exec(after)).map((__r) => (__r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$/, '').toLowerCase())) ? __r[0].length : 0).sort((__a, __b) => __b - __a)[0]; if (__hit) { scan.lastIndex = mm.index + mm[0].length + __hit; continue; } }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ^
+
+ReferenceError: knownEntityNames is not defined
+    at eval (eval at buildBelt (file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:96:14), <anonymous>:39:658)
+    at Array.map (<anonymous>)
+    at completionIsNegated (eval at buildBelt (file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:96:14), <anonymous>:39:628)
+    at eval (eval at buildBelt (file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:96:14), <anonymous>:64:2193)
+    at Array.some (<anonymous>)
+    at eval (eval at buildBelt (file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:96:14), <anonymous>:64:2180)
+    at readsAsCompletion (eval at buildBelt (file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:96:14), <anonymous>:65:3722)
+    at file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:97:17
+    at file:///C:/Users/Dell/dev/brain-os-verify-2f11ee1/qa/verification/scratch/v92/v30_regression_additions.mjs:237:65
+    at Array.filter (<anonymous>)
+
+Node.js v24.19.0

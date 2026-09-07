@@ -77,11 +77,16 @@ check('D58ok a truthful read-only turn (no claims, no evidence, no completion pr
 check('D52 a supported create claim + unrelated fabrication is re-rendered without it',
   (() => { const r = run({ claims: [M('task', ID, 'create')], evidence: [EV('task', 'create', ID)], summary: 'Task created. ' + FAB_NO_UUID }); return r.summary === 'the task: created — confirmed.' && !/has been approved/.test(r.summary); })());
 
-// ---- D59: the D3 short-circuit stays out of the legacy gate.
+// ---- D59: REVERSED for the belt by verifier #50's option (1), adopted 2026-09-07. Deployed v92 skips every
+// prose arm on a pendingAction turn; the candidate's belt ran there and destroyed truthful history recounts
+// (V49-D1 / V50-D1: 64/105 of the class after a marker-list fix). Under the per-class deploy rule the
+// dominant choice is v92's own term on BOTH belt consumers: 0 truth regressions on such turns by
+// construction, at the cost that a fabricated completion + question on a pendingAction turn now SHIPS —
+// which is exactly what v92 does (PARITY, not a regression). Off a pendingAction turn it stays caught (D59c).
 {
   const r = run({ claims: null, evidence: [], grounded: false, summary: FAB_NO_UUID + ' Should I also archive ACME?', pendingAction: { kind: 'open_question', question: 'Should I also archive ACME?' } });
-  check('D59 pendingAction no longer shields a fabricated completion from the legacy gate',
-    !r.summary.includes('has been approved') && r.corrected === true);
+  check('D59 (REVERSED, v92 parity) a fabricated completion + question on a pendingAction turn is NOT corrected — deployed v92 does not correct it either',
+    r.summary.includes('has been approved') && r.corrected === false);
   check('D59b the gated pending question SURVIVES the correction (founder not stranded)',
     r.summary.includes('Should I also archive ACME?'));
 }
