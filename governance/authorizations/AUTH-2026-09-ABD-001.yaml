@@ -1,0 +1,76 @@
+# FOUNDER AUTHORIZATION MANIFEST — request form.
+#
+# This file is a REQUEST, not an approval. The approval is the founder approving the protected
+# environment in the release workflow, recorded by GitHub with reviewer identity and timestamp, which
+# a contents:write token cannot forge. The broker (scripts/release-broker/plan.mjs) reads this file
+# from a FRESH CHECKOUT of package_commit — never from a working tree — and refuses before any write
+# if anything below disagrees with the tree, the remote history, or the substrate.
+#
+# STATUS OF THIS PARTICULAR MANIFEST: it describes the A/B/D authorization the founder gave on
+# 2026-09-02/03. Production ALREADY carries all five versions (A, B, C, D, X) in
+# supabase_migrations.schema_migrations because `db push` applied everything pending. The broker
+# therefore REFUSES this manifest today with EXCLUDED_ALREADY_APPLIED — which is correct, and is
+# the reconciliation gate: nothing can be released on top of an unreconciled history. It stays here
+# as the canonical record of what was actually authorized versus what was applied.
+
+authorization_id: AUTH-2026-09-ABD-001
+schema_version: 1
+scope: supabase_db_migrations
+target_environment: production
+project_ref: pvphxgrtdfrudejjhzjk
+
+issued_at: 2026-09-07T00:00:00Z
+expires_at: 2026-09-14T00:00:00Z          # an authorization is an event, not a standing grant
+requested_by: main-pc-implementation-session
+founder_approval_scope: >
+  Migrations A (202609020001), B (202609020002) and D (202609030001) only.
+  C (202609020003) and 202609040001 are EXCLUDED and must not be applied under this authorization.
+
+# The commit whose bytes were reviewed. The broker checks out exactly this, hashes every file
+# below, and refuses on any difference.
+package_commit: f6fa26a457378e188d2bbd1ca3604a4b384a308d
+
+# PARTIAL RELEASE. Under the equality rule (ACTUAL_PENDING_SET == AUTHORIZED_PENDING_SET) a
+# release that leaves pending files behind must say so here, name the mechanism, and name the exact
+# scope being held back. The substrate must separately confirm the mechanism was verified for the
+# run (inputs.selective_execution_verified) — this file cannot certify its own selectivity.
+execution_model: SELECTIVE_CURATION
+selective_execution:
+  mechanism: curated-migration-directory
+  verified_by: scripts/release-broker/plan.regression.test.mjs::EXCLUDED_MIGRATION_NEVER_ENTERS_THE_CURATED_DIRECTORY
+  excluded_scope:
+    - "202609020003"
+    - "202609040001"
+
+# sha256 of LF-normalised bytes (CRLF stripped), so a checkout on either platform hashes the same.
+approved_migrations:
+  - version: "202609020001"
+    filename: 202609020001_chat_channel_state_durable_conversation.sql
+    sha256: db0c11f1faa99cd72bc4c2266ff73453de09b07b5d1fa482cb781ed43654bc6d
+  - version: "202609020002"
+    filename: 202609020002_set_person_assignment_clear_manager.sql
+    sha256: 5c5f85d69425924a7db3745228b81f2f816d3bcb1c58f9ea3b59817f61dca89e
+  - version: "202609030001"
+    filename: 202609030001_agent_run_capacity_retry.sql
+    sha256: f7dd682b361673841a5e772ba4fc906ba14d20712eb4a8c7256c437c5cc2839a
+
+excluded_migrations:
+  - version: "202609020003"
+    filename: 202609020003_messaging_transport_foundation.sql
+    sha256: 4c2ab698033a587078561bd3c13f1b78192fbc0aa1a8ed86668f67a8910dc5d9
+  - version: "202609040001"
+    filename: 202609040001_chat_channels_creator_immutable.sql
+    sha256: 1bb45cbc21d10bc03305e132d3214372fd81c86bd07b122e078dfed4be70784b
+
+evidence:
+  migration_validation_workflow: migration-validation.yml must be green for package_commit
+  live_preflight: qa/dbtest/live_preflight_abd.mjs --pre (read-only) before, --post after
+  selective_apply_smoke: qa/dbtest/selective_abd_gap_safety.mjs
+
+# Required. Absent => REFUSE.
+rollback:
+  kind: forward_fix_only
+  note: >
+    No down migrations exist for A/B/D. A defect is corrected by a new forward migration under a new
+    authorization. Never hand-edit supabase_migrations.schema_migrations; a history correction is
+    itself a brokered operation.

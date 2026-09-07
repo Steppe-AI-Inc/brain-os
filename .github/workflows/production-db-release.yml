@@ -1,0 +1,200 @@
+# PRODUCTION DB RELEASE BROKER — the only path by which a migration reaches production.
+#
+# A thin shell around scripts/release-broker/plan.mjs. The shell gathers facts, the core decides,
+# and every refusal happens BEFORE the job that holds a production secret is even reached.
+#
+#   preflight  — no secrets. Fresh checkout of the exact package_commit (never a working tree).
+#                Loads the manifest, hashes every migration file, asks the substrate for the facts
+#                a tree cannot vouch for, and runs buildApplyPlan(). Any REFUSE ends the run here.
+#                Reads the remote migration history through the READ-ONLY role, so even this job
+#                cannot write.
+#
+#   apply      — environment `production-db`: founder is the required reviewer, self-review is
+#                blocked, branch must be master. The production credential exists only here. It
+#                re-runs the full plan (remote state may have moved during the wait), curates the
+#                migration directory so the CLI is physically unable to apply anything but the
+#                approved set, asserts `db push --dry-run` string-equals the approved set, writes the
+#                ledger row BEFORE pushing (authorization_id is the primary key: replay is refused by
+#                Postgres, not by YAML), pushes, then reconciles remote history against
+#                before ∪ approved EXACTLY. No auto-rollback: a mismatch emits RECONCILIATION_REQUIRED.
+#
+#   verify     — read-only again. live_preflight_abd.mjs --post through brain_os_readonly must
+#                report each approved migration LIVE VERIFIED and each excluded one UNTOUCHED.
+#
+# THIS WORKFLOW IS INERT until the founder creates the `production-db` environment with themselves
+# as required reviewer and moves the production secret into it (docs/FOUNDER_ACTION_RUNBOOK.md §1).
+# Until then the apply job cannot find its secret and fails closed at its first step.
+name: production-db-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorization_id:
+        description: 'Manifest id under governance/authorizations/ (e.g. AUTH-2026-09-ABD-001)'
+        required: true
+      git_commit:
+        description: 'Exact 40-hex package_commit the manifest was written against'
+        required: true
+      confirm_project_ref:
+        description: 'Type the production project ref. Must equal the manifest AND the environment variable.'
+        required: true
+      selective_execution_verified:
+        description: 'true ONLY if the curated-directory regression ran green for this commit in the preflight job'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-db-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: preflight (no secrets — every refusal happens here)
+    runs-on: ubuntu-latest
+    environment: production-readonly
+    outputs:
+      decision: ${{ steps.plan.outputs.decision }}
+      code: ${{ steps.plan.outputs.code }}
+    steps:
+      - name: checkout the EXACT package commit, never a branch tip
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_commit }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: the commit must be an ancestor of origin/master
+        id: ancestor
+        run: |
+          git fetch origin master --quiet
+          if git merge-base --is-ancestor "${{ inputs.git_commit }}" origin/master; then
+            echo "ancestor=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ancestor=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: migration-validation must be green for exactly this commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          c=$(gh api "repos/${{ github.repository }}/actions/workflows/migration-validation.yml/runs?head_sha=${{ inputs.git_commit }}&status=completed&per_page=1" --jq '.workflow_runs[0].conclusion // "none"')
+          echo "conclusion=$c" >> "$GITHUB_OUTPUT"
+
+      - name: the reviewed bytes must be the checked-out bytes
+        id: diff
+        run: |
+          if git diff --quiet "${{ inputs.git_commit }}" -- supabase/migrations; then echo "clean=true" >> "$GITHUB_OUTPUT"; else echo "clean=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: install harness deps (yaml, pg)
+        working-directory: qa/dbtest
+        run: npm ci --ignore-scripts
+
+      - name: read remote migration history (READ-ONLY role)
+        id: history
+        env:
+          LIVE_READONLY_PG_URL: ${{ secrets.LIVE_READONLY_PG_URL }}
+        run: |
+          node --input-type=module - <<'EOF' > applied.json
+          import { openReadOnlyDb } from './qa/dbtest/db.mjs';
+          const db = await openReadOnlyDb();
+          const r = await db.query('select version from supabase_migrations.schema_migrations order by version');
+          await db.close();
+          console.log(JSON.stringify(r.rows.map((x) => String(x.version))));
+          EOF
+          echo "count=$(node -e "console.log(JSON.parse(require('fs').readFileSync('applied.json','utf8')).length)")" >> "$GITHUB_OUTPUT"
+
+      - name: decide
+        id: plan
+        env:
+          PRODUCTION_PROJECT_REF: ${{ vars.PRODUCTION_PROJECT_REF }}
+        run: |
+          node --input-type=module - <<'EOF'
+          import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+          import { gatherFacts } from './scripts/release-broker/manifest.mjs';
+          import { buildApplyPlan } from './scripts/release-broker/plan.mjs';
+          const facts = await gatherFacts(process.cwd(), {
+            appliedVersions: JSON.parse(readFileSync('applied.json', 'utf8')),
+            gitDiffClean: Object.fromEntries((await import('node:fs')).readdirSync('supabase/migrations').map((f) => [f, '${{ steps.diff.outputs.clean }}' === 'true'])),
+            ciConclusion: '${{ steps.ci.outputs.conclusion }}',
+            ancestorOfMaster: '${{ steps.ancestor.outputs.ancestor }}' === 'true',
+            workflowProjectRef: process.env.PRODUCTION_PROJECT_REF || '',
+            inputs: {
+              authorization_id: '${{ inputs.authorization_id }}',
+              git_commit: '${{ inputs.git_commit }}',
+              confirm_project_ref: '${{ inputs.confirm_project_ref }}',
+              selective_execution_verified: '${{ inputs.selective_execution_verified }}' === 'true',
+            },
+            now: new Date(),
+          });
+          const plan = buildApplyPlan(facts);
+          writeFileSync('plan.json', JSON.stringify(plan, null, 2));
+          console.log(JSON.stringify(plan, null, 2));
+          appendFileSync(process.env.GITHUB_OUTPUT, 'decision=' + plan.decision + '\n' + 'code=' + (plan.code || '') + '\n');
+          if (plan.decision !== 'APPLY') { console.log('REFUSED BEFORE WRITE: ' + plan.code); process.exit(1); }
+          EOF
+
+      - name: the selective-execution mechanism must be proven for THIS commit when claimed
+        if: inputs.selective_execution_verified == 'true'
+        run: node --test --test-name-pattern="EXCLUDED_MIGRATION_NEVER_ENTERS_THE_CURATED_DIRECTORY" scripts/release-broker/plan.regression.test.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan-${{ inputs.authorization_id }}-${{ github.run_id }}
+          path: |
+            plan.json
+            applied.json
+          retention-days: 400
+
+  apply:
+    name: apply (founder approval required — the ONLY job holding a production secret)
+    needs: preflight
+    if: needs.preflight.outputs.decision == 'APPLY'
+    runs-on: ubuntu-latest
+    environment: production-db
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: fail closed if the environment has no credential (workflow is inert until the founder creates it)
+        env:
+          T: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: test -n "$T" || { echo "production-db environment carries no SUPABASE_ACCESS_TOKEN — nothing to do"; exit 78; }
+      - name: apply through the curated directory (port of qa/dbtest/selective_apply_abd.sh)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PRODUCTION_PROJECT_REF: ${{ vars.PRODUCTION_PROJECT_REF }}
+          LIVE_READONLY_PG_URL: ${{ secrets.LIVE_READONLY_PG_URL }}
+        run: |
+          echo "apply step: scripts/release-broker/apply.sh is the next deliverable; this job refuses until it exists."
+          test -x scripts/release-broker/apply.sh || exit 1
+          scripts/release-broker/apply.sh "${{ inputs.authorization_id }}" "${{ inputs.git_commit }}"
+
+  verify:
+    name: verify (read-only, independent of the apply job's own claims)
+    needs: apply
+    runs-on: ubuntu-latest
+    environment: production-readonly
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - working-directory: qa/dbtest
+        run: npm ci --ignore-scripts
+      - env:
+          LIVE_READONLY_PG_URL: ${{ secrets.LIVE_READONLY_PG_URL }}
+        run: node qa/dbtest/live_preflight_abd.mjs --post

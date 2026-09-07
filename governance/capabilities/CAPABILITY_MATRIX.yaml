@@ -115,7 +115,7 @@ capabilities:
 
   production.deploy:
     enforced: false
-    mechanism: "NOT modeled in Brain OS at all — Edge Function/migration deploys happen via the Supabase CLI outside any tasks/approvals row"
+    mechanism: "NOT YET enforced. Release broker built (scripts/release-broker/); protected-environment workflow pending founder Phase 1 actions. Until then deploys still happen via the Supabase CLI outside any approval row, and the CLI credential still exists on dev machines. See governance/policies/PRODUCTION.yaml enforced_when."
     grants: []
     live_verified: false
     note: >

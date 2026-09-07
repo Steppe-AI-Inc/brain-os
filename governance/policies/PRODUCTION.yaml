@@ -27,7 +27,13 @@ meaning_1_operational_domain:
 meaning_2_deploy_to_live_system:
   capability: production.deploy
   enforced: false
-  mechanism: "NOT modeled anywhere in the tasks/approvals system — see capabilities/CAPABILITY_MATRIX.yaml's production.deploy entry and ACTION_RISK_LEVELS.md's L5 discussion"
+  mechanism: "NOT YET technically enforced. Mechanism built and tested but not the sole path: scripts/release-broker/plan.mjs (pure decision core, 31 refusal regressions) behind a protected GitHub Environment with founder as required reviewer. See qa/verification/DB_BATCH_STATE_FINDING.md for why this became P1."
+  enforced_when: >
+    All of: (1) founder identity/secret separation done (no repo-level production secret, machine
+    GitHub token without admin/workflow); (2) Supabase CLI production credential removed from every
+    dev machine; (3) qa/scenarios-runner/production_write_authority.regression.test.mjs PASSES on
+    both dev machines; (4) release workflow live with the founder as required reviewer. Then flip
+    enforced to true in the same commit that records the evidence.
   current_real_gate: >
     The operating tool's own permission classifier (e.g. this session's Claude Code
     auto-mode classifier) — confirmed live 2026-08-27 blocking an unattended production

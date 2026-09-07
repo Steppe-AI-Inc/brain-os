@@ -5104,3 +5104,14 @@ verification_status/summary/error manager-writable + rendered to the founder) is
 and DEFERRED to its own Work Order (guarding it risks blocking the legitimate SECURITY
 DEFINER writers under PostgREST). A and B have now passed TWO independent rounds; C stays
 split out of the A/B/D authorization batch on Phase 11 sequencing.
+## 63. False service-role exposure finding — variable NAME read as secret VALUE; rotation recommended and withdrawn (2026-09-04, corrected 2026-09-07)
+
+**What was claimed.** `SUPABASE_SERVICE_ROLE_KEY` "readable on disk" in three `web/.env.*.local` files; described as the worst live production-write route; founder advised to rotate before anything else.
+
+**What was true.** The files carry the variable name; the value is Vercel's 13-byte redaction placeholder `"[REDACTED]"`, written by `vercel env pull` for any variable already marked Sensitive. `vercel env ls production` shows the variable as type **Secret / Hidden**. No live value has been found on disk. The founder had chosen "rotate now" on the wrong claim; the correction was surfaced and accepted; rotation is optional hygiene, not remediation.
+
+**How it happened.** A subagent reported "each contains a `SUPABASE_SERVICE_ROLE_KEY`"; the implementation session inferred exposure from the name without inspecting the bytes; the escalation was written before the measurement. Same class as every "number nobody re-measured" entry above, applied to a secret.
+
+**Permanent rule.** `SECRET_VARIABLE_NAME_PRESENT != SECRET_VALUE_EXPOSED`. Every secret finding is one of `ABSENT | REDACTED | PRESENT | VALIDATED_LIVE`, and no finding ever contains the value. Executable: `qa/lib/secret_evidence.mjs` + `qa/lib/secret_evidence.regression.test.mjs` (headline case is this machine's exact state; `NO_FINDING_EVER_CONTAINS_THE_VALUE` asserts no 12-char fragment leaks). Route 2 of `qa/scenarios-runner/production_write_authority.regression.test.mjs` reports through it. Full record: `qa/verification/INCIDENT_2026-09-04_SERVICE_ROLE_FALSE_EXPOSURE.md`.
+
+**Standing founder instruction.** Do not ask for rotation unless new evidence shows the real key was exposed, the key is available to ordinary dev/Claude sessions, or rotation is independently justified.

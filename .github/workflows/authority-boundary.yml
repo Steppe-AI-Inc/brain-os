@@ -1,0 +1,110 @@
+# AUTHORITY BOUNDARY — the executable form of P1 PRODUCTION_WRITE_AUTHORITY_NOT_TECHNICALLY_ENFORCED.
+#
+# Every job here runs WITHOUT any production secret in scope. That is the point: these tests assert
+# that code paths refuse, that guards are load-bearing, and that the host they run on carries no
+# ambient production-write credential. A job that needed a production secret to pass would be
+# measuring the wrong thing.
+#
+# Two kinds of test run here, and they are reported separately so a red run says which kind it is:
+#
+#   CONTROLS   pure regressions for the broker decision core, the disposability proof, the read-only
+#              connection, the factory accessor, and the secret-evidence classifier. These must be
+#              green on every push. A red here is a defect in a control.
+#
+#   MACHINE    production_write_authority.regression.test.mjs asserts a property of the runner it is
+#              on. On a fresh GitHub-hosted runner it MUST pass (no CLI login, no Vercel session, no
+#              gh admin token). If it ever fails here, a production credential has leaked into CI —
+#              and that is the single most important red this repository can produce.
+#
+# Nothing in this workflow deploys, migrates, links, or logs in. See scripts/release-broker/ for the
+# release path, which is a separate workflow with a protected environment.
+name: authority-boundary
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    name: controls (pure, no credentials)
+    runs-on: ubuntu-latest
+    env:
+      # Belt and braces: even if an org-level secret were misconfigured into this job's environment,
+      # these tests read from the variables the code uses, and they must all be EMPTY.
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+      SUPABASE_SERVICE_ROLE_KEY: ''
+      DBTEST_PG_URL: ''
+      LIVE_READONLY_PG_URL: ''
+      FACTORY_RUNNER_PG_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: broker decision core — 31 refusals and the incident reproduction
+        run: node --test scripts/release-broker/plan.regression.test.mjs
+
+      - name: broker — layered-defence proof for the pending-set equality guards
+        run: node scripts/release-broker/layered_defence.proof.mjs
+
+      - name: broker — the shipped A/B/D manifest against the shipped tree (hashes, four substrate states)
+        working-directory: qa/dbtest
+        run: |
+          npm ci --ignore-scripts
+          cd ../.. && node --test scripts/release-broker/manifest.regression.test.mjs
+
+      - name: disposability — the harness cannot destructively initialize a non-ephemeral database
+        run: node --test qa/dbtest/disposability.regression.test.mjs
+
+      - name: disposability — every guard is load-bearing (mutation proof, reporter-agnostic)
+        run: node qa/dbtest/disposability.mutation_proof.mjs
+
+      - name: read-only live connection never reaches the destructive harness
+        working-directory: qa/dbtest
+        run: |
+          npm ci --ignore-scripts
+          node --test readonly_connection.regression.test.mjs
+
+      - name: factory accessor — DML only, DDL refused, no fallback to ambient authority
+        run: node --test scripts/factory-runner/db.regression.test.mjs
+
+      - name: secret evidence — NAME_PRESENT is not VALUE_EXPOSED, and no finding prints a value
+        run: node --test qa/lib/secret_evidence.regression.test.mjs
+
+      - name: route-2 detector self-check (finds real key shapes, ignores Vercel redaction)
+        run: node qa/scenarios-runner/_authority_test_selfcheck.mjs
+
+      - name: pre-push hook blocks function deploy without ALLOW_FUNCTIONS_DEPLOY=1
+        run: sh qa/scenarios-runner/pre_push_hook_blocks_function_deploy.sh
+
+  factory-inventory:
+    name: factory workers carry no ambient production DB authority
+    runs-on: ubuntu-latest
+    # EXPECTED RED until the ten factory-runner scripts move to scripts/factory-runner/db.mjs.
+    # Kept as a separate job so the controls job above stays a clean signal, and marked
+    # continue-on-error so it cannot be "fixed" by being forgotten: it is visible on every run.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test qa/scenarios-runner/factory_production_write_inventory.regression.test.mjs
+
+  machine:
+    name: this runner holds no production-write credential
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # MUST PASS on a GitHub-hosted runner. If it fails, a credential has leaked into CI.
+      - run: node --test qa/scenarios-runner/production_write_authority.regression.test.mjs

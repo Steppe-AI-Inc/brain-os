@@ -22,6 +22,7 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertDisposable, replantSentinel, NotDisposableError } from './disposability.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +45,22 @@ export async function openDb() {
     const exec = async (sql) => { await client.query(sql); };
     const query = async (sql) => client.query(sql);
     const version = (await query('select version() v')).rows[0].v;
+    // POSITIVE PROOF OF DISPOSABILITY, BEFORE ANY DROP. Nothing below runs until the database
+    // itself has proven it is an explicitly disposable test instance — it carries this harness's
+    // own sentinel, or it is pristine and unclaimed. Unknown or ambiguous target => REFUSE.
+    // This holds even if the connection string is wrong, DBTEST_PG_URL points at production, the
+    // hostname denylist above fails to match, the project-ref format changes, or a caller ignores
+    // every instruction in this file: production carries auth/storage/vault/supabase_migrations,
+    // so it fails the pristine route, and it has never carried the sentinel, so it fails that one.
+    let disposal;
+    try {
+      disposal = await assertDisposable({ exec, query }, { url: PG_URL });
+    } catch (e) {
+      await client.end();
+      if (e instanceof NotDisposableError) { console.log(e.message); process.exit(9); }
+      throw e;
+    }
+
     // DISPOSABLE MEANS DISPOSABLE. The CI service database persists across the job's
     // steps, so each harness starts by dropping everything the previous one built —
     // schemas (which takes extensions, domains, tables, functions and policies with them)
@@ -56,6 +73,7 @@ export async function openDb() {
       drop schema if exists auth cascade; drop schema if exists storage cascade;
       drop schema if exists extensions cascade; drop schema if exists vault cascade;
       drop publication if exists supabase_realtime;`);
+    await replantSentinel({ exec, query }, disposal.evidence.run_token);
     // pgvector is REAL here when the image ships it (pgvector/pgvector:pgNN); pgcrypto is
     // contrib and always present on a stock image.
     const available = (await query(`select name from pg_available_extensions where name in ('vector','pgcrypto')`)).rows.map((r) => r.name);
@@ -226,4 +244,75 @@ export function securityVerdictLabel(db) {
   return db.engine === 'real-postgresql'
     ? 'SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)'
     : 'RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job';
+}
+
+// ── READ-ONLY LIVE CONNECTION ───────────────────────────────────────────────────────────────────
+// `live_preflight_abd.mjs --pre|--post` calls itself a READ-ONLY preflight, and until now reached
+// production through openDb() — the function that drops five schemas. It was safe only because a
+// hostname denylist refused first, i.e. the read-only tool was one regex away from being the most
+// destructive thing in the repo.
+//
+// This is the connection a live verification is supposed to use. It is a SEPARATE environment
+// variable, so no amount of confusion about DBTEST_PG_URL can route a destructive harness here and
+// no confusion about LIVE_READONLY_PG_URL can route a read-only check into the dropper. It never
+// touches the DROP block, it never plants a sentinel, and it PROVES its own read-onlyness with a
+// DDL probe that must fail with SQLSTATE 25006 before any caller is handed the connection.
+export const LIVE_READONLY_PG_URL = process.env.LIVE_READONLY_PG_URL || '';
+
+export class ReadOnlyProofError extends Error {
+  constructor(msg) { super('REFUSED — the connection could not prove it is read-only.\n' + msg); this.name = 'ReadOnlyProofError'; }
+}
+
+/**
+ * Open a connection that is proven read-only before it is returned.
+ * @returns {Promise<{query:(sql:string)=>Promise<{rows:any[]}>, close:()=>Promise<void>, engine:string, version:string, readOnlyProof:object}>}
+ */
+export async function openReadOnlyDb() {
+  if (!LIVE_READONLY_PG_URL) {
+    throw new ReadOnlyProofError('LIVE_READONLY_PG_URL is not set. A live read-only check has no '
+      + 'fallback: it does not borrow DBTEST_PG_URL, because that is the destructive harness\'s '
+      + 'variable and sharing it is how a read-only tool acquires write authority.');
+  }
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: LIVE_READONLY_PG_URL });
+  await client.connect();
+  const query = async (sql) => client.query(sql);
+  const close = () => client.end();
+
+  // Ask the session to be read-only, then PROVE it. Asking is not evidence — a GUC can be
+  // overridden per-transaction, and a role granted write access is unaffected by a session default.
+  await client.query('set default_transaction_read_only = on');
+  const proof = { requested: true };
+  proof.guc = (await query('show default_transaction_read_only')).rows[0].default_transaction_read_only;
+  proof.user = (await query('select current_user u, session_user su')).rows[0];
+
+  // The probe. A write must FAIL, and fail for the read-only reason (25006), not because the
+  // table name was a typo — a typo would fail too, and a probe that cannot tell those apart proves
+  // nothing. Rolled back either way.
+  let probe = 'NO_ERROR';
+  try {
+    await client.query('begin');
+    await client.query('create temporary table _ro_probe_should_never_exist(x int)');
+    probe = 'NO_ERROR';
+  } catch (e) {
+    probe = e.code || 'UNKNOWN';
+  } finally {
+    try { await client.query('rollback'); } catch { /* already aborted */ }
+  }
+  proof.ddlProbeSqlstate = probe;
+  if (probe !== '25006') {
+    await close();
+    throw new ReadOnlyProofError('A DDL probe on this connection returned SQLSTATE ' + probe
+      + ', expected 25006 (read_only_sql_transaction). ' + (probe === 'NO_ERROR'
+        ? 'The write SUCCEEDED — this connection can write, and must not be used for a read-only '
+        + 'live check. Point LIVE_READONLY_PG_URL at a role created with NOLOGIN-equivalent write '
+        + 'privileges revoked, not merely at a session with a GUC set.'
+        : 'The write failed for a DIFFERENT reason, so read-onlyness is unproven: a probe that '
+        + 'fails for the wrong reason is not evidence.')
+      + '\nProof record: ' + JSON.stringify(proof));
+  }
+
+  const version = (await query('select version() v')).rows[0].v;
+  return { query, close, engine: 'real-postgresql-readonly', version, readOnlyProof: proof,
+    exec: async () => { throw new ReadOnlyProofError('exec() is not available on a read-only connection.'); } };
 }

@@ -14,10 +14,14 @@
 // Plus the founder-mandated security self-check on a real engine (non-superuser, no BYPASSRLS, row_security on,
 // a known-forbidden INSERT fails with 42501). Emits: A/B/D — LIVE VERIFIED | FAILED, C — UNTOUCHED | TOUCHED.
 //
-//   DBTEST_PG_URL=<production session-pooler URL, read-only role> node live_preflight_abd.mjs --post   # after apply
-//   DBTEST_PG_URL=... node live_preflight_abd.mjs --pre                                                # before apply
+//   LIVE_READONLY_PG_URL=<production session-pooler URL, READ-ONLY role> node live_preflight_abd.mjs --post   # after apply
+//   LIVE_READONLY_PG_URL=... node live_preflight_abd.mjs --pre                                          # before apply
+//
+// --pre and --post NEVER use openDb(). openDb() is the destructive harness entry (it drops five schemas
+// on any real engine that proves disposable); a live check uses openReadOnlyDb(), a separate variable
+// and a connection that must prove it is read-only (DDL probe -> SQLSTATE 25006) before it is handed over.
 //   node live_preflight_abd.mjs --smoke   # no URL: PGlite, applies everything except C/040001, then runs the same checks
-import { openDb, bootstrap, transformFor, securitySelfCheck, ENGINE } from './db.mjs';
+import { openDb, openReadOnlyDb, bootstrap, transformFor, securitySelfCheck, ENGINE } from './db.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,7 +54,7 @@ function expectations(sql) {
   return out;
 }
 
-const db = await openDb();
+const db = MODE === 'smoke' ? await openDb() : await openReadOnlyDb();
 console.log(`engine: ${db.engine} — ${db.version}   mode: ${MODE}\n`);
 // db.mjs's query wrapper takes only `sql` (no bind params): substitute $N with safely-quoted literals.
 // Every value comes from this repo's own migration files (identifiers) or a fixed role name.
@@ -72,7 +76,11 @@ if (MODE === 'smoke') {
 }
 
 // ---- security self-check (real engine only; PGlite is integration smoke) ----------------------------
-if (db.engine === 'real-postgresql') {
+if (db.engine === 'real-postgresql-readonly') {
+  // A read-only connection cannot run securitySelfCheck (it creates a table). What gates LIVE VERIFIED
+  // here is the read-only PROOF: the connection demonstrated it cannot write before we got it.
+  console.log('read-only proof: PASS', JSON.stringify(db.readOnlyProof));
+} else if (db.engine === 'real-postgresql') {
   try { const ev = await securitySelfCheck(db); console.log('security self-check: PASS', JSON.stringify(ev).slice(0, 160)); }
   catch (e) { console.log('security self-check: FAIL —', e.message); console.log('\nNO migration verdict can be LIVE VERIFIED on a connection whose enforcement is unproven.'); process.exit(1); }
 } else console.log('security self-check: SKIPPED on PGlite (smoke only — a real engine is required for LIVE VERIFIED)');
