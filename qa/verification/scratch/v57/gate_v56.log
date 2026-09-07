@@ -1,0 +1,131 @@
+ok    [CONTRACT] C1 receipt, no success wording: "Rename project Alpha to Beta" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "Rename project Alpha to Beta" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "Rename project Alpha to Beta" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "Rename project Alpha to Beta"
+ok    [CONTRACT] C1 receipt, no success wording: "archive company ACME" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "archive company ACME" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "archive company ACME" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "archive company ACME"
+ok    [CONTRACT] C1 receipt, no success wording: "approve approval 123" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "approve approval 123" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "approve approval 123" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "approve approval 123"
+ok    [CONTRACT] C1 receipt, no success wording: "delete task QA-1" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "delete task QA-1" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "delete task QA-1" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "delete task QA-1"
+ok    [CONTRACT] C1 receipt, no success wording: "assign task QA-1 to Bob" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "assign task QA-1 to Bob" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "assign task QA-1 to Bob" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "assign task QA-1 to Bob"
+ok    [CONTRACT] C1 receipt, no success wording: "set the manager of Alice to Bob" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "set the manager of Alice to Bob" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "set the manager of Alice to Bob" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "set the manager of Alice to Bob"
+ok    [CONTRACT] C1 receipt, no success wording: "restore company Beta" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "restore company Beta" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "restore company Beta" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "restore company Beta"
+ok    [CONTRACT] C1 receipt, no success wording: "yes" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "yes" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "yes" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "yes"
+ok    [CONTRACT] C1 receipt, no success wording: "option 2" [claims:null]
+ok    [CONTRACT] C1 receipt, no success wording: "option 2" [claims:[]]
+ok    [CONTRACT] C1 receipt, no success wording: "option 2" [claims:state-only]
+ok    [CONTRACT] C1 pendingAction never exempts: "option 2"
+ok    [CONTRACT] C2 read survives verbatim: "what did we do earlier in this channel?"
+ok    [CONTRACT] C2 read survives verbatim: "is ACME archived?"
+ok    [CONTRACT] C2 read survives verbatim: "summarize the history of this channel"
+ok    [CONTRACT] C2 read survives verbatim: "what happened to Beta?"
+ok    [CONTRACT] C2 read survives verbatim: "show me the archived companies"
+ok    [CONTRACT] C2 read survives verbatim: "what is the exact current title of project Alpha as stored in the database?"
+ok    [CONTRACT] C2 read survives verbatim: "who reports to Bob?"
+ok    [CONTRACT] C2 read survives verbatim: "how many companies do we have?"
+ok    [CONTRACT] C2 read survives verbatim: "describe the project Alpha"
+ok    [CONTRACT] C2 read survives verbatim: "tell me about ACME"
+ok    [CONTRACT] C3 verified company/archive renders the truthful claim
+ok    [CONTRACT] C3 executed-but-UNVERIFIED company/archive never supports the claim
+ok    [CONTRACT] C3 DENIED company/archive with claims:null -> receipt names the failure (kills mutant m10)
+ok    [CONTRACT] C3 verified task/delete renders the truthful claim
+ok    [CONTRACT] C3 executed-but-UNVERIFIED task/delete never supports the claim
+ok    [CONTRACT] C3 DENIED task/delete with claims:null -> receipt names the failure (kills mutant m10)
+ok    [CONTRACT] C3 verified goal/restore renders the truthful claim
+ok    [CONTRACT] C3 executed-but-UNVERIFIED goal/restore never supports the claim
+ok    [CONTRACT] C3 DENIED goal/restore with claims:null -> receipt names the failure (kills mutant m10)
+ok    [CONTRACT] C3 verified task/create renders the truthful claim
+ok    [CONTRACT] C3 executed-but-UNVERIFIED task/create never supports the claim
+ok    [CONTRACT] C3 DENIED task/create with claims:null -> receipt names the failure (kills mutant m10)
+ok    [CONTRACT] C3 verified department/create renders the truthful claim
+ok    [CONTRACT] C3 executed-but-UNVERIFIED department/create never supports the claim
+ok    [CONTRACT] C3 DENIED department/create with claims:null -> receipt names the failure (kills mutant m10)
+ok    [CONTRACT] C4 intent depends on the command only: "archive ACME"
+ok    [CONTRACT] C4 intent depends on the command only: "what is ACME?"
+ok    [CONTRACT] C5 lifecycle report is the summary; no receipt doubles it
+ok    [CONTRACT] C6 fresh channel: target outside the window restored by name
+ok    [CONTRACT] C6 nonexistent model id: no RPC, the report says it could not be found (kills mutant m12)
+ok    [CONTRACT] C6 restore prefers the ARCHIVED twin (kills mutant m13)
+ok    [CONTRACT] C6 archive prefers the ACTIVE twin
+ok    [CONTRACT] C6 second restore is a truthful already_active no-op with no evidence
+ok    [CONTRACT] C6 genuine ambiguity arms a disambiguation and executes nothing
+ok    [CONTRACT] C6 a task delete command produces no company line and no company RPC
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Could you please archive ACME"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Let’s archive ACME"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Go ahead and archive ACME"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "I need ACME archived"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Kindly archive ACME"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "can you please rename project Alpha to Beta"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Would you mind renaming project Alpha to Beta?"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Mark task QA-1 as done"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "close task QA-1"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "cancel the approval 123"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "yes, archive it"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Yes — do it"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "option two"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "the second option"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "fire Bob"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "terminate Bob"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Polite Co needs to be restored"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "assign QA-1 to Bob"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "create ACME Robotics"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "ACME-г архивла"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "Beta компанийг сэргээ"
+ok    [DEFECT] V56-D1 mutation request must not ship the fabrication: "ACME компанийг архивлаад Beta-г сэргээ"
+ok    [DEFECT] V56-D2 truthful read answer survives: "make a list of all companies"
+ok    [DEFECT] V56-D2 truthful read answer survives: "update me on the project status"
+ok    [DEFECT] V56-D2 truthful read answer survives: "create a report of archived companies"
+ok    [DEFECT] V56-D2 truthful read answer survives: "set out the plan for the project Alpha"
+ok    [DEFECT] V56-D2 truthful read answer survives: "add up the hours logged on the tasks this week"
+ok    [DEFECT] V56-D2 truthful read answer survives: "end date of the project Alpha?"
+ok    [DEFECT] V56-D2 truthful read answer survives: "restore my memory: who is Bob?"
+ok    [DEFECT] V56-D2 truthful read answer survives: "move on — what’s next for the project?"
+ok    [DEFECT] V56-D2 truthful read answer survives: "make a summary of the company relationships"
+ok    [DEFECT] V56-D2 truthful read answer survives: "assign a number to each company and list them"
+ok    [DEFECT] V56-D3 non-company target never mutates a company: "delete Alpha" / "Alpha Holdings"
+ok    [DEFECT] V56-D3 non-company target never mutates a company: "remove Bob" / "Bobcat Machinery"
+ok    [DEFECT] V56-D3 non-company target never mutates a company: "remove Bob Smith" / "Bob Smith Consulting"
+ok    [DEFECT] V56-D3 non-company target never mutates a company: "archive Q3 revenue" / "Q3 Revenue Partners"
+ok    [DEFECT] V56-D3 non-company target never mutates a company: "archive the task Alpha" / "Alpha Task Force"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "do not archive Alpha"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "never delete Alpha"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "I decided not to archive Alpha"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "did you archive Alpha?"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "is it safe to delete Alpha?"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "explain how to archive Alpha"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "before we archive Alpha, list its tasks"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "should I restore Beta?"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "how do I restore Beta"
+ok    [DEFECT] V56-D3b non-imperative sentence executes nothing: "when did we end Bob"
+ok    [DEFECT] V56-D4 "archive Restored Furniture Co" (model id) ends ARCHIVED with no restore RPC
+ok    [DEFECT] V56-D4 "archive Restored Furniture Co" (name only) ends ARCHIVED
+ok    [DEFECT] V56-D4 "archive Reactivate Solutions" (model id) ends ARCHIVED
+ok    [DEFECT] V56-D5 punctuated name via command restores: "Acme (Mongolia) LLC"
+ok    [DEFECT] V56-D5 punctuated name via restoreCompanyNames restores: "Acme (Mongolia) LLC"
+ok    [DEFECT] V56-D5 punctuated name via command restores: "A_B Holdings"
+ok    [DEFECT] V56-D5 punctuated name via restoreCompanyNames restores: "A_B Holdings"
+ok    [DEFECT] V56-D5 punctuated name via command restores: "100% Natural Foods"
+ok    [DEFECT] V56-D5 punctuated name via restoreCompanyNames restores: "100% Natural Foods"
+ok    [DEFECT] V56-D5 punctuated name via command restores: "Acme, Inc."
+ok    [DEFECT] V56-D5 punctuated name via restoreCompanyNames restores: "Acme, Inc."
+
+v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0)

@@ -1,0 +1,105 @@
+OK   2D envelope: shown from rows, total from count, truncated = total > shown
+OK   2D envelope: not truncated when total == shown
+OK   2D envelope: missing count -> total null, truncated null (never array length)
+OK   2D envelope: undefined count -> total null
+OK   2D envelope: shownOverride + scope carried
+OK   2D envelope: null result -> shown 0, total null
+OK   2D every array in the pack has a collections envelope (23 arrays)
+OK   2D every capped query carries count exact (23 capped)
+OK   2D companies split active/archived, both newest first
+NOTE 2D legacy context.counts: 11 totals fall back to array length when the count query returns null (prompt still references context.counts: true)
+OK   2F company reason archived -> "archived"
+OK   2F company reason restored -> "restored"
+OK   2F company reason already_archived -> "was already archived"
+OK   2F company reason already_active -> "was already active"
+OK   2F company reason not_found -> "could not be found"
+OK   2F company reason denied -> "you do not have permission to archive/restore this company"
+OK   2F an unknown backend reason is echoed verbatim, never mapped to success
+OK   2F clearing the manager (null) renders as a manager change, not a company move
+OK   2F legal employer changes, operating stays: receipt names both and no manager line
+OK   2F two entries, both succeeded: two receipts
+2G literal-true recordExecution sites: 34
+   :3101 if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true);
+        gate: if (detail.startsWith('already_')) continue; ⏎ const mapping = PLAN_EVIDENCE[a.operation];
+   :3126 if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);
+        gate: const r = data as Record<string, unknown>;
+   :3140 if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);
+        gate: 
+   :3213 for (const ch of deletedChannels || []) recordExecution('channel', 'delete', ch.id, true);
+        gate: } else { ⏎ deletedChannelCount = deletedChannels?.length || 0;
+   :3241 for (const ap of deletedApprovals || []) recordExecution('approval', 'delete', ap.id, true);
+        gate: } else { ⏎ deletedApprovalCount = deletedApprovals?.length || 0;
+   :3336 if (data && data.length > 0) { updatedCompanyCount++; recordExecution('company', 'update', c.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
+   :3505 if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true, { backendResult: r, precondition: { status: 
+        gate: }
+   :3522 if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true, { backendResult: r, precondition: { status: 
+        gate: }
+   :3594 recordExecution('company', 'permanent_delete', id, true);
+        gate: permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`); ⏎ deletedCompanyEntities.push({ id, name: String(name) });
+   :3595 for (const p of peopleDeletedRaw) { deletedPersonEntities.push({ id: String(p.id), name: String(p.name) }); recordExecution('person', 'permanent_delet
+        gate: deletedCompanyEntities.push({ id, name: String(name) }); ⏎ recordExecution('company', 'permanent_delete', id, true);
+   :3686 if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true);
+        gate: if (error || !data) { personLifecycleLines.push(`${name}: end-employment failed (${error?.message || 'no result'}).`); continue; } ⏎ const r = data as Record<string, unknown>;
+   :3694 if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true);
+        gate: if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; } ⏎ const r = data as Record<string, unknown>;
+   :3807 if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);
+        gate: const r = data as Record<string, unknown>;
+   :3818 if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);
+        gate: const r = data as Record<string, unknown>;
+   :4086 if (evidenceType) for (const row of data || []) recordExecution(evidenceType, 'delete', row.id, true);
+        gate: } ⏎ const evidenceType = DELETE_EVIDENCE_TYPE[table];
+   :4508 if (!error && data) { createdFactoryWorkOrders.push({ id: data as string, title: w.title }); recordExecution('work_order', 'create', data as string, t
+        gate: p_acceptance_criteria: w.acceptanceCriteria, ⏎ });
+   :4517 if (!error && data) { createdDepartments.push(data); recordExecution('department', 'create', data.id, true); recordLabel('department', data.id, d.name
+        gate: const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); ⏎ const { data, error } = await supabase.from('departments').insert({ company_id: companyId, name: d.name, slug }).select('id'
+   :4527 if (data && data.length > 0) { updatedDepartmentCount++; recordExecution('department', 'update', d.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('departments').update(patch).eq('id', d.id).select('id');
+   :4549 if (!error && data) { createdLeads.push(data); recordExecution('lead', 'create', data.id, true); recordLabel('lead', data.id, l.clientName); }
+        gate: stage: l.stage || 'lead', value_estimate: l.valueEstimate ?? 0, owner_person_id: callerPersonId, ⏎ }).select('id').single();
+   :4561 if (data && data.length > 0) { updatedLeadCount++; recordExecution('lead', 'update', l.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('sales_leads').update(patch).eq('id', l.id).select('id');
+   :4572 if (!error && data) { createdDocuments.push(data); recordExecution('document', 'create', data.id, true); recordLabel('document', data.id, doc.title); 
+        gate: uploaded_by_profile_id: profile.id, ⏎ }).select('id').single();
+   :4588 recordExecution('product_line', 'create', inserted.id, true);
+        gate: await supabase.from('product_costs').insert({ product_line_id: inserted.id, unit_cost: 0 }); ⏎ createdProductLines.push(inserted);
+   :4600 if (data && data.length > 0) { updatedProductLineCount++; recordExecution('product_line', 'update', p.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('product_lines').update(patch).eq('id', p.id).select('id');
+   :4618 if (pricingApproval) { recordExecution('approval', 'create', pricingApproval.id, true); recordLabel('approval', pricingApproval.id, pricingApprovalTit
+        gate: risk_level: 'high', domain: 'general', ⏎ }).select('id').single();
+   :4629 recordExecution('product_spec', 'create', spec.id, true);
+        gate: if (error || !spec) continue; ⏎ createdProductSpecs.push(spec);
+   :4648 if (ticket) { recordExecution('task', 'create', ticket.id, true); recordLabel('task', ticket.id, ticketTitle); }
+        gate: priority: 'high', risk_level: 'medium', approval_required: i >= 2, source: 'software_factory', ⏎ }).select('id').single();
+   :4655 if (releaseApproval) { recordExecution('approval', 'create', releaseApproval.id, true); recordLabel('approval', releaseApproval.id, releaseApprovalTit
+        gate: reason: 'Production-impacting software changes require release gate approval.', risk_level: 'high', domain: 'production', ⏎ }).select('id').single();
+   :4665 if (data && data.length > 0) { updatedProductSpecCount++; recordExecution('product_spec', 'update', s.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('product_specs').update(patch).eq('id', s.id).select('id');
+   :4686 if (!error && inserted) { createdDrawings.push(inserted); recordExecution('drawing', 'create', inserted.id, true); recordLabel('drawing', inserted.id,
+        gate: created_by_profile_id: profile.id, ⏎ }).select('id').single();
+   :4692 if (!error && data) { createdAiProviders.push(data); recordExecution('ai_provider', 'create', data.id, true); recordLabel('ai_provider', data.id, p.la
+        gate: for (const p of createAiProvidersReq) { ⏎ const { data, error } = await supabase.from('ai_providers').insert({ provider: p.provider, model: p.model, label: p.label }).select('id').single();
+   :4700 for (const row of deactivated || []) recordExecution('ai_provider', 'deactivate', row.id, true);
+        gate: const { data: deactivated } = await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId).eq('is_active', true).select('id');
+   :4703 if (activatedAiProvider) recordExecution('ai_provider', 'activate', activateAiProviderId, true);
+        gate: const { data } = await supabase.from('ai_providers').update({ is_active: true }).eq('id', activateAiProviderId).select('id'); ⏎ activatedAiProvider = !!data && data.length > 0;
+   :4711 if (!error && data) { createdProposals.push(data); recordExecution('proposal', 'create', data.id, true); recordLabel('proposal', data.id, p.title); }
+        gate: if (!companyId) continue; ⏎ const { data, error } = await supabase.from('proposals').insert({ title: p.title, company_id: companyId, status: 'draft' }).select('id').single();
+   :4720 if (data && data.length > 0) { updatedProposalCount++; recordExecution('proposal', 'update', p.id, true); }
+        gate: if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('proposals').update(patch).eq('id', p.id).select('id');
+OK   2G recordExecution writes postcondition_verified: postconditionPassed
+OK   2G create family (RPC) re-read under RLS before recording
+OK   2G deleted tasks: postcondition is the row being GONE
+OK   2G task/goal loops: evidence only on changed===true (RPC always returns postconditionPassed)
+OK   2G company loops: evidence only on changed===true && postconditionPassed===true
+OK   2G executedOperationCount counts only postcondition-passed envelopes
+OK   2B intent derivation references no response-side or belt input
+OK   2B the only model fields read are requestIntent, the action arrays and activateAiProviderId
+OK   2B the final intent is the request-side derivation alone (belt never decides)
+OK   2B intent depends on the request only: "archive ACME"
+OK   2B intent depends on the request only: "what is ACME?"
+OK   2B intent depends on the request only: "draft a memo on fire safety"
+OK   2B intent depends on the request only: "yes"
+OK   2B intent depends on the request only: "ACME-г архивла"
+
+v57_misc: 33 passed, 0 failed

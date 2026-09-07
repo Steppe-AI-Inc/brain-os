@@ -1,0 +1,56 @@
+[
+ {
+  "v": 46,
+  "exit": 1,
+  "tail": "  - DEFECT :: V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.46  (2.38 ms at 1 KB -> 72.23 ms at 4 KB) |   - DEFECT :: V46-D5 CONFIRMED_COMPLETION carries the same participles as i"
+ },
+ {
+  "v": 47,
+  "missing": true
+ },
+ {
+  "v": 48,
+  "exit": 0,
+  "tail": " | 58 passed, 0 failed"
+ },
+ {
+  "v": 49,
+  "exit": 0,
+  "tail": " | v49_regression_additions: 14 passed, 0 failed"
+ },
+ {
+  "v": 50,
+  "exit": 0,
+  "tail": " | v50_regression_additions: 12 passed, 0 failed"
+ },
+ {
+  "v": 51,
+  "exit": 0,
+  "tail": " | v51_regression_additions: 14 passed, 0 failed"
+ },
+ {
+  "v": 52,
+  "exit": 0,
+  "tail": " | v52_regression_additions: 14 passed, 0 failed"
+ },
+ {
+  "v": 53,
+  "exit": 1,
+  "tail": "v53_regression_additions: 33 passed, 1 failed, 3 residual note(s) | FAILING: V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433"
+ },
+ {
+  "v": 54,
+  "exit": 0,
+  "tail": " | v48_regression_additions: 9 passed, 0 failed"
+ },
+ {
+  "v": 55,
+  "exit": 0,
+  "tail": " | 19 passed, 0 failed"
+ },
+ {
+  "v": 56,
+  "exit": 0,
+  "tail": " | v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0)"
+ }
+]

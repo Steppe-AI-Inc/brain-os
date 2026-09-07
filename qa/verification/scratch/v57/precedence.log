@@ -1,0 +1,31 @@
+OK   H1 intent + empty ledger + no receipt -> UNVERIFIED marker, prose dropped, verified=false
+OK   H2 receipt-rendered turn keeps the receipt text, verified=false
+OK   H3 executed turn: verified=true, prose kept
+OK   H4 read turn (no intent, nothing executed): verified=null (unknown), never true; prose kept
+OK   H5 no turnVerdict (older row) but rejected claims + no evidence -> UNVERIFIED
+OK   H6 legacy row without any verdict/evidence: verified=null, prose kept (unknown, not asserted)
+OK   H7 evidence-derived count when the verdict is absent: verified=true
+OK   H8 attempted-but-unverified turn is UNVERIFIED
+OK   H9 rejected claims + no intent + nothing executed -> UNVERIFIED
+OK   H10 absolute turn numbers from the window start
+OK   P1 valid durable row outranks the last turn’s stored pendingAction
+OK   P2 EXPIRED durable row yields to the (fresh) last turn output
+OK   P3 UNTYPED durable row yields
+OK   P4 durable row without a source work order yields
+OK   P5 durable row without an expiry yields (fail closed)
+OK   P6 last-turn stored pendingAction older than 30 min does NOT bind
+OK   P7 last-turn stored pendingAction younger than 30 min binds
+OK   P8 legacy pendingConfirmation older than 30 min does NOT bind
+OK   P9 fresh legacy pendingConfirmation binds as bulk_confirmation
+OK   P10 valid durable row binds even when the last turn output is stale
+OK   P11 expired durable + stale last turn -> nothing binds
+OK   P12 last turn row WITHOUT created_at: treated as fresh (binds) — documented shape
+OK   P13 no rows, no durable: null
+OK   S1 durable row is read FIRST in the precedence expression
+OK   S2 the write half stores pending_action: null when this turn armed nothing (row cleared every turn)
+OK   S3 only a FULLY TYPED pendingAction is stored durably
+OK   S4 work_orders.output persisted unconditionally after the verdict
+OK   S5 turnVerdict is assigned BEFORE the persist
+OK   S6 the disambiguation pendingAction the resolver arms carries actionType (so it is durable)
+
+v57_precedence: 29 passed, 0 failed

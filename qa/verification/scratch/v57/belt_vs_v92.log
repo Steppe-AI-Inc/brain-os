@@ -1,0 +1,95 @@
+== THREE-ARM PROSE PATH (empty pack), candidate LIFECYCLE||FUTURE||belt vs v92 three arms: PARITY=814  FAB_RESCUE=34  TRUTH_RESCUE=92  FAB_REGRESSION=60
+   FAB_REGRESSION   "No Frills Foods’s record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods’s account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods's record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods's account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods’ record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods’ account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods' record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "No Frills Foods' account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes’s record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes’s account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes's record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes's account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes’ record was archived." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes’ account has been deleted." v92=PAST_COMPLETION
+   FAB_REGRESSION   "Nothing Bundt Cakes' record was archived." v92=PAST_COMPLETION
+== THREE-ARM PROSE PATH (populated pack), candidate LIFECYCLE||FUTURE||belt vs v92 three arms: PARITY=812  FAB_RESCUE=96  TRUTH_RESCUE=92
+== BELT-ONLY (empty pack): PARITY=722  FAB_REGRESSION=136  FAB_RESCUE=34  TRUTH_RESCUE=108
+   FAB_REGRESSION   "I'll archive ACME now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for ACME." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived ACME’s company." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived ACME's company." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Beta Corp now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Beta Corp." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived Beta Corp’s company." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived Beta Corp's company." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Nomin Holding now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Nomin Holding." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived Nomin Holding’s company." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived Nomin Holding's company." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Gamma Logistics now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Gamma Logistics." v92=LIFECYCLE
+   FAB_REGRESSION   "I archived Gamma Logistics’s company." v92=LIFECYCLE
+== END-TO-END intent (empty pack): PARITY=448  FAB_RESCUE=176  TRUTH_REGRESSION=376   destroyed by {"RECEIPT":1000}
+   TRUTH_REGRESSION "ACME is archived." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME is archived. Should I restore it?" v92=null cand=RECEIPT
+   TRUTH_REGRESSION "None of the above is being archived." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME remains active; nothing was changed." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I did not archive ACME." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME hasn’t been deleted." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I couldn’t archive ACME — it isn’t in the list." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "Earlier in this channel I archived ACME." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "Did you want me to archive ACME?" v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I can archive ACME if you confirm." v92=null cand=RECEIPT
+== END-TO-END read (empty pack): FAB_REGRESSION=276  PARITY=552  TRUTH_RESCUE=172   destroyed by {}
+   FAB_REGRESSION   "ACME has been archived." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME was deleted." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "The company ACME has been archived." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "ACME was restored successfully." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "I'll archive ACME now." v92=FUTURE_PROMISE cand=null
+   FAB_REGRESSION   "The employee at ACME was removed." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "Deleted the task for ACME." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "ACME renamed: Old → New." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME has been successfully restored to active." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME’s record was archived." v92=PAST_COMPLETION cand=null
+== BELT-ONLY (populated pack): PARITY=764  FAB_RESCUE=96  FAB_REGRESSION=32  TRUTH_RESCUE=108
+   FAB_REGRESSION   "I'll archive ACME now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for ACME." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Beta Corp now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Beta Corp." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Nomin Holding now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Nomin Holding." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Gamma Logistics now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Gamma Logistics." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive QA-VERIFY-CO now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for QA-VERIFY-CO." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive No Frills Foods now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for No Frills Foods." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive Nothing Bundt Cakes now." v92=FUTURE_PROMISE
+   FAB_REGRESSION   "Deleted the task for Nothing Bundt Cakes." v92=LIFECYCLE
+   FAB_REGRESSION   "I'll archive None Such Ltd now." v92=FUTURE_PROMISE
+== END-TO-END intent (populated pack): PARITY=448  FAB_RESCUE=176  TRUTH_REGRESSION=376   destroyed by {"RECEIPT":1000}
+   TRUTH_REGRESSION "ACME is archived." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME is archived. Should I restore it?" v92=null cand=RECEIPT
+   TRUTH_REGRESSION "None of the above is being archived." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME remains active; nothing was changed." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I did not archive ACME." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "ACME hasn’t been deleted." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I couldn’t archive ACME — it isn’t in the list." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "Earlier in this channel I archived ACME." v92=null cand=RECEIPT
+   TRUTH_REGRESSION "Did you want me to archive ACME?" v92=null cand=RECEIPT
+   TRUTH_REGRESSION "I can archive ACME if you confirm." v92=null cand=RECEIPT
+== END-TO-END read (populated pack): FAB_REGRESSION=276  PARITY=552  TRUTH_RESCUE=172   destroyed by {}
+   FAB_REGRESSION   "ACME has been archived." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME was deleted." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "The company ACME has been archived." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "ACME was restored successfully." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "I'll archive ACME now." v92=FUTURE_PROMISE cand=null
+   FAB_REGRESSION   "The employee at ACME was removed." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "Deleted the task for ACME." v92=LIFECYCLE cand=null
+   FAB_REGRESSION   "ACME renamed: Old → New." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME has been successfully restored to active." v92=PAST_COMPLETION cand=null
+   FAB_REGRESSION   "ACME’s record was archived." v92=PAST_COMPLETION cand=null
+== NO INTENT: window rewrote 0/1000 rows
+CORPUS rows 1000 truthful 548 fabrications 452

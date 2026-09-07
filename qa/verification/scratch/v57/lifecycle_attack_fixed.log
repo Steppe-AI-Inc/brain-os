@@ -1,0 +1,217 @@
+OK   1 non-imperative never executes (model emitted nothing): "did we archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "have we archived Alpha yet"
+OK   1 non-imperative never executes (model emitted nothing): "is Alpha archived"
+OK   1 non-imperative never executes (model emitted nothing): "why archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "do not archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "don’t archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "please do not archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "never archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "stop, don’t archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "I said not to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "we agreed not to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "no need to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "if we archive Alpha, what happens"
+OK   1 non-imperative never executes (model emitted nothing): "what if we restore Beta"
+OK   1 non-imperative never executes (model emitted nothing): "suppose we restore Beta"
+OK   1 non-imperative never executes (model emitted nothing): "when we archive Alpha, tell Bob"
+OK   1 non-imperative never executes (model emitted nothing): "should we restore Beta"
+OK   1 non-imperative never executes (model emitted nothing): "shall I restore Beta"
+OK   1 non-imperative never executes (model emitted nothing): "could we restore Beta later"
+OK   1 non-imperative never executes (model emitted nothing): "would it hurt to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "We archived Alpha last week"
+OK   1 non-imperative never executes (model emitted nothing): "I deleted Alpha yesterday"
+OK   1 non-imperative never executes (model emitted nothing): "Someone removed Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "I already restored Beta"
+OK   1 non-imperative never executes (model emitted nothing): "Bob restored Beta this morning"
+OK   1 non-imperative never executes (model emitted nothing): "they ended Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "Bob said to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "Bob wants us to restore Beta"
+OK   1 non-imperative never executes (model emitted nothing): "remind me to archive Alpha next week"
+OK   1 non-imperative never executes (model emitted nothing): "archive Alpha next month"
+OK   1 non-imperative never executes (model emitted nothing): "archive Alpha only if it has no open tasks"
+OK   1 non-imperative never executes (model emitted nothing): "thinking about whether to archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "not sure we should archive Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "archive Alpha? not yet"
+OK   1 non-imperative never executes (model emitted nothing): "restore Beta — wait, no"
+OK   1 non-imperative never executes (model emitted nothing): "explain the archive Alpha decision"
+OK   1 non-imperative never executes (model emitted nothing): "tell me about the restore Beta plan"
+OK   1 non-imperative never executes (model emitted nothing): "summarize why we archived Alpha"
+OK   1 non-imperative never executes (model emitted nothing): "the archive Alpha task is done"
+OK   1 non-imperative never executes (model emitted nothing): "Alpha was archived by mistake"
+OK   1b model kind=read withholds the fallback: "did we archive Alpha"
+OK   1b model kind=read withholds the fallback: "have we archived Alpha yet"
+OK   1b model kind=read withholds the fallback: "is Alpha archived"
+OK   1b model kind=read withholds the fallback: "why archive Alpha"
+OK   1b model kind=read withholds the fallback: "do not archive Alpha"
+OK   1b model kind=read withholds the fallback: "don’t archive Alpha"
+OK   1b model kind=read withholds the fallback: "please do not archive Alpha"
+OK   1b model kind=read withholds the fallback: "never archive Alpha"
+OK   1b model kind=read withholds the fallback: "stop, don’t archive Alpha"
+OK   1b model kind=read withholds the fallback: "I said not to archive Alpha"
+OK   1b model kind=read withholds the fallback: "we agreed not to archive Alpha"
+OK   1b model kind=read withholds the fallback: "no need to archive Alpha"
+OK   1b model kind=other withholds the fallback: "did we archive Alpha"
+OK   1b model kind=other withholds the fallback: "have we archived Alpha yet"
+OK   1b model kind=other withholds the fallback: "is Alpha archived"
+OK   1b model kind=other withholds the fallback: "why archive Alpha"
+OK   1b model kind=other withholds the fallback: "do not archive Alpha"
+OK   1b model kind=other withholds the fallback: "don’t archive Alpha"
+OK   1b model kind=other withholds the fallback: "please do not archive Alpha"
+OK   1b model kind=other withholds the fallback: "never archive Alpha"
+OK   1b model kind=other withholds the fallback: "stop, don’t archive Alpha"
+OK   1b model kind=other withholds the fallback: "I said not to archive Alpha"
+OK   1b model kind=other withholds the fallback: "we agreed not to archive Alpha"
+OK   1b model kind=other withholds the fallback: "no need to archive Alpha"
+OK   1c imperative twin executes exactly once: "archive Alpha"
+OK   1c imperative twin executes exactly once: "restore Beta"
+OK   1c imperative twin executes exactly once: "please archive Alpha"
+OK   1c imperative twin executes exactly once: "restore the company Beta now"
+OK   1c imperative twin executes exactly once: "Archive Alpha."
+OK   1c imperative twin executes exactly once: "archive alpha"
+OK   1c imperative twin executes exactly once: "ARCHIVE ALPHA"
+NOTE polite question, model emitted nothing: "could you please archive Alpha?" calls=[] report=null fallbackAllowed=false
+NOTE polite question, model emitted nothing: "can you restore Beta?" calls=[] report=null fallbackAllowed=false
+NOTE polite question, model emitted nothing: "would you mind archiving Alpha?" calls=[] report=null fallbackAllowed=false
+OK   1d polite question + model targetName executes
+OK   2 other-entity resolved -> no company RPC: "delete Alpha" + deleteTaskIds
+OK   2 other-entity resolved -> no company RPC: "archive Alpha" + archiveGoalIds
+OK   2 other-entity resolved -> no company RPC: "remove Alpha" + endEmploymentPersonIds
+OK   2 other-entity resolved -> no company RPC: "archive Alpha" + archiveTaskIds
+OK   2 other-entity resolved -> no company RPC: "end Alpha" + endEmploymentPersonIds
+OK   2 other-entity resolved -> no company RPC: "delete Alpha" + deleteChannelIds
+OK   2 other-entity resolved -> no company RPC: "delete Alpha" + deleteApprovalIds
+OK   2 other-entity resolved -> no company RPC: "restore Beta" + restoreTaskIds
+OK   2 other-entity resolved -> no company RPC: "restore Beta" + restoreGoalIds
+OK   2 other-entity resolved -> no company RPC: "restore Beta" + restoreEmploymentPersonIds
+OK   2 other-entity resolved -> no company RPC: "archive Alpha" + tasks
+OK   2 other-entity resolved -> no company RPC: "archive Alpha" + createDepartments
+NOTE 2b "archive Alpha" with model requestIntent entityType=task (no field): calls=[] report=null
+NOTE 2b "archive Alpha" with model requestIntent entityType=person (no field): calls=[] report=null
+NOTE 2b "archive Alpha" with model requestIntent entityType=goal (no field): calls=[] report=null
+NOTE 2b "archive Alpha" with model requestIntent entityType=project (no field): calls=[] report=null
+OK   3 punctuated via command: "Acme (Mongolia) LLC"
+OK   3 punctuated via restoreCompanyNames: "Acme (Mongolia) LLC"
+OK   3 punctuated via requestIntent.targetName: "Acme (Mongolia) LLC"
+OK   3 punctuated via command: "A_B Holdings"
+OK   3 punctuated via restoreCompanyNames: "A_B Holdings"
+OK   3 punctuated via requestIntent.targetName: "A_B Holdings"
+OK   3 punctuated via command: "100% Natural Foods"
+OK   3 punctuated via restoreCompanyNames: "100% Natural Foods"
+OK   3 punctuated via requestIntent.targetName: "100% Natural Foods"
+OK   3 punctuated via command: "Acme, Inc."
+OK   3 punctuated via restoreCompanyNames: "Acme, Inc."
+OK   3 punctuated via requestIntent.targetName: "Acme, Inc."
+OK   3 punctuated via command: "O’Brien & Sons"
+OK   3 punctuated via restoreCompanyNames: "O’Brien & Sons"
+OK   3 punctuated via requestIntent.targetName: "O’Brien & Sons"
+OK   3 punctuated via command: "Smith-Jones Ltd"
+OK   3 punctuated via restoreCompanyNames: "Smith-Jones Ltd"
+OK   3 punctuated via requestIntent.targetName: "Smith-Jones Ltd"
+OK   3 punctuated via command: "R&D Labs"
+OK   3 punctuated via restoreCompanyNames: "R&D Labs"
+OK   3 punctuated via requestIntent.targetName: "R&D Labs"
+OK   3 punctuated via command: "Ace \"Quoted\" Co"
+OK   3 punctuated via restoreCompanyNames: "Ace \"Quoted\" Co"
+OK   3 punctuated via requestIntent.targetName: "Ace \"Quoted\" Co"
+OK   3 punctuated via command: "Café Nomad"
+OK   3 punctuated via restoreCompanyNames: "Café Nomad"
+OK   3 punctuated via requestIntent.targetName: "Café Nomad"
+OK   3 punctuated via command: "Ко. Монгол ХХК"
+OK   3 punctuated via restoreCompanyNames: "Ко. Монгол ХХК"
+OK   3 punctuated via requestIntent.targetName: "Ко. Монгол ХХК"
+OK   3 punctuated via command: "ACME."
+OK   3 punctuated via restoreCompanyNames: "ACME."
+OK   3 punctuated via requestIntent.targetName: "ACME."
+OK   3 punctuated via command: "Beta Corp!"
+OK   3 punctuated via restoreCompanyNames: "Beta Corp!"
+OK   3 punctuated via requestIntent.targetName: "Beta Corp!"
+OK   3 punctuated via command: "Über Gmbh"
+OK   3 punctuated via restoreCompanyNames: "Über Gmbh"
+OK   3 punctuated via requestIntent.targetName: "Über Gmbh"
+OK   3 punctuated via command: "Ünderscore_Co"
+OK   3 punctuated via restoreCompanyNames: "Ünderscore_Co"
+OK   3 punctuated via requestIntent.targetName: "Ünderscore_Co"
+OK   3 punctuated via command: "3M"
+OK   3 punctuated via restoreCompanyNames: "3M"
+OK   3 punctuated via requestIntent.targetName: "3M"
+FAIL 3 punctuated via command: "X"
+       calls=[] report=null pa=undefined
+FAIL 3 punctuated via restoreCompanyNames: "X"
+       calls=[] report=null
+FAIL 3 punctuated via requestIntent.targetName: "X"
+       calls=[] report=null
+OK   3 punctuated via command: "Nomin & Co., Ltd."
+OK   3 punctuated via restoreCompanyNames: "Nomin & Co., Ltd."
+OK   3 punctuated via requestIntent.targetName: "Nomin & Co., Ltd."
+OK   3 punctuated via command: "A.B.C. Holdings"
+OK   3 punctuated via restoreCompanyNames: "A.B.C. Holdings"
+OK   3 punctuated via requestIntent.targetName: "A.B.C. Holdings"
+OK   3 punctuated via command: "ACME — Mongolia"
+OK   3 punctuated via restoreCompanyNames: "ACME — Mongolia"
+OK   3 punctuated via requestIntent.targetName: "ACME — Mongolia"
+OK   3 punctuated via command: "ACME/Beta JV"
+OK   3 punctuated via restoreCompanyNames: "ACME/Beta JV"
+OK   3 punctuated via requestIntent.targetName: "ACME/Beta JV"
+OK   3b normalised exact match executes: "restore acme (mongolia) llc"
+OK   3b normalised exact match executes: "restore ACME  HOLDINGS"
+OK   3b normalised exact match executes: "restore acme-holdings"
+OK   3b normalised exact match executes: "restore Acme Holdings."
+OK   3b normalised exact match executes: "restore \"Acme Holdings\""
+OK   3b normalised exact match executes: "restore ‘Acme Holdings’"
+OK   4 fuzzy command hit (2 rows) asks, executes nothing
+OK   4 fuzzy command hit (1 row) STILL asks, never executes
+OK   4 the single-option disambiguation is answerable (option carries id + actionType)
+OK   4 model-name fuzzy hit (unique) executes
+OK   4 model-name fuzzy hit (2 rows) asks
+OK   4 requestIntent.targetName fuzzy (2 rows) asks
+OK   4 fuzzy hits in mixed statuses still ask (no silent status preference on fuzzy)
+OK   4 disambiguation replaces a model-armed pendingAction so the founder can pick
+OK   5 exact near-twin wins: restore Acme only
+OK   5 exact near-twin wins: restore Acme Holdings only
+OK   5 lifecycle word inside the name never flips the direction: "archive Restored Furniture Co"
+OK   5 lifecycle word inside the name never flips the direction: "restore Archived Assets Ltd"
+OK   5 lifecycle word inside the name never flips the direction: "archive Reactivate Solutions"
+OK   5 lifecycle word inside the name never flips the direction: "restore Delete Bespoke Ltd"
+OK   5 lifecycle word inside the name never flips the direction: "archive Bring It Back Bakery"
+OK   5 lifecycle word inside the name never flips the direction: "restore Remove All Doubt Inc"
+OK   5 lifecycle word inside the name never flips the direction: "archive End of the Road Inc"
+OK   5 lifecycle word inside the name never flips the direction: "restore Ended Ventures"
+OK   5 lifecycle word inside the name never flips the direction: "archive Activate Media"
+OK   5 lifecycle word inside the name never flips the direction: "restore Archive Media Group"
+OK   5 D4 via model id: archive only, ends archived
+OK   5 non-company name, model emitted nothing: never executes: "archive the task Alpha"
+OK   5 non-company name, model emitted nothing: never executes: "delete Bob"
+OK   5 non-company name, model emitted nothing: never executes: "archive project Apollo"
+OK   5 non-company name, model emitted nothing: never executes: "end Bob Smith"
+OK   5 non-company name, model emitted nothing: never executes: "remove the goal Q3 revenue"
+OK   6 nonexistent model id: no RPC, could-not-be-found line
+OK   6 malformed + nonexistent ids: no RPC, not silent
+OK   6 model id already archived: truthful already_archived, no evidence
+OK   6 model id + command name: exactly one RPC
+NOTE 6 "restore Alpha" + model archiveCompanyIds[Alpha]: calls=[["archive_company","00000001-0000-4000-8000-000000000000"]] report="Alpha: archived."
+OK   7 restore prefers the archived twin (command)
+OK   7 archive prefers the active twin (command)
+OK   7 restore prefers the archived twin (restoreCompanyNames)
+OK   7 archive prefers the active twin (requestIntent.targetName)
+OK   7 two archived twins: asks, executes nothing
+OK   8 a stale pendingAction alone executes nothing
+OK   8 a bare option number alone executes nothing in the resolver
+OK   8 restore twice: second is already_active with no evidence
+OK   8 archive twice: second is already_archived with no evidence
+OK   9 rpc error: no success evidence, report names the outcome
+OK   9 denied: no success evidence, report names the outcome
+OK   9 not_found: no success evidence, report names the outcome
+OK   9 postcondition false: no success evidence, report names the outcome
+OK   9 foreign_org: no success evidence, report names the outcome
+OK   9 empty data: no success evidence, report names the outcome
+NOTE 10 anchor-word cap: queries=[["ilike","name","%ltd%"]] calls=[] report=null
+FAIL 10 an exact-named archived company is restored even when 55 other rows share its anchor word
+       calls=[] report=null
+NOTE 11 compound "archive Alpha and restore Beta" (model emitted nothing): calls=[["archive_company","00000001-0000-4000-8000-000000000000"]] report="Alpha: archived."
+OK   11 "archive Alpha, not Beta" archives only Alpha
+OK   11 "archive everything except Alpha" executes nothing
+OK   11 "archive all companies" executes nothing
+NOTE 11 "archive Alpha and Beta": calls=[["archive_company","00000001-0000-4000-8000-000000000000"]] report="Alpha: archived."
+
+v57_lifecycle_attack: 195 passed, 4 failed
+non-imperative shapes that EXECUTED: 0

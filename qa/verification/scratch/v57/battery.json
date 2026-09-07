@@ -1,0 +1,460 @@
+{
+ "summary": {
+  "total": 56,
+  "exit0": 54,
+  "nonzero": [
+   "factory_production_write_inventory.regression.test.mjs",
+   "production_write_authority.regression.test.mjs"
+  ]
+ },
+ "out": [
+  {
+   "file": "agent_run_guard_covers_claim_returns.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 58,
+   "tail": "OK   the guard function is not PUBLIC-executable (A-6 class) |  | agent_run_guard_covers_claim_returns: guard list covers the claim (returned: id, canonical_work_order_id, task_id, agent_id, checkpoint_location, source_sha, branch, worktree, last_completed_scenario, remaining_scenarios, verification",
+   "counts": null
+  },
+  {
+   "file": "architecture_archived_parent_policy_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 109,
+   "tail": "OK   current manager visible and pre-selected in the sheet |  | architecture_archived_parent_policy_contract: 15 passed, 0 failed",
+   "counts": "15 passed, 0 failed"
+  },
+  {
+   "file": "architecture_collection_envelope_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 64,
+   "tail": "OK   prompt binds counts to context.collections |  | architecture_collection_envelope_contract: 56 passed, 0 failed",
+   "counts": "56 passed, 0 failed"
+  },
+  {
+   "file": "architecture_final_claim_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 149,
+   "tail": "OK   F request intent is derived from the request (model requestIntent, model action fields, request lexicon), never the response text |  | architecture_final_claim_contract: 51 passed, 0 failed",
+   "counts": "51 passed, 0 failed"
+  },
+  {
+   "file": "architecture_impact_registry_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 58,
+   "tail": "OK   PR template carries the truth checklist |  | architecture_impact_registry_contract: 17 passed, 0 failed",
+   "counts": "17 passed, 0 failed"
+  },
+  {
+   "file": "architecture_lifecycle_rpc_only_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 83,
+   "tail": "OK   prompt no longer equates window absence with deletion |  | architecture_lifecycle_rpc_only_contract: 27 passed, 0 failed",
+   "counts": "27 passed, 0 failed"
+  },
+  {
+   "file": "architecture_mutation_envelope_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 78,
+   "tail": "OK   turnVerdict carries executed / attempted / rejected counts and the request intent |  | architecture_mutation_envelope_contract: 35 passed, 0 failed",
+   "counts": "34/34"
+  },
+  {
+   "file": "architecture_org_scope_helper_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 101,
+   "tail": "OK   inScope agrees with the scope |  | architecture_org_scope_helper_contract: 7 passed, 0 failed",
+   "counts": "7 passed, 0 failed"
+  },
+  {
+   "file": "belt_generative_adversarial_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 208,
+   "tail": "      (0 of 85 flip, e.g. ) |  | 25 passed, 0 failed",
+   "counts": "25 passed, 0 failed"
+  },
+  {
+   "file": "chat_channel_state_trusted_columns_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 62,
+   "tail": "OK   A10.shapeGuard                                 [DEFECT] R-A10: `create table if not exists` cannot silently adopt a differently-shaped table |  | chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures)",
+   "counts": "51 pass, 0 fail"
+  },
+  {
+   "file": "claim_segmentation_and_present_tense_fp.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 51,
+   "tail": "claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "counts": null
+  },
+  {
+   "file": "company_lifecycle_matrix.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 75,
+   "tail": "OK   requestIntent.targetName resolves a restore in another language |  | company_lifecycle_matrix: 28 passed, 0 failed",
+   "counts": "3/4"
+  },
+  {
+   "file": "company_ref_no_bare_name_join.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 125,
+   "tail": "OK   every ArchivedCompanyBadge is fed a real .status expression, never a literal |  | company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)",
+   "counts": "8/8"
+  },
+  {
+   "file": "current_turn_and_continuity_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 62,
+   "tail": "OK   last_successful_mutation comes from backend evidence, never prose |  | current_turn_and_continuity_contract: 17/17 passed",
+   "counts": "17/17"
+  },
+  {
+   "file": "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 55,
+   "tail": "d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "counts": null
+  },
+  {
+   "file": "entity_signal_positive_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 86,
+   "tail": "ok    [CONTRACT] V43-E4.v92PreservesTheWholeClass |  | 5 passed, 0 failed",
+   "counts": "5 passed, 0 failed"
+  },
+  {
+   "file": "factory_production_write_inventory.regression.test.mjs",
+   "exit": 1,
+   "signal": null,
+   "ms": 90,
+   "tail": "    operator: 'deepStrictEqual', |     diff: 'simple' |   }",
+   "counts": null
+  },
+  {
+   "file": "function_redefinition_preserves_ancestor_guards.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": "function_redefinition_preserves_ancestor_guards: 81 migrations, 28 redefinitions, 29 ancestor guards checked, 0 silently dropped",
+   "counts": null
+  },
+  {
+   "file": "grounding_precedence_canonical_over_history.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 66,
+   "tail": "OK   a turn with nothing executed and no recorded intent is verified: null (unknown), never true |  | grounding_precedence_canonical_over_history: 17 passed, 0 failed",
+   "counts": "17 passed, 0 failed"
+  },
+  {
+   "file": "issue5_confirmation_action_type_binding.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 60,
+   "tail": "  -> resolves to undefined  <-- refuses, falls through to the LLM path |  | issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with the fixed contract",
+   "counts": "10/10"
+  },
+  {
+   "file": "lifecycle_evidence_and_output_persistence_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 117,
+   "tail": " | lifecycle_evidence_and_output_persistence_contract: 93/93 contract checks passed, 11/11 section-X cases match the recorded baseline | DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source.",
+   "counts": "93/93"
+  },
+  {
+   "file": "manager_set_ui_canonical_write.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 61,
+   "tail": "OK   the People table actually wires the control to this action |  | manager_set_ui_canonical_write: 6/6 passed",
+   "counts": "6/6"
+  },
+  {
+   "file": "messaging_transport_binding_agreement_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 65,
+   "tail": "OK   C7.queueIndexes                    [DEFECT] R-C7: the queue’s own drain path and its FK to chat_channels are indexed |  | messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures)",
+   "counts": "23 pass, 0 fail"
+  },
+  {
+   "file": "mixed_claim_grounding.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 56,
+   "tail": "mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "counts": null
+  },
+  {
+   "file": "mutation_receipt_equals_ledger.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 62,
+   "tail": "OK   company line for reason denied is \"you do not have permission to archive/restore this company\" |  | mutation_receipt_equals_ledger: 14 passed, 0 failed",
+   "counts": "14 passed, 0 failed"
+  },
+  {
+   "file": "org_selector_scoping_coverage.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": "OK   scoped readers exist in bulk (>= 15) |  | org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)",
+   "counts": "5/5"
+  },
+  {
+   "file": "past_completion_gate_behavior.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 56,
+   "tail": "past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "counts": null
+  },
+  {
+   "file": "per_resource_grounding_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 56,
+   "tail": "per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "counts": null
+  },
+  {
+   "file": "production_write_authority.regression.test.mjs",
+   "exit": 1,
+   "signal": null,
+   "ms": 4174,
+   "tail": "  } | (node:2168) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)",
+   "counts": null
+  },
+  {
+   "file": "readsAsCompletion_no_literal_semicolon_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 61,
+   "tail": "ok    the check can see a literal `;` (non-vacuous) |  | readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed",
+   "counts": "4 passed, 0 failed"
+  },
+  {
+   "file": "run10_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 142,
+   "tail": "OK   EMULTI.legit-hold      [CONTRACT] ordinary prose containing the word executing in a non-claim shape is untouched |  | v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)",
+   "counts": "43 pass, 0 fail"
+  },
+  {
+   "file": "run11_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 140,
+   "tail": "OK   D88.preserves.longer       [CONTRACT] the same, with a longer trailing question |  | v11_regression_additions: 50 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "counts": "50 pass, 0 fail"
+  },
+  {
+   "file": "run12_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 147,
+   "tail": "OK   D94.hold.legit.4               [CONTRACT] ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder) |  | v12_regression_additions: 74 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "counts": "74 pass, 0 fail"
+  },
+  {
+   "file": "run13_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 148,
+   "tail": "OK   D103.hold.numbered               [CONTRACT] the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names render distinguishably, and out-of-context ones are dropped |  | run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0",
+   "counts": "60 pass, 0 fail"
+  },
+  {
+   "file": "run14_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 153,
+   "tail": "OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) |  | run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "counts": "68 pass, 0 fail"
+  },
+  {
+   "file": "run15_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 132,
+   "tail": "OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string |  | run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "counts": "0/6"
+  },
+  {
+   "file": "run16_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 112,
+   "tail": "OK   D126.freshCreateLabelStillResolves                         [CONTRACT] run8/D67: a row created THIS turn resolves via runtimeLabels and is NOT dropped |  | run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "counts": "1/2"
+  },
+  {
+   "file": "run17_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 117,
+   "tail": "OK   D125.coverage.questionBeltUnchanged                            [CONTRACT] the question belt constructs are byte-identical to 52e830f/d724d8c — this candidate touched only the completion belt |  | run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures =",
+   "counts": "43 pass, 0 fail"
+  },
+  {
+   "file": "run18_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 114,
+   "tail": "OK   D125.coverage.questionBeltUnchanged                                [CONTRACT] this candidate touched only the completion belt: the question belt still consults its own constructs and none of the matcher/completion ones |  | run18_defect_closure_contract: 52 pass, 0 fail (0 open #78 defects repr",
+   "counts": "24/26"
+  },
+  {
+   "file": "run19_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 121,
+   "tail": "OK   QuestionBelt.untouched                               [CONTRACT] the QUESTION belt is not collateral damage of any belt change: byte-identical across d724d8c..this candidate, and these outputs must not move |  | 62 passed, 0 failed",
+   "counts": "62 passed, 0 failed"
+  },
+  {
+   "file": "run28_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 170,
+   "tail": "ok    [CONTRACT] FIX-I lookahead is not quadratic (26KB clause < 50ms) |  | 117 passed, 0 failed",
+   "counts": "117 passed, 0 failed"
+  },
+  {
+   "file": "run8_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 130,
+   "tail": "OK   D74c an honest label still renders |  | run8_defect_closure_contract: 40/40 passed",
+   "counts": "40/40"
+  },
+  {
+   "file": "sem_ai_command_company_restore_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 57,
+   "tail": "PASS an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design) |  | ALL REGRESSIONS PASSED",
+   "counts": null
+  },
+  {
+   "file": "sem_ai_command_confirmation_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 56,
+   "tail": "PASS an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix) |  | ALL REGRESSIONS PASSED",
+   "counts": null
+  },
+  {
+   "file": "sem_ai_command_execution_plan_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 58,
+   "tail": "PASS no pendingAction at all is completely unaffected by this override |  | ALL REGRESSIONS PASSED",
+   "counts": null
+  },
+  {
+   "file": "sem_ai_command_factory_verification_selection.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 59,
+   "tail": "PASS Zero runs: correctly reports unverified/zero, never falsely true |  | ALL REGRESSIONS PASSED",
+   "counts": null
+  },
+  {
+   "file": "sem_ai_command_named_person_lookup_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 50,
+   "tail": "PASS a person-tagged memory with no entity_id at all is not given a fabricated status either |  | ALL REGRESSIONS PASSED",
+   "counts": null
+  },
+  {
+   "file": "sem_ai_command_past_completion_claim_regex.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 61,
+   "tail": "OK   [no match] hedged \"could have been\" |  | 13 passed, 0 failed",
+   "counts": "13 passed, 0 failed"
+  },
+  {
+   "file": "sem_ai_command_source_invariants_drift_guard.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 73,
+   "tail": "OK   company.archive still maps to archiveCompanyIds (the field the issue #5 repro wrongly reached) |  | 13 passed, 0 failed",
+   "counts": "13 passed, 0 failed"
+  },
+  {
+   "file": "standing_reds_classification_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 105,
+   "tail": " | rows 8  derived-BLOCKER 0  mislabelled-as-shared 0 | RESULT: PASS - every standing red re-derives as a genuine non-blocker",
+   "counts": null
+  },
+  {
+   "file": "structured_claim_laundering_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 128,
+   "tail": " | structured_claim_laundering_contract: 29/29 match the recorded baseline | DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present.",
+   "counts": "29/29"
+  },
+  {
+   "file": "structured_claim_verification.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 135,
+   "tail": "OK   H6 a SUPPORTED claim is also rendered without a raw uuid |  | structured_claim_verification: 42/42 passed",
+   "counts": "42/42"
+  },
+  {
+   "file": "tdz_forward_reference_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 132,
+   "tail": "ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN literal is unchanged from deployed v92 |  | v48_regression_additions: 9 passed, 0 failed",
+   "counts": "9 passed, 0 failed"
+  },
+  {
+   "file": "v56_intent_lifecycle_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 171,
+   "tail": "ok    [DEFECT] V56-D5 punctuated name via restoreCompanyNames restores: \"Acme, Inc.\" |  | v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0)",
+   "counts": "129 passed, 0 failed"
+  },
+  {
+   "file": "v92_open_regression_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 120,
+   "tail": "ok    [CONTRACT] open regression shapes never ship on a mutation-claim turn (blast radius bounded) |  | 28 passed, 0 failed",
+   "counts": "28 passed, 0 failed"
+  },
+  {
+   "file": "v92_parity_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 217,
+   "tail": "OK   matcher.noRegressionVsV92.issue#5 absent actionType |  | v92_parity_contract: 46 passed, 0 failed",
+   "counts": "46 passed, 0 failed"
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+KILLED   m8_model_read_no_longer_vetoes  CONTRACT failures=15  e.g. FAIL  [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "draft an email to Bob about the merge"
+KILLED   m10_negated_lead_gate_dropped  CONTRACT failures=1  e.g. FAIL  [CONTRACT] C7 non-imperative never executes: "never archive Alpha"
+KILLED   m15_turnVerdict_intent_null  CONTRACT failures=1  e.g. FAIL  [CONTRACT] C9 turnVerdict.mutationIntent carries the derived request intent (the narrative tier depends on it)
+KILLED   m16_stored_pendingAction_ttl_removed  CONTRACT failures=2  e.g. FAIL  [CONTRACT] C8 stored pendingAction older than 30 min does not bind
+v57_kill_check: 4/4 battery survivors killed by v57_regression_additions CONTRACT rows

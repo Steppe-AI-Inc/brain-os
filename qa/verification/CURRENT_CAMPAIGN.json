@@ -344,9 +344,123 @@
     "company_ref_no_bare_name_join counts ${COMPANY_REF}; org_selector_scoping_coverage accepts scopeToActiveOrganization"
   ],
   "verifier56_closure": "Ledger #127: structured requestIntent (schema + prompt) validated server-side; request lexicon (Unicode lookarounds, passive shapes, object guards, case-sensitive proper nouns, tail shape, read-shape veto, polite-question exemption); the belt never decides intent; command fallback imperative-only, direction by first verb, exact executes / fuzzy asks, full-remainder + comma-head candidates, model requestIntent.targetName as a name source; receipt keeps questions; history verified=null when nothing executed and no intent; stored pendingAction expires in 30 min. #56 suite promoted to the battery; generators in-tree; mutation proof 8/8.",
-  "verifier57_base_commit": "32a2d75491dae1a103111389ece62095a79ec03c",
+  "verifier57_base_commit": "712760dcb0d68b969b940d5175bbd76bf205ccb1",
   "verifier57_index_sha256": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871",
-  "verifier57_started_at": null,
-  "verifier57_status": "not started",
-  "verifier57_findings": []
+  "verifier57_started_at": "2026-09-07T15:59:51.032Z",
+  "verifier57_status": "COMPLETE. VERDICT: FAIL on 712760dcb0d6 under the CONTRACT bar (V57-D1 P1 lexicon overrides model other; V57-D2 P2; V57-D3 P2 conditional) — FIX PREPARED (scratch/v57/index.fixed.ts 5d28ba3a…), not applied; regression 277/29 red by design, 306/0 on the fixed bytes",
+  "verifier57_findings": [
+    {
+      "id": "V57-PREFLIGHT",
+      "level": "UNIT VERIFIED",
+      "text": "HEAD 712760dcb0d6; scratch probe ok; architecture_final_claim_contract 51 passed / 0 failed. index.ts sha256 ccde932f… (531565 B, 6419 CRLF, 0 bare LF, 1 bare CR)."
+    },
+    {
+      "id": "V57-PROVENANCE",
+      "level": "INTEGRATION VERIFIED (not byte-direct)",
+      "text": "supabase CLI and npx are gated in this session (bare and compound forms). git c9dfab5bd433 index.ts sha256 795c20c8… (321370 B) == in-tree qa/verification/scratch/v92/index.v92.ts (raw == LF sha 795c20c8…) == LF-normalised p1/v56_corpora/index.v92.ts (raw 49d53882…). No live download by me; v92 == c9dfab5bd433 rests on the recorded download plus git."
+    },
+    {
+      "id": "V57-DELTA",
+      "level": "CODE INSPECTED",
+      "text": "LF-normalised v92 (4313 lines) -> candidate (6420 lines): 111 hunks, +2208/-101; declared identifiers 511 -> 847, 336 added, 0 removed; imports identical (deno std http, supabase-js); 0 non-comment _shared mentions — deploy surface is exactly index.ts. Raw candidate: 531565 B, 6419 CRLF, 0 bare LF, 1 bare CR (inside a comment at :6101, present since #55). Mirrors _shared/{execution,collection,lifecycle,parent-policy}.ts vs web/lib: exported names agree except lifecycle (edge: lifecycleVerdict; web: callLifecycleRpc), bytes NOT identical (6/13, 3/8, 11/76, 20/31 differing lines) — the drift guard OTM §4 cites does not exist (AUTHORITY_NOT_ENFORCED; not on the deploy surface)."
+    },
+    {
+      "id": "V57-BATTERY",
+      "level": "UNIT VERIFIED",
+      "text": "qa/scenarios-runner: 56 .mjs suites on disk (record says 53/54): 54 exit 0, 2 exit 1 = production_write_authority + factory_production_write_inventory (machine posture). 5 self-declared SUPERSEDED stubs. Key: v56_intent_lifecycle_contract 129/0, company_lifecycle_matrix 28/0, architecture_final_claim 51/0, mutation_receipt_equals_ledger 14/0, grounding_precedence 17/0, lifecycle_evidence 93/93, mutation_envelope 35/0, collection_envelope 56/0. Gates: v48-v52/v54-v56 exit 0; v46 33/3 and v53 33/1 = the recorded standing reds; v47 file absent. #56 mutation proof re-run: 8/8 killed. #56 generators in-tree: FN 62/11880 (all generator artifacts: seted/seting, bare Cyrillic tails with English object-verbs), FP 0/310, control 0/100, question_probe 0/19, contract_harness 474/12 (harness-shape artefacts as #56 recorded), lifecycle_harness 56/1 (‘Polite Co needs to be restored’: name-before-verb passive — never silent, receipt fires; the model’s targetName resolves it)."
+    },
+    {
+      "id": "V57-TDZ",
+      "level": "UNIT VERIFIED",
+      "text": "#55 block-scope scanner on the candidate: 1 ‘P0’ at :2404 = a type-literal key inside an `as {…}` annotation (false positive, same class as #55 :2333 / #56 :2388); 1 deferred UUID_IN_TEXT use :5157 (inside safeDisplayLabel :5153), declared :5192, earliest invocation :5666 via displayName — safe. deno check BLOCKED (npx gated; no deno binary or tsc on disk)."
+    },
+    {
+      "id": "V57-2A",
+      "level": "UNIT VERIFIED",
+      "text": "Own receipt matrix 691/0: 68 mutation-intent commands × {claims null, [], state-only supported, historical_event, current_state contradicted, mutation_result nonexistent id} + pendingAction+question + questions[] kept = 544 cases, 0 fabrications ship; 660 read cases (30 commands × 22 truthful answers incl. gerund prose) verbatim; 24 verified envelopes render the claim (claimed and unclaimed); 96 executed-unverified / denied / postcondition-false envelopes never claim; a verified create beside a fabricated archive renders only the verified line."
+    },
+    {
+      "id": "V57-2E",
+      "level": "UNIT VERIFIED",
+      "text": "Own precedence/history suite 29/0: UNVERIFIED marking, receipt kept, verified=null when unknown (never true), durable > stored, expired/untyped/unsourced/no-expiry durable rows yield, stored pendingAction and legacy pendingConfirmation expire at 30 min, persist unconditional after the verdict, the resolver’s disambiguation pendingAction is typed (durable). A stale durable row can only bind inside its 30-min TTL and only if the intervening turn’s clearing write was lost (CAS race) — P3."
+    },
+    {
+      "id": "V57-2D-2F-2G",
+      "level": "UNIT VERIFIED",
+      "text": "Envelope helper executed (total from count; null never array length); 23 pack arrays all enveloped; 23 capped queries carry count exact; companies split active/archived newest first. 34 literal-true recordExecution sites all gated on a backend result; the RPC create family is re-read under RLS; task/goal RPCs always return postconditionPassed so `!== false` ≡ `=== true`. Residuals (P3): legacy context.counts keeps 11 array-length fallbacks and the prompt still points the model at context.counts for how-many questions; non-RPC creates (department, lead, document, product_line, product_spec, drawing, ai_provider, proposal, work_order) rely on insert-returning rather than a separate post-commit re-read; receipt lines omit the entity type OTM §4.2 prescribes."
+    },
+    {
+      "id": "V57-2H",
+      "level": "UNIT VERIFIED",
+      "text": "1000-row own corpus (548 truthful / 452 fabrications; 16 names incl. negator-initial; possessives incl. bare apostrophe). NO intent: window rewrote 0/1000. Intent + empty ledger: RECEIPT on 1000/1000 (TRUTH_REGRESSION 376 = the never-silent rule itself, INTENDED; in production the lifecycle report carries a company-lifecycle turn). Read shape: FAB_REGRESSION 276/452 = fabrications v92 caught by tense that now ship on read-shaped requests — INTENDED departure under OTM §3 rule 2 (prose is never parsed for truth), sized 61% of the fabrication corpus. Belt-only vs v92 (empty pack): PARITY 722 / FAB_REGRESSION 136 (FUTURE + LIFECYCLE rows — arms outside the window; instrument artefact) / FAB_RESCUE 34 / TRUTH_RESCUE 108; populated pack FAB_REGRESSION 32."
+    },
+    {
+      "id": "V57-D1",
+      "level": "FAILED (P1) — FIX PREPARED",
+      "text": "Request-lexicon FALSE POSITIVES override the model’s explicit non-mutation classification. With requestIntent.kind = other (the class the prompt assigns to drafting/conversational turns), a lexicon verb or verb-noun anywhere in the command derives intent and the truthful reply is replaced by the receipt: drafting 20/20 (‘draft an email to Bob about the merge’, ‘write a memo on fire safety at ACME’, ‘brainstorm names for the new hire’), conversational statements 17/20 (‘the fire drill is at 3pm’, ‘I approve of this plan’, ‘the revenue split is 60/40’, ‘the store will reopen Monday’), noun-phrase reads 7/15 (‘history of the ACME archive’). Only kind = read vetoes the lexicon (0/55 then). OTM §3 rule 2: text shape is the sole reason a truthful reply is rewritten. Prepared fix F1: other vetoes the lexicon like read (the lexicon acts only when the model gave no classification)."
+    },
+    {
+      "id": "V57-D2",
+      "level": "FAILED (P2) — FIX PREPARED",
+      "text": "The command-derived company fallback ignores requestIntent.entityType: ‘archive Alpha’ with the model classifying {kind: mutation, entityType: task|person|goal|project, targetName: Alpha} and emitting no field archives the COMPANY Alpha (exact name) with the receipt ‘Alpha: archived.’ (no entity type). The gate’s own comment claims this check; the code lacks it. Realistic via company/project name collisions. Prepared fix F2."
+    },
+    {
+      "id": "V57-D3",
+      "level": "RESIDUAL (P2, conditional on the model omitting requestIntent)",
+      "text": "The ‘imperative-only’ fallback gate is a lead regex: with the model emitting NOTHING (no field, no requestIntent) 10/40 non-imperative shapes with an exact company name execute a lifecycle RPC: ‘I said not to archive Alpha’, ‘we agreed not to archive Alpha’, ‘suppose we restore Beta’, ‘should we restore Beta’, ‘Someone removed Alpha’, ‘I already restored Beta’, ‘they ended Alpha’, ‘Bob said to archive Alpha’, ‘Bob wants us to restore Beta’, ‘thinking about whether to archive Alpha’. With requestIntent.kind read/other the gate withholds (12/12). Prepared fix F3 (tightened leads)."
+    },
+    {
+      "id": "V57-D4",
+      "level": "RESIDUAL (P2, latent at scale)",
+      "text": "resolveCompanyLifecycleTargets fetches candidates by ilike on the LONGEST word with limit 50; an exact-named archived company whose longest word is a generic suffix (‘AB Ltd’) is not found when 50+ other rows share that word — restore refused as unresolved (the OTM §5 outside-the-window class, one layer down). Not reachable at this workspace’s size."
+    },
+    {
+      "id": "V57-D5",
+      "level": "RESIDUAL (P2, lexicon tier only)",
+      "text": "Lexicon false negatives when the model gives no classification (or says other): own generator 1574/4680 (33.6%) — dominated by wh-opener subordinate clauses (‘When you get a moment, please archive ACME’ 180/180: READ_SHAPE treats the ‘when’ lead as a read), ‘archive ACME?’ (180/180, a bare ? is read-shaped), ‘get ACME archived’ (180/180), typos, German/Russian; hand-written slang 31/50 (‘let Bob go’, ‘get rid of task QA-1’, ‘drop the goal G1’, ‘kill the project Alpha’, ‘Alice reports to Bob from now on’). With requestIntent.kind = mutation: 0/4680 and 0/50 — the structured tier is load-bearing and cannot be measured live in this session."
+    },
+    {
+      "id": "V57-D6",
+      "level": "RESIDUAL (P3)",
+      "text": "Negations/hypotheticals with a lexicon verb and no read shape get the receipt with a misleading reason (‘don’t archive ACME’ -> ‘No change was made — I could not resolve which company you meant’); the lifecycle commandIsQuestion lacks the POLITE_REQUEST exemption (a polite question with the model emitting nothing is refused, never executed); a compound command with the model emitting nothing executes only the first clause and drops the second silently (‘archive Alpha and restore Beta’ -> ‘Alpha: archived.’); a model field in the opposite direction to the command executes the model’s direction; 1-char company names cannot be resolved by name."
+    },
+    {
+      "id": "V57-2B",
+      "level": "UNIT VERIFIED",
+      "text": "Own intent corpus (18 verbs × 10 objects × 26 wrappers = 4680) × model requestIntent {absent, read, other, mutation}: FN-ship absent 1574 (33.6%), other 1574, read 4680 (design), mutation 0; hand-written 50: absent/other 31, read 50, mutation 0. FP-replace (truthful reply replaced by the receipt): generation 20/20 absent and other, 0 read; conversation 17/20 absent and other, 0 read; noun-phrase reads 7/15 absent and other, 0 read; negations/hypotheticals 8/12 absent and other, 0 read. Static: the derivation reads only requestIntent, the action arrays and activateAiProviderId; same command × four replies -> identical intent."
+    },
+    {
+      "id": "V57-2C",
+      "level": "UNIT VERIFIED",
+      "text": "Own lifecycle attack 185/199 on the candidate (14 = D3 ×10, D4 ×1, 1-char name ×3): imperatives execute once (7/7); polite question + targetName executes; other-entity fields withhold (12/12); punctuated/Unicode names resolve via command, restoreCompanyNames and targetName (19/20 × 3); fuzzy command hits ask even with one option; model-name fuzzy executes only when unique; lifecycle words inside names never flip direction (10/10); twins prefer the wanted status (4/4), two archived twins ask; nonexistent/malformed ids leave a line; disambiguation replaces a model-armed pendingAction; RPC error/denied/not_found/postcondition-false/foreign_org/empty never yield success; idempotency truthful."
+    },
+    {
+      "id": "V57-STEP3",
+      "level": "UNIT VERIFIED",
+      "text": "Harness judgement: _gate_extract request-side defaults (command '', requestedIntent null) are faithful for window suites (a no-intent turn is untouched by construction). run8/10-14 default 'archive ACME Holdings' and assert the belt flag (corrected), so they still measure the belt; their 'preserved' cases pass command '' where the belt is never consulted — no-intent invariants now, not belt measurements (coverage note, not a hidden class). D59 re-reversal, run11 livePrecedence inversion, lifecycle_evidence S/P6, v49-v53 SUPERSEDED pins all follow the contract. Vacuity: 21 mutants (19 + 2 faithful re-runs of unfaithful ones) × whole battery, in place, restored, sha-asserted: 15 killed. Survivors: m6 hand-written companies(name, status) literal inside a file that already imports COMPANY_REF (per-file guard); m8 model-read veto of the lexicon removed; m10 negated-lead gate removed (the matrix's only negative 'do not…' is already blocked by the read-lead 'do'); m15 turnVerdict.mutationIntent null; m16 stored-pendingAction TTL removed (grounding_precedence slices below it). m8/m10/m15/m16 killed 4/4 by v57_regression_additions CONTRACT rows on mutant copies."
+    },
+    {
+      "id": "V57-FIX",
+      "level": "FIX PREPARED (scratch copy; not applied)",
+      "text": "qa/verification/scratch/v57/v57_fix.mjs -> index.fixed.ts (sha256 5d28ba3aea9b28bdfa0a9615243935167b00331f069b4b697e3aaf1d68070a03): F1 other vetoes the lexicon like read; F2 fallback withheld unless requestIntent.entityType ∈ {null, company, other}; F3 tightened non-imperative leads (first draft withheld 'archive Restored Furniture Co' — caught by my C7 rows, narrowed). Measured on the fixed bytes: FP on other 0/20, 0/20, 0/15, 0/12; FN with mutation 0; FN absent unchanged 1574/4680; FN other 4680/4680 (same symmetry as read); lifecycle attack 195/4 (D4 + 1-char names only); receipt matrix 691/0; 24 SEM_INDEX_SRC battery members + #56's four generators + my precedence/misc suites 32/32 exit 0; v57_regression_additions 306/0 (277/29 on the candidate)."
+    },
+    {
+      "id": "V57-REGRESSION",
+      "level": "UNIT VERIFIED",
+      "text": "qa/verification/proposed/v57_regression_additions.mjs: 277 CONTRACT green on 712760d, 29 DEFECT red by design (D1 15, D2 4, D3 10), 8 RESIDUAL rows printed, never counted; exits non-zero on any CONTRACT/DEFECT failure; runs from qa/verification (walk-up) and via SEM_INDEX_SRC."
+    },
+    {
+      "id": "V57-VERDICT",
+      "level": "FAILED",
+      "text": "FAIL on 712760dcb0d68b969b940d5175bbd76bf205ccb1 (index.ts sha256 ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871, preserved). Blocker: V57-D1 (P1) — the request lexicon overrides the model's explicit other classification, so drafting/conversational turns containing a mutation word are replaced by the receipt (OTM §3 rule 2; a truth regression vs v92 that is not an intended departure). Also V57-D2 (P2, fix prepared) and V57-D3 (P2 conditional, fix prepared). Everything #56 failed on is closed; the machinery re-derives clean. Gaps: deno check, live CLI download, browser/AI-chat turn all BLOCKED in this session."
+    },
+    {
+      "id": "V57-ARTIFACTS",
+      "level": "n/a",
+      "text": "Committed on verify-712760d-campaign117: qa/verification/proposed/v57_known_failure_modes_entry_128.md, v57_PROMOTION_NOTE.md, v57_regression_additions.mjs; qa/verification/scratch/v57/* (lib, receipt matrix, intent attack, lifecycle attack, precedence, misc, belt differential, delta, battery/gates runners, vacuity + kill check, prepared fix + index.fixed.ts, logs/json); CURRENT_CAMPAIGN.json verifier57_* keys. #56 generator JSON outputs restored to HEAD bytes."
+    }
+  ],
+  "verifier57_base_commit_note": "git rev-parse HEAD at start of the run (record said 32a2d75 = the closure commit; 712760d is the campaign-record commit on top of it; index.ts sha256 re-measured at start = ccde932f… matches the required sha)",
+  "verifier57_index_sha256_at_start": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871 (sha256sum raw bytes; 531565 B; 6419 CRLF, 0 bare LF, 1 bare CR)",
+  "verifier57_last_checkpoint_at": "2026-09-07T16:37:07.859Z"
 }

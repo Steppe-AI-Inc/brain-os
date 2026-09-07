@@ -1,0 +1,21 @@
+ok       "did you archive Alpha?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "Did we already archive Alpha?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "why did we archive Alpha?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "is it safe to delete Alpha?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "should I restore Beta?"  company="Beta Corp"  calls=[]  report=null  final=archived
+ok       "can we restore Beta later?"  company="Beta Corp"  calls=[]  report=null  final=archived
+ok       "what happens if I archive Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "who asked to archive Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "do not archive Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "never delete Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "I decided not to archive Alpha"  company="Alpha Holdings"  calls=[]  report="Alpha: more than one company matches — please pick one."  final=active
+ok       "remind me to archive Alpha next week"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "before we archive Alpha, list its tasks"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "how do I restore Beta"  company="Beta Corp"  calls=[]  report=null  final=archived
+ok       "explain how to archive Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "tell me why we should not delete Alpha"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "what would removing Alpha affect?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "is Alpha archived?"  company="Alpha Holdings"  calls=[]  report=null  final=active
+ok       "when did we end Bob"  company="Bob Trucking"  calls=[]  report=null  final=active
+
+question_probe: 0/19 non-imperative sentences executed a lifecycle RPC through the command-name fallback

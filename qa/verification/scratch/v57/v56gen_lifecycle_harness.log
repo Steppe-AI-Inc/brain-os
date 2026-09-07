@@ -1,0 +1,62 @@
+OK   C1 near-twin: exact "Acme" restores only Acme
+OK   C1b near-twin: "Acme Holdings" restores only Acme Holdings
+OK   C2 punctuated name via command: "Acme (Mongolia) LLC"
+OK   C2 punctuated name via model restoreCompanyNames: "Acme (Mongolia) LLC"
+OK   C2 punctuated name via command: "O’Brien & Sons"
+OK   C2 punctuated name via model restoreCompanyNames: "O’Brien & Sons"
+OK   C2 punctuated name via command: "Acme, Inc."
+OK   C2 punctuated name via model restoreCompanyNames: "Acme, Inc."
+OK   C2 punctuated name via command: "A_B Holdings"
+OK   C2 punctuated name via model restoreCompanyNames: "A_B Holdings"
+OK   C2 punctuated name via command: "100% Natural Foods"
+OK   C2 punctuated name via model restoreCompanyNames: "100% Natural Foods"
+OK   C2 punctuated name via command: "Smith-Jones Ltd"
+OK   C2 punctuated name via model restoreCompanyNames: "Smith-Jones Ltd"
+OK   C2 punctuated name via command: "R&D Labs"
+OK   C2 punctuated name via model restoreCompanyNames: "R&D Labs"
+OK   C2 punctuated name via command: "Ace \"Quoted\" Co"
+OK   C2 punctuated name via model restoreCompanyNames: "Ace \"Quoted\" Co"
+OK   C2 punctuated name via command: "Café Nomad"
+OK   C2 punctuated name via model restoreCompanyNames: "Café Nomad"
+OK   C2 punctuated name via command: "Ко. Монгол ХХК"
+OK   C2 punctuated name via model restoreCompanyNames: "Ко. Монгол ХХК"
+OK   C3a "archive Restored Furniture Co" (model id) ends ARCHIVED, one archive RPC, no restore RPC
+OK   C3b "archive Restored Furniture Co" (name only) ends ARCHIVED
+OK   C3c "restore Archived Media Group" restores it, no archive RPC
+OK   C3d "restore Delete Bespoke Ltd" restores it only
+OK   C3e "archive Reactivate Solutions" (model id) ends ARCHIVED
+OK   C4 non-company target never mutates a company: "delete Alpha" with company "Alpha Holdings"
+OK   C4 non-company target never mutates a company: "remove Bob Smith" with company "Bob Smith Consulting"
+OK   C4 non-company target never mutates a company: "archive Q3 revenue" with company "Q3 Revenue Partners"
+OK   C4 non-company target never mutates a company: "delete task QA-1" with company "QA-1 Fixture Co"
+OK   C4 non-company target never mutates a company: "end employment for Alice" with company "Alice"
+OK   C4 non-company target never mutates a company: "remove Bob" with company "Bobcat Machinery"
+OK   C4 non-company target never mutates a company: "delete the goal Growth" with company "Growth Partners"
+OK   C4 non-company target never mutates a company: "archive the task Alpha" with company "Alpha Task Force"
+OK   C4b same command, model emitted nothing: "delete Alpha" / "Alpha Holdings"
+OK   C4b same command, model emitted nothing: "remove Bob Smith" / "Bob Smith Consulting"
+OK   C4b same command, model emitted nothing: "archive Q3 revenue" / "Q3 Revenue Partners"
+OK   C4b same command, model emitted nothing: "delete task QA-1" / "QA-1 Fixture Co"
+OK   C4b same command, model emitted nothing: "end employment for Alice" / "Alice"
+OK   C4b same command, model emitted nothing: "remove Bob" / "Bobcat Machinery"
+OK   C4b same command, model emitted nothing: "delete the goal Growth" / "Growth Partners"
+OK   C4b same command, model emitted nothing: "archive the task Alpha" / "Alpha Task Force"
+OK   C5 nonexistent model id: no RPC, no evidence, a line says it could not be found
+OK   C5b malformed + nonexistent ids: no RPC, not silent
+OK   C6 restore prefers the ARCHIVED twin
+OK   C6b archive prefers the ACTIVE twin
+OK   C6c restoreCompanyNames prefers the ARCHIVED twin
+OK   C7 ambiguous fuzzy hit: pendingAction disambiguation, 2 options, zero RPC
+OK   C7b model already armed a pendingAction: no execution, and the report says more than one matches
+NOTE C8 {"calls":[],"report":"Beta: more than one company matches — please pick one."}
+OK   C9 second restore is a truthful already_active no-op with no evidence
+NOTE C10 "restore it" with nothing resolvable: calls=[] report=null (the never-silent receipt in the claim window must cover this)
+OK   C11 command shape resolves by name: "could you please restore Polite Co"
+OK   C11 command shape resolves by name: "i think we should restore polite co now"
+OK   C11 command shape resolves by name: "RESTORE POLITE CO"
+OK   C11 command shape resolves by name: "restore the company Polite Co please"
+FAIL C11 command shape resolves by name: "Polite Co needs to be restored"
+       calls=[] report=null
+OK   C11 command shape resolves by name: "bring back Polite Co"
+
+v56 lifecycle_harness: 56 passed, 1 failed
