@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:52:57Z",
+  "last_updated": "2026-09-07T12:00:59Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -30,8 +30,8 @@
     "open_p0": 0,
     "open_p1": 7,
     "open_p2": 6,
-    "open_p3": 4,
-    "total_open": 17,
+    "open_p3": 5,
+    "total_open": 18,
     "total_closed": 5
   },
   "bugs": [
@@ -686,7 +686,8 @@
       "blast_radius": "Synthetic fixtures only. No real company archived.",
       "severity_reasoning": "P2: the archived state IS surfaced, so a user is informed; but operational actions on orphaned employees remain possible and the relationship graph silently keeps archived parents as live manager contexts.",
       "regression_requirement": "Archive a synthetic company with >= 2 people (one managing the other) and a project; assert the defined cascade state on /people and /projects, and that the manager picker/controls are disabled or the employment state changes. Must be re-run after restore to assert symmetric un-cascade.",
-      "_qa_boundary": "Work PC did not modify product code."
+      "_qa_boundary": "Work PC did not modify product code.",
+      "declared_design_note_2026_09_07": "The product's own archive dialog states: \"nothing attached to it (tasks, projects, documents, org relationships) is touched\". So non-cascade on archive is DECLARED behaviour, not an omission. The finding is now: charter expectation (\"BU archived but employee still shows actively attached\" is a target failure) vs declared design. Severity kept at P2 pending a founder decision; classification DESIGN_DECISION_REQUIRED. What remains a defect regardless: live Set-manager/invite/onboarding controls on people of an archived company, and no inactive marker on the relationship."
     },
     {
       "bug_id": "BUG-014",
@@ -714,11 +715,12 @@
       "expected": "Restore flips status to active (the restoreCompanyIds path) and the receipt matches the DB; or an honest failure.",
       "actual": "Step 2: a confident false statement of non-existence/deletion. Step 3: a false success claim.",
       "contrast_with_prior_evidence": "BUG-005 Class A evidence (2026-09-02, same v92 build) recorded \"Restore QA-SWARM-TEST-CO-VIA-CHAT -> restored.\" with DB CONFIRMED active. Same command, same company, same build - different outcome today. So this is NOT a build regression; it is nondeterministic or state-dependent (candidate: the company now has 3 people + 1 project + manager relationship; or the named-company lookup excludes archived rows so grounding fails in a fresh channel). Home PC should not assume the earlier pass still holds.",
-      "blast_radius": "The registered shared fixture company is STUCK ARCHIVED with its 3 people and 1 project under it. QA has no UI path and will not use infrastructure write paths to fix it. Home PC: restore it through a legitimate product path once fixed, or advise. Until then, C002 tests needing an ACTIVE shared company must use QA-MULTI-CO / QA-C002-RENAMED-X (unregistered - register first) or create a fresh company.",
+      "blast_radius": "Fixture was stuck archived 11:12-12:00Z, then restored via the UI path. No lasting state.",
       "severity_reasoning": "P1: the only restore path in the product fails and the model asserts data loss that did not occur. A founder archiving a real company by mistake (which the Class B misbinding already showed is possible) could not recover it and would be told it was permanently deleted.",
       "regression_requirement": "Archive then restore a synthetic company (a) in the same channel and (b) in a fresh channel; assert status=active in DB after each, and that no reply asserts non-existence for an archived company. Add: a fresh-channel \"does company X exist and what is its status?\" for an archived company must answer \"archived\", never \"does not exist\".",
       "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup hypothesis above is for the Home PC to confirm.",
-      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of both restore paths; the implementation PC may not self-certify."
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of both restore paths; the implementation PC may not self-certify.",
+      "correction_2026_09_07T12_00Z": "The title/severity_reasoning claim \"the UI has no restore path, so the archive is unrecoverable by the founder\" is WITHDRAWN. /companies/archived offers Restore; the Work PC restored the stuck fixture through it at 12:00:33Z. What STANDS, unchanged and still P1: (a) fresh-channel false non-existence / \"may have been permanently deleted\" for an archived company; (b) in-channel fabricated \"restored.\" with no mutation. Neither reply pointed the user to Companies -> Archived. Severity stays P1 on the truth defects alone; the recovery argument is removed."
     },
     {
       "bug_id": "BUG-015",
@@ -904,6 +906,22 @@
       "regression_requirement": "(a) set-parent between two synthetic active companies must create the link (assert in structure panel / relationships table) with no type-only side effect; (b) receipt-consistency: if any structured step reports failure, the summary must not claim success - assert no success language co-occurs with a failure line.",
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun; the implementation PC may not self-certify."
+    },
+    {
+      "bug_id": "BUG-022",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "/companies row action is labelled \"Delete\" but performs an ARCHIVE (its own dialog says \"archived, not destroyed\"); the real permanent delete lives on /companies/archived",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T12:00:59Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "expected": "Menu label matches the action: \"Archive\" on the active list; \"Permanently delete\" only where it is irreversible.",
+      "actual": "Kebab item \"Delete\" -> alertdialog \"Delete this company? The company is archived, not destroyed ...\". Same pattern likely on the project and department kebabs, whose dialogs say \"This can't be undone\" - those DO delete, so the label is only wrong for companies.",
+      "blast_radius": "None. Mitigating: the dialog copy is honest, so a reader is corrected before confirming.",
+      "severity_reasoning": "P3: label/affordance truthfulness. Cost of the mismatch today: the Work PC itself concluded no UI archive path existed (see CAP-COMPANY-ARCHIVE-UI-MISSING correction) - a real user would make the same mistake.",
+      "regression_requirement": "UI text assertion: the company row action that archives is labelled Archive (or the dialog title matches the verb).",
+      "_qa_boundary": "Work PC did not modify product code."
     }
   ]
 }

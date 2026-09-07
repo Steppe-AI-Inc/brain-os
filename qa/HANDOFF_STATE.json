@@ -154,7 +154,7 @@
       "CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN FAIL",
       "CAP-COMPANY-ARCHIVE-UI-MISSING PASS(probe)"
     ],
-    "fixture_alert": "LEGACY-C000-company-qa-swarm-test-co is STUCK ARCHIVED (BUG-014). Home PC to restore via product path after fix; Work PC will not use infra write paths.",
+    "fixture_alert": "RESOLVED 12:00Z - LEGACY-C000-company-qa-swarm-test-co restored via the product UI (/companies/archived -> Restore). No Home-PC action needed. BUG-014 corrected accordingly (chat-path truth defects stand; \"unrecoverable\" withdrawn).",
     "next_priorities_untouched": [
       "cross-org isolation beyond the manager picker",
       "BUG-010 regression expansion",

@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:57:45Z",
+  "generated_at": "2026-09-07T12:00:59Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -2214,7 +2214,7 @@
       "status": "PASS",
       "tested_against_sha": "8521b0e",
       "expected_behavior": "PARITY PROBE: establish whether any UI archive/restore path exists.",
-      "probe_outcome": "NONE EXISTS. Kebab = Edit/Delete; Edit Status = active/planning/paused/closed. No archived filter or restore control on /companies. Archive and restore are chat-only. Added by work-pc-independent-qa 2026-09-07."
+      "probe_outcome": "CORRECTED 12:00Z - my 11:12Z conclusion (\"no UI archive/restore path\") was WRONG. The /companies row kebab item labelled \"Delete\" opens an alertdialog whose copy reads \"The company is archived, not destroyed - nothing attached to it ... is touched, and you can restore it from Companies -> Archived at any time.\" So UI ARCHIVE EXISTS (mislabelled, BUG-022). /companies/archived (\"Archived companies\") lists archived rows with Restore and Permanently delete. UI RESTORE EXISTS. The earlier probe missed it because the Edit dialog has no \"archived\" status and the Archived link is a small text link. Recorded honestly as a Work-PC error, not a product change."
     },
     {
       "capability_id": "CAP-ORG-SWITCH-SCOPE",
