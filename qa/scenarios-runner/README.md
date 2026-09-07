@@ -87,3 +87,11 @@ therefore stores creator **NULL** and any "owner sees own row" assertion fails v
 (this is what broke SC-054 on 2026-09-07). Impersonate the owning persona *before* inserting
 owned fixtures; use the founder sub `cbcc41cf-830d-4600-8545-3b9e22c8297f` for rows that must
 belong to someone else. Expect the same on any table that gains a creator-forcing trigger.
+
+
+### Run rule (2026-09-07, after an incident): never execute a script bare
+
+Use `node qa/runner/run-sql-regressions.mjs [--only <name>]`. It wraps EVERY file in
+`BEGIN; ... ROLLBACK;` itself and refuses files containing COMMIT. Do not select scripts by
+grepping for "rollback;" — `factory_agent_registry_adversarial.sql` matched that grep on a
+header comment, ran unwrapped, and leaked 4 rows (`INC-2026-09-07-UNWRAPPED-SQL`).

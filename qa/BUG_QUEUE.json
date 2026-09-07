@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T13:20:00Z",
+  "last_updated": "2026-09-07T13:25:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 8,
+    "open_p1": 9,
     "open_p2": 9,
     "open_p3": 5,
-    "total_open": 22,
+    "total_open": 23,
     "total_closed": 5
   },
   "bugs": [
@@ -1132,6 +1132,62 @@
       "what_is_NOT_claimed": "No evidence of unauthorized escalation: the adversarial employee UPDATE in factory_agent_registry_adversarial leaves the row unchanged (repaired assertion). The drift is between two founder-side states, source unknown from this seat.",
       "regression_requirement": "Snapshot agents.execution_provider/has_production_authority per agent into governance and assert equality in the factory adversarial script (precondition-checked, not assumed).",
       "_qa_boundary": "Work PC did not modify product code or agent definitions."
+    },
+    {
+      "bug_id": "INC-2026-09-07-UNWRAPPED-SQL",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "INCIDENT (Work PC, self-caused): qa/scenarios-runner/factory_agent_registry_adversarial.sql relied on an external BEGIN/ROLLBACK wrapper; a sweep that selected scripts by grepping for \"rollback;\" matched its header COMMENT, ran it unwrapped twice, and 4 rows persisted to production",
+      "discovered_by": "work-pc-independent-qa (the same session that caused it)",
+      "discovered_at": "2026-09-07T13:25:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "what_happened": "At 13:08:55Z (full sweep) and 13:22:29Z (repaired re-run) the file was executed via supabase db query --linked --file without a surrounding transaction. Every other script in the sweep carries its own begin;/rollback; and a read-only leftover scan of all fixture id ranges and markers returned zero rows - the leak is confined to this one file.",
+      "rows_persisted": [
+        {
+          "table": "public.agents",
+          "id": "7703cae0-2a4f-4f11-b79f-f1bff1904820",
+          "name": "brain-os-implementation-engineer",
+          "field": "definition_hash",
+          "now": "deadbeef-simulated-changed-hash",
+          "was": "7c5d1d41623bf15cb308e2aa41373dcf7a9933e617f7c5ebf4cf4152056cf6b1 (captured as hash_before in the 13:08Z run)"
+        },
+        {
+          "table": "public.agent_runs",
+          "id": "125498ce-5ea1-414a-96d3-eca1489c88af",
+          "agent": "brain-os-db-security-engineer (real)",
+          "note": "stray run inserted 13:08:55Z, summary empty, status rejected - QA artefact, delete"
+        },
+        {
+          "table": "public.agents",
+          "id": "b1a593b7-9597-4d0e-8101-207038c1b9f0",
+          "name": "qa-synthetic-status-probe-3f34c25a",
+          "note": "synthetic agent from the 13:22Z re-run - delete"
+        },
+        {
+          "table": "public.agent_runs",
+          "id": "f76a9f69-077f-4340-b0a0-37cce4ced0c7",
+          "agent": "qa-synthetic-status-probe-3f34c25a",
+          "note": "its run - delete (before the agent, FK)"
+        }
+      ],
+      "what_did_NOT_happen": "The three real brain-os-db-security-engineer runs (ea4dd022, ab3929e3, e802be8c) have updated_at 08-30/08-31 - already rejected before today; untouched. The employee self-escalation UPDATE was blocked by RLS (row unchanged). The spoofed run insert was blocked (0 rows). No task/document/report/memory/lead/membership fixture leaked.",
+      "remediation_for_home_pc": [
+        "Preferred: re-run sync-agents.mjs, which recomputes definition_hash from the .claude/agents/*.md files (restores 7c5d1d41... if the definition is unchanged).",
+        "Or directly: update public.agents set definition_hash = '7c5d1d41623bf15cb308e2aa41373dcf7a9933e617f7c5ebf4cf4152056cf6b1' where id = '7703cae0-2a4f-4f11-b79f-f1bff1904820';",
+        "delete from public.agent_runs where id in ('125498ce-5ea1-414a-96d3-eca1489c88af', 'f76a9f69-077f-4340-b0a0-37cce4ced0c7');",
+        "delete from public.agents where id = 'b1a593b7-9597-4d0e-8101-207038c1b9f0';",
+        "Work PC will NOT execute these: the constraint \"no infrastructure-level production write paths\" applies to remediation as much as to testing."
+      ],
+      "root_cause": "Process: the sweep trusted the presence of the string \"rollback;\" as proof of a transaction. The file documented its dependency on an external wrapper in a comment, which is exactly what a grep cannot distinguish from code. CLAUDE.md §22 warns that prose is not enforcement; this is the QA-side instance of the same lesson.",
+      "systemic_impact": "canonical_work_order_model_adversarial.sql shares the same convention (external wrapper) - it was SKIPPED by the sweep and did not run. Any future runner must wrap scripts itself.",
+      "fixed_on_qa_side": [
+        "factory_agent_registry_adversarial.sql is now self-wrapping (begin; ... reset role; rollback;).",
+        "qa/runner/run-sql-regressions.mjs added: force-wraps every script in BEGIN/ROLLBACK via a generated temp file, refuses any file containing a COMMIT statement, writes verdicts per script. Sweeps must use it.",
+        "qa/scenarios-runner/README.md rule added."
+      ],
+      "regression_requirement": "Before any runner sweep: assert every executed statement set ends in ROLLBACK by construction (the wrapper), and after the sweep run the leftover-fixture scan (tasks/projects/documents/financial_reports/memories/sales_leads/agents/agent_runs/company_memberships by fixture id ranges and markers) and assert all zero.",
+      "_qa_boundary": "Reported the moment it was confirmed; no attempt to repair production from this seat."
     }
   ]
 }

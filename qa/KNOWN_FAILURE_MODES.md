@@ -3438,3 +3438,20 @@ live against production as of this writing: `all_pass: false`,
 requires explicit founder authorization before `supabase db push` — presented as the next
 authorization boundary. Target phrase once pushed and independently re-verified:
 `LIVE VERIFIED — LEGACY PRIVILEGED RPC ANON/PUBLIC ACCESS CLOSED`.
+
+
+## 2026-09-07 — QA runner script executed WITHOUT its transaction; 4 rows leaked to production (Work PC, self-caused, self-reported)
+
+`qa/scenarios-runner/factory_agent_registry_adversarial.sql` said in a header comment
+"Caller wraps this in BEGIN;...ROLLBACK;" and had no transaction of its own. A Work-PC sweep
+selected scripts to run by grepping for `rollback;` — the comment matched — and executed the
+file unwrapped via `supabase db query --linked --file`, twice. Persisted: the simulated
+`definition_hash` on `brain-os-implementation-engineer`, one stray `agent_runs` row on the
+real security agent, one synthetic agent and its run. Everything else in the 40-script sweep
+was genuinely rolled back (leftover scan: zero). Full row list and remediation:
+`qa/BUG_QUEUE.json` → `INC-2026-09-07-UNWRAPPED-SQL`.
+
+**Lesson (the QA-side twin of §22):** a comment that says "rolled back" is not a transaction,
+and a grep for the word is not a check. From now on `qa/runner/run-sql-regressions.mjs`
+wraps every script itself and refuses anything containing COMMIT; the Work PC does not run
+runner SQL any other way.

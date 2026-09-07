@@ -169,3 +169,14 @@ Single-founder use with UI verification of every Brain claim: usable now. Team u
 Seven open P1s, all execution-truth (BUG-002, 005, 010, 014, 018, 020, 021). The
 org selector is not a tenant boundary (BUG-015) and persona-level isolation is untestable
 from this seat. Gate = those P1s closed by independent Work-PC retest + a persona isolation sweep.
+
+
+## INCIDENT 13:08–13:22Z — self-caused, self-reported, needs Home-PC remediation
+Running the SQL persona matrix from this seat, one script that expected an external
+BEGIN/ROLLBACK wrapper ran unwrapped (my sweep grepped for "rollback;" and matched its comment).
+**Four rows persisted to production** — the simulated `definition_hash` on
+`brain-os-implementation-engineer`, a stray `agent_runs` row on the real security agent, a
+synthetic agent and its run. Exact ids and remediation SQL: `BUG_QUEUE.json` →
+`INC-2026-09-07-UNWRAPPED-SQL`. I did not repair production myself. Everything else in the
+sweep rolled back (leftover scan zero). Fixed on the QA side: the script is self-wrapping and a
+force-wrapping runner (`qa/runner/run-sql-regressions.mjs`) replaces bare execution.

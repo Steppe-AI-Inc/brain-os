@@ -11,6 +11,14 @@
 -- by SQL alone — their evidence lives in docs/software-factory/PHASE_6_FINDINGS.md
 -- instead, from a real live run, not simulated here.
 
+-- INCIDENT 2026-09-07 (Work PC): this file relied on an EXTERNAL wrapper for BEGIN/ROLLBACK. A
+-- sweep that selected scripts by the presence of the word "rollback;" matched the comment above,
+-- ran the file UNWRAPPED, and its writes persisted to production (definition_hash of
+-- brain-os-implementation-engineer overwritten with the simulated value; a synthetic agent and
+-- runs persisted; the real brain-os-db-security-engineer's runs set to rejected). The file is
+-- now self-wrapping so it can never run outside a transaction again. See qa/KNOWN_FAILURE_MODES.md.
+begin;
+
 -- Real profile reused (read-only reuse, never mutated outside this rolled-back
 -- transaction) — same identity used in canonical_work_order_model_adversarial.sql.
 select set_config('faa.emp1_pid', '66ef2052-d002-4592-b841-82cd2171b51a', true);
@@ -212,3 +220,7 @@ select json_build_object(
     and current_setting('faa.t9_status_spoof_blocked', true) = 'true'
   )
 ) as verdict;
+
+-- 2026-09-07: self-contained transaction (see incident note at top).
+reset role;
+rollback;
