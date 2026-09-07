@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:32:30Z",
+  "generated_at": "2026-09-07T11:35:59Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -753,9 +753,14 @@
         "AI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 11
+      "scenario_ids": [
+        "C002-chat-multi-action"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 11,
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "evidence": "Fresh channel 0f6643a8-5328-4e05-9e9a-cbf6318eca07: \"Create a project called QA-C002-MULTI-PROJ under QA-MULTI-CO, and also create a task called QA-C002-MULTI-TASK under QA-MULTI-CO with low priority.\" -> \"Created project QA-C002-MULTI-PROJ and task QA-C002-MULTI-TASK under QA-MULTI-CO with low priority.\" DB truth: /projects shows QA-C002-MULTI-PROJ | QA-MULTI-CO | active (8 -> 9 rows) at 11:35:51Z; /tasks shows card QA-C002-MULTI-TASK low/low QA-MULTI-CO at 11:35:59Z. Two supported actions in one turn, both executed, both parented correctly, receipt == mutations.",
+      "note": "This is the honest counterpart to BUG-012: when the chat path has real fields for the requested operations, the receipt names exactly what was done."
     },
     {
       "capability_id": "CAP-RELOAD-FRESH-SESSION-TRUTH",

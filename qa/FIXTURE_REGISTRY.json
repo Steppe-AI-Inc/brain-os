@@ -209,6 +209,40 @@
       "cleanup": "RETAIN; never archive without re-checking BUG-014 status first.",
       "registered_at": "2026-09-07T11:34:07Z",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-MULTI-PROJ",
+      "kind": "project",
+      "resource_type": "project",
+      "name": "QA-C002-MULTI-PROJ",
+      "synthetic_display_name": "QA-C002-MULTI-PROJ",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987)",
+      "purpose": "Created by the CAP-CHAT-MULTI-ACTION probe (one chat turn, two creates).",
+      "cleanup": "Delete via UI kebab when retired.",
+      "registered_at": "2026-09-07T11:35:59Z",
+      "created_via": "Brain Chat",
+      "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-MULTI-TASK",
+      "kind": "task",
+      "resource_type": "task",
+      "name": "QA-C002-MULTI-TASK",
+      "synthetic_display_name": "QA-C002-MULTI-TASK",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987)",
+      "purpose": "Created by the CAP-CHAT-MULTI-ACTION probe (one chat turn, two creates).",
+      "cleanup": "Delete via UI kebab when retired.",
+      "registered_at": "2026-09-07T11:35:59Z",
+      "created_via": "Brain Chat",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
