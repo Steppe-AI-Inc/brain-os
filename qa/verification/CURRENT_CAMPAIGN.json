@@ -95,12 +95,12 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 118,
-  "verifier": 58,
+  "campaign": 119,
+  "verifier": 59,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "DISPATCH PENDING — verifier #58 on the #57 closure",
-  "closure_commit": "e75912f2c00e0453d9cada1cf56a26db4d96772b",
-  "index_sha256_prefix": "0fd05a92b3a088bc",
+  "status": "DISPATCH PENDING — verifier #59 on the #58 closure",
+  "closure_commit": "02220b9c862900ce3a1a2f54ebe774ab5b57adb4",
+  "index_sha256_prefix": "715246f3be9710b7",
   "branch": "p1/execution-truth-governance",
   "v92": {
     "deployed_version": 92,
@@ -139,7 +139,7 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "V58-D2 (P1, contract, v92 parity): chat task restore can never execute — pack never carries archivedTasks; task/goal lifecycle ids filtered by the capped window; receipt names company on a task request. FIX PREPARED qa/verification/scratch/v58/index.fixed.ts"
+    "verifier #59 has not run"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
@@ -186,9 +186,9 @@
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
   "index_sha256_lf_prefix": "26972b1238c08d3e",
   "previous_campaign_pointer": {
-    "campaign": 117,
-    "verifier": 57,
-    "index_sha256_prefix": "ccde932fa5b1aeca"
+    "campaign": 118,
+    "verifier": 58,
+    "index_sha256_prefix": "0fd05a92b3a088bc"
   },
   "record_corrections_applied": [
     "v31 32/2 (was 33/1)",
@@ -535,5 +535,11 @@
   "verifier58_last_checkpoint_at": "2026-09-07T17:27:38.873Z",
   "verifier58_verdict": "FAIL",
   "verifier58_index_sha256_at_end": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b",
-  "verifier58_fixed_index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9"
+  "verifier58_fixed_index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9",
+  "verifier58_closure": "Ledger #131: #58 prepared fix F1/F2/F3 applied as written — imperative-position allow-list for the command fallback; archivedTasks placed in the pack; task and goal lifecycle ids re-read server-side across every status with truthful unresolved lines; entity-aware receipt. #58 suite promoted (48/0); #57 306/0; #56 129/0; matrix 31/31; collection envelope 57/57.",
+  "verifier59_base_commit": "02220b9c862900ce3a1a2f54ebe774ab5b57adb4",
+  "verifier59_index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9",
+  "verifier59_started_at": null,
+  "verifier59_status": "not started",
+  "verifier59_findings": []
 }
