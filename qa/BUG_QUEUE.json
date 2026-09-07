@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:17:05Z",
+  "last_updated": "2026-09-07T11:25:17Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 4,
-    "open_p2": 3,
+    "open_p2": 4,
     "open_p3": 3,
-    "total_open": 10,
+    "total_open": 11,
     "total_closed": 5
   },
   "bugs": [
@@ -717,6 +717,30 @@
       "regression_requirement": "Archive then restore a synthetic company (a) in the same channel and (b) in a fresh channel; assert status=active in DB after each, and that no reply asserts non-existence for an archived company. Add: a fresh-channel \"does company X exist and what is its status?\" for an archived company must answer \"archived\", never \"does not exist\".",
       "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup hypothesis above is for the Home PC to confirm.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of both restore paths; the implementation PC may not self-certify."
+    },
+    {
+      "bug_id": "BUG-015",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "Organization selector scopes /people, /projects and /goals but not /companies, half of the dashboard, or Brain Chat - the same \"current organization\" means different things on different screens",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:25:17Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "selected_org": "CLIX GPS (real production org; READ-ONLY test, nothing mutated)",
+        "chat_channel": "e6a9225c-4834-4e0b-a88a-b0a5993bbd77"
+      },
+      "expected": "One consistent meaning of \"Current organization\": either every surface (including chat context) scopes to it, or the control is clearly labelled as a list filter for the surfaces it affects.",
+      "actual": "/people, /projects, /goals scoped; /companies listed all 10 workspace companies; /dashboard showed Active goals=1 (scoped) next to Active Companies=10 (unscoped); Brain Chat answered \"I don't have a way to determine which single organization you currently have selected in the UI. The context shows 20 companies total ... and 18 people\".",
+      "what_is_NOT_wrong": "Brain Chat did NOT fabricate a roster and did NOT leak - it asked which entity to list. Selector state persisted across navigation. For the founder there is no isolation failure.",
+      "blast_radius": "None - read-only sweep.",
+      "severity_reasoning": "P2: no data exposure for the founder; but a team member who reads the selector as \"I am inside CLIX GPS\" will get workspace-wide answers from Brain and the companies page. This is a truth-consistency defect across surfaces and a prerequisite for any team rollout.",
+      "team_ready_gate": "Real tenant isolation must be proven with a NON-founder persona (RLS/membership), which remains BLOCKED from this seat (CAP-BROWSER-PERSONA-MULTIUSER). Do not treat this bug's fix as proof of isolation.",
+      "regression_requirement": "Select an org; assert /companies rows, both dashboard KPI cards, and a fresh-channel \"list people in the current organization\" all agree with /people for that org (or that chat explicitly states it is workspace-scoped).",
+      "_qa_boundary": "Work PC did not modify product code."
     }
   ]
 }
