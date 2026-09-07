@@ -1,6 +1,6 @@
 # Acceptance Tests
 
-Status against the 18 required tests in CLAUDE.md §15, as of 2026-08-27. `✅` = actually
+Status against the 18 required tests in qa/ACCEPTANCE_TESTS.md, as of 2026-08-27. `✅` = actually
 verified this session or a prior one with real evidence. `⬜` = not yet tested. `➖` = not
 applicable to this product's current scope (noted why).
 

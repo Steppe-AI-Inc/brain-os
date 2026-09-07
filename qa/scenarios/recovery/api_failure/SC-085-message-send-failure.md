@@ -31,6 +31,6 @@ no message table, no send path exists (confirmed by grep). Written as the accept
 (SC-109 items 3, 8, 9). NOTE: sem-ai-command already models good provider-error handling
 for the LLM call itself (normalized 502/504 errors, `mark_work_order_failed`, no false
 success) — reuse that pattern for a future message provider. Cross-ref SC-097, SC-109,
-CLAUDE.md §11.
+CLAUDE.md §5.
 
 LAST VERIFIED DATE: n/a (feature not built)

@@ -1,63 +1,22 @@
-# SEM Brain v0.7.1 Auto Deploy Pack
+# Brain OS
 
-SEM Brain is an AI-native, chat-first operating brain for SEM Technologies LLC and its companies.
+Brain OS is the AI-native operating system for Steppe AI, Inc. and the companies it runs:
+a Next.js app (`web/`), a Supabase project (schema, RLS, RPCs, Edge Functions under
+`supabase/`), and a software factory (`scripts/factory-runner/`) that builds and verifies
+the product under independent QA.
 
-This version adds the deployment foundation so future updates can be pushed to GitHub and deployed automatically by Vercel.
+Start here:
 
-## What is included
+| Read | For |
+|---|---|
+| `CLAUDE.md` | how work is done and verified in this repository (Development Constitution) |
+| `governance/OPERATING_TRUTH_MODEL.md` | what counts as true about live state; the AI execution contract |
+| `governance/CANONICAL_WORK_CONTRACT.md` | the chain every business action walks; parent/child policy |
+| `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` | what "complete" means; definition of done; ownership |
+| `governance/BRAIN_OS_CONSTITUTION.md` | roles, capabilities, data classification, risk levels |
+| `web/CLAUDE.md` | stack and conventions for the web app |
+| `qa/` | acceptance tests, security matrix, regression catalog, failure-mode ledger |
+| `docs/FOUNDER_ACTION_RUNBOOK.md` | the founder-only production actions |
 
-- AI-first SEM Brain frontend
-- Production Core page
-- Deployment Center page
-- Fixed Supabase schema migration
-- Supabase seed template
-- Supabase Edge Function template
-- Vercel config
-- GitHub workflow template for Supabase functions
-- Non-programmer deployment checklist
-- Patch-only update protocol
-
-## First thing to do
-
-Run this SQL in Supabase SQL Editor:
-
-```text
-supabase/migrations/202606190001_sem_brain_v071_production_core.sql
-```
-
-Then create Founder user and run:
-
-```text
-supabase/seed/001_founder_and_companies_template.sql
-```
-
-## Deploy automatically
-
-1. Create private GitHub repo.
-2. Upload this folder.
-3. Connect GitHub repo to Vercel.
-4. Add environment variables in Vercel.
-5. Every GitHub push deploys the frontend automatically.
-
-Read:
-
-```text
-docs/AUTO-DEPLOYMENT-GUIDE.md
-docs/NON-PROGRAMMER-DEPLOYMENT-CHECKLIST.md
-docs/PATCH-ONLY-UPDATE-PROTOCOL.md
-```
-
-## Security
-
-Never expose:
-
-- database password
-- service_role key
-- OpenAI API key
-- Slack token
-- Google OAuth secret
-
-Browser-safe only with RLS enabled:
-
-- Supabase project URL
-- Supabase publishable/anon key
+The original vanilla-JS application that once lived at this root was retired on
+2026-08-24; its history remains in git.

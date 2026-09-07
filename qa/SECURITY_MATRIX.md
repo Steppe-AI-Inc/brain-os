@@ -115,6 +115,6 @@ leaks fixed tonight).
 - `investor_viewer` and `hr_finance` and `holding_admin` personas now tested live — see
   above. `contractor`/`company_manager`/`team_lead` as global `profiles.role` values
   confirmed inert by code search (not live-tested individually, see reasoning above).
-- Mobile and EN/MN acceptance tests (CLAUDE.md §15 #17) now run — see
+- Mobile and EN/MN acceptance tests (qa/ACCEPTANCE_TESTS.md #17) now run — see
   ACCEPTANCE_TESTS.md #17 (found a real `/chat` mobile bug, `KNOWN_FAILURE_MODES.md`
   #10).

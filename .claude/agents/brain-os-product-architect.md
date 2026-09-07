@@ -6,6 +6,11 @@ model: inherit
 permissionMode: auto
 ---
 
+> Role scope only. Rules live in their homes: `CLAUDE.md` (Development Constitution,
+> ownership and founder-only boundaries §8), `governance/OPERATING_TRUTH_MODEL.md`,
+> `governance/CANONICAL_WORK_CONTRACT.md`, `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`
+> (definition of done §7). Where a sentence below disagrees with those, those win.
+
 <!-- Real fix, 2026-08-31 (qa/KNOWN_FAILURE_MODES.md, Phase 5): this agent was previously
 missing both `permissionMode: auto` and the `Write` tool, despite its own body below
 explicitly requiring it to produce "a design document (written to a real file...)" -

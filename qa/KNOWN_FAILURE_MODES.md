@@ -14942,3 +14942,54 @@ verification_status/summary/error manager-writable + rendered to the founder) is
 and DEFERRED to its own Work Order (guarding it risks blocking the legitimate SECURITY
 DEFINER writers under PostgREST). A and B have now passed TWO independent rounds; C stays
 split out of the A/B/D authorization batch on Phase 11 sequencing.
+
+
+## 119. Governance reconciliation 2026-09-07 — rules that lived in narrative, and the contradictions they carried
+
+**Found while** executing the founder's canonical development governance audit (the
+directive that established the three-layer model: `CLAUDE.md` = Development
+Constitution, `governance/OPERATING_TRUTH_MODEL.md`, `governance/CANONICAL_WORK_CONTRACT.md`,
+with `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` as the definition of done).
+
+**Root cause.** Operating rules had accumulated in narrative documents (the old
+28-section `CLAUDE.md`, `MASTER_CONTEXT.md`, `web/CLAUDE.md`, skills, checklists) and were
+restated in several places. Restated rules diverged; some were reversed in one place and
+not the other. The audit's material contradictions, each now resolved to one home:
+
+| # | Was | Conflict | Now |
+|---|---|---|---|
+| 1 | `CLAUDE.md` §22 "stay logged in, never `supabase logout`" (a 2026-08-28 founder call made when deploys happened from laptops) | `docs/FOUNDER_ACTION_RUNBOOK.md` §2: revoke the CLI production credential | The runbook is the single authority. The 2026-08-28 objection is void once no deploy is ever performed from a laptop; the credential is a founder-only item, not a per-session policy. |
+| 2 | `CLAUDE.md` §22 "no DB-push authority for subagents" as prose plus a manual link-then-deploy trick for Edge Functions | The release broker (PR #8) and the founder-only list | One clause in `CLAUDE.md` §8: no ambient production-write authority; the broker is the only DB path; Edge deploy only via `ALLOW_FUNCTIONS_DEPLOY=1?`. The link-then-deploy trick is deleted; it was a way around the classifier, which is the opposite of enforcement. |
+| 3 | `qa/PRODUCTION_CHECKLIST.md`: "no CI/CD for Edge Functions", "applied via `supabase db push`" | `docs/software-factory/PRODUCTION_DEPLOYMENT_PATHS.md`, the broker | Rewritten around the authorized paths. |
+| 4 | `qa/LIVE_SYSTEM_MAP.md`: frozen SHAs, "manual CLI only" | Operating Truth Model §1: snapshots are never truth | Replaced by stable identifiers plus the read-only queries. |
+| 5 | `web/CLAUDE.md`: "`git push` to master is enough", manual `vercel --prod` recipe | Protected `master`, PR-only | PR-only; the recipe removed. |
+| 6 | `web/CLAUDE.md` "Canonical operations & execution truth" and the `frictionless-secure-crud` skill both stated the one-operation rule; the archived-parent policy existed only as ledger entries and a verifier FAIL criterion | Duplicate doctrine, no home | `CANONICAL_WORK_CONTRACT.md` §2 and §4; the others point there. |
+| 7 | `feature-delivery` §3-4 and `commercial-demo-release` gates: tsc/lint/build/tests; `CLAUDE.md` §27 definition of done | Missing inverse actions, cross-surface, fresh-session, independent acceptance | One definition of done, `FEATURE_COMPLETENESS_CONTRACT.md` §7; skills point there. |
+| 8 | `CLAUDE.md` §6/§26 truncation fields `returnedCount/totalCount/isTruncated/retrievalScope/filtersApplied` | Canonical `CollectionEnvelope {items, shown, total, truncated}` | One shape, Operating Truth Model §4.3. |
+| 9 | `BRAIN_OS_CONSTITUTION.md` pointed at `capabilities/CAPABILITY_MATRIX.md` | The file is `.yaml` | Pointer fixed; layers B and C added to the hierarchy. |
+| 10 | `MASTER_CONTEXT.md` "repo private" and other live-policy sentences | The repository is public; the runbook says so | `MASTER_CONTEXT.md` demoted to history with a header; it carries no rules. |
+| 11 | Edge campaign deploy rule "no per-class regression vs deployed v92" (`CURRENT_CAMPAIGN.json`, verifier templates) | Founder correction: product contract outranks v92 parity; v92 parity is not deployability | Deploy bar = conformance to the Operating Truth Model; v92 is a reference corpus for truth-regression measurement. The `!result.pendingAction` belt skip restored for parity does not survive. |
+| 12 | `brain-os-truth-verification` skill: "fix it, commit it, push it (`git push` to `master`)", "redeploy with `supabase functions deploy`" | Founder-only actions list | PR-only; Edge deploy is a founder boundary. |
+| 13 | Obsolete documents describing the deleted vanilla-JS app (`README.md`, `docs/V0.6*`, `V0.7-PRODUCTION-CORE.md`, `AUTO-DEPLOYMENT-GUIDE.md`, `NON-PROGRAMMER-DEPLOYMENT-CHECKLIST.md`, `PATCH-ONLY-UPDATE-PROTOCOL.md`) | Described a product that no longer exists | Deleted; git history keeps them. |
+| 14 | No document stated the semantics-before-code sequence | Product semantics were invented while coding (BUG-010/014/002/012/013/011 are all instances) | `CLAUDE.md` §1 and `FEATURE_COMPLETENESS_CONTRACT.md` §1-§2. |
+
+**Preserved narrative from the old `CLAUDE.md` §22, so nothing is lost.** (a) 2026-08-28:
+the Supabase CLI credential was found to live in the OS credential store, inherited by
+every spawned subagent; `supabase logout` was tried and worked; the founder reversed it
+the same day because deploys then required an interactive device-code login per deploy
+("stop doing supabase login logout … straight to coding"). (b) A bare
+`supabase functions deploy` by an agent was blocked by the auto-mode classifier on first
+use in a session, while `supabase link --project-ref` first made subsequent deploys go
+through without the block. Both facts are historical. Under the current model neither is
+a policy: the credential is founder item 3 in `docs/FOUNDER_ACTION_RUNBOOK.md`, and the
+classifier is not, and never was, the enforcement boundary (#16, #63).
+
+**Search performed for the same class.** All rule sources inventoried: root and nested
+`CLAUDE.md`, `AGENTS.md` copies, 8 agent files, 8 skills, `governance/*`, `qa/*.md`, `docs/*`,
+`docs/software-factory/*`, workflows, the pre-push hook. The table above is the complete
+material list; the rest were pointers or history.
+
+**Status.** RESOLVED in the same change that introduced the three documents. The
+enforcement side (architecture contracts under `qa/scenarios-runner/architecture_*`,
+shared types under `web/lib/contracts/` and `supabase/functions/_shared/`) lands with the
+P1 package that follows.

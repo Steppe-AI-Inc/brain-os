@@ -10,7 +10,7 @@
 This is not optional and not "when there's time." A bug is closed when: (1) it is
 reproduced live, (2) its root cause is found, (3) a regression scenario + runner exists
 that would catch it again, (4) the failure CLASS has been searched for elsewhere, and (5)
-the relevant governance file is updated. See CLAUDE.md §12/§13.
+the relevant governance file is updated. See CLAUDE.md §6.
 
 ## The real bugs found this session → their permanent regression scenarios
 
