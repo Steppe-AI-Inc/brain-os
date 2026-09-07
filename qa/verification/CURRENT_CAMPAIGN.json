@@ -98,7 +98,7 @@
   "campaign": 119,
   "verifier": 59,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "DISPATCH PENDING — verifier #59 on the #58 closure",
+  "status": "VERIFIER #59 PASS — EDGE STATUS = DEPLOYMENT READY (contract bar); candidate FROZEN at 821f530 / index.ts 715246f3…; awaiting the founder ALLOW_FUNCTIONS_DEPLOY=1 (asked once); no verifier #60 launched",
   "closure_commit": "02220b9c862900ce3a1a2f54ebe774ab5b57adb4",
   "index_sha256_prefix": "715246f3be9710b7",
   "branch": "p1/execution-truth-governance",
@@ -119,7 +119,7 @@
   },
   "what_this_campaign_did": "P1 package for the Work-PC handover 2026-09-07 (BUG-010/014/002/012/013/011) implemented as the first feature under docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md: ExecutionResultEnvelope on every recordExecution site with fresh create-family postconditions; MutationIntent from the request (verb patterns, model action arrays, confirmation-shaped commands); never-silent receipt; server-side company lifecycle resolution across every status (restoreCompanyNames/archiveCompanyNames schema fields; contextCompanyIds no longer gates archive/restore); context.collections envelopes for every pack collection, companies split active/archived; narrative tier with verdict + UNVERIFIED marker; durable channel state first; work_orders.output persisted every turn with turnVerdict; person-assignment receipt from the executed diff; V55-D1 possessive fix carried. Web: callLifecycleRpc, archived-parent policy on People controls, manager picker semantics, Archived (N) affordance, COMPANY_REF in 22 files, scopeToActiveOrganization in 19 pages. Enforcement: 8 architecture_* contracts + company_lifecycle_matrix + grounding_precedence_canonical_over_history + mutation_receipt_equals_ledger + tenant_authorization_lifecycle.sql.",
   "implementing_session_evidence_not_to_be_trusted": "battery 53/53; gates v48-v55 green, v46 33/3 (recorded standing reds: C8a stale CRLF pin, D1 growth exponent, D5 withdrawn); deno 19 by class (TS7006 x10, TS2322 x6, TS7034, TS7005, TS2339; zero runtime-fatal); index.ts CRLF 0 bare LF; web tsc/eslint/next build clean. RE-DERIVE ALL OF IT.",
-  "verdict": null,
+  "verdict": "PASS",
   "rules": "FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule (previous rule text retained in git history): a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only.",
   "DESIGN_NOTE_entity_positive_signal": {
     "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
@@ -138,9 +138,7 @@
   "gates_on_committed_candidate": {
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
-  "open_deploy_blockers": [
-    "verifier #59 has not run"
-  ],
+  "open_deploy_blockers": [],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
     "V46-D3: the V45-N2 short-circuit I adopted destroyed 8 truthful refusals; fixed, 8/8 restored",
@@ -680,5 +678,26 @@
     "deno check (no deno binary; npx gated)",
     "live DB / live function bytes / deployed UI / live AI chat (supabase CLI and browser tools gated)",
     "byte-direct v92 fetch (integration-level provenance: recorded download 795c20c8… == git c9dfab5bd433)"
+  ],
+  "frozen_candidate": {
+    "commit": "821f5308a0ce9c9d624c6139ee65e25b37c4b35f",
+    "index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9",
+    "package": "qa/verification/DEPLOYMENT_PACKAGE_821f530.md",
+    "qa_only_commits_after": "verifier #59 artifacts + S1 suite repair + ledger #132; git diff 821f530..HEAD -- supabase/ empty"
+  },
+  "production_now": {
+    "function": "sem-ai-command",
+    "version": 92,
+    "status": "ACTIVE",
+    "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+    "read_at": "2026-09-08"
+  },
+  "residuals_registered_not_closed": [
+    "V59-D1 bring-back verb (model-emits-nothing tier; hardening patch prepared, not applied)",
+    "V59-D2/D3/D4 vacuous allow-list alternatives, Cyrillic head rule, receipt entity from command noun (in the same patch)",
+    "V59-D5 lexicon false positives without model classification",
+    "V59-R2 durable pending-action source-freshness",
+    "V59-R3 idioms outside any lexicon",
+    "mirror drift guard (AUTHORITY_NOT_ENFORCED)"
   ]
 }
