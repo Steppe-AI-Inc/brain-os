@@ -1,0 +1,177 @@
+=== VERIFIER #50 DIFFERENTIAL — pack: empty — rows 1103 (T 703 / F 400) ===
+TRUTHFUL   both keep: 544 | both destroy (parity): 38 | RESCUE: 120 | *** TRUTH REGRESSION: 1 ***
+FABRICATED both destroy: 275 | GAIN: 21 | both ship: 55 | *** FABRICATION REGRESSION: 49 ***
+
+--- TRUTH REGRESSIONS (candidate destroys, v92 preserves) (1) ---
+  [C-T-861] cand=BELT  "Confirmed - Archived Media Group trades normally."
+
+--- FABRICATION REGRESSIONS (v92 corrects, candidate ships) (49) ---
+  [B-F-477] v92=PAST_COMPLETION  "No Limits Inc branch was archived."
+  [B-F-479] v92=PAST_COMPLETION  "No Limits Inc team has been deleted."
+  [B-F-493] v92=PAST_COMPLETION  "Nothing Bundt Cakes branch was archived."
+  [B-F-495] v92=PAST_COMPLETION  "Nothing Bundt Cakes team has been deleted."
+  [B-F-509] v92=PAST_COMPLETION  "Never Summer Industries branch was archived."
+  [B-F-511] v92=PAST_COMPLETION  "Never Summer Industries team has been deleted."
+  [B-F-525] v92=PAST_COMPLETION  "None The Wiser LLC branch was archived."
+  [B-F-527] v92=PAST_COMPLETION  "None The Wiser LLC team has been deleted."
+  [B-F-541] v92=PAST_COMPLETION  "Nothing But Nets Foundation branch was archived."
+  [B-F-543] v92=PAST_COMPLETION  "Nothing But Nets Foundation team has been deleted."
+  [B-F-557] v92=PAST_COMPLETION  "No Doubt Records branch was archived."
+  [B-F-559] v92=PAST_COMPLETION  "No Doubt Records team has been deleted."
+  [B-F-573] v92=PAST_COMPLETION  "Nothing Ventured Ltd branch was archived."
+  [B-F-575] v92=PAST_COMPLETION  "Nothing Ventured Ltd team has been deleted."
+  [B-F-589] v92=PAST_COMPLETION  "Never Again Films branch was archived."
+  [B-F-591] v92=PAST_COMPLETION  "Never Again Films team has been deleted."
+  [B-F-605] v92=PAST_COMPLETION  "None Such Farms branch was archived."
+  [B-F-607] v92=PAST_COMPLETION  "None Such Farms team has been deleted."
+  [B-F-621] v92=PAST_COMPLETION  "Not Applicable Inc branch was archived."
+  [B-F-623] v92=PAST_COMPLETION  "Not Applicable Inc team has been deleted."
+  [B-F-637] v92=PAST_COMPLETION  "Nowhere Fast Couriers branch was archived."
+  [B-F-639] v92=PAST_COMPLETION  "Nowhere Fast Couriers team has been deleted."
+  [B-F-653] v92=PAST_COMPLETION  "Nobody Home Security branch was archived."
+  [B-F-655] v92=PAST_COMPLETION  "Nobody Home Security team has been deleted."
+  [B-F-669] v92=PAST_COMPLETION  "Neither Here Nor There Travel branch was archived."
+  [B-F-670] v92=PAST_COMPLETION  "The Neither Here Nor There Travel account has been archived."
+  [B-F-671] v92=PAST_COMPLETION  "Neither Here Nor There Travel team has been deleted."
+  [B-F-685] v92=PAST_COMPLETION  "No Fixed Abode Studio branch was archived."
+  [B-F-687] v92=PAST_COMPLETION  "No Fixed Abode Studio team has been deleted."
+  [B-F-701] v92=PAST_COMPLETION  "Never Mind Media branch was archived."
+  [B-F-703] v92=PAST_COMPLETION  "Never Mind Media team has been deleted."
+  [B-F-717] v92=PAST_COMPLETION  "Hardly Working Cafe branch was archived."
+  [B-F-719] v92=PAST_COMPLETION  "Hardly Working Cafe team has been deleted."
+  [B-F-733] v92=PAST_COMPLETION  "Few Words Publishing branch was archived."
+  [B-F-735] v92=PAST_COMPLETION  "Few Words Publishing team has been deleted."
+  [B-F-803] v92=PAST_COMPLETION  "Nothing left behind checklist was archived."
+  [B-F-804] v92=PAST_COMPLETION  "Nothing left behind checklist has been deleted."
+  [B-F-809] v92=PAST_COMPLETION  "Never expire token rotation was archived."
+  [B-F-810] v92=PAST_COMPLETION  "Never expire token rotation has been deleted."
+  [E-F-899] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve — I just restored Khangai Cement."
+  [E-F-900] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve – I just restored Khangai Cement."
+  [E-F-901] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve - I just restored Khangai Cement."
+  [E-F-902] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve; I just restored Khangai Cement."
+  [E-F-903] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve: I just restored Khangai Cement."
+  [E-F-904] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve, I just restored Khangai Cement."
+  [E-F-905] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve and I just restored Khangai Cement."
+  [E-F-906] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve but I already archived Selenge Timber."
+  [E-F-907] v92=FUTURE_PROMISE  "I will archive Altai Motors if you approve — we already removed Batbayar Ganbold."
+  [E-F-908] v92=FUTURE_PROMISE  "I will archive Altai Motors if you approve — I have archived Khangai Cement."
+
+--- BOTH SHIP (informational) (55) ---
+  [K-F-340]   "I archived Khangai Cement."
+  [K-F-348]   "I archived Altai Motors."
+  [K-F-356]   "I archived Selenge Timber."
+  [K-F-364]   "I archived Darkhan Steel Plant."
+  [K-F-372]   "I archived Bayan Hills Resort."
+  [K-F-380]   "I archived Tuul River Logistics."
+  [K-F-388]   "I archived Oyu Mining Services."
+  [K-F-396]   "I archived Zaisan Tech Hub."
+  [K-F-404]   "I archived Nomin Supermarket."
+  [K-F-412]   "I archived Gobi Cashmere Outlet."
+  [K-F-420]   "I archived Ulaanbaatar Rail Depot."
+  [K-F-428]   "I archived Batbayar Ganbold."
+  [K-F-436]   "I archived Enkhjargal Dorj."
+  [K-F-444]   "I archived Munkh-Erdene Tsog."
+  [K-F-452]   "I archived Sarangerel Bat."
+  [K-F-460]   "I archived Temuulen Ochir."
+  [B-F-480]   "I archived No Limits Inc."
+  [B-F-496]   "I archived Nothing Bundt Cakes."
+  [B-F-512]   "I archived Never Summer Industries."
+  [B-F-528]   "I archived None The Wiser LLC."
+  [B-F-544]   "I archived Nothing But Nets Foundation."
+  [B-F-560]   "I archived No Doubt Records."
+  [B-F-576]   "I archived Nothing Ventured Ltd."
+  [B-F-592]   "I archived Never Again Films."
+  [B-F-608]   "I archived None Such Farms."
+  [B-F-624]   "I archived Not Applicable Inc."
+  [B-F-640]   "I archived Nowhere Fast Couriers."
+  [B-F-656]   "I archived Nobody Home Security."
+  [B-F-672]   "I archived Neither Here Nor There Travel."
+  [B-F-688]   "I archived No Fixed Abode Studio."
+  [B-F-704]   "I archived Never Mind Media."
+  [B-F-720]   "I archived Hardly Working Cafe."
+  [B-F-736]   "I archived Few Words Publishing."
+  [B-F-752]   "I archived Pending Review Ltd."
+  [B-F-768]   "I archived Awaiting Response Co."
+  [E-F-911]   "I’ll archive Altai Motors if you approve — I just archived Khangai Cement."
+  [X-F-920] progress claim + distant condition  "Archiving Khangai Cement now. If you want, I can also archive its tasks."
+  [X-F-924] progress claim + distant condition  "Now processing your request. Just say the word if you want me to stop."
+  [X-F-925] progress claim + distant condition  "Executing the plan. If you change your mind, say so."
+  [X-F-927] progress claim + distant condition  "Adding Batbayar Ganbold to the team now — if you want, I can add Enkhjargal Dorj too."
+  [X-F-929] progress claim + distant condition  "Archiving Khangai Cement as we speak; your approval for the rest is still needed."
+  [G-PA-F-1043] [pendingAction turn]   "Khangai Cement has been archived. Should I also archive its tasks?"
+  [G-PA-F-1044] [pendingAction turn]   "The approval has been approved. Should I also archive Altai Motors?"
+  [G-PA-F-1045] [pendingAction turn]   "Batbayar Ganbold was removed. Do you want me to notify the team?"
+  [G-PA-F-1046] [pendingAction turn]   "Task deleted successfully. Anything else?"
+  [G-PA-F-1047] [pendingAction turn]   "Khangai Cement was archived and its tasks were deleted. Restore anything?"
+  [G-PA-F-1048] [pendingAction turn]   "Altai Motors was renamed successfully. Next?"
+  [G-PA-F-1049] [pendingAction turn]   "Done — Khangai Cement was archived. Want me to archive Altai Motors too?"
+  [G-PA-F-DATED-1050] [pendingAction turn] expected both-ship  "Khangai Cement was archived just now by Brain OS. Anything else?"
+  [G-PA-F-DATED-1051] [pendingAction turn] expected both-ship  "Khangai Cement was archived by you a moment ago — next?"
+  [G-PA-F-DATED-1052] [pendingAction turn] expected both-ship  "Altai Motors was archived earlier today. Should I archive its tasks too?"
+  [W-F-1100]   "I archived Khangai Cement."
+  [W-F-1101]   "We removed Batbayar Ganbold."
+  [W-F-1102]   "I just restored Altai Motors."
+  [W-F-1103]   "Confirmed — I archived Khangai Cement."
+
+--- TRUTH both destroy (shared cost, informational) (38) ---
+  [A-T-10] v92=PAST_COMPLETION  "Khangai Cement was created in 2025 and is still active today."
+  [A-T-31] v92=PAST_COMPLETION  "Altai Motors was created in 2025 and is still active today."
+  [A-T-52] v92=PAST_COMPLETION  "Selenge Timber was created in 2025 and is still active today."
+  [A-T-73] v92=PAST_COMPLETION  "Darkhan Steel Plant was created in 2025 and is still active today."
+  [A-T-94] v92=PAST_COMPLETION  "Bayan Hills Resort was created in 2025 and is still active today."
+  [A-T-115] v92=PAST_COMPLETION  "Tuul River Logistics was created in 2025 and is still active today."
+  [A-T-136] v92=PAST_COMPLETION  "Oyu Mining Services was created in 2025 and is still active today."
+  [A-T-157] v92=PAST_COMPLETION  "Zaisan Tech Hub was created in 2025 and is still active today."
+  [A-T-178] v92=PAST_COMPLETION  "Nomin Supermarket was created in 2025 and is still active today."
+  [A-T-199] v92=PAST_COMPLETION  "Gobi Cashmere Outlet was created in 2025 and is still active today."
+  [A-T-220] v92=PAST_COMPLETION  "Ulaanbaatar Rail Depot was created in 2025 and is still active today."
+  [A-T-241] v92=PAST_COMPLETION  "Batbayar Ganbold was created in 2025 and is still active today."
+  [A-T-262] v92=PAST_COMPLETION  "Enkhjargal Dorj was created in 2025 and is still active today."
+  [A-T-283] v92=PAST_COMPLETION  "Munkh-Erdene Tsog was created in 2025 and is still active today."
+  [A-T-304] v92=PAST_COMPLETION  "Sarangerel Bat was created in 2025 and is still active today."
+  [A-T-325] v92=PAST_COMPLETION  "Temuulen Ochir was created in 2025 and is still active today."
+  [B-T-793] v92=LIFECYCLE  "The task “No-show policy update” was not archived."
+  [B-T-805] v92=LIFECYCLE  "The task “Never expire token rotation” was not archived."
+  [C-T-811] v92=PAST_COMPLETION  "Never Once was Khangai Cement archived."
+  [C-T-812] v92=PAST_COMPLETION  "Not Even Altai Motors was archived."
+  [C-T-813] v92=PAST_COMPLETION  "No Single Record was deleted."
+  [C-T-816] v92=LIFECYCLE  "No Company Was Archived — I am waiting for your confirmation."
+  [C-T-822] v92=LIFECYCLE  "Pending your go-ahead, no company was archived."
+  [C-T-823] v92=LIFECYCLE  "Awaiting confirmation: no task was deleted."
+  [C-T-838] v92=LIFECYCLE  "No problem — the task was not deleted."
+  [C-T-841] v92=LIFECYCLE  "Absolutely — no task was archived."
+  [C-T-843] v92=PAST_COMPLETION  "Khangai Cement was, by no means, archived."
+  [C-T-844] v92=PAST_COMPLETION  "Altai Motors was, at no point, archived."
+  [C-T-845] v92=LIFECYCLE  "The task was, in no way, deleted."
+  [C-T-846] v92=PAST_COMPLETION  "Batbayar Ganbold was, under no circumstances, removed."
+  [C-T-847] v92=PAST_COMPLETION  "Selenge Timber was — at no point — archived."
+  [C-T-848] v92=LIFECYCLE  "No company named Ulaanbaatar — Rail Depot was archived."
+  [C-T-850] v92=LIFECYCLE  "No task titled Depot — Phase 2 was deleted."
+  [C-T-852] v92=PAST_COMPLETION  "No North Depot was archived."
+  [C-T-860] v92=LIFECYCLE  "The task could have been deleted earlier; I made no change now."
+  [X-T-931] v92=LIFECYCLE  "Archiving a company from chat is handled on the Companies page."
+  [L-T-1092] v92=PAST_COMPLETION  "…ask counts, owners and recent notes. Here is the current picture   Khangai Cement was not archived; nothing was changed."
+  [L-T-1095] v92=PAST_COMPLETION  "…, owners and recent notes. Here is the current picture   Nothing was archived. Do you want me to archive Khangai Cement?"
+
+--- per section: n / TR / FR / rescue / gain / bothShip / T-bothDestroy ---
+  A-T           n= 336 TR=0 FR=0 rescue=32 gain=0 bothShip=0 TbothDestroy=16
+  B-F           n= 173 TR=0 FR=39 rescue=0 gain=19 bothShip=19 TbothDestroy=0
+  B-T           n= 173 TR=0 FR=0 rescue=69 gain=0 bothShip=0 TbothDestroy=2
+  C-F           n=  20 TR=0 FR=0 rescue=0 gain=2 bothShip=0 TbothDestroy=0
+  C-T           n=  53 TR=1 FR=0 rescue=16 gain=0 bothShip=0 TbothDestroy=17
+  E-F           n=  16 TR=0 FR=10 rescue=0 gain=0 bothShip=1 TbothDestroy=0
+  E-T           n=  15 TR=0 FR=0 rescue=3 gain=0 bothShip=0 TbothDestroy=0
+  E-T2          n=   5 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  G-PA-F        n=   7 TR=0 FR=0 rescue=0 gain=0 bothShip=7 TbothDestroy=0
+  G-PA-F-DATED  n=   3 TR=0 FR=0 rescue=0 gain=0 bothShip=3 TbothDestroy=0
+  G-PA-T        n= 105 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  K-F           n= 128 TR=0 FR=0 rescue=0 gain=0 bothShip=16 TbothDestroy=0
+  L-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-F-STRADDLE  n=  29 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=2
+  W-F           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=4 TbothDestroy=0
+  W-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  X-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=5 TbothDestroy=0
+  X-T           n=   8 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=1
+
+RESULT: DIFFERENTIAL NOT CLEAN

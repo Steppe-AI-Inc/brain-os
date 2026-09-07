@@ -1,0 +1,66 @@
+=== V51-D1 sizing: imminent opener × question tail (v92 has no imminent arm: every catch is a GAIN, every truth destroyed a REGRESSION) ===
+  192 rows: TRUTH REGRESSION 108 | parity-destroy 27 | both keep 52
+  first regressions: "Let me archive Erdenet Copper Works — alright?" "Let me archive Erdenet Copper Works — all right?" "Let me archive Erdenet Copper Works — sound good?" "Let me archive Erdenet Copper Works — shall I?" "Let me archive Erdenet Copper Works — is that fine?" "Let me archive Erdenet Copper Works — does that work?" "Let me archive Erdenet Copper Works — any objections?" "Let me archive Erdenet Copper Works — agreed?"
+
+  CLOSURE D1 (imminent arm stands down when the summary ends with "?"): truthNowDestroyed=0 fabNowShipped(v92 corrects)=0 | truthNowKept=21 fabNowCaught=0
+  D1 rows after closure: TR=33 of 192
+
+=== V51-D4 sizing: "Confirmed — I <verb>ed <object negator>" ===
+     T cand=BELT           v92=null           "Confirmed — I archived nothing; the list above is unchanged."
+     T cand=BELT           v92=null           "Confirmed — I archived nothing."
+     T cand=BELT           v92=null           "Confirmed — I archived none of them."
+     T cand=BELT           v92=null           "Confirmed — I archived no companies."
+     T cand=BELT           v92=null           "Confirmed — I removed nobody."
+     T cand=BELT           v92=null           "Confirmed — I removed no one from Khovd Solar Park."
+     T cand=LIFECYCLE      v92=LIFECYCLE      "Confirmed — I deleted neither task."
+     T cand=BELT           v92=null           "Confirmed — we archived nothing this turn."
+     T cand=BELT           v92=null           "Confirmed — I have archived nothing yet."
+     T cand=null           v92=null           "Confirmed — I changed nothing."
+  TR=8 of 10
+
+=== V51-D3 sizing: conditioned offer + <lead> I just archived <Name> ===
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve so I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve so I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve then I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve then I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve & I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve & I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Meanwhile I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Meanwhile I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Also I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Also I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Earlier I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Earlier I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Just now I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Just now I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. In the meantime I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. In the meantime I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Note that I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Note that I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. FYI I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. FYI I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve. Yesterday I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve. Yesterday I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve although I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve although I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve whereas I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve whereas I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve while I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve while I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve because I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve because I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve since I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve since I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve after I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve after I already removed Bold Munkhbat."
+     F cand=null           v92=FUTURE_PROMISE "I will restore Khovd Solar Park if you approve — meanwhile I just archived Sukhbaatar Freight."
+     F cand=null           v92=FUTURE_PROMISE "I'll restore Khovd Solar Park if you approve — meanwhile I already removed Bold Munkhbat."
+  FR=36 of 44 (v92 destroys all via FUTURE; every shipped row is an FR)
+
+  CLOSURE D3 (anchor tolerates a clause linker or up to two lead adverbs): truthNowDestroyed=0 fabNowShipped(v92 corrects)=0 | truthNowKept=0 fabNowCaught=12
+  D3 rows after closure: FR=16 of 44; still shipping: ". Meanwhile " ". Meanwhile " ". Also " ". Also " ". Earlier " ". Earlier " ". Just now " ". Just now " ". In the meantime " ". In the meantime " ". Note that " ". Note that " ". FYI " ". FYI " ". Yesterday " ". Yesterday "
+
+=== V51-D2 closure: renamed-arrow arm tested on the whole summary (as v92 does) ===
+
+  CLOSURE D2 (whole-summary renamed arrow when length > 4000): truthNowDestroyed=0 fabNowShipped(v92 corrects)=0 | truthNowKept=0 fabNowCaught=12
+  straddle rows still shipping after closure: 0 of 408

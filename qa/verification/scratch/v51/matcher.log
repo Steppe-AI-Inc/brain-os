@@ -1,0 +1,27 @@
+=== VERIFIER #51 matcher — 60 shapes: 57 as intended, 3 not ===
+  UNEXPECTED  {"reply":"the company","exp":null,"c":"f1","cErr":null}
+  UNEXPECTED  {"reply":"bold munkhbat","exp":null,"c":"p1","cErr":null}
+  UNEXPECTED  {"reply":"2","exp":"t2","c":null,"cErr":null}
+candidate differs from v92 on 22:
+  "erdenet copper works asia"                      cand=c3  v92=null  (candidate binds where v92 dead-ends)
+  "the first one"                                  cand=c1  v92=null  (candidate binds where v92 dead-ends)
+  "option 2"                                       cand=c2  v92=null  (candidate binds where v92 dead-ends)
+  "2"                                              cand=c2  v92=null  (candidate binds where v92 dead-ends)
+  "the second"                                     cand=c2  v92=null  (candidate binds where v92 dead-ends)
+  "third"                                          cand=c3  v92=null  (candidate binds where v92 dead-ends)
+  "don't archive erdenet copper works"             cand=null  v92=c1  (candidate dead-ends where v92 binds)
+  "not erdenet copper works"                       cand=null  v92=c1  (candidate dead-ends where v92 binds)
+  "restore erdenet copper works"                   cand=null  v92=c1  (candidate dead-ends where v92 binds)
+  "erdenet holdings, not the copper one"           cand=null  v92=c2  (candidate dead-ends where v92 binds)
+  "archive erdenet holdings tasks"                 cand=null  v92=c2  (candidate dead-ends where v92 binds)
+  "activate erdenet holdings"                      cand=null  v92=c2  (candidate dead-ends where v92 binds)
+  "not no limits inc"                              cand=null  v92=n1  (candidate dead-ends where v92 binds)
+  "advanced closed systems"                        cand=q1  v92=null  (candidate binds where v92 dead-ends)
+  "\"advanced closed systems\""                    cand=q1  v92=null  (candidate binds where v92 dead-ends)
+  "the company (option 2)"                         cand=f2  v92=null  (candidate binds where v92 dead-ends)
+  "option 1"                                       cand=f1  v92=null  (candidate binds where v92 dead-ends)
+  "archive erdenet holdings"                       cand=null  v92=r2  (candidate dead-ends where v92 binds)
+  "bold munkhbat (sukhbaatar freight)"             cand=p2  v92=null  (candidate binds where v92 dead-ends)
+  "the employee bold munkhbat (sukhbaatar freight)" cand=p2  v92=null  (candidate binds where v92 dead-ends)
+  "smith's bakery"                                 cand=s1  v92=null  (candidate binds where v92 dead-ends)
+  "smiths bakery"                                  cand=s1  v92=s2  (DIFFERENT bind)

@@ -1,0 +1,36 @@
+
+=== mutant: legacyTermDropped ===
+  v50_regression_additions.mjs                 exit=1  FAILING: V50-C4.pendingActionTermAtBothConsumers, V50-C5.pendingActionTurnIsV92Parity, V50-D1.pendingActionHistoryBeyondMarkerList
+       FAIL  [CONTRACT] V50-C4.pendingActionTermAtBothConsumers — both belt consumers carry !result.pendingAction (v92 semantics on pendingAction turns; the 
+       FAIL  [CONTRACT] V50-C5.pendingActionTurnIsV92Parity — on a pendingAction turn NOTHING is destroyed by the belt (dated or undated: v92 parity); off a 
+       FAIL  [DEFECT  ] V50-D1.pendingActionHistoryBeyondMarkerList — on a pendingAction turn, truthful history recounts phrased OUTSIDE the strip's marker l
+       FAILING: V50-C4.pendingActionTermAtBothConsumers, V50-C5.pendingActionTurnIsV92Parity, V50-D1.pendingActionHistoryBeyondMarkerList
+  v49_regression_additions.mjs                 exit=1  FAILING: V49-C3.pendingActionTermPresentOnBelt, V49-D1.pendingActionTurnTruthsSurvive
+       FAIL  [CONTRACT] V49-C3.pendingActionTermPresentOnBelt — both belt consumers and the FUTURE arm carry !result.pendingAction (v92 semantics on pendingA
+       FAIL  [DEFECT  ] V49-D1.pendingActionTurnTruthsSurvive — on a turn where the model set a pendingAction and nothing executed, a truthful history recoun
+       FAILING: V49-C3.pendingActionTermPresentOnBelt, V49-D1.pendingActionTurnTruthsSurvive
+  run8_defect_closure_contract.mjs             exit=0  run8_defect_closure_contract: 40/40 passed
+
+=== mutant: structuredTermDropped ===
+  v50_regression_additions.mjs                 exit=1  FAILING: V50-C4.pendingActionTermAtBothConsumers
+       FAIL  [CONTRACT] V50-C4.pendingActionTermAtBothConsumers — both belt consumers carry !result.pendingAction (v92 semantics on pendingAction turns; the 
+       FAILING: V50-C4.pendingActionTermAtBothConsumers
+  v49_regression_additions.mjs                 exit=1  FAILING: V49-C3.pendingActionTermPresentOnBelt
+       FAIL  [CONTRACT] V49-C3.pendingActionTermPresentOnBelt — both belt consumers and the FUTURE arm carry !result.pendingAction (v92 semantics on pendingA
+       FAILING: V49-C3.pendingActionTermPresentOnBelt
+  run8_defect_closure_contract.mjs             exit=0  run8_defect_closure_contract: 40/40 passed
+
+=== mutant: localConstInMap ===
+  run15_defect_closure_contract.mjs            exit=1  Node.js v24.19.0
+  v92_open_regression_contract.mjs             exit=0  28 passed, 0 failed
+
+=== mutant: newTopLevelConst ===
+  run15_defect_closure_contract.mjs            exit=0  run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  v92_open_regression_contract.mjs             exit=1    - [CONTRACT] belt declares exactly the known TOP-LEVEL const list (no new declaration) — got: LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_PROGRESS,me,hasSupportedMutationClaim,CONFIRMED_COMPL
+       FAIL  [CONTRACT] belt declares exactly the known TOP-LEVEL const list (no new declaration) — got: LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_P
+
+=== control: unmodified candidate via SEM_INDEX_SRC ===
+  v50_regression_additions.mjs                 exit=0  v50_regression_additions: 16 passed, 0 failed
+  v49_regression_additions.mjs                 exit=0  v49_regression_additions: 16 passed, 0 failed
+  run15_defect_closure_contract.mjs            exit=0  run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  v92_open_regression_contract.mjs             exit=0  28 passed, 0 failed

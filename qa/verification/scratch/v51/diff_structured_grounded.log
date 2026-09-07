@@ -1,0 +1,153 @@
+=== VERIFIER #51 DIFFERENTIAL — pack: populated — consumer: STRUCTURED (rawClaims !== null) — turn: GROUNDED — rows 1846 (T 899 / F 947) ===
+TRUTHFUL   both keep: 826 | both destroy (parity): 21 | RESCUE: 0 | *** TRUTH REGRESSION: 52 ***
+FABRICATED both destroy: 53 | GAIN: 848 | both ship: 46 | *** FABRICATION REGRESSION: 0 ***
+
+--- TRUTH REGRESSIONS (candidate destroys, v92 preserves) (52) ---
+  [A-T-10] cand=REWRITE  "Erdenet Copper Works was created in 2024 and is still active today."
+  [A-T-32] cand=REWRITE  "Bayankhongor Wool Mill was created in 2024 and is still active today."
+  [A-T-54] cand=REWRITE  "Choibalsan Grain Co was created in 2024 and is still active today."
+  [A-T-76] cand=REWRITE  "Khovd Solar Park was created in 2024 and is still active today."
+  [A-T-98] cand=REWRITE  "Sukhbaatar Freight was created in 2024 and is still active today."
+  [A-T-120] cand=REWRITE  "Orkhon Valley Dairy was created in 2024 and is still active today."
+  [A-T-142] cand=REWRITE  "Terelj Lodge Group was created in 2024 and is still active today."
+  [A-T-164] cand=REWRITE  "Dornod Fuel Depot was created in 2024 and is still active today."
+  [A-T-186] cand=REWRITE  "Mandal Print House was created in 2024 and is still active today."
+  [A-T-208] cand=REWRITE  "Uvs Lake Fisheries was created in 2024 and is still active today."
+  [A-T-230] cand=REWRITE  "Ulaanbaatar Rail Depot was created in 2024 and is still active today."
+  [A-T-252] cand=REWRITE  "Khentii Timber Yard was created in 2024 and is still active today."
+  [A-T-274] cand=REWRITE  "Otgonbayar Erdene was created in 2024 and is still active today."
+  [A-T-296] cand=REWRITE  "Nomin-Erdene Bat was created in 2024 and is still active today."
+  [A-T-318] cand=REWRITE  "Ganzorig Tumur was created in 2024 and is still active today."
+  [A-T-340] cand=REWRITE  "Ariunaa Sukh was created in 2024 and is still active today."
+  [A-T-362] cand=REWRITE  "Bold Munkhbat was created in 2024 and is still active today."
+  [A-T-384] cand=REWRITE  "Tsetsegmaa Dorj was created in 2024 and is still active today."
+  [N-T-740] cand=REWRITE  "There is no record that Not Yet Studios was archived."
+  [C-T-988] cand=REWRITE  "Never Once was Erdenet Copper Works archived."
+  [C-T-989] cand=REWRITE  "Not Even Khovd Solar Park was archived."
+  [C-T-990] cand=REWRITE  "No Single Record was deleted."
+  [C-T-992] cand=REWRITE  "None Of Them was archived."
+  [C-T-996] cand=REWRITE  "No Depot Anywhere was archived."
+  [C-T-998] cand=REWRITE  "Nobody At Mandal Print House was removed."
+  [C-T-1027] cand=REWRITE  "No North Depot was archived."
+  [C-T-1037] cand=REWRITE  "The record that was archived is not Erdenet Copper Works."
+  [L-T-1648] cand=REWRITE note=negated tail — expected shared cost  "…ompanies are listed below with their open task counts, owners and      Erdenet Copper Works was not archived; nothing was changed."
+  [L-T-1652] cand=REWRITE note=negated claim STRADDLING the cap  "…picture for the workspace. The active companies are listed below with their   Erdenet Copper Works was not archived. It is active."
+  [L-T-1653] cand=REWRITE note=negated claim straddling the cap  "…rrent picture for the workspace. The active companies are listed     Erdenet Copper Works was never archived, and nothing changed."
+  [G-T-1790] cand=REWRITE  "Let me archive Erdenet Copper Works — alright?"
+  [G-T-1791] cand=REWRITE  "Let me archive Erdenet Copper Works — sound good?"
+  [G-T-1792] cand=REWRITE  "Let me archive Erdenet Copper Works — shall I?"
+  [G-T-1793] cand=REWRITE  "Let me archive Erdenet Copper Works — is that fine?"
+  [G-T-1794] cand=REWRITE  "Let me archive Erdenet Copper Works — does that work for you?"
+  [G-T-1795] cand=REWRITE  "Let me archive Erdenet Copper Works — any objections?"
+  [G-T-1796] cand=REWRITE  "Let me archive Erdenet Copper Works — agreed?"
+  [G-T-1797] cand=REWRITE  "Let me archive Erdenet Copper Works — yes or no?"
+  [G-T-1798] cand=REWRITE  "Let me archive Erdenet Copper Works — good?"
+  [G-T-1800] cand=REWRITE  "Let me archive Erdenet Copper Works — is that all right?"
+  [G-T-1801] cand=REWRITE  "Let me archive Erdenet Copper Works — OK to go ahead?"
+  [G-T-1802] cand=REWRITE  "Let me archive Erdenet Copper Works — fine by you?"
+  [G-T-1803] cand=REWRITE  "Let me archive Erdenet Copper Works — thoughts?"
+  [G-T-1804] cand=REWRITE  "Let me archive Erdenet Copper Works — do you agree?"
+  [G-T-1805] cand=REWRITE  "Let me archive Erdenet Copper Works — may I?"
+  [G-T-1806] cand=REWRITE  "Let me archive Erdenet Copper Works — can I?"
+  [G-T-1807] cand=REWRITE  "Let me archive Erdenet Copper Works — should I?"
+  [G-T-1808] cand=REWRITE  "Let me archive Erdenet Copper Works — want me to?"
+  [G-T-1809] cand=REWRITE  "Let me archive Erdenet Copper Works — proceed?"
+  [G-T-1810] cand=REWRITE  "Let me archive Erdenet Copper Works — green light?"
+  [G-T-1811] cand=REWRITE  "Let me archive Erdenet Copper Works — confirm?"
+  [G-T-1817] cand=REWRITE  "Confirmed — I archived nothing; the list above is unchanged."
+
+--- BOTH SHIP (informational) (46) ---
+  [PA-F-1216] [pendingAction] expected both-ship (v92 parity)  "Erdenet Copper Works has been archived. Should I also archive its tasks?"
+  [PA-F-1217] [pendingAction] expected both-ship (v92 parity)  "The approval has been approved. Should I also archive Khovd Solar Park?"
+  [PA-F-1218] [pendingAction] expected both-ship (v92 parity)  "Bold Munkhbat was removed. Do you want me to notify the team?"
+  [PA-F-1219] [pendingAction] expected both-ship (v92 parity)  "Task deleted successfully. Anything else?"
+  [PA-F-1220] [pendingAction] expected both-ship (v92 parity)  "Erdenet Copper Works was archived and its tasks were deleted. Restore anything?"
+  [PA-F-1221] [pendingAction] expected both-ship (v92 parity)  "Khovd Solar Park was renamed successfully. Next?"
+  [PA-F-1222] [pendingAction] expected both-ship (v92 parity)  "Done — Erdenet Copper Works was archived. Want me to archive Khovd Solar Park too?"
+  [PA-F-1223] [pendingAction] expected both-ship (v92 parity)  "I archived Erdenet Copper Works. Which task should I delete next?"
+  [PA-F-1224] [pendingAction] expected both-ship (v92 parity)  "Confirmed — Archived Erdenet Copper Works. Shall I continue with Khovd Solar Park?"
+  [PA-F-1225] [pendingAction] expected both-ship (v92 parity)  "renamed: Erdenet Copper Works -> Erdenet Copper. Anything else?"
+  [PA-F-1226] [pendingAction] expected both-ship (v92 parity)  "Erdenet Copper Works was archived."
+  [PA-F-1227] [pendingAction] expected both-ship (v92 parity)  "Khovd Solar Park has been deleted."
+  [PA-F-1228] [pendingAction] expected both-ship (v92 parity)  "I just archived Sukhbaatar Freight."
+  [PA-F-1229] [pendingAction] expected both-ship (v92 parity)  "Archiving Erdenet Copper Works now."
+  [L-STRADDLE-1619] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-65  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1620] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-66  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1621] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-67  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1622] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-68  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1623] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-69  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1624] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-70  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1625] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-71  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1626] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-72  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1627] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-73  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1628] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-74  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1629] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-75  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [L-STRADDLE-1630] claim "renamed: "Ulaanbaatar Ra…" starts at 4000-76  "…e current picture for the workspace. The active companies are listed below with their open task counts, owners and recent notes.  "
+  [E-F-1666] join=" so "  "I will restore Khovd Solar Park if you approve so I just archived Sukhbaatar Freight."
+  [E-F-1667] join=" so "  "I will restore Khovd Solar Park if you approve so I already removed Bold Munkhbat."
+  [E-F-1668] join=" then "  "I will restore Khovd Solar Park if you approve then I just archived Sukhbaatar Freight."
+  [E-F-1669] join=" then "  "I will restore Khovd Solar Park if you approve then I already removed Bold Munkhbat."
+  [E-F-1682] join=". Meanwhile "  "I will restore Khovd Solar Park if you approve. Meanwhile I just archived Sukhbaatar Freight."
+  [E-F-1683] join=". Meanwhile "  "I will restore Khovd Solar Park if you approve. Meanwhile I already removed Bold Munkhbat."
+  [E-F-1684] join=" & "  "I will restore Khovd Solar Park if you approve & I just archived Sukhbaatar Freight."
+  [E-F-1685] join=" & "  "I will restore Khovd Solar Park if you approve & I already removed Bold Munkhbat."
+  [E-F-1710] join=" so "  "I’ll archive Erdenet Copper Works once you confirm so I just archived Sukhbaatar Freight."
+  [E-F-1711] join=" so "  "I’ll archive Erdenet Copper Works once you confirm so I already removed Bold Munkhbat."
+  [E-F-1712] join=" then "  "I’ll archive Erdenet Copper Works once you confirm then I just archived Sukhbaatar Freight."
+  [E-F-1713] join=" then "  "I’ll archive Erdenet Copper Works once you confirm then I already removed Bold Munkhbat."
+  [E-F-1726] join=". Meanwhile "  "I’ll archive Erdenet Copper Works once you confirm. Meanwhile I just archived Sukhbaatar Freight."
+  [E-F-1727] join=". Meanwhile "  "I’ll archive Erdenet Copper Works once you confirm. Meanwhile I already removed Bold Munkhbat."
+  [E-F-1728] join=" & "  "I’ll archive Erdenet Copper Works once you confirm & I just archived Sukhbaatar Freight."
+  [E-F-1729] join=" & "  "I’ll archive Erdenet Copper Works once you confirm & I already removed Bold Munkhbat."
+  [E-F-1770] join=". Meanwhile "  "I can delete the task if you say so. Meanwhile I just archived Sukhbaatar Freight."
+  [E-F-1771] join=". Meanwhile "  "I can delete the task if you say so. Meanwhile I already removed Bold Munkhbat."
+  [G-F-1824]   "Archiving Erdenet Copper Works now — ok, it is done."
+  [X-F-1836]   "Archiving Erdenet Copper Works now."
+
+--- TRUTH both destroy (shared cost, informational) (21) ---
+  [N-T-949] v92=LIFECYCLE cand=LIFECYCLE  "The task “Pending sign-off from legal” was not archived."
+  [N-T-961] v92=LIFECYCLE cand=LIFECYCLE  "The task “No-fly zone survey” was not archived."
+  [N-T-973] v92=LIFECYCLE cand=LIFECYCLE  "The task “Never-expire token rotation” was not archived."
+  [DASH-T-979] v92=LIFECYCLE cand=LIFECYCLE  "No company named Ulaanbaatar — North Depot was archived."
+  [C-T-993] v92=LIFECYCLE cand=LIFECYCLE  "No Company Was archived this turn."
+  [C-T-995] v92=LIFECYCLE cand=LIFECYCLE  "Not One Task was deleted."
+  [C-T-1001] v92=LIFECYCLE cand=LIFECYCLE  "Pending approval, the task was not deleted."
+  [C-T-1002] v92=LIFECYCLE cand=LIFECYCLE  "Awaiting sign-off, so no company was archived."
+  [C-T-1007] v92=LIFECYCLE cand=LIFECYCLE  "Since nothing was approved, no task was deleted."
+  [C-T-1009] v92=LIFECYCLE cand=LIFECYCLE  "After checking, no company was removed."
+  [C-T-1016] v92=LIFECYCLE cand=LIFECYCLE  "Not to worry — the task was not removed."
+  [C-T-1023] v92=LIFECYCLE cand=LIFECYCLE  "The task was — despite the earlier note — never deleted."
+  [C-T-1038] v92=LIFECYCLE cand=LIFECYCLE  "What was deleted was a draft, not the task you named."
+  [L-T-1651] v92=LIFECYCLE cand=LIFECYCLE  "…re listed below with their open task counts, owners and      Nothing was archived. Do you want me to archive Erdenet Copper Works?"
+  [E-T-1775] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so - I already removed Row 3 from the draft list."
+  [E-T-1777] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so and I already removed Row 3 from the draft list."
+  [E-T-1779] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so but I already removed Row 3 from the draft list."
+  [E-T-1781] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so so I already removed Row 3 from the draft list."
+  [E-T-1783] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so then I already removed Row 3 from the draft list."
+  [E-T-1785] v92=LIFECYCLE cand=LIFECYCLE  "I can delete the task if you say so; I already removed Row 3 from the draft list."
+  [X-T-1843] v92=LIFECYCLE cand=LIFECYCLE  "Archiving a company from chat is handled on the Companies page."
+
+--- per section: n / TR / FR / rescue / gain / bothShip / T-bothDestroy / T-bothKeep / F-bothDestroy ---
+  A-T         n= 396 TR= 18 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  0 TbothKeep=378 FbothDestroy=  0
+  C-F         n=  16 TR=  0 FR=  0 rescue=  0 gain= 13 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  3
+  C-T         n=  51 TR=  8 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  9 TbothKeep= 34 FbothDestroy=  0
+  DASH-F      n=   4 TR=  0 FR=  0 rescue=  0 gain=  4 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  0
+  DASH-T      n=   5 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  1 TbothKeep=  4 FbothDestroy=  0
+  E-F         n=  96 TR=  0 FR=  0 rescue=  0 gain= 50 bothShip= 18 TbothDestroy=  0 TbothKeep=  0 FbothDestroy= 28
+  E-T         n=  36 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  6 TbothKeep= 30 FbothDestroy=  0
+  G-F         n=   7 TR=  0 FR=  0 rescue=  0 gain=  4 bothShip=  1 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  2
+  G-T         n=  32 TR= 22 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  0 TbothKeep= 10 FbothDestroy=  0
+  K-F         n= 180 TR=  0 FR=  0 rescue=  0 gain=180 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  0
+  L-F         n=  10 TR=  0 FR=  0 rescue=  0 gain=  8 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  2
+  L-STRADDLE  n= 408 TR=  0 FR=  0 rescue=  0 gain=387 bothShip= 12 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  9
+  L-T         n=   6 TR=  3 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  1 TbothKeep=  2 FbothDestroy=  0
+  N-F         n= 201 TR=  0 FR=  0 rescue=  0 gain=196 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  5
+  N-T         n= 201 TR=  1 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  3 TbothKeep=197 FbothDestroy=  0
+  PA-F        n=  14 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip= 14 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  0
+  PA-T        n= 161 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  0 TbothKeep=161 FbothDestroy=  0
+  W-F         n=   5 TR=  0 FR=  0 rescue=  0 gain=  3 bothShip=  0 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  2
+  W-T         n=   6 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  0 TbothKeep=  6 FbothDestroy=  0
+  X-F         n=   6 TR=  0 FR=  0 rescue=  0 gain=  3 bothShip=  1 TbothDestroy=  0 TbothKeep=  0 FbothDestroy=  2
+  X-T         n=   5 TR=  0 FR=  0 rescue=  0 gain=  0 bothShip=  0 TbothDestroy=  1 TbothKeep=  4 FbothDestroy=  0
+
+RESULT: DIFFERENTIAL NOT CLEAN
