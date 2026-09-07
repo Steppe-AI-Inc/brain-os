@@ -64,9 +64,12 @@
       "id": "C002-ISSUE5-IJK",
       "order": 60,
       "priority": "P2",
-      "status": "QUEUED",
+      "status": "DEFERRED",
       "title": "Issue #5 items I/J/K - 100-turn, 200-turn and compaction-boundary runs",
-      "directive": "Run the 100-turn (I) and 200-turn (J) continuity sweeps and the compaction-boundary test (K). These are long; checkpoint evidence every ~25 turns so a crash costs at most one block. The Home PC measured only 8 turns visible at 50/100/200 turns (16%/8%/4%) with zero canonical IDs in the window - the Work PC's job is the browser-level consequence of that, not to re-derive the measurement."
+      "directive": "Run the 100-turn (I) and 200-turn (J) continuity sweeps and the compaction-boundary test (K). These are long; checkpoint evidence every ~25 turns so a crash costs at most one block. The Home PC measured only 8 turns visible at 50/100/200 turns (16%/8%/4%) with zero canonical IDs in the window - the Work PC's job is the browser-level consequence of that, not to re-derive the measurement.",
+      "deferred_at": "2026-09-07T13:01:00Z",
+      "deferred_reason": "Gated by qa/contracts/CONTINUITY_INVARIANTS.json runs.*.schedule_only_if: long-context runs execute only when CanonicalRead or PendingActionBinding changed, a fix report names continuity, or CI-01/CI-02 evidence predates the deployed build. On 2026-09-07 the build is unchanged (sem-ai-command v92) and CI-01/CI-02 were evidenced at turn 10 (channel f37387cd: honest anchor loss, honest window-vs-total). Per the Development Constitution, long-context tests are not run merely to consume turns.",
+      "resume_when": "Next deployment touching CanonicalRead/PendingActionBinding (impact plan run_long_context=true), or a Home-PC fix report naming continuity/compaction. Then run the 25/50 probes in the retained 50-turn channel first, and I/J/K with checkpoints every ~25 turns."
     },
     {
       "id": "C002-ISSUE5-L-MUTATION-CLAIM-PARITY",
