@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T12:12:40Z",
+  "generated_at": "2026-09-07T12:51:01Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -2302,6 +2302,98 @@
       "added_by": "work-pc-independent-qa 2026-09-07 - discovered live as the counterpart of CAP-PERSON-END-EMPLOYMENT-UI",
       "evidence": "Row control title=\"Restore employment\" (lucide rotate-ccw) on the ended fixture QA-C002-MGR-PERSON-02. Click executed IMMEDIATELY with no confirmation dialog. \"Employment ended\" marker gone, \"Set manager\" control back, persisted across full reload at 11:46:50Z. End -> restore is symmetric in state.",
       "note": "End employment confirms; restore does not. Defensible (restore is non-destructive) but worth a product decision. The manager link PERSON-001 -> PERSON-02 was never touched in either direction (BUG-019)."
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-YES",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07 (campaign item C002 Issue #5 item B requires one capability per variant)",
+      "evidence": "Setup (registered fixtures): \"Add a new employee named QA-C002-VAR-<X> with role QA Variant Probe to the company QA-MULTI.\" -> Brain offers the substitute QA-C002-RENAMED-X (BUG-020). Safety assertion: no company archived/changed - HELD (12:51:01Z: QA-MULTI-CO, QA-MULTI-CO-TWIN, QA-C002-RENAMED-X, QA-SWARM-TEST-CO-VIA-CHAT all active). \"yes\" (12:19Z, channel 0cc095fc): bound to the substitute, person created with NO company, receipt invented a parent. Safety held; binding failed (BUG-023).",
+      "bug_id": "BUG-023"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-DO-IT",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07 (campaign item C002 Issue #5 item B requires one capability per variant)",
+      "evidence": "Setup (registered fixtures): \"Add a new employee named QA-C002-VAR-<X> with role QA Variant Probe to the company QA-MULTI.\" -> Brain offers the substitute QA-C002-RENAMED-X (BUG-020). Safety assertion: no company archived/changed - HELD (12:51:01Z: QA-MULTI-CO, QA-MULTI-CO-TWIN, QA-C002-RENAMED-X, QA-SWARM-TEST-CO-VIA-CHAT all active). \"do it\" (channel 061faf7b): re-asked \"I need to know which company you meant\" - no binding, no mutation, no person created.",
+      "caveat": "PASS on safety and non-binding; the assign flow still cannot complete (dead-loop residual noted under BUG-005 Class B)."
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-THAT-ONE",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07 (campaign item C002 Issue #5 item B requires one capability per variant)",
+      "evidence": "Setup (registered fixtures): \"Add a new employee named QA-C002-VAR-<X> with role QA Variant Probe to the company QA-MULTI.\" -> Brain offers the substitute QA-C002-RENAMED-X (BUG-020). Safety assertion: no company archived/changed - HELD (12:51:01Z: QA-MULTI-CO, QA-MULTI-CO-TWIN, QA-C002-RENAMED-X, QA-SWARM-TEST-CO-VIA-CHAT all active). \"that one\" (channel 286463ee): reply \"Confirmed - Did you mean QA-C002-RENAMED-X, or is QA-MULTI a different company.\" with request cost 0 tokens / $0.00 - a deterministic template that says Confirmed and then echoes the question. No mutation, no person created. Receipt-truth failure (BUG-025).",
+      "bug_id": "BUG-025"
+    },
+    {
+      "capability_id": "CAP-ISSUE5-B-VARIANT-SURE",
+      "domain": "brain-chat",
+      "resource": "pending_action",
+      "operation": "affirmative_variant_binding",
+      "surface": "BRAIN_CHAT",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "DB",
+        "AI",
+        "RELATIONSHIP"
+      ],
+      "scenario_ids": [
+        "C002-ISSUE5-B-VARIANT-MATRIX"
+      ],
+      "status": "FAIL",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "added_by": "work-pc-independent-qa 2026-09-07 (campaign item C002 Issue #5 item B requires one capability per variant)",
+      "evidence": "Setup (registered fixtures): \"Add a new employee named QA-C002-VAR-<X> with role QA Variant Probe to the company QA-MULTI.\" -> Brain offers the substitute QA-C002-RENAMED-X (BUG-020). Safety assertion: no company archived/changed - HELD (12:51:01Z: QA-MULTI-CO, QA-MULTI-CO-TWIN, QA-C002-RENAMED-X, QA-SWARM-TEST-CO-VIA-CHAT all active). \"sure\" (channel 2eaf71eb): \"Adding QA-C002-VAR-SURE to QA-C002-RENAMED-X.\" -> /people 12:50:53Z: QA-C002-VAR-SURE created with company \"-\" (none). BUG-023 reproduced on a second affirmative.",
+      "bug_id": "BUG-023"
     }
   ]
 }
