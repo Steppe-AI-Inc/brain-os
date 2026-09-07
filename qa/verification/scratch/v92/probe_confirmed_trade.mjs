@@ -6,7 +6,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const V92 = ROOT + 'qa/verification/scratch/v92/index.v92.ts';
 const PCCP = new Function('return ' + readFileSync(V92, 'utf8').match(/const PAST_COMPLETION_CLAIM_PATTERN = (\/.*\/i);/)[1])();

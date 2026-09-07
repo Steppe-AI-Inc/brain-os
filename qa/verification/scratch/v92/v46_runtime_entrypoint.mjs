@@ -6,7 +6,9 @@
 // settled rather than left open.
 import { readFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const TEXT = readFileSync(ROOT + 'supabase/functions/sem-ai-command/index.ts', 'utf8').replace(/\r\n/g, '\n');
 
 const detype = (s) => s

@@ -21,7 +21,9 @@
 // Written with the file tool. Heredocs have eaten a level of backslashes four times here.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = process.env.V42F_IN || ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const OUT = process.env.V42F_OUT || ROOT + 'qa/verification/scratch/v92/fix42_imminent.ts';
 

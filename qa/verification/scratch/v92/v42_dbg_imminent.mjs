@@ -1,5 +1,7 @@
 import { buildGate } from '../../lib/belt_extract.mjs';
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const g = buildGate(ROOT + 'qa/verification/scratch/v92/fix42_imminent.ts');
 const S = 'The founder is going ahead and archiving ACME Holdings himself.';
 console.log('fires:', g.readsAsCompletion(S));

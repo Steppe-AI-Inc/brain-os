@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const g = buildGate(process.env.SEM_INDEX_SRC || ROOT + 'qa/verification/scratch/v92/fix42_imminent.ts');
 const PCCP = new Function('return ' + readFileSync(ROOT + 'qa/verification/scratch/v92/index.v92.ts', 'utf8').match(/const PAST_COMPLETION_CLAIM_PATTERN = (\/.*\/i);/)[1])();
 const T = [

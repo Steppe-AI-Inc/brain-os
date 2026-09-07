@@ -10,8 +10,10 @@
 import { readFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const CAND = 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const V92 = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/index.v92.ts';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const CAND = __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const V92 = __ROOT + 'qa/verification/scratch/v92/index.v92.ts';
 
 // v92 gate: the exact PCCP literal from the deployed source (byte-identical in the candidate).
 const v92src = readFileSync(V92, 'utf8');

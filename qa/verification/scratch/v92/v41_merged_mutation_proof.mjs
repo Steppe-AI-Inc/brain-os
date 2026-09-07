@@ -11,7 +11,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const MERGED = ROOT + 'qa/verification/scratch/v92/merged41.ts';
 const TMP = ROOT + 'qa/verification/scratch/v92/mut_tmp.ts';
 const base = readFileSync(MERGED, 'utf8');

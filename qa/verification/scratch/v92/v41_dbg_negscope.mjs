@@ -1,5 +1,7 @@
 import { buildGate } from '../../lib/belt_extract.mjs';
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const A = buildGate(ROOT + 'supabase/functions/sem-ai-command/index.ts');
 const B = buildGate(ROOT + 'qa/verification/scratch/v92/fix_lowercase_subject.ts');
 const rows = [

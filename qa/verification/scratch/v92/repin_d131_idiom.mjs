@@ -3,7 +3,9 @@
 // these now fire; their paired real names still survive. A residual moving in the GOOD direction
 // must be re-pinned in the same change (verifier rule f), never left asserting "still open".
 import { readFileSync, writeFileSync } from 'node:fs';
-const R = 'C:/Users/Dell/dev/brain-os/qa/scenarios-runner/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const R = __ROOT + 'qa/scenarios-runner/';
 const edit = (file, ops) => {
   let s = readFileSync(R + file, 'utf8'); const before = s;
   for (const [find, repl, label] of ops) { const n = s.split(find).length - 1; if (n !== 1) throw new Error(`${file} ${label}: found ${n}`); s = s.replace(find, () => repl); }

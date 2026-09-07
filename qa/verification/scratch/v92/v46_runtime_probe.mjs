@@ -18,8 +18,10 @@ process.exit(2);
 // CONTAIN completion vocabulary and negators, or the scan loop is never entered in either build.
 import { buildGate } from '../../lib/belt_extract.mjs';
 
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
 globalThis.knownEntityNames = new Set();
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const ROOT = __ROOT + '';
 const before = buildGate(ROOT + 'supabase/functions/sem-ai-command/index.ts');
 const after = buildGate(ROOT + 'qa/verification/scratch/v92/fix46.ts');
 

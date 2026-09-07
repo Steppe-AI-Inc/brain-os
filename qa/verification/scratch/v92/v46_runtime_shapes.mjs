@@ -11,8 +11,10 @@
 // a disagreement about the file.
 import { buildGate } from '../../lib/belt_extract.mjs';
 
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
 globalThis.knownEntityNames = new Set();
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const ROOT = __ROOT + '';
 const cand = buildGate(ROOT + 'supabase/functions/sem-ai-command/index.ts');
 const v92src = ROOT + 'qa/verification/scratch/v92/index.v92.ts';
 const { readFileSync } = await import('node:fs');

@@ -8,7 +8,9 @@
 // empty-pack case by construction. That is not the production configuration.
 import { readFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = process.env.SEM_INDEX_SRC || ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const TEXT = readFileSync(SRC, 'utf8').replace(/\r\n/g, '\n');
 const PCCP = new Function('return ' + readFileSync(ROOT + 'qa/verification/scratch/v92/index.v92.ts', 'utf8').match(/const PAST_COMPLETION_CLAIM_PATTERN = (\/.*\/i);/)[1])();

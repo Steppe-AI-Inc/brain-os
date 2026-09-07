@@ -2,7 +2,9 @@
 // the direction it was wired for, and one asserting the SAFETY property is not accidental.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const TMP = ROOT + 'qa/verification/scratch/v92/mut43_tmp.ts';
 const base = readFileSync(SRC, 'utf8');

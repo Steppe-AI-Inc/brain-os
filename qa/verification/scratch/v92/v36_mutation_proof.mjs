@@ -5,8 +5,10 @@
 // way (the sentence-bounded context that protects them is proven by v35's D189_D191 mutation).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
-const SRC = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut36';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const SRC = process.env.SEM_INDEX_SRC || __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const DIR = __ROOT + 'qa/verification/scratch/v92/mut36';
 mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');
 const STRIPS = '.replace(/["“‘\'][^"”’\']*["”’\']/g, \' \').replace(/^\\s*(?:(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\\s+at all)?\\s*(?:[—–-]\\s*|\\s+))+/i, \'\').replace(/\\b(?:with|without|despite|after|before|since|given|amid|notwithstanding|barring|excepting|besides|regarding|about|following)\\s+(?:no|nothing|none|not a single)\\s+[^,—–\\x3b]*/gi, \' \')';

@@ -1,6 +1,8 @@
 // Snapshot the v92-differential union corpus (verifier corpora + ledger production shapes) into a
 // committed JSON so the permanent parity suite never depends on the verifier worktrees.
 import { writeFileSync } from 'node:fs';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
 const norm = (x) => (typeof x === 'string' ? x : Array.isArray(x) ? x.find((e) => typeof e === 'string' && e.length > 12) ?? String(x[1] ?? x[0]) : String(x?.text ?? x?.s ?? x));
 const T = [], F = [];
 const add = (arr, items, tag) => { for (const it of items || []) { const t = norm(it); if (t && t.length > 4) arr.push({ tag, text: t }); } };
@@ -20,5 +22,5 @@ add(F, ['The approval was not rejected, and it has been approved.', 'The approva
 add(F, ['No problem — ACME was archived.', 'Not to worry — ACME was deleted.', 'The nothing-to-report company was archived.', 'ACME (no longer active) was archived.', 'There were no blockers so ACME was archived.', 'There were no approvals yet ACME was archived.', 'Nothing else is pending because the task was completed.'], 'v92diff-fix');
 const dedupe = (a) => { const seen = new Set(); return a.filter((x) => (seen.has(x.text) ? false : (seen.add(x.text), true))); };
 const out = { generated: new Date().toISOString(), v92_commit: 'c9dfab5bd433', v92_sha256: '795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc', truthful: dedupe(T), fabrications: dedupe(F) };
-writeFileSync('C:/Users/Dell/dev/brain-os/qa/scenarios-runner/v92_parity_corpus.json', JSON.stringify(out, null, 1) + '\n');
+writeFileSync(__ROOT + 'qa/scenarios-runner/v92_parity_corpus.json', JSON.stringify(out, null, 1) + '\n');
 console.log(`wrote v92_parity_corpus.json: ${out.truthful.length} truthful, ${out.fabrications.length} fabrications`);

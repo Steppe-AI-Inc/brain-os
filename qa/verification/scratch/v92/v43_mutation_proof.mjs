@@ -2,7 +2,9 @@
 // Each revert must bring back the defect it closed. A revert that changes nothing is a no-op.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const TMP = ROOT + 'qa/verification/scratch/v92/mut43b_tmp.ts';
 const base = readFileSync(SRC, 'utf8');

@@ -7,8 +7,10 @@
 // A contrastive 'not <Capital>' phrase stays split (verifier #37's F1 control).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
-const SRC = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut40'; mkdirSync(DIR, { recursive: true });
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const SRC = process.env.SEM_INDEX_SRC || __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const DIR = __ROOT + 'qa/verification/scratch/v92/mut40'; mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');
 const PREPASS = '.replace(/,\\s*((?:[^,.\\x3b:!?()]{0,20}?)\\b(?:[Nn]one|[Nn]obody|[Nn]o one)\\b(?!\\s+[A-Z])[^,.\\x3b:!?()]{0,20}?),\\s*(?=(?:[Ii]s|[Aa]re|[Ii]sn|[Aa]ren)\\b)/g, \' $1 \')';
 if (!BASE.includes(PREPASS)) { console.log('NOT PROVEN: pre-pass not present in source'); process.exit(1); }

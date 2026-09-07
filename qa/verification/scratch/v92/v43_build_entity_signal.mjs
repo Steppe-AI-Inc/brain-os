@@ -25,7 +25,9 @@
 // returns false and the arm behaves exactly as it does today.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = process.env.V43_IN || ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const OUT = process.env.V43_OUT || ROOT + 'qa/verification/scratch/v92/fix43_entity.ts';
 

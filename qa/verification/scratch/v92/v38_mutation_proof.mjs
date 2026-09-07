@@ -5,8 +5,10 @@
 //      that removing it is safe, and the reason the campaign's "only load-bearing fixes ship" rule removes it.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
-const SRC = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut38';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const SRC = process.env.SEM_INDEX_SRC || __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const DIR = __ROOT + 'qa/verification/scratch/v92/mut38';
 mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');
 const BS = String.fromCharCode(92); // a backslash, built from its code so no shell can halve it

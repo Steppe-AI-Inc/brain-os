@@ -5,8 +5,10 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const SRC = 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const DIR = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/mut32';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const SRC = __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const DIR = __ROOT + 'qa/verification/scratch/v92/mut32';
 mkdirSync(DIR, { recursive: true });
 const BASE = readFileSync(SRC, 'utf8');
 

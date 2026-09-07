@@ -5587,7 +5587,7 @@ serve(async (req) => {
           // negator to negate, so the scan loop below cannot change the answer. Measured:
           // 1.2-1.4x on ordinary prose, neutral where the vocabulary is present, 0 verdict
           // changes. #45's 657ms figure could NOT be reproduced here - see v46_runtime_probe.
-          if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c)) return false;
+          if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c) && !EXECUTION_IN_PROGRESS.test(c)) return false;
           // run31/D170+D172: a negator TOKEN can sit where it negates NOTHING. Taking the first
           // match blindly let fabrications deployed v92 corrects through the belt. Each position
           // below is skipped and the scan CONTINUES, so a real negator later in the same clause

@@ -28,7 +28,9 @@
 // you." and verifier #44's V42-C1 pins that row as one that must stay caught.
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const SRC = process.env.V45L_IN || ROOT + 'qa/verification/scratch/v92/fix46.ts';
 const OUT = process.env.V45L_OUT || ROOT + 'qa/verification/scratch/v92/fix45_letme.ts';
 

@@ -5,8 +5,10 @@
 // shared corpus. For every case: v92 verdict, candidate verdict, and the CORRECT verdict.
 // Deploy-relevant regression = v92 DEAD-ENDs (safe) and candidate SELECTs a WRONG-intent field.
 import { readFileSync } from 'node:fs';
-const CAND = 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const V92 = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/index.v92.ts';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const CAND = __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const V92 = __ROOT + 'qa/verification/scratch/v92/index.v92.ts';
 
 function build(path, tag) {
   const src = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');

@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { extractConst, detype, buildGate } from '../../lib/belt_extract.mjs';
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const PROTO = ROOT + 'qa/verification/scratch/v92/fix_entity_signal.ts';
 const src = readFileSync(PROTO, 'utf8').replace(/\r\n/g, '\n');
 

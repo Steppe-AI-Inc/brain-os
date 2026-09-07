@@ -4,7 +4,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const ROOT = __ROOT + '';
 const FIXED = ROOT + 'qa/verification/scratch/v92/fix42_imminent.ts';
 const TMP = ROOT + 'qa/verification/scratch/v92/mut42_tmp.ts';
 const base = readFileSync(FIXED, 'utf8');

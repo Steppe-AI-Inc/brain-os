@@ -17,8 +17,10 @@
 import { readFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
-const SRC = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
-const V92 = 'C:/Users/Dell/dev/brain-os/qa/verification/scratch/v92/index.v92.ts';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const SRC = process.env.SEM_INDEX_SRC || __ROOT + 'supabase/functions/sem-ai-command/index.ts';
+const V92 = __ROOT + 'qa/verification/scratch/v92/index.v92.ts';
 const gate = buildGate(SRC);
 const PCCP = new Function('return ' + readFileSync(V92, 'utf8').match(/const PAST_COMPLETION_CLAIM_PATTERN = (\/.*\/i);/)[1])();
 const cand = (s) => gate.readsAsCompletion(String(s)) === true;

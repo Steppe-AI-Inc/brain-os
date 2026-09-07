@@ -1,5 +1,7 @@
 import { buildGate } from '../../lib/belt_extract.mjs';
-const gate = buildGate('C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts');
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const gate = buildGate(__ROOT + 'supabase/functions/sem-ai-command/index.ts');
 const cases = [
   'No errors node.js was archived.',
   'No errors ACME was archived.',

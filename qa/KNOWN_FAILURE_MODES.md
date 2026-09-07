@@ -14454,3 +14454,34 @@ This is the campaign's own defining failure at the level of the measuring device
 for seventeen rounds the thing every verdict was measured against was incomplete, and it was
 incomplete in the direction that manufactures work. The brief for #46 asked it to find the next
 instance of *"a fix measured against the corpus that was already green"*. It found the instrument.
+
+## 114. THE HARD-CODED-CHECKOUT CLASS, CLOSED PROPERLY THIS TIME — 44 artifacts, verified rather than asserted
+
+Ledger #112 recorded that I had closed this class for two proofs. Verifier #46 showed I had not:
+**45 artifacts under `qa/verification/scratch/v92` still hard-coded an absolute path into
+`C:/Users/Dell/dev/brain-os/`**, and `v31_mutation_proof.mjs` still carried a second one and reported
+**three FALSE `NOT PROVEN` results** because of it.
+
+Why it matters, in #46's words: a verifier runs in an ISOLATED WORKTREE pinned at the candidate SHA.
+An artifact reading an absolute path into a different checkout **may not be reading the file under
+test at all.** Today those bytes usually match, so results coincide — *that is luck, not isolation*,
+and it defeats the entire point of pinning a candidate.
+
+**44 files rewritten** to resolve from their own location via `import.meta.url`, so an artifact
+copied into a worktree reads that worktree. `SEM_INDEX_SRC` still wins wherever a file honours it;
+only the fallback changed.
+
+**AND THIS TIME IT IS VERIFIED, NOT ASSERTED** — which is the whole point, since the previous claim
+was neither:
+* every rewritten file passes `node --check`: **0 syntax failures of 44**;
+* the battery is **36 files / 0 failing** and every gate holds at its exact expected number;
+* the mutation proofs now RUN FROM A DIFFERENT CWD (`/tmp`) and reach their assertions —
+  `v40` exits 0, `v33` and `v31` exit 1 on genuine no-op/re-open findings rather than on a missing
+  path, which is the difference that was invisible before;
+* **0 offenders remain.** The de-relativising tool necessarily mentions the path, so it assembles the
+  string from parts — a tool that removes a class must not read as an instance of it.
+
+`v47_guard_repro.mjs` was also promoted from a reproduction into a **permanent witness**: it now
+asserts the fixed three-test guard is present and fails loudly if the two-test form ever returns,
+instead of reporting STALE and passing quietly. A reproduction that stops reproducing should become
+an assertion, not a no-op.

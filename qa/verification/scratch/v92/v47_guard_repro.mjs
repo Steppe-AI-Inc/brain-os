@@ -11,8 +11,10 @@ import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
 globalThis.knownEntityNames = new Set();
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const ROOT = __ROOT + '';
 const TMP = ROOT + 'qa/verification/scratch/v92/';
 
 // PRE-GUARD: the commit before the guard was applied. Taken from git so it cannot silently be the
@@ -26,10 +28,19 @@ const CUR = readFileSync(ROOT + 'supabase/functions/sem-ai-command/index.ts', 'u
 if (PRE === CUR) { console.log('HARNESS INERT: pre-guard and candidate are the same bytes'); process.exit(2); }
 
 // FIXED: verifier #46's prepared fix — the arm whose vocabulary is gerunds must also be consulted.
-const GUARD = 'if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c)) return false;';
-if (!CUR.includes(GUARD)) { console.log('STALE: the guard is not present in the candidate'); process.exit(2); }
-writeFileSync(TMP + 'fix47.ts', CUR.split(GUARD).join(
-  'if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c) && !EXECUTION_IN_PROGRESS.test(c)) return false;'));
+// The guard as it stands AFTER verifier #46's fix. This file began as a reproduction of the defect
+// and is now a permanent witness of its closure: if the third test ever disappears from the guard,
+// the eight refusals below come back and this fails loudly instead of reporting STALE.
+const FIXED = 'if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c) && !EXECUTION_IN_PROGRESS.test(c)) return false;';
+const BROKEN = 'if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c)) return false;';
+if (!CUR.includes(FIXED)) {
+  console.log(CUR.includes(BROKEN)
+    ? 'FAIL: the guard has REVERTED to the two-list form that destroys truthful refusals (V46-D3).'
+    : 'STALE: neither guard form is present - re-derive this witness, do not delete it.');
+  process.exit(1);
+}
+const GUARD = FIXED;
+writeFileSync(TMP + 'fix47.ts', CUR);
 
 const pre = buildGate(TMP + 'pre_guard.ts');
 const cur = buildGate(ROOT + 'supabase/functions/sem-ai-command/index.ts');

@@ -4,7 +4,9 @@
 // DESTROY A TRUTHFUL ANSWER. Rows marked TRUE must survive; rows marked FAB must be caught.
 // Read-only. Does not modify the candidate.
 import { buildGate } from '../../lib/belt_extract.mjs';
-const CAND = process.env.SEM_INDEX_SRC || 'C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts';
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
+const CAND = process.env.SEM_INDEX_SRC || __ROOT + 'supabase/functions/sem-ai-command/index.ts';
 const g = buildGate(CAND);
 const fires = (s) => g.readsAsCompletion(String(s)) === true;
 

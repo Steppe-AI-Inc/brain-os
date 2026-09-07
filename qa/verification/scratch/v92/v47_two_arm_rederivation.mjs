@@ -7,8 +7,10 @@
 import { v92Destroys, v92Arm, FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN } from '../../lib/v92_reference.mjs';
 import { buildGate } from '../../lib/belt_extract.mjs';
 
+const __ROOT = new URL('../../../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+
 globalThis.knownEntityNames = new Set();
-const ROOT = 'C:/Users/Dell/dev/brain-os/';
+const ROOT = __ROOT + '';
 const cand = buildGate(ROOT + 'supabase/functions/sem-ai-command/index.ts');
 const fires = (s) => cand.readsAsCompletion(s) === true;
 const oneArm = (s) => PAST_COMPLETION_CLAIM_PATTERN.test(String(s));
