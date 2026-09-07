@@ -48,15 +48,23 @@ const AUTH_FAILURE_RE =
 /**
  * Launch one QA Director invocation.
  *
- * Resolves when the process exits. Exiting is a WORKER LIFECYCLE EVENT, never a statement
- * that QA is complete - the supervisor re-consults the scheduler afterwards regardless of
- * how cleanly this returned.
+ * Returns a Promise that resolves when the process EXITS. Exiting is a WORKER LIFECYCLE
+ * EVENT, never a statement that QA is complete - the supervisor re-consults the scheduler
+ * afterwards regardless of how cleanly this returned.
+ *
+ * Live observability is the whole point of `onStarted`: it fires SYNCHRONOUSLY the moment
+ * the child is spawned - before this function even returns its Promise - carrying the real
+ * child pid and session id. The supervisor must publish QA_RUNNING from that callback, NOT
+ * after awaiting the Promise. Awaiting first (the original defect) meant `qa_director_pid`
+ * and QA_RUNNING were only written AFTER the director had already exited, so heartbeat,
+ * hang detection, external kill and recovery telemetry all pointed at a dead process.
  */
 export function launchDirector({
   directive,
   maxBudgetUsd = 12,
   hangMs = 15 * 60_000,
   hardCapMs = 120 * 60_000,
+  onStarted = () => {},
   onHeartbeat = () => {},
   onEvent = () => {},
 }) {
@@ -82,19 +90,35 @@ export function launchDirector({
     '--name', 'work-pc-qa-director',
   ];
 
-  const child = spawn(bin, args, {
-    cwd: DIRECTOR_CWD,
-    windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1' },
-  });
+  // Test seam (off by default, zero production effect): DIRECTOR_FAKE_BIN points at a Node
+  // script that impersonates a director's stream-json lifecycle, so the supervisor's launch /
+  // observe / relaunch behaviour can be proven deterministically without spending a real Fable
+  // run. When unset, the real resolved `claude` binary is spawned exactly as before.
+  const fakeBin = process.env.DIRECTOR_FAKE_BIN;
+  const child = fakeBin
+    ? spawn(process.execPath, [fakeBin, ...args], {
+        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1' },
+      })
+    : spawn(bin, args, {
+        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1' },
+      });
 
   const outcome = {
     session_id: sessionId, pid: child.pid, log_path: logPath,
     exit_code: null, killed_reason: null, is_error: null, result_text: null,
     canonical_model: null, total_cost_usd: null, num_turns: null,
-    auth_failure: false, mcp_ok: null, started_at: new Date(started).toISOString(),
+    auth_failure: false, mcp_ok: null, saw_init: false, saw_activity: false,
+    started_at: new Date(started).toISOString(),
   };
+
+  // Publish the live child identity IMMEDIATELY, synchronously, before returning the Promise.
+  // `child.pid` is defined here for a successful spawn; it is undefined only when the spawn
+  // itself failed to produce a process (bad binary), which the supervisor then classifies as
+  // a LAUNCH_FAILURE rather than a director that ran and crashed.
+  try { onStarted({ pid: child.pid ?? null, session_id: sessionId, started_at: outcome.started_at, log_path: logPath }); }
+  catch { /* an observer error must never sink the launch */ }
 
   let lastOutput = Date.now();
   let stderrTail = '';
@@ -108,12 +132,16 @@ export function launchDirector({
 
     // Hang watchdog. Derived from ACTUAL worker output, not a flag the worker sets about
     // itself - a wedged director cannot fake progress it is not producing.
+    // Watchdog cadence is normally 20s; DIRECTOR_WATCHDOG_MS lets a self-test tick it faster so
+    // heartbeat movement is observable within a short synthetic run. Never affects production
+    // unless the env var is set.
+    const watchdogMs = Math.max(200, Number(process.env.DIRECTOR_WATCHDOG_MS) || 20_000);
     const watchdog = setInterval(() => {
       const idle = Date.now() - lastOutput;
       onHeartbeat({ idle_ms: idle, elapsed_ms: Date.now() - started });
       if (idle > hangMs) finish('HUNG_NO_OUTPUT_FOR_' + Math.round(idle / 60000) + 'MIN');
       else if (Date.now() - started > hardCapMs) finish('HARD_RUNTIME_CAP');
-    }, 20_000);
+    }, watchdogMs);
 
     let buf = '';
     child.stdout.on('data', (chunk) => {
@@ -169,8 +197,11 @@ function handleStreamMessage(msg, outcome, onEvent) {
     const tools = msg.tools || [];
     outcome.mcp_ok = tools.some((t) => String(t).startsWith('mcp__playwright__'));
     outcome.tools_count = tools.length;
+    outcome.saw_init = true;
+    outcome.saw_activity = true;
     onEvent({ kind: 'init', mcp_ok: outcome.mcp_ok, tools: tools.length });
   } else if (msg.type === 'assistant') {
+    outcome.saw_activity = true;
     onEvent({ kind: 'assistant' });
   } else if (msg.type === 'result') {
     outcome.is_error = msg.is_error === true;

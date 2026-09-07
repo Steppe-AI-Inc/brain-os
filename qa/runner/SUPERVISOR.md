@@ -26,7 +26,7 @@ Windows Task Scheduler (logon + 30-min self-heal sweep)
 | `lib/state.mjs` | Atomic read/write of `SUPERVISOR_STATE.json`; corrupt state is preserved, not crashed on. |
 | `lib/lease.mjs` | Exclusive leadership. TTL 90s; takeover only on dead PID or stale lease, always logged. |
 | `lib/scheduler.mjs` | Priority order: retests by severity → EXPECTED_FAIL-on-CLOSED reconciliation → campaign queue → orphan FAIL/FLAKY → NOT_TESTED (high-risk first) → exploratory. No idle branch exists. |
-| `lib/director.mjs` | Programmatic Fable launcher. Asserts `claude-fable-5` actually ran; watches stream output as heartbeat; kills the process tree on hang or hard cap. |
+| `lib/director.mjs` | Programmatic Fable launcher. Fires `onStarted({pid,session_id})` **synchronously at spawn** so the supervisor can publish live state while the director is alive; asserts `claude-fable-5` actually ran; watches stream output as heartbeat; kills the process tree on hang or hard cap. |
 | `lib/config.mjs` | Regenerates `mcp-servers.json` + `qa-director-settings.json` on every boot (absolute paths must never go stale silently). |
 | `lib/env.mjs` | Bounded probes: network, git, deployed build (`supabase functions list` via the npx-cached exe). |
 | `hooks/block-destructive.mjs` | PreToolUse guard — the *real* technical barrier from CLAUDE.md §22. 13-case behavioural test on record. |

@@ -89,6 +89,9 @@ async function git(args, timeout = 60_000) {
  * messy commit, so the supervisor sweeps it up. It only ever touches qa/ paths.
  */
 async function checkpointQaArtifacts(reason) {
+  // Self-test mode never touches git: a synthetic lifecycle run must not commit or push the
+  // churning state file (or half-finished edits) as if it were real QA evidence.
+  if (process.env.SUPERVISOR_SELFTEST === '1') return { committed: false, reason: 'selftest: checkpoint disabled' };
   const status = await git(['status', '--porcelain', '--', 'qa']);
   if (!status.ok || !status.out) return { committed: false, reason: 'nothing to commit' };
 
@@ -193,12 +196,57 @@ async function cycle() {
   });
 
   const started = Date.now();
+
+  // Startup watchdog. If the child never announces a live pid within a short window we are
+  // stuck in QA_STARTING - a genuine launch failure, not a running director. Flip to
+  // LAUNCH_FAILURE so it is visibly distinct from a director that ran and then died, and so
+  // QA_STARTING can never be a permanent resting state.
+  const STARTUP_TIMEOUT_MS = 20_000;
+  let launched = false;
+  const startupTimer = setTimeout(() => {
+    if (!launched) {
+      log('ERROR', 'Director produced no child pid within startup window - LAUNCH_FAILURE', { ms: STARTUP_TIMEOUT_MS });
+      try {
+        transition('LAUNCH_FAILURE', {
+          qa_director_pid: null, qa_director_session_id: null,
+          last_error: 'Director did not spawn a live process within ' + STARTUP_TIMEOUT_MS + 'ms',
+          last_error_at: nowIso(),
+          next_action: 'Launch failed before a director existed. Backing off, then re-consulting the scheduler.',
+        });
+      } catch {}
+    }
+  }, STARTUP_TIMEOUT_MS);
+
   const outcome = await launchDirector({
     directive: work.directive,
     maxBudgetUsd: governor.max_director_budget_usd ?? 12,
     hardCapMs: (governor.max_campaign_runtime_minutes_before_checkpoint ?? 90) * 60_000 * 1.35,
+    // Fires SYNCHRONOUSLY at spawn, before the await below suspends. This is where live state
+    // becomes true: QA_RUNNING, the real child pid, session id, and a fresh heartbeat - all
+    // published while the director is actually alive, not after it has exited.
+    onStarted: ({ pid, session_id, started_at }) => {
+      clearTimeout(startupTimer);
+      launched = !!pid;
+      currentDirectorPid = pid;
+      if (pid) {
+        transition('QA_RUNNING', {
+          qa_director_pid: pid,
+          qa_director_session_id: session_id,
+          qa_director_started_at: started_at,
+          qa_director_idle_ms: 0,
+          qa_director_elapsed_ms: 0,
+          qa_director_browser_available: null,
+          last_director_start: started_at,
+        });
+        log('INFO', 'Director QA_RUNNING', { pid, session_id });
+      }
+    },
     onHeartbeat: ({ idle_ms, elapsed_ms }) => {
-      heartbeat({ qa_director_idle_ms: idle_ms, qa_director_elapsed_ms: elapsed_ms });
+      heartbeat({
+        qa_director_pid: currentDirectorPid,
+        qa_director_idle_ms: idle_ms,
+        qa_director_elapsed_ms: elapsed_ms,
+      });
       if (LEASE_ID) renewLease(LEASE_ID);
     },
     onEvent: (ev) => {
@@ -213,12 +261,17 @@ async function cycle() {
       }
     },
   });
+  clearTimeout(startupTimer);
 
-  currentDirectorPid = outcome.pid;
+  // The director has now exited. Clear the live-process telemetry immediately: a stale non-null
+  // pid here is exactly the observability lie this fix exists to remove.
+  currentDirectorPid = null;
   writeState({
-    qa_director_pid: outcome.pid,
-    qa_director_session_id: outcome.session_id,
-    supervisor_state: 'QA_RUNNING',
+    qa_director_pid: null,
+    qa_director_idle_ms: null,
+    qa_director_elapsed_ms: null,
+    last_director_session_id: outcome.session_id,
+    last_director_exit_at: nowIso(),
   });
 
   log('INFO', 'Director exited', {
@@ -226,6 +279,39 @@ async function cycle() {
     model: outcome.canonical_model, cost_usd: outcome.total_cost_usd, turns: outcome.num_turns,
     browser: outcome.mcp_ok, minutes: Math.round((Date.now() - started) / 60000),
   });
+
+  // A launch that never became a real director (no pid, or a spawn error, or a process that
+  // exited before producing any activity at all) is a LAUNCH_FAILURE, distinct from RECOVERING.
+  // RECOVERING means a director ran and then failed; LAUNCH_FAILURE means one never got going,
+  // and the next director must not be told to "re-read state before repeating a mutation" - no
+  // mutation was ever attempted.
+  const launchFailed = !launched
+    || (outcome.exit_code === -1 && /spawn failed/i.test(outcome.result_text || ''))
+    || (!outcome.saw_activity && !outcome.killed_reason && outcome.exit_code !== 0 && (Date.now() - started) < 30_000);
+  if (launchFailed) {
+    consecutiveFailures++;
+    transition('LAUNCH_FAILURE', {
+      qa_director_pid: null,
+      last_error: 'Director never started doing QA: exit=' + outcome.exit_code
+        + (outcome.stderr_tail ? ' :: ' + outcome.stderr_tail.slice(0, 200) : '')
+        + (outcome.result_text ? ' :: ' + outcome.result_text.slice(0, 200) : ''),
+      last_error_at: nowIso(),
+      retry_count: consecutiveFailures,
+      next_action: 'Launch failed (no director activity). Backing off, then re-consulting the scheduler. '
+        + 'No mutation was attempted, so nothing to reconcile.',
+    });
+    log('ERROR', 'LAUNCH_FAILURE - director never produced activity', { failures: consecutiveFailures, backoff_ms: backoffMs() });
+    if (consecutiveFailures >= (governor.retry_ceiling ?? 3)) {
+      transition('PAUSED_RESOURCE_LIMIT', {
+        next_action: 'Repeated launch failures (' + consecutiveFailures + '). Work remains QUEUED, never PASS. Cooling down.',
+      });
+      await interruptibleSleep((governor.cooldown_minutes_between_idle_exploratory_campaigns ?? 30) * 60_000);
+      consecutiveFailures = 0;
+      return;
+    }
+    await interruptibleSleep(backoffMs());
+    return;
+  }
 
   // 6. Model assertion. A silent fallback to a different model is not a Fable run and must not
   //    be recorded as one - the charter names Fable 5 specifically.
