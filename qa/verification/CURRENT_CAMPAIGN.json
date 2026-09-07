@@ -1,10 +1,10 @@
 {
-  "campaign": 107,
-  "verifier": 47,
+  "campaign": 108,
+  "verifier": 48,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
   "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, twelfth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "db0aa63588d8b3f6",
+  "index_sha256_prefix": "90fdc7dc35117e52",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -57,10 +57,11 @@
   "LESSON_ADDED": "#45 sized the conditioned-offer class at 117 where the record said 39, and it landed on my own prepared option: I had built it against the gate that pins 3 rows and called it complete when that gate went green. A fix measured against the corpus that was already green is measured against the wrong thing.",
   "gates_on_committed_candidate": {
     "battery": "36 files, 0 failing",
-    "v45": "53/1 — the product question alone; 54/0 with the prepared option",
-    "v44": "115/3 — same class; 118/0 with the prepared option",
+    "v47": "44/0",
+    "v45": "54/0",
+    "v44": "118/0",
     "v43": "40/0",
-    "v42": "12/1 (empty-pack configuration)",
+    "v42": "12/1 — EMPTY-pack configuration by construction; 0 of 48 destroyed with the pack populated",
     "v41": "22/0",
     "v40": "77/0",
     "v39": "21/0",
@@ -74,15 +75,9 @@
     "v31": "33/1 non-blocker",
     "v30": "25/1 non-blocker",
     "deno": "23 == baseline",
-    "crlf": "6003/6003, 0 bare LF"
+    "crlf": "6017/6017, 0 bare LF"
   },
-  "open_deploy_blockers": [
-    {
-      "id": "V46-D1/V45-D1.conditionedOffer",
-      "rows": "48 with both v92 arms modelled (was reported as 64/35 under the one-arm model)",
-      "status": "FOUNDER PRODUCT DECISION. Option prepared not applied: v45_build_letme_option.mjs."
-    }
-  ],
+  "open_deploy_blockers": [],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
     "V46-D3: the V45-N2 short-circuit I adopted destroyed 8 truthful refusals; fixed, 8/8 restored",
@@ -117,5 +112,7 @@
     "V46-D5 CONFIRMED_COMPLETION missing closed|added. ATTEMPTED AND WITHDRAWN: it destroys 2 of 8 truthful rows about entities named after those words. Measurement in the ledger; do not ship the naive version.",
     "V46-D4 the CONTRACT 5 narrowing hides a hazard: a local const inside the readsAsCompletion .map() callback breaks run15 and the contract does not flag it.",
     "V46-D2/D6 43 artifacts hard-code an absolute path into another checkout; v31_mutation_proof still does and reports three FALSE not-proven results."
-  ]
+  ],
+  "founder_ruling": "APPLIED. The conditioned offer does not fire: an offer whose own clause conditions it on the founder confirmation is not a claim that anything happened. 48 of 64 rows to 0, every unconditioned claim still caught (5/5), mutation-proven. #44 gate 115/3 -> 118/0, #45 gate 53/1 -> 54/0.",
+  "instrument": "THREE arms, corrected by verifier #47 (V47-D1): claimsLifecycleClaim (a pure prose test, runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. Use qa/verification/lib/v92_reference.mjs; its self-check throws unless every arm is reachable AND distinguishable. 5 of the campaign 10 most-cited rows were v92 PARITY, including #39 \"worst defect\". The error under-counted what v92 destroys, so RESCUE counts were UNDERSTATED."
 }

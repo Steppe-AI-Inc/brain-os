@@ -14618,3 +14618,51 @@ EVIDENCE on the new candidate `158e3cd1`: battery **36 files / 0 failing**; **#4
 #33 93/0; #32 101/0; v30 25/1 and v31 33/1; deno **23 == baseline**; CRLF 6,017 / bare LF 0.
 
 STATUS: NOT DEPLOYMENT READY. The remaining blocker is the founder's product question.
+
+## 117. THE FOUNDER RULED — the conditioned offer does not fire. Applied, and the last known blocker is closed.
+
+The one open question in this campaign was a product decision and not a defect, and the founder has
+answered it: **an offer whose own clause conditions it on their confirmation is not a claim that
+anything happened, and the arm must not fire on it.**
+
+```
+"Let me archive the company once you confirm."          v92 preserves — candidate now preserves
+"I'm about to archive the company as soon as you say go."               now preserves
+"I am going to archive the company subject to your confirmation."       now preserves
+```
+
+The guard sits on the ARM rather than on one alternation, so every opener is covered by
+construction — a first version guarded only `let me` with a short tail list, closed 7 of 10 pinned
+rows, and looked finished because the gate that pins three rows went green. The condition has to name
+the user to exist, which is what keeps the test narrow: a request for permission is the opposite of a
+claim to have acted.
+
+**MEASURED on the applied bytes, with the corrected three-arm model of v92:**
+* conditioned offers destroyed: **48 → 0 of 64**;
+* every unconditioned claim the arm exists for is **still caught** — `"Let me archive ACME Holdings
+  for you."`, `"I am about to archive ACME Holdings."`, `"I am archiving ACME Holdings now."`,
+  `"Kicking off the archive of ACME Holdings."` — 5 of 5. The arm was narrowed, not switched off;
+* **mutation-proven**: making the condition vacuously true re-destroys 48 of 64 while all 5 claims
+  stay caught, so the stand-down is doing exactly the work claimed and nothing else.
+
+**GATES ON THIS CANDIDATE.** Battery **36 files / 0 failing**. **#44's gate 118/0** (was 115/3) and
+**#45's gate 54/0** (was 53/1) — both were red on this class alone and are now green. #47's 44/0,
+#43's 40/0, #41's 22/0, #40's 77/0, #39's 21/0, #33's 93/0, #32's 101/0. deno **23 == baseline**,
+CRLF 6,017 / bare LF 0.
+
+**THE THREE REMAINING REDS ARE ALL RE-DERIVED NON-BLOCKERS**, each by more than one verifier:
+`v30` 25/1 (a stale inventory pin over belt LOCALS), `v31` 33/1 (a lexicon assertion at the wrong
+locus, closed inline in the R-AUXGAP lookbehind), and `v42` 12/1 (its D2 test injects an EMPTY entity
+pack by construction; with the pack populated — the production configuration — 0 of 48 are destroyed).
+
+**A NINTH ESCAPING FAILURE, recorded because the count is the point.** The first mutation proof for
+this fix was written as a `node -e` string, the shell ate the backslashes in its anchor, the mutation
+never applied, and the harness printed **NO-OP for a load-bearing fix**. Rewritten as a file it reads
+LOAD-BEARING immediately. Eight of the nine incidents in this campaign have been shell heredocs or
+`-e` strings, and every one turned a live measurement into a meaningless one that *looked* like a
+result. Anything containing a backslash goes in a file.
+
+STATUS: **no known open deploy blocker.** Not deployment ready until a fresh independent verifier
+passes on the new exact SHA — nineteen rounds have failed a candidate that looked ready to the
+session that built it, and this one looks ready to the session that built it. Production remains v92;
+rollback c9dfab5b from git.
