@@ -16,12 +16,12 @@
   ],
   "verification": {
     "unit": "battery 53/53 on 1048b9e",
-    "independent_verification": "verifier #56 FAILED e79eb65 (ledger #126, closed #127); verifier #57 FAILED 712760d (ledger #128: the lexicon overrode the model's 'other' classification, the fallback ignored requestIntent.entityType, non-imperative leads executed; closed #129 with #57's prepared fix applied as written plus residuals D4/D6a/D6b; #57 suite 306/0 promoted; mutation proof 5/5). Verifier #58 (campaign #118) is running on 5ebc695 — NOT claimed passed here.",
+    "independent_verification": "Verifiers #56 (e79eb65), #57 (712760d) and #58 (5ebc695) each FAILED under the contract bar and each finding was closed structurally (ledger #126-#131; #58 found the same context-window class for TASK and GOAL lifecycle ids and a task restore that could never execute — closed with its prepared fix, suite 48/0 promoted, mutation proof 6/6). Verifier #59 (campaign #119) is running on 821f530 — NOT claimed passed here.",
     "live": "NOT RUN by the Home PC"
   },
   "deploy_provenance": {
-    "fix_commit": "e75912f (branch p1/execution-truth-governance; candidate under verification 5ebc695)",
-    "edge_index_sha256": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b",
+    "fix_commit": "02220b9 (branch p1/execution-truth-governance; candidate under verification 821f530)",
+    "edge_index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9",
     "edge_function_version": "NOT DEPLOYED — production remains v92"
   },
   "work_pc_retest": {
@@ -37,6 +37,7 @@
   "reported_at": "2026-09-07",
   "superseded_reports": [
     "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)",
-    "2026-09-07 report on 32a2d75 / ccde932f… (candidate 712760d FAILED verifier #57)"
+    "2026-09-07 report on 32a2d75 / ccde932f… (candidate 712760d FAILED verifier #57)",
+    "2026-09-08 report on e75912f / 0fd05a92… (candidate 5ebc695 FAILED verifier #58)"
   ]
 }

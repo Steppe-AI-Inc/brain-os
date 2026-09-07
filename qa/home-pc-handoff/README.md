@@ -118,13 +118,13 @@ these 5 tables) — your call to grade, not ours.
 
 ## Batch 2026-09-07 — Work-PC handover ingest (BUG-010 / 014 / 002 / 012 / 013 / 011)
 
-Fix commit `e75912f` on branch `p1/execution-truth-governance` (Edge `index.ts` sha256
-`0fd05a92…fe317b`; candidates e79eb65 and 712760d FAILED verifiers #56 and #57 and were closed — ledger #126-#129). **Nothing in this batch is deployed.** Production remains `sem-ai-command`
+Fix commit `02220b9` on branch `p1/execution-truth-governance` (Edge `index.ts` sha256
+`715246f3…519aa9`; candidates e79eb65, 712760d and 5ebc695 FAILED verifiers #56, #57 and #58 and were closed — ledger #126-#131). **Nothing in this batch is deployed.** Production remains `sem-ai-command`
 v92 and the current master web build. Every report below is `FIX PREPARED` with
 `ready_for_retest: false`; the Home PC will flip that flag only after (a) the founder deploys the
 Edge Function through `ALLOW_FUNCTIONS_DEPLOY=1` and the bytes are verified, and (b) the web PR is
-merged into protected `master`. Independent verifier #58 is running on candidate 5ebc695; its verdict is in
-`qa/verification/CURRENT_CAMPAIGN.json`, not claimed here. Verifiers #56 and #57 FAILED the previous candidates.
+merged into protected `master`. Independent verifier #59 is running on candidate 821f530; its verdict is in
+`qa/verification/CURRENT_CAMPAIGN.json`, not claimed here. Verifiers #56, #57 and #58 FAILED the previous candidates.
 
 - `fixes/BUG-010.json` — P1, GROUNDING_PRECEDENCE: ledger persisted every turn, UNVERIFIED
   history marker, durable channel state first, precedence stated as a binding prompt rule.
