@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:08:46Z",
+  "generated_at": "2026-09-07T11:17:05Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -261,10 +261,15 @@
         "UI",
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-archive-cascade"
+      ],
+      "status": "PASS",
       "campaign_1_item": 1,
-      "notes": "Chat field archiveCompanyIds -> archive_company() RPC. DB-trigger-enforced as the ONLY path to status='archived'; updateCompanies is explicitly blocked from setting it directly - verify that block actually holds."
+      "notes": "Chat field archiveCompanyIds -> archive_company() RPC. DB-trigger-enforced as the ONLY path to status='archived'; updateCompanies is explicitly blocked from setting it directly - verify that block actually holds.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "evidence": "Fresh channel 8f74aef6-1770-4988-904b-72e7b3575173: \"Archive the company QA-SWARM-TEST-CO-VIA-CHAT.\" -> \"QA-SWARM-TEST-CO-VIA-CHAT: archived.\" DB truth within seconds: company absent from /companies active list (11 -> 10 rows), dashboard Active Companies 11 -> 10 (BUG-003 fix holds), every child row badged \"Archived\". Claim == mutation.",
+      "parity_note": "Chat is the ONLY archive path. /companies row kebab offers Edit/Delete only; the Edit dialog Status options are active/planning/paused/closed - no \"archived\". Consistent with the trigger-enforced archive_company() design, but it means archive/restore are un-recoverable from the UI when chat misbehaves (see BUG-014)."
     },
     {
       "capability_id": "CAP-COMPANY-RESTORE-CHAT",
@@ -280,9 +285,14 @@
         "UI",
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 1
+      "scenario_ids": [
+        "C002-archive-cascade"
+      ],
+      "status": "FAIL",
+      "campaign_1_item": 1,
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-014",
+      "evidence": "Two attempts, both failed, in different ways. (a) FRESH channel 3c4dfaef-0888-4d0d-a4a2-7459bb282076, 90s after the archive: \"I don't see a company by that name in the current active or archived company list. The company ... does not appear to exist - it may have been permanently deleted\". FALSE: the company exists, status archived, its 3 people and 1 project are badged with its name. (b) SAME channel as the archive (8f74aef6): \"QA-SWARM-TEST-CO-VIA-CHAT restored.\" FABRICATED: /companies still 10 rows without it, people still badged Archived, dashboard still 10 - re-read three times up to 11:17:05Z (35s+ after the claim)."
     },
     {
       "capability_id": "CAP-COMPANY-DELETE-UI",
@@ -760,10 +770,15 @@
         "RELATIONSHIP",
         "RELOAD"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-archive-cascade"
+      ],
+      "status": "FAIL",
       "campaign_1_item": 13,
-      "notes": "Known target failure pattern from the charter: BU archived/deleted BUT employee still shows actively attached. Must become a permanent regression."
+      "notes": "Known target failure pattern from the charter: BU archived/deleted BUT employee still shows actively attached. Must become a permanent regression.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-013",
+      "evidence": "Controlled causal test on QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de) with 3 registered people (1 manager relationship) and 1 registered project. After archive: all children DISPLAY the \"Archived\" parent badge (BUG-001 fix holds on /people and /projects), BUT nothing else cascades - no \"Employment ended\" on any person, manager link PERSON-001 -> PERSON-02 still standing, \"Set manager\" / invite / onboarding controls still live on people of an archived company, project still status=active. Exactly the charter's named failure pattern: \"BU archived BUT employee still shows actively attached\". Also observed pre-existing in production on QA-LIFECYCLE-EMPLOYEE(2) and QA-VERIFY-EMPLOYEE under archived BUs."
     },
     {
       "capability_id": "CAP-CASCADE-DELETE-BU-WITH-EMPLOYEES",
@@ -2093,6 +2108,26 @@
       "tested_against_sha": "8521b0e",
       "added_by": "work-pc-independent-qa 2026-09-07 - discovered live; the inventory had assumed no UI path existed",
       "evidence": "See CAP-PERSON-REASSIGN-UI-MISSING.evidence / cross_org_isolation_evidence / ai_axis_evidence. Assign, reassign (replace), org-isolated picker, reload persistence and Brain Chat agreement all verified on synthetic fixtures under QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de)."
+    },
+    {
+      "capability_id": "CAP-COMPANY-ARCHIVE-UI-MISSING",
+      "domain": "companies",
+      "resource": "company",
+      "operation": "archive",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "UI"
+      ],
+      "scenario_ids": [
+        "C002-archive-cascade"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "8521b0e",
+      "expected_behavior": "PARITY PROBE: establish whether any UI archive/restore path exists.",
+      "probe_outcome": "NONE EXISTS. Kebab = Edit/Delete; Edit Status = active/planning/paused/closed. No archived filter or restore control on /companies. Archive and restore are chat-only. Added by work-pc-independent-qa 2026-09-07."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:08:46Z",
+  "last_updated": "2026-09-07T11:17:05Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 3,
-    "open_p2": 2,
+    "open_p1": 4,
+    "open_p2": 3,
     "open_p3": 3,
-    "total_open": 8,
+    "total_open": 10,
     "total_closed": 5
   },
   "bugs": [
@@ -661,6 +661,62 @@
       "regression_requirement": "For every mutating chat command: parse the receipt and assert it names the same entity, relationship type (manager vs company vs department) and target as the DB diff produced by the turn. This is founder-suite item L (mutation-result-equals-final-claim); this bug is its first concrete instance in the manager domain.",
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-4 against the then-deployed build; the implementation PC may not self-certify."
+    },
+    {
+      "bug_id": "BUG-013",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "Archiving a company does not cascade to its people/projects: employees stay actively attached (no employment end), manager links persist, and management controls remain live under an archived parent",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:17:05Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "resources": {
+        "company": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de)",
+        "people": "QA-SWARM-PERSON-001-EDITED, QA-C002-MGR-PERSON-02, QA-C002-MGR-PERSON-03",
+        "project": "QA-C002-PROJ-EDITED-01",
+        "archive_channel": "8f74aef6-1770-4988-904b-72e7b3575173"
+      },
+      "expected": "Per the charter: archiving a parent must not leave children presenting as actively attached. Minimum: people under an archived company should not offer Set manager / invite / onboarding as if operational, and the state should read as inactive/ended (or the product must define and display an explicit \"parent archived\" employment state).",
+      "actual": "Children got the \"Archived\" badge and nothing else. /people rows unchanged: no Employment ended, manager PERSON-001 -> PERSON-02 intact, all action controls enabled. /projects: project still active. Same pattern pre-exists on QA-LIFECYCLE-EMPLOYEE, QA-LIFECYCLE-EMPLOYEE2, QA-VERIFY-EMPLOYEE.",
+      "what_is_NOT_wrong": "The badge itself works (BUG-001 people+projects surfaces) and the dashboard count is right (BUG-003). This bug is about state and controls, not visibility.",
+      "blast_radius": "Synthetic fixtures only. No real company archived.",
+      "severity_reasoning": "P2: the archived state IS surfaced, so a user is informed; but operational actions on orphaned employees remain possible and the relationship graph silently keeps archived parents as live manager contexts.",
+      "regression_requirement": "Archive a synthetic company with >= 2 people (one managing the other) and a project; assert the defined cascade state on /people and /projects, and that the manager picker/controls are disabled or the employment state changes. Must be re-run after restore to assert symmetric un-cascade.",
+      "_qa_boundary": "Work PC did not modify product code."
+    },
+    {
+      "bug_id": "BUG-014",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "Company RESTORE via chat fails both ways: a fresh channel denies the archived company exists (\"may have been permanently deleted\"); the archive channel claims \"restored.\" while the DB stays archived. The UI has no restore path, so the archive is unrecoverable by the founder",
+      "ai_truth_classification": "FABRICATED_SUCCESS (in-channel) + FALSE_NONEXISTENCE (fresh channel)",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:17:05Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "company": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de)",
+        "archive_channel": "8f74aef6-1770-4988-904b-72e7b3575173",
+        "fresh_restore_channel": "3c4dfaef-0888-4d0d-a4a2-7459bb282076"
+      },
+      "reproduction": [
+        "1. Fresh channel: \"Archive the company QA-SWARM-TEST-CO-VIA-CHAT.\" -> archived (DB confirms).",
+        "2. NEW channel, 90s later: \"Restore the company QA-SWARM-TEST-CO-VIA-CHAT.\" -> \"I don't see a company by that name in the current active or archived company list ... may have been permanently deleted\". DB: still archived, children badged with its name.",
+        "3. Back in the ARCHIVE channel: same restore command -> \"QA-SWARM-TEST-CO-VIA-CHAT restored.\"",
+        "4. Reload /companies, /people, /dashboard three times up to 11:17:05Z: still 10 companies, company absent, people still badged Archived. Not restored."
+      ],
+      "expected": "Restore flips status to active (the restoreCompanyIds path) and the receipt matches the DB; or an honest failure.",
+      "actual": "Step 2: a confident false statement of non-existence/deletion. Step 3: a false success claim.",
+      "contrast_with_prior_evidence": "BUG-005 Class A evidence (2026-09-02, same v92 build) recorded \"Restore QA-SWARM-TEST-CO-VIA-CHAT -> restored.\" with DB CONFIRMED active. Same command, same company, same build - different outcome today. So this is NOT a build regression; it is nondeterministic or state-dependent (candidate: the company now has 3 people + 1 project + manager relationship; or the named-company lookup excludes archived rows so grounding fails in a fresh channel). Home PC should not assume the earlier pass still holds.",
+      "blast_radius": "The registered shared fixture company is STUCK ARCHIVED with its 3 people and 1 project under it. QA has no UI path and will not use infrastructure write paths to fix it. Home PC: restore it through a legitimate product path once fixed, or advise. Until then, C002 tests needing an ACTIVE shared company must use QA-MULTI-CO / QA-C002-RENAMED-X (unregistered - register first) or create a fresh company.",
+      "severity_reasoning": "P1: the only restore path in the product fails and the model asserts data loss that did not occur. A founder archiving a real company by mistake (which the Class B misbinding already showed is possible) could not recover it and would be told it was permanently deleted.",
+      "regression_requirement": "Archive then restore a synthetic company (a) in the same channel and (b) in a fresh channel; assert status=active in DB after each, and that no reply asserts non-existence for an archived company. Add: a fresh-channel \"does company X exist and what is its status?\" for an archived company must answer \"archived\", never \"does not exist\".",
+      "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup hypothesis above is for the Home PC to confirm.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of both restore paths; the implementation PC may not self-certify."
     }
   ]
 }

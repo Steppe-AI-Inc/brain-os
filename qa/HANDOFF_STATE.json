@@ -127,5 +127,40 @@
     "ISSUE-5 Classes A/C/D/E": "ALL FOUR CONFIRMED FAILING by live reproduction. Class E is worse than originally reported: pending-action candidates from unrelated conversations are offered as confirmation targets.",
     "BUG-002": "PARTIALLY FIXED -> REOPENED. Bare unsupported requests now refuse truthfully. The D3 claim-plus-question bypass reproduced live on both tested paths, DB verified untouched."
   },
-  "branch_ownership_reconciled": "qa/home-pc-handoff branch created from the current qa/work-pc state - no history rewrite, all existing evidence preserved. Home-PC fix reports should be published there going forward; qa/work-pc returns to Work-PC-owned as the ownership model specifies."
+  "branch_ownership_reconciled": "qa/home-pc-handoff branch created from the current qa/work-pc state - no history rewrite, all existing evidence preserved. Home-PC fix reports should be published there going forward; qa/work-pc returns to Work-PC-owned as the ownership model specifies.",
+  "work_pc_session_2026_09_07": {
+    "session": "https://claude.ai/code/session_014TswfTpyLjbRFemHXASgZS",
+    "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+    "handover_doc": "qa/WORK_PC_HANDOVER_2026-09-07.md",
+    "new_bugs": [
+      "BUG-010 P1",
+      "BUG-011 P3",
+      "BUG-012 P2",
+      "BUG-013 P2",
+      "BUG-014 P1"
+    ],
+    "reconfirmed": [
+      "BUG-002 still failing on v92"
+    ],
+    "capabilities_executed": [
+      "CAP-PROJECT-CREATE-UI PASS",
+      "CAP-PROJECT-EDIT-UI PASS",
+      "CAP-PROJECT-EDIT-CHAT-ABSENT FAIL",
+      "CAP-PERSON-REASSIGN-UI-MISSING PASS(probe)",
+      "CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI PASS",
+      "CAP-PERSON-REASSIGN-CHAT FAIL",
+      "CAP-COMPANY-ARCHIVE-CHAT PASS",
+      "CAP-COMPANY-RESTORE-CHAT FAIL",
+      "CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN FAIL",
+      "CAP-COMPANY-ARCHIVE-UI-MISSING PASS(probe)"
+    ],
+    "fixture_alert": "LEGACY-C000-company-qa-swarm-test-co is STUCK ARCHIVED (BUG-014). Home PC to restore via product path after fix; Work PC will not use infra write paths.",
+    "next_priorities_untouched": [
+      "cross-org isolation beyond the manager picker",
+      "BUG-010 regression expansion",
+      "issue #5 continuity suite",
+      "50/100/200-turn",
+      "remaining NOT_TESTED"
+    ]
+  }
 }

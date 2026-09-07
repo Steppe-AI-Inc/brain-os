@@ -33,11 +33,12 @@
       ],
       "created_at": "2026-08-31T07:41:00Z",
       "environment": "production",
-      "lifecycle": "ACTIVE",
+      "lifecycle": "ARCHIVED_STUCK",
       "cleanup_method": "ui_delete_or_chat_delete",
       "cleanup_status": "PENDING",
       "retained_for_regression": false,
-      "notes": "Created BEFORE the real-name digital-twin convention was adopted, under the older generic QA-SWARM-TEST-* naming. Retained as valid already-collected evidence per the founder's explicit 'do not restart completed evidence collection' instruction - NOT renamed retroactively (renaming would add no new evidence). Evidence: Company create (UI) PASS, Company edit/rename (UI) PASS + persisted, Company rename via Brain Chat PASS + independently DB-verified. New fixtures from C001 onward use the digital-twin convention instead."
+      "notes": "Created BEFORE the real-name digital-twin convention was adopted, under the older generic QA-SWARM-TEST-* naming. Retained as valid already-collected evidence per the founder's explicit 'do not restart completed evidence collection' instruction - NOT renamed retroactively (renaming would add no new evidence). Evidence: Company create (UI) PASS, Company edit/rename (UI) PASS + persisted, Company rename via Brain Chat PASS + independently DB-verified. New fixtures from C001 onward use the digital-twin convention instead.",
+      "state_note": "Archived via chat 11:12Z for the cascade test; BOTH restore attempts failed (BUG-014). Company remains status=archived with 3 people + 1 project under it. Not usable as an ACTIVE fixture until restored through a product path."
     },
     {
       "fixture_id": "LEGACY-C000-department-qa-swarm-test-dept",
@@ -149,7 +150,8 @@
       "cleanup": "RETAINED while BUG-010 needs a live repro target; delete via /projects row kebab -> Delete when retired.",
       "registered_at": "2026-09-07T10:34:16Z",
       "created_via": "product UI",
-      "environment": "production"
+      "environment": "production",
+      "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z"
     },
     {
       "fixture_id": "FX-C002-PERSON-02",
@@ -167,7 +169,8 @@
       "cleanup": "RETAINED while BUG-011 and the manager regressions need a 3-person synthetic org; end employment via /people when retired.",
       "registered_at": "2026-09-07T11:05:06Z",
       "created_via": "product UI (/people Add person)",
-      "environment": "production"
+      "environment": "production",
+      "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z"
     },
     {
       "fixture_id": "FX-C002-PERSON-03",
@@ -185,7 +188,8 @@
       "cleanup": "RETAINED while BUG-011 and the manager regressions need a 3-person synthetic org; end employment via /people when retired.",
       "registered_at": "2026-09-07T11:05:06Z",
       "created_via": "product UI (/people Add person)",
-      "environment": "production"
+      "environment": "production",
+      "parent_state": "parent company ARCHIVED (BUG-014 stuck) as of 2026-09-07T11:17:05Z"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
