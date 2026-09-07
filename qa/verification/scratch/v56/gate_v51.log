@@ -1,0 +1,19 @@
+PASS  [CONTRACT] V51-C1.inheritedArmsByteIdentical — claimsLifecycleClaim + its 4 call sites, findEntityStateClaimContradiction, claims*Deleted, modelProposedPendingAction are byte-identical to deployed v92
+PASS  [CONTRACT] V51-C2.legacyPastEqualsV92Past — LEGACY_PAST_COMPLETION is byte-for-byte v92 PAST_COMPLETION_CLAIM_PATTERN (the tail floor is v92-level by construction)
+SKIP  [SUPERSEDED] V51-C3.pendingActionTermOnBothBeltConsumers — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+SKIP  [SUPERSEDED] V51-C4.pendingActionTurnParityByConstruction — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+SKIP  [SUPERSEDED] V51-C5.pendingActionNeverNulledBeforeBelt — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+PASS  [CONTRACT] V51-C6.structuredConsumerAgreesWithLegacy — on an ungrounded LLM turn the structured consumer and the legacy consumer return the same verdict for every probe row (both directions)
+PASS  [CONTRACT] V51-C7.tailFloorOverlapsTheCap — the past-the-cap floor starts at 4000-64, and EVERY straddle offset of an aux+participle claim (LEGACY window 30) is caught
+PASS  [CONTRACT] V51-C8.firstPersonAnchorHyphenAndConjunction — a conditioned offer followed by ` - ` / ` and ` / ` but ` + an in-pack first-person completion is caught (V50-D2 witness rows)
+PASS  [CONTRACT] V51-C9.guardAcceptsIsThatOkAndBareOk — "Let me delete the task — is that ok?" / "… — ok?" / "… — okay?" are preserved at BOTH the belt imminent arm and the FUTURE arm
+PASS  [CONTRACT] V51-C10.confirmedFirstPersonEntityGate — "Confirmed — I renamed Row 4 in the draft table" (out of pack) is preserved; "Confirmed — I archived Erdenet Copper Works" (in pack) and "Confirmed — I archived the company" are caught
+PASS  [CONTRACT] V51-C11.negatorNamesBothDirections — negator-bearing names: fabrication caught AND the truthful negative about the same name preserved, with the pack (incl. the head-noun shape)
+PASS  [CONTRACT] V51-C12.dashBeforeCapitalIsNotAClauseBoundary — "No unit at Erdenet — Copper Works was archived." is preserved; "Erdenet — Copper Works was archived." is caught (lexically, not by casing)
+PASS  [CONTRACT] V51-C13.futureCannedTextIsNotACompletion — the FUTURE arm's replacement text does not itself read as a completion (so FUTURE precedence over the belt is faithful)
+PASS  [DEFECT  ] V51-D1.offerWithTrailingQuestionOutsideTheGuardList — an imminent-arm/FUTURE-arm offer whose trailing question is NOT in the guard vocabulary must survive — deployed v92 preserves every one of these (it has no imminent arm; its FUTURE arm needs an ASCII apostrophe)
+PASS  [DEFECT  ] V51-D2.renamedArrowStraddle — v92's whole-summary `renamed: … ->` arm is unbounded; when "renamed:" sits >64 chars before the arrow across char 4,000 the candidate ships what v92 corrects
+PASS  [DEFECT  ] V51-D3.conditionedOfferThenLeadWordFirstPerson — a conditioned offer (ASCII "I will") followed by ` so ` / ` then ` / `. Meanwhile ` / `. Also ` / ` & ` + an in-pack first-person completion must not ship when v92 corrects the whole reply
+PASS  [DEFECT  ] V51-D4.confirmedFirstPersonObjectNegator — "Confirmed — I archived nothing / none of them / no companies / nobody" is a truthful negative v92 preserves; the CONFIRMED arm's negation slice ends at the participle and cannot see it
+
+v51_regression_additions: 14 passed, 0 failed

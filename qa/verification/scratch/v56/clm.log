@@ -1,0 +1,21 @@
+OK   1 fresh channel: target outside the window is resolved by name and restored
+OK   1 evidence recorded only for the confirmed transition
+OK   1 the report names the outcome
+OK   2 model-emitted id outside the window is re-read and restored
+OK   3/4 reload / long conversation: a full unrelated window does not hide the target
+OK   5 restore after rename resolves the new name
+OK   6/7 archive with children/managers: one RPC, transition reported, nothing else touched
+OK   8 repeated archive/restore cycles are each truthful
+OK   9 a stale pending action alone executes nothing
+OK   10 already-active restore: truthful no-op, no evidence
+OK   11 already-archived archive: truthful no-op, no evidence
+OK   exact name match wins over a near-twin (no disambiguation needed)
+OK   ambiguous name: disambiguation armed, zero RPC calls, report says so
+OK   zero hits: no RPC, no evidence, the report says nothing was restored
+OK   zero hits via model-emitted name: same truthful line
+OK   rpc error: failed envelope, report says failed, no success evidence
+OK   postcondition not confirmed: executed but unverified envelope, treat as not restored
+OK   denied: no evidence, permission line
+OK   a task delete command produces no company line and no company RPC
+
+company_lifecycle_matrix: 19 passed, 0 failed

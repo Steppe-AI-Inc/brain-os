@@ -1,0 +1,244 @@
+{
+ "m1_delete_receipt_block": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL A \"Rename project Alpha to Beta\" / \"Done. Project renamed to Beta. What next?\" [claims:null] -> receipt, no success claim | FAIL A \"Rename project Alpha to Beta\" / \"Done. Project renamed to Beta. What next?\" [claims:[]] -> receipt, no success claim | FAIL A \"Rename project Alpha to Beta\" / \"Done. Project renamed to Beta. What next?\" [claims:state-only] -> receipt, no success claim | FAIL A pe"
+   }
+  ]
+ },
+ "m2_restore_pendingAction_skip_legacy": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs",
+   "run8_defect_closure_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL F legacyProseFallback requires request intent and carries no pendingAction term | FAILURES:"
+   },
+   {
+    "suite": "run8_defect_closure_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL D59 a fabricated completion + question on a pendingAction turn IS corrected (pendingAction never exempts a claim) | FAILURES:"
+   }
+  ]
+ },
+ "m2b_restore_pendingAction_skip_receipt": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL A pendingAction never exempts: \"Rename project Alpha to Beta\" | FAIL A pendingAction never exempts: \"Rename project Alpha to Beta\" | FAIL A pendingAction never exempts: \"rename project Alpha to Beta\" | FAIL A pendingAction never exempts: \"Please rename the project Alpha to Beta\""
+   }
+  ]
+ },
+ "m3_create_postcondition_literal": {
+  "killedBy": [
+   "lifecycle_evidence_and_output_persistence_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "lifecycle_evidence_and_output_persistence_contract.mjs",
+    "exit": 1,
+    "tail": "OK   E task-archive: \"rpc error\" records NO CONFIRMED evidence | OK   E task-restore: \"rpc error\" records NO CONFIRMED evidence | OK   E goal-archive: \"rpc error\" records NO CONFIRMED evidence | OK   E goal-restore: \"rpc error\" records NO CONFIRMED evidence"
+   }
+  ]
+ },
+ "m4_durable_read_last": {
+  "killedBy": [
+   "grounding_precedence_canonical_over_history.mjs",
+   "run11_defect_closure_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "grounding_precedence_canonical_over_history.mjs",
+    "exit": 1,
+    "tail": "FAIL a valid durable row outranks the last turn stored output | FAILURES:"
+   },
+   {
+    "suite": "run11_defect_closure_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL V11.durable.livePrecedence [CONTRACT] a valid durable pending action beats the last turn's stored pendingAction (durable state outranks stale output)"
+   }
+  ]
+ },
+ "m5_drop_collection_envelope": {
+  "killedBy": [
+   "architecture_collection_envelope_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_collection_envelope_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL collections.departments exists | FAILURES:"
+   }
+  ]
+ },
+ "m6_handwritten_companies_join": {
+  "killedBy": [],
+  "killedByOwnOnly": false,
+  "survived": true,
+  "detail": []
+ },
+ "m7_handwritten_org_sentinel": {
+  "killedBy": [
+   "architecture_org_scope_helper_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_org_scope_helper_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL no page or data file compares against the organization sentinel directly | FAILURES:"
+   }
+  ]
+ },
+ "m8_belt_without_intent": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL F legacyProseFallback requires request intent and carries no pendingAction term | FAIL F unaccountedCompletionProse requires request intent and carries no pendingAction term | FAILURES:"
+   }
+  ]
+ },
+ "m9_confirmation_drops_yes": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs",
+   "run10_defect_closure_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL B bare \"yes\" + fabricated execution -> receipt | FAILURES:"
+   },
+   {
+    "suite": "run10_defect_closure_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL EMULTI.ungrounded      [DEFECT] the live E-multi shape — bare-yes reply fabricating plan execution, nothing structural — is corrected, not shipped"
+   }
+  ]
+ },
+ "m10_receipt_skips_attempted": {
+  "killedBy": [],
+  "killedByOwnOnly": false,
+  "survived": true,
+  "detail": []
+ },
+ "m11_history_no_unverified_mark": {
+  "killedBy": [
+   "grounding_precedence_canonical_over_history.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "grounding_precedence_canonical_over_history.mjs",
+    "exit": 1,
+    "tail": "FAIL intent + zero execution + raw prose -> UNVERIFIED marker replaces the prose | FAIL legacy row: rejected claims + no evidence -> UNVERIFIED | FAILURES:"
+   }
+  ]
+ },
+ "m12_silent_nonexistent_id": {
+  "killedBy": [],
+  "killedByOwnOnly": false,
+  "survived": true,
+  "detail": []
+ },
+ "m13_no_status_preference": {
+  "killedBy": [],
+  "killedByOwnOnly": false,
+  "survived": true,
+  "detail": []
+ },
+ "m14_persist_only_on_correction": {
+  "killedBy": [
+   "architecture_mutation_envelope_contract.mjs",
+   "lifecycle_evidence_and_output_persistence_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_mutation_envelope_contract.mjs",
+    "exit": 1,
+    "tail": "OK   envelope field error | FAIL work_orders.output persisted unconditionally | FAILURES:"
+   },
+   {
+    "suite": "lifecycle_evidence_and_output_persistence_contract.mjs",
+    "exit": 1,
+    "tail": "OK   E task-archive: \"rpc error\" records NO CONFIRMED evidence | OK   E task-restore: \"rpc error\" records NO CONFIRMED evidence | OK   E goal-archive: \"rpc error\" records NO CONFIRMED evidence | OK   E goal-restore: \"rpc error\" records NO CONFIRMED evidence"
+   }
+  ]
+ },
+ "m15_intent_from_summary": {
+  "killedBy": [
+   "architecture_final_claim_contract.mjs",
+   "run10_defect_closure_contract.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "architecture_final_claim_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL D truthful history recount + question on a READ request survives verbatim | FAIL D state answer on a read request survives | FAIL F request intent is derived from the command and the model action fields, never the response text | FAILURES:"
+   },
+   {
+    "suite": "run10_defect_closure_contract.mjs",
+    "exit": 1,
+    "tail": "FAIL D81.state.hold         [CONTRACT] a present-tense STATE description on a grounded turn is untouched (holds on both)"
+   }
+  ]
+ },
+ "m16_evidence_index_ignores_postcondition": {
+  "killedBy": [
+   "structured_claim_laundering_contract.mjs",
+   "structured_claim_verification.mjs"
+  ],
+  "killedByOwnOnly": false,
+  "survived": false,
+  "detail": [
+   {
+    "suite": "structured_claim_laundering_contract.mjs",
+    "exit": 1,
+    "tail": "DRIFT C4   [CONTRACT  ] postconditionPassed=false is never evidence | BASELINE DRIFT in 1 case(s). Behaviour changed in one direction or the other."
+   },
+   {
+    "suite": "structured_claim_verification.mjs",
+    "exit": 1,
+    "tail": "FAIL A6 evidence WITHOUT a passing postcondition -> REJECTED | FAILURES:"
+   }
+  ]
+ }
+}
