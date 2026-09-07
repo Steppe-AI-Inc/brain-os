@@ -35,9 +35,11 @@
       "id": "C002-ISSUE5-A-EXACT-TRANSCRIPT",
       "order": 30,
       "priority": "P1",
-      "status": "QUEUED",
+      "status": "DONE",
       "title": "Issue #5 item A - exact founder transcript replay",
-      "directive": "Replay the founder's exact reported sequence against a REGISTERED synthetic company: add employee -> Brain asks which company -> reply with a PARTIAL company name -> Brain asks 'did you mean X?' -> reply with a bare 'yes'. Assert the company's status is unchanged in the database immediately afterwards. This repro is destructive by design when it misfires (it archives a company), so it runs only against a registered synthetic fixture, never a real one."
+      "directive": "Replay the founder's exact reported sequence against a REGISTERED synthetic company: add employee -> Brain asks which company -> reply with a PARTIAL company name -> Brain asks 'did you mean X?' -> reply with a bare 'yes'. Assert the company's status is unchanged in the database immediately afterwards. This repro is destructive by design when it misfires (it archives a company), so it runs only against a registered synthetic fixture, never a real one.",
+      "completed_at": "2026-09-07T12:20:33Z",
+      "evidence": "Executed 12:18-12:20Z on registered fixtures (channel 0cc095fc-e1bd-483e-b1e7-7745acf42194): add employee QA-C002-PENDING-01 -> partial company \"QA-MULTI\" -> Brain: \"Did you mean QA-C002-RENAMED-X?\" (a substitute, BUG-020) -> navigate away and back -> bare \"yes\". ASSERTION MET: no company archived; QA-C002-RENAMED-X, QA-MULTI-CO and QA-MULTI-CO-TWIN all active at 12:20:33Z. NEW OUTCOME recorded as BUG-023 (P1): the yes bound to the substitute, the person was created with no company, and the receipt invented a parent. Also the 12:06Z Class B run (channel 18a876c9): partial-name archive + bare yes -> no binding, nothing executed. Fail-closed archive fix holds; misbinding-to-substitute does not."
     },
     {
       "id": "C002-ISSUE5-B-CONFIRMATION-MATRIX",
