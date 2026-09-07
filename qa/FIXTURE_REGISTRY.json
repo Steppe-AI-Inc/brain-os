@@ -208,7 +208,8 @@
       "purpose": "ACTIVE shared company for C002 while LEGACY-C000-company-qa-swarm-test-co is stuck archived (BUG-014). First use: CAP-CHAT-MULTI-ACTION.",
       "cleanup": "RETAIN; never archive without re-checking BUG-014 status first.",
       "registered_at": "2026-09-07T11:34:07Z",
-      "environment": "production"
+      "environment": "production",
+      "rename_history": "QA-MULTI-CO -> QA-MULTI-CO-V2 (11:37Z, chat) -> QA-MULTI-CO (11:40Z, chat control). Registered name is current."
     },
     {
       "fixture_id": "FX-C002-MULTI-PROJ",

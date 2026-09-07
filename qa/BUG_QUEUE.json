@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:32:30Z",
+  "last_updated": "2026-09-07T11:40:22Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 4,
+    "open_p1": 5,
     "open_p2": 5,
     "open_p3": 4,
-    "total_open": 13,
+    "total_open": 14,
     "total_closed": 5
   },
   "bugs": [
@@ -786,6 +786,38 @@
       "severity_reasoning": "P2: honest, so no false belief is created; but any task-targeted command (assign owner, archive, restore, delete - all real chat fields) silently cannot reach roughly half the tasks. With 32 tasks today and a 15-row cap, this hits real work now.",
       "regression_requirement": "Mirror qa/scenarios-runner/sem_ai_command_named_person_lookup_truth.mjs for tasks: a 15-row capped list that excludes the named task plus a targeted lookup must merge it in; plus a live probe naming a task outside the window.",
       "_qa_boundary": "Work PC did not read or modify sem-ai-command; the lookup-parity hypothesis is drawn from the existing scenarios-runner test for people and is for the Home PC to confirm."
+    },
+    {
+      "bug_id": "BUG-018",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "\"undo that\" after a chat rename returns \"Renaming X back to Y.\" but performs no mutation - a fabricated execution claim on the undo path, while an explicit rename of the same company executes instantly",
+      "ai_truth_classification": "FABRICATED_SUCCESS (BUG-002 class, undo verb). Target binding was CORRECT - it named the right reversal - so this is a false receipt for an unexecuted plan, not a misbinding.",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:40:22Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "company": "QA-MULTI-CO (49ee1875-21b0-4285-bd45-dc1c05f3d987) - REGISTERED",
+        "channel_undo": "a2b98c19-9266-4d96-aa69-275d908f7b46 (turn 3)",
+        "channel_control": "95241a6c-7190-496b-a3b8-d8fbd636bad4"
+      },
+      "reproduction": [
+        "1. Fresh channel: \"call the company qa-multi-co 'QA-MULTI-CO-V2' now\" -> renamed (DB confirms).",
+        "2. Same channel: \"change it to QA-MULTI-CO\" -> clarification, no mutation.",
+        "3. Same channel: \"undo that\" -> \"Renaming QA-MULTI-CO-V2 back to QA-MULTI-CO.\"",
+        "4. /companies at +10s and +44s: still QA-MULTI-CO-V2.",
+        "5. CONTROL, fresh channel: \"Rename the company QA-MULTI-CO-V2 to QA-MULTI-CO.\" -> \"Renamed ...\" and /companies shows QA-MULTI-CO within 10s."
+      ],
+      "expected": "Either perform the reversal and receipt it, or decline honestly (\"I can't undo; say 'rename X to Y' to reverse it\").",
+      "actual": "Present-progressive receipt of a rename that never ran.",
+      "blast_radius": "Zero unintended mutation; the fixture was restored by the control step. The damage is truth: a user who says \"undo that\" is told it is being undone and it is not.",
+      "severity_reasoning": "P1 by the same rule as BUG-002/010: a false statement that a mutation occurred. Undo is the phrase a user reaches for when something went wrong, so a lie here compounds an earlier mistake at the worst moment.",
+      "regression_requirement": "After any executed chat mutation, send \"undo that\" in the same channel; assert either a DB reversal matching the receipt, or a decline with no execution language. Also assert the pronoun case: \"change it to X\" one turn after a rename must resolve \"it\" to that entity (or clarify without mis-targeting).",
+      "_qa_boundary": "Work PC did not read or modify sem-ai-command.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-5; the implementation PC may not self-certify."
     }
   ]
 }

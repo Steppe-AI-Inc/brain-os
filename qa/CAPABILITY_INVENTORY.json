@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:35:59Z",
+  "generated_at": "2026-09-07T11:40:22Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -734,10 +734,22 @@
         "DB",
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-rename-variants"
+      ],
+      "status": "FAIL",
       "campaign_1_item": 10,
-      "notes": "pronouns, typos, casing, quoted/unquoted/partial names, 'call it X now', 'change it to X', multi-turn clarification, yes/do it/cancel/undo that."
+      "notes": "pronouns, typos, casing, quoted/unquoted/partial names, 'call it X now', 'change it to X', multi-turn clarification, yes/do it/cancel/undo that.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-018",
+      "variant_results": {
+        "lowercase + quoted + \"call it X now\"": "PASS - \"call the company qa-multi-co 'QA-MULTI-CO-V2' now\" -> renamed; DB confirmed within 10s (channel a2b98c19-9266-4d96-aa69-275d908f7b46 T1).",
+        "pronoun + \"change it to X\" (next turn)": "PARTIAL - \"change it to QA-MULTI-CO\" -> clarification (\"Did you mean to rename a different company ... or rename QA-MULTI-CO-V2 back?\"); no mutation. Honest, but \"it\" one turn after the rename is unambiguous and was not resolved.",
+        "\"undo that\" (next turn)": "FAIL - \"Renaming QA-MULTI-CO-V2 back to QA-MULTI-CO.\" DB still QA-MULTI-CO-V2 at +10s and +44s. Fabricated execution (BUG-018).",
+        "explicit rename control (fresh channel 95241a6c-7190-496b-a3b8-d8fbd636bad4)": "PASS - \"Rename the company QA-MULTI-CO-V2 to QA-MULTI-CO.\" -> renamed; DB confirmed within 10s. Proves the rename path itself is live and the undo path is the one that lies.",
+        "not executed this run": "typos, partial names, unquoted multi-word, \"cancel\", multi-turn yes/do it (covered separately under BUG-005 Class B)."
+      },
+      "evidence": "See variant_results. All on registered fixture FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987); final state QA-MULTI-CO, matching the registry."
     },
     {
       "capability_id": "CAP-CHAT-MULTI-ACTION",
