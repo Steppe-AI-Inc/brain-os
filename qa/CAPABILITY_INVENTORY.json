@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:25:17Z",
+  "generated_at": "2026-09-07T11:27:39Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -637,9 +637,14 @@
         "UI",
         "RELOAD"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 8
+      "scenario_ids": [
+        "C002-task-edit-ui"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 8,
+      "tested_against_sha": "8521b0e",
+      "evidence": "Live Playwright 2026-09-07 on registered fixture task QA-SWARM-TASK-001 (b6ac01d7-0dfe-4d30-bc09-2cc99b343234). /tasks is a kanban; clicking the card opens \"Edit task\" (title, description, company, priority, risk, approval-required). Renamed title only -> Save. Card updated in place, persisted across full reload at 11:27:35Z, and - the important part - the task's company link was PRESERVED (hidden company value still 7ba01ff2-6404-4c06-8bc5-4449b50df5de; card still badged \"QA-SWARM-TEST-CO-VIA-CHAT Archived\"). An innocent edit does not unlink a task from an archived parent.",
+      "caveat": "BUG-016 (P3): the Company picker DISPLAYS \"No company\" for this task because its company is archived, even though the value is set. Data is safe; the display lies."
     },
     {
       "capability_id": "CAP-TASK-EDIT-CHAT-ABSENT",

@@ -91,7 +91,7 @@
       "fixture_id": "C001-W3-task-001",
       "canonical_id": "b6ac01d7-0dfe-4d30-bc09-2cc99b343234",
       "resource_type": "task",
-      "synthetic_display_name": "QA-SWARM-TASK-001",
+      "synthetic_display_name": "QA-SWARM-TASK-001-EDITED",
       "real_name_template": null,
       "source_origin": "SCENARIO_DERIVED",
       "campaign_id": "C001",
@@ -108,7 +108,8 @@
       "cleanup_method": "chat_or_ui_delete",
       "cleanup_status": "PENDING",
       "retained_for_regression": false,
-      "notes": "Created VIA BRAIN CHAT (proving chat task-create works). priority=low, status=queued. Fell outside the 15-of-25 task context window, which is how the truncation-reporting behavior got tested."
+      "notes": "Created VIA BRAIN CHAT (proving chat task-create works). priority=low, status=queued. Fell outside the 15-of-25 task context window, which is how the truncation-reporting behavior got tested.",
+      "rename_note": "Renamed via /tasks Edit on 2026-09-07T11:27:39Z (CAP-TASK-EDIT-UI). Parent company archived (BUG-014)."
     },
     {
       "fixture_id": "FX-BUG006-GOAL",

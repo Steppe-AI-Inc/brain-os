@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:25:17Z",
+  "last_updated": "2026-09-07T11:27:39Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -30,8 +30,8 @@
     "open_p0": 0,
     "open_p1": 4,
     "open_p2": 4,
-    "open_p3": 3,
-    "total_open": 11,
+    "open_p3": 4,
+    "total_open": 12,
     "total_closed": 5
   },
   "bugs": [
@@ -740,6 +740,27 @@
       "severity_reasoning": "P2: no data exposure for the founder; but a team member who reads the selector as \"I am inside CLIX GPS\" will get workspace-wide answers from Brain and the companies page. This is a truth-consistency defect across surfaces and a prerequisite for any team rollout.",
       "team_ready_gate": "Real tenant isolation must be proven with a NON-founder persona (RLS/membership), which remains BLOCKED from this seat (CAP-BROWSER-PERSONA-MULTIUSER). Do not treat this bug's fix as proof of isolation.",
       "regression_requirement": "Select an org; assert /companies rows, both dashboard KPI cards, and a fresh-channel \"list people in the current organization\" all agree with /people for that org (or that chat explicitly states it is workspace-scoped).",
+      "_qa_boundary": "Work PC did not modify product code."
+    },
+    {
+      "bug_id": "BUG-016",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "Edit-task dialog shows Company = \"No company\" for a task whose company is ARCHIVED, although the value is set and the card shows the company - the picker cannot render an archived selection",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:27:39Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "resources": {
+        "task": "QA-SWARM-TASK-001-EDITED (b6ac01d7-0dfe-4d30-bc09-2cc99b343234)",
+        "company": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-..., archived, BUG-014 stuck)"
+      },
+      "expected": "The picker shows the current company (with an Archived marker), matching the card and the stored value.",
+      "actual": "Combobox text \"No company\"; hidden input 7ba01ff2-...; card badge \"QA-SWARM-TEST-CO-VIA-CHAT Archived\". Verified before and after a save+reload.",
+      "what_is_NOT_wrong": "Saving the dialog with the title changed did NOT clear the company. This is display-only; no integrity defect was found (that was the risk being tested).",
+      "blast_radius": "None.",
+      "severity_reasoning": "P3: three surfaces (card, DB value, dialog) disagree on one screen, but nothing is lost. Same family as BUG-001 (archived parent not surfaced) on a picker rather than a list.",
+      "regression_requirement": "Open Edit task on a task under an archived company; assert the picker renders that company (marked Archived), and that Save without touching the picker leaves company_id unchanged.",
       "_qa_boundary": "Work PC did not modify product code."
     }
   ]
