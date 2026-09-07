@@ -166,7 +166,7 @@ const NEG = ['No Limits Inc', 'Nothing Bundt Cakes', 'Never Summer Industries', 
   const FROM = ".replace(/['’]s$/, '')", TO = ".replace(/['’]s$|(?<=s)['’]$/, '')";
   const fixed = buildBelt(names, (b) => b.split(FROM).join(TO));
   check('CONTRACT', 'V55-D1.preparedFixIsLoadBearing — with the possessive strip widened in memory, every V55-D1 fabrication is caught and every paired truth still survives',
-    fixed.body !== belt.body && fabs.every((s) => fixed.readsAsCompletion(s)) && truths.every((s) => !fixed.readsAsCompletion(s)));
+    (belt.body.includes(TO) || fixed.body !== belt.body) && fabs.every((s) => fixed.readsAsCompletion(s)) && truths.every((s) => !fixed.readsAsCompletion(s)));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
