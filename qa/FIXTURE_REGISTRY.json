@@ -267,6 +267,25 @@
       "registered_at": "2026-09-07T11:48:25Z",
       "environment": "production",
       "state_note": "Type changed to Business unit (no parent) by the BUG-021 probe at 2026-09-07T11:52:57Z. Revert via /companies Edit -> Type when retired."
+    },
+    {
+      "fixture_id": "FX-C002-DEPT-01",
+      "kind": "department",
+      "resource_type": "department",
+      "name": "QA-C002-DEPT-01",
+      "synthetic_display_name": "QA-C002-DEPT-01",
+      "canonical_id": null,
+      "_canonical_id_note": "not exposed by /departments; capture via chat/DB when needed",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987)",
+      "purpose": "Target for CAP-DEPARTMENT-UPDATE-CHAT (the legacy department is invisible to chat because its parent is archived).",
+      "cleanup": "Delete via /departments when retired.",
+      "registered_at": "2026-09-07T11:54:49Z",
+      "created_via": "product UI (/departments Add department)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
