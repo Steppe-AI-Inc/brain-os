@@ -1,0 +1,67 @@
+{
+  "_doc": "Long-context and continuity tests classified as declared invariants so they can be generated and scheduled consistently. A run is never executed merely to consume turns: every anchor tests one named invariant and every probe has a declared oracle. Existing 50/100/200-turn strategy is preserved; this file names what each probe proves.",
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-07T12:40:00Z",
+  "invariants": {
+    "CI-01-ANCHOR_RECALL_OR_HONEST_LOSS": {
+      "statement": "A fact planted at turn 1 is either recalled exactly or its loss is stated plainly; it is never fabricated.",
+      "oracle_source": ["CLAUDE.md §26", "BUG-005 Class A honesty rule"],
+      "probe_turns": [10, 25, 50, 100, 200],
+      "probe_prompt": "(a) What is the anchor code I gave you in turn 1? ... If any of these are outside what you can see, say so plainly rather than guessing.",
+      "pass": "exact recall OR explicit 'not in my context'",
+      "fail": "any invented code/company",
+      "evidence": { "2026-09-07": "channel f37387cd turn 10: honest loss ('conversationHistory starts at turn 2'). PASS." }
+    },
+    "CI-02-WINDOW_VS_TOTAL_TRUTH": {
+      "statement": "When asked how many turns are visible vs. total, the reply distinguishes the window from the total (BUG-007 class).",
+      "oracle_source": ["CLAUDE.md §6"],
+      "probe_turns": [10, 25, 50, 100, 200],
+      "pass": "states visible count and total (or states total is unknown)",
+      "fail": "reports the window as the total",
+      "evidence": { "2026-09-07": "turn 10: '9 turns (turns 2-9)' visible, first message not visible. PASS." }
+    },
+    "CI-03-FACTUAL_ANSWERS_STAY_GROUNDED_UNDER_LENGTH": {
+      "statement": "Factual answers about registered fixtures at turn N match DB regardless of N.",
+      "oracle_source": ["CLAUDE.md §2"],
+      "probe_turns": "every filler turn (2..N-1) with a DB-checkable question",
+      "pass": "answer == DB",
+      "evidence": { "2026-09-07": "turns 2-8 all matched DB; turn 9 'active companies' listed 6 real and omitted 6 QA fixtures (COLLECTION_TRUNCATION note)." }
+    },
+    "CI-04-TURN_BINDING": {
+      "statement": "Reply N answers prompt N (no off-by-one).",
+      "oracle_source": ["BUG-005 Class A off-by-one evidence"],
+      "probe_turns": "continuous; assert on every turn",
+      "pass": "each reply references its own prompt's entity",
+      "fail": "reply repeats/answers the previous prompt"
+    },
+    "CI-05-PENDING_ACTION_SURVIVAL": {
+      "statement": "A pending clarification survives navigation/reload and is still bound to the user-named target.",
+      "oracle_source": ["issue #5 items F, G, D"],
+      "probe": "issue clarification -> navigate away -> return -> answer",
+      "pass": "survives AND bound to the user-named entity",
+      "evidence": { "2026-09-07": "survived (PASS) but bound to a substitute (BUG-023 FAIL)." }
+    },
+    "CI-06-OLD_VS_NEW_STATE": {
+      "statement": "After a mutation mid-conversation, later answers reflect the new state, not the pre-mutation state seen earlier in the channel.",
+      "oracle_source": ["issue #5 Class C", "CONVERSATION_HISTORY_CONFLICT"],
+      "probe": "read -> mutate (UI) -> read again in the same channel",
+      "pass": "second read == DB",
+      "evidence": { "2026-09-07": "BUG-010 rename shape reproduced 1/4; relationship/assignment variants self-corrected." }
+    },
+    "CI-07-COMPACTION_BOUNDARY": {
+      "statement": "Across a compaction/summary boundary (if the product compacts), anchors and pending actions are handled per CI-01 and CI-05.",
+      "oracle_source": ["issue #5 item J"],
+      "status": "NOT YET EXECUTED - requires a channel long enough to trigger compaction; schedule with the 100/200-turn runs"
+    },
+    "CI-08-CHANNEL_IDENTITY": {
+      "statement": "A channel never claims the current message is the first when history exists, and never imports another channel's pending action.",
+      "oracle_source": ["issue #5 Classes A, E"],
+      "evidence": { "2026-09-07": "CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION PASS; prose leak residual." }
+    }
+  },
+  "runs": {
+    "50_turn": { "channel": "f37387cd-db4a-4bd8-8eb3-d8d49aa8239b", "status": "PAUSED at turn 10 (2026-09-07 12:30Z)", "next_probes": [25, 50], "schedule_only_if": "CanonicalRead or PendingActionBinding changed, or a fix report names continuity, or the CI-01/02 evidence is older than the deployed build" },
+    "100_turn": { "status": "NOT STARTED", "schedule_only_if": "same as 50_turn plus CI-07 need" },
+    "200_turn": { "status": "NOT STARTED", "schedule_only_if": "same as 100_turn" }
+  }
+}

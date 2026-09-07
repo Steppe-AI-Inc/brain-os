@@ -1,0 +1,168 @@
+{
+  "_doc": "Universal, entity-agnostic acceptance patterns for Brain OS. A pattern is a reusable obligation, not a hardcoded test: CAPABILITY_CONTRACTS.json declares what a capability is (states, transitions, flags, surfaces) and qa/runner/lib/contracts.mjs derives which of these patterns apply. Expected behaviour ALWAYS comes from a declared oracle (oracle_source), never from the current UI, the implementation, an existing test or prior assistant behaviour. Where the oracle is undefined the pattern's verdict is BLOCKED - PRODUCT POLICY UNDEFINED. Work-PC browser/adversarial acceptance remains the final authority.",
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-07T12:40:00Z",
+  "created_by": "work-pc-independent-qa (session 014TswfT)",
+  "truth_axes": ["DB", "UI", "AI", "RELATIONSHIP", "PERMISSION", "RELOAD", "FRESH_SESSION"],
+  "canonical_work_pc_sequence": ["PRECONDITION", "ACTION", "CAPTURE_RECEIPT", "CANONICAL_STATE_VERIFY", "RELOAD", "FRESH_SESSION_OR_CHANNEL", "CROSS_SURFACE_VERIFY", "BRAIN_VERIFY", "PERMISSION_TENANCY_VERIFY_WHERE_RELEVANT"],
+  "patterns": {
+    "MUTATION_TRUTH": {
+      "intent": "A claimed mutation equals the actual mutation on every axis.",
+      "steps": ["precondition: capture canonical state of the target (DB via reload/PostgREST, UI row, Brain read)", "request: perform the mutation through the surface under test", "actual execution result: capture the receipt/toast/reply verbatim", "DB/postcondition: re-read canonical state", "UI: the surface reflects the postcondition", "receipt: names the same entity, relationship type and target as the DB diff", "Brain claim: a fresh-channel read agrees", "reload: full page reload agrees", "fresh read: a second independent read agrees"],
+      "assertions": ["postcondition == receipt", "receipt names no entity/relationship absent from the diff", "no success language when the diff is empty", "no partial application (all-or-nothing)"],
+      "oracle_source": ["CLAUDE.md §2 (verify the complete chain)", "CLAUDE.md §10 (transactional integrity)", "founder rule: mutation-result-equals-final-claim (issue #5 item L)"],
+      "instantiated_by": ["BUG-002", "BUG-012", "BUG-018", "BUG-021", "BUG-023"]
+    },
+    "INVERSE_LIFECYCLE": {
+      "intent": "A transition and its declared inverse restore the original state, including children and relationships.",
+      "steps": ["capture state incl. children/relationships", "action (e.g. archive)", "reload + cross-surface read", "inverse action (e.g. restore)", "reload + cross-surface read", "assert state restored"],
+      "assertions": ["all surfaces return to the pre-action rendering", "relationships that existed before exist after", "counts (dashboard, selectors) return to baseline"],
+      "oracle_source": ["CAPABILITY_CONTRACTS.json[capability].inverse"],
+      "instantiated_by": ["CAP-COMPANY-RESTORE-UI (PASS)", "CAP-PERSON-RESTORE-EMPLOYMENT-UI (PASS)", "BUG-014 (chat inverse fails)"]
+    },
+    "ALREADY_TARGET_STATE": {
+      "intent": "Repeating an action whose target is already in the target state is safe and truthfully described.",
+      "steps": ["put target in state S", "request transition to S again", "capture receipt", "reload"],
+      "assertions": ["no corruption, no duplicate rows", "receipt says already-in-state or equivalent; never claims a change that did not occur"],
+      "oracle_source": ["CLAUDE.md §11 (duplicate submission)", "CLAUDE.md acceptance test 13"],
+      "instantiated_by": []
+    },
+    "STALE_STATE": {
+      "intent": "When state changes between a read and an action (another surface/actor), behaviour is deterministic and safe.",
+      "steps": ["read entity in surface A", "change it via surface B", "act on the stale view in surface A", "capture receipt", "reload"],
+      "assertions": ["no lost update silently overwriting B's change unless policy says last-writer-wins", "receipt reflects the real post-state"],
+      "oracle_source": ["BLOCKED - PRODUCT POLICY UNDEFINED unless CAPABILITY_CONTRACTS declares a concurrency policy"],
+      "instantiated_by": []
+    },
+    "MISSING_TARGET": {
+      "intent": "Acting on a non-existent or deleted entity is refused truthfully.",
+      "assertions": ["no success language", "no substitute target offered on a destructive verb unless it is an exact-prefix candidate set the user can choose from by explicit name"],
+      "oracle_source": ["founder rule: a clarification must never bind a destructive verb to an entity the user did not name (BUG-005 regression)"],
+      "instantiated_by": ["CAP-PROJECT-DELETE-UI AI axis (PASS)", "CAP-DEPARTMENT-DELETE-CHAT-ABSENT caveat", "BUG-020"]
+    },
+    "UNAUTHORIZED_ACTOR": {
+      "intent": "A role without the capability cannot perform it, directly or via Brain.",
+      "assertions": ["DB denies (RLS/RPC)", "UI does not offer or fails safely", "Brain refuses without leaking", "audit records the attempt where policy says so"],
+      "oracle_source": ["governance/capabilities/*", "governance/roles/*", "governance/SECURITY_INVARIANTS.md", "qa/SECURITY_MATRIX.md"],
+      "instantiated_by": ["qa/scenarios-runner sc05x-sc11x (SQL impersonation, rolled back)"]
+    },
+    "FOREIGN_ORG_ACTOR": {
+      "intent": "A legitimate role in organization A cannot act on organization B's resources.",
+      "assertions": ["zero rows / denied", "no success claim", "no foreign data in Brain context"],
+      "oracle_source": ["CLAUDE.md acceptance test 12", "governance/SECURITY_INVARIANTS.md"],
+      "instantiated_by": ["sc056_cross_company_isolation.sql", "sc071_create_wrong_company.sql"]
+    },
+    "CROSS_ORG_ISOLATION": {
+      "intent": "Tenant-scoped reads and pickers never expose another organization's entities.",
+      "assertions": ["pickers list only same-org candidates", "list surfaces filter by the selected/authorized org consistently", "Brain context excludes foreign rows"],
+      "oracle_source": ["governance/SECURITY_INVARIANTS.md", "CLAUDE.md §5"],
+      "instantiated_by": ["CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI picker (PASS)", "BUG-015 (selector inconsistency)"]
+    },
+    "PARENT_ARCHIVED_CHILD_BEHAVIOR": {
+      "intent": "Children of an archived parent behave per declared policy on every surface.",
+      "assertions": ["every child surface marks the archived parent", "controls on children behave per policy (disabled / allowed / prompted)", "counts exclude or include per policy consistently"],
+      "oracle_source": ["BLOCKED - PRODUCT POLICY UNDEFINED for cascade semantics (BUG-013 DESIGN_DECISION_REQUIRED); marker visibility is defined by BUG-001 closure"],
+      "instantiated_by": ["BUG-001", "BUG-006", "BUG-013", "BUG-016", "BUG-019"]
+    },
+    "RELOAD_TRUTH": {
+      "intent": "A full page reload shows exactly the persisted state.",
+      "assertions": ["no optimistic-only rows", "no stale rows"],
+      "oracle_source": ["CLAUDE.md §2"],
+      "instantiated_by": ["every C002 capability with RELOAD axis"]
+    },
+    "FRESH_SESSION_TRUTH": {
+      "intent": "A new browser identity / second login sees the same persisted state (and only what it is authorized to).",
+      "assertions": ["state equals reload truth", "authorization equals persona matrix"],
+      "oracle_source": ["CLAUDE.md §4"],
+      "instantiated_by": ["CAP-RELOAD-FRESH-SESSION-TRUTH (BLOCKED: needs second credential)"]
+    },
+    "CROSS_SURFACE_TRUTH": {
+      "intent": "Every surface that displays an entity agrees with the DB after a mutation.",
+      "assertions": ["list, detail, picker, dashboard count, selector, search, Brain all agree"],
+      "oracle_source": ["CLAUDE.md §19 (executive aggregates)", "CLAUDE.md §26"],
+      "instantiated_by": ["BUG-003 (closed)", "BUG-015", "BUG-016", "BUG-006 goal detail"]
+    },
+    "AI_FRESH_GROUNDING": {
+      "intent": "Brain answers canonical-state questions from live data, in a fresh channel and after mutations.",
+      "assertions": ["fresh-channel answer == DB", "post-mutation answer == DB", "named entity resolves on every command shape"],
+      "oracle_source": ["CLAUDE.md §2 AI flow", "CLAUDE.md §26"],
+      "instantiated_by": ["BUG-005 Class C", "BUG-014", "BUG-017", "BUG-020"]
+    },
+    "CONVERSATION_HISTORY_CONFLICT": {
+      "intent": "When channel history contradicts canonical state, canonical state wins.",
+      "steps": ["produce or plant a false prior assistant claim in the channel", "ask for canonical state with an explicit stored-data instruction", "control: identical question in a fresh channel"],
+      "assertions": ["contaminated-channel answer == fresh-channel answer == DB", "repeat N>=10 times: the pattern is probabilistic (BUG-010 reproduced 1/4)"],
+      "oracle_source": ["CLAUDE.md §26", "founder rule: fresh canonical state outranks history"],
+      "instantiated_by": ["BUG-010"]
+    },
+    "PENDING_ACTION_CONFIRMATION": {
+      "intent": "A confirmation binds to exactly one pending action by id, action type and canonical target ids.",
+      "assertions": ["bound target id == id of the entity the USER named", "a substitute offered by Brain is never bound by a bare affirmative", "multiple pending actions require disambiguation"],
+      "oracle_source": ["issue #5 founder suite items D, E", "BUG-005 fail-closed rule"],
+      "instantiated_by": ["BUG-005 Class B", "BUG-023"]
+    },
+    "BARE_YES_WITH_VALID_PENDING_ACTION": {
+      "intent": "A bare yes executes exactly the one valid pending action and receipts it truthfully.",
+      "assertions": ["executes once", "receipt == diff"],
+      "oracle_source": ["issue #5 founder suite item A"],
+      "instantiated_by": ["BUG-005 Class B (dead-loop residual)"]
+    },
+    "BARE_YES_WITHOUT_PENDING_ACTION": {
+      "intent": "A bare yes with nothing pending is refused and nothing executes.",
+      "assertions": ["no execution", "no binding to other channels' actions", "no prose naming other channels' work items"],
+      "oracle_source": ["issue #5 founder suite item C", "CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION"],
+      "instantiated_by": ["BUG-005 Class E (isolation holds; prose leak residual)"]
+    },
+    "UNSUPPORTED_OPERATION": {
+      "intent": "An operation the surface cannot perform is declined honestly, with no implied capability.",
+      "assertions": ["no success language", "no 'I will update X once found' when no field exists", "DB unchanged"],
+      "oracle_source": ["CLAUDE.md §0", "chat schema field list (supabase/functions/sem-ai-command)"],
+      "instantiated_by": ["BUG-002", "CAP-TASK-EDIT-CHAT-ABSENT caveat", "CAP-DEPARTMENT-DELETE-CHAT-ABSENT caveat"]
+    },
+    "FAILURE_RECEIPT_TRUTH": {
+      "intent": "When any structured step fails, the receipt contains no success summary for it.",
+      "assertions": ["no co-occurrence of a failure line and a success line for the same request", "partial application is reported as partial"],
+      "oracle_source": ["CLAUDE.md §10", "CLAUDE.md §11 (fail visibly and safely)"],
+      "instantiated_by": ["BUG-021"]
+    },
+    "COLLECTION_TRUNCATION": {
+      "intent": "Truncated collections are presented with returnedCount/totalCount/isTruncated; totals come from aggregates.",
+      "assertions": ["'N of M shown' wording", "counts never derived from the window", "fixture rows counted consistently with real rows or the exclusion is stated"],
+      "oracle_source": ["CLAUDE.md §6", "CLAUDE.md §26"],
+      "instantiated_by": ["BUG-007", "50-turn turn 9 count-truth gap"]
+    },
+    "NAMED_ENTITY_OUTSIDE_CONTEXT_WINDOW": {
+      "intent": "An entity named in the command is looked up regardless of the capped collection.",
+      "assertions": ["named lookup exists for every entity type with a capped list", "the newest entity is reachable"],
+      "oracle_source": ["fix 15e868a design (companies) mirrored for people; extension rule in CLAUDE.md §13"],
+      "instantiated_by": ["BUG-017", "sem_ai_command_named_person_lookup_truth.mjs"]
+    },
+    "LONG_CONTEXT_CONTINUITY": {
+      "intent": "Across 50/100/200 turns and compaction, declared anchors are either recalled correctly or their loss is stated honestly; never fabricated.",
+      "assertions": ["see CONTINUITY_INVARIANTS.json"],
+      "oracle_source": ["CLAUDE.md §26", "BUG-005 Class A honesty rule"],
+      "instantiated_by": ["BUG-005 item H (turn-10 probe honest)"]
+    },
+    "CHANNEL_ISOLATION": {
+      "intent": "Pending actions and history never cross channel boundaries.",
+      "oracle_source": ["issue #5 Class E"],
+      "instantiated_by": ["CAP-ISSUE5-E-CHANNEL-CONTEXT-ISOLATION (PASS)"]
+    },
+    "NAVIGATION_CONTINUITY": {
+      "intent": "Leaving and returning to a channel preserves its pending action and history, and a survived pending action is still correctly bound.",
+      "oracle_source": ["issue #5 items F, G"],
+      "instantiated_by": ["BUG-023 (survival PASS, binding FAIL)"]
+    },
+    "MULTI_TURN_EXECUTION_ALIGNMENT": {
+      "intent": "Turn N's reply answers turn N, not N-1; each executed action is receipted in the turn that executed it.",
+      "oracle_source": ["BUG-005 Class A off-by-one evidence"],
+      "instantiated_by": ["BUG-005 Class A"]
+    },
+    "MOBILE_BASIC_ACCEPTANCE": {
+      "intent": "Login, command, task, approval work at a mobile viewport; EN/MN navigation works.",
+      "oracle_source": ["CLAUDE.md acceptance test 17"],
+      "instantiated_by": [],
+      "status": "NOT YET INSTANTIATED on the Work PC"
+    }
+  }
+}

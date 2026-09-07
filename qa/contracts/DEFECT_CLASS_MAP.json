@@ -1,0 +1,19 @@
+{
+  "_doc": "Defect handling per the constitution: MANIFESTATION -> DEFECT CLASS -> SHARED PRIMITIVE -> REGRESSION FAMILY -> SPECIFIC REPRODUCTION (in BUG_QUEUE.json) -> EVIDENCE -> HANDOFF. A bug must yield a reusable defect-class regression (the family) in addition to its specific reproduction. This map does not rewrite BUG_QUEUE.json; it indexes it.",
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-07T12:40:00Z",
+  "classes": {
+    "FABRICATED_SUCCESS": { "primitive": "ExecutionResultEnvelope", "families": ["MUTATION_TRUTH", "UNSUPPORTED_OPERATION"], "bugs": ["BUG-002", "BUG-018"] },
+    "FABRICATION_PERSISTENCE": { "primitive": "CanonicalRead", "families": ["CONVERSATION_HISTORY_CONFLICT", "AI_FRESH_GROUNDING"], "bugs": ["BUG-010"], "note": "intermittent 1/4; regression must sample N>=10" },
+    "EXECUTION_CLAIM_MISMATCH": { "primitive": "ExecutionResultEnvelope", "families": ["MUTATION_TRUTH"], "bugs": ["BUG-012"] },
+    "CONTRADICTORY_EXECUTION_CLAIM": { "primitive": "ExecutionResultEnvelope", "families": ["FAILURE_RECEIPT_TRUTH", "MUTATION_TRUTH"], "bugs": ["BUG-021"] },
+    "FALSE_NONEXISTENCE": { "primitive": "ContextCollectionEnvelope", "families": ["AI_FRESH_GROUNDING", "NAMED_ENTITY_OUTSIDE_CONTEXT_WINDOW"], "bugs": ["BUG-014", "BUG-020"] },
+    "GROUNDING_GAP": { "primitive": "ContextCollectionEnvelope", "families": ["NAMED_ENTITY_OUTSIDE_CONTEXT_WINDOW", "COLLECTION_TRUNCATION"], "bugs": ["BUG-017", "BUG-007"] },
+    "CONFIRMATION_MISBINDING": { "primitive": "PendingActionBinding", "families": ["PENDING_ACTION_CONFIRMATION", "BARE_YES_WITH_VALID_PENDING_ACTION", "MISSING_TARGET"], "bugs": ["BUG-005", "BUG-023"] },
+    "NON_CASCADE_ON_STATE_CHANGE": { "primitive": "ResourceLifecycle", "families": ["PARENT_ARCHIVED_CHILD_BEHAVIOR", "INVERSE_LIFECYCLE"], "bugs": ["BUG-013", "BUG-019"], "policy": "BLOCKED - PRODUCT POLICY UNDEFINED until founder decides cascade semantics" },
+    "ARCHIVED_PARENT_NOT_SURFACED": { "primitive": "ResourceLifecycle", "families": ["CROSS_SURFACE_TRUTH", "PARENT_ARCHIVED_CHILD_BEHAVIOR"], "bugs": ["BUG-001", "BUG-006", "BUG-016"] },
+    "SCOPE_INCONSISTENCY": { "primitive": "OrganizationContext_TenantAuthorization", "families": ["CROSS_ORG_ISOLATION", "CROSS_SURFACE_TRUTH"], "bugs": ["BUG-015"], "policy": "BLOCKED - PRODUCT POLICY UNDEFINED (selector meaning)" },
+    "LABEL_AFFORDANCE_TRUTH": { "primitive": "UI_Presentation_Only", "families": ["CROSS_SURFACE_TRUTH"], "bugs": ["BUG-011", "BUG-022"] },
+    "AUTHORIZATION_BYPASS": { "primitive": "OrganizationContext_TenantAuthorization", "families": ["UNAUTHORIZED_ACTOR", "FOREIGN_ORG_ACTOR"], "bugs": ["BUG-004 (closed)", "ANON-INVESTOR-RLS-HELPER (closed)"] }
+  }
+}

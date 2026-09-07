@@ -8,6 +8,10 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { P, RUNNER_DIR } from './paths.mjs';
+// Contract layer (qa/contracts/, added 2026-09-07). Static import: selectNextWork() is called
+// synchronously by the supervisor, so a dynamic import here would be a syntax error, not a
+// feature. contracts.mjs depends only on fs/path/paths.mjs - no cycle.
+import { loadContracts, inferChangedPrimitives, impactPlan } from './contracts.mjs';
 
 const readJson = (p, fallback = null) => {
   try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return fallback; }
@@ -84,6 +88,42 @@ export function selectNextWork(world, ctx = {}) {
         + 'regression that still fails means the fix is unproven regardless of what the fix report claims. '
         + 'Record the deployed SHA the evidence was gathered against.',
     };
+  }
+
+  // ---- 3b. IMPACT-BASED REGRESSION (added 2026-09-07, additive). When the deployed build has
+  // changed, map what changed (fix reports' changed_primitives, or hints in their text) through
+  // qa/contracts/CAPABILITY_IMPACT_REGISTRY.json and run the regression FAMILIES of the changed
+  // primitives before untested coverage. A changed execution primitive means broad AI-mutation
+  // regression; a CSS-only change never schedules long-context runs by itself. If nothing can be
+  // inferred the standing order below applies unchanged - the scheduler never guesses.
+  // buildChanged is derived from what the supervisor already passes (deployed SHA moved since the
+  // last tested one), so no supervisor change is needed; an explicit ctx.buildChanged still wins.
+  const buildChanged = ctx.buildChanged ?? (!!ctx.deployedSha && !!ctx.lastTestedDeployedSha && ctx.deployedSha !== ctx.lastTestedDeployedSha);
+  if (buildChanged && world.fixes.length) {
+    try {
+      const lib = loadContracts();
+      if (lib.present) {
+        const changed = [...new Set(world.fixes.flatMap((f) => inferChangedPrimitives(f, lib)))];
+        const plan = impactPlan(changed, lib, world.caps);
+        const key = changed.slice().sort().join('+');
+        if (changed.length && !plan.narrow_change && handoff.last_impact_plan_key !== key) {
+          return {
+            hasWork: true, state: 'RETEST_STARTING', kind: 'impact_regression', priority: 'P1',
+            impact_plan: plan, impact_plan_key: key,
+            label: 'Impact regression for changed primitives: ' + changed.join(', '),
+            directive: 'The deployed build changed and the fix reports touch these shared primitives: ' + changed.join(', ')
+              + '. Run the regression FAMILIES ' + plan.regression_families.join(', ') + ' (see qa/contracts/UNIVERSAL_TEST_PATTERNS.json) '
+              + 'against the affected capabilities (' + plan.affected_capabilities.slice(0, 12).join(', ') + (plan.affected_capabilities.length > 12 ? ', ...' : '') + '). '
+              + (plan.retest_bugs_first.length ? 'Retest these open bugs first: ' + plan.retest_bugs_first.join(', ') + '. ' : '')
+              + (plan.run_sql_persona_matrix_first ? 'A tenant/RLS primitive changed: run the qa/scenarios-runner persona matrix (rolled back) BEFORE browser work. ' : '')
+              + (plan.broad_ai_mutation_regression ? 'An execution primitive changed: run MUTATION_TRUTH on every Brain mutation path, not just the fixed one. ' : '')
+              + (plan.run_long_context ? 'CanonicalRead/PendingActionBinding changed: schedule the continuity probes in qa/contracts/CONTINUITY_INVARIANTS.json. ' : 'Do NOT run long-context tests for this change. ')
+              + 'Expected behaviour comes only from the contract oracle; scenarios whose policy is BLOCKED - PRODUCT POLICY UNDEFINED are recorded as observed behaviour, never judged. '
+              + 'When finished, set handoff.last_impact_plan_key = "' + key + '" in qa/HANDOFF_STATE.json so this plan is not rescheduled for the same build.',
+          };
+        }
+      }
+    } catch { /* contracts layer optional - fall through to the standing order */ }
   }
 
   // ---- 4. Regressions whose expected state should have flipped by now.

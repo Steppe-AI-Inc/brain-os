@@ -1,0 +1,166 @@
+{
+  "_doc": "Feature contracts: the smallest declaration from which QA can derive test obligations. Each contract lists states, transitions, inverses and flags; derivation_rules turn flags into UNIVERSAL_TEST_PATTERNS obligations (qa/runner/lib/contracts.mjs). feature_specific_tests are the domain scenarios that generic patterns do not replace. policy_status records whether the expected behaviour is founder/constitution-defined; where it is not, the oracle is BLOCKED - PRODUCT POLICY UNDEFINED and QA records observed behaviour without judging it. Nothing here overrides governance/ - the live RLS policy is reality.",
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-07T12:40:00Z",
+  "oracle_sources_available": {
+    "authorization": "governance/BRAIN_OS_CONSTITUTION.md, governance/capabilities/, governance/roles/, governance/policies/, governance/SECURITY_INVARIANTS.md, qa/SECURITY_MATRIX.md, qa/scenarios/CAPABILITY_MATRIX.md",
+    "risk": "governance/ACTION_RISK_LEVELS.md",
+    "data_classification": "governance/DATA_CLASSIFICATION.md",
+    "truth_and_evidence_discipline": "CLAUDE.md §§0-28",
+    "issue5_founder_suite": "qa/BUG_QUEUE.json BUG-005 regression_paths_required (items A-L)",
+    "lifecycle_semantics": "NOT DEFINED in governance/ as of 2026-09-07 (grep for archive/restore/lifecycle/parent/pending returned nothing). Contracts below mark these BLOCKED - PRODUCT POLICY UNDEFINED and cite the product's own dialog copy only as 'declared implementation behaviour', never as the oracle."
+  },
+  "derivation_rules": {
+    "_doc": "flag -> obligations. Applied by deriveObligations(). Always: MUTATION_TRUTH for any transition, RELOAD_TRUTH for any UI surface.",
+    "always_for_transitions": ["MUTATION_TRUTH", "RELOAD_TRUTH", "CROSS_SURFACE_TRUTH", "ALREADY_TARGET_STATE", "MISSING_TARGET"],
+    "has_inverse": ["INVERSE_LIFECYCLE"],
+    "tenant_scoped": ["CROSS_ORG_ISOLATION", "FOREIGN_ORG_ACTOR", "UNAUTHORIZED_ACTOR", "FRESH_SESSION_TRUTH"],
+    "brain_read": ["AI_FRESH_GROUNDING", "COLLECTION_TRUNCATION", "NAMED_ENTITY_OUTSIDE_CONTEXT_WINDOW"],
+    "brain_mutation": ["UNSUPPORTED_OPERATION", "FAILURE_RECEIPT_TRUTH", "PENDING_ACTION_CONFIRMATION", "BARE_YES_WITH_VALID_PENDING_ACTION", "BARE_YES_WITHOUT_PENDING_ACTION", "CONVERSATION_HISTORY_CONFLICT", "NAVIGATION_CONTINUITY", "CHANNEL_ISOLATION"],
+    "parent_resource": ["PARENT_ARCHIVED_CHILD_BEHAVIOR"],
+    "concurrent_editable": ["STALE_STATE"],
+    "long_conversation_surface": ["LONG_CONTEXT_CONTINUITY", "MULTI_TURN_EXECUTION_ALIGNMENT"],
+    "mobile_surface": ["MOBILE_BASIC_ACCEPTANCE"]
+  },
+  "contracts": {
+    "company_lifecycle": {
+      "entity": "company",
+      "states": ["ACTIVE", "ARCHIVED", "PERMANENTLY_DELETED"],
+      "transitions": [
+        { "from": "ACTIVE", "to": "ARCHIVED", "action": "archive", "surfaces": ["brain:archiveCompanyIds", "ui:/companies kebab 'Delete' (BUG-022 label)"] },
+        { "from": "ARCHIVED", "to": "ACTIVE", "action": "restore", "surfaces": ["brain:restoreCompanyIds", "ui:/companies/archived Restore"] },
+        { "from": "ARCHIVED", "to": "PERMANENTLY_DELETED", "action": "permanent_delete", "surfaces": ["ui:/companies/archived Permanently delete"], "risk": "irreversible" }
+      ],
+      "inverse": { "archive": "restore" },
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true, "parent_resource": true, "concurrent_editable": true },
+      "affected_surfaces": ["companies", "companies/archived", "people", "projects", "tasks", "goals", "departments", "selectors", "dashboard", "brain", "organization structure"],
+      "policy_status": {
+        "archive_restore_transition": "DEFINED (product capability; RLS/RPC archive_company per inventory note)",
+        "cascade_to_children_on_archive": "BLOCKED - PRODUCT POLICY UNDEFINED. Declared implementation behaviour (archive dialog): 'nothing attached to it is touched'. Charter expectation (CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN note): children must not present as actively attached. Founder decision required (BUG-013).",
+        "permanent_delete_with_dependents": "DEFINED by inventory note: must refuse if dependents exist. UNVERIFIED (permission-blocked from the Work-PC seat)."
+      },
+      "feature_specific_tests": ["people under archived company: badge + control behaviour", "manager links under archived company", "projects/tasks/goals under archived company", "invitations of people under archived company", "company pickers exclude/mark archived", "dashboard Active Companies count", "organization-structure panel", "Brain restore in fresh channel AND in the archive channel (BUG-014)"]
+    },
+    "person_employment": {
+      "entity": "person",
+      "states": ["EMPLOYED", "EMPLOYMENT_ENDED"],
+      "transitions": [
+        { "from": "EMPLOYED", "to": "EMPLOYMENT_ENDED", "action": "end_employment", "surfaces": ["ui:/people kebab End employment (confirm)"] },
+        { "from": "EMPLOYMENT_ENDED", "to": "EMPLOYED", "action": "restore_employment", "surfaces": ["ui:/people Restore employment (no confirm)"] }
+      ],
+      "inverse": { "end_employment": "restore_employment" },
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true, "parent_resource": true },
+      "affected_surfaces": ["people", "manager column of direct reports", "pickers (manager)", "brain", "kpi", "tasks (owner)"],
+      "policy_status": {
+        "direct_reports_of_ended_manager": "BLOCKED - PRODUCT POLICY UNDEFINED (BUG-019: link persists unflagged; no rule in governance/)"
+      },
+      "feature_specific_tests": ["direct reports' Manager cell after end", "manager picker excludes ended people", "Brain qualifies an ended manager", "restore symmetry"]
+    },
+    "manager_assignment": {
+      "entity": "person_assignment",
+      "states": ["NO_MANAGER", "HAS_MANAGER"],
+      "transitions": [
+        { "from": "NO_MANAGER", "to": "HAS_MANAGER", "action": "assign_manager", "surfaces": ["ui:/people Set manager", "brain:reassign_person"] },
+        { "from": "HAS_MANAGER", "to": "HAS_MANAGER", "action": "reassign_manager", "surfaces": ["ui:/people Set manager", "brain:reassign_person"], "semantics": "replace" }
+      ],
+      "inverse": { "assign_manager": "NOT AVAILABLE - sheet states 'can't be cleared from here yet' (BUG-011)" },
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true },
+      "affected_surfaces": ["people", "brain", "org chart"],
+      "policy_status": { "self_management_and_cycles": "BLOCKED - PRODUCT POLICY UNDEFINED (picker excludes self; cycles untested)", "cross_org_manager": "DEFINED by sheet copy 'per-organization' and verified: picker is org-scoped" },
+      "feature_specific_tests": ["picker org isolation (PASS)", "replace semantics (PASS)", "chat receipt names manager not company (BUG-012)", "clear manager path (missing)"]
+    },
+    "project_lifecycle": {
+      "entity": "project",
+      "states": ["ACTIVE", "DELETED"],
+      "transitions": [
+        { "from": null, "to": "ACTIVE", "action": "create", "surfaces": ["ui:/projects form", "brain:createProjects"] },
+        { "from": "ACTIVE", "to": "ACTIVE", "action": "edit", "surfaces": ["ui:/projects kebab Edit"], "brain_field_exists": false },
+        { "from": "ACTIVE", "to": "DELETED", "action": "delete", "surfaces": ["ui:/projects kebab Delete (alertdialog)"] }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true },
+      "affected_surfaces": ["projects", "goals", "dashboard", "brain", "company pickers"],
+      "policy_status": { "chat_rename": "DEFINED: no update field exists -> must decline (BUG-002 reopened)" },
+      "feature_specific_tests": ["archived-parent badge (PASS)", "chat rename must decline (BUG-002)", "delete then Brain non-existence (PASS)"]
+    },
+    "task_lifecycle": {
+      "entity": "task",
+      "states": ["QUEUED", "IN_PROGRESS", "NEEDS_APPROVAL", "DONE", "ARCHIVED"],
+      "transitions": [
+        { "from": null, "to": "QUEUED", "action": "create", "surfaces": ["ui:/tasks Add task", "brain:create task"] },
+        { "from": "*", "to": "*", "action": "move_status", "surfaces": ["ui:/tasks drag (dnd-kit pointer)"] },
+        { "from": "*", "to": "*", "action": "edit_fields", "surfaces": ["ui:/tasks click card"], "brain_field_exists": false }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true, "parent_resource": false },
+      "affected_surfaces": ["tasks", "approvals", "dashboard", "brain"],
+      "policy_status": { "approval_required_flag_creates_approval": "BLOCKED - PRODUCT POLICY UNDEFINED (flag alone creates no approval row; observed 12:10Z)", "named_task_lookup": "DEFINED by extension of 15e868a (CLAUDE.md §13) - BUG-017" },
+      "feature_specific_tests": ["archived-company task edit keeps company_id (PASS)", "picker shows archived company (BUG-016)", "newest task reachable by name (BUG-017)"]
+    },
+    "goal_lifecycle": {
+      "entity": "goal",
+      "states": ["DRAFT", "ACTIVE", "PAUSED", "ACHIEVED", "ARCHIVED"],
+      "transitions": [
+        { "from": "*", "to": "*", "action": "edit", "surfaces": ["ui:/goals/[id] ellipsis Edit"] },
+        { "from": "*", "to": "ARCHIVED", "action": "archive", "surfaces": ["ui:/goals/archived"] }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": false, "parent_resource": false },
+      "affected_surfaces": ["goals", "goals/[id]", "dashboard", "board", "brain"],
+      "policy_status": {},
+      "feature_specific_tests": ["goal detail shows archived parent marker (BUG-006 remainder)", "status tab counts vs detail badge"]
+    },
+    "department_lifecycle": {
+      "entity": "department",
+      "states": ["ACTIVE", "DELETED"],
+      "transitions": [
+        { "from": null, "to": "ACTIVE", "action": "create", "surfaces": ["ui:/departments form"] },
+        { "from": "ACTIVE", "to": "ACTIVE", "action": "rename", "surfaces": ["brain:update department", "ui:/departments kebab Edit"] },
+        { "from": "ACTIVE", "to": "DELETED", "action": "delete", "surfaces": ["ui:/departments kebab Delete"], "brain_field_exists": false }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true },
+      "affected_surfaces": ["departments", "goals scope", "board scope", "brain"],
+      "policy_status": { "departments_of_archived_company_visibility": "DEFINED by BUG-001 closure: hidden or marked" },
+      "feature_specific_tests": ["chat rename (PASS)", "chat delete must decline without offering another department (caveat)"]
+    },
+    "business_unit_parenting": {
+      "entity": "company_relationship",
+      "states": ["NO_PARENT", "HAS_PARENT"],
+      "transitions": [
+        { "from": "NO_PARENT", "to": "HAS_PARENT", "action": "set_parent", "surfaces": ["brain:'X is a business unit of Y'"], "ui_path_exists": false },
+        { "from": null, "to": "HAS_PARENT", "action": "create_bu_under", "surfaces": ["brain:create business unit under"], "ui_path_exists": false }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": true, "parent_resource": true },
+      "affected_surfaces": ["companies organization structure", "company Type", "selectors", "brain"],
+      "policy_status": { "type_change_without_relationship": "DEFINED by MUTATION_TRUTH: all-or-nothing (BUG-021 half-applies)" },
+      "feature_specific_tests": ["set parent on two active synthetic companies (BUG-021)", "create BU under active company (BUG-020)"]
+    },
+    "organization_context": {
+      "entity": "organization_selector",
+      "states": ["ALL", "ONE_ORG"],
+      "transitions": [{ "from": "*", "to": "*", "action": "switch", "surfaces": ["ui: sidebar Current organization"] }],
+      "flags": { "tenant_scoped": true, "brain_read": true },
+      "affected_surfaces": ["people", "projects", "goals", "companies", "dashboard", "brain"],
+      "policy_status": { "meaning_of_selection": "BLOCKED - PRODUCT POLICY UNDEFINED (BUG-015: view filter on 3 surfaces, ignored by 3). Founder must state whether the selector is a boundary or a filter." },
+      "feature_specific_tests": ["per-surface scoping matrix", "Brain awareness of selection", "persistence across navigation (PASS)"]
+    },
+    "brain_mutation_receipt": {
+      "entity": "brain_reply",
+      "states": [],
+      "transitions": [],
+      "flags": { "brain_mutation": true, "brain_read": true, "long_conversation_surface": true },
+      "affected_surfaces": ["brain"],
+      "policy_status": { "receipt_equals_diff": "DEFINED (issue #5 item L; CLAUDE.md §10-11)" },
+      "feature_specific_tests": ["multi-action receipt (PASS)", "manager vs company receipt (BUG-012)", "undo receipt (BUG-018)", "contradictory receipt (BUG-021)", "substitute binding receipt (BUG-023)"]
+    },
+    "approval_decision": {
+      "entity": "approval",
+      "states": ["PENDING", "APPROVED", "REJECTED"],
+      "transitions": [
+        { "from": "PENDING", "to": "APPROVED", "action": "approve", "surfaces": ["ui:/approvals", "rpc:decide_approval"] },
+        { "from": "PENDING", "to": "REJECTED", "action": "reject", "surfaces": ["ui:/approvals", "rpc:decide_approval"] }
+      ],
+      "flags": { "tenant_scoped": true, "brain_read": true, "brain_mutation": false },
+      "affected_surfaces": ["approvals", "dashboard", "tasks", "work orders", "audit"],
+      "policy_status": { "decide_executes_deferred_action_exactly_once": "DEFINED (CLAUDE.md §9, acceptance test 7; sc059/sc063)", "who_can_decide_per_domain": "DEFINED (governance/capabilities, qa/scenarios/CAPABILITY_MATRIX.md)", "payload_immutability": "KNOWN GAP #15 (SC-060)" },
+      "feature_specific_tests": ["synthetic approval generation path (BLOCKED from Work PC)", "duplicate decide", "domain authorization matrix"]
+    }
+  }
+}

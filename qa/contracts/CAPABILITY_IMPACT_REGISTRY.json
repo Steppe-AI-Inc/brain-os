@@ -1,0 +1,86 @@
+{
+  "_doc": "Shared primitive -> affected capabilities/contracts -> required regression families (UNIVERSAL_TEST_PATTERNS keys). Input to impact-based scheduling after a deployment: qa/runner/lib/contracts.mjs impactPlan() maps a fix report's changed_primitives (preferred) or files_changed (matched against file_path_hints) to the families and capabilities to retest FIRST. A changed execution primitive triggers broad AI-mutation regression; a CSS-only change does not trigger long-context runs unless impact says so. Fix reports currently carry no changed_primitives field - the Home PC is asked to add one (see qa/contracts/README.md).",
+  "schema_version": "1.0.0",
+  "created_at": "2026-09-07T12:40:00Z",
+  "primitives": {
+    "ExecutionResultEnvelope": {
+      "description": "How a Brain mutation's actual result is represented and rendered as a receipt.",
+      "file_path_hints": ["supabase/functions/sem-ai-command/", "receipt", "executionResult", "work_orders.output"],
+      "affected_contracts": ["brain_mutation_receipt", "company_lifecycle", "person_employment", "manager_assignment", "project_lifecycle", "task_lifecycle", "department_lifecycle", "business_unit_parenting"],
+      "affected_capabilities_glob": ["CAP-*-CHAT", "CAP-*-CHAT-ABSENT", "CAP-CHAT-*"],
+      "regression_families": ["MUTATION_TRUTH", "FAILURE_RECEIPT_TRUTH", "PENDING_ACTION_CONFIRMATION", "UNSUPPORTED_OPERATION"],
+      "open_bugs": ["BUG-002", "BUG-012", "BUG-018", "BUG-021", "BUG-023"],
+      "blast_radius_when_changed": "BROAD - every Brain mutation path"
+    },
+    "CanonicalRead": {
+      "description": "How Brain answers state questions from live data (context pack assembly, grounding precedence).",
+      "file_path_hints": ["buildContext", "contextPack", "conversationHistory", "sem-ai-command/index.ts"],
+      "affected_contracts": ["brain_mutation_receipt", "organization_context", "company_lifecycle", "person_employment"],
+      "affected_capabilities_glob": ["CAP-ISSUE5-*", "CAP-ENTITY-RESOLUTION-*", "CAP-*-CHAT"],
+      "regression_families": ["AI_FRESH_GROUNDING", "CONVERSATION_HISTORY_CONFLICT", "MULTI_TURN_EXECUTION_ALIGNMENT", "LONG_CONTEXT_CONTINUITY"],
+      "open_bugs": ["BUG-005", "BUG-010", "BUG-014"],
+      "blast_radius_when_changed": "BROAD - every Brain read and every continuity invariant"
+    },
+    "ContextCollectionEnvelope": {
+      "description": "Capped entity collections in the context pack and their metadata (returnedCount/totalCount/isTruncated) plus named-entity lookups.",
+      "file_path_hints": [".limit(", "namedCompanyLookupQuery", "namedPersonLookupQuery", "packMemories", "context_budget"],
+      "affected_contracts": ["task_lifecycle", "company_lifecycle", "person_employment", "project_lifecycle"],
+      "affected_capabilities_glob": ["CAP-*-CHAT", "CAP-CHAT-*"],
+      "regression_families": ["COLLECTION_TRUNCATION", "NAMED_ENTITY_OUTSIDE_CONTEXT_WINDOW", "AI_FRESH_GROUNDING"],
+      "open_bugs": ["BUG-007", "BUG-017", "BUG-020"],
+      "blast_radius_when_changed": "MEDIUM-BROAD - every entity type with a capped list"
+    },
+    "ResourceLifecycle": {
+      "description": "archive/restore/end/restore state machines and the archived-parent policy applied to children.",
+      "file_path_hints": ["archive_company", "restore", "ArchivedCompanyBadge", "effectivelyActive", "org_effective_active", "end_employment", "active=false"],
+      "affected_contracts": ["company_lifecycle", "person_employment", "project_lifecycle", "task_lifecycle", "goal_lifecycle", "department_lifecycle"],
+      "affected_capabilities_glob": ["CAP-COMPANY-*", "CAP-PERSON-END-*", "CAP-PERSON-RESTORE-*", "CAP-CASCADE-*", "CAP-*-ARCHIVE*", "CAP-*-RESTORE*"],
+      "regression_families": ["INVERSE_LIFECYCLE", "PARENT_ARCHIVED_CHILD_BEHAVIOR", "CROSS_SURFACE_TRUTH", "ALREADY_TARGET_STATE"],
+      "open_bugs": ["BUG-001", "BUG-006", "BUG-013", "BUG-014", "BUG-016", "BUG-019", "BUG-022"],
+      "blast_radius_when_changed": "BROAD across hierarchical resources"
+    },
+    "OrganizationContext_TenantAuthorization": {
+      "description": "Organization selector semantics, has_company_access, RLS scopes, persona authorization.",
+      "file_path_hints": ["has_company_access", "organization", "RLS", "policies", "_select_scope", "_scope"],
+      "affected_contracts": ["organization_context", "company_lifecycle", "person_employment", "manager_assignment", "project_lifecycle", "task_lifecycle", "goal_lifecycle", "department_lifecycle", "approval_decision"],
+      "affected_capabilities_glob": ["CAP-SECURITY-*", "CAP-ORG-*", "CAP-BROWSER-PERSONA-*", "CAP-RELOAD-FRESH-SESSION-TRUTH"],
+      "regression_families": ["CROSS_ORG_ISOLATION", "FOREIGN_ORG_ACTOR", "UNAUTHORIZED_ACTOR", "FRESH_SESSION_TRUTH"],
+      "runner_scripts": ["qa/scenarios-runner/sc056_cross_company_isolation.sql", "qa/scenarios-runner/sc071_create_wrong_company.sql", "qa/scenarios-runner/sc118_resource_operations_matrix.sql", "qa/scenarios-runner/investor_viewer_scope.sql"],
+      "open_bugs": ["BUG-015"],
+      "blast_radius_when_changed": "SECURITY-BROAD - all tenant-scoped resources; run the SQL persona matrix first"
+    },
+    "PendingActionBinding": {
+      "description": "How a clarification's pending action is stored and how affirmatives bind to it (pending_action_id, actionType, canonical ids).",
+      "file_path_hints": ["pendingAction", "resolveClarificationField", "isClarificationAffirmative", "CLARIFICATION_ENTITY_ACTION_FIELD"],
+      "affected_contracts": ["brain_mutation_receipt", "company_lifecycle", "person_employment", "manager_assignment"],
+      "affected_capabilities_glob": ["CAP-ISSUE5-*", "CAP-ENTITY-RESOLUTION-CLASS-B"],
+      "regression_families": ["PENDING_ACTION_CONFIRMATION", "BARE_YES_WITH_VALID_PENDING_ACTION", "BARE_YES_WITHOUT_PENDING_ACTION", "NAVIGATION_CONTINUITY", "CHANNEL_ISOLATION"],
+      "open_bugs": ["BUG-005", "BUG-023"],
+      "blast_radius_when_changed": "BROAD across every confirmable Brain action"
+    },
+    "ApprovalEngine": {
+      "description": "Approval creation, domain authorization, decide_approval idempotency and deferred execution.",
+      "file_path_hints": ["decide_approval", "approvals", "approval_required", "approvals_update_approver"],
+      "affected_contracts": ["approval_decision", "task_lifecycle"],
+      "affected_capabilities_glob": ["CAP-APPROVAL-*"],
+      "regression_families": ["MUTATION_TRUTH", "UNAUTHORIZED_ACTOR", "ALREADY_TARGET_STATE"],
+      "runner_scripts": ["qa/scenarios-runner/sc059_approval_execution.sql", "qa/scenarios-runner/sc059b_live_decide_approval.sql", "qa/scenarios-runner/sc057_manager_not_cfo.sql", "qa/scenarios-runner/sc060_payload_immutability_gap.sql"],
+      "open_bugs": [],
+      "blast_radius_when_changed": "GOVERNANCE-CRITICAL"
+    },
+    "UI_Presentation_Only": {
+      "description": "CSS, copy, layout changes with no data/logic path.",
+      "file_path_hints": [".css", "tailwind", "className", "copy", "label"],
+      "affected_contracts": [],
+      "affected_capabilities_glob": [],
+      "regression_families": ["RELOAD_TRUTH", "CROSS_SURFACE_TRUTH"],
+      "open_bugs": ["BUG-011", "BUG-022"],
+      "blast_radius_when_changed": "NARROW - do not schedule long-context runs from this alone"
+    }
+  },
+  "scheduling_policy": {
+    "_doc": "Order applied by the scheduler when a deployment changes (impactPlan()).",
+    "order": ["P0/P1 bugs READY_FOR_RETEST", "regression families of changed primitives", "capabilities matching affected_capabilities_glob of changed primitives", "high-risk universal patterns (CROSS_ORG_ISOLATION, UNAUTHORIZED_ACTOR, MUTATION_TRUTH, PENDING_ACTION_CONFIRMATION)", "broader regression", "remaining NOT_TESTED", "exploratory / generated scenarios"],
+    "long_context_trigger": "only when changed primitives include CanonicalRead or PendingActionBinding, or a fix report explicitly names continuity"
+  }
+}

@@ -98,6 +98,21 @@ const ledger = {
   headline: `Required capabilities: ${required} | PASS: ${totals.PASS} | FAIL: ${totals.FAIL} | FLAKY: ${totals.FLAKY} | BLOCKED: ${totals.BLOCKED} | NOT TESTED: ${totals.NOT_TESTED} -> ${releaseState}`,
 };
 
+// ADDITIVE (2026-09-07): richer coverage dimensions derived from qa/contracts/. The capability
+// denominator, formula, release-state rule and headline above are deliberately untouched so the
+// historical trend stays comparable. If the contracts layer is absent this block is simply omitted.
+try {
+  const { loadContracts, dimensionCoverage } = await import("./lib/contracts.mjs");
+  const lib = loadContracts();
+  if (lib.present) {
+    const bugs = JSON.parse(readFileSync(join(qaDir, "BUG_QUEUE.json"), "utf8")).bugs ?? [];
+    ledger.dimensions = dimensionCoverage(lib, caps, bugs);
+    ledger.dimensions.capability_coverage_pct_unchanged = coveragePct;
+  }
+} catch (e) {
+  ledger.dimensions = { _doc: "contracts layer not computed: " + String(e.message).slice(0, 160) };
+}
+
 writeFileSync(join(qaDir, "COVERAGE_LEDGER.json"), JSON.stringify(ledger, null, 2) + "\n");
 console.log(ledger.headline);
 console.log(`coverage: ${coveragePct}% (${executed}/${required} executed)`);
