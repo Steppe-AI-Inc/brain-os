@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:45:05Z",
+  "last_updated": "2026-09-07T12:45:46Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -580,7 +580,7 @@
         "people": "20 total / 20 shown - matches /people (20). BELOW the limit(30) window: latent, not proven fixed (per campaign directive).",
         "projects": "8 total / 8 shown - matches /projects (8). Below window: latent.",
         "companies": "21 total / 12 shown - Shown/Total pair correct; active/archived split fabricated (BUG-024).",
-        "goals": "9 total / 9 shown - /goals tabs show \"all 8\"; archived-goals count checked separately to settle the difference of 1.",
+        "goals": "9 total / 9 shown - VERIFIED CORRECT: /goals tabs \"all 8\" + /goals/archived 1 (QA-VERIFY-GOAL, archived 8/29/2026) = 9. Below window: latent.",
         "remaining_per_directive": "Create fixtures to push people past 30 and projects/goals/inventory past their windows, then re-ask. Not done today (fixture volume); left QUEUED as PARTIAL on the campaign item."
       }
     },
