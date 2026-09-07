@@ -76,7 +76,7 @@
    "command": "I decided not to archive Alpha",
    "name": "Alpha Holdings",
    "calls": [],
-   "report": "Alpha: more than one company matches — please pick one.",
+   "report": null,
    "final": "active"
   },
   {

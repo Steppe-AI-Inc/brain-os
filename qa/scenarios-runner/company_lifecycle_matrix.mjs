@@ -191,6 +191,16 @@ const verified = (t) => t.evidence.filter((e) => e.ok);
   check('D4 "restore Archived Assets Ltd": exactly one restore RPC, ends active, no stray archive question', t7.calls.length === 1 && t7.calls[0][0] === 'restore_company' && t7.calls[0][1] === R && t7.db.find((r) => r.id === R).status === 'active' && !t7.pendingAction && !/more than one|pick one/.test(t7.report || ''), JSON.stringify({ calls: t7.calls, pa: t7.pendingAction, report: t7.report }));
   const t8 = await turn({ command: 'archive Restored Furniture Co', db: [{ id: R, name: 'Restored Furniture Co', status: 'active' }, ...DB()] });
   check('D4 "archive Restored Furniture Co": exactly one archive RPC, ends archived', t8.calls.length === 1 && t8.calls[0][0] === 'archive_company' && t8.db.find((r) => r.id === R).status === 'archived', JSON.stringify(t8.calls));
+  // V57-D4: an exact-named row whose longest word is a generic suffix shared by 50+ other rows is still found.
+  const G = 'abababab-6666-6666-6666-666666666666';
+  const crowded = [...Array.from({ length: 60 }, (_, i) => ({ id: 'cdcdcdcd-0000-0000-0000-' + String(i).padStart(12, '0'), name: 'Filler ' + i + ' Holdings', status: 'active' })), { id: G, name: 'AB Holdings', status: 'archived' }, ...DB()];
+  const t10 = await turn({ command: 'restore company AB Holdings', db: crowded });
+  check('D4 exact name is found behind 60 rows sharing its longest word', t10.calls.length === 1 && t10.calls[0][1] === G && t10.db.find((r) => r.id === G).status === 'active', JSON.stringify({ calls: t10.calls, report: t10.report }));
+  // V57-D6a: a polite question with the model emitting nothing is a request, not a read.
+  const t11 = await turn({ command: 'could you please restore QA-SWARM-TEST-CO-VIA-CHAT?' });
+  check('D6a a polite lifecycle question executes (model emitted nothing)', t11.calls.length === 1 && t11.calls[0][1] === A && t11.db.find((r) => r.id === A).status === 'active', JSON.stringify(t11.calls));
+  const t12 = await turn({ command: 'did we restore QA-SWARM-TEST-CO-VIA-CHAT?' });
+  check('D6a a genuine question still never executes', t12.calls.length === 0, JSON.stringify(t12.calls));
   // The model's own structured parse of the request is a name source (language-independent).
   const t9 = await turn({ command: 'QA-SWARM-TEST-CO-VIA-CHAT компанийг сэргээ', result: { requestIntent: { kind: 'mutation', action: 'restore', entityType: 'company', targetName: 'QA-SWARM-TEST-CO-VIA-CHAT' } } });
   check('requestIntent.targetName resolves a restore in another language', t9.calls.length === 1 && t9.calls[0][1] === A && t9.db.find((r) => r.id === A).status === 'active', JSON.stringify(t9.calls));

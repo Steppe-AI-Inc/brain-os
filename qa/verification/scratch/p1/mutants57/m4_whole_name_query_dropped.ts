@@ -3427,7 +3427,7 @@ serve(async (req) => {
             const { data: wholeRows } = await supabase.from('companies').select('id,name,status').ilike('name', wholePattern).limit(50);
             const seenIds: Set<string> = new Set();
             const rows: CompanyLookupRow[] = [];
-            for (const r of [...((candidates || []) as CompanyLookupRow[]), ...((wholeRows || []) as CompanyLookupRow[])]) { if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); } }
+            for (const r of [...((candidates || []) as CompanyLookupRow[])]) { if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); } }
             const exact = rows.filter((r) => normaliseName(r.name) === target);
             let pick: CompanyLookupRow[] = exact;
             let fuzzy = false;

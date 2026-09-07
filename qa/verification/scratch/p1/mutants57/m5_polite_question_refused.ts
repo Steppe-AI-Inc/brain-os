@@ -3390,7 +3390,7 @@ serve(async (req) => {
         // turn, no model lifecycle field, and the model's own classification (when present) is a mutation.
         const commandLower = String(command || '').toLowerCase();
         const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
-          && !/^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|please)\b/.test(commandLower);
+;
         const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|not|no longer|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
           || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,2}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
           || /^\s*(?:i|we|they|he|she|someone|somebody|(?!(?:archive|archiving|restore|restoring|delete|deleting|remove|removing|unarchive|reactivate|bring|end|ending|please|pls|kindly|just|now|ok|okay|also|then|and)\b)[a-z]+)\s+(?:have |has |had |already |just |recently |also |accidentally |mistakenly )*(?:archived|deleted|removed|restored|ended|reactivated|unarchived)\b/.test(commandLower);

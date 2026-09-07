@@ -5502,7 +5502,7 @@ serve(async (req) => {
         const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
         const lexiconObject = (MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) ? ((commandText.match(/\b(creat|make|add|register|set|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard)\w*/i) || [])[0] || 'update') : null;
         const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject) ? String(lexiconAlways || lexiconPassive || lexiconObject).toLowerCase() : null;
-        const lexiconReadVetoed = lexiconVerb !== null && (readShaped || modelIntentKind === 'read' || modelIntentKind === 'other');
+        const lexiconReadVetoed = lexiconVerb !== null && (readShaped || modelIntentKind === 'read');
         // Primary intent, in authority order. The lexicon-only case is decided after the belt exists.
         const requestedIntentPrimary: MutationIntent | null = modelMutationField
           ? { verb: modelIntentAction || lexiconVerb, field: modelMutationField }
