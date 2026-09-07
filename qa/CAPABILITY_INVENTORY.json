@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:51:07Z",
+  "generated_at": "2026-09-07T11:52:57Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -412,9 +412,14 @@
         "AI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 3
+      "scenario_ids": [
+        "C002-orgbu"
+      ],
+      "status": "FAIL",
+      "campaign_1_item": 3,
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-021",
+      "evidence": "Fresh channel 8fd059d3-5aa3-491b-ba6b-3234387f6738, the product's own helper phrasing: \"QA-C002-RENAMED-X is a business unit of QA-MULTI-CO.\" (both REGISTERED, active). Reply: \"1 of 1 requested company relationship(s) could not be created - missing a valid company reference or invalid owner/related-company combination.\\nQA-C002-RENAMED-X is now recorded as a business unit of QA-MULTI-CO.\" DB at 11:52:57Z: /companies Type for QA-C002-RENAMED-X changed Legal entity -> Business unit; Organization structure panel shows NO \"Business unit of\" link between the two (both still top-level). Partial mutation; contradictory receipt."
     },
     {
       "capability_id": "CAP-ORGBU-CREATE-UI-MISSING",

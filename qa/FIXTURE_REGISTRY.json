@@ -265,7 +265,8 @@
       "purpose": "Second ACTIVE synthetic company for parent-change tests (CAP-ORGBU-CHANGE-PARENT-CHAT).",
       "cleanup": "RETAIN.",
       "registered_at": "2026-09-07T11:48:25Z",
-      "environment": "production"
+      "environment": "production",
+      "state_note": "Type changed to Business unit (no parent) by the BUG-021 probe at 2026-09-07T11:52:57Z. Revert via /companies Edit -> Type when retired."
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
