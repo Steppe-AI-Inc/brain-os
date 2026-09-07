@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:46:50Z",
+  "generated_at": "2026-09-07T11:47:36Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -422,10 +422,15 @@
       "required_truth_axes": [
         "UI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-orgbu"
+      ],
+      "status": "PASS",
       "campaign_1_item": 3,
-      "expected_behavior": "PARITY PROBE: the company Edit dialog says 'Use chat to set which company it sits under.' Verify whether that is genuinely true or a UI dead-end. A human-authorized operation with no UI path is a parity defect per charter rules."
+      "expected_behavior": "PARITY PROBE: the company Edit dialog says 'Use chat to set which company it sits under.' Verify whether that is genuinely true or a UI dead-end. A human-authorized operation with no UI path is a parity defect per charter rules.",
+      "tested_against_sha": "8521b0e",
+      "probe_outcome": "CONFIRMED PARTIAL. /companies \"Add company\" form = Name, Country, Description only (no type, no parent). The row Edit dialog offers Type (legal entity / business unit etc.) but its own helper text states: \"Use chat to set which company it sits under ('X is a business unit of Y')\". The \"Organization structure\" panel renders existing \"Business unit of\" links read-only. So the UI can create a company and mark its type, but the PARENT relationship is chat-only.",
+      "evidence": "Live inspection 2026-09-07 11:47Z of /companies add form and Edit dialog; structure panel lists e.g. \"CLIX GPS - Business unit of ...\", \"SEM Global Robotics Technologies LLC - 100% owned by SEM LLC\"."
     },
     {
       "capability_id": "CAP-PERSON-EDIT-UI",
