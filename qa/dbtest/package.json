@@ -5,6 +5,7 @@
   "description": "Disposable validation harness for supabase/migrations. PGlite (real PostgreSQL in WASM) gives fast integration smoke evidence; DBTEST_PG_URL points the SAME harnesses at a real PostgreSQL server (CI service container) for the security layer.",
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "yaml": "^2.9.0"
   }
 }
