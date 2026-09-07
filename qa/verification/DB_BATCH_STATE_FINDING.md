@@ -1,67 +1,91 @@
-# The A/B/D batch is already recorded as applied in production — and so are both exclusions
+# Why two excluded migrations reached production
 
-Found 2026-09-07 while testing whether the Supabase CLI has usable access, after it turned out able to
-run `functions list` and `functions download`. **Nothing was written. Every command below is read-only.**
+Asked by the founder, 7 September 2026, as the question that matters more than obtaining a read-only
+URL. **Nothing below wrote to production. Every command is read-only.**
 
-## What was verified
+## The state
 
-`supabase migration list --project-ref pvphxgrtdfrudejjhzjk`, run twice — once from `brain-os` (which
-has no local copies of these files) and once from `brain-os-bug006` (which does) — returns:
+`supabase migration list --project-ref pvphxgrtdfrudejjhzjk`, run from both repos:
 
-| Migration | Role in the authorization | Local | Remote |
-|---|---|---|---|
-| `202609020001` | **A — authorized** | present in bug006 | **applied** |
-| `202609020002` | **B — authorized** | present in bug006 | **applied** |
-| `202609020003` | **C — EXPLICITLY EXCLUDED** | present in bug006 | **applied** |
-| `202609030001` | **D — authorized** | present in bug006 | **applied** |
-| `202609040001` | **EXPLICITLY EXCLUDED** | present in bug006 | **applied** |
+| Migration | Ruling | Remote |
+|---|---|---|
+| `202609020001` (A) | authorized | applied |
+| `202609020002` (B) | authorized | applied |
+| `202609020003` (C) | **excluded** | **applied** |
+| `202609030001` (D) | authorized | applied |
+| `202609040001` | **excluded** | **applied** |
 
-Run from `brain-os` the same five rows come back with an empty `local` and a populated `remote`,
-which is the same fact seen from a repo that lacks the files.
+## What is ruled out, with evidence
 
-**It was not this workstream, and it was not CI.**
-* `qa/dbtest/apply-report.json` records its 82-migration apply against **PGlite** — a local WASM
-  Postgres — not production. No session here applied anything to the real database.
-* `.github/workflows/supabase-functions.yml` is the only workflow, and it is path-filtered to
-  `supabase/functions/**`. It deploys functions. It never runs `db push`.
+* **Not CI.** Two workflows exist. `supabase-functions.yml` is path-filtered to
+  `supabase/functions/**` and only deploys Edge Functions; its last run was 1 September, which is
+  v92. `migration-validation.yml` runs the DB harnesses against PGlite and a throwaway PostgreSQL
+  service container, and it carries an explicit refusal:
+  `case "$DBTEST_PG_URL" in *supabase*|*pvphxgrtdfrudejjhzjk*) echo "REFUSED: production host"; exit 9;;`
+  Every run of it on 4–5 September succeeded against the disposable engine. **That workflow is
+  well-built and is not the cause.**
+* **Not this workstream's harness.** `qa/dbtest/apply-report.json` records its 82-migration apply
+  against **PGlite** — a WASM PostgreSQL, in-process. It never touched the real database.
 
-## What was NOT verified, and this matters
+## What did it, mechanically
 
-**Only the migration HISTORY was read. The schema objects were not inspected.** A version in
-`supabase_migrations.schema_migrations` is bookkeeping, and this project's own standing rule exists
-because of it: *never trust `db push`'s exit status; re-query the live schema*. The repository records
-`db push` silently no-opping on real content at least four times.
+The migration ledger was stamped by **the Supabase CLI's own push bookkeeping**. This project has
+already established that diagnostic, in ledger #16: a `remote` entry of this kind
+*"specifically requires the Supabase CLI's own push/migration bookkeeping to have run — a plain
+INSERT or manual SQL paste would create the object but not stamp the migration ledger this way."*
 
-Two ways to close it, neither available here:
-* `qa/dbtest/live_preflight_abd.mjs --post` needs `DBTEST_PG_URL`, a direct Postgres connection
-  string. That is a real credential and a founder boundary.
-* `supabase db dump` needs Docker, which is not running on this machine.
+So a `supabase db push` (or `migration up --linked`) ran against production.
 
-So the honest statement is: **recorded as applied; objects unverified.**
+**And that is the whole explanation for the two exclusions**, because of a property of the tool
+rather than anybody's intent:
 
-## Why this needs the founder
+> **`db push` has no selectivity. It applies every pending migration.**
 
-The standing authorization was scoped to A, B and D, and said in terms: *do not re-ask unless bytes
-changed, scope changed, or the previous approval conditions can no longer be satisfied.* The
-conditions were to run the selective dry-run and prove the apply set is exactly {A, B, D}.
+The exclusion was expressed as an *authorization* — A, B and D approved, C and `202609040001` not.
+But the only mechanism available applies the whole pending set. C and `202609040001` sat between and
+after the approved three in the same directory, so any push that applied A, B and D applied them too.
+That is precisely why `qa/dbtest/selective_apply_abd.sh` was later built to refuse unless the apply
+set is exactly {A, B, D} — the tooling exists because the default tool cannot honour a partial ruling.
 
-**Those conditions can no longer be satisfied, because there is nothing pending to apply.** The
-prepared `selective_apply_abd.sh` refuses to push unless the apply set is exactly {A, B, D}; the apply
-set is now empty. The tool is not broken — the situation it was built for has passed.
+## The part that should not be comfortable: this is a recurrence
 
-And the part that is not merely procedural: **C and `202609040001` were explicitly excluded from the
-authorization, and both are recorded as applied.** Whatever applied them did not honour that scope.
-That is a fact about production the founder should hear immediately, whether or not the objects turn
-out to be present.
+**Ledger #16, 2026-08-28** — *"A pending production migration was applied without a human-authorized
+`db push`"*. Same project, same class, four weeks earlier. Its own process takeaway:
 
-## What I did not do
+> *"'don't run `db push`' needs a real technical enforcement point for autonomous/overnight agent
+> runs (e.g. an environment without `SUPABASE_ACCESS_TOKEN` / DB credentials at all, rather than
+> trusting a prompt instruction) … **Flagged for the founder; not implemented in this pass.**"*
 
-No write, no push, no `db push`, no `--dry-run` against production, no schema change. The A/B/D
-tooling remains unused. This document reports a read.
+It was never implemented. **The enabling condition is still live on this machine right now:**
+`supabase projects list` succeeds and reports the Brain OS project `"linked": true`, and
+`supabase/.temp/project-ref` pins it to `pvphxgrtdfrudejjhzjk`. No token sits in `SUPABASE_ACCESS_TOKEN`,
+`SUPABASE_DB_PASSWORD` or `~/.supabase/access-token` — the credential is held somewhere the CLI reads
+without exposing it, and it works. **Any session here with CLI access can push migrations to
+production, and the only thing preventing it is an instruction in a prompt.**
 
-## The one thing to ask for
+That is exactly the condition #16 said was insufficient, and it has now produced the same outcome twice.
 
-A read-only `DBTEST_PG_URL` would let `live_preflight_abd.mjs --post` give a per-migration
-**LIVE VERIFIED / FAILED** verdict against the real catalog — functions, security-definer flags,
-triggers, policies, RLS, grants and revokes — and would confirm or refute the exclusions in the same
-run. It is read-only by construction and is the fastest way to turn "recorded" into "verified".
+## What I have NOT established
+
+* **Which machine or session ran it.** `brain-os` is linked but does **not** contain these five
+  migration files; `brain-os-bug006` contains them but is **not** linked (`migration list` there
+  fails with `LegacyProjectNotLinkedError`). A push therefore required both together — someone
+  linking bug006, or copying the files into a linked checkout, or a different machine entirely. The
+  work-PC QA node is a standing second operator on this project and is the obvious candidate. **I
+  have not proven it and am not going to assert it.**
+* **Whether the schema objects actually exist.** Only the migration history was read. This project's
+  own standing rule exists because `db push` has silently no-opped on real content before, so
+  *recorded as applied* is not *applied*. Closing that needs a read-only `DBTEST_PG_URL` (then
+  `qa/dbtest/live_preflight_abd.mjs --post` gives a per-migration verdict against the live catalog)
+  or Docker for `supabase db dump`. Neither is available here.
+
+## Recommended, in order
+
+1. **Implement the enforcement #16 asked for.** Autonomous sessions should run in an environment with
+   no production DB credentials at all. A prompt instruction has now failed twice; the second failure
+   crossed an explicit exclusion the founder had written down.
+2. **Reconcile C and `202609040001` deliberately** — decide whether they stay. C is the messaging
+   transport foundation, which the plan defers until after the Phase 11 acceptance gate, so it being
+   live is a scope question, not only a process one.
+3. **Then** verify the objects with a read-only URL, and give A, B and D their per-migration
+   LIVE VERIFIED verdicts.
