@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 type OnboardingPlan = {
   roleSummary: string;
@@ -37,7 +38,7 @@ export async function generateOnboardingPlan(personId: string): Promise<string |
   const supabase = await createClient();
   const { data: person, error: personError } = await supabase
     .from("people")
-    .select("id, full_name, role_title, company_id, companies(name, status)")
+    .select(`id, full_name, role_title, company_id, ${COMPANY_REF}`)
     .eq("id", personId)
     .single();
   if (personError || !person) return "Person not found.";

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: activeOrganizationId scopes PRDs/tickets to the currently selected
 // organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
@@ -10,7 +11,7 @@ export async function getProductSpecs(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("product_specs")
-    .select("id, title, status, body_md, company_id, companies(name, status), created_at")
+    .select(`id, title, status, body_md, company_id, ${COMPANY_REF}, created_at`)
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;
@@ -22,7 +23,7 @@ export async function getSoftwareTickets(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("tasks")
-    .select("id, title, status, priority, company_id, companies(name, status)")
+    .select(`id, title, status, priority, company_id, ${COMPANY_REF}`)
     .eq("source", "software_factory")
     .order("created_at", { ascending: false })
     .limit(20);

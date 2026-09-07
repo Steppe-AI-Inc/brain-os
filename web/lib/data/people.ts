@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // BUG-001 (Work-PC QA campaign C001): live-confirmed on this exact surface - a person
 // whose company was archived rendered as an ordinary active row, no indication at all
@@ -30,16 +32,16 @@ export async function getPeople(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("people")
-    .select("id, full_name, email, role_title, company_id, active, profile_id, companies(name, status)")
+    .select(`id, full_name, email, role_title, company_id, active, profile_id, ${COMPANY_REF}`)
     .order("full_name");
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;
   if (error) throw error;
-  if (data.length === 0) return data.map((p) => ({ ...p, manager_name: null as string | null }));
+  if (data.length === 0) return data.map((p) => ({ ...p, manager_name: null as string | null, manager_person_id: null as string | null }));
 
   const { data: assignments } = await supabase
     .from("person_assignments")
-    .select("person_id, operating_company_id, is_primary, state, manager:people!person_assignments_manager_person_id_fkey(full_name)")
+    .select("person_id, operating_company_id, is_primary, state, manager_person_id, manager:people!person_assignments_manager_person_id_fkey(full_name)")
     .in(
       "person_id",
       data.map((p) => p.id)
@@ -51,7 +53,9 @@ export async function getPeople(activeOrganizationId?: string | null) {
       forThisCompany.find((a) => a.is_primary && a.state === "current") ??
       forThisCompany.find((a) => a.state === "current") ??
       forThisCompany[0];
-    return { ...p, manager_name: best?.manager?.full_name ?? null };
+    // BUG-011 (Work-PC, 2026-09-07): the set-manager sheet must show and pre-select the
+    // current manager it says it will replace — the id rides along with the name.
+    return { ...p, manager_name: best?.manager?.full_name ?? null, manager_person_id: best?.manager_person_id ?? null };
   });
 }
 
@@ -261,27 +265,17 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // people.active=false, never touches the person identity row or its history. Same
 // RPC-result-shape convention as archiveCompany()/restoreCompany() above.
 export async function endPersonEmployment(id: string) {
-  if (!UUID_RE.test(id)) return "Invalid person id.";
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("end_person_employment", { p_person_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "End employment failed — no result returned.";
-  if (result.reason === "not_found") return "This person no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to end this person's employment.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "end_person_employment", idParam: "p_person_id", id, entityType: "person", action: "end_employment", requestedValues: { active: false } });
+  if (userMessage) return userMessage;
   revalidatePath("/people");
   return null;
 }
 
 export async function restorePersonEmployment(id: string) {
-  if (!UUID_RE.test(id)) return "Invalid person id.";
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("restore_person_employment", { p_person_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Restore failed — no result returned.";
-  if (result.reason === "not_found") return "This person no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to restore this person's employment.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "restore_person_employment", idParam: "p_person_id", id, entityType: "person", action: "restore_employment", requestedValues: { active: true } });
+  if (userMessage) return userMessage;
   revalidatePath("/people");
   return null;
 }

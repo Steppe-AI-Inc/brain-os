@@ -4,7 +4,7 @@ import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getDepartments } from "@/lib/data/departments";
 import { getProjects } from "@/lib/data/projects";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { DocumentCreateForm } from "./document-create-form";
 import { DocumentsTree } from "./documents-tree";
@@ -14,10 +14,7 @@ export const maxDuration = 30;
 
 export default async function DocumentsPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [documents, companies, departments, projects] = await Promise.all([
     getDocuments(scopeToActiveOrg),
     getCompaniesForSelection(),

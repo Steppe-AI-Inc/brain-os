@@ -3,17 +3,14 @@ import { ListChecks, Archive } from "lucide-react";
 import { getTasks, getCurrentPersonId } from "@/lib/data/tasks";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { TasksBoard } from "./tasks-board";
 
 export default async function TasksPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [tasks, companies, currentPersonId] = await Promise.all([
     getTasks(scopeToActiveOrg),
     getCompaniesForSelection(),

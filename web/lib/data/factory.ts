@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Software Factory Control Center data layer (Phase 7). Every query here reads real,
 // already-live canonical state (public.canonical_work_orders, public.tasks,
@@ -300,7 +301,7 @@ export async function getRecentWorkOrders(limit = 20): Promise<FactoryWorkOrderR
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("canonical_work_orders")
-    .select("id, title, objective, work_type, status, priority, company_id, goal_id, created_at, companies(name, status), goals(title), tasks(id)")
+    .select(`id, title, objective, work_type, status, priority, company_id, goal_id, created_at, ${COMPANY_REF}, goals(title), tasks(id)`)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -353,7 +354,7 @@ export async function getWorkOrderDetail(id: string): Promise<FactoryWorkOrderDe
   const { data: wo, error: woError } = await supabase
     .from("canonical_work_orders")
     .select(
-      "id, title, objective, work_type, status, priority, company_id, goal_id, owner_agent_id, acceptance_criteria, created_at, companies(name, status), goals(title)"
+      `id, title, objective, work_type, status, priority, company_id, goal_id, owner_agent_id, acceptance_criteria, created_at, ${COMPANY_REF}, goals(title)`
     )
     .eq("id", id)
     .maybeSingle();

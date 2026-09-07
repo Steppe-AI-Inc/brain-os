@@ -186,6 +186,7 @@ export const REQUEST_SIDE_DEFAULTS = [
   "if (typeof globalThis.workOrder === 'undefined') globalThis.workOrder = { id: 'wo-harness' };",
   "if (typeof globalThis.requestedIntent === 'undefined') globalThis.requestedIntent = null;",
   "if (typeof globalThis.executedVerifiedCount === 'undefined') globalThis.executedVerifiedCount = 0;",
+  "if (typeof globalThis.knownEntityNames === 'undefined') globalThis.knownEntityNames = new Set();",
 ].join('\n');
 /** Request-side defaults only — for a window that already declares the completion patterns itself. */
 export function withRequestSideDefaults(slice) {

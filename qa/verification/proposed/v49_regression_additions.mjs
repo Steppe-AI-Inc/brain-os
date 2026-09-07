@@ -9,6 +9,12 @@ import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildGate, buildMatcher, extractConst } from '../lib/belt_extract.mjs';
+// P1 (2026-09-07, governance/OPERATING_TRUTH_MODEL.md §3): the consumer windows read request-side
+// names. This suite's rows are mutation-intent turns; the belt is measured behind that intent.
+globalThis.command = 'archive ACME Holdings'; globalThis.factLines = []; globalThis.lifecycleReports = [];
+globalThis.organizationGraphCheck = null; globalThis.workOrder = { id: 'wo-harness' };
+globalThis.requestedIntent = { verb: 'archive', field: null }; globalThis.executedVerifiedCount = 0;
+
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 function findUp(rel) {
@@ -51,7 +57,10 @@ const candBelt = (s, names, pa) => new Function('readsAsCompletion', 'result', '
 const candDestroys = (s, { names = [], pa = false } = {}) => (!pa && life(s)) || (!pa && CAND_FUTURE.test(s) && !(CAND_GUARD && CAND_GUARD.test(s))) || candBelt(s, names, pa);
 
 let pass = 0, fail = 0; const failing = [];
+const SUPERSEDED_BY_FOUNDER = new Set(["V49-C3","V49-D1"]);
+const SUPERSEDED_NOTE = "founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)";
 function check(kind, id, desc, fn) {
+  if ([...SUPERSEDED_BY_FOUNDER].some((p) => String(id).startsWith(p))) { console.log('SKIP  [SUPERSEDED] ' + id + ' — ' + SUPERSEDED_NOTE); return; }
   let ok = false, why = '';
   try { const r = fn(); ok = r === true || (r && r.ok === true); why = r && r.why ? r.why : ''; } catch (e) { ok = false; why = 'threw: ' + e.message; }
   if (ok) { pass++; console.log('ok    [' + kind.padEnd(8) + '] ' + id + ' — ' + desc); }

@@ -23,6 +23,16 @@ export function scopeQuery<Q extends { eq: (column: string, value: string) => Q 
   return query;
 }
 
+/**
+ * The page rule: a user with more than one membership sees the active company only; the
+ * "All Organizations" sentinel and single-membership users keep the unscoped (RLS-only) query.
+ * Returns the company id to filter on, or null for no page-level filter.
+ */
+export function scopeToActiveOrganization(context: Pick<OrganizationContext, "activeOrganizationId" | "memberships">): string | null {
+  const scope = resolveOrgScope(context);
+  return context.memberships.length > 1 && scope.kind === "company" ? scope.companyId : null;
+}
+
 /** For in-memory rows (already RLS-scoped) — the same rule applied client-side. */
 export function inScope(scope: OrgScope, companyId: string | null | undefined): boolean {
   if (scope.kind === "all") return true;

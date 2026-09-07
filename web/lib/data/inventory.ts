@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: activeOrganizationId scopes Inventory to the currently selected
 // organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
@@ -11,7 +12,7 @@ export async function getInventory(activeOrganizationId?: string | null) {
   let query = supabase
     .from("inventory_items")
     .select(
-      "id, sku, quantity_on_hand, reserved_quantity, reorder_point, location, company_id, companies(name, status), product_lines(name)"
+      `id, sku, quantity_on_hand, reserved_quantity, reorder_point, location, company_id, ${COMPANY_REF}, product_lines(name)`
     )
     .order("sku");
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);

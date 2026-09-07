@@ -2,7 +2,7 @@ import { Users } from "lucide-react";
 import { getPeople } from "@/lib/data/people";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { PersonCreateForm } from "./person-create-form";
 import { PeopleTable } from "./people-table";
@@ -13,10 +13,7 @@ export default async function PeoplePage() {
   // Multi-membership users see People scoped to their active organization (real
   // behavior change per the org selector's own requirement). A user with exactly one
   // membership keeps the identical result either way, so this is invisible to them.
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [people, companies] = await Promise.all([getPeople(scopeToActiveOrg), getCompaniesForSelection()]);
 
   return (

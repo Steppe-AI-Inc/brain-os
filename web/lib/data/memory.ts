@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Overnight multi-org milestone: activeOrganizationId scopes Memory to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —
@@ -13,7 +14,7 @@ export async function getMemories(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("memories")
-    .select("id, fact, entity_type, sensitivity, confidence, created_at, company_id, companies(name, status)")
+    .select(`id, fact, entity_type, sensitivity, confidence, created_at, company_id, ${COMPANY_REF}`)
     .order("created_at", { ascending: false })
     .limit(50);
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);

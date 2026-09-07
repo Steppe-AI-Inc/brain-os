@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: the pre-existing optional company filter is now the canonical
 // activeOrganizationId parameter, same pattern as getPeople() in lib/data/people.ts —
@@ -10,7 +11,7 @@ export async function getEngineeringDrawings(activeOrganizationId?: string | nul
   const supabase = await createClient();
   let query = supabase
     .from("engineering_drawings")
-    .select("id, company_id, title, description, svg_content, dimensions_summary, notes, created_at, companies(name, status)")
+    .select(`id, company_id, title, description, svg_content, dimensions_summary, notes, created_at, ${COMPANY_REF}`)
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;

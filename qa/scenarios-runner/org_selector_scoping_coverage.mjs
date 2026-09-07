@@ -65,7 +65,9 @@ for (const rel of SURFACES) {
   try { src = readFileSync(resolve(WEB, rel), 'utf8').replace(/\r\n/g, '\n'); } catch { /* counts as failing all */ }
   const computes = /const scopeToActiveOrg\s*=/.test(src);
   const passes = /\(\s*scopeToActiveOrg\s*[,)]/.test(src);
-  const sentinel = /activeOrganizationId !== ALL_ORGANIZATIONS_ID/.test(src);
+  // P1: pages resolve scope through scopeToActiveOrganization (lib/data/org-scope.ts), which treats the
+  // sentinel as unscoped inside the helper; the hand-written comparison is the legacy form.
+  const sentinel = /activeOrganizationId !== ALL_ORGANIZATIONS_ID/.test(src) || /scopeToActiveOrganization\(organizations\)/.test(src);
   if (!computes) notComputing.push(rel);
   else {
     if (!passes) notPassing.push(rel);

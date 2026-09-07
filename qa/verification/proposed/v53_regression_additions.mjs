@@ -7,6 +7,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+// P1 (2026-09-07, governance/OPERATING_TRUTH_MODEL.md §3): the consumer windows read request-side
+// names. This suite's rows are mutation-intent turns; the belt is measured behind that intent.
+globalThis.command = 'archive ACME Holdings'; globalThis.factLines = []; globalThis.lifecycleReports = [];
+globalThis.organizationGraphCheck = null; globalThis.workOrder = { id: 'wo-harness' };
+globalThis.requestedIntent = { verb: 'archive', field: null }; globalThis.executedVerifiedCount = 0;
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const H = await import('file://' + join(HERE, '..', 'scratch', 'v53', 'harness.mjs').replace(/\\/g, '/'));
 const ROOT = (() => { let d = HERE; for (let i = 0; i < 8; i++) { if (existsSync(join(d, 'supabase', 'functions', 'sem-ai-command', 'index.ts'))) return d; d = dirname(d); } return null; })();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // unit_cost lives in product_costs (manager+ RLS), not on product_lines — fetched as a
 // separate query (mirrors getPersonAiPolicies' pattern) rather than a PostgREST embed,
@@ -18,7 +19,7 @@ export async function getProductLines(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let linesQuery = supabase
     .from("product_lines")
-    .select("id, name, description, currency, unit_price, active, company_id, companies(name, status)")
+    .select(`id, name, description, currency, unit_price, active, company_id, ${COMPANY_REF}`)
     .order("name");
   if (activeOrganizationId) linesQuery = linesQuery.eq("company_id", activeOrganizationId);
   const [{ data, error }, { data: costs }] = await Promise.all([

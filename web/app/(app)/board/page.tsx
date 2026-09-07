@@ -1,7 +1,7 @@
 import { Kanban } from "lucide-react";
 import { getGoals } from "@/lib/data/goals";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { BoardColumns } from "./board-columns";
 
@@ -13,10 +13,7 @@ export default async function BoardPage() {
   // Goals — same entity, same active-org selection, but this page showed every goal RLS
   // allowed regardless of the selector. Same pattern as every other scoped page.
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const goals = await getGoals(scopeToActiveOrg);
 
   return (

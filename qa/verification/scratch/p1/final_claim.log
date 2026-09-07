@@ -1,0 +1,64 @@
+FAIL A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:null] -> receipt, no success claim
+FAIL A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:[]] -> receipt, no success claim
+FAIL A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Rename project Alpha to Beta"
+FAIL A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:null] -> receipt, no success claim
+FAIL A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:[]] -> receipt, no success claim
+FAIL A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Rename project Alpha to Beta"
+FAIL A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:null] -> receipt, no success claim
+FAIL A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:[]] -> receipt, no success claim
+FAIL A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "rename project Alpha to Beta"
+FAIL A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:null] -> receipt, no success claim
+FAIL A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:[]] -> receipt, no success claim
+FAIL A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Please rename the project Alpha to Beta"
+OK   A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:null] -> receipt, no success claim
+FAIL A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:[]] -> receipt, no success claim
+FAIL A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Approve approval 123 now. Confirm when done."
+OK   A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:null] -> receipt, no success claim
+FAIL A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:[]] -> receipt, no success claim
+FAIL A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Delete department Sales permanently"
+FAIL A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:null] -> receipt, no success claim
+FAIL A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:[]] -> receipt, no success claim
+FAIL A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "archive company ACME"
+FAIL A "Archive ACME" / "Done — ACME archived." [claims:null] -> receipt, no success claim
+FAIL A "Archive ACME" / "Done — ACME archived." [claims:[]] -> receipt, no success claim
+FAIL A "Archive ACME" / "Done — ACME archived." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Archive ACME"
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:null] -> receipt, no success claim
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:[]] -> receipt, no success claim
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "assign task QA-1 to Bob"
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:null] -> receipt, no success claim
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:[]] -> receipt, no success claim
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "set the manager of Alice to Bob"
+OK   B bare "yes" + fabricated execution -> receipt
+FAIL B "option 2" + fabricated completion -> receipt
+OK   C verified archive claim survives (rendered from structure)
+OK   C an UNVERIFIED postcondition never supports the claim
+OK   D truthful history recount + question on a READ request survives verbatim
+OK   D state answer on a read request survives
+OK   D plain read answer untouched
+<anonymous_script>:350
+            const namePrefixHit = ((__a) => { let __best = 0; let __acc = ''; const __re = /\s+[^\s]+/g; for (let __k = 0; __k < 16; __k++) { const __m = __re.exec(__a); if (__m === null || __m.index !== __acc.length) break; __acc += __m[0]; if (knownEntityNames.has((mm[0] + __acc).replace(/[.,;:!?]+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase())) __best = __acc.length; } return __best; })(after); const nameInternal = (namePrefixHit > 0 || (capLead && subjectRun) || ((__r) => __r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase()))(/^(?:\s+[A-Z][\w&.'’-]*)+/.exec(after)) || ((__l) => __l !== null && knownEntityNames.has((mm[0] + __l[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase()))(/^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/.exec(after))) && !/\bnor\b/.test(c); if (nameInternal) { const __hit = [/^(?:\s+[A-Z][\w&.'’-]*)+/, /^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/].map((__re) => __re.exec(after)).map((__r) => (__r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase())) ? __r[0].length : 0).concat([namePrefixHit]).sort((__a, __b) => __b - __a)[0]; if (__hit) { scan.lastIndex = mm.index + mm[0].length + __hit; continue; } }
+                                                                                                                                                                                                                                                  ^
+
+ReferenceError: knownEntityNames is not defined
+    at eval (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:350:243)
+    at completionIsNegated (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:350:402)
+    at eval (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:375:2193)
+    at Array.some (<anonymous>)
+    at eval (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:375:2180)
+    at readsAsCompletion (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:376:4236)
+    at eval (eval at <anonymous> (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:34:12), <anonymous>:380:42)
+    at run (file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:43:10)
+    at file:///C:/Users/Dell/dev/brain-os/qa/scenarios-runner/architecture_final_claim_contract.mjs:115:13
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+
+Node.js v24.19.0

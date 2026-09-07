@@ -20,7 +20,7 @@ concepts:
       - supabase/functions/sem-ai-command/index.ts (every recordExecution site, work_orders.output.executionLedger)
       - web/app/(app)/chat
     ai_interactions: [archive, restore, create, update, rename, assign, reassign, delete, approve]
-    regression_families: [architecture_mutation_envelope_contract, architecture_final_claim_contract, mutation_claim_requires_verified_execution, mutation_receipt_equals_ledger, lifecycle_evidence_and_output_persistence_contract]
+    regression_families: [architecture_mutation_envelope_contract, architecture_final_claim_contract, lifecycle_evidence_and_output_persistence_contract, structured_claim_verification, structured_claim_laundering_contract]
 
   mutation_receipt:
     description: founder-facing account of a turn's mutations rendered from envelopes; never silent on a mutation-intent turn
@@ -30,7 +30,7 @@ concepts:
     surfaces:
       - supabase/functions/sem-ai-command/index.ts (summary assembly)
     ai_interactions: [all mutation intents]
-    regression_families: [mutation_receipt_equals_ledger, mutation_claim_requires_verified_execution]
+    regression_families: [mutation_receipt_equals_ledger, architecture_final_claim_contract]
 
   collection_envelope:
     description: "{items, shown, total, truncated}" for every collection shown to the model or a page
@@ -42,7 +42,7 @@ concepts:
       - supabase/functions/sem-ai-command/index.ts (context pack, counts)
       - web/app/(app)/dashboard
     ai_interactions: [counts, summaries, "how many", lists]
-    regression_families: [architecture_collection_envelope_contract, collection_envelope_every_pack_collection]
+    regression_families: [architecture_collection_envelope_contract, dashboard_company_count_excludes_archived]
 
   grounding_precedence:
     description: receipt > fresh canonical > durable channel state > history > prose
@@ -53,7 +53,7 @@ concepts:
     surfaces:
       - supabase/functions/sem-ai-command/index.ts (conversationHistory, chat_channel_state read)
     ai_interactions: [current-state questions, follow-ups after a mutation]
-    regression_families: [grounding_precedence_canonical_over_history, pending_action_precedence_contract]
+    regression_families: [grounding_precedence_canonical_over_history, run11_defect_closure_contract, current_turn_and_continuity_contract]
 
   company_lifecycle:
     description: archive/restore via the canonical RPCs with server-side target resolution across statuses
@@ -69,7 +69,7 @@ concepts:
       - supabase/functions/sem-ai-command/index.ts (archive/restoreCompanyIds executor)
     selectors: [company pickers on people, projects, tasks, goals, departments, documents, leads]
     ai_interactions: [archive company, restore company, is X archived]
-    regression_families: [company_lifecycle_matrix, company_lifecycle_truth, bug014, architecture_lifecycle_rpc_only_contract]
+    regression_families: [company_lifecycle_matrix, sem_ai_command_company_restore_truth, architecture_lifecycle_rpc_only_contract, lifecycle_evidence_and_output_persistence_contract, company_archive_ownership, tenant_authorization_lifecycle]
 
   archived_parent_policy:
     description: one policy for descendants of an archived / inactive / deleted parent
@@ -88,7 +88,7 @@ concepts:
       - web/app/(app)/sales
     selectors: [manager picker, assignee pickers, company pickers]
     ai_interactions: [assign, invite, onboard, create under company]
-    regression_families: [architecture_archived_parent_policy_contract, archived_parent_policy, people_mark_archived_parent_company]
+    regression_families: [architecture_archived_parent_policy_contract, people_mark_archived_parent_company, departments_hide_or_mark_archived_parent, company_ref_no_bare_name_join]
 
   manager_assignment:
     description: replacement semantics, no self-management, visible current manager, reasoned empty picker
@@ -99,7 +99,7 @@ concepts:
     surfaces:
       - web/app/(app)/people
     ai_interactions: [set manager, reassign manager]
-    regression_families: [mutation_receipt_equals_ledger, bug011, bug012]
+    regression_families: [mutation_receipt_equals_ledger, manager_set_ui_canonical_write, architecture_archived_parent_policy_contract]
 
   org_scope:
     description: organization scope resolved once through resolveOrgScope()
@@ -109,18 +109,18 @@ concepts:
     entity_types: [all org-scoped]
     surfaces:
       - every web/app/(app)/* page that lists org-scoped rows
-    regression_families: [architecture_org_scope_helper_contract]
+    regression_families: [architecture_org_scope_helper_contract, org_selector_scoping_coverage]
 
   pending_action:
     description: durable structured channel state for disambiguation / confirmation; never grounds a completion claim
     homes:
-      - supabase/migrations/202609020001_chat_channel_state.sql
+      - supabase/migrations/202609020001_chat_channel_state_durable_conversation.sql
       - supabase/functions/sem-ai-command/index.ts
     entity_types: [chat_channel]
     surfaces:
       - web/app/(app)/chat
     ai_interactions: [option 2, yes, confirm, cancel]
-    regression_families: [pending_action_precedence_contract, run8, run10, run11, run12, run13, run14, run15, run16, run19, run28]
+    regression_families: [grounding_precedence_canonical_over_history, issue5_confirmation_action_type_binding, run8, run10, run11, run12, run13, run14, run15, run16, run19, run28]
 
 # Known lifecycle-completeness gaps (not done; registered so they are not forgotten):
 gaps:

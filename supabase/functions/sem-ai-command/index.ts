@@ -3342,8 +3342,8 @@ serve(async (req) => {
         const lifecycleDisambiguation: LifecycleDisambiguation[] = [];
         const commandMentionsCompany = /\b(compan(?:y|ies)|business unit|subsidiar(?:y|ies)|holding|entity|org(?:anization)?s?|brand|department)\b/i.test(String(command || ''));
         async function resolveCompanyLifecycleTargets(action: string, rawIds: unknown, rawNames: unknown, commandName: string | null): Promise<string[]> {
-          const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x): x is string => typeof x === 'string' && COMPANY_UUID_RE.test(x)))];
-          const names: string[] = [...new Set((Array.isArray(rawNames) ? rawNames : []).filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim().slice(0, 120)))];
+          const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x) => typeof x === 'string' && COMPANY_UUID_RE.test(x)) as string[])];
+          const names: string[] = [...new Set(((Array.isArray(rawNames) ? rawNames : []).filter((x) => typeof x === 'string' && x.trim().length > 0) as string[]).map((x) => x.trim().slice(0, 120)))];
           const resolved: Set<string> = new Set();
           if (ids.length > 0) {
             const { data } = await supabase.from('companies').select('id,name,status').in('id', ids);
@@ -3384,12 +3384,15 @@ serve(async (req) => {
           const name = after.split(/[.,;!?\n]|\s+(?:and|then|please|now|again|from|to|so|because)\s+/i)[0]
             .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
             .replace(/\s+(?:company|business unit|entity)$/i, '')
+            .replace(/\s+(?:now|please|again|immediately|asap|today|right away)$/i, '')
             .trim();
           return name.length >= 2 && name.length <= 80 && !/^(it|them|that|this|those|these|him|her)$/i.test(name) ? name : null;
         };
-        const archiveCompanyIds = await resolveCompanyLifecycleTargets('archive', result.archiveCompanyIds, result.archiveCompanyNames,
+        const requestedArchiveIds = Array.isArray(result.archiveCompanyIds) ? result.archiveCompanyIds as unknown[] : [];
+        const requestedRestoreIds = Array.isArray(result.restoreCompanyIds) ? result.restoreCompanyIds as unknown[] : [];
+        const archiveCompanyIds = await resolveCompanyLifecycleTargets('archive', requestedArchiveIds, result.archiveCompanyNames,
           ARCHIVE_VERB_PATTERN.test(String(command || '')) && !RESTORE_VERB_PATTERN.test(String(command || '')) ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
-        const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', result.restoreCompanyIds, result.restoreCompanyNames,
+        const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', requestedRestoreIds, result.restoreCompanyNames,
           RESTORE_VERB_PATTERN.test(String(command || '')) ? lifecycleCommandName(RESTORE_VERB_PATTERN) : null);
 
         // ==================================================================================
@@ -4276,7 +4279,7 @@ serve(async (req) => {
         // NOT verified — it can never support a success claim. A deleted task's postcondition
         // is the inverse: the row must no longer be readable.
         async function verifyRowsExist(table: string, ids: unknown[]): Promise<Set<string>> {
-          const wanted: string[] = ids.filter((x): x is string => typeof x === 'string' && x.length > 0);
+          const wanted: string[] = ids.filter((x) => typeof x === 'string' && x.length > 0) as string[];
           const seen: Set<string> = new Set();
           if (wanted.length === 0) return seen;
           try {
@@ -5388,7 +5391,7 @@ serve(async (req) => {
         // A bare confirmation ("yes", "ok", "go ahead", "option 2") is a request to execute
         // what was pending — mutation intent by construction (the live E-multi shape: a
         // bare "yes" answered "Confirmed. Executing the plan…" with zero database changes).
-        const CONFIRMATION_COMMAND = /^s*(?:yes|y|yes please|ok|okay|confirm|confirmed|go ahead|do it|proceed|sure|please do|options*d+|the (?:first|second|third|last) one|d+)s*[.!]?s*$/i;
+        const CONFIRMATION_COMMAND = /^\s*(?:yes|y|yes please|ok|okay|confirm|confirmed|go ahead|do it|proceed|sure|please do|option\s*\d+|the (?:first|second|third|last) one|\d+)\s*[.!]?\s*$/i;
         const commandText = String(command || '');
         const intentVerb: string | null = ((commandText.match(MUTATION_INTENT_ALWAYS) || [])[1]
           || (MUTATION_ENTITY_NOUN.test(commandText) ? (commandText.match(MUTATION_INTENT_WITH_ENTITY) || [])[1] : null)
@@ -6151,7 +6154,10 @@ serve(async (req) => {
         const receiptExempt = model === 'deterministic-confirmation' || model === 'deterministic-plan-execution'
           || model === 'deterministic-clarification' || model === 'deterministic-disambiguation' || !!organizationGraphCheck;
         let receiptRendered = false;
-        if (requestedIntent !== null && executedVerifiedCount === 0 && lifecycleReports.length === 0 && !receiptExempt && !rewriteFromStructure) {
+        // A model-claimed mutation that the ledger does not hold is already rendered as a specific
+        // rejected-claim line by the structural re-render; the receipt covers every other shape
+        // (no claims, an empty claims array, state-only claims, pending questions).
+        if (requestedIntent !== null && executedVerifiedCount === 0 && lifecycleReports.length === 0 && !receiptExempt && !hasMutationShapedClaim && !hasRejectedClaims) {
           const pa = result.pendingAction && typeof result.pendingAction === 'object' ? result.pendingAction as Record<string, unknown> : null;
           const pendingQuestion = pa ? String(pa.question || pa.summary || '').trim() : '';
           const failed = claimExecutionEvidence.find((e) => e.error) || null;
@@ -6170,7 +6176,8 @@ serve(async (req) => {
             : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? 'I could not resolve which company you meant (searched the active and archived companies you can access)'
             : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'
             : 'that request did not resolve to an operation I can execute from chat';
-          result.summary = [...factLines, `No change was made — ${reason}.`, pendingQuestion].filter(Boolean).join(' ');
+          const receiptPrefix = typeof deterministicPrefix === 'string' && deterministicPrefix.trim().length > 0 ? deterministicPrefix.trim() : factLines.join(' ');
+          result.summary = [receiptPrefix, `No change was made — ${reason}.`, pendingQuestion].filter(Boolean).join(' ');
           receiptRendered = true;
         }
         for (const e of claimExecutionEvidence) if (!e.request_id) e.request_id = workOrder.id;

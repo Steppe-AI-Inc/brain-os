@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: activeOrganizationId scopes Approvals to the currently selected
 // organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
@@ -13,7 +14,7 @@ export async function getApprovals(activeOrganizationId?: string | null) {
   let query = supabase
     .from("approvals")
     .select(
-      "id, title, reason, status, risk_level, domain, decision_notes, approval_payload, created_at, decided_at, companies(name, status)"
+      `id, title, reason, status, risk_level, domain, decision_notes, approval_payload, created_at, decided_at, ${COMPANY_REF}`
     )
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);

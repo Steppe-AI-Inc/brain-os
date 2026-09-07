@@ -4,7 +4,7 @@ import { getGoals } from "@/lib/data/goals";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getDepartments } from "@/lib/data/departments";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { GoalComposer } from "./goal-composer";
@@ -12,10 +12,7 @@ import { GoalList } from "./goal-list";
 
 export default async function GoalsPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [goals, companies, departments] = await Promise.all([
     getGoals(scopeToActiveOrg),
     getCompaniesForSelection(),

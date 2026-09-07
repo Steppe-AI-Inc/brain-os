@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // BUG-001 (Work-PC QA campaign C001): joins to companies(name, status) alone give the UI
 // nothing to render an archived-parent indicator from - a department whose company was
@@ -18,7 +19,7 @@ export async function getDepartments(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let departmentsQuery = supabase
     .from("departments")
-    .select("id, name, slug, company_id, created_at, companies(name, status)")
+    .select(`id, name, slug, company_id, created_at, ${COMPANY_REF}`)
     .order("created_at", { ascending: false });
   let goalsQuery = supabase.from("goals").select("department_id").eq("status", "active");
   if (activeOrganizationId) {

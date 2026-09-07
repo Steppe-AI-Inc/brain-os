@@ -2,7 +2,7 @@ import { Ruler } from "lucide-react";
 import { getEngineeringDrawings } from "@/lib/data/engineering";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { DrawingGeneratorForm } from "./drawing-generator-form";
 import { DrawingList } from "./drawing-list";
@@ -16,10 +16,7 @@ export const maxDuration = 120;
 
 export default async function EngineeringPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [drawings, companies] = await Promise.all([getEngineeringDrawings(scopeToActiveOrg), getCompaniesForSelection()]);
 
   return (

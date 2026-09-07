@@ -14993,3 +14993,134 @@ material list; the rest were pointers or history.
 enforcement side (architecture contracts under `qa/scenarios-runner/architecture_*`,
 shared types under `web/lib/contracts/` and `supabase/functions/_shared/`) lands with the
 P1 package that follows.
+
+
+## 120. BUG-010 (P1) — a fabricated mutation claim contaminated the same channel's later reads (GROUNDING_PRECEDENCE) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Found by** the Work PC, 2026-09-07 (`qa/BUG_QUEUE.json` BUG-010; channels e7fd21c6 vs 1ea479c7), against
+deployed `sem-ai-command` v92: asked for the "exact current title as stored in the database right now",
+Brain returned its own earlier false claim; the identical question in a fresh channel returned the DB
+truth. Same account, build, model and query — channel history was the only variable.
+
+**Root cause (structural, not prompt).** Three things at once: (1) `work_orders.output` was persisted only
+when a correction gate had fired, so an uncorrected fabrication stayed as the RPC's `p_output` snapshot
+and re-entered the next turn's `conversationHistory` as fact; (2) history entries were bare
+`{command, summary}` with no verdict, placed beside the canonical arrays with only prose telling the model
+which to trust; (3) the durable `chat_channel_state` row was read LAST in the pending-action precedence,
+behind the previous turn's stored output. An explicit anti-guess instruction did not rescue it — the prompt
+cannot outrank data it is handed without a marker.
+
+**Fix (P1 package, `governance/OPERATING_TRUTH_MODEL.md` §2/§3).** Persist the verified envelope, the
+execution ledger and a `turnVerdict` on EVERY turn; history entries carry `verified /
+executedOperationCount / rejectedClaimCount`, and a turn that carried mutation intent (or rejected claims)
+with zero executed operations enters history as `[UNVERIFIED — no database change was executed on that
+turn]` unless its persisted summary is already the deterministic receipt; the durable channel-state row
+outranks the stored output; the prompt states the five-tier precedence as a binding rule and requires an
+explicit "an earlier message said X; the current data shows Y" on contradiction.
+
+**Search performed for the same class.** Every consumer of `work_orders.output` in the Edge function
+(history, `lastTurnOutput`, `recentlyResolvedEntities`, `recentlyDeletedEntities`) — the two entity
+threads carry canonical ids from the RPC and are unaffected; the pending-action read was the other
+instance and is fixed in the same change. Web: `chat-history.ts` reads `output.summary` for display only.
+
+**Regression.** `qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs` (executes the real
+narrative mapping and the real precedence expression), `architecture_mutation_envelope_contract.mjs`
+(persist-every-turn + verdict), `run11_defect_closure_contract.mjs` (durable-first). Status: FIX PREPARED
+on the P1 candidate; not deployed; the Work PC reruns BUG-010's A/B and alone closes it.
+
+## 121. BUG-014 (P1) — company restore failed both ways; "may have been permanently deleted" (CONTEXT_WINDOW_AS_UNIVERSE) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Found by** the Work PC, 2026-09-07 (BUG-014; fixture `QA-SWARM-TEST-CO-VIA-CHAT`
+`7ba01ff2-6404-4c06-8bc5-4449b50df5de`, left archived on purpose). Fresh channel: "does not appear to
+exist — may have been permanently deleted". Archiving channel: "restored." with the DB unchanged. The
+same command had worked on 2026-09-02 on the same build — state-dependent, not a regression.
+
+**Root cause.** The companies pack was `.limit(12)` with no status filter and no order (20 companies, 10
+archived — which 12 appeared was arbitrary); the prompt said absence from `context.companies` "is real
+signal it does not currently exist … permanently deleted"; the other prompt passage told the model to
+"resolve by name from whatever context you have" (history); and the executor filtered
+`restoreCompanyIds` by `contextCompanyIds.has(id)` — an id from history outside the window was silently
+dropped, zero RPC calls ran, `archiveRestoreReport` was null, and the model's own "restored." shipped.
+The RPC itself (`restore_company`, 202608280013) was never called and is sound.
+
+**Fix (`governance/CANONICAL_WORK_CONTRACT.md` §1-§2).** Server-side target resolution under the
+caller's RLS across every status: model ids re-read, model names (`restoreCompanyNames` /
+`archiveCompanyNames`, new schema fields), and the command's own name when the model resolved nothing;
+one hit executes, several hits arm a disambiguation, zero hits say so — the turn is never silent. The
+context-window gate is gone; both prompt passages are replaced (absence is never non-existence). The pack
+carries `companies` (active, newest first) and `archivedCompanies` (archived, newest first) as two
+collection envelopes. Web: `/companies` shows "Archived (N)" so the Restore affordance is discoverable;
+UI and chat converge on the same RPC through `callLifecycleRpc`.
+
+**Search performed for the same class.** `contextCompanyIds.has` still gates *creation* against
+archived targets and permanent fixture deletion (correct: those must not target unseen rows);
+`contextArchivedTaskIds` / `contextTaskIds` gate task archive/restore the same way — registered in
+`docs/architecture/CAPABILITY_IMPACT_REGISTRY.yaml` as the next lifecycle-completeness item.
+
+**Regression.** `qa/scenarios-runner/company_lifecycle_matrix.mjs` (the founder's eleven cases plus
+ambiguity, zero hits, RPC failure and unconfirmed postcondition, executed against the real executor
+slice), `tenant_authorization_lifecycle.sql` (cross-org restore denied, DB unchanged),
+`architecture_lifecycle_rpc_only_contract.mjs`. Status: FIX PREPARED; the fixture stays archived until
+the corrected chat path restores it after deployment.
+
+## 122. BUG-002 (P1, reconfirmed) — "Project renamed…" with the DB unchanged; trailing question exempted the claim (EXECUTION_TRUTH) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Found by** the Work PC, 2026-09-07, on a synthetic fixture: the phrasing matrix ("Done. Project renamed
+to X. What next?") shipped a completion with zero executed operations.
+
+**Root cause.** The belt consumers carried `!result.pendingAction` (restored for v92 parity in verifier
+round #50); a trailing question armed a pending action and exempted the claim. More fundamentally, the
+gate reasoned about the SHAPE of the reply, not about whether an operation executed.
+
+**Fix (`governance/OPERATING_TRUTH_MODEL.md` §3).** Mutation intent is read from the REQUEST (verb
+patterns on the command, the model's action arrays, bare confirmations) — never from the reply. A
+mutation-intent turn with no verified `ExecutionResultEnvelope` and no lifecycle report ends with the
+deterministic receipt "No change was made — <reason>" rendered from the ledger and the request; the
+belt is defence-in-depth behind intent and never the sole reason a reply is rewritten; `pendingAction`
+plays no role. Founder ruling: v92 parity is not deployability; the parity skip does not survive.
+
+**Search performed for the same class.** Both belt consumers (`legacyProseFallback`,
+`unaccountedCompletionProse`); `claimsFutureActionWithNoPlan` keeps its pendingAction term (a real
+proposal with a real pending action is honest — its prose is a plan, not a completion). The historical
+verifier suites v49–v53 that pinned the parity term are marked SUPERSEDED with the ruling.
+
+**Regression.** `qa/scenarios-runner/architecture_final_claim_contract.mjs` (the Work-PC matrix ×3 claim
+shapes × pendingAction variant, bare "yes", verified envelope survives, read requests untouched),
+`run8_defect_closure_contract.mjs` D59 re-reversed. Status: FIX PREPARED.
+
+## 123. BUG-012 (P2) — manager reassignment receipted as a company move (RECEIPT_MISMATCH) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Root cause.** `personAssignmentReport` rendered only company names from the request shape; the
+`managerPersonId` on the same assignment entry was ignored, so a manager-only change read "reassigned to
+<company>".
+
+**Fix (`OPERATING_TRUTH_MODEL.md` §4.2).** The receipt renders from the requested-vs-current DIFF against
+`context.personAssignments`: "P's manager set to M (was N)" for a manager change; the company line only
+when the legal/operating ids actually changed; "assignment re-saved — company and manager unchanged" when
+nothing changed. Same-class search: the company/task/goal lifecycle lines already render from RPC reasons;
+the create family now records a fresh re-read postcondition instead of a literal.
+
+**Regression.** `qa/scenarios-runner/mutation_receipt_equals_ledger.mjs`. Status: FIX PREPARED.
+
+## 124. BUG-013 (P2) — archiving a company did not change what its people could do (ARCHIVED_PARENT_LEAK) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Root cause.** Only the badge consumed the parent's status; set-manager, invite and onboarding gated on
+the person's own `active` and `company_id`. There was no policy, only a display.
+
+**Fix (`CANONICAL_WORK_CONTRACT.md` §4).** One archived-parent policy (`web/lib/policy/archived-parent.ts`,
+mirrored in `supabase/functions/_shared/parent-policy.ts`): under an archived parent the child is
+preserved and marked, lifecycle-dependent controls are disabled with the reason "Company is archived —
+restore it first", active selectors exclude it, restore is symmetric; no destructive cascade. The People
+surface consumes it for set-manager / invite / onboarding; every child→companies join now imports the
+canonical `COMPANY_REF` fragment (22 files adopted). Projects and the other child surfaces keep the badge;
+their lifecycle-dependent controls are the registered next item.
+
+**Regression.** `qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs`. Status: FIX
+PREPARED (people surface); partial by design for other surfaces, recorded in the impact registry.
+
+## 125. BUG-011 (P3) — silent empty manager picker; current manager never shown (SILENT_EMPTY_STATE) — FIX PREPARED, READY FOR INDEPENDENT QA
+
+**Fix.** `getPeople` returns `manager_person_id`; the sheet pre-selects and shows the current manager,
+disables Save when nothing would change, never offers the subject as their own manager, and explains an
+empty candidate list ("No other active people in <company> — add someone to this company first").
+Regression: `architecture_archived_parent_policy_contract.mjs` (picker semantics). Status: FIX PREPARED.

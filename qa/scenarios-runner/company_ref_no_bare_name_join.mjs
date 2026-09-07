@@ -78,7 +78,13 @@ check('shared ArchivedCompanyBadge still exists', badge.length > 0);
 
 // Count the canonical joins so a silent mass-revert is visible rather than quiet.
 let canonical = 0;
-for (const f of files) canonical += (readFileSync(f, 'utf8').match(/companies(?:!\w+)?\(name, status\)/g) || []).length;
+// P1 (governance/CANONICAL_WORK_CONTRACT.md §4): the joins now import the canonical fragment
+// (${COMPANY_REF} / companyRefVia(...)) instead of repeating the literal; both forms count.
+for (const f of files) {
+  const t = readFileSync(f, 'utf8');
+  canonical += (t.match(/companies(?:!\w+)?\(name, status\)/g) || []).length;
+  canonical += (t.match(/\$\{COMPANY_REF\}|companyRefVia\(/g) || []).length;
+}
 check('canonical companies(name, status) joins are present in bulk (>= 20)', canonical >= 20,
   'Found ' + canonical + '. A sharp drop means the class was reverted rather than maintained.');
 

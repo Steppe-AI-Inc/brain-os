@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
 
 // Three distinct filtering concepts, one canonical function each — not a single blanket
 // status check. See supabase/migrations/202608280013_frictionless_company_delete.sql.
@@ -118,29 +119,25 @@ export async function updateCompany(id: string, input: CompanyInput) {
 // The only real deletion mechanism from the UI (matches AI chat exactly — both call this
 // same RPC, DB-trigger-enforced as the sole path into/out of 'archived'). Fast by design:
 // archiving doesn't destroy or reassign anything, so there is nothing to check first.
+// Both go through callLifecycleRpc (lib/contracts/lifecycle.ts): the same RPC Brain Chat
+// calls, the same verification rule (changed && postconditionPassed), the same receipt shape.
+// The Archived view is the UI restore affordance (companies/archived); chat resolves the
+// target server-side across every status — one product operation, two entry points.
+const COMPANY_PATHS = ["/companies", "/companies/archived", "/people", "/projects", "/departments", "/dashboard", "/goals", "/tasks"];
+
 export async function archiveCompany(id: string) {
-  if (!UUID_RE.test(id)) return "Invalid company id.";
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("archive_company", { p_company_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Archive failed — no result returned.";
-  if (result.reason === "not_found") return "This company no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to archive this company.";
-  revalidatePath("/companies");
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "archive_company", idParam: "p_company_id", id, entityType: "company", action: "archive", requestedValues: { status: "archived" } });
+  if (userMessage) return userMessage;
+  for (const p of COMPANY_PATHS) revalidatePath(p);
   return null;
 }
 
 export async function restoreCompany(id: string) {
-  if (!UUID_RE.test(id)) return "Invalid company id.";
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("restore_company", { p_company_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Restore failed — no result returned.";
-  if (result.reason === "not_found") return "This company no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to restore this company.";
-  revalidatePath("/companies");
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "restore_company", idParam: "p_company_id", id, entityType: "company", action: "restore", requestedValues: { status: "active" } });
+  if (userMessage) return userMessage;
+  for (const p of COMPANY_PATHS) revalidatePath(p);
   return null;
 }
 

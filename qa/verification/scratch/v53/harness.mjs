@@ -113,7 +113,9 @@ must(candArm('Deleting the task now.') === 'LIFECYCLE', 'cand LIFECYCLE unreacha
 must(candArm('I am going to archive the record for you.') === 'FUTURE_PROMISE', 'cand FUTURE unreachable');
 must(candArm('The record was approved yesterday.') === 'BELT', 'cand BELT unreachable');
 must(candArm('The record was approved yesterday.', { structured: true }) === 'REWRITE', 'cand structured consumer unreachable');
-must(candArm('The record was approved yesterday.', { pa: true }) === null, 'cand belt must skip a pendingAction turn');
+// Founder ruling 2026-09-07 (governance/OPERATING_TRUTH_MODEL.md §3 rule 2): the belt no longer skips a
+// pendingAction turn; it runs behind REQUEST intent (the harness supplies a mutation-intent request).
+must(candArm('The record was approved yesterday.', { pa: true }) === 'BELT', 'cand belt must NOT skip a pendingAction turn (founder ruling 2026-09-07)');
 must(candArm('The record was not approved.') === null, 'cand belt must preserve a plain negative');
 // 5. the entity signal is live, and the CLOSURE is observable: a lowercase-tail in-pack title is caught only with the pack
 must(candArm('I archived Khan Bank.', { names: ['Khan Bank'] }) === 'BELT', 'entity signal inert on in-pack first-person');

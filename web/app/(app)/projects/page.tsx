@@ -2,17 +2,14 @@ import { FolderKanban } from "lucide-react";
 import { getProjects } from "@/lib/data/projects";
 import { getCompaniesForSelection } from "@/lib/data/companies";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { ProjectCreateForm } from "./project-create-form";
 import { ProjectsTable } from "./projects-table";
 
 export default async function ProjectsPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [projects, companies] = await Promise.all([getProjects(scopeToActiveOrg), getCompaniesForSelection()]);
 
   return (
