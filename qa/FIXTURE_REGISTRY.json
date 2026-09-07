@@ -290,6 +290,24 @@
       "cleanup_status": "DONE",
       "deleted_at": "2026-09-07T11:57:45Z",
       "deleted_via": "/departments kebab Delete (CAP-DEPARTMENT-DELETE-UI)"
+    },
+    {
+      "fixture_id": "FX-C002-BU-EMPLOYEE-01",
+      "kind": "person",
+      "resource_type": "person",
+      "name": "QA-C002-BU-EMPLOYEE-01",
+      "synthetic_display_name": "QA-C002-BU-EMPLOYEE-01",
+      "role_title": "QA Cascade Probe",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-RENAMED-X (8fdad6e2-fffb-41bc-af0a-df8cab09110b)",
+      "purpose": "Dependent employee for CAP-COMPANY-DELETE-UI refusal path and CAP-CASCADE-DELETE-BU-WITH-EMPLOYEES.",
+      "cleanup": "End employment via /people when retired.",
+      "registered_at": "2026-09-07T11:58:43Z",
+      "created_via": "product UI (/people Add person)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
