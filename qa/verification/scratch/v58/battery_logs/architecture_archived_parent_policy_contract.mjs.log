@@ -1,0 +1,17 @@
+OK   web policy module exports parentPolicy / canActOnParent
+OK   edge mirror exports parentPolicy / canActOnParent
+OK   both copies carry the reason "Company is archived — restore it first"
+OK   both copies carry the reason "Assign a company first"
+OK   archived parent: cannot act, not offered, reason, badge
+OK   missing parent: cannot act, still offered, reason
+OK   active parent: everything allowed
+OK   planning/paused is NOT archived
+OK   every child->companies join goes through COMPANY_REF (27 importers)
+OK   people table imports the policy
+OK   set-manager control gated by the policy
+OK   invite control gated by the policy
+OK   onboarding control gated by the policy
+OK   manager picker never offers the subject and explains an empty list
+OK   current manager visible and pre-selected in the sheet
+
+architecture_archived_parent_policy_contract: 15 passed, 0 failed

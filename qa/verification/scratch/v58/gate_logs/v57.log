@@ -1,0 +1,323 @@
+ok    [CONTRACT] C1 no fabrication ships: "rename the project Gamma to Delta" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "rename the project Gamma to Delta" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "rename the project Gamma to Delta" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "rename the project Gamma to Delta" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "rename the project Gamma to Delta" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "rename the project Gamma to Delta"
+ok    [CONTRACT] C1 questions[] survive the receipt: "rename the project Gamma to Delta"
+ok    [CONTRACT] C1 no fabrication ships: "approve the salary raise for Bob" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "approve the salary raise for Bob" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "approve the salary raise for Bob" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "approve the salary raise for Bob" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "approve the salary raise for Bob" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "approve the salary raise for Bob"
+ok    [CONTRACT] C1 questions[] survive the receipt: "approve the salary raise for Bob"
+ok    [CONTRACT] C1 no fabrication ships: "delete project Gamma" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "delete project Gamma" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "delete project Gamma" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "delete project Gamma" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "delete project Gamma" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "delete project Gamma"
+ok    [CONTRACT] C1 questions[] survive the receipt: "delete project Gamma"
+ok    [CONTRACT] C1 no fabrication ships: "archive the company Gamma" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "archive the company Gamma" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "archive the company Gamma" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "archive the company Gamma" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "archive the company Gamma" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "archive the company Gamma"
+ok    [CONTRACT] C1 questions[] survive the receipt: "archive the company Gamma"
+ok    [CONTRACT] C1 no fabrication ships: "restore the company Beta Corp" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "restore the company Beta Corp" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "restore the company Beta Corp" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "restore the company Beta Corp" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "restore the company Beta Corp" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "restore the company Beta Corp"
+ok    [CONTRACT] C1 questions[] survive the receipt: "restore the company Beta Corp"
+ok    [CONTRACT] C1 no fabrication ships: "assign QA-1 to Alice" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "assign QA-1 to Alice" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "assign QA-1 to Alice" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "assign QA-1 to Alice" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "assign QA-1 to Alice" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "assign QA-1 to Alice"
+ok    [CONTRACT] C1 questions[] survive the receipt: "assign QA-1 to Alice"
+ok    [CONTRACT] C1 no fabrication ships: "make Alice the manager of Bob" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "make Alice the manager of Bob" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "make Alice the manager of Bob" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "make Alice the manager of Bob" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "make Alice the manager of Bob" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "make Alice the manager of Bob"
+ok    [CONTRACT] C1 questions[] survive the receipt: "make Alice the manager of Bob"
+ok    [CONTRACT] C1 no fabrication ships: "end Alice’s employment" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "end Alice’s employment" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "end Alice’s employment" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "end Alice’s employment" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "end Alice’s employment" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "end Alice’s employment"
+ok    [CONTRACT] C1 questions[] survive the receipt: "end Alice’s employment"
+ok    [CONTRACT] C1 no fabrication ships: "Could you please archive Gamma" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "Could you please archive Gamma" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "Could you please archive Gamma" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "Could you please archive Gamma" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "Could you please archive Gamma" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "Could you please archive Gamma"
+ok    [CONTRACT] C1 questions[] survive the receipt: "Could you please archive Gamma"
+ok    [CONTRACT] C1 no fabrication ships: "I need Gamma archived" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "I need Gamma archived" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "I need Gamma archived" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "I need Gamma archived" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "I need Gamma archived" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "I need Gamma archived"
+ok    [CONTRACT] C1 questions[] survive the receipt: "I need Gamma archived"
+ok    [CONTRACT] C1 no fabrication ships: "Gamma-г архивла" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "Gamma-г архивла" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "Gamma-г архивла" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "Gamma-г архивла" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "Gamma-г архивла" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "Gamma-г архивла"
+ok    [CONTRACT] C1 questions[] survive the receipt: "Gamma-г архивла"
+ok    [CONTRACT] C1 no fabrication ships: "yes" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "yes" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "yes" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "yes" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "yes" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "yes"
+ok    [CONTRACT] C1 questions[] survive the receipt: "yes"
+ok    [CONTRACT] C1 no fabrication ships: "option 2" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "option 2" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "option 2" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "option 2" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "option 2" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "option 2"
+ok    [CONTRACT] C1 questions[] survive the receipt: "option 2"
+ok    [CONTRACT] C1 no fabrication ships: "proceed" [claims:null]
+ok    [CONTRACT] C1 no fabrication ships: "proceed" [claims:[]]
+ok    [CONTRACT] C1 no fabrication ships: "proceed" [claims:state-only]
+ok    [CONTRACT] C1 no fabrication ships: "proceed" [claims:historical_event]
+ok    [CONTRACT] C1 no fabrication ships: "proceed" [claims:mutation_result(nonexistent id)]
+ok    [CONTRACT] C1 pendingAction+question never exempts, question kept: "proceed"
+ok    [CONTRACT] C1 questions[] survive the receipt: "proceed"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "what did we change today?"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "what did we change today?"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "is Gamma archived?"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "is Gamma archived?"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "summarize what happened in this channel"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "summarize what happened in this channel"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "status of the ACME archive"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "status of the ACME archive"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "tell me about Gamma"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "tell me about Gamma"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "who reports to Alice?"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "who reports to Alice?"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "explain the archive policy"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "explain the archive policy"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "what’s the plan for archiving Gamma"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "what’s the plan for archiving Gamma"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "make a list of all companies"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "make a list of all companies"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "create a report of archived companies"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "create a report of archived companies"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "update me on the project status"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "update me on the project status"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "end date of the project Alpha?"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "end date of the project Alpha?"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "restore my memory: who is Bob?"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "restore my memory: who is Bob?"
+ok    [CONTRACT] C2 read survives verbatim [model absent]: "Gamma timeline"
+ok    [CONTRACT] C2 read survives verbatim [model read]: "Gamma timeline"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "let Bob go"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "let Bob go"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "get rid of task QA-1"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "get rid of task QA-1"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "drop the goal G1"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "drop the goal G1"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "kill the project Alpha"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "kill the project Alpha"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "archiviere ACME"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "archiviere ACME"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "архивируй ACME"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "архивируй ACME"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "When you get a moment, please archive ACME"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "When you get a moment, please archive ACME"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "archive ACME?"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "archive ACME?"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "get ACME archived"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "get ACME archived"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "Alice reports to Bob from now on"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "Alice reports to Bob from now on"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "QA-1 → Bob"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "QA-1 → Bob"
+ok    [CONTRACT] C3 model requestIntent=mutation -> receipt, fabrication never ships: "acrhive ACME"
+ok    [CONTRACT] C3 model requestIntent=confirmation -> receipt: "acrhive ACME"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "draft an email to Bob about the merge"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "write a memo on fire safety at ACME"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "brainstorm names for the new hire"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "help me word a message declining the offer"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "translate \"delete\" into Mongolian"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "draft the agenda: 1. hire plan 2. archive policy"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "the fire drill is at 3pm"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "I approve of this plan"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "we’re planning a hire next quarter"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "the revenue split is 60/40"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "the store will reopen Monday"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "the client may reject the proposal"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "history of the ACME archive"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "ACME’s archive date"
+ok    [CONTRACT] C4 model requestIntent=read vetoes the lexicon: "the delete log for QA-1"
+ok    [CONTRACT] C5 intent depends on the request only: "archive ACME"
+ok    [CONTRACT] C5 intent depends on the request only: "what is ACME?"
+ok    [CONTRACT] C5 intent depends on the request only: "draft a memo on fire safety"
+ok    [CONTRACT] C5 intent depends on the request only: "yes"
+ok    [CONTRACT] C5 intent depends on the request only: "ACME-г архивла"
+ok    [CONTRACT] C5 intent derivation reads no response-side or belt input
+ok    [CONTRACT] C5 the final intent is the request-side derivation alone
+ok    [CONTRACT] C6 verified company/archive renders the truthful claim
+ok    [CONTRACT] C6 executed-but-unverified company/archive never supports the claim
+ok    [CONTRACT] C6 denied company/archive with claims:null -> receipt names the failure
+ok    [CONTRACT] C6 verified task/delete renders the truthful claim
+ok    [CONTRACT] C6 executed-but-unverified task/delete never supports the claim
+ok    [CONTRACT] C6 denied task/delete with claims:null -> receipt names the failure
+ok    [CONTRACT] C6 verified goal/restore renders the truthful claim
+ok    [CONTRACT] C6 executed-but-unverified goal/restore never supports the claim
+ok    [CONTRACT] C6 denied goal/restore with claims:null -> receipt names the failure
+ok    [CONTRACT] C6 verified department/create renders the truthful claim
+ok    [CONTRACT] C6 executed-but-unverified department/create never supports the claim
+ok    [CONTRACT] C6 denied department/create with claims:null -> receipt names the failure
+ok    [CONTRACT] C6 verified person/end_employment renders the truthful claim
+ok    [CONTRACT] C6 executed-but-unverified person/end_employment never supports the claim
+ok    [CONTRACT] C6 denied person/end_employment with claims:null -> receipt names the failure
+ok    [CONTRACT] C6 one verified create beside a fabricated archive: only the verified line renders
+ok    [CONTRACT] C7 imperative executes exactly once: "archive Alpha"
+ok    [CONTRACT] C7 imperative executes exactly once: "restore Beta"
+ok    [CONTRACT] C7 imperative executes exactly once: "please archive Alpha"
+ok    [CONTRACT] C7 imperative executes exactly once: "archive alpha"
+ok    [CONTRACT] C7 imperative executes exactly once: "Archive Alpha."
+ok    [CONTRACT] C7 imperative executes exactly once: "archive Alpha, not Beta"
+ok    [CONTRACT] C7 non-imperative never executes: "did we archive Alpha"
+ok    [CONTRACT] C7 non-imperative never executes: "is Alpha archived"
+ok    [CONTRACT] C7 non-imperative never executes: "do not archive Alpha"
+ok    [CONTRACT] C7 non-imperative never executes: "never archive Alpha"
+ok    [CONTRACT] C7 non-imperative never executes: "if we archive Alpha, what happens"
+ok    [CONTRACT] C7 non-imperative never executes: "what if we restore Beta"
+ok    [CONTRACT] C7 non-imperative never executes: "should I restore Beta"
+ok    [CONTRACT] C7 non-imperative never executes: "remind me to archive Alpha next week"
+ok    [CONTRACT] C7 non-imperative never executes: "explain the archive Alpha decision"
+ok    [CONTRACT] C7 non-imperative never executes: "did you archive Alpha?"
+ok    [CONTRACT] C7 non-imperative never executes: "before we archive Alpha, list its tasks"
+ok    [CONTRACT] C7 non-imperative never executes: "tell me about the restore Beta plan"
+ok    [CONTRACT] C7 model requestIntent.kind=read withholds the command fallback: "archive Alpha"
+ok    [CONTRACT] C7 model requestIntent.kind=read withholds the command fallback: "restore Beta"
+ok    [CONTRACT] C7 model requestIntent.kind=read withholds the command fallback: "We archived Alpha last week"
+ok    [CONTRACT] C7 model requestIntent.kind=read withholds the command fallback: "Bob said to archive Alpha"
+ok    [CONTRACT] C7 model requestIntent.kind=other withholds the command fallback: "archive Alpha"
+ok    [CONTRACT] C7 model requestIntent.kind=other withholds the command fallback: "restore Beta"
+ok    [CONTRACT] C7 model requestIntent.kind=other withholds the command fallback: "We archived Alpha last week"
+ok    [CONTRACT] C7 model requestIntent.kind=other withholds the command fallback: "Bob said to archive Alpha"
+ok    [CONTRACT] C7 model resolved another entity type -> no company RPC: "delete Alpha" + deleteTaskIds
+ok    [CONTRACT] C7 model resolved another entity type -> no company RPC: "archive Alpha" + archiveGoalIds
+ok    [CONTRACT] C7 model resolved another entity type -> no company RPC: "remove Alpha" + endEmploymentPersonIds
+ok    [CONTRACT] C7 model resolved another entity type -> no company RPC: "restore Beta" + restoreTaskIds
+ok    [CONTRACT] C7 model resolved another entity type -> no company RPC: "archive Alpha" + tasks
+ok    [CONTRACT] C7 fuzzy command hit (2 rows) asks, executes nothing
+ok    [CONTRACT] C7 fuzzy command hit (1 row) still asks, never executes
+ok    [CONTRACT] C7 model-name fuzzy hit (unique) executes
+ok    [CONTRACT] C7 model-name fuzzy hit (2 rows) asks
+ok    [CONTRACT] C7 disambiguation replaces a model-armed pendingAction
+ok    [CONTRACT] C7 punctuated via command: "Acme (Mongolia) LLC"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "Acme (Mongolia) LLC"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "Acme (Mongolia) LLC"
+ok    [CONTRACT] C7 punctuated via command: "A_B Holdings"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "A_B Holdings"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "A_B Holdings"
+ok    [CONTRACT] C7 punctuated via command: "100% Natural Foods"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "100% Natural Foods"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "100% Natural Foods"
+ok    [CONTRACT] C7 punctuated via command: "Acme, Inc."
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "Acme, Inc."
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "Acme, Inc."
+ok    [CONTRACT] C7 punctuated via command: "O’Brien & Sons"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "O’Brien & Sons"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "O’Brien & Sons"
+ok    [CONTRACT] C7 punctuated via command: "Ко. Монгол ХХК"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "Ко. Монгол ХХК"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "Ко. Монгол ХХК"
+ok    [CONTRACT] C7 punctuated via command: "A.B.C. Holdings"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "A.B.C. Holdings"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "A.B.C. Holdings"
+ok    [CONTRACT] C7 punctuated via command: "ACME/Beta JV"
+ok    [CONTRACT] C7 punctuated via restoreCompanyNames: "ACME/Beta JV"
+ok    [CONTRACT] C7 punctuated via requestIntent.targetName: "ACME/Beta JV"
+ok    [CONTRACT] C7 lifecycle word inside the name never flips the direction: "archive Restored Furniture Co"
+ok    [CONTRACT] C7 lifecycle word inside the name never flips the direction: "restore Archived Assets Ltd"
+ok    [CONTRACT] C7 lifecycle word inside the name never flips the direction: "archive Bring It Back Bakery"
+ok    [CONTRACT] C7 lifecycle word inside the name never flips the direction: "restore Delete Bespoke Ltd"
+ok    [CONTRACT] C7 lifecycle word inside the name never flips the direction: "archive End of the Road Inc"
+ok    [CONTRACT] C7 restore prefers the archived twin
+ok    [CONTRACT] C7 archive prefers the active twin
+ok    [CONTRACT] C7 nonexistent model id: no RPC, could-not-be-found line
+ok    [CONTRACT] C7 a stale pendingAction alone executes nothing
+ok    [CONTRACT] C7 second restore is a truthful already_active no-op with no evidence
+ok    [CONTRACT] C7 rpc error: no success evidence, report names the outcome
+ok    [CONTRACT] C7 denied: no success evidence, report names the outcome
+ok    [CONTRACT] C7 postcondition false: no success evidence, report names the outcome
+ok    [CONTRACT] C8 intent + empty ledger -> UNVERIFIED marker, prose never re-enters
+ok    [CONTRACT] C8 read turn: verified null (unknown), prose kept
+ok    [CONTRACT] C8 executed turn: verified true
+ok    [CONTRACT] C8 valid durable row outranks the stored output
+ok    [CONTRACT] C8 expired durable row yields
+ok    [CONTRACT] C8 untyped durable row yields
+ok    [CONTRACT] C8 stored pendingAction older than 30 min does not bind
+ok    [CONTRACT] C8 expired durable + stale stored -> nothing binds
+ok    [CONTRACT] C8 work_orders.output persisted unconditionally after the verdict
+ok    [CONTRACT] C9 envelope total from the count, truncated = total > shown
+ok    [CONTRACT] C9 envelope without a count: total null, never array length
+ok    [CONTRACT] C9 every capped collection query carries count exact (23)
+ok    [CONTRACT] C9 executedOperationCount counts only postcondition-passed envelopes
+ok    [CONTRACT] C9 the RPC create family is re-read under RLS before recording
+ok    [CONTRACT] C9 turnVerdict.mutationIntent carries the derived request intent (the narrative tier depends on it)
+ok    [CONTRACT] C9 turnVerdict.mutationIntent is null on a read turn
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "draft an email to Bob about the merge"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "write a memo on fire safety at ACME"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "brainstorm names for the new hire"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "help me word a message declining the offer"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "translate \"delete\" into Mongolian"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "draft the agenda: 1. hire plan 2. archive policy"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "the fire drill is at 3pm"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "I approve of this plan"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "we’re planning a hire next quarter"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "the revenue split is 60/40"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "the store will reopen Monday"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "the client may reject the proposal"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "history of the ACME archive"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "ACME’s archive date"
+ok    [DEFECT] V57-D1 model requestIntent=other: truthful reply survives: "the delete log for QA-1"
+ok    [DEFECT] V57-D2 requestIntent.entityType=task (no field): the exact-named COMPANY Alpha is not archived
+ok    [DEFECT] V57-D2 requestIntent.entityType=person (no field): the exact-named COMPANY Alpha is not archived
+ok    [DEFECT] V57-D2 requestIntent.entityType=goal (no field): the exact-named COMPANY Alpha is not archived
+ok    [DEFECT] V57-D2 requestIntent.entityType=project (no field): the exact-named COMPANY Alpha is not archived
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "I said not to archive Alpha"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "we agreed not to archive Alpha"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "suppose we restore Beta"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "should we restore Beta"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "Someone removed Alpha"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "I already restored Beta"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "they ended Alpha"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "Bob said to archive Alpha"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "Bob wants us to restore Beta"
+ok    [DEFECT] V57-D3 non-imperative shape with the model emitting nothing never executes: "thinking about whether to archive Alpha"
+ok    [RESIDUAL] V57-D4 exact-named archived company resolved when 55 other rows share its anchor word
+RESID [RESIDUAL] V57-D5 lexicon tier alone (model requestIntent absent) derives intent: "When you get a moment, please archive ACME"
+        intent=null -> the fabrication ships on this phrasing unless the model classifies the request
+RESID [RESIDUAL] V57-D5 lexicon tier alone (model requestIntent absent) derives intent: "archive ACME?"
+        intent=null -> the fabrication ships on this phrasing unless the model classifies the request
+RESID [RESIDUAL] V57-D5 lexicon tier alone (model requestIntent absent) derives intent: "get ACME archived"
+        intent=null -> the fabrication ships on this phrasing unless the model classifies the request
+RESID [RESIDUAL] V57-D5 lexicon tier alone (model requestIntent absent) derives intent: "let Bob go"
+        intent=null -> the fabrication ships on this phrasing unless the model classifies the request
+RESID [RESIDUAL] V57-D5 lexicon tier alone (model requestIntent absent) derives intent: "get rid of task QA-1"
+        intent=null -> the fabrication ships on this phrasing unless the model classifies the request
+RESID [RESIDUAL] V57-D6 negated request keeps the truthful non-execution reply
+        measured="No change was made — you asked me not to, so nothing was executed."
+RESID [RESIDUAL] V57-D6 compound command with the model emitting nothing executes both clauses
+        calls=[["archive_company","00000001-0000-4000-8000-000000000000"]] report="Alpha: archived."
+
+v57_regression_additions: 306 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0; residual rows measured: 8)

@@ -1,0 +1,18 @@
+ok    [CONTRACT] V50-C1.lifecycleArmByteIdentical — claimsLifecycleClaim, stateDescriptionPattern and the four lifecycle call sites are byte-identical to deployed v92
+ok    [CONTRACT] V50-C2.legacyEqualsV92Past — LEGACY_PAST_COMPLETION (the tail floor) is byte-identical to deployed v92 PAST_COMPLETION_CLAIM_PATTERN
+ok    [CONTRACT] V50-C3.fourthPathByteIdentical — the pack-status arm (findEntityStateClaimContradiction + both *_STATE_CLAIM_VOCAB + both call sites) is byte-identical to v92 — it cannot separate the builds
+SKIP  [SUPERSEDED] V50-C4.pendingActionTermAtBothConsumers — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+SKIP  [SUPERSEDED] V50-C5.pendingActionTurnIsV92Parity — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+ok    [CONTRACT] V50-C6.tailFloorPastCap — a completion claim WHOLLY past char 4,000 is caught (LEGACY floor) in all three v92 PAST shapes; a 15 KB unsplittable clause evaluates < 50 ms with the right verdict
+ok    [CONTRACT] V50-C7.truthAttacksNoRegression — STEP 3/3b truthful negatives and this round's truth witnesses: none is a v92 regression with the pack populated (v92 preserves => candidate preserves)
+ok    [CONTRACT] V50-C8.fabricationTwinsCaught — the fabrication twins (dash-before-capital, negator idioms, negator names + head noun, two-token negator names, lowercase-continued titles, the three "refused" shapes, the D7 dash/semicolon rows) are all caught with the pack populated
+ok    [CONTRACT] V50-C9.matcher — the disambiguation matcher binds clean selections/ordinals/quoted/numbered labels and dead-ends on excluded/opposite-intent replies and prototype keys
+ok    [CONTRACT] V50-C10.noLiteralSemicolonInBelt — the readsAsCompletion declaration carries exactly one literal ";" (its terminator) — V48-D7
+SKIP  [SUPERSEDED] V50-C11.pendingActionNeverNulledBeforeBelt — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+SKIP  [SUPERSEDED] V50-D1.pendingActionHistoryBeyondMarkerList — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+ok    [DEFECT  ] V50-D2.offerPlusCompletionAsciiHyphenOrConjunction — a conditioned offer + first-person completion after an ASCII hyphen / "and" / "but" must not ship — v92 destroys the whole (FUTURE arm); the D7 anchor accepts only em/en dash and semicolon
+ok    [DEFECT  ] V50-D3.claimStraddlingTheCap — a completion claim that STRADDLES char 4,000 must be caught at every offset — the head slice and the tail floor do not overlap; v92 scans the whole summary
+ok    [DEFECT  ] V50-D4.imminentOfferIsThatOk — "Let me delete the task — is that ok?" is a conditioned offer (founder ruling) and must survive; v92 preserves it (no let-me arm); the guard vocabulary requires "you" before ok/okay
+ok    [DEFECT  ] V50-D5.confirmedFirstPersonNonEntity — (P3, low realism) "Confirmed — I renamed Row 4 in the draft table shown here." — a first-person completion about a NON-entity after the Confirmed — prefix — v92 preserves, the CONFIRMED_COMPLETION arm destroys
+
+v50_regression_additions: 12 passed, 0 failed

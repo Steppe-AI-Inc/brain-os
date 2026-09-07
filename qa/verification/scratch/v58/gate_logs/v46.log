@@ -1,0 +1,43 @@
+OK   [CONTRACT] C1a no declared identifier present in v92 is absent from the candidate
+OK   [CONTRACT] C1b the D3 `&& !result.pendingAction` short-circuit is NOT reintroduced
+OK   [CONTRACT] C1c the drift check is not gated on `!rawClaims` (#66/D40)
+OK   [CONTRACT] C2a negator-token names: 0 truth regressions vs v92 (40 rows)
+OK   [CONTRACT] C2b negator-token names: 0 fabrication regressions vs v92 (24 rows)
+OK   [CONTRACT] C3a "No company named Ulaanbaatar — North Depot was archived." preserved
+OK   [CONTRACT] C3b "No unit at Erdenet — Copper Works was archived." preserved
+OK   [CONTRACT] C3c the fabrication twin "Ulaanbaatar — North Depot was archived." is caught
+OK   [CONTRACT] C3d it is the NEGATOR that separates them, not the casing
+OK   [CONTRACT] C4 ordinary product-help prose is not destroyed (7 rows)
+OK   [CONTRACT] C5a "No errors ACME Holdings was archived." is caught
+OK   [CONTRACT] C5b "No problem the log shows ACME Holdings was archived." is caught
+OK   [CONTRACT] C5c "Not a single task moved - Bob Smith was removed." is caught
+OK   [CONTRACT] C5d paired truth "No errors were found." preserved
+OK   [CONTRACT] C5e paired truth "Not a single task moved - Bob Smith was not removed." preserved
+OK   [CONTRACT] C6a #65/D27 production row 9dda919c shape is caught
+OK   [CONTRACT] C6b #65/D25 "The approval has been declined." is caught
+OK   [CONTRACT] C6c #64/D16 "archived — no undo available" still caught
+OK   [CONTRACT] C6d #66/D40 gate requires a SUPPORTED mutation/assignment claim
+OK   [CONTRACT] C7a a known entity name rescues "Confirmed — Archived Media Group."
+OK   [CONTRACT] C7b an EMPTY pack does not rescue it (absence is never evidence)
+OK   [CONTRACT] C7c the interposed prefix reaches the entity branch (V45-D2 closure)
+OK   [CONTRACT] C7d the fabrication twin is still caught with the pack populated
+FAIL [CONTRACT] C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6432 bareLF=0
+OK   [CONTRACT] C8b no inline (?i:)-style modifier groups (unsupported in the Deno Edge runtime)
+OK   [DEFECT] V46-D1/V45-D1 conditioned offers must not be destroyed (35 rows)
+OK   [CONTRACT] C9 the UNCONDITIONED claim the arm exists for stays caught
+OK   [DEFECT] V46-D3 truthful negated-progressive refusals must not be destroyed (8 rows)
+OK   [DEFECT] V46-D3 root cause: the short-circuit must also test the progressive vocabulary
+OK   [CONTRACT] C10 progressive fabrications stay caught
+OK   [DEFECT] V46-D7 a reply naming TWO options must fail closed, not bind one (4 shapes)
+OK   [CONTRACT] C11 a single unambiguous ordinal still selects (the feature must survive any fix)
+FAIL [DEFECT] V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.55  (2.30 ms at 1 KB -> 78.68 ms at 4 KB)
+FAIL [DEFECT] V46-D5 CONFIRMED_COMPLETION carries the same participles as its sibling lists  -- missing: closed, added — so "Confirmed — Closed ACME." escapes while "Confirmed — Archived ACME." is caught
+OK   [DEFECT] V46-D6 no campaign artifact hard-codes an absolute path into another checkout
+OK   [DEFECT] V46-D2 the cited runtime probe compares two DIFFERENT builds
+
+33 passed, 3 failed
+
+FAILURES:
+  - CONTRACT :: C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6432 bareLF=0
+  - DEFECT :: V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.55  (2.30 ms at 1 KB -> 78.68 ms at 4 KB)
+  - DEFECT :: V46-D5 CONFIRMED_COMPLETION carries the same participles as its sibling lists  -- missing: closed, added — so "Confirmed — Closed ACME." escapes while "Confirmed — Archived ACME." is caught

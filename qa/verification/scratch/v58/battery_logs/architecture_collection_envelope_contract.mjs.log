@@ -1,0 +1,58 @@
+OK   pack literal found
+OK   collections envelope map found (P1)
+OK   the pack carries array collections
+OK   collections.companies exists
+OK   collections.archivedCompanies exists
+OK   collections.projects exists
+OK   collections.tasks exists
+OK   collections.memories exists
+OK   collections.agents exists
+OK   collections.products exists
+OK   collections.inventory exists
+OK   collections.approvals exists
+OK   collections.people exists
+OK   collections.goals exists
+OK   collections.companyRelationships exists
+OK   collections.personAssignments exists
+OK   collections.financialReports exists
+OK   collections.channels exists
+OK   collections.departments exists
+OK   collections.leads exists
+OK   collections.documents exists
+OK   collections.proposals exists
+OK   collections.productSpecs exists
+OK   collections.engineeringDrawings exists
+OK   collections.aiProviders exists
+OK   collections.mcpConnectors exists
+OK   collections.conversationHistory exists
+OK   collections.factoryWorkOrders exists
+OK   envelope helper returns shown/total/truncated
+OK   total comes from the query count, never from array length
+OK   capped collection queries found
+OK   query on companies carries an exact count
+OK   query on companies carries an exact count
+OK   query on projects carries an exact count
+OK   query on tasks carries an exact count
+OK   query on agents carries an exact count
+OK   query on product_lines carries an exact count
+OK   query on inventory_items carries an exact count
+OK   query on approvals carries an exact count
+OK   query on people carries an exact count
+OK   query on goals carries an exact count
+OK   query on company_relationships carries an exact count
+OK   query on person_assignments carries an exact count
+OK   query on financial_reports carries an exact count
+OK   query on chat_channels carries an exact count
+OK   query on departments carries an exact count
+OK   query on sales_leads carries an exact count
+OK   query on documents carries an exact count
+OK   query on proposals carries an exact count
+OK   query on product_specs carries an exact count
+OK   query on engineering_drawings carries an exact count
+OK   query on ai_providers carries an exact count
+OK   query on mcp_connectors carries an exact count
+OK   query on tasks carries an exact count
+OK   pack literal carries collections
+OK   prompt binds counts to context.collections
+
+architecture_collection_envelope_contract: 56 passed, 0 failed

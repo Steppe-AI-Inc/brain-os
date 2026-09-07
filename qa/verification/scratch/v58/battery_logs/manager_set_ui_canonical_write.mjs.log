@@ -1,0 +1,8 @@
+OK   setPersonManager exists in lib/data/people.ts
+OK   it writes through the canonical set_person_assignment RPC
+OK   it never writes person_assignments or manager_person_id directly
+OK   it enforces the org-scoped-manager rule (same company required)
+OK   it refuses a self-manager
+OK   the People table actually wires the control to this action
+
+manager_set_ui_canonical_write: 6/6 passed

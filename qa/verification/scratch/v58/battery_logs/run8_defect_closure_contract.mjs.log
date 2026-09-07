@@ -1,0 +1,42 @@
+OK   D58a a REAL create with claims:null is REPORTED, never denied
+OK   D58a2 the runtime label names the created row when the write site captured one
+OK   D58b evidence-without-claims on a grounded turn is re-rendered; the fabrication dies
+OK   D58b2 claims:[] cannot disarm the gate on an evidence turn
+OK   D58b3 state-only claims + fabricated mutation prose is re-rendered (structured-mode prose drift)
+OK   D58ok a truthful read-only turn (no claims, no evidence, no completion prose) is untouched
+OK   D52 a supported create claim + unrelated fabrication is re-rendered without it
+OK   D59 a fabricated completion + question on a pendingAction turn IS corrected (pendingAction never exempts a claim)
+OK   D59b the gated pending question SURVIVES the correction (founder not stranded)
+OK   D59c the same prose WITHOUT a pendingAction stays caught
+OK   D60 envelope.pendingAction.summary never carries a completion assertion
+OK   D60b the pendingAction STRUCTURE (kind/action payload) survives the gating
+OK   D61 present tense assertion never reaches the corrected summary
+OK   D61 simple past assertion never reaches the corrected summary
+OK   D61 imperative/done assertion never reaches the corrected summary
+OK   D61 adverb first assertion never reaches the corrected summary
+OK   D61 markdown assertion never reaches the corrected summary
+OK   D61 Mongolian assertion never reaches the corrected summary
+OK   D61 future promise (typographic apostrophe) assertion never reaches the corrected summary
+OK   D61 a genuine trailing question still survives the structural cut
+OK   D61 a plain genuine question is untouched
+OK   D62 the correction quotes the canonical actual, not model-authored expectedValue
+OK   D62b a predicate absent from the canonical row is UNKNOWN — no rendered correction
+OK   D54 a uuid in expectedValue stays scrubbed on the supported line
+OK   D64 a fully-deterministic turn appends the unclaimed department create
+OK   D65 id-less create claim renders once, as the evidence line
+OK   D65b the id-less claim is still REJECTED in the envelope (it never grounds)
+OK   D68 factLines-only grounding no longer shields pre-written completion prose
+OK   D68b a truthful grounded read-only reply without completion wording is untouched
+OK   D69 semicolon-joined assertion is cut from the question
+OK   D69b newline-joined assertion is cut
+OK   D70 an abbreviation period does NOT truncate a legitimate question
+OK   D70b a decimal does NOT truncate a legitimate question
+OK   D69c a completion assertion phrased AS the question is dropped entirely
+OK   D72 an assertion-shaped label is never persisted (unresolvable: dropped, run15/D119); the question survives
+OK   D72b RETIRED (run15/D119): an uncorroborated label is dropped, not repaired; the repair survives on a corroborated row
+OK   D73 the envelope carries the GATED pendingAction, assertion stripped, question intact
+OK   D74 an assertion-shaped runtime label renders QUOTED - identity kept, statement-reading removed (run10/D79 refinement)
+OK   D74b a uuid-bearing label collapses to the typed reference
+OK   D74c an honest label still renders
+
+run8_defect_closure_contract: 40/40 passed

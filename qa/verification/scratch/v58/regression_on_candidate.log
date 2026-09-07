@@ -1,0 +1,69 @@
+ok    [CONTRACT] C1 mutation-intent fabrication ends in the receipt
+ok    [CONTRACT] C1 truthful read survives verbatim (no intent)
+ok    [CONTRACT] C1 model kind=read vetoes the lexicon
+ok    [CONTRACT] C1 model kind=other vetoes the lexicon
+ok    [CONTRACT] C1 model kind=mutation derives intent on an unknown verb
+ok    [CONTRACT] C1 pendingAction never exempts; the question survives
+ok    [CONTRACT] C1 verified envelope renders the claim
+ok    [CONTRACT] C1 postconditionPassed=false never supports the claim
+ok    [CONTRACT] C2 imperative "archive Alpha" executes exactly once on the exact row
+ok    [CONTRACT] C2 imperative "please archive Alpha" executes exactly once on the exact row
+ok    [CONTRACT] C2 imperative "could you please archive Alpha?" executes exactly once on the exact row
+ok    [CONTRACT] C2 imperative "since it is done, archive Alpha" executes exactly once on the exact row
+ok    [CONTRACT] C2 imperative "ok archive Alpha now" executes exactly once on the exact row
+ok    [CONTRACT] C2 non-imperative "did you archive Alpha?" executes nothing
+ok    [CONTRACT] C2 non-imperative "do not archive Alpha" executes nothing
+ok    [CONTRACT] C2 non-imperative "if we archive Alpha, what happens?" executes nothing
+ok    [CONTRACT] C2 non-imperative "Bob said to archive Alpha" executes nothing
+ok    [CONTRACT] C2 non-imperative "I already archived Alpha" executes nothing
+ok    [CONTRACT] C2 model kind=read withholds the fallback
+ok    [CONTRACT] C2 model kind=other withholds the fallback
+ok    [CONTRACT] C2 model entityType=task withholds the company fallback
+ok    [CONTRACT] C2 model entityType=person withholds the company fallback
+ok    [CONTRACT] C2 model entityType=goal withholds the company fallback
+ok    [CONTRACT] C2 model entityType=project withholds the company fallback
+ok    [CONTRACT] C2 fuzzy command hit asks, executes nothing
+ok    [CONTRACT] C2 restore of an archived company outside the window executes by name
+ok    [CONTRACT] C3 archive of an in-window task executes and reports
+ok    [CONTRACT] C3 malformed task ids execute nothing
+ok    [CONTRACT] C3 a company request keeps the company wording in the receipt reason
+FAIL  [DEFECT] V58-D1 declarative "I nearly archived Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "we discussed archiving Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "the meeting was about archiving Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "Bob will archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "the board recommended we archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "I’m wondering if I should archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "we could archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "I might archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "I almost restored Beta" with the model emitting nothing executes NOTHING
+        [["restore_company","00000002-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "we were about to archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "legal recommends that we archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D1 declarative "only if Bob agrees, archive Alpha" with the model emitting nothing executes NOTHING
+        [["archive_company","00000001-0000-4000-8000-000000000000"]]
+FAIL  [DEFECT] V58-D2a the context pack carries archivedTasks (the prompt tells the model to resolve restores from it)
+        no archivedTasks key in the pack literal
+FAIL  [DEFECT] V58-D2b a chat restore of an archived task by model-emitted id EXECUTES the RPC (never gated by the window)
+        {"calls":[],"report":null}
+FAIL  [DEFECT] V58-D2c archive of a task OUTSIDE the capped window by model-emitted id executes
+        {"calls":[],"report":null}
+FAIL  [DEFECT] V58-D2d a task id the caller cannot see executes nothing and leaves a truthful line (never silent)
+        {"calls":[],"report":null}
+FAIL  [DEFECT] V58-D2e goal lifecycle ids are not filtered by the pack window
+        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))]; const requestedRest
+FAIL  [DEFECT] V58-D2f the receipt for a TASK request does not name "company"
+        No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+FAIL  [DEFECT] V58-D2g the receipt honours requestIntent.entityType=task in its reason
+        No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+
+v58_regression_additions: 29 passed, 19 failed (CONTRACT failures: 0, DEFECT failures: 19)

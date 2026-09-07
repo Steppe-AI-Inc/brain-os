@@ -1,0 +1,72 @@
+  0  agent_run_guard_covers_claim_returns.mjs  (55ms)   | agent_run_guard_covers_claim_returns: guard list covers the claim (returned: id, canonical_work_order_id, task_id, agent_id, checkpoint_location, s
+  0  architecture_archived_parent_policy_contract.mjs  (103ms)   | architecture_archived_parent_policy_contract: 15 passed, 0 failed
+  0  architecture_collection_envelope_contract.mjs  (65ms)   | architecture_collection_envelope_contract: 56 passed, 0 failed
+  0  architecture_final_claim_contract.mjs  (152ms)   | architecture_final_claim_contract: 51 passed, 0 failed
+  0  architecture_impact_registry_contract.mjs  (59ms)   | architecture_impact_registry_contract: 17 passed, 0 failed
+  0  architecture_lifecycle_rpc_only_contract.mjs  (81ms)   | architecture_lifecycle_rpc_only_contract: 27 passed, 0 failed
+  0  architecture_mutation_envelope_contract.mjs  (70ms)   | architecture_mutation_envelope_contract: 35 passed, 0 failed
+  0  architecture_org_scope_helper_contract.mjs  (101ms)   | architecture_org_scope_helper_contract: 7 passed, 0 failed
+  0  belt_generative_adversarial_contract.mjs  (216ms)   | 25 passed, 0 failed
+  0  chat_channel_state_trusted_columns_contract.mjs  (61ms)   | chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures)
+  0  claim_segmentation_and_present_tense_fp.mjs  (55ms)  [SUPERSEDED STUB]  claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  0  company_lifecycle_matrix.mjs  (75ms)   | company_lifecycle_matrix: 31 passed, 0 failed
+  0  company_ref_no_bare_name_join.mjs  (128ms)   | company_ref_no_bare_name_join: 8/8 passed (canonical joins: 30)
+  0  current_turn_and_continuity_contract.mjs  (66ms)   | current_turn_and_continuity_contract: 17/17 passed
+  0  d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs  (57ms)  [SUPERSEDED STUB]  d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  0  entity_signal_positive_contract.mjs  (98ms)   | 5 passed, 0 failed
+  1  factory_production_write_inventory.regression.test.mjs  (108ms)   diff: 'simple' | }
+  0  function_redefinition_preserves_ancestor_guards.mjs  (66ms)  function_redefinition_preserves_ancestor_guards: 81 migrations, 28 redefinitions, 29 ancestor guards checked, 0 silently dropped
+  0  grounding_precedence_canonical_over_history.mjs  (71ms)   | grounding_precedence_canonical_over_history: 17 passed, 0 failed
+  0  issue5_confirmation_action_type_binding.mjs  (63ms)   | issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with the fixed contract
+  0  lifecycle_evidence_and_output_persistence_contract.mjs  (121ms)  lifecycle_evidence_and_output_persistence_contract: 93/93 contract checks passed, 11/11 section-X cases match the recorded baseline | DEPLOY GATE: 0 o
+  0  manager_set_ui_canonical_write.mjs  (60ms)   | manager_set_ui_canonical_write: 6/6 passed
+  0  messaging_transport_binding_agreement_contract.mjs  (63ms)   | messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures)
+  0  mixed_claim_grounding.mjs  (70ms)  [SUPERSEDED STUB]  mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  0  mutation_receipt_equals_ledger.mjs  (63ms)   | mutation_receipt_equals_ledger: 14 passed, 0 failed
+  0  org_selector_scoping_coverage.mjs  (67ms)   | org_selector_scoping_coverage: 5/5 passed (scoped readers: 18)
+  0  past_completion_gate_behavior.mjs  (57ms)  [SUPERSEDED STUB]  past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  0  per_resource_grounding_contract.mjs  (60ms)  [SUPERSEDED STUB]  per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  1  production_write_authority.regression.test.mjs  (13944ms)  (node:13816) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the argumen
+  0  readsAsCompletion_no_literal_semicolon_contract.mjs  (59ms)   | readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed
+  0  run10_defect_closure_contract.mjs  (137ms)   | v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)
+  0  run11_defect_closure_contract.mjs  (142ms)   | v11_regression_additions: 50 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run12_defect_closure_contract.mjs  (147ms)   | v12_regression_additions: 74 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run13_defect_closure_contract.mjs  (143ms)   | run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run14_defect_closure_contract.mjs  (151ms)   | run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run15_defect_closure_contract.mjs  (138ms)   | run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run16_defect_closure_contract.mjs  (112ms)   | run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run17_defect_closure_contract.mjs  (120ms)   | run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run18_defect_closure_contract.mjs  (114ms)   | run18_defect_closure_contract: 52 pass, 0 fail (0 open #78 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run19_defect_closure_contract.mjs  (126ms)   | 62 passed, 0 failed
+  0  run28_defect_closure_contract.mjs  (164ms)   | 117 passed, 0 failed
+  0  run8_defect_closure_contract.mjs  (131ms)   | run8_defect_closure_contract: 40/40 passed
+  0  sem_ai_command_company_restore_truth.mjs  (63ms)   | ALL REGRESSIONS PASSED
+  0  sem_ai_command_confirmation_truth.mjs  (53ms)   | ALL REGRESSIONS PASSED
+  0  sem_ai_command_execution_plan_truth.mjs  (58ms)   | ALL REGRESSIONS PASSED
+  0  sem_ai_command_factory_verification_selection.mjs  (53ms)   | ALL REGRESSIONS PASSED
+  0  sem_ai_command_named_person_lookup_truth.mjs  (55ms)   | ALL REGRESSIONS PASSED
+  0  sem_ai_command_past_completion_claim_regex.mjs  (53ms)   | 13 passed, 0 failed
+  0  sem_ai_command_source_invariants_drift_guard.mjs  (64ms)   | 13 passed, 0 failed
+  0  standing_reds_classification_contract.mjs  (110ms)  rows 8 derived-BLOCKER 0 mislabelled-as-shared 0 | RESULT: PASS - every standing red re-derives as a genuine non-blocker
+  0  structured_claim_laundering_contract.mjs  (134ms)  structured_claim_laundering_contract: 29/29 match the recorded baseline | DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) +
+  0  structured_claim_verification.mjs  (133ms)   | structured_claim_verification: 42/42 passed
+  0  tdz_forward_reference_contract.mjs  (138ms)   | v48_regression_additions: 9 passed, 0 failed
+  0  v56_intent_lifecycle_contract.mjs  (174ms)   | v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0)
+  0  v57_intent_other_veto_contract.mjs  (189ms)   | v57_regression_additions: 306 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0; residual rows measured: 8)
+  0  v92_open_regression_contract.mjs  (112ms)   | 28 passed, 0 failed
+  0  v92_parity_contract.mjs  (130ms)   | v92_parity_contract: 46 passed, 0 failed
+{
+ "total": 57,
+ "exit0": 55,
+ "nonzero": [
+  "factory_production_write_inventory.regression.test.mjs",
+  "production_write_authority.regression.test.mjs"
+ ],
+ "supersededStubs": [
+  "claim_segmentation_and_present_tense_fp.mjs",
+  "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
+  "mixed_claim_grounding.mjs",
+  "past_completion_gate_behavior.mjs",
+  "per_resource_grounding_contract.mjs"
+ ]
+}

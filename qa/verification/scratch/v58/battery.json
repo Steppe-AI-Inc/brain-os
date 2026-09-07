@@ -1,0 +1,475 @@
+{
+ "summary": {
+  "total": 57,
+  "exit0": 55,
+  "nonzero": [
+   "factory_production_write_inventory.regression.test.mjs",
+   "production_write_authority.regression.test.mjs"
+  ],
+  "supersededStubs": [
+   "claim_segmentation_and_present_tense_fp.mjs",
+   "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
+   "mixed_claim_grounding.mjs",
+   "past_completion_gate_behavior.mjs",
+   "per_resource_grounding_contract.mjs"
+  ]
+ },
+ "out": [
+  {
+   "file": "agent_run_guard_covers_claim_returns.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 55,
+   "tail": " | agent_run_guard_covers_claim_returns: guard list covers the claim (returned: id, canonical_work_order_id, task_id, agent_id, checkpoint_location, source_sha, branch, worktree, last_completed_scenario, remaining_scenar",
+   "superseded": false
+  },
+  {
+   "file": "architecture_archived_parent_policy_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 103,
+   "tail": " | architecture_archived_parent_policy_contract: 15 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_collection_envelope_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 65,
+   "tail": " | architecture_collection_envelope_contract: 56 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_final_claim_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 152,
+   "tail": " | architecture_final_claim_contract: 51 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_impact_registry_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 59,
+   "tail": " | architecture_impact_registry_contract: 17 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_lifecycle_rpc_only_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 81,
+   "tail": " | architecture_lifecycle_rpc_only_contract: 27 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_mutation_envelope_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 70,
+   "tail": " | architecture_mutation_envelope_contract: 35 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "architecture_org_scope_helper_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 101,
+   "tail": " | architecture_org_scope_helper_contract: 7 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "belt_generative_adversarial_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 216,
+   "tail": " | 25 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "chat_channel_state_trusted_columns_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 61,
+   "tail": " | chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures)",
+   "superseded": false
+  },
+  {
+   "file": "claim_segmentation_and_present_tense_fp.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 55,
+   "tail": "claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "superseded": true
+  },
+  {
+   "file": "company_lifecycle_matrix.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 75,
+   "tail": " | company_lifecycle_matrix: 31 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "company_ref_no_bare_name_join.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 128,
+   "tail": " | company_ref_no_bare_name_join: 8/8 passed (canonical joins: 30)",
+   "superseded": false
+  },
+  {
+   "file": "current_turn_and_continuity_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 66,
+   "tail": " | current_turn_and_continuity_contract: 17/17 passed",
+   "superseded": false
+  },
+  {
+   "file": "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 57,
+   "tail": "d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "superseded": true
+  },
+  {
+   "file": "entity_signal_positive_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 98,
+   "tail": " | 5 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "factory_production_write_inventory.regression.test.mjs",
+   "exit": 1,
+   "signal": null,
+   "ms": 108,
+   "tail": " diff: 'simple' | }",
+   "superseded": false
+  },
+  {
+   "file": "function_redefinition_preserves_ancestor_guards.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 66,
+   "tail": "function_redefinition_preserves_ancestor_guards: 81 migrations, 28 redefinitions, 29 ancestor guards checked, 0 silently dropped",
+   "superseded": false
+  },
+  {
+   "file": "grounding_precedence_canonical_over_history.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 71,
+   "tail": " | grounding_precedence_canonical_over_history: 17 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "issue5_confirmation_action_type_binding.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": " | issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with the fixed contract",
+   "superseded": false
+  },
+  {
+   "file": "lifecycle_evidence_and_output_persistence_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 121,
+   "tail": "lifecycle_evidence_and_output_persistence_contract: 93/93 contract checks passed, 11/11 section-X cases match the recorded baseline | DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source.",
+   "superseded": false
+  },
+  {
+   "file": "manager_set_ui_canonical_write.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 60,
+   "tail": " | manager_set_ui_canonical_write: 6/6 passed",
+   "superseded": false
+  },
+  {
+   "file": "messaging_transport_binding_agreement_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": " | messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures)",
+   "superseded": false
+  },
+  {
+   "file": "mixed_claim_grounding.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 70,
+   "tail": "mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "superseded": true
+  },
+  {
+   "file": "mutation_receipt_equals_ledger.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": " | mutation_receipt_equals_ledger: 14 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "org_selector_scoping_coverage.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 67,
+   "tail": " | org_selector_scoping_coverage: 5/5 passed (scoped readers: 18)",
+   "superseded": false
+  },
+  {
+   "file": "past_completion_gate_behavior.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 57,
+   "tail": "past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "superseded": true
+  },
+  {
+   "file": "per_resource_grounding_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 60,
+   "tail": "per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.",
+   "superseded": true
+  },
+  {
+   "file": "production_write_authority.regression.test.mjs",
+   "exit": 1,
+   "signal": null,
+   "ms": 13944,
+   "tail": "(node:13816) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecatio",
+   "superseded": false
+  },
+  {
+   "file": "readsAsCompletion_no_literal_semicolon_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 59,
+   "tail": " | readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "run10_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 137,
+   "tail": " | v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run11_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 142,
+   "tail": " | v11_regression_additions: 50 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run12_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 147,
+   "tail": " | v12_regression_additions: 74 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run13_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 143,
+   "tail": " | run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run14_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 151,
+   "tail": " | run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run15_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 138,
+   "tail": " | run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run16_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 112,
+   "tail": " | run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run17_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 120,
+   "tail": " | run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run18_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 114,
+   "tail": " | run18_defect_closure_contract: 52 pass, 0 fail (0 open #78 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)",
+   "superseded": false
+  },
+  {
+   "file": "run19_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 126,
+   "tail": " | 62 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "run28_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 164,
+   "tail": " | 117 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "run8_defect_closure_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 131,
+   "tail": " | run8_defect_closure_contract: 40/40 passed",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_company_restore_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 63,
+   "tail": " | ALL REGRESSIONS PASSED",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_confirmation_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 53,
+   "tail": " | ALL REGRESSIONS PASSED",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_execution_plan_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 58,
+   "tail": " | ALL REGRESSIONS PASSED",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_factory_verification_selection.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 53,
+   "tail": " | ALL REGRESSIONS PASSED",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_named_person_lookup_truth.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 55,
+   "tail": " | ALL REGRESSIONS PASSED",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_past_completion_claim_regex.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 53,
+   "tail": " | 13 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "sem_ai_command_source_invariants_drift_guard.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 64,
+   "tail": " | 13 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "standing_reds_classification_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 110,
+   "tail": "rows 8 derived-BLOCKER 0 mislabelled-as-shared 0 | RESULT: PASS - every standing red re-derives as a genuine non-blocker",
+   "superseded": false
+  },
+  {
+   "file": "structured_claim_laundering_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 134,
+   "tail": "structured_claim_laundering_contract: 29/29 match the recorded baseline | DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present.",
+   "superseded": false
+  },
+  {
+   "file": "structured_claim_verification.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 133,
+   "tail": " | structured_claim_verification: 42/42 passed",
+   "superseded": false
+  },
+  {
+   "file": "tdz_forward_reference_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 138,
+   "tail": " | v48_regression_additions: 9 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "v56_intent_lifecycle_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 174,
+   "tail": " | v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0)",
+   "superseded": false
+  },
+  {
+   "file": "v57_intent_other_veto_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 189,
+   "tail": " | v57_regression_additions: 306 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0; residual rows measured: 8)",
+   "superseded": false
+  },
+  {
+   "file": "v92_open_regression_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 112,
+   "tail": " | 28 passed, 0 failed",
+   "superseded": false
+  },
+  {
+   "file": "v92_parity_contract.mjs",
+   "exit": 0,
+   "signal": null,
+   "ms": 130,
+   "tail": " | v92_parity_contract: 46 passed, 0 failed",
+   "superseded": false
+  }
+ ]
+}

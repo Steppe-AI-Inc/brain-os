@@ -139,7 +139,7 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #58 has not run"
+    "V58-D2 (P1, contract, v92 parity): chat task restore can never execute — pack never carries archivedTasks; task/goal lifecycle ids filtered by the capped window; receipt names company on a task request. FIX PREPARED qa/verification/scratch/v58/index.fixed.ts"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
@@ -464,9 +464,76 @@
   "verifier57_index_sha256_at_start": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871 (sha256sum raw bytes; 531565 B; 6419 CRLF, 0 bare LF, 1 bare CR)",
   "verifier57_last_checkpoint_at": "2026-09-07T16:37:07.859Z",
   "verifier57_closure": "Ledger #129: #57 prepared fix F1/F2/F3 applied as written (other vetoes the lexicon; fallback honours requestIntent.entityType; non-imperative leads refused) plus D4 whole-name candidate query, D6a polite lifecycle question, D6b honest receipt reason. #57 suite promoted (306/0); matrix 31/31; mutation proof 5/5; generators FN 0.5% FP 0; battery 55/55.",
-  "verifier58_base_commit": "e75912f2c00e0453d9cada1cf56a26db4d96772b",
+  "verifier58_base_commit": "5ebc6953ca6665ccc22c54bee6c8573d8ee2ed62",
   "verifier58_index_sha256": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b",
-  "verifier58_started_at": null,
-  "verifier58_status": "not started",
-  "verifier58_findings": []
+  "verifier58_started_at": "2026-09-07T16:46:45.151Z",
+  "verifier58_status": "COMPLETE. VERDICT: FAIL on 5ebc6953 under the CONTRACT bar (V58-D2 P1 task restore impossible / task+goal lifecycle window-gated — v92 parity, founder may waive; V58-D1 P2 conditional) — FIX PREPARED (scratch/v58/index.fixed.ts 715246f3…), not applied; regression 29 CONTRACT green / 19 DEFECT red by design, 48/0 on the fixed bytes",
+  "verifier58_findings": [
+    {
+      "id": "V58-PREFLIGHT",
+      "level": "UNIT VERIFIED",
+      "text": "HEAD 5ebc6953; scratch probe ok; architecture_final_claim_contract 51 passed / 0 failed. index.ts sha256 0fd05a92… 6432 CRLF, 0 bare LF. index.ts unchanged e75912f..5ebc695."
+    },
+    {
+      "id": "V58-TOOLS",
+      "level": "BLOCKED",
+      "text": "npx (deno@2, supabase CLI) gated in this session for bare and compound forms; no tsc/deno on disk (web/node_modules absent). deno check and the live v92 download cannot be re-run here. Substitutes: own TDZ scanner (0 SYNC on candidate; 0 on v92; 2 SYNC on the known-TDZ 8eb8cbd control = V54-P0 reproduced), whole-file detyped V8 parse (in progress), regex-literal construction check 197/197 OK."
+    },
+    {
+      "id": "V58-PROVENANCE",
+      "level": "INTEGRATION VERIFIED (not byte-direct by me)",
+      "text": "git show c9dfab5bd433:index.ts sha256 795c20c8… (321370 B) == qa/verification/scratch/v92/index.v92.ts (recorded live download). No live download possible in this session."
+    },
+    {
+      "id": "V58-DELTA",
+      "level": "CODE INSPECTED",
+      "text": "LF-normalised v92 4313 lines / 555 declared identifiers -> candidate 6433 lines / 898; 343 added, 0 removed (own scanner); imports identical (deno std http, supabase-js); 0 non-comment _shared mentions — deploy surface is exactly index.ts. _shared/{execution,collection,lifecycle,parent-policy}.ts vs web/lib: 6/13, 3/8, 11/76, 20/31 differing lines; the drift guard OTM §4 cites (architecture_shared_contracts_mirror_contract.mjs) does not exist — AUTHORITY_NOT_ENFORCED, off the deploy surface."
+    },
+    {
+      "id": "V58-BATTERY",
+      "level": "UNIT VERIFIED",
+      "text": "57 .mjs suites on disk: 55 exit 0, 2 exit 1 = production_write_authority + factory_production_write_inventory (machine posture). 5 SUPERSEDED stubs. Key: final_claim 51/0, v56 129/0, v57 306/0, company_lifecycle_matrix 31/0, mutation_receipt_equals_ledger 14/0, grounding_precedence 17/0, lifecycle_evidence 93/93, mutation_envelope 35/0, collection_envelope 56/0, structured_claim 42/42, run8 40/40 … run28 117/0. Gates: v48-v52, v54-v57 exit 0; v46 33/3 (C8a stale CRLF pin 6003 vs 6432; D1 growth e=2.55 measured here; D5 withdrawn) and v53 33/1 (needs CLI) = recorded standing reds; v47 file absent."
+    },
+    {
+      "id": "V58-STEP3-VACUITY",
+      "level": "UNIT VERIFIED",
+      "text": "24 own mutants on SCRATCH copies (index.ts never touched; sha asserted before/after) × the 27 suites honouring SEM_INDEX_SRC + my 3 suites (counted only when they add NEW failures): 22 killed by the committed battery — receipt block deleted (final_claim, v56, v57), pendingAction exempts again in legacyProseFallback and in the receipt (final_claim), create-family literal true (mutation_envelope), envelope total from length (collection_envelope), persist gated again (mutation_envelope), UNVERIFIED marker dropped and verified=true-when-unknown (grounding_precedence), other-veto and read-veto removed (v56/v57), entityType gate / question-negation-read gate / other-target gate removed (matrix, v57), fuzzy command executes (v57), intent derived from result.summary (final_claim, run10, v56, v57), turnVerdict intent null and stored TTL removed (v57), evidence on already_archived / whole-name query dropped / direction by last verb (matrix), postcondition-false supports a claim and receipt appends model prose (v56/v57). m05 (durable read last) had my anchor wrong — re-run below; m06 dropped the archivedTasks envelope, which is NOT a pack array (unfaithful) — re-run with a real pack array (proposals)."
+    },
+    {
+      "id": "V58-FIX",
+      "level": "FIX PREPARED (scratch copy; not applied — no write authority on index.ts)",
+      "text": "qa/verification/scratch/v58/v58_fix.mjs → index.fixed.ts sha256 715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9 (537756 B raw, 0 bare LF). F1 imperative-position allow-list on the company fallback (27/56 → 1/56 non-imperative executions; the 1 is the polite request 'would you archive Alpha'; controls unchanged; #56 lifecycle_harness 56/1 = candidate; #56 question_probe 0/19). F2 archivedTasks in the pack; task/goal ids re-read from tasks/goals under RLS across every status (type LifecycleLookupRow at module top); unresolved ids leave 'could not be found' lines. F3 receipt reason names the entity (task/goal/person/…; company wording kept for company requests). Measured on the fixed bytes: all 27 SEM_INDEX_SRC battery suites exit 0 (collection_envelope 57/0 sees the new pack key), company_lifecycle_matrix 31/0, v56 129/0, v57 306/0, own lifecycle attack 161/0, task_restore_trace all green, v58_regression_additions 48/0, TDZ 0 SYNC, 0 bare LF. Lexicon-tier residuals untouched by design (receipt matrix 691/25 and intent attack 23/1 identical on both builds)."
+    },
+    {
+      "id": "V58-D2",
+      "level": "FAILED (P1, contract; v92 PARITY — not a regression; in the founder's stated scope) — FIX PREPARED",
+      "text": "A chat TASK restore can never execute: buildContext queries the 15 newest archived tasks (:2304, comment :2300 says the query exists so restoreTaskIds has something to resolve from), envelopes them (:2635) and the prompt tells the model 4× to resolve restores from context.archivedTasks (:971-984) — but the pack literal (:2639) never sets archivedTasks, so contextArchivedTaskIds (:3053) is always empty and restoreTaskIds (:3106) always []. Executed through the real slice: model-emitted id of an archived task the caller can see → restoreTaskIds [] / 0 RPC / report null, even with the task inside context.tasks. archiveTaskIds (:3104) and archiveGoalIds/restoreGoalIds (:3803/:3805) are filtered by membership in the 15-/20-row window (an id carried from history for a row outside the window is dropped). The founder reads the receipt with the WRONG entity: 'No change was made — I could not resolve which company you meant (searched the active and archived companies you can access)' on a task request. OTM §5 row 5 + CWC §2 — the class ledger #121 (BUG-014) closed for companies only. Byte-identical in deployed v92 (:2597-2606; no pack key). Founder's FAIL list: 'any lifecycle request … gated by the context window'. Fix prepared (F2 pack key + server-side re-read of task/goal ids under RLS, F3 entity-aware receipt reason) on qa/verification/scratch/v58/index.fixed.ts."
+    },
+    {
+      "id": "V58-REGRESSION",
+      "level": "UNIT VERIFIED",
+      "text": "qa/verification/proposed/v58_regression_additions.mjs: on the candidate 29 CONTRACT green / 19 DEFECT red by design (D1 ×12, D2 ×7; exit 1; run from qa/verification to prove walk-up); on index.fixed.ts 48/0 (exit 0). Windows: structured/intent/receipt, company lifecycle executor, task lifecycle slice (recordExecution declared inside), all via _gate_extract + a type-predicate/generic-constructor detype helper."
+    },
+    {
+      "id": "V58-STEP3-VACUITY-FINAL",
+      "level": "UNIT VERIFIED",
+      "text": "25 mutants total: 24 faithful killed (m05 durable-read-last killed by grounding_precedence + run11; m06 proposals envelope dropped killed by collection_envelope); m06b (archivedTasks envelope dropped) survives because archivedTasks is not a pack array — unfaithful, and the other face of V58-D2. index.ts sha unchanged throughout."
+    },
+    {
+      "id": "V58-SYNTAX-SUBSTITUTE",
+      "level": "BLOCKED (partial)",
+      "text": "deno gated; whole-file V8 parse of the detyped source NOT achieved after six extensions of the repo's generic detyper (remaining: template-literal / typed-destructuring interplay). Coverage instead: every changed block executes in V8 through the windows (structured/intent/receipt, company lifecycle, task lifecycle, history, precedence, envelope helper); own TDZ scanner 0 SYNC on candidate and fixed; 197/197 regex literals construct; the 25-line delta since 712760d (the last recorded deno-checked build) read by eye."
+    },
+    {
+      "id": "V58-VERDICT",
+      "level": "FAILED",
+      "text": "FAIL on 5ebc6953ca6665ccc22c54bee6c8573d8ee2ed62 (index.ts sha256 0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b, preserved). Blocker: V58-D2 (P1, contract: task restore from chat impossible; task/goal lifecycle gated by the capped window; wrong-entity receipt) — v92 PARITY, not a regression, founder may waive explicitly. Carried: V58-D1 (P2 conditional: 27/56 declaratives execute the company fallback with the model emitting nothing; closure #129 overstated). FIX PREPARED for both, measured (regression 48/0, battery green on fixed bytes), NOT applied. The #57 closure re-derives clean; envelopes, receipt, precedence, persistence, company resolution, belt vs v92 (0 truth regressions) all clean. Gaps: deno check, live CLI download, browser/AI-chat turn, live requestIntent compliance."
+    }
+  ],
+  "verifier58_base_commit_note": "git rev-parse HEAD at start of the run (record pre-filled e75912f = the closure commit; 5ebc695 is the campaign-record commit on top; index.ts byte-identical between them — verified by git diff, empty)",
+  "verifier58_index_sha256_at_start": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b (sha256sum raw bytes at start; 6432 CRLF, 0 bare LF)",
+  "verifier58_last_checkpoint_at": "2026-09-07T17:27:38.873Z",
+  "verifier58_verdict": "FAIL",
+  "verifier58_index_sha256_at_end": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b",
+  "verifier58_fixed_index_sha256": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9"
 }

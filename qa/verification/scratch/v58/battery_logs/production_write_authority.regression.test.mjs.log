@@ -1,0 +1,122 @@
+  C:\Users\Dell\dev\brain-os-verify-5ebc695\.env.example SUPABASE_SERVICE_ROLE_KEY: REDACTED (shape=none, length=34)
+✖ ROUTE_1_no_ambient_supabase_cli_authority (12282.9971ms)
+✖ ROUTE_1b_no_supabase_credential_in_the_os_store (27.7481ms)
+✔ ROUTE_2_no_service_role_key_readable_on_disk (2.6658ms)
+✖ ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route (1.177ms)
+✔ ROUTE_3_no_production_credentials_in_the_environment (0.1949ms)
+✖ ROUTE_5_github_identity_cannot_administer_the_boundary (805.3214ms)
+✖ ROUTE_5b_no_repo_level_production_secret (749.5432ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13877.1489
+
+✖ failing tests:
+
+test at qa\scenarios-runner\production_write_authority.regression.test.mjs:52:1
+✖ ROUTE_1_no_ambient_supabase_cli_authority (12282.9971ms)
+  AssertionError [ERR_ASSERTION]: A scrubbed-environment `supabase projects list`, run from a temp directory with no repo and no SUPABASE_ACCESS_TOKEN, returned the production project. This machine holds a working production credential that no environment variable or dotfile reveals, and every agent session inherits it. Remedy: `supabase logout` here AND revoke the token in the dashboard — local deletion does not invalidate a token that has been usable for weeks.
+      at TestContext.<anonymous> (file:///C:/Users/Dell/dev/brain-os-verify-5ebc695/qa/scenarios-runner/production_write_authority.regression.test.mjs:62:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '{"projects":[{"id":"pvphxgrtdfrudejjhzjk","ref":"pvphxgrtdfrudejjhzjk","organization_id":"nnebdgdbrcveeissvgqe","organization_slug":"nnebdgdbrcveeissvgqe","name":"Brain OS","region":"ap-northeast-2","created_at":"2026-08-23T13:08:18.529862Z","status":"ACTIVE_HEALTHY","database":{"host":"db.pvphxgrtdfrudejjhzjk.supabase.co","version":"17.6.1.155","postgres_engine":"17","release_channel":"ga"},"linked":false}],"message":""}\nCannot find project ref. Have you run supabase link?\n',
+    expected: /pvphxgrtdfrudejjhzjk/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at qa\scenarios-runner\production_write_authority.regression.test.mjs:70:1
+✖ ROUTE_1b_no_supabase_credential_in_the_os_store (27.7481ms)
+  AssertionError [ERR_ASSERTION]: The Windows Credential Manager holds a `Supabase CLI:*` credential. It survives shells, sessions and environment scrubbing, and is inherited by every spawned process.
+      at TestContext.<anonymous> (file:///C:/Users/Dell/dev/brain-os-verify-5ebc695/qa/scenarios-runner/production_write_authority.regression.test.mjs:79:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: '\r\nCurrently stored credentials:\r\n\r\n    Target: MicrosoftAccount:target=SSO_POP_Device\n    Type: Generic \r\n    User: 02ixcvfkkbyafbqq\r\n    Saved for this logon only\r\n    \r\n    Target: LegacyGeneric:target=gh:github.com:TreyOpenSpot\n    Type: Generic \r\n...',
+    expected: /Supabase CLI:/i,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at qa\scenarios-runner\production_write_authority.regression.test.mjs:136:1
+✖ ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route (1.177ms)
+  AssertionError [ERR_ASSERTION]: A logged-in Vercel CLI session exists at: C:\Users\Dell\AppData\Roaming\xdg.data\com.vercel.cli\auth.json. While it exists, `vercel env pull` regenerates the service-role key checked above, so route 2 cannot be closed by deleting files.
+  + actual - expected
+  
+  + [
+  +   'C:\\Users\\Dell\\AppData\\Roaming\\xdg.data\\com.vercel.cli\\auth.json'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Users/Dell/dev/brain-os-verify-5ebc695/qa/scenarios-runner/production_write_authority.regression.test.mjs:146:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [Array],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at qa\scenarios-runner\production_write_authority.regression.test.mjs:164:1
+✖ ROUTE_5_github_identity_cannot_administer_the_boundary (805.3214ms)
+  AssertionError [ERR_ASSERTION]: This machine's GitHub token carries `workflow` scope, so a session can add or edit a workflow and push it. Scopes: gist, read:org, repo, workflow
+      at TestContext.<anonymous> (file:///C:/Users/Dell/dev/brain-os-verify-5ebc695/qa/scenarios-runner/production_write_authority.regression.test.mjs:168:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'gist, read:org, repo, workflow',
+    expected: /\bworkflow\b/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at qa\scenarios-runner\production_write_authority.regression.test.mjs:182:1
+✖ ROUTE_5b_no_repo_level_production_secret (749.5432ms)
+  AssertionError [ERR_ASSERTION]: Repository-level Actions secrets exist: SUPABASE_ACCESS_TOKEN. A repo-level secret is readable by ANY workflow on ANY branch, so it is a production-write route that bypasses the approval gate entirely. Production secrets belong to a protected environment, not the repo.
+  + actual - expected
+  
+  + [
+  +   'SUPABASE_ACCESS_TOKEN'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///C:/Users/Dell/dev/brain-os-verify-5ebc695/qa/scenarios-runner/production_write_authority.regression.test.mjs:186:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [Array],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+(node:13816) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

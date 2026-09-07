@@ -1,0 +1,12 @@
+[
+  {
+    "id": "V58-STEP3-VACUITY",
+    "level": "UNIT VERIFIED",
+    "text": "24 own mutants on SCRATCH copies (index.ts never touched; sha asserted before/after) × the 27 suites honouring SEM_INDEX_SRC + my 3 suites (counted only when they add NEW failures): 22 killed by the committed battery — receipt block deleted (final_claim, v56, v57), pendingAction exempts again in legacyProseFallback and in the receipt (final_claim), create-family literal true (mutation_envelope), envelope total from length (collection_envelope), persist gated again (mutation_envelope), UNVERIFIED marker dropped and verified=true-when-unknown (grounding_precedence), other-veto and read-veto removed (v56/v57), entityType gate / question-negation-read gate / other-target gate removed (matrix, v57), fuzzy command executes (v57), intent derived from result.summary (final_claim, run10, v56, v57), turnVerdict intent null and stored TTL removed (v57), evidence on already_archived / whole-name query dropped / direction by last verb (matrix), postcondition-false supports a claim and receipt appends model prose (v56/v57). m05 (durable read last) had my anchor wrong — re-run below; m06 dropped the archivedTasks envelope, which is NOT a pack array (unfaithful) — re-run with a real pack array (proposals)."
+  },
+  {
+    "id": "V58-FIX",
+    "level": "FIX PREPARED (scratch copy qa/verification/scratch/v58/index.fixed.ts; not applied — no write authority)",
+    "text": "qa/verification/scratch/v58/v58_fix.mjs → index.fixed.ts (sha256 58ba66d0…, 534600 B, 0 bare LF). ONE change: the command-name lifecycle fallback additionally requires the lifecycle verb in IMPERATIVE POSITION (allow-list: head of the command after optional politeness/adverb/connective/polite-frame words, or head of the last clause after a NON-conditional lead clause) — the existing deny-list checks stay. Measured on the fixed bytes: non-imperative executions 27/56 → 1/56 (\"would you archive Alpha\" — a polite request, acceptable); imperative controls 8/10 (the two that do not execute: a conditional lead \"as soon as the invoices clear, archive Alpha\" — refused by design, receipt fires — and the pronoun \"Alpha: archive it now\", unchanged from the candidate); company_lifecycle_matrix 31/0; v56 129/0; v57 306/0; #56 question_probe 0/19; own lifecycle attack 160/161 (same single over-strict row as on the candidate); #56 lifecycle_harness 55/2 vs 56/1 on the candidate — the one new red is being read."
+  }
+]

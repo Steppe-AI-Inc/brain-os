@@ -1,0 +1,54 @@
+--- v92 identity
+OK   v92.pccpByteIdenticalToDeployed
+OK   v92.referenceCopyPresent
+
+--- BELT parity over 272 truthful / 182 fabrications
+OK   belt.truthRegression==0
+OK   belt.fabRegression==0
+     (truth rescued vs v92: 163; extra fabrications caught vs v92: 26)
+OK   belt.productionShapes.D27-prod.allCaught(3)
+OK   belt.productionShapes.D25-prod.allCaught(7)
+OK   belt.productionShapes.D40-prod.allCaught(1)
+OK   belt.productionShapes.D16-prod.allCaught(11)
+OK   belt.productionShapes.BUG-002.allCaught(3)
+OK   belt.productionShapes.v92diff-fix.allCaught(1)
+
+--- MATCHER parity (v92 DEAD-END never becomes a wrong-intent SELECT)
+OK   matcher.candidateCorrect.clean name
+OK   matcher.noRegressionVsV92.clean name
+OK   matcher.candidateCorrect.D127 own verb
+OK   matcher.noRegressionVsV92.D127 own verb
+OK   matcher.candidateCorrect.D116 negated mention
+OK   matcher.noRegressionVsV92.D116 negated mention
+OK   matcher.candidateCorrect.D123 exclusion
+OK   matcher.noRegressionVsV92.D123 exclusion
+OK   matcher.candidateCorrect.D127 different intent
+OK   matcher.noRegressionVsV92.D127 different intent
+OK   matcher.candidateCorrect.D129 name+digit
+OK   matcher.noRegressionVsV92.D129 name+digit
+OK   matcher.candidateCorrect.D133 ordinal
+OK   matcher.noRegressionVsV92.D133 ordinal
+OK   matcher.candidateCorrect.D136 ordinal-is-a-name
+OK   matcher.noRegressionVsV92.D136 ordinal-is-a-name
+OK   matcher.candidateCorrect.D138 name with verb
+OK   matcher.noRegressionVsV92.D138 name with verb
+OK   matcher.candidateCorrect.D138 opposite outside
+OK   matcher.noRegressionVsV92.D138 opposite outside
+OK   matcher.candidateCorrect.D142 label is verb
+OK   matcher.noRegressionVsV92.D142 label is verb
+OK   matcher.candidateCorrect.D148 phrasing
+OK   matcher.noRegressionVsV92.D148 phrasing
+OK   matcher.candidateCorrect.D148 mirror
+OK   matcher.noRegressionVsV92.D148 mirror
+OK   matcher.candidateCorrect.D150 base-verb name
+OK   matcher.noRegressionVsV92.D150 base-verb name
+OK   matcher.candidateCorrect.D150 end-name
+OK   matcher.noRegressionVsV92.D150 end-name
+OK   matcher.candidateCorrect.D157 bring back
+OK   matcher.noRegressionVsV92.D157 bring back
+OK   matcher.candidateCorrect.D132 proto actionType
+OK   matcher.noRegressionVsV92.D132 proto actionType
+OK   matcher.candidateCorrect.issue#5 absent actionType
+OK   matcher.noRegressionVsV92.issue#5 absent actionType
+
+v92_parity_contract: 46 passed, 0 failed

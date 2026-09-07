@@ -1,0 +1,45 @@
+OK   R10.term.!             [CONTRACT] terminator "!" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.:             [CONTRACT] terminator ":" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.…             [CONTRACT] terminator "…" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.。             [CONTRACT] terminator "。" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.！             [CONTRACT] terminator "！" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.？             [CONTRACT] terminator "？" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.term.—             [CONTRACT] terminator "—" cuts the assertion (mutant M03 survived: no suite covered it)
+OK   R10.promise            [CONTRACT] a future promise WITHOUT a terminator before "ok?" is still refused (M08 survived: em-dash made the run8 case vacuous)
+OK   R10.floor              [CONTRACT] an all-gated drift re-render never ships an empty reply (M02 survived)
+OK   R10.label.len          [CONTRACT] a 200-char runtime label is bounded (M10 survived)
+OK   R10.label.canonical    [CONTRACT] an assertion-shaped CANONICAL name collapses too (M12 survived)
+OK   R10.flag.text          [CONTRACT] gating a pendingAction.summary sets pendingActionGatingChanged (M14 survived)
+OK   R10.flag.label         [CONTRACT] repairing an option label sets the flag (M15 survived)
+OK   R10.flag.arrays        [CONTRACT] dropping a question sets the flag (M16 survived)
+OK   R10.flag.quiet         [CONTRACT] a pendingAction with nothing to gate does NOT set the flag (observed TRUE on 65ade7c — null !== undefined; see D80)
+OK   R10.fallback.derived   [CONTRACT] a refused option label falls back to the DERIVED canonical reference, not "option N" (M18 survived)
+OK   R10.paQuestion         [CONTRACT] an assertion-shaped pendingAction.question is gated in place (M27 survived)
+OK   R10.paSummaryWord      [CONTRACT] a bulk summary with completion vocabulary but no past-tense aux is refused (M28 survived)
+OK   D77.lowercase-after-period [DEFECT] D77: "I archived ACME. ok?" must not reach the corrected summary
+OK   D77.present tense lc   [DEFECT] D77: "The company is now archived. anything else?" must not reach the corrected summary
+OK   D77.em-dash then lc    [DEFECT] D77: "Done — ACME deleted. anything else?" must not reach the corrected summary
+OK   D77.digit continuation [DEFECT] D77: "ACME deleted. 3 tasks remain?" must not reach the corrected summary
+OK   D77.e.g. continuation  [DEFECT] D77: "Deleted ACME. e.g. also its tasks?" must not reach the corrected summary
+OK   D77.persisted          [DEFECT] D77: the same shape via pendingAction.question is not persisted for replay
+OK   D70.hold               [CONTRACT] D70 still holds: "Is Acme Inc. still interested?" survives whole
+OK   D70b.hold              [CONTRACT] D70b still holds: "Should the 1.5 allocation stay?" survives whole
+OK   D78.simple past        [DEFECT] D78: sentence-shaped option label "ACME deleted" is not rendered/persisted as a label
+OK   D78.first person       [DEFECT] D78: sentence-shaped option label "I archived ACME" is not rendered/persisted as a label
+OK   D78.done-colon         [DEFECT] D78: sentence-shaped option label "Done: ACME deleted" is not rendered/persisted as a label
+OK   D78.present tense      [DEFECT] D78: sentence-shaped option label "ACME is now archived" is not rendered/persisted as a label
+OK   D78.legit              [CONTRACT] D72 still holds: a CANONICALLY-CORROBORATED name with a completion word ("Closed Loop Systems") survives as a label (run13/D100: uncorroborated ones no longer do)
+OK   D79.taskTitle          [DEFECT] D79: a legitimate task title containing "was approved" keeps its name in the evidence line
+OK   D79.twinOptions        [DEFECT] D79: two options whose real names are assertion-shaped do not collapse to IDENTICAL labels
+OK   D81.history            [DEFECT] D81: a truthful historical read-only statement on a GROUNDED claims:null turn ships (6ed3834 shipped it; 65ade7c floors it)
+OK   D81.state.hold         [CONTRACT] a present-tense STATE description on a grounded turn is untouched (holds on both)
+OK   D83.tag-question       [DEFECT] D83 (pre-existing on 6ed3834 too): an ASCII "?" inside the head must be a cut point — "I archived ACME, right? Continue?"
+OK   D83.comma-ok           [DEFECT] D83 (pre-existing on 6ed3834 too): an ASCII "?" inside the head must be a cut point — "ACME deleted, ok? Anything else?"
+OK   D84.done               [DEFECT] D84: a legitimate imperative bulk summary "Mark 3 tasks as done" persists AND renders on the rewrite path (6ed3834 kept it; 65ade7c drops it and leaves the action armed)
+OK   D84.closed             [DEFECT] D84: a legitimate imperative bulk summary "Archive ACME (currently closed)" persists AND renders on the rewrite path (6ed3834 kept it; 65ade7c drops it and leaves the action armed)
+OK   D84.hold               [CONTRACT] D60 still holds: a bulk summary that ASSERTS a completion is refused
+OK   EMULTI.ungrounded      [DEFECT] the live E-multi shape — bare-yes reply fabricating plan execution, nothing structural — is corrected, not shipped
+OK   EMULTI.grounded-evidence [DEFECT] a progressive fabrication beside real evidence re-renders from the evidence
+OK   EMULTI.legit-hold      [CONTRACT] ordinary prose containing the word executing in a non-claim shape is untouched
+
+v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)

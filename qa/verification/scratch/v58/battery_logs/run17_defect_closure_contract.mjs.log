@@ -1,0 +1,45 @@
+OK   D128.truthfulNegativeDestroyed."No company named Salt and Pepper Co was " [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "No company named Salt and Pepper Co was archived."
+OK   D128.truthfulNegativeDestroyed."Nothing named Bed Bath and Beyond was de" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "Nothing named Bed Bath and Beyond was deleted."
+OK   D128.truthfulNegativeDestroyed."There is no company called Barnes and No" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "There is no company called Barnes and Noble that was archived."
+OK   D128.truthfulNegativeDestroyed."I did not find any record that Black and" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "I did not find any record that Black and Decker Holdings was archived."
+OK   D128.truthfulNegativeDestroyed."No task for Smith and Sons Ltd was compl" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "No task for Smith and Sons Ltd was completed."
+OK   D128.truthfulNegativeDestroyed."No company called Without Borders Ltd wa" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "No company called Without Borders Ltd was archived."
+OK   D128.truthfulNegativeDestroyed."Nothing named Home Without Walls Co was " [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "Nothing named Home Without Walls Co was deleted."
+OK   D128.truthfulNegativeDestroyed."There is no company named But First Coff" [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "There is no company named But First Coffee that was archived."
+OK   D128.truthfulNegativeDestroyed."No entity (including ACME) was archived." [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "No entity (including ACME) was archived."
+OK   D128.truthfulNegativeDestroyed."Nothing in the 14:30 batch was archived." [DEFECT] D128 (P1): 52e830f answered this truthfully and the candidate destroys it — "Nothing in the 14:30 batch was archived."
+OK   D128.rateVsPrior                                               [DEFECT] D128 (P1): the false-positive rate on realistic truthful negatives whose names carry a new boundary token must return to 0
+OK   D128.hold.newFabricationsStillCaught                           [CONTRACT] D125 must not be undone while D128 is fixed: the four shapes d724d8c caught stay caught
+OK   D128.hold.plainTruthfulNegativesSurvive                        [CONTRACT] the truthful negatives D118 rescued (#4905) still survive
+OK   D128.hold.accidentalSurvivors                                  [CONTRACT] two shapes in this family survive the widened splitter only by accident (a second negator lands in the trailing fragment, or the verb is a gerund) — pinned so a "fix" that changes them is noticed
+OK   D128.hold.negatorAfterTheConjunctionStillWorks                 [CONTRACT] the FP is directional: with the negator AFTER the conjunction the belt is still correct
+OK   D128.coverage.orIsNotYetABoundary                              [CONTRACT] COVERAGE (surviving mutant M28): adding "or" to the splitter is observed by NO committed suite — pinned here so the next widening is deliberate
+OK   D127.activateArmsArchive                                       [DEFECT] D127 (P2): 'activate' is selection filler but is NOT in RESTORE_VERB_PATTERN (only 'reactivate' is), so a make-active intent arms archiveCompanyIds
+OK   D127.rejectArmsDestructiveField                                [DEFECT] D127 (P2): 'reject acme' is an EXCLUSION expressed entirely in selection filler and must not arm a destructive field
+OK   D127.rejectArmsEndEmployment                                   [DEFECT] D127 (P2): 'reject bob smith' ends Bob Smith's employment — the sharpest instance of the same hole
+OK   D127.entityNounTargetFlip                                      [DEFECT] D127 (P2): 'archive acme tasks' names the TASKS and arms archiveCompanyIds on the COMPANY
+OK   D127.entityNounTargetFlipPeople                                [DEFECT] D127 (P2): 'archive acme employees' arms archiveCompanyIds on the COMPANY
+OK   D127.hold.oppositeFamilyStillRefused                           [CONTRACT] the D32 contradiction guard still works on the axis it does know: restore-verb vs a pending archive, and archive-verb vs a pending restore
+OK   D127.hold.plainSelectionStillArms                              [CONTRACT] fixing D127 must not break an ordinary selection: the bare name and an affirmative frame still arm the pending field
+OK   D129.numberedReplyDeadEnds."acme (option 1)"                   [DEFECT] D129 (P3): the product renders "(option N)" and then refuses the reply that uses it — "acme (option 1)"
+OK   D129.numberedReplyDeadEnds."option 1, acme"                    [DEFECT] D129 (P3): the product renders "(option N)" and then refuses the reply that uses it — "option 1, acme"
+OK   D129.numberedReplyDeadEnds."acme option 1"                     [DEFECT] D129 (P3): the product renders "(option N)" and then refuses the reply that uses it — "acme option 1"
+OK   D129.numberedReplyDeadEnds."acme #1"                           [DEFECT] D129 (P3): the product renders "(option N)" and then refuses the reply that uses it — "acme #1"
+OK   D129.hold.otherOptionsNumberDeadEnds                           [CONTRACT] D129 LIMIT: another option's number is not filler — "acme (option 2)" dead-ends rather than binding Acme
+OK   D117.hold.splitStillMatters                                    [CONTRACT] run17/D128: a truthful negative in sentence 1 must not disarm a fabrication in sentence 2
+OK   D117.hold.commaStillMatters                                    [CONTRACT] run17/D128: the comma is still a clause boundary — "No company was archived, ACME was deleted." is caught
+OK   D127.hold.activateIsRestoreFamily                              [CONTRACT] run17/D127: plain "activate" is a restore-family verb for the contradiction guard (only "reactivate" was)
+OK   D129.hold.bareDigitStillDeadEnds                               [CONTRACT] D129 LIMIT: fixing the numbered-reply seam must not make a bare trailing digit filler — "acme 2" stays a dead end
+OK   D129.hold.numberingItselfStillHappens                          [CONTRACT] the D95 numbering that creates the seam is really there: two colliding typed fallbacks are numbered
+OK   D123.coverage.secondOptionGuardOnTieBreakPath                  [CONTRACT] cleanSelection's second-option guard is the only thing that dead-ends a tie-break reply that ALSO names a third, filler-named option
+OK   D123.coverage.tieBreakStillBindsWhenClean                      [CONTRACT] the same path still binds the exact raw name when the reply is clean
+OK   D123.coverage.strictlyTighterThanTheWordList                   [CONTRACT] the clean-selection rule is strictly no LOOSER than the retired NEGATED_MENTION list: every reply that word list dead-ended still dead-ends
+OK   D124.coverage.prototypeKeysFailClosed                          [CONTRACT] CANONICAL_TYPE_ALIAS is a bare object literal, so a model-authored entityType can reach Object.prototype — every such type must still fail closed and be dropped
+OK   D124.coverage.idKnownUnderOriginalTypeIsDropped                [CONTRACT] an alias must not rescue an id the read knows under a DIFFERENT type: entityType 'employee' whose id is a company| row is dropped
+OK   D124.coverage.runtimeLabelUsesTheCANONICALtypeKey              [CONTRACT] lastKnownLabel is consulted with the CANONICAL type, so a runtime label stored under the alias key ('employee|') must NOT resolve, while 'person|' must
+OK   D124.coverage.nonStringEntityTypeDropped                       [CONTRACT] a non-string / absent entityType and an empty id all fail closed
+OK   D124.coverage.fabricatedLabelNeedsTheCANONICALnameExactly      [CONTRACT] a fabricated label reaches the founder ONLY when the canonical row itself carries that exact name
+OK   D124.coverage.mixedDropInEveryOrdering                         [CONTRACT] the D119 drop removes only the unresolvable member, in every ordering
+OK   D125.coverage.questionBeltUnchanged                            [CONTRACT] the question belt constructs are byte-identical to 52e830f/d724d8c — this candidate touched only the completion belt
+
+run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)

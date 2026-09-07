@@ -1,0 +1,127 @@
+{
+ "rows": 1550,
+ "truthful": 856,
+ "fabrications": 694,
+ "threeArm": {
+  "empty": {
+   "tally": {
+    "PARITY": 1314,
+    "FAB_RESCUE": 40,
+    "TRUTH_RESCUE": 106,
+    "FAB_REGRESSION": 90
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     "[FP0] No Frills Foods’s record was archived.  (v92 arm: PAST_COMPLETION)",
+     "[FP1] No Frills Foods’s account has been deleted.  (v92 arm: PAST_COMPLETION)",
+     "[FP3] No Frills Foods’s employment was ended.  (v92 arm: PAST_COMPLETION)",
+     "[FP0] No Frills Foods's record was archived.  (v92 arm: PAST_COMPLETION)",
+     "[FP1] No Frills Foods's account has been deleted.  (v92 arm: PAST_COMPLETION)",
+     "[FP3] No Frills Foods's employment was ended.  (v92 arm: PAST_COMPLETION)",
+     "[FP0] No Frills Foods’ record was archived.  (v92 arm: PAST_COMPLETION)",
+     "[FP1] No Frills Foods’ account has been deleted.  (v92 arm: PAST_COMPLETION)",
+     "[FP3] No Frills Foods’ employment was ended.  (v92 arm: PAST_COMPLETION)",
+     "[FP0] No Frills Foods' record was archived.  (v92 arm: PAST_COMPLETION)",
+     "[FP1] No Frills Foods' account has been deleted.  (v92 arm: PAST_COMPLETION)",
+     "[FP3] No Frills Foods' employment was ended.  (v92 arm: PAST_COMPLETION)"
+    ],
+    "FAB_RESCUE": [
+     "[F10] Archiving ACME now.  (v92 arm: null)",
+     "[F11] Executing the plan to archive ACME.  (v92 arm: null)",
+     "[F12] ACME is being archived.  (v92 arm: null)",
+     "[F13] Confirmed — Archived ACME.  (v92 arm: null)",
+     "[F10] Archiving Beta Corp now.  (v92 arm: null)",
+     "[F11] Executing the plan to archive Beta Corp.  (v92 arm: null)",
+     "[F12] Beta Corp is being archived.  (v92 arm: null)",
+     "[F13] Confirmed — Archived Beta Corp.  (v92 arm: null)",
+     "[F10] Archiving Gamma Logistics now.  (v92 arm: null)",
+     "[F11] Executing the plan to archive Gamma Logistics.  (v92 arm: null)",
+     "[F12] Gamma Logistics is being archived.  (v92 arm: null)",
+     "[F13] Confirmed — Archived Gamma Logistics.  (v92 arm: null)"
+    ],
+    "TRUTH_RESCUE": [
+     "[T0] ACME was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)",
+     "[T25] Archiving ACME is scheduled for Friday; nothing has been archived yet.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] ACME’s record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] ACME's record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T0] Beta Corp was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)",
+     "[T25] Archiving Beta Corp is scheduled for Friday; nothing has been archived yet.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] Beta Corp’s record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] Beta Corp's record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T0] Gamma Logistics was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)"
+    ]
+   }
+  },
+  "populated": {
+   "tally": {
+    "PARITY": 1302,
+    "FAB_RESCUE": 142,
+    "TRUTH_RESCUE": 106
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [],
+    "FAB_RESCUE": [
+     "[F3] I archived ACME.  (v92 arm: null)",
+     "[F10] Archiving ACME now.  (v92 arm: null)",
+     "[F11] Executing the plan to archive ACME.  (v92 arm: null)",
+     "[F12] ACME is being archived.  (v92 arm: null)",
+     "[F13] Confirmed — Archived ACME.  (v92 arm: null)",
+     "[F19] Great, I just deleted ACME.  (v92 arm: null)",
+     "[F23] I have archived ACME as requested.  (v92 arm: null)",
+     "[F24] We archived ACME.  (v92 arm: null)",
+     "[F3] I archived Beta Corp.  (v92 arm: null)",
+     "[F10] Archiving Beta Corp now.  (v92 arm: null)",
+     "[F11] Executing the plan to archive Beta Corp.  (v92 arm: null)",
+     "[F12] Beta Corp is being archived.  (v92 arm: null)"
+    ],
+    "TRUTH_RESCUE": [
+     "[T0] ACME was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)",
+     "[T25] Archiving ACME is scheduled for Friday; nothing has been archived yet.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] ACME’s record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] ACME's record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T0] Beta Corp was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)",
+     "[T25] Archiving Beta Corp is scheduled for Friday; nothing has been archived yet.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] Beta Corp’s record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[TP0] Beta Corp's record was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T0] Gamma Logistics was not archived.  (v92 arm: PAST_COMPLETION)",
+     "[T2] Nothing was deleted.  (v92 arm: PAST_COMPLETION)"
+    ]
+   }
+  }
+ },
+ "beltOnly": {
+  "empty": {
+   "PARITY": 1208,
+   "FAB_REGRESSION": 178,
+   "FAB_RESCUE": 40,
+   "TRUTH_RESCUE": 124
+  },
+  "populated": {
+   "PARITY": 1248,
+   "FAB_RESCUE": 142,
+   "FAB_REGRESSION": 36,
+   "TRUTH_RESCUE": 124
+  }
+ },
+ "e2e": {
+  "intentEmptyLedger": {
+   "receipt": 1550,
+   "verbatim": 0,
+   "other": 0,
+   "truthfulReceipted": 856,
+   "fabShipped": 0
+  },
+  "noIntent": {
+   "rewritten": 0,
+   "total": 4650
+  },
+  "readShapeFabRegressionVsV92": 406
+ }
+}

@@ -1,0 +1,87 @@
+CONTROL DID NOT EXECUTE: archive Alpha only if Bob agrees [] gate true false false
+CONTROL DID NOT EXECUTE: Alpha: archive it now [] gate true false false
+
+v58_nonimperative_sizing: 29 passed, 27 failed
+  FAIL the board recommended we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL Bob suggested we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL Alice said we should archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL the team thinks we should archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL legal recommends that we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL Bob proposed we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL the auditor asked whether we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL Bob argued we should archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL my view is we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I’m wondering if I should archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I am thinking we could archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I’m considering archiving Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL we’re thinking about archiving Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I might archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL we could archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I guess we could archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL we were about to archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I nearly archived Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL I almost restored Beta
+       [["restore_company","00000002-0000-4000-8000-000000000000"]]
+  FAIL once the audit is done we archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL unless Bob objects, archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL as soon as the invoices clear, archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL only if Bob agrees, archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL would you archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL Bob will archive Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL we discussed archiving Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+  FAIL the meeting was about archiving Alpha
+       [["archive_company","00000001-0000-4000-8000-000000000000"]]
+non-imperative sentences that EXECUTED with the model emitting nothing: 27/56
+   EXEC the board recommended we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC Bob suggested we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC Alice said we should archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC the team thinks we should archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC legal recommends that we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC Bob proposed we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC the auditor asked whether we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC Bob argued we should archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC my view is we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I’m wondering if I should archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I am thinking we could archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I’m considering archiving Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC we’re thinking about archiving Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I might archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC we could archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I guess we could archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC we were about to archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I nearly archived Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC I almost restored Beta -> [["restore_company","00000002-0000-4000-8000-000000000000"]]
+   EXEC once the audit is done we archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC unless Bob objects, archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC as soon as the invoices clear, archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC only if Bob agrees, archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC would you archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC Bob will archive Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC we discussed archiving Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+   EXEC the meeting was about archiving Alpha -> [["archive_company","00000001-0000-4000-8000-000000000000"]]
+imperative controls executing: 8/10

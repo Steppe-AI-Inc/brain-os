@@ -1,0 +1,55 @@
+OK   D123.unlistedNegator."exclude acme"                        [DEFECT] D123 (P1): "exclude acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."excludes acme"                       [DEFECT] D123 (P1): "excludes acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."everything besides acme"             [DEFECT] D123 (P1): "everything besides acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."aside from acme"                     [DEFECT] D123 (P1): "aside from acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."apart from acme"                     [DEFECT] D123 (P1): "apart from acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."avoid acme"                          [DEFECT] D123 (P1): "avoid acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."omit acme"                           [DEFECT] D123 (P1): "omit acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."ignore acme"                         [DEFECT] D123 (P1): "ignore acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."all of them minus acme"              [DEFECT] D123 (P1): "all of them minus acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."cancel acme"                         [DEFECT] D123 (P1): "cancel acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."forget acme"                         [DEFECT] D123 (P1): "forget acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."hold off on acme"                    [DEFECT] D123 (P1): "hold off on acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."unless acme"                         [DEFECT] D123 (P1): "unless acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."nope acme"                           [DEFECT] D123 (P1): "nope acme" EXCLUDES Acme and must not bind it
+OK   D123.unlistedNegator."nah acme"                            [DEFECT] D123 (P1): "nah acme" EXCLUDES Acme and must not bind it
+OK   D123.crossClauseNegator."no. acme"                         [DEFECT] D123 (P1): "no. acme" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.crossClauseNegator."not that one, acme"               [DEFECT] D123 (P1): "not that one, acme" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.crossClauseNegator."acme? no"                         [DEFECT] D123 (P1): "acme? no" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.crossClauseNegator."acme, no"                         [DEFECT] D123 (P1): "acme, no" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.crossClauseNegator."stop, acme"                       [DEFECT] D123 (P1): "stop, acme" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.crossClauseNegator."wrong one, acme"                  [DEFECT] D123 (P1): "wrong one, acme" EXCLUDES Acme across a clause boundary and must not bind it
+OK   D123.founderSelfCorrection                                 [DEFECT] D123 (P1): "acme? no, the holdings one" is the founder correcting themselves — it must not archive Acme
+OK   D123.exclusionOnSpecificityPath                            [CONTRACT] run16/D123: an exclusion around the LONGER of two overlapping labels dead-ends on the specificity path
+OK   D123.exclusionOnTieBreakPath                               [CONTRACT] run16/D123: an exclusion around a presentation-tied pair dead-ends on the raw tie-break path
+OK   D123.punctuationInversion                                  [DEFECT] D123 (P1): "acme - no" dead-ends but "acme, no" binds — the same reply, two outcomes, decided by a comma
+OK   D116.hold."dont archive acme"                              [CONTRACT] D116 stays closed for the reply the #75 ledger recorded: "dont archive acme"
+OK   D116.hold."not acme, the other one"                        [CONTRACT] D116 stays closed for the reply the #75 ledger recorded: "not acme, the other one"
+OK   D116.hold."anything except acme holdings"                  [CONTRACT] D116 stays closed for the reply the #75 ledger recorded: "anything except acme holdings"
+OK   D116.hold."no, not beta"                                   [CONTRACT] D116 stays closed for the reply the #75 ledger recorded: "no, not beta"
+OK   D116.hold."everything but acme"                            [CONTRACT] D116 stays closed for the reply the #75 ledger recorded: "everything but acme"
+OK   D123.hold.legitimateRepliesStillBind                       [CONTRACT] fixing D123 must not over-refuse: real names containing negator words still bind
+OK   D123.hold.negatorInAnotherClauseDeadEnds                   [CONTRACT] run16/D123: an unrelated negator in another clause dead-ends (fail closed); the LLM path resolves it
+OK   D123.hold.selectionFillerStillBinds                        [CONTRACT] run16/D123 LIMIT: selection filler around a name still binds
+OK   D124.unlistedEntityTypeNotDropped.subsidiary               [DEFECT] D124 (P1): an unresolvable option with entityType='subsidiary' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.branch                   [DEFECT] D124 (P1): an unresolvable option with entityType='branch' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.unit                     [DEFECT] D124 (P1): an unresolvable option with entityType='unit' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.client                   [DEFECT] D124 (P1): an unresolvable option with entityType='client' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.vendor                   [DEFECT] D124 (P1): an unresolvable option with entityType='vendor' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.invoice                  [DEFECT] D124 (P1): an unresolvable option with entityType='invoice' must be DROPPED like every other unresolvable option
+OK   D124.unlistedEntityTypeNotDropped.organization             [DEFECT] D124 (P1): an unresolvable option with entityType='organization' must be DROPPED like every other unresolvable option
+OK   D124.employeeNotDropped                                    [DEFECT] D124 (P1): entityType='employee' is EXECUTABLE (endEmploymentPersonIds) yet never dropped — canonicalById is keyed 'person|', so it is unresolvable by construction
+OK   D124.employeeNameDestroyed                                 [DEFECT] D124 (P1): with entityType='employee', two REAL named in-context people render as "the employee (option 1/2)" — the founder chooses whose employment to end with no name shown
+OK   D124.hold.listedTypesStillDropped                          [CONTRACT] D119 keeps working for every entityType that IS in TYPED_FALLBACK
+OK   D125.newFalseNegative."The company has been archived – no" [DEFECT] D125 (P2): d724d8c caught this fabrication and this candidate does not — "The company has been archived – no undo available."
+OK   D125.newFalseNegative."The company has been archived (no " [DEFECT] D125 (P2): d724d8c caught this fabrication and this candidate does not — "The company has been archived (no undo available)."
+OK   D125.newFalseNegative."The company has been archived with" [DEFECT] D125 (P2): d724d8c caught this fabrication and this candidate does not — "The company has been archived without incident."
+OK   D125.newFalseNegative."ACME was archived and no errors oc" [DEFECT] D125 (P2): d724d8c caught this fabrication and this candidate does not — "ACME was archived and no errors occurred."
+OK   D125.hold.truthfulNegativesStillSurvive                    [CONTRACT] fixing D125 must NOT re-destroy the truthful negatives D118 rescued (#4905)
+OK   D125.hold.d117LaterClauseStillCaught                       [CONTRACT] D117 stays closed: boilerplate in a LATER clause no longer disarms the belt
+OK   D126.mixedDropObserved                                     [CONTRACT] D119 MIXED case: an unresolvable option is dropped even when a resolvable one remains
+OK   D126.allUnresolvableDropObserved                           [CONTRACT] D119: when nothing is left the option list is EMPTY, so the next turn cannot bind
+OK   D126.resolvableOptionsAreNeverDropped                      [CONTRACT] the D119 drop must not become over-broad: canonically-known options always survive
+OK   D126.freshCreateLabelStillResolves                         [CONTRACT] run8/D67: a row created THIS turn resolves via runtimeLabels and is NOT dropped
+
+run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)

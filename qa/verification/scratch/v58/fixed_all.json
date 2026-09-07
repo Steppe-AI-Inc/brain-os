@@ -1,0 +1,192 @@
+[
+ {
+  "label": "qa/scenarios-runner/architecture_collection_envelope_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_collection_envelope_contract: 57 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/architecture_final_claim_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_final_claim_contract: 51 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_mutation_envelope_contract: 35 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/belt_generative_adversarial_contract.mjs",
+  "exit": 0,
+  "tail": "25 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/company_lifecycle_matrix.mjs",
+  "exit": 0,
+  "tail": "OK rpc error: failed envelope, report says failed, no success evidence | company_lifecycle_matrix: 31 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/entity_signal_positive_contract.mjs",
+  "exit": 0,
+  "tail": "5 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs",
+  "exit": 0,
+  "tail": "OK an UNTYPED durable row never binds (Class-B fail-closed) | grounding_precedence_canonical_over_history: 17 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs",
+  "exit": 0,
+  "tail": "issue5_confirmation_action_type_binding: 10/10 passed"
+ },
+ {
+  "label": "qa/scenarios-runner/mutation_receipt_equals_ledger.mjs",
+  "exit": 0,
+  "tail": "OK a partial batch failure renders no positional receipt (never guesses which entry succeeded) | mutation_receipt_equals_ledger: 14 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/readsAsCompletion_no_literal_semicolon_contract.mjs",
+  "exit": 0,
+  "tail": "readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/run10_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)"
+ },
+ {
+  "label": "qa/scenarios-runner/run11_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK V11.turn.countNull [CONTRACT] a failed head-count query degrades to the window length and stays self-consistent | OK V11.order.failClosed [CONTRACT] the buildContext/create_pending_work_order ordering check fails CLOSED when an anchor moves | v11_regression_additions: 50 pass, 0 fail (0 open #71 "
+ },
+ {
+  "label": "qa/scenarios-runner/run12_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "v12_regression_additions: 74 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+ },
+ {
+  "label": "qa/scenarios-runner/run13_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D99.adverbial.passive [DEFECT] D99: assertion \"ACME now archived ok?\" must not reach the founder as a question | OK D99.adverbial.passive2 [DEFECT] D99: assertion \"All tasks now deleted ok?\" must not reach the founder as a question | run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defe"
+ },
+ {
+  "label": "qa/scenarios-runner/run14_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D107.predicateCoversAllFour [CONTRACT] D107: readsAsCompletion() must consult all four belts (LEGACY, EXECUTION_IN_PROGRESS, CONFIRMED_COMPLETION, REFERENCELESS_CONFIRMATION) | run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not h"
+ },
+ {
+  "label": "qa/scenarios-runner/run15_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D116.hold.negatorInAnotherClauseDeadEnds [CONTRACT] run16/D123: \"acme holdings, no rush\" dead-ends (fail closed) — the LLM path resolves it, the deterministic path never guesses | run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do no"
+ },
+ {
+  "label": "qa/scenarios-runner/run16_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D123.hold.negatorInAnotherClauseDeadEnds [CONTRACT] run16/D123: an unrelated negator in another clause dead-ends (fail closed); the LLM path resolves it | OK D124.employeeNotDropped [DEFECT] D124 (P1): entityType='employee' is EXECUTABLE (endEmploymentPersonIds) yet never dropped — canonicalById "
+ },
+ {
+  "label": "qa/scenarios-runner/run17_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D124.coverage.prototypeKeysFailClosed [CONTRACT] CANONICAL_TYPE_ALIAS is a bare object literal, so a model-authored entityType can reach Object.prototype — every such type must still fail closed and be dropped | OK D124.coverage.nonStringEntityTypeDropped [CONTRACT] a non-string / absent entityTy"
+ },
+ {
+  "label": "qa/scenarios-runner/run18_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D132.prototypeKeyMustFailClosed.entityType \"toString\" [DEFECT] D132 (P2): entityType \"toString\" must dead-end, not throw — all three prior SHAs fail closed on the identical input | OK D132.prototypeKeyMustFailClosed.entityType \"valueOf\" [DEFECT] D132 (P2): entityType \"valueOf\" must dead-end, not "
+ },
+ {
+  "label": "qa/scenarios-runner/run19_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK D137.presentTenseStateDestroyed.\"Bob Smith is assigned to ACME.\" [DEFECT] D137 (P2, inherited from run12/D94): EXECUTION_IN_PROGRESS matches bare \"is/are <participle>\", so a truthful PRESENT-TENSE STATE answer reads as a completion — including the live case index.ts:5586-5591 itself documents as "
+ },
+ {
+  "label": "qa/scenarios-runner/run28_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "ok [RESIDUAL] D164r.determinerLedEvidentialMissed.coordinatorName.1 :: Nothing failed however the log shows Acme and Sons was archived. | 117 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/standing_reds_classification_contract.mjs",
+  "exit": 0,
+  "tail": ""
+ },
+ {
+  "label": "qa/scenarios-runner/tdz_forward_reference_contract.mjs",
+  "exit": 0,
+  "tail": "v48_regression_additions: 9 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/v56_intent_lifecycle_contract.mjs",
+  "exit": 0,
+  "tail": "ok [CONTRACT] C3 DENIED task/create with claims:null -> receipt names the failure (kills mutant m10) | ok [CONTRACT] C3 DENIED department/create with claims:null -> receipt names the failure (kills mutant m10) | v56_regression_additions: 129 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0"
+ },
+ {
+  "label": "qa/scenarios-runner/v57_intent_other_veto_contract.mjs",
+  "exit": 0,
+  "tail": "ok [CONTRACT] C6 denied person/end_employment with claims:null -> receipt names the failure | ok [CONTRACT] C9 executedOperationCount counts only postcondition-passed envelopes | v57_regression_additions: 306 passed, 0 failed (CONTRACT failures: 0, DEFECT failures: 0; residual rows measured: 8)"
+ },
+ {
+  "label": "qa/scenarios-runner/v92_open_regression_contract.mjs",
+  "exit": 0,
+  "tail": "28 passed, 0 failed"
+ },
+ {
+  "label": "qa/scenarios-runner/v92_parity_contract.mjs",
+  "exit": 0,
+  "tail": "v92_parity_contract: 46 passed, 0 failed"
+ },
+ {
+  "label": "v58/v58_receipt_matrix.mjs",
+  "exit": 1,
+  "tail": "v58_receipt_matrix: 691 passed, 25 failed"
+ },
+ {
+  "label": "v58/v58_intent_attack.mjs",
+  "exit": 1,
+  "tail": "FP-replace (reads 51): model absent 13, model read 0, model other 0 | v58_intent_attack: 23 passed, 1 failed | FAIL B FP-replace with the model absent on my read corpus is 0"
+ },
+ {
+  "label": "v58/v58_lifecycle_attack.mjs",
+  "exit": 0,
+  "tail": "v58_lifecycle_attack: 161 passed, 0 failed"
+ },
+ {
+  "label": "v58/v58_machinery.mjs",
+  "exit": 1,
+  "tail": "v58_machinery: 48 passed, 2 failed"
+ },
+ {
+  "label": "v58/v58_nonimperative_sizing.mjs",
+  "exit": 0,
+  "tail": "v58_nonimperative_sizing: 55 passed, 1 failed | non-imperative sentences that EXECUTED with the model emitting nothing: 1/56 | EXEC would you archive Alpha -> [[\"archive_company\",\"00000001-0000-4000-8000-000000000000\"]]"
+ },
+ {
+  "label": "v58/task_restore_trace.mjs",
+  "exit": 0,
+  "tail": "OK D2b a chat restore of an archived task by model-emitted id EXECUTES the RPC and reports it | founder reads (empty ledger, field emitted): No change was made — I could not resolve which task you meant (searched the active and archived tasks you can access). | task_restore_trace: all checks passed"
+ },
+ {
+  "label": "v58/v58_belt_vs_v92.mjs",
+  "exit": 0,
+  "tail": ""
+ },
+ {
+  "label": "p1/v56_corpora/lifecycle_harness.mjs",
+  "exit": 0,
+  "tail": "v56 lifecycle_harness: 56 passed, 1 failed"
+ },
+ {
+  "label": "p1/v56_corpora/question_probe.mjs",
+  "exit": 0,
+  "tail": ""
+ },
+ {
+  "label": "p1/v56_corpora/intent_corpus.mjs",
+  "exit": 0,
+  "tail": ""
+ },
+ {
+  "label": "p1/v56_corpora/contract_harness.mjs",
+  "exit": 0,
+  "tail": "A: 68 commands, 272 cases, 0 failed | v56 contract_harness: 474 passed, 12 failed"
+ }
+]

@@ -1,0 +1,15 @@
+{
+ "pass": 48,
+ "fails": [
+  {
+   "name": "2D every capped pack query (25) carries count:'exact'",
+   "ok": false,
+   "detail": "[\"memories\",\"work_orders\"]"
+  },
+  {
+   "name": "2G every recordExecution(..., true) literal (32) is gated on a backend result within 4 lines",
+   "ok": false,
+   "detail": "[\"3227: for (const ch of deletedChannels || []) recordExecution('channel', 'delete', ch.id, true);\",\"3255: for (const ap of deletedApprovals || []) recordExecution('approval', 'delete', ap.id, true);\",\"3628: recordExecution('company', 'permanent_delete', id, true);\",\"3629: for (const p of peopleDeletedRaw) { deletedPersonEntities.push({ id: String(p.id), name: String(p.name) }); recordExecut\",\"4549: if (!error && data) { createdFactoryWorkOrders.push({ id: data as string, title: w.title }); recordExecution('work_order\",\"4629: recordExecution('product_line', 'create', inserted.id, true);\"]"
+  }
+ ]
+}

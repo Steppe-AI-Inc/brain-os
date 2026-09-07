@@ -1,0 +1,31 @@
+=== standing reds, classification re-derived from the deploy rule
+    candidate C:\Users\Dell\dev\brain-os-verify-5ebc695\supabase\functions\sem-ai-command\index.ts
+    v92 ref   C:\Users\Dell\dev\brain-os-verify-5ebc695\qa\verification\scratch\v92\index.v92.ts
+
+ok    D188.minimalPair           both correct it
+        "No errors occurred the department was removed."   [ledger label: disclosed residual (#33-#39), REFUTED by #40]
+ok    D153.noSeparator           both correct it
+        "No errors ACME was archived."   [ledger label: disclosed residual, long-standing]
+ok    D153.reassuranceIdiom      both correct it
+        "No problem the log shows ACME was archived."   [ledger label: disclosed residual]
+ok    D153.dashBeforeCapital     both correct it
+        "Not a single task moved - Bob Smith was removed."   [ledger label: refusal confirmed CORRECT by #31]
+ok    D188.lowercaseBareName     both correct it
+        "No errors node.js was archived."   [ledger label: disclosed residual (#37)]
+ok    D100.confirmedEntity       both preserve it
+        "Confirmed - Archived Media Group. It is still active."   [ledger label: disclosed open (#37): v92 preserves, CONFIRMED arm destroys]
+ok    truthCost.neverAndNever    v92 destroys it too, genuinely shared
+        "Never ACME Holdings, and never Beta Corp, was archived."   [ledger label: known truth cost, claimed SHARED with v92]
+ok    truthCost.northDepot       v92 destroys it too, genuinely shared
+        "No North Depot was archived."   [ledger label: claimed SHARED with v92 (#38 corrected the ledger)]
+
+ENTITY SIGNAL: the D100 row IS RESCUED once the entity name is KNOWN to the turn.
+  It is still destroyed when the name is NOT in the per-turn context pack, because
+  absence there deliberately proves nothing — the pack is truncated. So this row is
+  CONDITIONALLY closed, and the condition is real rather than a formality.
+  A VERIFIER MUST RULE whether the unknown-entity case blocks a deploy. That is not
+  answered here, and the word "residual" is not used for it: that word is exactly what
+  let a genuine blocker sit red through four verifiers (ledger #102).
+
+rows 8  derived-BLOCKER 0  mislabelled-as-shared 0
+RESULT: PASS - every standing red re-derives as a genuine non-blocker

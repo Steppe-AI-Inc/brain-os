@@ -1,0 +1,2 @@
+
+function_redefinition_preserves_ancestor_guards: 81 migrations, 28 redefinitions, 29 ancestor guards checked, 0 silently dropped

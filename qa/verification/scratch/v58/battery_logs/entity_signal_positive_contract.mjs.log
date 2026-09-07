@@ -1,0 +1,8 @@
+=== entity signal, POSITIVE contract — source C:\Users\Dell\dev\brain-os-verify-5ebc695\supabase\functions\sem-ai-command\index.ts
+ok    [CONTRACT] NON-VACUOUS: with the set EMPTY these truthful reports are destroyed, so there is a real rescue to measure
+ok    [DEFECT] V43-E1.positiveSignalRescuesKnownEntities
+ok    [CONTRACT] V43-E2.fabricationTwinsStayCaught
+ok    [CONTRACT] V43-E3.absenceIsNeverEvidence
+ok    [CONTRACT] V43-E4.v92PreservesTheWholeClass
+
+5 passed, 0 failed
