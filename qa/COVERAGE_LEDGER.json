@@ -1,18 +1,18 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-07T11:41:27Z",
+  "generated_at": "2026-09-07T11:43:38Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "required_capabilities": 101,
-  "executed_capabilities": 84,
-  "coverage_percentage": 83.2,
+  "executed_capabilities": 85,
+  "coverage_percentage": 84.2,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
-    "NOT_TESTED": 12,
+    "NOT_TESTED": 11,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 56,
+    "PASS": 57,
     "FAIL": 27,
     "BLOCKED": 5,
     "FLAKY": 1
@@ -64,10 +64,10 @@
       "FLAKY": 0
     },
     "projects": {
-      "NOT_TESTED": 1,
+      "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 3,
+      "PASS": 4,
       "FAIL": 2,
       "BLOCKED": 0,
       "FLAKY": 0
@@ -165,10 +165,10 @@
   },
   "by_surface": {
     "UI": {
-      "NOT_TESTED": 6,
+      "NOT_TESTED": 5,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 26,
+      "PASS": 27,
       "FAIL": 4,
       "BLOCKED": 5,
       "FLAKY": 0
@@ -374,5 +374,5 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 101 | PASS: 56 | FAIL: 27 | FLAKY: 1 | BLOCKED: 5 | NOT TESTED: 12 -> FAILED"
+  "headline": "Required capabilities: 101 | PASS: 57 | FAIL: 27 | FLAKY: 1 | BLOCKED: 5 | NOT TESTED: 11 -> FAILED"
 }

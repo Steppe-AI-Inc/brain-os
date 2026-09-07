@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:40:22Z",
+  "generated_at": "2026-09-07T11:43:02Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -583,9 +583,14 @@
         "UI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 6
+      "scenario_ids": [
+        "C002-project-delete-ui"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 6,
+      "tested_against_sha": "8521b0e",
+      "evidence": "Live Playwright 2026-09-07 on registered fixture QA-C002-MULTI-PROJ (created by the multi-action probe under QA-MULTI-CO). Row kebab -> Delete -> in-app alertdialog \"Delete this project? This can't be undone.\" (no native confirm) -> Delete. Row gone immediately (9 -> 8) and after full reload at 11:42:28Z. AI axis: fresh channel 764247a4-5100-4149-925b-f4a6daa6ae60 \"Does a project named QA-C002-MULTI-PROJ exist right now?\" -> \"No project named QA-C002-MULTI-PROJ exists in the database. I see 8 projects total; the closest match is QA-C002-PROJ-EDITED-01 (a different project).\" UI == DB == Chat, including the count.",
+      "note": "Minor: the confirm copy says \"this project\" without naming it. Not filed - the row context is unambiguous."
     },
     {
       "capability_id": "CAP-PROJECT-EDIT-CHAT-ABSENT",
