@@ -303,7 +303,12 @@ const FABS = [
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 {
   const MUT = [
-    ['nameInternal', (s) => s.replace('const nameInternal = capLead && subjectRun && !/\\bnor\\b/.test(c);', 'const nameInternal = false;'),
+    // run49/V47-D2: nameInternal gained the positive entity-signal disjunct, so the old anchor —
+    // the bare `capLead && subjectRun && !nor` form — no longer exists in the source. RE-ANCHORED on
+    // the head of the new declaration, which is exactly what this check's own failure message asks
+    // for. The property is unchanged: disabling nameInternal must move a verdict on the shapes it
+    // exists for, and it still does.
+    ['nameInternal', (s) => s.replace('const nameInternal = (capLead && subjectRun', 'const nameInternal = (false && subjectRun'),
       ['No Limits Inc was archived.', 'Nothing Bundt Cakes has been deleted.'], true],
     ['titleHead', (s) => s.replace('const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0])', 'const titleHead = false && /^(?:Pending|Awaiting)$/.test(mm[0])'),
       ['Pending review of the Q3 budget was approved.'], true],

@@ -433,27 +433,25 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
   // when N is in range. A reply that also carries a name ("acme 2") is NOT ordinal-only and
   // falls through to label matching, so run17/D129's "acme 2 => dead end" is preserved.
   const ORDINAL_WORDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
-  // run48/V46-D7 (P1): the ordinal was taken from the FIRST matching notation while `rest` below
-  // strips EVERY notation, so a second reference was invisible to the "ordinal-only" test and
-  // "option 1, option 2" bound option 1 and armed a destructive field where deployed v92
-  // dead-ends. Which one won depended only on which alternative matched first: "option 1 #2"
-  // bound 1 while "#2 the first one" bound 2. The matcher's own rule is FAIL CLOSED, NEVER
-  // INTERPRET (run15/D116), and two references is exactly the ambiguity the dead-end exists for.
-  // So: every value `rest` strips as an ordinal notation is COUNTED, and the path binds only when
-  // the reply refers to exactly ONE distinct option. The four notations collected here are the
-  // same four `rest` removes - if one is ever added there it must be added here, or a stripped
-  // reference goes unseen again, which is the whole defect.
-  const ordValues = new Set();
-  for (const m of normalizedCommand.matchAll(/\b(?:option|number)\s*#?(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/#\s*(\d+)/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/\b(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  ORDINAL_WORDS.forEach((w, i) => { if (new RegExp('\\b' + w + '\\b').test(normalizedCommand)) ordValues.add(i + 1); });
-  const ordN = ordValues.size === 1 ? Number([...ordValues][0]) : 0;
+  const ordMatch = normalizedCommand.match(/\b(?:option|number)\s*#?(\d+)\b/) || normalizedCommand.match(/^\s*#\s*(\d+)\b/) || normalizedCommand.match(/^\s*(\d+)\s*$/);
+  const ordN = ordMatch ? parseInt(ordMatch[1], 10) : (ORDINAL_WORDS.findIndex((w) => new RegExp('\\b' + w + '\\b').test(normalizedCommand)) + 1);
   // run19/D135 (P2): `no` is NOT ordinal filler — admitting a negator is exactly what D116/D123
   // forbid, and it let "no option 2" arm a destructive field while "acme, no" (the identical
   // intent) correctly dead-ended. run19/D136 (P3): a company literally NAMED "Option 2 Ltd" makes
   // "option 2" ambiguous, so the ordinal path defers to the LLM when any option's own label
   // (its "(option N)" suffix stripped) contains the whole reply.
+  // V47-D3 (P1): the ordinal reference above is the FIRST one, and `rest` below strips EVERY
+  // ordinal token globally — so "option 1, option 2" read as ordinal-ONLY and bound option 1,
+  // arming a destructive field for a reply that names two options. Deployed v92 has no ordinal
+  // path and dead-ends. Collect every ordinal reference; more than one distinct ordinal is
+  // ambiguous and dead-ends to the LLM, exactly as D136 already does. Fail closed.
+  const ordAll = new Set();
+  for (const m of normalizedCommand.matchAll(/\b(?:option|number)\s*#?(\d+)\b/g)) ordAll.add(parseInt(m[1], 10));
+  for (const m of normalizedCommand.matchAll(/(?:^|\s)#\s*(\d+)\b/g)) ordAll.add(parseInt(m[1], 10));
+  if (/^\s*\d+\s*$/.test(normalizedCommand)) ordAll.add(parseInt(normalizedCommand.trim(), 10));
+  for (let oi = 0; oi < ORDINAL_WORDS.length; oi++) {
+    if (new RegExp('\\b' + ORDINAL_WORDS[oi] + '\\b').test(normalizedCommand)) ordAll.add(oi + 1);
+  }
   if (ordN >= 1) {
     const ORD_FILLER = new Set('the a an one it that this these those option options number yes ok okay sure please to want i want id im we go ahead do proceed select pick choose use'.split(' '));
     const rest = normalizedCommand
@@ -463,7 +461,7 @@ function matchDisambiguationOption(command: string, options: PendingActionOption
     const ambiguousWithAName = options.some((o) => o && typeof o.label === 'string'
       && forMatching(o.label.replace(/\s*\(option \d+\)$/, '')).length > 0
       && forMatching(o.label.replace(/\s*\(option \d+\)$/, '')).includes(normalizedCommand));
-    if (rest.every((w) => ORD_FILLER.has(w))) {
+    if (rest.every((w) => ORD_FILLER.has(w)) && ordAll.size <= 1) {
       // Ordinal-only. If the same reply is ALSO a company's whole name ("option 2" with a
       // company literally named "Option 2 Ltd"), it is genuinely ambiguous — DEAD-END to the
       // LLM, never guess between the ordinal and the name (run19/D136).
@@ -5626,7 +5624,7 @@ serve(async (req) => {
             const after = c.slice(mm.index + mm[0].length);
             const FN_WORDS = "(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)"; const capLead = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(after);
             const subjectRun = new RegExp("^\\s+(?:(?:[A-Z][\\w&.’'-]*|and|&|of|the|for|de|von|van)\\s+){0,5}?[A-Z][\\w&.’'-]*\\s+(?:(?:was|were|has|have|had|been)\\b|" + COMPLETION_PARTICIPLE.source.slice(2) + "\\s+successfully\\b)").test(after);
-            const nameInternal = (capLead && subjectRun || ((__r) => __r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$/, '').toLowerCase()))(/^(?:\s+[A-Z][\w&.'’-]*)+/.exec(after))) && !/\bnor\b/.test(c);
+            const nameInternal = capLead && subjectRun && !/\bnor\b/.test(c);
             const objectName = capLead && new RegExp('\\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\\s+(?:the |that |this |its |our )?$', 'i').test(c.slice(0, mm.index));
             const titleHeadAfterPrep = /\b(?:for|of|on|about|regarding|concerning|in|at|to|from|with)\s+(?:Pending|Awaiting)\s+[a-z]/.test(c) && /^[A-Z]/.test(mm[0]); const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && (mm.index === c.search(/\S/) || /["“‘']\s*$/.test(c.slice(0, mm.index)));
             const newSubject = !/\bnor\b/.test(c) && ((sre) => { for (let sm = sre.exec(c); sm !== null; sm = sre.exec(c)) { if (sm.index <= mm.index + mm[0].length) continue; const span = c.slice(mm.index + mm[0].length, sm.index); if (/^[a-z][\w.&'-]*\s+(?:was|were|has been|have been|had been)\b/.test(sm[0]) && !new RegExp('^\\s*(?!' + FN_WORDS + '\\b)[a-z][a-z-]*\\s*$').test(span)) continue; const endsFiniteVerb = /^\s*(?:[a-z]+(?<![sui])s\s+)?[a-z]+(?:ed|en)\s*$/.test(span) && !/\b(?:showed|proved|indicated|confirmed|stated|recorded|suggested|reported|mentioned|noted|revealed|implied|found|said|established|named|called|titled|listed|marked|dated|assigned|labell?ed|entitled|known|shown|seen|held|described|referenced)\s*$/.test(span); const endsLinked = !endsFiniteVerb && new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s*$', 'i').test(span); const linksAName = new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s+[A-Z]').test(span); if (!endsLinked && !linksAName) return true; } return false; })(/(?:\b[A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*){0,4}|\b(?:the|that|this|these|those|its|their|our|his|her|my|your)\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*(?:\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*){0,3}|\b(?!(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)\b)[a-z][\w.&'-]*)\s+(?:was|were|has been|have been|had been)\b/g);

@@ -61,24 +61,63 @@ function literal(name) {
 export const PAST_COMPLETION_CLAIM_PATTERN = literal('PAST_COMPLETION_CLAIM_PATTERN');
 export const FUTURE_PROMISE_PATTERN = literal('FUTURE_PROMISE_PATTERN');
 
-/** Does deployed v92 overwrite this summary? BOTH arms, in v92's own precedence. */
+// ── ARM 3, added by verifier #47 (V47-D1). The two-arm correction was ALSO incomplete. ────────
+// v92 overwrites result.summary from PROSE ALONE through a third path, and it runs BEFORE the two
+// arms above:
+//   claimsLifecycleClaim()            v92 index.ts:441-448  (a pure prose test)
+//     -> claimsTaskDeleted    :2669   ids empty + !modelProposedPendingAction
+//     -> claimsCompanyDeleted :2977      "
+//     -> claimsPersonDeleted  :3060      "
+//     -> claimsGoalDeleted    :3135      "
+//     -> lifecycleMismatchCorrections   :4095-4099
+//     -> result.summary = ...           :4174   ← before the future/past arms even run
+// Nothing on that path needs a resolved entity, a factLine or a pendingAction, so it is live in
+// exactly the turn configuration every differential in this campaign holds fixed.
+// Witness: "Deleting the task now." — the two-arm model said PRESERVE; v92 destroys it.
+//
+// The four call sites, transcribed from v92 rather than paraphrased:
+const LIFECYCLE_ARMS = [
+  ['delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'task'],
+  ['delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company'],
+  ['delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)|restor(ed|ing)', 'employe(e|d)|person|staff'],
+  ['delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'goal'],
+];
+const STATE_DESCRIPTION = /\b(is|are)\s+(currently\s+|already\s+)?(delet(ed)|archiv(ed)|remov(ed)|restor(ed)|end(ed))\b/i;
+function claimsLifecycleClaim(summary, verbs, nouns) {
+  const claim = new RegExp(
+    '\\b(' + verbs + ')\\b[^.]{0,40}\\b(' + nouns + ')\\b|\\b(' + nouns + ')\\b[^.]{0,40}\\b(' + verbs + ')\\b', 'i');
+  return claim.test(summary) && !STATE_DESCRIPTION.test(summary);
+}
+export const LIFECYCLE_CLAIM = (s) => LIFECYCLE_ARMS.some(([v, n]) => claimsLifecycleClaim(String(s), v, n));
+
+/** Does deployed v92 overwrite this summary? ALL THREE arms, in v92's own precedence. */
 export function v92Destroys(s) {
   const t = String(s);
-  return FUTURE_PROMISE_PATTERN.test(t) || PAST_COMPLETION_CLAIM_PATTERN.test(t);
+  return LIFECYCLE_CLAIM(t) || FUTURE_PROMISE_PATTERN.test(t) || PAST_COMPLETION_CLAIM_PATTERN.test(t);
 }
 
 /** Which arm did it, for reporting. null when v92 preserves the summary. */
 export function v92Arm(s) {
   const t = String(s);
+  if (LIFECYCLE_CLAIM(t)) return 'LIFECYCLE';
   if (FUTURE_PROMISE_PATTERN.test(t)) return 'FUTURE_PROMISE';
   if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return 'PAST_COMPLETION';
   return null;
 }
 
-// Self-check: the two arms must be DIFFERENT tests, or this file is the one-arm model wearing a
-// new name. A row only the future arm catches proves the second arm is real and reachable.
-const WITNESS = 'I am going to archive the company for you.';
-if (!FUTURE_PROMISE_PATTERN.test(WITNESS) || PAST_COMPLETION_CLAIM_PATTERN.test(WITNESS)) {
-  throw new Error('v92 reference self-check FAILED: the future-promise arm is not distinguishable, '
-    + 'so this file would silently be the same one-arm model it exists to replace');
+// Self-check: every arm must be REACHABLE AND DISTINGUISHABLE, or this file silently degenerates
+// into the smaller model it exists to replace. Each witness is caught by ITS arm and by no earlier
+// one — which is exactly the property that was missing when this file modelled two arms and the
+// property that was missing when the campaign modelled one.
+const WITNESSES = [
+  ['LIFECYCLE', 'Deleting the task now.'],
+  ['FUTURE_PROMISE', 'I am going to archive the company for you.'],
+  ['PAST_COMPLETION', 'The record was approved yesterday.'],
+];
+for (const [arm, w] of WITNESSES) {
+  if (v92Arm(w) !== arm) {
+    throw new Error('v92 reference self-check FAILED: "' + w + '" should be caught by ' + arm
+      + ' but reads as ' + v92Arm(w) + '. This file is not modelling every arm it claims to, '
+      + 'which is the exact defect it exists to correct.');
+  }
 }

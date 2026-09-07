@@ -14541,3 +14541,80 @@ deno **23 == baseline**; CRLF 6,017 / bare LF 0.
 
 Remaining open on this candidate: the conditioned-offer class (**the founder's product decision**),
 the cubic growth exponent, and the withdrawn `closed|added` participle gap.
+
+## 116. VERIFIER #47 — the instrument correction was ITSELF incomplete, and five of the campaign's headline rows were parity all along
+
+Verifier #47 returned **FAIL** on `bbc37ba`. Three findings, and the first one corrects the correction
+written one entry ago.
+
+**V47-D1 (INSTRUMENT) — deployed v92 has THREE prose-overwrite arms, not two.**
+`qa/verification/lib/v92_reference.mjs`, the campaign-wide instrument written last entry to fix a
+one-arm model, modelled two. v92 overwrites `result.summary` from **prose alone** through a third
+path that runs **before** both of them:
+
+```
+claimsLifecycleClaim()        v92 index.ts:441-448   (a pure prose test)
+  -> claimsTaskDeleted   :2669   -> claimsCompanyDeleted :2977
+  -> claimsPersonDeleted :3060   -> claimsGoalDeleted    :3135
+  -> lifecycleMismatchCorrections :4095  -> result.summary = ... :4174
+```
+
+Nothing on it needs a resolved entity, a factLine or a pendingAction — it is live in exactly the turn
+configuration every differential holds fixed. Witness: **`"Deleting the task now."`** — the two-arm
+model said PRESERVE; v92 destroys it. Verified here, then modelled: all four call sites transcribed
+from v92 rather than paraphrased, and the self-check now requires **every arm to be reachable and
+distinguishable**, so the file cannot silently degenerate into the smaller model again — which is
+precisely what it did between #46 and #47.
+
+**AND THE CONSEQUENCE IS LARGER THAN A COUNT.** Re-derived on the campaign's ten most-cited rows,
+**5 of 10 were v92 PARITY, not regressions** — including verifier #39's "worst user-facing defect of
+the campaign":
+
+```
+  one-arm    three-arm   candidate    arm         row
+  preserve   DESTROYS    preserve     LIFECYCLE   "Archiving a company from chat is handled on the Companies page."
+  preserve   DESTROYS    preserve     LIFECYCLE   "Restoring a company requires founder approval."
+  preserve   DESTROYS    preserve     LIFECYCLE   "Anyone working on archiving a company needs manager rights."
+  preserve   DESTROYS    preserve     LIFECYCLE   "Archiving a company does not delete its tasks."
+```
+
+Some of what this campaign chased as deploy blockers was v92 parity. **The fixes remain real** — each
+was measured to destroy fewer truthful rows than the build before it, and that is still true row for
+row — but their *classification* as regressions against production was wrong for those rows. The
+error is still one-directional: it under-counted what v92 destroys, so **rescue counts were
+UNDERSTATED and the candidate is better than the record claims, not worse.**
+
+**V47-D2 (P1, DEPLOY BLOCKER) — a fabrication v92 corrects that the candidate ships, 320 of 320.**
+`nameInternal` established a NAME reading only when an auxiliary **directly** governs the capitalised
+run, so **one intervening lowercase head noun** dropped it to a determiner reading, the negator
+disarmed the belt, and the fabrication shipped: `"No Limits Inc unit was archived."`,
+`"Nothing Bundt Cakes team has been deleted."` The simple form was closed, so the class looked shut —
+this is the labelled negator-name section in the direction nobody had generated. #47's fix consults
+the positive entity signal already in scope and is adopted. **Measured here with the pack populated:
+160 of 160 closed, 0 truthful determiner readings destroyed, and an EMPTY pack changes no verdict at
+all**, so absence stays inert and the fix is truncation-safe.
+
+**V47-D3 — the ordinal bind. Already closed** by the fix applied in ledger #115 before this report
+landed; all five of #47's rows dead-end on the applied bytes. Independent convergence on both the fix
+and its trap: #47 also wrote `new Set<number>()` first and took **nine suites to SyntaxError**,
+because the harnesses' TypeScript strippers understand annotations but not generic arguments. I hit
+the identical wall an hour earlier. That is now recorded twice, by two parties, which is the best
+evidence it is a real property of this estate rather than one person's slip.
+
+**THREE HARNESS FAULTS THIS ROUND, ALL CAUGHT BY ASSERTIONS RATHER THAN BY LUCK.** The namefix probe
+seeded `globalThis.knownEntityNames`, which `buildGate`'s own empty injection **shadows** — it was
+measuring the empty-pack case while claiming the populated one, and its non-vacuity assertion caught
+it. Both new probes then compared the applied build against itself once the fix landed, and both
+refused to certify; their baselines now come from **git**. And v33 collapsed 93 → 15 because its
+*second* builder never had the entity seed — the belt now reads that identifier on every row rather
+than only on the `Confirmed` shape, so a gap that was dormant became fatal.
+
+**v45's C8 mutation anchor was RE-ANCHORED, not deleted**, exactly as its own failure message
+instructs: `nameInternal` gained a disjunct, so the old literal no longer exists. The property is
+unchanged — disabling `nameInternal` must still move a verdict, and it does.
+
+EVIDENCE on the new candidate `158e3cd1`: battery **36 files / 0 failing**; **#47's own gate 44/0**;
+#45 53/1 and #44 115/3 (the conditioned-offer class); #43 40/0; #41 22/0; #40 77/0; #39 21/0;
+#33 93/0; #32 101/0; v30 25/1 and v31 33/1; deno **23 == baseline**; CRLF 6,017 / bare LF 0.
+
+STATUS: NOT DEPLOYMENT READY. The remaining blocker is the founder's product question.
