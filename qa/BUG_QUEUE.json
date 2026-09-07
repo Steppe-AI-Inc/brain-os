@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:18:06Z",
+  "last_updated": "2026-09-07T12:20:33Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 7,
+    "open_p1": 8,
     "open_p2": 6,
     "open_p3": 5,
-    "total_open": 18,
+    "total_open": 19,
     "total_closed": 5
   },
   "bugs": [
@@ -441,7 +441,13 @@
         "off_by_one_lag": "Not reproduced in the T13-T17 batch (T13/T15 aligned correctly). Yesterday it appeared at turns 8 and 10. So the lag is intermittent, not deterministic - downgrade any claim that it is constant."
       },
       "work_pc_evidence_2026_09_07_delete_dept": "Delete-department command for a department Brain could not see returned \"Did you mean QA-SWARM-DEPT-ARCHIVED-PARENT-TEST?\" - a clarification that proposes a DIFFERENT destructive target. Work PC did NOT confirm. This is the Class B precursor shape on a new verb (delete) and should be covered by the assignment-confirmation-cannot-become-archive regression generalised to: a clarification must never bind a destructive verb to an entity the user did not name.",
-      "class_b_regression_2026_09_07": "PASS today on v92: partial-name archive -> clarification; bare \"yes\" did not bind to any candidate and nothing executed (channel 18a876c9, both candidates registered synthetic). The fail-closed fix holds; the surrounding resolution defect is tracked as BUG-020."
+      "class_b_regression_2026_09_07": "PASS today on v92: partial-name archive -> clarification; bare \"yes\" did not bind to any candidate and nothing executed (channel 18a876c9, both candidates registered synthetic). The fail-closed fix holds; the surrounding resolution defect is tracked as BUG-020.",
+      "issue5_suite_2026_09_07": {
+        "item_F_pending_action_survives_navigation": "PASS (structurally): clarification issued in channel 0cc095fc, navigated to /dashboard and back by URL, bare yes was recognised as the answer to that clarification.",
+        "item_D_confirmation_binding_to_user_named_target": "FAIL - bound to the substitute (BUG-023).",
+        "item_L_mutation_equals_claim": "FAIL - person created without company; receipt claimed company + invented parent (BUG-023).",
+        "class_B_archive_coercion": "PASS - nothing archived."
+      }
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -927,6 +933,41 @@
       "severity_reasoning": "P3: label/affordance truthfulness. Cost of the mismatch today: the Work PC itself concluded no UI archive path existed (see CAP-COMPANY-ARCHIVE-UI-MISSING correction) - a real user would make the same mistake.",
       "regression_requirement": "UI text assertion: the company row action that archives is labelled Archive (or the dialog title matches the verb).",
       "_qa_boundary": "Work PC did not modify product code."
+    },
+    {
+      "bug_id": "BUG-023",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "Issue #5 transcript, new outcome: bare \"yes\" binds to the SUBSTITUTE company Brain offered (not the one the user named), the employee is created with NO company, and the receipt claims a company plus a parent relationship that do not exist",
+      "ai_truth_classification": "CONFIRMATION_MISBINDING (to a substitute target) + PARTIAL_EXECUTION + FABRICATED_RECEIPT",
+      "distinct_from_bug_005_class_b": "Class B was archive-coercion (actionType absent -> archive) and is fixed: nothing was archived here. This is the next vector the fail-closed fix left open: the clarification itself proposes a WRONG entity (BUG-020 resolution gap), the bare yes accepts it, and the assign then half-applies.",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T12:20:33Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "named_company": "QA-MULTI (partial of QA-MULTI-CO 49ee1875-... / QA-MULTI-CO-TWIN, both REGISTERED, both active)",
+        "substitute_offered": "QA-C002-RENAMED-X (8fdad6e2-...) - REGISTERED, business unit, NO parent",
+        "created_person": "QA-C002-PENDING-01 (registered as FX-C002-PENDING-01)",
+        "channel": "0cc095fc-e1bd-483e-b1e7-7745acf42194"
+      },
+      "reproduction": [
+        "1. Fresh channel: \"Add a new employee named QA-C002-PENDING-01 with role QA Pending Probe to the company QA-MULTI.\"",
+        "2. Reply: \"I don't see a company named QA-MULTI in the current context. The closest match is QA-C002-RENAMED-X (a business unit). Did you mean that company, or is QA-MULTI a different entity?\" (BUG-020: both QA-MULTI-* companies are active and visible on /companies.)",
+        "3. Navigate to /dashboard, then back to the channel by URL (pending action SURVIVES navigation - item G positive).",
+        "4. Send bare \"yes\".",
+        "5. Reply: \"Adding QA-C002-PENDING-01 to QA-C002-RENAMED-X (business unit under SEM Global Robotics Technologies LLC).\"",
+        "6. /people at 12:20:26Z: QA-C002-PENDING-01 | QA Pending Probe | Company \"-\" | Manager \"-\" (created, NO company). /companies: QA-C002-RENAMED-X active, no parent link; QA-MULTI-CO and TWIN active, untouched."
+      ],
+      "what_was_false": "(a) the person was NOT attached to QA-C002-RENAMED-X; (b) QA-C002-RENAMED-X is NOT \"under SEM Global Robotics Technologies LLC\" - it has no parent (BUG-021 left it type=business_unit with no relationship; Brain confirmed \"no parent relationship\" twice in the previous 6 minutes). The parent is invented.",
+      "what_held": "No archive, no mutation of any company. The Class B fail-closed fix did its job for the archive vector.",
+      "blast_radius": "One orphaned synthetic person (no company). Registered; cleanup by ending employment. No real record touched.",
+      "severity_reasoning": "P1: this is the founder's original issue #5 shape with a user who did everything right (named the company, answered yes). Outcome: wrong-target binding, half-applied write, and a receipt that names a company AND a parent that are both false. With BUG-010, the false receipt would be re-asserted as fact later in the channel.",
+      "regression_requirement": "Founder-suite items: (D) confirmation binds to pending_action_id + action_type + canonical IDs - assert the bound company id equals the id of the entity the USER named, never a substitute; (F) pending-action survival across reload/navigation - assert survival (passes) AND that a survived action is still correctly bound; (L) mutation-result-equals-final-claim - assert person.company_id == receipt company, and that the receipt names no relationship absent from companyRelationships.",
+      "_qa_boundary": "Work PC did not modify product code.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-6; the implementation PC may not self-certify."
     }
   ]
 }
