@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:05:06Z",
+  "generated_at": "2026-09-07T11:08:46Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -468,10 +468,23 @@
         "AI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-manager-reassign-chat"
+      ],
+      "status": "FAIL",
       "campaign_1_item": 5,
-      "notes": "createPersonAssignments / reassign_person. Research indicates this is CHAT-ONLY with no UI equivalent - confirm by inspecting /people live for any hidden reassignment control before logging as a parity gap."
+      "notes": "createPersonAssignments / reassign_person. Research indicates this is CHAT-ONLY with no UI equivalent - confirm by inspecting /people live for any hidden reassignment control before logging as a parity gap.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-012",
+      "axis_results": {
+        "DB": "PASS",
+        "UI": "PASS",
+        "RELATIONSHIP": "PASS",
+        "AI": "FAIL"
+      },
+      "evidence": "Fresh channel f32e9d70-6b78-43b5-85fe-3b4a80835638, command: \"Reassign QA-SWARM-PERSON-001-EDITED so that their manager is QA-C002-MGR-PERSON-02 instead of QA-C002-MGR-PERSON-03.\" EXECUTION was CORRECT: /people after reload at 11:08:45Z shows Manager = QA-C002-MGR-PERSON-02 (was PERSON-03 at 11:04:12Z), PERSON-03 released, exactly one manager relationship in the table, company unchanged, 18 rows. CLAIM was WRONG: Brain replied \"QA-SWARM-PERSON-001-EDITED reassigned to QA-SWARM-TEST-CO-VIA-CHAT.\" - a COMPANY reassignment (to the company the person was already in) - and never mentioned the manager change it actually performed.",
+      "why_fail_not_pass": "The capability requires the AI axis. A user reading the receipt would believe a company move happened (it did not) and would not know the manager change happened (it did). Correct data plus a false description of the mutation is still an execution-truth failure - see the founder rule that the final claim must equal the mutation result.",
+      "parity_note": "The inventory note said reassignment was CHAT-ONLY; live inspection found a working UI path too (CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI PASS). Both surfaces mutate correctly; only the chat receipt is wrong."
     },
     {
       "capability_id": "CAP-PERSON-REASSIGN-UI-MISSING",

@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:05:06Z",
+  "last_updated": "2026-09-07T11:08:46Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 3,
-    "open_p2": 1,
+    "open_p2": 2,
     "open_p3": 3,
-    "total_open": 7,
+    "total_open": 8,
     "total_closed": 5
   },
   "bugs": [
@@ -626,6 +626,41 @@
       "severity_reasoning": "P3: no data or truth defect in the product's state; a user could pick the wrong replacement only by not looking at the table. Filed because the sheet copy makes a promise (\"replaces the current manager\") the sheet itself does not let you verify.",
       "regression_requirement": "UI regression: (a) open Set manager on the sole person of a synthetic org, assert a visible \"no eligible managers\" state; (b) assign a manager, re-open the sheet, assert the current manager is shown.",
       "_qa_boundary": "Work PC did not modify product code."
+    },
+    {
+      "bug_id": "BUG-012",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "Brain Chat executes a MANAGER reassignment correctly but reports it as a COMPANY reassignment - the receipt describes an operation that did not happen and omits the one that did",
+      "ai_truth_classification": "EXECUTION_CLAIM_MISMATCH (opposite polarity to BUG-002: the mutation is real, the description is wrong)",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:08:46Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai/chat",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "subject": "QA-SWARM-PERSON-001-EDITED (37d03420-96c7-426a-811e-6edf0e14813f) - REGISTERED",
+        "prior_manager": "QA-C002-MGR-PERSON-03 (FX-C002-PERSON-03)",
+        "new_manager": "QA-C002-MGR-PERSON-02 (FX-C002-PERSON-02)",
+        "company": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de)",
+        "channel": "f32e9d70-6b78-43b5-85fe-3b4a80835638"
+      },
+      "expected": "Receipt names the mutation actually performed: manager of PERSON-001 changed from PERSON-03 to PERSON-02.",
+      "actual": "\"QA-SWARM-PERSON-001-EDITED reassigned to QA-SWARM-TEST-CO-VIA-CHAT.\" No manager mentioned. The person was already in that company, so the stated operation is both wrong and vacuous.",
+      "reproduction": [
+        "1. Ensure a synthetic org with >= 3 people; set A's manager to C via /people Set manager (or chat).",
+        "2. Fresh channel: \"Reassign A so that their manager is B instead of C.\"",
+        "3. Read the reply; then reload /people.",
+        "4. Observe: Manager column = B (correct), reply says \"reassigned to <company>\" (wrong)."
+      ],
+      "blast_radius": "DATA CORRECT. Manager 03 -> 02 as requested, prior manager released, no company change, no other row touched (verified 11:08:45Z, 18 rows, one relationship).",
+      "severity_reasoning": "P2: the state is right, so no destructive or wrong-target mutation. But the founder's execution-truth rule is that the final claim must equal the mutation result, and here it names a different entity relationship. A team member acting on the receipt would either redo the manager change or believe a company transfer occurred. Combined with BUG-010 (claims contaminate later reads), a wrong receipt is not harmless prose.",
+      "likely_layer": "Receipt templating for the reassign_person / createPersonAssignments path appears to render the assignment's company field rather than its manager field. Work PC did not read the source; hypothesis for the Home PC.",
+      "regression_requirement": "For every mutating chat command: parse the receipt and assert it names the same entity, relationship type (manager vs company vs department) and target as the DB diff produced by the turn. This is founder-suite item L (mutation-result-equals-final-claim); this bug is its first concrete instance in the manager domain.",
+      "_qa_boundary": "Work PC did not modify product code.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of steps 1-4 against the then-deployed build; the implementation PC may not self-certify."
     }
   ]
 }
