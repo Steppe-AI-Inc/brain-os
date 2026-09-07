@@ -84,6 +84,24 @@ type AiTask = {
 // needing to set it.
 type PendingActionOption = { label: string; id: string; entityType: string; actionType?: string };
 
+// ExecutionResultEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.1; mirrored in
+// supabase/functions/_shared/execution.ts — the drift guard pins the two). One entry per
+// executed (or attempted) operation. The legacy four fields stay for every consumer; the
+// envelope fields carry request identity, the backend result verbatim, and the fresh
+// postcondition. postconditionPassed === postcondition_verified, always.
+type ExecutionResultEnvelope = {
+  resourceType: string; action: string; id: string; postconditionPassed: boolean;
+  request_id: string | null; channel_id: string | null; turn: number | null;
+  action_type: string; entity_type: string; canonical_entity_ids: string[];
+  requested_values: Record<string, unknown> | null; executed: boolean; rows_affected: number | null;
+  backend_result: unknown; precondition: unknown; postcondition: unknown;
+  postcondition_verified: boolean; error: string | null; timestamp: string;
+};
+type ExecutionDetail = { requestedValues?: Record<string, unknown> | null; rowsAffected?: number | null; backendResult?: unknown; precondition?: unknown; postcondition?: unknown; error?: string | null; executed?: boolean };
+type CompanyLookupRow = { id: string; name: string; status: string };
+type LifecycleDisambiguation = { action: string; name: string; options: CompanyLookupRow[] };
+type MutationIntent = { verb: string | null; field: string | null };
+
 // Bug 11 (2026-08-30 campaign): a real, typed, persisted plan for a genuinely compound
 // multi-action command ("restore employee X, move them to company Y, and assign them task
 // Z") - replaces treating a multi-action request as one flattened prose promise. Each
@@ -806,10 +824,12 @@ Rules:
   about is never invisible purely from being outside the general cap. CRITICAL, real
   incident (2026-08-30): "what is test4's status?" with test4 outside the general window
   produced a plausible-sounding but entirely FABRICATED "is archived" guess, not grounded
-  in any real field at all. Given this guarantee, if a company the founder names is
-  STILL absent from context.companies, that is real signal it does not currently exist
-  under that name (permanently deleted, or never existed, or misspelled) — say so plainly
-  ("I don't see a company by that name right now") and ask if they mean something else.
+  in any real field at all. If a company the founder names is STILL absent from
+  context.companies and context.archivedCompanies, say exactly that ("I don't see a
+  company by that name in my current view") — absence from a context window is NEVER
+  proof that it does not exist and NEVER proof that it was deleted; the backend resolves
+  explicit archive/restore targets by name across every status (see restoreCompanyNames
+  below), so never refuse a lifecycle request merely because the name is not in context.
   NEVER invent a plausible-sounding status (archived/active/anything) for a company that
   does not appear in context.companies, no matter how familiar the name sounds from
   context.memories or conversationHistory — a memory or a past mention proves only that
@@ -1060,10 +1080,12 @@ Rules:
   documents, org relationships, memories) is touched or destroyed, the company just stops
   appearing as an active company until restored. It executes immediately (not a task, not
   an approval). "Restore [company]" / "un-delete [company]" / "bring back [company]" works
-  the same way via restoreCompanyIds, and can target a company that is only resolvable from
-  context.memories or conversation history (an archived company is not necessarily still
-  in context.companies, since that list is the active-company view) — resolve it by name
-  from whatever context you have rather than refusing. Never invent or guess an id for
+  the same way via restoreCompanyIds (ids from context.archivedCompanies). When the
+  company the founder names is not in context at all, put the EXACT NAME the founder used
+  into restoreCompanyNames (or archiveCompanyNames) instead — the backend resolves it
+  against every company you are allowed to see, active or archived, and reports the real
+  outcome; never resolve an id from memories or conversation history, and never refuse
+  merely because the name is outside your context window. Never invent or guess an id for
   either field. The real outcome (archived / restored / denied / already in that state /
   not found) is reported back to you after this call actually runs and REPLACES whatever
   you say here — do not independently declare a company deleted or restored in your own
@@ -1392,6 +1414,14 @@ Rules:
   out-of-window turn said. "Your very first message was X" is only ever sayable when
   historyIsComplete is true AND turn 1 is in the window. No anti-guess clause from the
   founder is required for this — it applies to every question, every time.
+- GROUNDING PRECEDENCE (binding; governance/OPERATING_TRUTH_MODEL.md §2): (1) this turn's
+  own execution results reported back to you, (2) the fresh context arrays and
+  context.collections in THIS pack, (3) context.pendingAction / context.continuity,
+  (4) context.conversationHistory, (5) your own inference. A higher tier always wins. A
+  history entry whose summary reads "[UNVERIFIED — …]" establishes nothing about state.
+  When history and fresh context disagree, say so explicitly ("an earlier message in this
+  channel said X; the current data shows Y") and answer from the fresh context. For any
+  count, use context.collections.<name>.total and say "N of M shown" when truncated.
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation, and refer back to it naturally when relevant.
   CRITICAL LIMIT (2026-08-30, real incident: a founder was told "the conversation history
@@ -1533,6 +1563,8 @@ Output schema:
   ],
   "archiveCompanyIds": [string],
   "restoreCompanyIds": [string],
+  "archiveCompanyNames": [string],
+  "restoreCompanyNames": [string],
   "permanentDeleteFixtureCompanyIds": [string],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
@@ -2135,13 +2167,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
     : Promise.resolve({ count: 0, error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks, conversationCount] = await Promise.all([
-    supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
+    // CollectionEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.3): active and archived
+    // companies are two deterministic, newest-first windows, each with an exact count.
+    // Every collection query below carries { count: 'exact' } so context.collections can
+    // report shown/total/truncated from the query's own count, never from array length.
+    supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score', { count: 'exact' }).neq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
     namedCompanyLookupQuery,
-    supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
+    supabase.from('companies').select('id,name,status,organization_type,updated_at', { count: 'exact' }).eq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
+    supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score', { count: 'exact' }).limit(20),
     // owner_type/owner_person_id/owner_agent_id added 2026-08-30: real incident found live
     // - context.tasks never carried who (if anyone) owns a task at all, so a plain
     // "is QA-MULTI-TASK assigned?" question had zero real data to answer from, and the
@@ -2154,35 +2191,35 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // is now always resolvable via namedTaskLookupQuery below regardless of this general
     // cap, the same "targeted retrieval backstops a smaller default list" pattern already
     // proven for companies/people/goals - a smaller default recent-set is safe.
-    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id').in('status',TASK_STATUSES).limit(15),
+    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id', { count: 'exact' }).in('status',TASK_STATUSES).limit(15),
     namedTaskLookupQuery,
     memoriesQuery,
-    supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
+    supabase.from('agents').select('id,name,role,skills,cost_limit_usd', { count: 'exact' }).eq('active', true).limit(20),
     // unit_cost intentionally not selected — it lives in product_costs now (manager+
     // RLS), not on product_lines itself. The AI's context must not carry cost/margin
     // data for a caller who couldn't otherwise read it.
-    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active').eq('active', true).limit(20),
-    supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
-    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
+    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active', { count: 'exact' }).eq('active', true).limit(20),
+    supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location', { count: 'exact' }).limit(20),
+    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason', { count: 'exact' }).eq('status','pending').limit(20),
     // active added 2026-08-30: this was the ONLY employment-status field missing from
     // context entirely - the model had no fresh data to answer "is X still employed?"
     // from at all, only conversationHistory (a structural, forced instance of the Bug 4
     // pattern, discovered live via "is test3 employee currently employed?").
-    supabase.from('people').select('id,full_name,email,role_title,company_id,active').limit(30),
+    supabase.from('people').select('id,full_name,email,role_title,company_id,active', { count: 'exact' }).limit(30),
     namedPersonLookupQuery,
-    supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
+    supabase.from('goals').select('id,company_id,title,status,kind', { count: 'exact' }).limit(20),
     namedGoalLookupQuery,
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
-    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state').limit(20),
-    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
+    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state', { count: 'exact' }).limit(20),
+    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state', { count: 'exact' }).limit(30),
     // RLS-gated to founder/admin or is_company_manager(company_id) — a technician's own
     // RLS-scoped client gets [] back here, same "no special casing" pattern as
     // company_relationships above. This is the actual security boundary the founder's
     // "technician asking for revenue should not reply" requirement depends on: the model
     // never receives restricted rows in the first place, rather than being told not to
     // repeat them.
-    supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary').order('created_at', { ascending: false }).limit(20),
+    supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary', { count: 'exact' }).order('created_at', { ascending: false }).limit(20),
     conversationHistoryQuery,
     // Phase 8: real, persisted Software Factory state - so a fresh chat context can
     // answer "what happened with that work?" from actual canonical_work_orders/tasks/
@@ -2201,34 +2238,34 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // Cap reduced 30->15 (2026-08-30, context-budget pass) - channels were a real,
     // measurable contributor (987 est. tokens for 30 rows) to a base context pack that
     // measured over the hard token cap even in a brand-new channel with zero history.
-    supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(15),
+    supabase.from('chat_channels').select('id,name,company_id', { count: 'exact' }).eq('archived', false).limit(15),
     // Low-risk, chat-creatable/editable entities (createDepartments/updateDepartments,
     // createLeads/updateLeads, createDocuments) — same "check context first, never
     // duplicate" and id-provenance discipline as every other entity above. Documents:
     // no extracted_text/summary here — content isn't needed to avoid a title/category
     // duplicate, and keeping it out holds the same "no restricted content enters the
     // model's context beyond what it needs" line already drawn for financial_reports.
-    supabase.from('departments').select('id,name,company_id').limit(30),
-    supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate').limit(30),
-    supabase.from('documents').select('id,title,company_id,category').limit(30),
+    supabase.from('departments').select('id,name,company_id', { count: 'exact' }).limit(30),
+    supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate', { count: 'exact' }).limit(30),
+    supabase.from('documents').select('id,title,company_id,category', { count: 'exact' }).limit(30),
     // Proposals: id/title/company/status only for id-provenance + duplicate checks —
     // subtotal/discount_pct/total/internal_margin deliberately excluded from context.
     // Chat only ever creates a bare draft (no pricing) and updates title/payment terms;
     // the real risk-scored pricing flow (createProposal, lib/proposals/risk-score.ts)
     // only exists in the Next.js app, not duplicated here.
-    supabase.from('proposals').select('id,title,company_id,status').limit(20),
-    supabase.from('product_specs').select('id,title,company_id,status').limit(20),
-    supabase.from('engineering_drawings').select('id,title,company_id').limit(20),
+    supabase.from('proposals').select('id,title,company_id,status', { count: 'exact' }).limit(20),
+    supabase.from('product_specs').select('id,title,company_id,status', { count: 'exact' }).limit(20),
+    supabase.from('engineering_drawings').select('id,title,company_id', { count: 'exact' }).limit(20),
     // ai_providers has no key column by design (founder's explicit choice, see
     // web/CLAUDE.md) — provider/model/label/is_active carry no secret, safe in context.
-    supabase.from('ai_providers').select('id,provider,model,label,is_active').limit(10),
+    supabase.from('ai_providers').select('id,provider,model,label,is_active', { count: 'exact' }).limit(10),
     // mcp_connectors: name/endpoint only, never vault_secret_id — chat can delete a
     // connector by id but can never create/update one (that requires typing a bearer
     // token, which would transit the chat message, the LLM's own context, and the
     // plaintext work_orders.command audit column — a real secret-leak pattern, not just
     // caution; see qa/scenarios/core/audit/SC-104-log-secret-leak.md for the same class
     // of concern this codebase already tracks elsewhere).
-    supabase.from('mcp_connectors').select('id,name,endpoint_url').limit(10),
+    supabase.from('mcp_connectors').select('id,name,endpoint_url', { count: 'exact' }).limit(10),
     // Real aggregate counts, deliberately separate from the (necessarily truncated)
     // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
     // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
@@ -2254,7 +2291,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // TASK_STATUSES) - an archived task is never in it, so restoreTaskIds would have
     // nothing to resolve from without this separate, small, recent-archived query. Goals
     // need no equivalent: context.goals already carries no status filter.
-    supabase.from('tasks').select('id,company_id,title').eq('status','archived').order('updated_at',{ascending:false}).limit(15),
+    supabase.from('tasks').select('id,company_id,title', { count: 'exact' }).eq('status','archived').order('updated_at',{ascending:false}).limit(15),
     conversationCountQuery,
   ]);
   // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
@@ -2286,7 +2323,25 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   }
   const totalPriorTurns = conversationCount.count ?? (conversationRowsChronological || []).length;
   const historyWindowStart = totalPriorTurns - (conversationRowsChronological || []).length + 1;
-  const conversationHistory = (conversationRowsChronological || []).map((r:any, idx:number) => ({ turn: historyWindowStart + idx, command: r.command, summary: r.output?.summary || null }));
+  // Narrative tier (governance/OPERATING_TRUTH_MODEL.md §2 tier 4, §3 rule 6): each prior
+  // turn carries its persisted verdict. A turn that carried mutation intent (or rejected
+  // claims) and executed nothing is carried as UNVERIFIED unless its persisted summary is
+  // already the deterministic receipt — the raw prose of such a turn never re-enters the
+  // prompt as a record of what happened; the command still says what was ASKED.
+  const conversationHistory = (conversationRowsChronological || []).map((r:any, idx:number) => {
+    const verdict = r.output?.turnVerdict && typeof r.output.turnVerdict === 'object' ? r.output.turnVerdict : null;
+    const evidence = Array.isArray(r.output?.verifiedResponse?.executionEvidence) ? r.output.verifiedResponse.executionEvidence : null;
+    const executedOperationCount: number | null = typeof verdict?.executedOperationCount === 'number' ? verdict.executedOperationCount
+      : evidence ? evidence.filter((e: any) => e && e.postconditionPassed).length : null;
+    const rejectedClaimCount: number | null = typeof verdict?.rejectedClaimCount === 'number' ? verdict.rejectedClaimCount
+      : Array.isArray(r.output?.verifiedResponse?.rejectedClaims) ? r.output.verifiedResponse.rejectedClaims.length : null;
+    const unverified = (verdict?.mutationIntent != null && executedOperationCount === 0)
+      || (rejectedClaimCount !== null && rejectedClaimCount > 0 && executedOperationCount === 0);
+    const summary = unverified && !verdict?.receiptRendered
+      ? '[UNVERIFIED — no database change was executed on that turn]'
+      : (r.output?.summary || null);
+    return { turn: historyWindowStart + idx, command: r.command, summary, verified: executedOperationCount === null ? null : !unverified, executedOperationCount, rejectedClaimCount };
+  });
   const continuity = {
     totalPriorTurns,
     historyWindowStart: (conversationRowsChronological || []).length > 0 ? historyWindowStart : null,
@@ -2341,10 +2396,14 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     && durableChannelState.pending_action_source_work_order_id
     && typeof durableChannelState.pending_action_expires_at === 'string'
     && new Date(String(durableChannelState.pending_action_expires_at)).getTime() > Date.now());
-  const pendingAction: PendingAction | null = lastTurnOutput?.pendingAction
+  // Precedence (governance/OPERATING_TRUTH_MODEL.md §2, tier 3 over tier 4): the durable,
+  // TTL-guarded, fully-typed channel-state row outranks the previous turn's stored output
+  // text; the stored output is the fallback, the legacy shape the last resort.
+  const pendingAction: PendingAction | null = (durablePendingActionValid ? durableChannelState!.pending_action as PendingAction : null)
+    ?? lastTurnOutput?.pendingAction
     ?? (legacyPendingConfirmation && typeof legacyPendingConfirmation === 'object'
       ? { kind: 'bulk_confirmation', summary: legacyPendingConfirmation.summary, action: legacyPendingConfirmation.action }
-      : (durablePendingActionValid ? durableChannelState!.pending_action as PendingAction : null));
+      : null);
   // Workstream 3c: real id+name of anything created LAST turn, so a compound follow-up
   // command ("create QA-CONTINUITY-CO and add a new employee there") can thread the real
   // id straight through instead of the model re-deriving it from its own prior prose.
@@ -2535,8 +2594,33 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // (CURRENT_USER_COMMAND_IS_PRESENT_EXACTLY_ONCE_AND_IS_LATEST_CONTEXT_TURN). Nothing
   // else ever read pack.command (verified by grep across functions/web/migrations
   // before the move).
-  const pack = { continuity, companies:packCompanies, projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  // CollectionEnvelope per pack collection (governance/OPERATING_TRUTH_MODEL.md §4.3):
+  // shown = what this pack carries, total = the query's own exact count, truncated =
+  // total > shown. null total means the source has no authoritative count (semantic
+  // top-K, nested factory summary) and is labelled as such — never presented as complete.
+  const envelope = (res: any, shownOverride: number | null = null, scope: string | null = null) => {
+    const shown = typeof shownOverride === 'number' ? shownOverride : (res?.data || []).length;
+    const total = typeof res?.count === 'number' ? res.count : null;
+    return { shown, total, truncated: total === null ? null : total > shown, ...(scope ? { scope } : {}) };
+  };
+  const collections = {
+    companies: envelope(companies, packCompanies.length, 'active (non-archived), newest first, plus any company named in this command'),
+    archivedCompanies: envelope(archivedCompanies, undefined, 'archived, newest first'),
+    projects: envelope(projects), tasks: envelope(tasks, mergedTasksData.length, 'in-flight statuses, plus any task named in this command'),
+    memories: { shown: packMemories.length, total: null, truncated: null, scope: 'top-8 semantic retrieval' },
+    agents: envelope(agents, undefined, 'active'), products: envelope(products, undefined, 'active'), inventory: envelope(inventory), approvals: envelope(approvals, undefined, 'pending'),
+    people: envelope(people, packPeople.length, 'plus any person named in this command'), goals: envelope(goals, mergedGoalsData.length, 'plus any goal named in this command'),
+    companyRelationships: envelope(companyRelationships), personAssignments: envelope(personAssignments), financialReports: envelope(financialReports, undefined, 'newest first'),
+    conversationHistory: { shown: (conversationRowsChronological || []).length, total: totalPriorTurns, truncated: totalPriorTurns > (conversationRowsChronological || []).length, scope: 'newest turns in this channel' },
+    factoryWorkOrders: { shown: factoryWorkOrders.length, total: null, truncated: null, scope: 'newest 10' },
+    channels: envelope(channels, undefined, 'not archived'), departments: envelope(departments), leads: envelope(leads), documents: envelope(documents), proposals: envelope(proposals),
+    productSpecs: envelope(productSpecs), engineeringDrawings: envelope(engineeringDrawings), aiProviders: envelope(aiProviders), mcpConnectors: envelope(mcpConnectors),
+    archivedTasks: envelope(archivedTasks, undefined, 'archived, newest first'),
+  };
+  // Backstop: every array in the pack literal below must have an envelope here
+  // (qa/scenarios-runner/architecture_collection_envelope_contract.mjs pins this statically).
+  const pack = { continuity, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -2951,9 +3035,20 @@ serve(async (req) => {
         // scoped to in-flight statuses only and never contains an archived task.
         const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
         const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
-        const claimExecutionEvidence: Array<{ resourceType: string; action: string; id: string; postconditionPassed: boolean }> = [];
-        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean) => {
-          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({ resourceType, action, id, postconditionPassed });
+        // ExecutionResultEnvelope (type at module top; governance/OPERATING_TRUTH_MODEL.md
+        // §4.1). One entry per executed (or attempted) operation, written at the real
+        // execution sites; detail carries the backend result verbatim and the fresh
+        // postcondition. postconditionPassed === postcondition_verified, always.
+        const claimExecutionEvidence: ExecutionResultEnvelope[] = [];
+        const executionTurn: number | null = typeof contextPack?.currentTurn?.turn === 'number' ? contextPack.currentTurn.turn : null;
+        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean, detail: ExecutionDetail | null = null) => {
+          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({
+            resourceType, action, id, postconditionPassed,
+            request_id: null, channel_id: channelId, turn: executionTurn, action_type: action, entity_type: resourceType, canonical_entity_ids: [id],
+            requested_values: detail?.requestedValues ?? null, executed: detail?.executed ?? true, rows_affected: detail?.rowsAffected ?? (postconditionPassed ? 1 : null),
+            backend_result: detail?.backendResult ?? null, precondition: detail?.precondition ?? null, postcondition: detail?.postcondition ?? null,
+            postcondition_verified: postconditionPassed, error: detail?.error ?? null, timestamp: new Date().toISOString(),
+          });
         };
         // run8/D67: labels for rows created THIS turn. The canonical read predates them,
         // so displayName could only ever render "the task" for a fresh create; these are
@@ -3135,12 +3230,12 @@ serve(async (req) => {
         // optional. A person's companyId is only trusted if it's a real id from
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
-        const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
+        const contextCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => c.id));
         // context.companies has no status filter (archived companies must stay resolvable
         // for "restore X" / historical questions), so new-work creation against an
         // archived company has to be blocked here explicitly rather than by omission from
         // context — see archiveCompanyIds/restoreCompanyIds handling below.
-        const archivedCompanyIds = new Set((contextPack?.companies || []).filter((c: any) => c.status === 'archived').map((c: any) => c.id));
+        const archivedCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].filter((c: any) => c.status === 'archived').map((c: any) => c.id));
         let archivedCompanyBlockedCount = 0;
         // Drops any create whose resolved companyId targets an archived company
         // (companyIndex is untouched — it always points at a company created this same
@@ -3231,11 +3326,71 @@ serve(async (req) => {
         // Never invented: only ids present in context.companies are honored (that list
         // carries no status filter, so archived companies are already resolvable there for
         // restore too).
-        const requestedArchiveIds = Array.isArray(result.archiveCompanyIds) ? result.archiveCompanyIds as unknown[] : [];
-        const archiveCompanyIds = [...new Set(requestedArchiveIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
-        const requestedRestoreIds = Array.isArray(result.restoreCompanyIds) ? result.restoreCompanyIds as unknown[] : [];
-        const restoreCompanyIds = [...new Set(requestedRestoreIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
-        const companyNameById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name]));
+        // CompanyLifecycle target resolution (governance/CANONICAL_WORK_CONTRACT.md §1-§2).
+        // Targets resolve SERVER-SIDE under the caller's own RLS across every status — never
+        // by membership in the capped context window. BUG-014 (Work-PC, 2026-09-07): a known
+        // archived company outside the 12-row window was silently dropped by the old
+        // contextCompanyIds filter, zero RPC calls ran, and the model's own "restored."
+        // shipped. Sources, in order: ids the model emitted (re-read, any status), names the
+        // model emitted (restoreCompanyNames / archiveCompanyNames), and — when the command
+        // itself carries the lifecycle verb but the model resolved nothing — the name in the
+        // command. One hit executes; several hits ask; zero hits say so. Every branch leaves
+        // a line, so a lifecycle-intent turn can never end silent.
+        const COMPANY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const companyNameById = new Map([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => [c.id, c.name]));
+        const lifecycleUnresolvedLines: string[] = [];
+        const lifecycleDisambiguation: LifecycleDisambiguation[] = [];
+        const commandMentionsCompany = /\b(compan(?:y|ies)|business unit|subsidiar(?:y|ies)|holding|entity|org(?:anization)?s?|brand|department)\b/i.test(String(command || ''));
+        async function resolveCompanyLifecycleTargets(action: string, rawIds: unknown, rawNames: unknown, commandName: string | null): Promise<string[]> {
+          const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x): x is string => typeof x === 'string' && COMPANY_UUID_RE.test(x)))];
+          const names: string[] = [...new Set((Array.isArray(rawNames) ? rawNames : []).filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim().slice(0, 120)))];
+          const resolved: Set<string> = new Set();
+          if (ids.length > 0) {
+            const { data } = await supabase.from('companies').select('id,name,status').in('id', ids);
+            for (const c of (data || []) as CompanyLookupRow[]) { resolved.add(String(c.id)); companyNameById.set(String(c.id), String(c.name)); }
+            for (const id of ids) if (!resolved.has(id)) lifecycleUnresolvedLines.push(`${companyNameById.get(id) || 'That company'}: could not be found (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`);
+          }
+          const fromCommand = names.length === 0 && resolved.size === 0 && commandName ? [commandName] : [];
+          for (const name of [...names, ...fromCommand]) {
+            const wantStatus = action === 'restore' ? 'archived' : 'active';
+            const { data: exact } = await supabase.from('companies').select('id,name,status').ilike('name', name.replace(/[%_,()]/g, ' ').trim()).limit(10);
+            let rows = (exact || []) as CompanyLookupRow[];
+            if (rows.length === 0) {
+              const tokens = name.split(/\s+/).filter((t) => t.length >= 2).slice(0, 6);
+              if (tokens.length > 0) {
+                let qb: any = supabase.from('companies').select('id,name,status');
+                for (const t of tokens) qb = qb.ilike('name', `%${t.replace(/[%_,()]/g, ' ')}%`);
+                const { data: fuzzy } = await qb.limit(10);
+                rows = (fuzzy || []) as CompanyLookupRow[];
+              }
+            }
+            const preferred = rows.filter((r) => r.status === wantStatus);
+            const pick = preferred.length > 0 ? preferred : rows;
+            const isCommandGuess = fromCommand.includes(name);
+            if (pick.length === 1) { resolved.add(pick[0].id); companyNameById.set(pick[0].id, pick[0].name); }
+            else if (pick.length === 0) { if (!isCommandGuess || commandMentionsCompany) lifecycleUnresolvedLines.push(`${name}: no company by that name (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`); }
+            else { lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); }
+          }
+          return [...resolved];
+        }
+        const lifecycleCommandName = (pattern: RegExp): string | null => {
+          const text = String(command || '');
+          const m = text.match(pattern);
+          if (!m) return null;
+          const after = text.slice((m.index ?? 0) + m[0].length)
+            .replace(/^\s*(?:the|this|that|our|my)\s+/i, '')
+            .replace(/^\s*(?:company|business unit|entity|organization|org)\s+/i, '')
+            .trim();
+          const name = after.split(/[.,;!?\n]|\s+(?:and|then|please|now|again|from|to|so|because)\s+/i)[0]
+            .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
+            .replace(/\s+(?:company|business unit|entity)$/i, '')
+            .trim();
+          return name.length >= 2 && name.length <= 80 && !/^(it|them|that|this|those|these|him|her)$/i.test(name) ? name : null;
+        };
+        const archiveCompanyIds = await resolveCompanyLifecycleTargets('archive', result.archiveCompanyIds, result.archiveCompanyNames,
+          ARCHIVE_VERB_PATTERN.test(String(command || '')) && !RESTORE_VERB_PATTERN.test(String(command || '')) ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
+        const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', result.restoreCompanyIds, result.restoreCompanyNames,
+          RESTORE_VERB_PATTERN.test(String(command || '')) ? lifecycleCommandName(RESTORE_VERB_PATTERN) : null);
 
         // ==================================================================================
         // BACKEND-GENERATED EXECUTION EVIDENCE (2026-09-01, structured-claim architecture).
@@ -3264,7 +3419,7 @@ serve(async (req) => {
         for (const id of archiveCompanyIds) {
           const { data, error } = await supabase.rpc('archive_company', { p_company_id: id });
           const name = companyNameById.get(id) || id;
-          if (error || !data) { archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
+          if (error || !data) { recordExecution('company', 'archive', id, false, { executed: false, error: error?.message || 'no result', requestedValues: { status: 'archived' } }); archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
           // archive_company()/restore_company() (schema-v0.7-production-core.sql) already
           // re-read the row after the UPDATE and return a real postconditionPassed
@@ -3273,30 +3428,45 @@ serve(async (req) => {
           // is satisfied at the DB layer already, but this still defensively cross-checks
           // it rather than only ever reading `reason`, in case the two ever disagree.
           if (r.changed === true && r.postconditionPassed !== true) {
+            recordExecution('company', 'archive', id, false, { executed: true, backendResult: r, error: 'postcondition_not_confirmed', requestedValues: { status: 'archived' } });
             archiveRestoreLines.push(`${name}: archive attempted, but the persisted status did not confirm it afterward — treat as not archived.`);
             continue;
           }
           // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
           // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
           // mutation performed this turn, so they must never support a mutation claim.
-          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true, { backendResult: r, precondition: { status: r.previousStatus }, postcondition: { status: r.newStatus }, requestedValues: { status: 'archived' } });
+          else recordExecution('company', 'archive', id, false, { executed: false, backendResult: r, error: String(r.reason), requestedValues: { status: 'archived' } });
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreCompanyIds) {
           const { data, error } = await supabase.rpc('restore_company', { p_company_id: id });
           const name = companyNameById.get(id) || id;
-          if (error || !data) { archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
+          if (error || !data) { recordExecution('company', 'restore', id, false, { executed: false, error: error?.message || 'no result', requestedValues: { status: 'active' } }); archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
           if (r.changed === true && r.postconditionPassed !== true) {
+            recordExecution('company', 'restore', id, false, { executed: true, backendResult: r, error: 'postcondition_not_confirmed', requestedValues: { status: 'active' } });
             archiveRestoreLines.push(`${name}: restore attempted, but the persisted status did not confirm it afterward — treat as not restored.`);
             continue;
           }
           // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
           // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
           // mutation performed this turn, so they must never support a mutation claim.
-          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true, { backendResult: r, precondition: { status: r.previousStatus }, postcondition: { status: r.newStatus }, requestedValues: { status: 'active' } });
+          else recordExecution('company', 'restore', id, false, { executed: false, backendResult: r, error: String(r.reason), requestedValues: { status: 'active' } });
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
+        // Several companies matched a name: ask, never guess — and say so in the report.
+        if (lifecycleDisambiguation.length > 0 && !result.pendingAction) {
+          const d = lifecycleDisambiguation[0];
+          result.pendingAction = {
+            kind: 'disambiguation',
+            question: `Which company should I ${d.action}? ` + d.options.map((o, i) => `${i + 1}. ${o.name} (${o.status})`).join('  '),
+            options: d.options.map((o) => ({ id: o.id, label: `${o.name} (${o.status})`, entityType: 'company', actionType: `${d.action}_company` })),
+          } as PendingAction;
+          archiveRestoreLines.push(`${d.name}: more than one company matches — please pick one.`);
+        }
+        for (const line of lifecycleUnresolvedLines) archiveRestoreLines.push(line);
         // Same reasoning as organizationGraphCheck below: when a real archive/restore was
         // attempted, the real outcome is the entire point of the turn and fully replaces
         // the model's own prose rather than being prepended to it — live-tested elsewhere
@@ -4100,16 +4270,42 @@ serve(async (req) => {
         // matched by exact id rather than by resource type alone. Creates are recorded with
         // postconditionPassed=true because the row id existing IS the postcondition - the
         // RPC only returns an id for a row it actually inserted.
-        for (const t of createdTasks) recordExecution('task', 'create', (t || {}).id, true);
-        for (const a of createdApprovals) recordExecution('approval', 'create', (a || {}).id, true);
-        for (const c of createdCompanies) recordExecution('company', 'create', (c || {}).id, true);
-        for (const pp of createdPeople) recordExecution('person', 'create', (pp || {}).id, true);
-        for (const pr of createdProjects) recordExecution('project', 'create', (pr || {}).id, true);
-        for (const g of createdGoals) recordExecution('goal', 'create', (g || {}).id, true);
-        for (const id of deletedTaskIds) recordExecution('task', 'delete', id, true);
-        for (const cr of createdCompanyRelationships) recordExecution('company_relationship', 'create', (cr || {}).id, true);
-        for (const pa of createdPersonAssignments) recordExecution('person_assignment', 'create', (pa || {}).id, true);
-        for (const m of createdMemories) recordExecution('memory', 'create', (m || {}).id, true);
+        // Fresh postcondition for the create family (governance/OPERATING_TRUTH_MODEL.md
+        // §4.1): the ids the RPC returned are re-read under the caller's own RLS after the
+        // transaction committed. An id the re-read cannot see is recorded as executed but
+        // NOT verified — it can never support a success claim. A deleted task's postcondition
+        // is the inverse: the row must no longer be readable.
+        async function verifyRowsExist(table: string, ids: unknown[]): Promise<Set<string>> {
+          const wanted: string[] = ids.filter((x): x is string => typeof x === 'string' && x.length > 0);
+          const seen: Set<string> = new Set();
+          if (wanted.length === 0) return seen;
+          try {
+            const { data } = await supabase.from(table).select('id').in('id', wanted);
+            for (const r of (data || []) as Array<Record<string, unknown>>) seen.add(String(r.id));
+          } catch { /* unreadable after commit: unverified, never assumed */ }
+          return seen;
+        }
+        const idOf = (row: unknown): unknown => (row && typeof row === 'object' ? (row as { id?: unknown }).id : undefined);
+        const [tasksSeen, approvalsSeen, companiesSeen, peopleSeen, projectsSeen, goalsSeen, relationshipsSeen, assignmentsSeen, memoriesSeen, deletedTasksStillPresent] = await Promise.all([
+          verifyRowsExist('tasks', createdTasks.map(idOf)), verifyRowsExist('approvals', createdApprovals.map(idOf)),
+          verifyRowsExist('companies', createdCompanies.map(idOf)), verifyRowsExist('people', createdPeople.map(idOf)),
+          verifyRowsExist('projects', createdProjects.map(idOf)), verifyRowsExist('goals', createdGoals.map(idOf)),
+          verifyRowsExist('company_relationships', createdCompanyRelationships.map(idOf)), verifyRowsExist('person_assignments', createdPersonAssignments.map(idOf)),
+          verifyRowsExist('memories', createdMemories.map(idOf)), verifyRowsExist('tasks', deletedTaskIds),
+        ]);
+        const recordCreate = (resourceType: string, rows: unknown[], seen: Set<string>) => {
+          for (const row of rows) { const id = idOf(row); const ok = typeof id === 'string' && seen.has(id); recordExecution(resourceType, 'create', id, ok, { postcondition: { exists: ok }, rowsAffected: ok ? 1 : 0 }); }
+        };
+        recordCreate('task', createdTasks, tasksSeen);
+        recordCreate('approval', createdApprovals, approvalsSeen);
+        recordCreate('company', createdCompanies, companiesSeen);
+        recordCreate('person', createdPeople, peopleSeen);
+        recordCreate('project', createdProjects, projectsSeen);
+        recordCreate('goal', createdGoals, goalsSeen);
+        for (const id of deletedTaskIds) { const gone = typeof id === 'string' && !deletedTasksStillPresent.has(id); recordExecution('task', 'delete', id, gone, { postcondition: { exists: !gone }, rowsAffected: gone ? 1 : 0 }); }
+        recordCreate('company_relationship', createdCompanyRelationships, relationshipsSeen);
+        recordCreate('person_assignment', createdPersonAssignments, assignmentsSeen);
+        recordCreate('memory', createdMemories, memoriesSeen);
 
         // Bugs 7/9 (2026-08-30 campaign): a person-assignment change touching BOTH the
         // legal employer and operating company (a real "reassign X entirely to Y"
@@ -4137,14 +4333,33 @@ serve(async (req) => {
         const personAssignmentReport = (reassignmentEntries.length > 0
           && createdPersonAssignments.length === createPersonAssignmentsFiltered.length)
           ? reassignmentEntries.map((a) => {
+              // MutationReceipt (governance/OPERATING_TRUTH_MODEL.md §4.2): rendered from the
+              // requested-vs-current DIFF, never from the request shape alone. BUG-012
+              // (Work-PC, 2026-09-07): a manager change was receipted as a company move
+              // because this renderer only ever looked at the company ids.
               const personName = personNameById.get(a.personId as string) || a.personId;
+              const current = ((contextPack?.personAssignments || []) as Array<Record<string, unknown>>)
+                .find((pa) => pa.person_id === a.personId && pa.state === 'current') || null;
               const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
               const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
-              if (legalName && operatingName && legalName !== operatingName) {
-                return `**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`;
+              const newManagerId = typeof a.managerPersonId === 'string' && a.managerPersonId.length > 0 ? a.managerPersonId : null;
+              const managerChanged = newManagerId !== null && (!current || current.manager_person_id !== newManagerId);
+              const companyChanged = !current
+                || (!!a.legalEmployerCompanyId && current.legal_employer_company_id !== a.legalEmployerCompanyId)
+                || (!!a.operatingCompanyId && current.operating_company_id !== a.operatingCompanyId);
+              const parts: string[] = [];
+              if (managerChanged) {
+                const newManager = personNameById.get(newManagerId as string) || newManagerId;
+                const oldManager = current && typeof current.manager_person_id === 'string' ? (personNameById.get(current.manager_person_id) || 'a previous manager') : null;
+                parts.push(`**${personName}'s manager set to ${newManager}**${oldManager ? ` (was ${oldManager})` : ''}.`);
               }
-              if (legalName && operatingName) return `**${personName} reassigned to ${operatingName}** (legal employer and operating company).`;
-              return `**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`;
+              if (companyChanged) {
+                if (legalName && operatingName && legalName !== operatingName) parts.push(`**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`);
+                else if (legalName && operatingName) parts.push(`**${personName} reassigned to ${operatingName}** (legal employer and operating company).`);
+                else parts.push(`**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`);
+              }
+              if (parts.length === 0) parts.push(`**${personName}: assignment re-saved — company and manager unchanged.**`);
+              return parts.join(' ');
             }).join(' ')
           : null;
 
@@ -4795,7 +5010,7 @@ serve(async (req) => {
         // Fresh canonical read for CURRENT_STATE claims: contextPack was built from the
         // database at the start of THIS turn, so it is a real read, not the model's memory.
         const canonicalById = new Map();
-        for (const [bucket, type] of [['companies', 'company'], ['people', 'person'], ['projects', 'project'], ['tasks', 'task'], ['goals', 'goal'], ['approvals', 'approval'], ['departments', 'department']]) {
+        for (const [bucket, type] of [['companies', 'company'], ['archivedCompanies', 'company'], ['people', 'person'], ['projects', 'project'], ['tasks', 'task'], ['goals', 'goal'], ['approvals', 'approval'], ['departments', 'department']]) {
           for (const row of (contextPack || {})[bucket] || []) {
             if (row && typeof row.id === 'string') canonicalById.set(type + '|' + row.id, row);
           }
@@ -5161,6 +5376,29 @@ serve(async (req) => {
         const rawClaims = Array.isArray(result.claims) ? result.claims : null;
         const verifiedClaims = [];
         const rejectedClaims = [];
+        // MutationIntent from the REQUEST (governance/OPERATING_TRUTH_MODEL.md §3 rule 3;
+        // CANONICAL_WORK_CONTRACT.md §1 INTENT). Detected from the founder's command and from
+        // the structured action fields the model emitted — never from the response text, its
+        // tense, its shape or its punctuation. It drives the never-silent receipt below: a
+        // mutation-intent turn cannot end with the model's own prose as the final answer.
+        const MUTATION_INTENT_ALWAYS = /^\s*(?:please\s+|pls\s+|can you\s+|could you\s+|would you\s+|now\s+|ok\s+|okay\s+)?(archive|un-?archive|restore|delete|remove|rename|retitle|reassign|unassign|approve|reject|decline|activate|deactivate|invite|revoke|enable|disable|promote|demote|transfer|move)\b/i;
+        const MUTATION_INTENT_WITH_ENTITY = /^\s*(?:please\s+|pls\s+|can you\s+|could you\s+|would you\s+|now\s+|ok\s+|okay\s+)?(assign|set|make|create|add|end|update|change|hire|onboard)\b/i;
+        const MUTATION_ENTITY_NOUN = /\b(compan(?:y|ies)|business unit|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|approval|channel|provider|connector|drawing|spec|assignment|employment|relationship|memory)\b/i;
+        const MUTATION_ARRAY_FIELDS = ['tasks','deleteTaskIds','archiveTaskIds','restoreTaskIds','deleteChannelIds','deleteApprovalIds','pendingDeleteTaskIds','pendingDeleteChannelIds','createCompanies','updateCompanies','archiveCompanyIds','restoreCompanyIds','archiveCompanyNames','restoreCompanyNames','permanentDeleteFixtureCompanyIds','createPeople','endEmploymentPersonIds','restoreEmploymentPersonIds','createProjects','createGoals','archiveGoalIds','restoreGoalIds','createFactoryWorkOrders','createDepartments','updateDepartments','createLeads','updateLeads','createDocuments','createProductLines','updateProductLines','deleteProductLineIds','createProductSpecs','updateProductSpecs','deleteProductSpecIds','createEngineeringDrawings','deleteEngineeringDrawingIds','createAiProviders','deleteAiProviderIds','deleteMcpConnectorIds','createProposals','updateProposals','deleteProposalIds','createCompanyRelationships','createPersonAssignments'];
+        // A bare confirmation ("yes", "ok", "go ahead", "option 2") is a request to execute
+        // what was pending — mutation intent by construction (the live E-multi shape: a
+        // bare "yes" answered "Confirmed. Executing the plan…" with zero database changes).
+        const CONFIRMATION_COMMAND = /^s*(?:yes|y|yes please|ok|okay|confirm|confirmed|go ahead|do it|proceed|sure|please do|options*d+|the (?:first|second|third|last) one|d+)s*[.!]?s*$/i;
+        const commandText = String(command || '');
+        const intentVerb: string | null = ((commandText.match(MUTATION_INTENT_ALWAYS) || [])[1]
+          || (MUTATION_ENTITY_NOUN.test(commandText) ? (commandText.match(MUTATION_INTENT_WITH_ENTITY) || [])[1] : null)
+          || (CONFIRMATION_COMMAND.test(commandText) ? 'confirm' : null) || null);
+        const modelMutationField: string | null = MUTATION_ARRAY_FIELDS.find((f) => Array.isArray((result as Record<string, unknown>)[f]) && ((result as Record<string, unknown>)[f] as unknown[]).length > 0)
+          || (typeof (result as Record<string, unknown>).activateAiProviderId === 'string' ? 'activateAiProviderId' : null);
+        const requestedIntent: MutationIntent | null = (intentVerb || modelMutationField)
+          ? { verb: intentVerb ? intentVerb.toLowerCase() : null, field: modelMutationField }
+          : null;
+        const executedVerifiedCount = claimExecutionEvidence.filter((e) => e.postconditionPassed).length;
 
         function verifyStructuredClaim(claim) {
           const type = typeof claim.type === 'string' ? claim.type : '';
@@ -5706,7 +5944,10 @@ serve(async (req) => {
         const legacyProseFallback = !hasSupportedMutationClaim
           && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
-          && !result.pendingAction && readsAsCompletion(String(result.summary || ''));
+          // Founder correction 2026-09-07 (governance/OPERATING_TRUTH_MODEL.md §3 rule 2):
+          // the pendingAction skip does not survive on v92-parity grounds, and the belt
+          // is never the sole reason a reply is rewritten — request intent comes first.
+          && requestedIntent !== null && readsAsCompletion(String(result.summary || ''));
 
         // run7/D52: a single supported mutation claim used to disarm the drift check
         // entirely, so the model could pair one real create with fabricated completion
@@ -5754,7 +5995,7 @@ serve(async (req) => {
         // prose (v92-parity on that narrow shape, disclosed), while the D68
         // factLines-only case stays caught via deterministicPrefix.
         const unaccountedCompletionProse = !hasSupportedMutationClaim
-          && !result.pendingAction && readsAsCompletion(String(result.summary || ''));
+          && requestedIntent !== null && readsAsCompletion(String(result.summary || ''));
         const structuredProseDrift = unaccountedCompletionProse
           && (rawClaims !== null || deterministicPrefix.length > 0 || claimExecutionEvidence.length > 0);
         const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim || hasConfirmedMutationEvidenceInWindow || structuredProseDrift;
@@ -5901,6 +6142,45 @@ serve(async (req) => {
         // what the founder was shown. No separate unverified model-summary copy is kept.
         // (VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH /
         //  LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE)
+        // NEVER-SILENT RECEIPT (governance/OPERATING_TRUTH_MODEL.md §3 rule 3, §4.2). A
+        // mutation-intent turn with no verified execution and no lifecycle report ends with a
+        // deterministic receipt rendered from the ledger and the request — never with the
+        // model's own prose, whatever its tense, its shape, or its trailing question.
+        // BUG-002 / BUG-010 (Work-PC, 2026-09-07): "Done. Project renamed to X. What next?"
+        // with an unchanged row is exactly this branch.
+        const receiptExempt = model === 'deterministic-confirmation' || model === 'deterministic-plan-execution'
+          || model === 'deterministic-clarification' || model === 'deterministic-disambiguation' || !!organizationGraphCheck;
+        let receiptRendered = false;
+        if (requestedIntent !== null && executedVerifiedCount === 0 && lifecycleReports.length === 0 && !receiptExempt && !rewriteFromStructure) {
+          const pa = result.pendingAction && typeof result.pendingAction === 'object' ? result.pendingAction as Record<string, unknown> : null;
+          const pendingQuestion = pa ? String(pa.question || pa.summary || '').trim() : '';
+          const failed = claimExecutionEvidence.find((e) => e.error) || null;
+          const attempted = claimExecutionEvidence.length > 0;
+          const verb = requestedIntent.verb;
+          const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
+            approve: 'deciding an approval from chat is not available yet — use the Approvals page',
+            reject: 'deciding an approval from chat is not available yet — use the Approvals page',
+            decline: 'deciding an approval from chat is not available yet — use the Approvals page',
+            invite: 'inviting someone from chat is not available yet — use the People page',
+          };
+          const reason = pendingQuestion ? 'I need your answer first'
+            : failed ? `the operation did not succeed (${failed.error})`
+            : attempted ? 'the operation did not confirm in the database'
+            : (verb && UNSUPPORTED_FROM_CHAT[verb]) ? UNSUPPORTED_FROM_CHAT[verb]
+            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? 'I could not resolve which company you meant (searched the active and archived companies you can access)'
+            : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'
+            : 'that request did not resolve to an operation I can execute from chat';
+          result.summary = [...factLines, `No change was made — ${reason}.`, pendingQuestion].filter(Boolean).join(' ');
+          receiptRendered = true;
+        }
+        for (const e of claimExecutionEvidence) if (!e.request_id) e.request_id = workOrder.id;
+        result.turnVerdict = {
+          executedOperationCount: executedVerifiedCount,
+          attemptedOperationCount: claimExecutionEvidence.length,
+          rejectedClaimCount: rejectedClaims.length,
+          mutationIntent: requestedIntent,
+          receiptRendered,
+        };
         result.verifiedResponse = {
           verifiedClaims,
           rejectedClaims,
@@ -5946,9 +6226,13 @@ serve(async (req) => {
         // p_output snapshot predates the gating, so a plain clarification turn whose
         // pendingAction text WAS gated must re-persist or the raw text is what a reload
         // and the next turn's "Confirmed — …" replay read back.
-        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding || pendingActionGatingChanged) {
-          await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
-        }
+        // Operating Truth Model §3 rule 6: the verified envelope, the execution ledger and
+        // the turn verdict are persisted on EVERY turn (an empty ledger included), so the
+        // next turn's narrative tier and any reload read the verified output, never the
+        // RPC's pre-verification p_output snapshot. The old gate (persist only when a
+        // correction fired) is what let uncorrected fabrications re-enter history as fact.
+        void groundedOutcomeThisTurn; void lifecycleMismatchCorrections; void claimsFutureActionWithNoPlan; void claimsPastCompletionWithNoGrounding; void pendingActionGatingChanged;
+        await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
 
         // Issue #5 durable channel state — the WRITE half, FEATURE-GATED like the read:
         // any error (incl. relation-not-found before 202609020001 is approved/applied)

@@ -103,7 +103,10 @@ const ACME = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const ID2 = '11111111-1111-1111-1111-111111111111';
 const ID3 = '22222222-2222-2222-2222-222222222222';
 const M = (rt, id, action) => ({ type: 'mutation_result', resourceType: rt, resourceId: id, action });
-const run = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, model = 'gpt' } = {}) =>
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3): the executor reads the REQUEST. Harness calls
+// default to a mutation-intent command; read-only cases pass command: ''.
+const run = (opts = {}) => { globalThis.command = typeof opts.command === 'string' ? opts.command : 'archive ACME Holdings'; return run0(opts); };
+const run0 = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, model = 'gpt' } = {}) =>
   gateFn({ claims, summary, pendingAction, questions }, evidence, context, model, false, false, DENO,
     mk(), mk(), mk(), mk(), false, '', mk());
 

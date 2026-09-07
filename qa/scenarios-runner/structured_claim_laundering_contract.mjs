@@ -30,7 +30,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withRequestSideDefaults } from './_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
@@ -71,7 +71,9 @@ function extractWide(source) {
   if (envIdx === -1) throw new Error('verifiedResponse envelope not found after the overrides — update this harness, do not let it pass');
   const envEnd = source.indexOf('};', envIdx);
   if (envEnd === -1) throw new Error('unterminated verifiedResponse envelope');
-  return stripTS(source.slice(start, envEnd + 2));
+  // P1: every laundering case is a mutation-intent turn (a fabricated completion on a
+  // request that asked for a mutation); the gate is intent-first, belt second.
+  return 'globalThis.command = "archive ACME Holdings";' + String.fromCharCode(10) + withRequestSideDefaults(stripTS(source.slice(start, envEnd + 2)));
 }
 const slice = extractWide(src);
 if (/\btype\s+\w+\s*=/.test(slice) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.test(slice)) {

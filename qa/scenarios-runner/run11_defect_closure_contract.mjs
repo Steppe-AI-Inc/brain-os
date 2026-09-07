@@ -58,7 +58,10 @@ const gateFn = new Function(
   gateSlice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };');
 const DENO = { env: { get: () => undefined } };
 const mk = (o) => new Map(Object.entries(o || {}));
-const run = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, model = 'gpt', grounded = false, deterministicPrefix = '', runtime = {} }) =>
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3): the executor reads the REQUEST. Harness calls
+// default to a mutation-intent command; read-only cases pass command: ''.
+const run = (opts = {}) => { globalThis.command = typeof opts.command === 'string' ? opts.command : 'archive ACME Holdings'; return run0(opts); };
+const run0 = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, model = 'gpt', grounded = false, deterministicPrefix = '', runtime = {} }) =>
   gateFn({ claims, summary, pendingAction, questions }, evidence, context, model, grounded, false, DENO,
     mk(), mk(), mk(), mk(), false, deterministicPrefix, mk(runtime));
 const ID = '11111111-1111-1111-1111-111111111111';
@@ -79,7 +82,7 @@ const rows = (n) => Array.from({ length: n }, (_, i) => ({ command: 'cmd' + (i +
 
 // ---- the durable pending-action READER, EXECUTED ----
 const readerFn = new Function('durableChannelState', 'lastTurnOutput', 'legacyPendingConfirmation',
-  stripTS(sliceBetween('const durablePendingActionValid = !!(durableChannelState', ': null));'))
+  stripTS(sliceBetween('const durablePendingActionValid = !!(durableChannelState', '      : null);'))
   + '\n; return { valid: durablePendingActionValid, bound: pendingAction };');
 const future = () => new Date(Date.now() + 10 * 60 * 1000).toISOString();
 const PA = { kind: 'bulk_confirmation', summary: 'Archive ACME', action: { archiveCompanyIds: ['x'] } };
@@ -147,9 +150,13 @@ C('V11.durable.untyped', 'CONTRACT', 'an UNTYPED durable pending action can neve
   () => readerFn({ pending_action: PA, pending_action_source_work_order_id: 'wo-1', pending_action_expires_at: future() }, undefined, undefined).bound === null);
 C('V11.durable.happy', 'CONTRACT', 'a fully typed, sourced, unexpired durable pending action DOES bind (the guard is not just always-null)',
   () => readerFn({ pending_action: PA, pending_action_action_type: 'archive_company', pending_action_source_work_order_id: 'wo-1', pending_action_expires_at: future() }, undefined, undefined).bound !== null);
-C('V11.durable.livePrecedence', 'CONTRACT', 'a live last-turn pendingAction always beats durable state',
+// P1 (governance/OPERATING_TRUTH_MODEL.md §2, tier 3 over tier 4): the durable, TTL-guarded, fully
+// typed channel-state row outranks the previous turn's stored output text.
+C('V11.durable.livePrecedence', 'CONTRACT', 'a valid durable pending action beats the last turn\'s stored pendingAction (durable state outranks stale output)',
   () => readerFn({ pending_action: PA, pending_action_action_type: 'archive_company', pending_action_source_work_order_id: 'wo-1', pending_action_expires_at: future() },
-    { pendingAction: { kind: 'open_question', question: 'live one' } }, undefined).bound.question === 'live one');
+    { pendingAction: { kind: 'open_question', question: 'live one' } }, undefined).bound.question !== 'live one');
+C('V11.durable.fallback', 'CONTRACT', 'with NO valid durable row the last turn\'s stored pendingAction still binds',
+  () => readerFn(null, { pendingAction: { kind: 'open_question', question: 'live one' } }, undefined).bound.question === 'live one');
 
 // M11 / M15b: structuredProseDrift is load-bearing but every committed case that touches
 // it is also satisfied by another arm (evidence present, or ungrounded legacy fallback).
@@ -227,13 +234,13 @@ for (const v of ['assigning', 'archiving', 'deleting']) {
 // observe the arm, which is how 28 destroyed answers went unseen through ten verifiers. Written as
 // explicit literals because verifier #39's vacuity check reads the summary literals directly.
 C('D87.hold.legit.1', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Archiving a company from chat is handled on the Companies page.' }).summary === 'Archiving a company from chat is handled on the Companies page.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Archiving a company from chat is handled on the Companies page.' }).summary === 'Archiving a company from chat is handled on the Companies page.');
 C('D87.hold.legit.2', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Restoring a company requires founder approval.' }).summary === 'Restoring a company requires founder approval.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Restoring a company requires founder approval.' }).summary === 'Restoring a company requires founder approval.');
 C('D87.hold.legit.3', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Deleting a task needs your confirmation first.' }).summary === 'Deleting a task needs your confirmation first.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Deleting a task needs your confirmation first.' }).summary === 'Deleting a task needs your confirmation first.');
 C('D87.hold.legit.4', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' }).summary === 'The runbook describes executing suites locally.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' }).summary === 'The runbook describes executing suites locally.');
 
 // run11 promotion additions (implementing session): cases the verifier's own set did
 // not distinguish, found by mutation-testing the FIX rather than the defect.

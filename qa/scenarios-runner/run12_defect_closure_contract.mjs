@@ -57,7 +57,10 @@ const mk = (o) => new Map(Object.entries(o || {}));
 const ACME = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const ID = '11111111-1111-1111-1111-111111111111';
 const M = (rt, id, action) => ({ type: 'mutation_result', resourceType: rt, resourceId: id, action });
-const run = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, grounded = false, deterministicPrefix = '' }) =>
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3): the executor reads the REQUEST. Harness calls
+// default to a mutation-intent command; read-only cases pass command: ''.
+const run = (opts = {}) => { globalThis.command = typeof opts.command === 'string' ? opts.command : 'archive ACME Holdings'; return run0(opts); };
+const run0 = ({ claims = null, summary = '', pendingAction = null, questions, evidence = [], context = {}, grounded = false, deterministicPrefix = '' }) =>
   gateFn({ claims, summary, pendingAction, questions }, evidence, context, 'gpt', grounded, false, DENO,
     mk(), mk(), mk(), mk(), false, deterministicPrefix, mk());
 
@@ -213,13 +216,13 @@ for (const s of ['Confirmed. Now removing ACME.', 'I am archiving ACME.', 'Worki
 // string can never silence both pins again. Contrast with 'Processing the request.' pinned below as
 // must-correct: that is the shape this arm genuinely cannot separate.
 C('D94.hold.legit.1', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Assigning an owner is the next step in the workflow.' }).summary === 'Assigning an owner is the next step in the workflow.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Assigning an owner is the next step in the workflow.' }).summary === 'Assigning an owner is the next step in the workflow.');
 C('D94.hold.legit.2', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Updating the pricing sheet is on the roadmap for Q3.' }).summary === 'Updating the pricing sheet is on the roadmap for Q3.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Updating the pricing sheet is on the roadmap for Q3.' }).summary === 'Updating the pricing sheet is on the roadmap for Q3.');
 C('D94.hold.legit.3', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Processing the request usually takes about three seconds.' }).summary === 'Processing the request usually takes about three seconds.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Processing the request usually takes about three seconds.' }).summary === 'Processing the request usually takes about three seconds.');
 C('D94.hold.legit.4', 'CONTRACT', 'ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder)',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'Finance is currently updating the Q3 forecast spreadsheet.' }).summary === 'Finance is currently updating the Q3 forecast spreadsheet.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Finance is currently updating the Q3 forecast spreadsheet.' }).summary === 'Finance is currently updating the Q3 forecast spreadsheet.');
 
 let pass = 0, fail = 0, defectsOpen = 0;
 for (let [id, kind, desc, thunk] of CASES) {

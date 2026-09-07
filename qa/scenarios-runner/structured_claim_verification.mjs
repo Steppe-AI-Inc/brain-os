@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withRequestSideDefaults } from './_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
@@ -31,7 +31,7 @@ function extractStructuredBlock(source) {
   const anchor = source.indexOf('executionEvidence: claimExecutionEvidence,', start);
   if (anchor === -1) throw new Error('verifiedResponse envelope not found — update this harness');
   const end = source.indexOf('};', anchor) + 2;
-  return stripTS(source.slice(start, end));
+  return 'globalThis.command = "archive ACME Holdings";' + String.fromCharCode(10) + withRequestSideDefaults(stripTS(source.slice(start, end)));
 }
 
 const slice = extractStructuredBlock(src);

@@ -178,11 +178,31 @@ export function extractGateSlice(source) {
 // V54-P0-TDZ: PAST_COMPLETION_CLAIM_PATTERN and COMPLETION_WORD are declared at the top of the handler's
 // try block, ABOVE the structured-claim window. A window re-executed in isolation must see them the way
 // production does — declared above. Extracted by NAME from the same source text; never a retyped copy.
+export const REQUEST_SIDE_DEFAULTS = [
+  "if (typeof globalThis.command === 'undefined') globalThis.command = '';",
+  "if (typeof globalThis.factLines === 'undefined') globalThis.factLines = [];",
+  "if (typeof globalThis.lifecycleReports === 'undefined') globalThis.lifecycleReports = [];",
+  "if (typeof globalThis.organizationGraphCheck === 'undefined') globalThis.organizationGraphCheck = null;",
+  "if (typeof globalThis.workOrder === 'undefined') globalThis.workOrder = { id: 'wo-harness' };",
+  "if (typeof globalThis.requestedIntent === 'undefined') globalThis.requestedIntent = null;",
+  "if (typeof globalThis.executedVerifiedCount === 'undefined') globalThis.executedVerifiedCount = 0;",
+].join('\n');
+/** Request-side defaults only — for a window that already declares the completion patterns itself. */
+export function withRequestSideDefaults(slice) {
+  return REQUEST_SIDE_DEFAULTS + '\n' + slice;
+}
 export function withPatternsAboveWindow(source, slice) {
   const decls = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].map((n) => {
     const m = source.match(new RegExp('const ' + n + ' = (/(?:[^/\\\\\n]|\\\\.)+/[a-z]*);'));
     if (!m) throw new Error('withPatternsAboveWindow: ' + n + ' not found in source');
     return 'const ' + n + ' = ' + m[1] + ';';
   });
-  return decls.join('\n') + '\n' + slice;
+  // P1 (2026-09-07, governance/OPERATING_TRUTH_MODEL.md §3): the executor window now reads
+  // request-side names that live above every window. Harness turns carry no command, so the
+  // default is NO request intent (a read-only turn: nothing may be rewritten on text shape
+  // alone). A suite that exercises fabrication correction sets globalThis.command to a
+  // mutation-intent command first; the intent gate itself is pinned by
+  // architecture_final_claim_contract.mjs. A window that declares one of these itself
+  // simply shadows the global.
+  return decls.join('\n') + '\n' + REQUEST_SIDE_DEFAULTS + '\n' + slice;
 }

@@ -92,7 +92,10 @@ const GOAL_SLICE = slice(
 
 const runTask = new AsyncFunction('supabase', 'archiveTaskIds', 'restoreTaskIds', 'taskTitleById', 'recordExecution',
   TASK_SLICE + '\n; return taskArchiveRestoreReport;');
+// P1: the company loops now also fold server-side resolution outcomes (disambiguation,
+// unresolved names) into the report and may arm a pendingAction on the result.
 const runCompany = new AsyncFunction('supabase', 'archiveCompanyIds', 'restoreCompanyIds', 'companyNameById', 'recordExecution',
+  'lifecycleDisambiguation', 'lifecycleUnresolvedLines', 'result',
   COMPANY_SLICE + '\n; return archiveRestoreReport;');
 const runGoal = new AsyncFunction('supabase', 'archiveGoalIds', 'restoreGoalIds', 'goalTitleById', 'lifecycleReasonText', 'recordExecution',
   GOAL_SLICE + '\n; return goalArchiveRestoreReport;');
@@ -106,8 +109,8 @@ async function evidenceFor(kind, rpcName, rpcResult) {
   const names = mkMap({ [ID]: 'QA fixture' });
   if (kind === 'task-archive') await runTask(sb, [ID], [], names, rec);
   else if (kind === 'task-restore') await runTask(sb, [], [ID], names, rec);
-  else if (kind === 'company-archive') await runCompany(sb, [ID], [], names, rec);
-  else if (kind === 'company-restore') await runCompany(sb, [], [ID], names, rec);
+  else if (kind === 'company-archive') await runCompany(sb, [ID], [], names, rec, [], [], { pendingAction: null });
+  else if (kind === 'company-restore') await runCompany(sb, [], [ID], names, rec, [], [], { pendingAction: null });
   else if (kind === 'goal-archive') await runGoal(sb, [ID], [], names, GOAL_REASON_TEXT, rec);
   else if (kind === 'goal-restore') await runGoal(sb, [], [ID], names, GOAL_REASON_TEXT, rec);
   else throw new Error('unknown kind ' + kind);
@@ -137,8 +140,12 @@ for (const [kind, rpcName, resourceType, action] of SITES) {
     ['rpc error', rpcError],
   ]) {
     const seen = await evidenceFor(kind, rpcName, result);
-    check('E ' + kind + ': "' + label + '" records NO evidence',
-      seen.length === 0,
+    // P1 (governance/OPERATING_TRUTH_MODEL.md §4.1): a non-verified outcome may be RECORDED as
+    // an envelope (executed=false or postcondition unverified) so the receipt can name it,
+    // but it must NEVER carry postconditionPassed=true — that is the only thing that can
+    // support a mutation_result claim.
+    check('E ' + kind + ': "' + label + '" records NO CONFIRMED evidence',
+      seen.every((e) => e.postconditionPassed === false),
       'This is not a mutation performed this turn, so it must never be able to support a mutation_result claim. Measured: ' + JSON.stringify(seen));
   }
 }
@@ -155,10 +162,12 @@ for (const [kind, rpcName, resourceType, action] of SITES) {
 // =======================================================================================
 // Line endings in the working tree are CRLF, so the closing brace is appended separately
 // rather than embedded in the end marker.
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3 rule 6): the output is persisted on EVERY turn.
+// The slice starts at the void-references line the source keeps for the retired gate names.
 const PERSIST_SLICE = slice(
-  'if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0',
+  'void groundedOutcomeThisTurn;',
   "await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);",
-  'the work_orders.output persist condition') + '\n}';
+  'the work_orders.output persist condition');
 
 const runPersist = new AsyncFunction('supabase', 'result', 'workOrder', 'groundedOutcomeThisTurn',
   'lifecycleMismatchCorrections', 'model', 'claimsFutureActionWithNoPlan', 'claimsPastCompletionWithNoGrounding',
@@ -193,9 +202,9 @@ check('P4 a lifecycle-mismatch correction is persisted',
   (await persisted({ mismatch: ['Couldn’t confirm that.'] })) !== null);
 check('P5 a deterministic-confirmation turn is persisted',
   (await persisted({ model: 'deterministic-confirmation' })) !== null);
-check('P6 an ordinary uncorrected turn is NOT re-persisted',
-  (await persisted({})) === null,
-  'Nothing changed, so the RPC-written p_output already is the truth. Re-writing it would be pointless traffic, not a correctness fix.');
+check('P6 an ordinary uncorrected turn IS persisted too (P1: every turn, empty ledger included)',
+  (await persisted({})) !== null,
+  'governance/OPERATING_TRUTH_MODEL.md §3 rule 6: the verified envelope, ledger and turn verdict are persisted on every turn so the narrative tier can tell a verified turn from an unverified one.');
 check('P7 what is persisted is the whole result object, i.e. the SAME summary the founder saw',
   (await persisted({ pastCompletion: true, summary: 'the exact corrected sentence' })).output.summary === 'the exact corrected sentence',
   'LIVE_RESPONSE_EQUALS_PERSISTED_RESPONSE. If these can differ, a reload shows a different answer than the chat did.');
@@ -296,8 +305,9 @@ const liveSrc = src
   const GUARDED_SITES = [
     ["person end_employment (guarded)", "if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true)"],
     ["person restore_employment (guarded)", "if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true)"],
-    ["company archive (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true)"],
-    ["company restore (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true)"],
+    // P1: the company sites carry the envelope detail (backend result verbatim, pre/post state).
+    ["company archive (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true, { backendResult: r,"],
+    ["company restore (guarded)", "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true, { backendResult: r,"],
     ["task archive (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true)"],
     ["task restore (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true)"],
     ["goal archive (guarded)", "if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true)"],
@@ -330,9 +340,12 @@ const liveSrc = src
     ["channel delete", "recordExecution('channel', 'delete', ch.id, true)"],
     ["approval delete", "recordExecution('approval', 'delete', ap.id, true)"],
     ["generic deleteByIds evidence", "recordExecution(evidenceType, 'delete', row.id, true)"],
-    ["company_relationship create", "recordExecution('company_relationship', 'create', (cr || {}).id, true)"],
-    ["person_assignment create", "recordExecution('person_assignment', 'create', (pa || {}).id, true)"],
-    ["memory create", "recordExecution('memory', 'create', (m || {}).id, true)"],
+    // P1: the create family records through recordCreate with a FRESH re-read postcondition
+    // (governance/OPERATING_TRUTH_MODEL.md §4.1) — never a literal true.
+    ["company_relationship create", "recordCreate('company_relationship', createdCompanyRelationships, relationshipsSeen)"],
+    ["person_assignment create", "recordCreate('person_assignment', createdPersonAssignments, assignmentsSeen)"],
+    ["memory create", "recordCreate('memory', createdMemories, memoriesSeen)"],
+    ["create-family postcondition is a fresh re-read", "const ok = typeof id === 'string' && seen.has(id); recordExecution(resourceType, 'create', id, ok"],
     ["department create", "recordExecution('department', 'create', data.id, true)"],
     ["department update", "recordExecution('department', 'update', d.id, true)"],
     ["lead create", "recordExecution('lead', 'create', data.id, true)"],

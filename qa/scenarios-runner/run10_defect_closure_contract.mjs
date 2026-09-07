@@ -29,7 +29,10 @@ const fn = new Function(
 );
 const DENO = { env: { get: () => undefined } };
 const mk = (o) => new Map(Object.entries(o || {}));
-const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '', runtime = {} }) =>
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3): the executor reads the REQUEST. Harness calls
+// default to a mutation-intent command; read-only cases pass command: ''.
+const run = (opts = {}) => { globalThis.command = typeof opts.command === 'string' ? opts.command : 'archive ACME Holdings'; return run0(opts); };
+const run0 = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '', runtime = {} }) =>
   fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO,
     mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal), fullyDeterministic, deterministicPrefix, mk(runtime));
 const ID = '11111111-1111-1111-1111-111111111111';
@@ -92,9 +95,9 @@ C('D79.twinOptions', 'DEFECT', 'D79: two options whose real names are assertion-
 // (qa/verification/scratch/mut/index_6ed3834.ts): every DEFECT below PASSES on 6ed3834
 // and FAILS on 65ade7c, i.e. these are regressions introduced by the run9 closure.
 C('D81.history', 'DEFECT', 'D81: a truthful historical read-only statement on a GROUNDED claims:null turn ships (6ed3834 shipped it; 65ade7c floors it)',
-  () => run({ claims: null, grounded: true, summary: 'ACME was created on 2026-03-01 and has 12 active tasks.' }).summary === 'ACME was created on 2026-03-01 and has 12 active tasks.');
+  () => run({ command: '', claims: null, grounded: true, summary: 'ACME was created on 2026-03-01 and has 12 active tasks.' }).summary === 'ACME was created on 2026-03-01 and has 12 active tasks.');
 C('D81.state.hold', 'CONTRACT', 'a present-tense STATE description on a grounded turn is untouched (holds on both)',
-  () => run({ claims: null, grounded: true, summary: 'ACME is archived. Should I restore it?' }).summary === 'ACME is archived. Should I restore it?');
+  () => run({ command: '', claims: null, grounded: true, summary: 'ACME is archived. Should I restore it?' }).summary === 'ACME is archived. Should I restore it?');
 for (const [tag, q, leak] of [['tag-question', 'I archived ACME, right? Continue?', 'archived ACME'], ['comma-ok', 'ACME deleted, ok? Anything else?', 'ACME deleted']]) {
   C('D83.' + tag, 'DEFECT', 'D83 (pre-existing on 6ed3834 too): an ASCII "?" inside the head must be a cut point — ' + JSON.stringify(q), () => !Q(q).includes(leak));
 }
@@ -106,11 +109,11 @@ C('D84.hold', 'CONTRACT', 'D60 still holds: a bulk summary that ASSERTS a comple
 
 // ---- E-MULTI (Work-PC live case, founder item 4): progressive execution fabrication.
 C('EMULTI.ungrounded', 'DEFECT', 'the live E-multi shape — bare-yes reply fabricating plan execution, nothing structural — is corrected, not shipped',
-  () => { const r = run({ claims: null, evidence: [], grounded: false, summary: 'Confirmed. Executing the plan to reassign CLIX GPS projects and people to SEM LLC.' }); return r.corrected === true && !r.summary.includes('Executing the plan'); });
+  () => { const r = run({ command: 'yes', claims: null, evidence: [], grounded: false, summary: 'Confirmed. Executing the plan to reassign CLIX GPS projects and people to SEM LLC.' }); return r.corrected === true && !r.summary.includes('Executing the plan'); });
 C('EMULTI.grounded-evidence', 'DEFECT', 'a progressive fabrication beside real evidence re-renders from the evidence',
   () => { const r = run({ claims: null, evidence: [EV('task', 'create', ID)], grounded: true, summary: 'the task: created. I am now archiving ACME as well.' }); return !/archiving ACME/.test(r.summary) && /created/.test(r.summary); });
 C('EMULTI.legit-hold', 'CONTRACT', 'ordinary prose containing the word executing in a non-claim shape is untouched',
-  () => run({ claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' }).summary === 'The runbook describes executing suites locally.');
+  () => run({ command: '', claims: null, evidence: [], grounded: false, summary: 'The runbook describes executing suites locally.' }).summary === 'The runbook describes executing suites locally.');
 
 
 let pass = 0, fail = 0, defectsOpen = 0;

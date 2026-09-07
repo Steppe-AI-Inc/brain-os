@@ -1,0 +1,56 @@
+1 v46_regression_additions.mjs :: 32 passed, 4 failed
+0 v48_regression_additions.mjs :: 58 passed, 0 failed
+1 v49_regression_additions.mjs :: 
+1 v50_regression_additions.mjs :: v50_regression_additions: 5 passed, 11 failed
+1 v51_regression_additions.mjs :: v51_regression_additions: 3 passed, 14 failed
+1 v52_regression_additions.mjs :: v52_regression_additions: 3 passed, 13 failed
+1 v53_regression_additions.mjs :: 
+0 v54_regression_additions.mjs :: v48_regression_additions: 9 passed, 0 failed
+0 v55_regression_additions.mjs :: 19 passed, 0 failed
+0 v30_open_regressions_probe.mjs ::   caught       v92=CATCH cand=CATCH  Nothing failed—ACME Holdings has been archived.
+1 v30_regression_additions.mjs :: 
+1 v31_adversarial_truth.mjs :: 
+1 v31_mutation_proof.mjs ::   F1.nameInternal (mutated copy failed to build: c is not defined)
+1 v31_regression_additions.mjs :: 
+1 v32_adversarial_truth.mjs :: 
+1 v32_mutation_proof.mjs ::   nameInternal.subjectRule (mutated copy failed to build: c is not defined)
+1 v32_regression_additions.mjs :: 98 passed, 3 failed
+1 v33_mutation_proof.mjs :: 
+1 v33_regression_additions.mjs :: 
+1 v34_mutation_proof.mjs :: 
+1 v35_mutation_proof.mjs :: 
+1 v36_mutation_proof.mjs :: 
+1 v37_mutation_proof.mjs :: 
+1 v38_mutation_proof.mjs :: 
+0 v39_deadness_proof.mjs :: 
+0 v40_mutation_proof.mjs :: 
+2 v41_build_lowercase_fix.mjs :: 
+0 v41_confirmed_name_probe.mjs :: 
+0 v41_dbg_negscope.mjs :: 
+0 v41_labelled_sweep.mjs :: 
+0 v41_lowercase_subject_sizing.mjs :: 
+0 v41_merged_mutation_proof.mjs :: 
+0 v42_build_entity_signal.mjs :: 
+0 v42_build_entity_signal_threaded.mjs :: 
+2 v42_build_imminent_fix.mjs :: 
+0 v42_dbg_entity.mjs :: 
+0 v42_dbg_imminent.mjs :: 
+0 v42_dbg_imminent2.mjs :: 
+1 v42_entity_signal_probe.mjs :: 
+0 v42_mutation_proof.mjs :: 
+0 v43_build_entity_signal.mjs :: 
+0 v43_d2_pack_sensitivity.mjs :: extractor-based gate measures, including v42's own, which is why v42 still reads 1 failed.
+1 v43_entity_mutation_proof.mjs :: 
+2 v43_inject_entity_stub.mjs :: 
+0 v43_inject_global_default.mjs :: 
+0 v43_mutation_proof.mjs :: 
+2 v45_build_fix.mjs :: 
+0 v45_build_letme_option.mjs :: 
+2 v46_build_fix.mjs :: 
+1 v46_runtime_entrypoint.mjs :: 
+2 v46_runtime_probe.mjs :: 
+0 v46_runtime_shapes.mjs :: 
+0 v47_build_fix.mjs :: 
+0 v47_derelativise_artifacts.mjs :: 
+1 v47_guard_repro.mjs :: "Neither processing the request nor executing the plan."    pass   pass      pass      pass 
+0 v47_two_arm_rederivation.mjs :: 

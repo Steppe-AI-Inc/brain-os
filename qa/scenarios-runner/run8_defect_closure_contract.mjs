@@ -40,7 +40,10 @@ const fn = new Function(
 );
 const DENO = { env: { get: () => undefined } };
 const mk = (o) => new Map(Object.entries(o || {}));
-const run = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '', runtime = {} }) =>
+// P1 (governance/OPERATING_TRUTH_MODEL.md §3): the executor reads the REQUEST. Harness calls
+// default to a mutation-intent command; read-only cases pass command: ''.
+const run = (opts = {}) => { globalThis.command = typeof opts.command === 'string' ? opts.command : 'archive ACME Holdings'; return run0(opts); };
+const run0 = ({ claims = null, summary = '', pendingAction = null, questions, proposedActions, evidence = [], context = {}, model = 'gpt', grounded = false, labels = {}, fullyDeterministic = false, deterministicPrefix = '', runtime = {} }) =>
   fn({ claims, summary, pendingAction, questions, proposedActions }, evidence, context, model, grounded, false, DENO,
     mk(labels.company), mk(labels.task), mk(labels.person), mk(labels.goal), fullyDeterministic, deterministicPrefix, mk(runtime));
 
@@ -71,7 +74,7 @@ check('D58b2 claims:[] cannot disarm the gate on an evidence turn',
 check('D58b3 state-only claims + fabricated mutation prose is re-rendered (structured-mode prose drift)',
   !run({ claims: [{ type: 'existence', resourceType: 'company', resourceId: ACME }], context: { companies: [{ id: ACME, name: 'ACME', status: 'active' }] }, grounded: true, summary: 'ACME has been archived.' }).summary.includes('has been archived'));
 check('D58ok a truthful read-only turn (no claims, no evidence, no completion prose) is untouched',
-  run({ claims: null, evidence: [], grounded: false, summary: 'Here are your companies.' }).summary === 'Here are your companies.');
+  run({ command: '', claims: null, evidence: [], grounded: false, summary: 'Here are your companies.' }).summary === 'Here are your companies.');
 
 // ---- D52 (regression hold): a supported claim never carries unrelated fabrication.
 check('D52 a supported create claim + unrelated fabrication is re-rendered without it',
@@ -85,8 +88,11 @@ check('D52 a supported create claim + unrelated fabrication is re-rendered witho
 // which is exactly what v92 does (PARITY, not a regression). Off a pendingAction turn it stays caught (D59c).
 {
   const r = run({ claims: null, evidence: [], grounded: false, summary: FAB_NO_UUID + ' Should I also archive ACME?', pendingAction: { kind: 'open_question', question: 'Should I also archive ACME?' } });
-  check('D59 (REVERSED, v92 parity) a fabricated completion + question on a pendingAction turn is NOT corrected — deployed v92 does not correct it either',
-    r.summary.includes('has been approved') && r.corrected === false);
+  // Founder correction 2026-09-07 (governance/OPERATING_TRUTH_MODEL.md §3 rule 2): the v92-parity
+  // reversal does not survive. A fabricated completion on a mutation-intent turn with no verified
+  // execution is corrected whether or not a pendingAction (trailing question) is armed.
+  check('D59 a fabricated completion + question on a pendingAction turn IS corrected (pendingAction never exempts a claim)',
+    !r.summary.includes('has been approved') && r.corrected === true);
   check('D59b the gated pending question SURVIVES the correction (founder not stranded)',
     r.summary.includes('Should I also archive ACME?'));
 }
@@ -129,6 +135,7 @@ check('D62 the correction quotes the canonical actual, not model-authored expect
   }).summary === 'Actually, ACME’s status is active in the current records.');
 check('D62b a predicate absent from the canonical row is UNKNOWN — no rendered correction',
   run({
+    command: '',
     claims: [{ type: 'current_state', resourceType: 'company', resourceId: ACME, predicate: 'approval_approved_and_tasks_deleted', expectedValue: 'false' }],
     evidence: [], context: { companies: [{ id: ACME, name: 'ACME', status: 'active' }] }, summary: 'x',
   }).summary === 'x');
@@ -164,7 +171,7 @@ check('D65b the id-less claim is still REJECTED in the envelope (it never ground
     !/have been deleted/.test(r.summary) && /Deleted 0 of 3/.test(r.summary) && r.corrected === true);
 }
 check('D68b a truthful grounded read-only reply without completion wording is untouched',
-  run({ claims: null, evidence: [], grounded: true, summary: 'Here are your companies.' }).summary === 'Here are your companies.');
+  run({ command: '', claims: null, evidence: [], grounded: true, summary: 'Here are your companies.' }).summary === 'Here are your companies.');
 
 // D69/D70: the structural cut knows the full terminator set AND does not butcher
 // abbreviations/decimals.
