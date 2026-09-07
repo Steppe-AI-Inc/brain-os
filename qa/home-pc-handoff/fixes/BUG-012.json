@@ -1,0 +1,18 @@
+{
+  "bug_id": "BUG-012",
+  "status_report": "FIX PREPARED — READY FOR DEPLOYMENT (Edge candidate under independent verification)",
+  "note": "Home PC never sets bug status. Only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-012.",
+  "root_cause": "personAssignmentReport rendered only company names from the request shape; managerPersonId on the same assignment entry was ignored, so a manager-only change read 'reassigned to <company>'. The receipt described the request's shape, not the executed diff.",
+  "defect_class": "RECEIPT_MISMATCH",
+  "changed_primitives": ["MutationReceipt: rendered from the requested-vs-current DIFF against context.personAssignments — 'P's manager set to M (was N)' for a manager change; a company line only when the legal/operating ids changed; 'assignment re-saved — company and manager unchanged' when nothing changed"],
+  "changed_files": ["supabase/functions/sem-ai-command/index.ts", "qa/scenarios-runner/mutation_receipt_equals_ledger.mjs"],
+  "regression_tests": ["qa/scenarios-runner/mutation_receipt_equals_ledger.mjs (14/14: manager-only, company-only, both, unchanged, split legal/operating, unknown current, new hire, partial batch; company lifecycle lines equal RPC reasons)"],
+  "verification": { "unit": "battery 53/53 on 1048b9e", "independent_verification": "verifier #56 — not claimed passed here", "live": "NOT RUN by the Home PC" },
+  "deploy_provenance": { "fix_commit": "1048b9e", "edge_index_sha256": "4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e", "edge_function_version": "NOT DEPLOYED — production remains v92" },
+  "work_pc_retest": {
+    "steps": ["Chat: set the manager of a synthetic person to another same-company person. Expected receipt: '<Person>'s manager set to <New> (was <Old>).' with NO 'reassigned to <company>' wording; DB manager_person_id updated; /people shows the new manager.", "Chat: move a synthetic person to another company. Expected: 'reassigned to <company>' and no manager line unless a manager was also set."],
+    "regressions": ["BRAIN_CHAT_RECEIPT_NAMES_THE_EXECUTED_RELATIONSHIP"]
+  },
+  "ready_for_retest": false,
+  "reported_at": "2026-09-07"
+}

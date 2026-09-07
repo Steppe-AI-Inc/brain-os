@@ -1,0 +1,18 @@
+{
+  "bug_id": "BUG-011",
+  "status_report": "FIX PREPARED — READY FOR DEPLOYMENT via web PR",
+  "note": "Home PC never sets bug status. Only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-011.",
+  "root_cause": "The set-manager sheet reset its choice to null on open, rendered the current manager only in prose, and rendered an empty candidate list with no reason.",
+  "defect_class": "SILENT_EMPTY_STATE",
+  "changed_primitives": ["Manager assignment semantics (governance/CANONICAL_WORK_CONTRACT.md §6): replacement semantics, self-selection prohibited, current manager visible before and after, reasoned empty picker"],
+  "changed_files": ["web/lib/data/people.ts (getPeople returns manager_person_id)", "web/app/(app)/people/people-table.tsx"],
+  "regression_tests": ["qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs (picker never offers the subject; empty list explained; current manager visible and pre-selected)", "qa/scenarios-runner/manager_set_ui_canonical_write.mjs (existing)"],
+  "verification": { "unit": "web tsc / eslint / next build clean", "live": "NOT RUN by the Home PC (no browser in this session)" },
+  "deploy_provenance": { "fix_commit": "1048b9e", "web_deployment": "NOT DEPLOYED — PR into protected master pending" },
+  "work_pc_retest": {
+    "steps": ["Open Set manager for a person whose company has no other active people: the list shows 'No other active people in <company> — add someone to this company first.' (data-testid manager-picker-empty).", "Open Set manager for a person with a current manager: the current manager is pre-selected and shown under 'Current manager:' (data-testid manager-current); Save is disabled until a different person is chosen.", "The subject never appears in their own picker."],
+    "regressions": ["MANAGER_PICKER_EMPTY_STATE_HAS_A_REASON", "MANAGER_PICKER_SHOWS_AND_PRESELECTS_CURRENT_MANAGER", "MANAGER_PICKER_NEVER_OFFERS_SELF"]
+  },
+  "ready_for_retest": false,
+  "reported_at": "2026-09-07"
+}

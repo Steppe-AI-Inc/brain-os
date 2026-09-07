@@ -114,3 +114,36 @@ report back that it's actually live.
 Likely severity per your own rubric: probably P2/P3 (not a data leak, fails closed just
 noisily/incorrectly — a 400/42501-class error to any anonymous caller hitting one of
 these 5 tables) — your call to grade, not ours.
+
+
+## Batch 2026-09-07 — Work-PC handover ingest (BUG-010 / 014 / 002 / 012 / 013 / 011)
+
+Fix commit `1048b9e` on branch `p1/execution-truth-governance` (Edge `index.ts` sha256
+`4f5c85a9…94c01e`). **Nothing in this batch is deployed.** Production remains `sem-ai-command`
+v92 and the current master web build. Every report below is `FIX PREPARED` with
+`ready_for_retest: false`; the Home PC will flip that flag only after (a) the founder deploys the
+Edge Function through `ALLOW_FUNCTIONS_DEPLOY=1` and the bytes are verified, and (b) the web PR is
+merged into protected `master`. Independent verifier #56 is running on the candidate; its verdict is
+in `qa/verification/CURRENT_CAMPAIGN.json`, not claimed here.
+
+- `fixes/BUG-010.json` — P1, GROUNDING_PRECEDENCE: ledger persisted every turn, UNVERIFIED
+  history marker, durable channel state first, precedence stated as a binding prompt rule.
+- `fixes/BUG-014.json` — P1, CONTEXT_WINDOW_AS_UNIVERSE: server-side lifecycle target resolution
+  across every status; never silent; `Archived (N)` affordance; UI and chat on one RPC path. The
+  fixture stays archived until the corrected chat path restores it after deployment.
+- `fixes/BUG-002.json` — P1 reconfirmed, EXECUTION_TRUTH: request-intent gate + never-silent
+  receipt; the pendingAction exemption is gone (founder ruling: v92 parity ≠ deployability).
+- `fixes/BUG-012.json` — P2, RECEIPT_MISMATCH: receipt rendered from the executed diff.
+- `fixes/BUG-013.json` — P2, ARCHIVED_PARENT_LEAK: one archived-parent policy, applied to the
+  People controls; **partial by design** for other child surfaces (read its `scope`).
+- `fixes/BUG-011.json` — P3, SILENT_EMPTY_STATE: picker semantics.
+
+Wording corrections to the handover: coverage is 77/100 executed with 19 NOT_TESTED (the
+handover's §8 "22 remaining" is superseded by the computed ledger). Release state remains FAILED.
+Brain OS is not Team-Ready and not production-accepted until the Work PC reruns the required
+acceptance on the deployed build.
+
+Architecture behind this batch: `governance/OPERATING_TRUTH_MODEL.md`,
+`governance/CANONICAL_WORK_CONTRACT.md`, `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`
+(the definition of done and the fix-report contract these files follow), enforced by
+`qa/scenarios-runner/architecture_*.mjs`.

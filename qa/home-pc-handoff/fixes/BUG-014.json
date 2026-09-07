@@ -1,0 +1,29 @@
+{
+  "bug_id": "BUG-014",
+  "status_report": "FIX PREPARED — READY FOR DEPLOYMENT (Edge candidate under independent verification; web change awaits PR merge; deployment is a founder-only action)",
+  "note": "Home PC never sets bug status. Only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-014.",
+  "root_cause": "The companies context pack was .limit(12) with no status filter and no order (20 companies, 10 archived — which 12 appeared was arbitrary); the prompt told the model that absence from context.companies is 'real signal it does not currently exist … permanently deleted'; a second prompt passage told it to resolve a restore target 'by name from whatever context you have' (history); and the executor filtered restoreCompanyIds by contextCompanyIds.has(id), so an id from history outside the window was silently dropped — zero RPC calls, a null archiveRestoreReport, and the model's own 'restored.' shipped. restore_company (202608280013) was never called and is sound. This is why the same command worked on 2026-09-02 (target in the window) and failed on 2026-09-07 (target outside it).",
+  "defect_class": "CONTEXT_WINDOW_AS_UNIVERSE",
+  "changed_primitives": ["CompanyLifecycle: server-side target resolution under the caller's RLS across every status (ids re-read, model-emitted names via restoreCompanyNames/archiveCompanyNames, command-derived name); one hit executes, several hits arm a disambiguation, zero hits say so; never silent", "CollectionEnvelope: companies (active, newest first) + archivedCompanies (archived, newest first) with exact counts", "callLifecycleRpc: UI Restore and chat converge on the same restore_company RPC with the same result rule", "UI affordance: /companies shows 'Archived (N)'; the Archived view carries Restore"],
+  "changed_files": ["supabase/functions/sem-ai-command/index.ts", "web/lib/contracts/lifecycle.ts", "web/lib/data/companies.ts", "web/app/(app)/companies/page.tsx", "governance/CANONICAL_WORK_CONTRACT.md", "qa/scenarios-runner/company_lifecycle_matrix.mjs", "qa/scenarios-runner/tenant_authorization_lifecycle.sql", "qa/scenarios-runner/architecture_lifecycle_rpc_only_contract.mjs"],
+  "regression_tests": ["qa/scenarios-runner/company_lifecycle_matrix.mjs (19/19: the founder's eleven cases — fresh channel, same channel, reload, long conversation, after rename, children, managers, repeated cycles, stale pending action, already-active, already-archived — plus ambiguity, zero hits, RPC error, unconfirmed postcondition, denied, and a task-delete command producing no company line; executed against the real executor slice with a stub client)", "qa/scenarios-runner/tenant_authorization_lifecycle.sql (rolled-back: cross-org restore/archive denied and DB unchanged; positive controls; not_found) — runs where a DB session is available (CI / Work PC), not executed on the Home PC", "qa/scenarios-runner/architecture_lifecycle_rpc_only_contract.mjs (27/27)", "qa/scenarios-runner/lifecycle_evidence_and_output_persistence_contract.mjs (93/93)"],
+  "verification": {
+    "unit": "battery 53/53 on 1048b9e; web tsc / eslint / next build clean",
+    "source_invariants": "contextCompanyIds no longer gates archive/restore (pinned); prompt passages replaced (pinned); deno classes unchanged; CRLF pure",
+    "independent_verification": "verifier #56 on the candidate — not claimed passed here",
+    "live": "NOT RUN by the Home PC. The fixture must be restored THROUGH THE CORRECTED CHAT PATH after deployment (see fixture_notes)."
+  },
+  "deploy_provenance": {
+    "fix_commit": "1048b9e (branch p1/execution-truth-governance)",
+    "edge_index_sha256": "4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e",
+    "edge_function_version": "NOT DEPLOYED — production remains v92",
+    "web_deployment": "NOT DEPLOYED — PR into protected master pending"
+  },
+  "work_pc_retest": {
+    "steps": ["Fresh channel: 'restore QA-SWARM-TEST-CO-VIA-CHAT' (the fixture is archived and outside the 12-row window). Expected: the RPC runs; receipt 'QA-SWARM-TEST-CO-VIA-CHAT: restored.'; DB status active; /companies count +1; Archived view no longer lists it.", "Same command again: expected 'was already active' (truthful no-op), no success claim.", "Archive it again from the archiving channel, then 'restore it' in that channel: expected restored, receipt from the RPC.", "Misspelled / unknown name: expected 'no company by that name (searched the active and archived companies you can access) — nothing was restored.' — never 'permanently deleted'.", "UI: /companies shows 'Archived (N)'; the Archived view's Restore button restores the same row; reload shows active everywhere (People, Projects, Dashboard count)."],
+    "regressions": ["BRAIN_CHAT_LIFECYCLE_TARGET_RESOLVES_SERVER_SIDE_ACROSS_STATUSES", "BRAIN_CHAT_LIFECYCLE_TURN_NEVER_SILENT", "ARCHIVE_RESTORE_IS_ONE_PRODUCT_OPERATION_UI_AND_CHAT", "CONTEXT_WINDOW_ABSENCE_IS_NEVER_NON_EXISTENCE"]
+  },
+  "fixture_notes": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de) is intentionally still archived. The Home PC did NOT mutate it. After the Edge deploy is byte-verified, the Home PC will restore it through the corrected chat path (fresh channel) and record the work_order id and the RPC jsonb here; the archiving-channel retest is the Work PC's.",
+  "ready_for_retest": false,
+  "reported_at": "2026-09-07"
+}
