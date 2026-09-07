@@ -1,27 +1,19 @@
 #!/usr/bin/env node
-// ARCHITECTURE CONTRACT — one product operation per lifecycle transition
-// (governance/CANONICAL_WORK_CONTRACT.md §2-§3).
-//
-//   * no raw status UPDATE into or out of 'archived' under web/lib/data (the DB trigger would
-//     reject it, but a wrapper that tried would be a duplicated operation);
-//   * every archive/restore/end-employment wrapper goes through callLifecycleRpc — no per-entity
-//     reimplementation of the RPC result reading (DUPLICATED_OPERATION defect class);
-//   * callLifecycleRpc admits success only on changed && postconditionPassed and renders
-//     already_* as a truthful no-op;
-//   * the Edge executor calls the same RPCs and resolves company targets server-side across
-//     every status, never by context-window membership (BUG-014).
+// VERIFIER #59 — V59-S1 evidence. Byte copy of qa/scenarios-runner/architecture_lifecycle_rpc_only_contract.mjs
+// at 821f530 with ONE repair: the `.replace(/\r\n/g, '\n')` regex literal at line 86, which the closure commit
+// wrote with real CR/LF bytes inside the literal (SyntaxError: Invalid regular expression: missing /), and the
+// two relative paths adjusted for this directory. Everything else is the committed suite verbatim.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS } from '../../scenarios-runner/_gate_extract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, '../..');
+const ROOT = resolve(HERE, '../../..');
 let pass = 0; const failures = [];
 const check = (name, cond, detail) => { if (cond) { pass++; console.log('OK   ' + name); } else { failures.push(name + (detail ? '\n       ' + detail : '')); console.log('FAIL ' + name); } };
 const read = (p) => readFileSync(resolve(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 
-// 1. No raw archived-status writes under web/lib/data.
 const dataDir = resolve(ROOT, 'web/lib/data');
 const raw = [];
 for (const name of readdirSync(dataDir)) {
@@ -32,7 +24,6 @@ for (const name of readdirSync(dataDir)) {
 }
 check('no raw status UPDATE into archived under web/lib/data', raw.length === 0, raw.join(', '));
 
-// 2. Every lifecycle wrapper goes through callLifecycleRpc.
 const WRAPPERS = [
   ['web/lib/data/companies.ts', ['archive_company', 'restore_company']],
   ['web/lib/data/tasks.ts', ['archive_task', 'restore_task']],
@@ -48,10 +39,7 @@ for (const [file, rpcs] of WRAPPERS) {
   check(file + ' has no hand-rolled lifecycle result reading', !/data as \{ changed: boolean; authorized: boolean; reason: string \} \| null/.test(t));
 }
 
-// 3. callLifecycleRpc semantics (executed against a stub client).
 const lc = read('web/lib/contracts/lifecycle.ts');
-// Targeted pre-strips for the shapes stripTS does not cover (a `=>` inside a type annotation,
-// the multi-line type blocks), then the shared detyper.
 const pre = lc
   .replace(/^import .*$/gm, '')
   .replace(/^export type \w+ = \{[^\n]*\};$/gm, '')
@@ -81,21 +69,17 @@ check('denied: not executed, permission message', denied.envelope.executed === f
 const bad = await callLifecycleRpc(stub(null), { ...CALL, id: 'not-a-uuid' });
 check('invalid id never reaches the RPC', bad.envelope.executed === false && bad.envelope.error === 'invalid_id');
 
-// 4. The Edge executor: same RPCs, server-side resolution, no context-window gate.
-// The Edge source honours SEM_INDEX_SRC so mutation proofs can point this contract at a scratch copy.
-const edge = readFileSync(process.env.SEM_INDEX_SRC ? resolve(process.env.SEM_INDEX_SRC) : resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts'), 'utf8').replace(/
-/g, '
-');
+// 4. The Edge executor (REPAIRED LINE: the committed file has real CR/LF bytes inside this regex literal).
+const edge = readFileSync(process.env.SEM_INDEX_SRC ? resolve(process.env.SEM_INDEX_SRC) : resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts'), 'utf8').replace(/\r\n/g, '\n');
 check('edge calls archive_company / restore_company', /supabase\.rpc\('archive_company'/.test(edge) && /supabase\.rpc\('restore_company'/.test(edge));
 check('edge resolves lifecycle targets server-side across statuses', /async function resolveCompanyLifecycleTargets\(/.test(edge) && /from\('companies'\)\.select\('id,name,status'\)\.in\('id', ids\)/.test(edge) && /\.ilike\('name'/.test(edge));
 check('edge no longer gates archive/restore on context membership (BUG-014)', !/restoreCompanyIds = \[\.\.\.new Set\(requestedRestoreIds\.filter\(\(id\): id is string => typeof id === 'string' && contextCompanyIds\.has\(id\)\)\)\]/.test(edge) && !/archiveCompanyIds = \[\.\.\.new Set\(requestedArchiveIds\.filter\(\(id\): id is string => typeof id === 'string' && contextCompanyIds\.has\(id\)\)\)\]/.test(edge));
 check('edge: zero hits and several hits both leave a line (never silent)', /no company by that name/.test(edge) && /more than one company matches/.test(edge));
-// Verifier #58 V58-D2: task and goal lifecycle ids resolve server-side too — never by the pack window.
 check('edge: task lifecycle ids are re-read from tasks, never filtered by the context window', /taskLifecycleById\.has\(id\)/.test(edge) && !/restoreTaskIds = \[\.\.\.new Set\(requestedRestoreTaskIds\.filter\(\(id\): id is string => typeof id === 'string' && contextArchivedTaskIds\.has\(id\)\)\)\]/.test(edge) && !/archiveTaskIds = \[\.\.\.new Set\(requestedArchiveTaskIds\.filter\(\(id\): id is string => typeof id === 'string' && contextTaskIds\.has\(id\)\)\)\]/.test(edge));
 check('edge: goal lifecycle ids are re-read from goals, never filtered by the context window', /goalLifecycleById\.has\(id\)/.test(edge) && !/(?:archive|restore)GoalIds = \[\.\.\.new Set\(requested(?:Archive|Restore)GoalIds\.filter\(\(id\): id is string => typeof id === 'string' && contextGoalIds\.has\(id\)\)\)\]/.test(edge));
 check('edge: archivedTasks is placed in the pack (the prompt resolves task restores from it)', /archivedTasks:archivedTasks\.data\|\|\[\]/.test(edge));
 check('edge: unresolved task / goal ids leave a truthful line', /could not be found \(searched the active and archived tasks you can access/.test(edge) && /could not be found \(searched the active and archived goals you can access/.test(edge));
 check('prompt no longer equates window absence with deletion', !/that is real signal it does not currently exist/.test(edge) && /absence from a context window is NEVER/.test(edge));
 
-console.log(`\narchitecture_lifecycle_rpc_only_contract: ${pass} passed, ${failures.length} failed`);
+console.log(`\narchitecture_lifecycle_rpc_only_contract (REPAIRED COPY): ${pass} passed, ${failures.length} failed`);
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log('  - ' + f); process.exit(1); }
