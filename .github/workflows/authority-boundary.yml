@@ -63,32 +63,8 @@ jobs:
       - name: disposability — the harness cannot destructively initialize a non-ephemeral database
         run: node --test qa/dbtest/disposability.regression.test.mjs
 
-      - name: disposability — every guard is load-bearing (mutation proof)
-        run: |
-          node - <<'EOF'
-          import('node:fs').then(async ({ readFileSync, writeFileSync }) => {
-            const { spawnSync } = await import('node:child_process');
-            const P = 'qa/dbtest/disposability.mjs';
-            const orig = readFileSync(P, 'utf8');
-            const M = {
-              MANAGED_SCHEMA_GUARD: ['if (evidence.managedSchemas.length > 0) {', 'if (false) {'],
-              SUPABASE_ROLE_GUARD:  ['if (evidence.supabaseRoles.length > 0) {', 'if (false) {'],
-              PUBLIC_TABLES_GUARD:  ['if (evidence.publicTables > 0) {', 'if (false) {'],
-              EMPTY_SENTINEL_GUARD: ['if (row.rows.length > 0) {', 'if (true) {'],
-            };
-            let ok = true;
-            for (const [name, [from, to]] of Object.entries(M)) {
-              if (!orig.includes(from)) { console.log('ANCHOR MISSING ' + name); ok = false; continue; }
-              writeFileSync(P, orig.replace(from, to));
-              const r = spawnSync('node', ['--test', 'qa/dbtest/disposability.regression.test.mjs'], { encoding: 'utf8' });
-              const fails = Number(((r.stdout + r.stderr).match(/ℹ fail (\d+)/) || [, '0'])[1]);
-              console.log((fails > 0 ? 'LOAD-BEARING ' : 'NOT DETECTED ') + name);
-              if (fails === 0) ok = false;
-            }
-            writeFileSync(P, orig);
-            process.exit(ok ? 0 : 1);
-          });
-          EOF
+      - name: disposability — every guard is load-bearing (mutation proof, reporter-agnostic)
+        run: node qa/dbtest/disposability.mutation_proof.mjs
 
       - name: read-only live connection never reaches the destructive harness
         working-directory: qa/dbtest
