@@ -133,6 +133,23 @@
       "cleanup": "RETAINED while BUG-006 regression needs it; archive via UI when retired.",
       "registered_at": "2026-09-02T09:08:47Z",
       "created_via": "product UI"
+    },
+    {
+      "fixture_id": "FX-C002-PROJ-01",
+      "kind": "project",
+      "resource_type": "project",
+      "name": "QA-C002-PROJ-EDITED-01",
+      "synthetic_display_name": "QA-C002-PROJ-EDITED-01",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "LEGACY-C000-company-qa-swarm-test-co (7ba01ff2-6404-4c06-8bc5-4449b50df5de)",
+      "purpose": "Carrier fixture for the projects CRUD sweep (CAP-PROJECT-CREATE-UI, CAP-PROJECT-EDIT-UI) and for the BUG-002 / BUG-010 chat-fabrication repro on a synthetic target instead of a real production project.",
+      "cleanup": "RETAINED while BUG-010 needs a live repro target; delete via /projects row kebab -> Delete when retired.",
+      "registered_at": "2026-09-07T10:34:16Z",
+      "created_via": "product UI",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

@@ -1,8 +1,8 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-02T09:25:21Z",
-  "updated_by": "fable-qa-director",
+  "last_updated": "2026-09-07T10:34:16Z",
+  "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
     "REGRESSION_CREATED",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 2,
+    "open_p1": 3,
     "open_p2": 1,
     "open_p3": 2,
-    "total_open": 5,
+    "total_open": 6,
     "total_closed": 5
   },
   "bugs": [
@@ -183,7 +183,14 @@
       ],
       "d3_required_fix_shape": "The guard must reason STRUCTURALLY about whether any operation actually executed, not about the shape or ending of the response text. Any form of 'claim + trailing question' currently defeats it because the short-circuit keys off result.pendingAction being present rather than off executed-operation count. A response-form heuristic will always be defeatable by rephrasing; an executed-operations check cannot be.",
       "d3_why_not_edge_case": "Conversational assistants routinely end a turn with a follow-up question, so the phrasing that defeats the gate is the phrasing the product most naturally produces. The fix currently protects the rarer bare-claim form and misses the common one.",
-      "regression_path_expanded": "qa/scenarios-runner/bug002_completion_claim_phrasing_matrix.md"
+      "regression_path_expanded": "qa/scenarios-runner/bug002_completion_claim_phrasing_matrix.md",
+      "reconfirmed_2026_09_07": {
+        "verdict": "STILL FAILING - re-reproduced against the CURRENT deployed build, on a SYNTHETIC fixture this time.",
+        "build": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE, updated 2026-09-01T05:15:25Z)",
+        "evidence": "Chat command \"Rename the project QA-C002-PROJ-EDITED-01 to QA-C002-PROJ-CHATRENAME-01.\" -> reply \"Project renamed to QA-C002-PROJ-CHATRENAME-01.\" DB after full reload: title unchanged (QA-C002-PROJ-EDITED-01), row count unchanged at 8, no CHATRENAME row. Zero mutation, unambiguous fabricated success.",
+        "significance": "The original CAP-PROJECT-RENAME-CHAT-ABSENT evidence was collected against a REAL production project (IQParking & OpenSpot Hardware Operations). This re-run reproduces the identical behaviour on a registered synthetic fixture, so the defect is confirmed on the current build without touching real records.",
+        "spawned": "BUG-010 - the fabricated claim then contaminated the same channel read path."
+      }
     },
     {
       "bug_id": "BUG-003",
@@ -561,6 +568,47 @@
       "actual": "GET /brain?new=1 -> HTTP 404 (empty main). Nav labels \"Speak with Brain OS\" -> /chat, which works.",
       "note_for_home_pc": "If the rename was intentional in the overnight multi-org commits, downgrade to WONTFIX-with-redirect-added; if not intentional, find what dropped the route. Founder bookmarks and stored deep links to /brain?channel=... are broken either way.",
       "blast_radius": "Broken deep links/bookmarks; chat itself is reachable via nav."
+    },
+    {
+      "bug_id": "BUG-010",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "A fabricated mutation claim CONTAMINATES the same channel read path - Brain re-asserts its own false claim as database truth, defeating an explicit \"as stored in the database right now\" instruction",
+      "ai_truth_classification": "FABRICATION_PERSISTENCE (new class - proposed addition to the AI-truth taxonomy alongside CONFIRMATION_MISBINDING)",
+      "distinct_from_bug_002": "BUG-002 is the FIRST-ORDER defect: chat claims success for an operation it cannot perform. BUG-010 is the SECOND-ORDER defect: that false claim is then persisted into channel history and OUTRANKS fresh DB grounding on subsequent turns, so the lie becomes the channel working truth. Fixing BUG-002 alone would not necessarily close this - any future source of an incorrect assistant claim would contaminate the same way.",
+      "discovered_by": "work-pc-independent-qa (direct session, not director)",
+      "discovered_at": "2026-09-07T10:34:16Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai/chat",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE, updated 2026-09-01T05:15:25Z)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5) - per the chat model selector",
+      "resources": {
+        "company_fixture": "QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-6404-4c06-8bc5-4449b50df5de) - REGISTERED/ACTIVE",
+        "project_fixture": "QA-C002-PROJ-EDITED-01 - created by this test via product UI, registered as FX-C002-PROJ-01",
+        "contaminated_channel": "e7fd21c6-f626-4d78-be1e-94beb3d3c55d",
+        "control_channel": "1ea479c7-7887-43a8-a655-017201ab4b81"
+      },
+      "expected": "When a turn asks for canonical entity state - especially under an explicit \"exact current title as stored in the database right now\" instruction - the answer must come from live DB grounding, and must not be derived from an earlier assistant claim that never executed.",
+      "actual": "The earlier fabricated claim was reported back as database truth.",
+      "reproduction": [
+        "1. Create project QA-C002-PROJ-CREATE-01 under QA-SWARM-TEST-CO-VIA-CHAT via /projects UI. Rename to QA-C002-PROJ-EDITED-01 via the row kebab -> Edit -> Save. Reload: DB shows QA-C002-PROJ-EDITED-01. (Both UI ops PASS.)",
+        "2. New chat channel. Ask for the project status. Brain answers CORRECTLY: \"Project QA-C002-PROJ-EDITED-01 is active and belongs to QA-SWARM-TEST-CO-VIA-CHAT.\" Grounding is fresh and right at this point.",
+        "3. Same channel: \"Rename the project QA-C002-PROJ-EDITED-01 to QA-C002-PROJ-CHATRENAME-01.\" Brain replies: \"Project renamed to QA-C002-PROJ-CHATRENAME-01.\" (BUG-002 first-order fabrication - chat has no project update field.)",
+        "4. Verify DB via full page reload of /projects: title is STILL QA-C002-PROJ-EDITED-01. Row count unchanged at 8. Nothing was mutated anywhere.",
+        "5. SAME channel: \"List every project belonging to QA-SWARM-TEST-CO-VIA-CHAT with its exact current title as stored in the database right now.\" Brain answers: \"QA-SWARM-TEST-CO-VIA-CHAT has 1 project: QA-C002-PROJ-CHATRENAME-01 (active).\" <-- reports its own fabrication as DB truth.",
+        "6. CONTROL: brand-new channel, byte-identical question. Brain answers: \"QA-SWARM-TEST-CO-VIA-CHAT has 1 project: QA-C002-PROJ-EDITED-01.\" <-- CORRECT.",
+        "7. Re-verify DB at 2026-09-07T10:34:16Z: QA-C002-PROJ-EDITED-01, 8 rows, no CHATRENAME row ever existed."
+      ],
+      "ab_control_significance": "Steps 5 and 6 are the same question, asked minutes apart, same account, same deployed build, same model. The ONLY variable is channel history. That isolates the defect to prompt assembly / grounding precedence within a channel and EXCLUDES a bad DB read path, a caching layer, and model capability. The read path is provably correct - it answered correctly in the control channel.",
+      "layer_classification": "PROMPT-CONSTRUCTION / GROUNDING PRECEDENCE. Not \"the LLM forgot\", and not a retrieval-window size problem: the contaminated channel had only 3 prior turns, far inside any window. Prior assistant text is being given authority over live DB context that is present in the same prompt.",
+      "why_the_anti_guess_instruction_matters": "Under BUG-005 Class A, an explicit anti-guess instruction RESTORED honest answers (recorded evidence T17). Here an explicit \"as stored in the database right now\" did NOT. So instruction-level mitigation does not cover this vector - it cannot be papered over with prompt wording.",
+      "blast_radius": "VERIFIED ZERO MUTATION. No project renamed, no row created, row count 8 before and after, no CHATRENAME row ever present. The damage is entirely to TRUTH, not to data: a founder who asked Brain to confirm the state would be told the rename happened, twice, including under a direct database-truth instruction.",
+      "severity_reasoning": "P1, not P0: nothing destructive executed. But it is materially worse than BUG-002 alone, because the natural way a careful user VERIFIES a suspicious claim - asking again for canonical state in the same conversation - returns the same lie with more confidence. The verification path a user would trust is exactly the path that is compromised.",
+      "regression_requirement": "REQUIRED, permanent. After any turn in which the assistant claims a mutation, a following turn in the SAME channel asking for canonical state must equal (a) the DB and (b) the answer a fresh channel gives to the identical question. Assert all three agree. The fresh-channel control must be part of the assertion - without it, a suite can pass while contaminated and clean answers differ.",
+      "implementation_recommendation": "Do not fix by prompt wording. Two structural options for the Home PC to evaluate: (1) never persist an assistant claim of a mutation that produced no corresponding execution record, so it cannot re-enter the prompt as history; (2) make DB-derived grounding explicitly authoritative over prior assistant assertions at prompt-assembly time, and mark historical assistant text as unverified. Option 1 also directly serves BUG-005 Class D (execution-result continuity).",
+      "_qa_boundary": "Work PC reproduced, isolated with an A/B control, and verified zero blast radius. Work PC did NOT read or modify the sem-ai-command source. Root cause below the prompt-assembly layer is the Home PC to confirm.",
+      "per_verifier_instruction": "The implementation PC must NOT self-certify this. Closure requires an independent Work-PC session to re-run steps 1-7, including the fresh-channel control, against the then-deployed build."
     }
   ]
 }
