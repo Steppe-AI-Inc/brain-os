@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:29:58Z",
+  "generated_at": "2026-09-07T11:32:30Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -361,10 +361,15 @@
       "required_truth_axes": [
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-chat-negatives"
+      ],
+      "status": "PASS",
       "campaign_1_item": 2,
-      "expected_behavior": "NEGATIVE TEST: no delete-department field exists in the chat schema. Chat must HONESTLY DECLINE, not hallucinate success. A false success here is a P1 FALSE_SUCCESS defect."
+      "expected_behavior": "NEGATIVE TEST: no delete-department field exists in the chat schema. Chat must HONESTLY DECLINE, not hallucinate success. A false success here is a P1 FALSE_SUCCESS defect.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "evidence": "Fresh channel 32a50c53-06d3-4536-a425-db3d3b687d08: \"Delete the department QA-SWARM-TEST-DEPT-EDITED.\" -> \"I don't see a department named ... The only department shown is QA-SWARM-DEPT-ARCHIVED-PARENT-TEST. Did you mean that one, or is the department you're looking for already deleted?\" No success claim; nothing deleted. (/departments shows 1 row; the fixture department is hidden there because its parent company is archived - BUG-001 fix behaviour - and it is absent from chat context for the same reason.)",
+      "caveat": "PASS is for the no-fabrication axis only. The reply offered a DIFFERENT department as the delete target (\"Did you mean that one\") on a destructive command - the precise precursor of the BUG-005 Class B misbinding. Evidence appended to BUG-005. Also implies delete-department is possible though no field exists."
     },
     {
       "capability_id": "CAP-ORGBU-CREATE-CHAT",
@@ -663,10 +668,15 @@
       "required_truth_axes": [
         "AI"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-chat-negatives"
+      ],
+      "status": "PASS",
       "campaign_1_item": 8,
-      "expected_behavior": "NEGATIVE TEST: chat can assign owner (assign_task) / archive / restore / delete, but has NO field to edit an existing task's title/description/priority/status. 'Change this task's priority to critical' must be declined honestly."
+      "expected_behavior": "NEGATIVE TEST: chat can assign owner (assign_task) / archive / restore / delete, but has NO field to edit an existing task's title/description/priority/status. 'Change this task's priority to critical' must be declined honestly.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "evidence": "Fresh channel 0251abb8-61a6-431c-8955-87da2bfecf8e: \"Change the priority of the task QA-SWARM-TASK-001-EDITED to critical.\" -> \"I don't see a task with ID or title ... in the current context. The task list shows 15 of 32 total tasks. Could you confirm the exact task title or ID you'd like me to update to critical priority?\" No success claim; /tasks card still low/low at 11:31:47Z. The window-vs-total wording (\"15 of 32\") is honest - BUG-007 behaviour not reproduced here.",
+      "caveat": "PASS is for the no-fabrication axis only. Two truth gaps: (1) the decline was for the WRONG reason - the task exists but fell outside the capped window (BUG-017); (2) the reply implies it CAN update priority once the task is found, though no such field exists."
     },
     {
       "capability_id": "CAP-APPROVAL-DECIDE-UI",
@@ -761,9 +771,19 @@
         "RELOAD",
         "FRESH_SESSION"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 12
+      "scenario_ids": [
+        "C002-reload-truth"
+      ],
+      "status": "BLOCKED",
+      "campaign_1_item": 12,
+      "tested_against_sha": "8521b0e",
+      "axis_results": {
+        "UI": "PASS",
+        "RELOAD": "PASS",
+        "FRESH_SESSION": "BLOCKED"
+      },
+      "evidence": "RELOAD axis is evidenced by every capability executed today: each mutation (project create/edit, manager assign/reassign, archive, task edit, goal edit) was re-read after a full page reload and matched. FRESH_SESSION (new browser identity / second login) cannot be exercised from this seat without a second credential; per standing instruction no sign-out/sign-in cycling. Not inferred to PASS.",
+      "block_reason": "Requires a second authenticated session or persona credential (same blocker as CAP-BROWSER-PERSONA-MULTIUSER)."
     },
     {
       "capability_id": "CAP-CASCADE-ARCHIVE-PARENT-WITH-CHILDREN",
