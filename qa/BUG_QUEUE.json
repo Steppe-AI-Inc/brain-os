@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:56:40Z",
+  "last_updated": "2026-09-07T13:00:42Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -365,14 +365,30 @@
           "title": "Fresh canonical active/archive grounding - Brain reports stale entity state after mutation",
           "status": "OPEN - NOT IMPLEMENTED",
           "work_pc_disposition": "CONFIRMED FAILING",
-          "work_pc_evidence": "Within one channel: turn 1 Brain stated \"Yes. The company exists. Its exact name is QA-C002-CLASSB-TARGET.\" Turn 2 offered to assign to it. Turn 3 said \"I do not see either QA-C002-EMP-002 or QA-C002-CLASSB-TARGET in the current context. The company may not exist yet.\" The company demonstrably exists (DB-verified active). Grounding is lost between consecutive turns."
+          "work_pc_evidence": "Within one channel: turn 1 Brain stated \"Yes. The company exists. Its exact name is QA-C002-CLASSB-TARGET.\" Turn 2 offered to assign to it. Turn 3 said \"I do not see either QA-C002-EMP-002 or QA-C002-CLASSB-TARGET in the current context. The company may not exist yet.\" The company demonstrably exists (DB-verified active). Grounding is lost between consecutive turns.",
+          "work_pc_matrix_2026_09_07": {
+            "row": "C1 exists -> archive -> not found (same channel, consecutive turns)",
+            "channel": "889db0ad-0acf-48f3-a0d3-cede571dd10b",
+            "turns": [
+              "T1 \"Does the company QA-MULTI-CO-TWIN exist, and what is its exact status?\" -> \"QA-MULTI-CO-TWIN exists and is active.\"",
+              "T2 \"Archive QA-MULTI-CO-TWIN.\" -> \"I don't see a company by that name right now. Did you mean a different company, or was this a test fixture that may have already been removed?\"",
+              "T3 status question -> \"QA-MULTI-CO-TWIN is active right now (status: active, effectivelyActive: true).\""
+            ],
+            "verdict": "CLASS C REPRODUCED at browser level on the current build: grounding for the same entity flips exists -> not found -> exists across three consecutive turns. Mechanism is the command-shape resolution gap (BUG-020: archive path cannot see what the question path resolves), not history loss. DB truth: QA-MULTI-CO-TWIN active throughout (12:56Z, 13:00:42Z); nothing executed."
+          }
         },
         "D": {
           "title": "Authoritative execution-result continuity - contradicts its own prior execution result",
           "status": "OPEN - NOT IMPLEMENTED",
           "work_pc_disposition": "CONFIRMED FAILING",
           "work_pc_evidence": "Brain contradicted its own immediately-prior statement about the same entity in the same channel (see Class C evidence). Also, asked \"what did you just do\", it answered \"The prior pending action is not visible in this turn context.\" - an explicit self-report of the continuity loss.",
-          "layer_verdict": "Execution-state continuity cannot hold while 0 of 51 pending actions carry an actionType - there is no durable record of WHAT was pending to be continuous about."
+          "layer_verdict": "Execution-state continuity cannot hold while 0 of 51 pending actions carry an actionType - there is no durable record of WHAT was pending to be continuous about.",
+          "work_pc_matrix_2026_09_07": {
+            "row": "D1 self-report after a wrong turn",
+            "channel": "889db0ad-0acf-48f3-a0d3-cede571dd10b",
+            "reply": "\"In this conversation, I first confirmed it exists and is active, then on your second command to archive it, I incorrectly said I didn't see it - that was wrong. The company is real and resolvable from the current database context.\"",
+            "verdict": "PARTIAL PASS: execution-state self-report was accurate and honest (no fabricated archive, own error acknowledged). Structural caveat stands: with 0 of 51 pending actions carrying an actionType there is nothing durable to be continuous about; this row shows narrative continuity, not state continuity."
+          }
         },
         "E": {
           "title": "Channel/context identity continuity",
@@ -938,7 +954,8 @@
       "regression_requirement": "For each command shape that names a company (question, rename, create-project, create-BU-under, set-parent, archive, restore): assert the same named active company resolves in a fresh channel. A per-path matrix, not a single probe.",
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the matrix; the implementation PC may not self-certify.",
-      "additional_evidence_archive_path": "Third command shape, 12:06Z channel 18a876c9: \"Archive the company QA-MULTI.\" could not see either QA-MULTI-CO or QA-MULTI-CO-TWIN (both active, both in /companies) and offered four already-archived companies (test5/7/8/9) as archive targets. Widens the defect from BU-create to the archive path; question-shaped commands still resolve the same names."
+      "additional_evidence_archive_path": "Third command shape, 12:06Z channel 18a876c9: \"Archive the company QA-MULTI.\" could not see either QA-MULTI-CO or QA-MULTI-CO-TWIN (both active, both in /companies) and offered four already-archived companies (test5/7/8/9) as archive targets. Widens the defect from BU-create to the archive path; question-shaped commands still resolve the same names.",
+      "additional_evidence_same_channel": "Channel 889db0ad 12:59-13:00Z: the archive command failed to resolve QA-MULTI-CO-TWIN ONE TURN AFTER the same channel resolved it (\"exists and is active\"), and the next turn resolved it again. Not a fresh-channel effect; the archive command path itself cannot see the entity. Brain's own T3 self-correction confirms the entity was resolvable from context the whole time."
     },
     {
       "bug_id": "BUG-021",

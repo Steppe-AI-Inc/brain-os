@@ -55,9 +55,10 @@
       "id": "C002-ISSUE5-CD-MATRICES",
       "order": 50,
       "priority": "P1",
-      "status": "QUEUED",
+      "status": "PARTIAL",
       "title": "Issue #5 Classes C and D - dedicated matrices",
-      "directive": "Classes C (stale grounding / contradictory execution claims) and D (execution-state continuity) still lack dedicated matrices. Build them. For D specifically, remember the measured fact: 0 of 51 persisted pending actions carry an actionType, so continuity cannot hold structurally - design the matrix to demonstrate that at the browser level rather than re-deriving it from SQL. The parent defect stays OPEN until all of A-E have independent Work-PC disposition; passing one class must never produce CLOSED for the parent."
+      "directive": "Classes C (stale grounding / contradictory execution claims) and D (execution-state continuity) still lack dedicated matrices. Build them. For D specifically, remember the measured fact: 0 of 51 persisted pending actions carry an actionType, so continuity cannot hold structurally - design the matrix to demonstrate that at the browser level rather than re-deriving it from SQL. The parent defect stays OPEN until all of A-E have independent Work-PC disposition; passing one class must never produce CLOSED for the parent.",
+      "partial_reason": "2026-09-07T13:00:42Z: row C1 (exists->archive->not found->exists, same channel) and row D1 (honest self-report) executed and recorded on BUG-005. Remaining matrix rows: C2 mutate via UI then ask in an open channel (old-vs-new state, CI-06); C3 archived entity asked in fresh vs open channel; D2 receipt-after-failure continuity (BUG-021 shape) then \"what did you do\"; D3 two pending actions then \"what is pending\"."
     },
     {
       "id": "C002-ISSUE5-IJK",
