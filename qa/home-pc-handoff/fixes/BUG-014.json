@@ -29,12 +29,12 @@
   "verification": {
     "unit": "battery 53/53 on 1048b9e; web tsc / eslint / next build clean",
     "source_invariants": "contextCompanyIds no longer gates archive/restore (pinned); prompt passages replaced (pinned); deno classes unchanged; CRLF pure",
-    "independent_verification": "verifier #56 (campaign #116) FAILED the first candidate e79eb65 under the contract bar (ledger #126: request-intent regex false negatives/positives, command-name fallback executing on questions/negations/unrelated entities, punctuated names). Closed structurally in 32a2d75 (ledger #127: structured requestIntent + request lexicon, imperative-only exact-or-ask fallback; #56 suite 129/0 and promoted; mutation proof 8/8). Verifier #57 (campaign #117) is running on 712760d — NOT claimed passed here.",
+    "independent_verification": "verifier #56 FAILED e79eb65 (ledger #126, closed #127); verifier #57 FAILED 712760d (ledger #128: the lexicon overrode the model's 'other' classification, the fallback ignored requestIntent.entityType, non-imperative leads executed; closed #129 with #57's prepared fix applied as written plus residuals D4/D6a/D6b; #57 suite 306/0 promoted; mutation proof 5/5). Verifier #58 (campaign #118) is running on 5ebc695 — NOT claimed passed here.",
     "live": "NOT RUN by the Home PC. The fixture must be restored THROUGH THE CORRECTED CHAT PATH after deployment (see fixture_notes)."
   },
   "deploy_provenance": {
-    "fix_commit": "32a2d75 (branch p1/execution-truth-governance; candidate under verification 712760d)",
-    "edge_index_sha256": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871",
+    "fix_commit": "e75912f (branch p1/execution-truth-governance; candidate under verification 5ebc695)",
+    "edge_index_sha256": "0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b",
     "edge_function_version": "NOT DEPLOYED — production remains v92",
     "web_deployment": "NOT DEPLOYED — PR into protected master pending"
   },
@@ -57,6 +57,7 @@
   "ready_for_retest": false,
   "reported_at": "2026-09-07",
   "superseded_reports": [
-    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)"
+    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)",
+    "2026-09-07 report on 32a2d75 / ccde932f… (candidate 712760d FAILED verifier #57)"
   ]
 }
