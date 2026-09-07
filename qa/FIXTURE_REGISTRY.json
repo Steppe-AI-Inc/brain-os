@@ -277,8 +277,8 @@
       "canonical_id": null,
       "_canonical_id_note": "not exposed by /departments; capture via chat/DB when needed",
       "access_scope": "SHARED_CAMPAIGN",
-      "state": "ACTIVE",
-      "lifecycle": "ACTIVE",
+      "state": "DELETED",
+      "lifecycle": "DELETED",
       "campaign_id": "C002",
       "parent_company_fixture": "FX-C002-COMPANY-MULTI (49ee1875-21b0-4285-bd45-dc1c05f3d987)",
       "purpose": "Target for CAP-DEPARTMENT-UPDATE-CHAT (the legacy department is invisible to chat because its parent is archived).",
@@ -286,7 +286,10 @@
       "registered_at": "2026-09-07T11:54:49Z",
       "created_via": "product UI (/departments Add department)",
       "environment": "production",
-      "rename_history": "QA-C002-DEPT-01 -> QA-C002-DEPT-01-RENAMED (chat, 2026-09-07T11:55:55Z)"
+      "rename_history": "QA-C002-DEPT-01 -> QA-C002-DEPT-01-RENAMED (chat, 2026-09-07T11:55:55Z)",
+      "cleanup_status": "DONE",
+      "deleted_at": "2026-09-07T11:57:45Z",
+      "deleted_via": "/departments kebab Delete (CAP-DEPARTMENT-DELETE-UI)"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

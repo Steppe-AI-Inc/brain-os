@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:55:55Z",
+  "generated_at": "2026-09-07T11:57:45Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -327,9 +327,13 @@
         "UI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
-      "campaign_1_item": 2
+      "scenario_ids": [
+        "C002-department-delete-ui"
+      ],
+      "status": "PASS",
+      "campaign_1_item": 2,
+      "tested_against_sha": "8521b0e",
+      "evidence": "Live Playwright 2026-09-07 on registered fixture QA-C002-DEPT-01-RENAMED (under QA-MULTI-CO). Row kebab -> Delete -> in-app alertdialog \"Delete this department? This can't be undone.\" -> Delete. Row gone immediately (2 -> 1) and after full reload at 11:57:11Z. AI axis: fresh channel 3df887e5-52b6-4fbe-920e-e4181fe6fef6 \"Does a department named QA-C002-DEPT-01-RENAMED exist right now?\" -> \"No. I don't see a department named ... The only department in context is QA-SWARM-DEPT-ARCHIVED-PARENT-TEST.\" UI == DB == Chat."
     },
     {
       "capability_id": "CAP-DEPARTMENT-UPDATE-CHAT",
