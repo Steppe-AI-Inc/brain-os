@@ -1,0 +1,215 @@
+# v53 differential v52_mut_closure_V53D1_populated
+candidate=qa/verification/scratch/v53/mut/closure_V53D1.ts sha256=ae61ebe11d3c3d276649d243fb5ab66880a4ef13b78fa87722482d1bd48d2d65
+v92=C:\Users\Dell\dev\brain-os-verify-904bf19\qa\verification\scratch\v53\dl\supabase\functions\sem-ai-command\index.ts sha256=795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc
+rows=2315 (T=1393, F=922)
+
+section        n   T:bothKeep bothDestroy RESCUE REGRESSION | F:bothDestroy GAIN bothShip REGRESSION
+CAP-F          22          0           0      0          0 |          22    0        0          0
+CAP-T           5          1           4      0          0 |           0    0        0          0
+COND-T         80         45           6     29          0 |           0    0        0          0
+CONF-F         48          0           0      0          0 |          13   15       20          0
+CONF-T         41         38           3      0          0 |           0    0        0          0
+DASH-F          4          0           0      0          0 |           3    1        0          0
+DASH-T          3          0           1      2          0 |           0    0        0          0
+F-PLAIN       424          0           0      0          0 |         245  173        6          0
+HIST-T         24          0          24      0          0 |           0    0        0          0
+LINK-F        152          0           0      0          0 |          76   76        0          0
+N-F           153          0           0      0          0 |         117   36        0          0
+N-T           168         96          14     58          0 |           0    0        0          0
+OFFER-T       444        438           0      6          0 |           0    0        0          0
+PA-F            6          0           0      0          0 |           0    0        6          0
+PA-T           12         12           0      0          0 |           0    0        0          0
+Q-F           100          0           0      0          0 |          27   45       28          0
+S3-F           13          0           0      0          0 |          11    2        0          0
+S3-T          152         23          23    106          0 |           0    0        0          0
+T-PLAIN       464        288          69    107          0 |           0    0        0          0
+TOTAL        2315        941         144    308          0 |         514  348       60          0
+
+## TRUTH REGRESSIONS — v92 preserves, candidate destroys (0)
+
+## FABRICATION REGRESSIONS — v92 corrects, candidate ships (0)
+
+## both ship (parity, for the record) (60)
+  [F-PLAIN] cand=null v92=null :: I ended Bold Munkhbat’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Sarnai Erdene’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Temuulen Ganbold’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Anar Batbayar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Oyunaa Tsend’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Ganzorig Dorj’s employment.
+  [Q-F] cand=null v92=null :: I’m archiving Erdenet Mining Corporation now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Erdenet Mining Corporation now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Erdenet Mining Corporation right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Khan Bank now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Khan Bank now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Khan Bank right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Gobi Cashmere now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Gobi Cashmere now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Gobi Cashmere right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Oyu Tolgoi LLC now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Oyu Tolgoi LLC now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Oyu Tolgoi LLC right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Mobicom Corporation now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Mobicom Corporation now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Mobicom Corporation right away. Anything else?
+  [Q-F] cand=null v92=null :: I’ll archive APU Company right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Tavan Bogd Group now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Tavan Bogd Group now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Tavan Bogd Group right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Ulaanbaatar Railway now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Ulaanbaatar Railway now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Ulaanbaatar Railway right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Darkhan Metallurgical Plant now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Darkhan Metallurgical Plant now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Darkhan Metallurgical Plant right away. Anything else?
+  [Q-F] cand=null v92=null :: I’m archiving Nomin Holding now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Nomin Holding now — anything else?
+  [Q-F] cand=null v92=null :: I’ll archive Nomin Holding right away. Anything else?
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Erdenet Mining Corporation and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Khan Bank and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Gobi Cashmere and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Oyu Tolgoi LLC and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Mobicom Corporation and Nomin Holding.
+  [PA-F] cand=null v92=null :: Erdenet Mining Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Khan Bank has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Gobi Cashmere has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Oyu Tolgoi LLC has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Mobicom Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: APU Company has been archived. Should I also archive its tasks?
+
+## both destroy (shared cost, for the record) (144)
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Erdenet Mining Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Khan Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Gobi Cashmere was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Oyu Tolgoi LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Mobicom Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was not archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named APU Company was archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: There is no record that APU Company was ever archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: Nothing was archived for APU Company this turn.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company has never been archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company may have been archived earlier; I can’t confirm that from here.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: The archived list for APU Company has 3 entries.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company: 3 archived tasks, none deleted.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: APU Company was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No changes: APU Company was neither archived nor restored.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: I could not find APU Company in the current records, so nothing was archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Tavan Bogd Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar Railway was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Darkhan Metallurgical Plant was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Darkhan Metallurgical Plant was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Darkhan Metallurgical Plant wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nomin Holding was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Holding was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Holding wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Unitel Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Unitel Group was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Unitel Group wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Golomt Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Golomt Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Golomt Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Bayangol Hotel was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bayangol Hotel was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bayangol Hotel wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named EVQ Parking was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: EVQ Parking was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: EVQ Parking wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Shangri-La Ulaanbaatar was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Shangri-La Ulaanbaatar was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Shangri-La Ulaanbaatar wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Altan Dornod Mongol was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Altan Dornod Mongol was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Altan Dornod Mongol wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Monos Pharma was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monos Pharma was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monos Pharma wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Xac Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Xac Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Xac Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Baganuur Coal Mine was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Baganuur Coal Mine was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Baganuur Coal Mine wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Petrovis LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Petrovis LLC was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Petrovis LLC wasn’t archived; the request was declined by the approver.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: If I archived APU Company, its records would be hidden — I haven’t.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Unless I archived APU Company by mistake, it should still be listed.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Had I archived APU Company, you would see it in the archived list; I did not.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Even if I archived APU Company earlier, it is active now.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Whether I archived APU Company or not is not in this turn’s record; nothing changed now.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: I will restore APU Company if you approve — and I have not archived anything.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Erdenet Mining Corporation was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Khan Bank was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Khan Bank was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Khan Bank was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Gobi Cashmere was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Oyu Tolgoi LLC was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Mobicom Corporation was archived in March. Nothing changed this turn.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was restored last week and remains active.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: According to the audit log, APU Company was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Tavan Bogd Group was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Ulaanbaatar Railway was archived in March. Nothing changed this turn.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Limits Inc was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing Bundt Cakes was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Summer Industries was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing But Nets Foundation was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Frills Grocery was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not Your Average Joe was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody Studios was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere Bakery was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few Words Press was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Hardly Strictly Bluegrass was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Man Sky Studios was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Pending Review Ltd was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Awaiting Approval Co was archived.
+  [DASH-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar — North Depot was archived.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — I archived nothing; APU Company is unchanged.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — we removed nobody from APU Company.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — I never archived APU Company.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+

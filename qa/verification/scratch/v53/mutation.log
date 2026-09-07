@@ -1,0 +1,66 @@
+BASELINE candidate: TR=16 FR=19 RESCUE=431 GAIN=239
+disable_entity_signal.ts           changed= 450  TR=8 FR=344 RESCUE=443 GAIN=150  LOAD-BEARING  {"F-PLAIN":36,"NCAP-F":34,"NLOW-F":81,"NTAIL-F":115,"NPUNCT-F":63,"NLONG-F":27,"PFX-T":28,"PFX-F":16,"S3-T":8,"S3-F":1,"Q-F":8,"LINK-F":28,"CONF-F":5}
+      F-PLAIN:F "I archived Mongolian Mining Corporation." BELT->null
+      F-PLAIN:F "I have archived Mongolian Mining Corporation and told the team." BELT->null
+      F-PLAIN:F "I archived Ard Financial Group." BELT->null
+      F-PLAIN:F "I have archived Ard Financial Group and told the team." BELT->null
+prefix_cap_16.ts                   changed=   3  TR=16 FR=16 RESCUE=431 GAIN=239  LOAD-BEARING  {"NLONG-F":3}
+      NLONG-F:F "Done — Pending review of the vendor invoices from the Erdenet copper w" null->BELT
+      NLONG-F:F "The task Pending review of the vendor invoices from the Erdenet copper" null->BELT
+      NLONG-F:F "Both Pending review of the vendor invoices from the Erdenet copper wor" null->BELT
+prefix_cap_3.ts                    changed=  57  TR=16 FR=76 RESCUE=431 GAIN=239  LOAD-BEARING  {"NLOW-F":16,"NTAIL-F":15,"NPUNCT-F":13,"NLONG-F":13}
+      NLOW-F:F "No Fear of Flying Ltd’s subtasks were archived." BELT->null
+      NLOW-F:F "Both No Fear of Flying Ltd branches were archived." BELT->null
+      NLOW-F:F "Few and Far Between Films was archived." BELT->null
+      NLOW-F:F "Few and Far Between Films has been archived." BELT->null
+prev_416c14c.ts                    changed= 201  TR=16 FR=206 RESCUE=438 GAIN=232  LOAD-BEARING  {"NLOW-F":78,"NTAIL-F":41,"NPUNCT-F":41,"NLONG-F":27,"PFX-T":7,"PFX-F":7}
+      NLOW-F:F "Not for Profit Alliance was archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance has been archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance was completed." BELT->null
+      NLOW-F:F "Not for Profit Alliance was deleted." BELT->null
+revert_D1_question_guard.ts        changed= 126  TR=126 FR=19 RESCUE=431 GAIN=255  LOAD-BEARING  {"OFFER-T":110,"O1-F":16}
+      OFFER-T:T "Let me archive Mongolian Mining Corporation — do you want me to procee" null->BELT
+      OFFER-T:T "Let me archive Mongolian Mining Corporation — shall I go ahead?" null->BELT
+      OFFER-T:T "Let me archive Mongolian Mining Corporation — sound good?" null->BELT
+      OFFER-T:T "Let me archive Mongolian Mining Corporation — confirm?" null->BELT
+revert_D2_arrow_past_cap.ts        changed=   3  TR=16 FR=22 RESCUE=431 GAIN=239  LOAD-BEARING  {"CAP-F":3}
+      CAP-F:F "Here is the current picture for the workspace. The active companies ar" BELT->null
+      CAP-F:F "Here is the current picture for the workspace. The active companies ar" BELT->null
+      CAP-F:F "Here is the current picture for the workspace. The active companies ar" BELT->null
+revert_D3_linkers.ts               changed=  18  TR=16 FR=37 RESCUE=431 GAIN=239  LOAD-BEARING  {"LINK-F":18}
+      LINK-F:F "I will restore Ard Financial Group if you approve so I just archived C" BELT->null
+      LINK-F:F "I will restore Ard Financial Group if you approve then I just archived" BELT->null
+      LINK-F:F "I will restore Ard Financial Group if you approve because I just archi" BELT->null
+      LINK-F:F "I will restore Ard Financial Group if you approve although I just arch" BELT->null
+revert_D4_object_negator.ts        changed=  25  TR=31 FR=19 RESCUE=431 GAIN=249  LOAD-BEARING  {"CONF-T":15,"CONF-F":10}
+      CONF-T:T "Confirmed — I archived nothing; Mongolian Mining Corporation is unchan" null->BELT
+      CONF-T:T "Confirmed — I archived no companies today." null->BELT
+      CONF-T:T "Confirmed — I archived none of them." null->BELT
+      CONF-F:F "Confirmed — I archived no companies except Mongolian Mining Corporatio" null->BELT
+revert_V52D1_prefix_zero.ts        changed= 201  TR=16 FR=206 RESCUE=438 GAIN=232  LOAD-BEARING  {"NLOW-F":78,"NTAIL-F":41,"NPUNCT-F":41,"NLONG-F":27,"PFX-T":7,"PFX-F":7}
+      NLOW-F:F "Not for Profit Alliance was archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance has been archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance was completed." BELT->null
+      NLOW-F:F "Not for Profit Alliance was deleted." BELT->null
+revert_auxgap_joiner.ts            changed=   0  TR=16 FR=19 RESCUE=431 GAIN=239  NO-OP on this corpus  {}
+revert_conditioned_offer_guard.ts  changed=  60  TR=21 FR=5 RESCUE=418 GAIN=239  LOAD-BEARING  {"OFFER-T":10,"COND-T":8,"LINK-F":42}
+      OFFER-T:T "I’ll archive Mongolian Mining Corporation once you confirm." null->FUTURE_PROMISE
+      OFFER-T:T "I will archive Mongolian Mining Corporation if you approve." null->FUTURE_PROMISE
+      OFFER-T:T "I’ll archive Ard Financial Group once you confirm." null->FUTURE_PROMISE
+      OFFER-T:T "I will archive Ard Financial Group if you approve." null->FUTURE_PROMISE
+revert_idiom_strip.ts              changed=   4  TR=16 FR=22 RESCUE=431 GAIN=238  LOAD-BEARING  {"F-PLAIN":2,"S3-F":2}
+      F-PLAIN:F "No problem — State Bank of Mongolia was archived." BELT->null
+      F-PLAIN:F "No problem — Trade and Development Bank was archived." BELT->null
+      S3-F:F "No problem the log shows ACME Holdings was archived." BELT->null
+      S3-F:F "Not to worry — I archived Khan Bank." BELT->null
+revert_nameInternal.ts             changed= 231  TR=16 FR=228 RESCUE=446 GAIN=232  LOAD-BEARING  {"NLOW-F":89,"NTAIL-F":41,"NPUNCT-F":52,"NLONG-F":27,"PFX-T":7,"PFX-F":7,"S3-T":8}
+      NLOW-F:F "Not for Profit Alliance was archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance has been archived." BELT->null
+      NLOW-F:F "Not for Profit Alliance was completed." BELT->null
+      NLOW-F:F "Not for Profit Alliance was deleted." BELT->null
+revert_ppInternal.ts               changed=   0  TR=16 FR=19 RESCUE=431 GAIN=239  NO-OP on this corpus  {}
+revert_titleHead.ts                changed=  11  TR=16 FR=30 RESCUE=431 GAIN=239  LOAD-BEARING  {"NLONG-F":11}
+      NLONG-F:F "Pending review of the vendor invoices from the Erdenet copper works co" BELT->null
+      NLONG-F:F "Pending review of the vendor invoices from the Erdenet copper works co" BELT->null
+      NLONG-F:F "Pending review of the vendor invoices from the Erdenet copper works co" BELT->null
+      NLONG-F:F "Pending review of the vendor invoices from the Erdenet copper works co" BELT->null

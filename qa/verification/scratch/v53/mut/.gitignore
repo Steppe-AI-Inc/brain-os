@@ -1,0 +1,3 @@
+# scratch mutants are reproducible from build_mutants.mjs / build_closure.mjs; only the PREPARED closure is committed
+*.ts
+!closure_V53D1.ts

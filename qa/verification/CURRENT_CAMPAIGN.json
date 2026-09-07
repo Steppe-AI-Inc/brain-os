@@ -1,10 +1,10 @@
 {
-  "campaign": 113,
-  "verifier": 53,
+  "campaign": 114,
+  "verifier": 54,
   "kind": "V92_DIFFERENTIAL (production deployment gate) — NOT a belt repeat",
-  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, seventeenth round)",
+  "status": "CANDIDATE READY FOR FRESH VERIFIER (v92 differential, eighteenth round)",
   "closure_commit": "(the commit carrying this file)",
-  "index_sha256_prefix": "bd21c2af8fa01cb3",
+  "index_sha256_prefix": "4779ef4f9e2bf3fb",
   "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
   "v92": {
     "deployed_version": 92,
@@ -15,23 +15,23 @@
     "fetched_via": "supabase functions download sem-ai-command --project-ref pvphxgrtdfrudejjhzjk (read-only)"
   },
   "prior": {
-    "campaign": 112,
-    "verifier": 52,
-    "verdict": "FAIL on 416c14c — the four #51 closures closed and load-bearing; \"every class I could construct other than V52-D1 is closed or parity — I say so plainly\"; ONE open class: V52-D1 (P2 fabrication, pack populated) a negator-initial KNOWN name with an interior lowercase word or lowercase tail (task titles: \"Not Invented Here retrospective was archived.\") — the entity signal only tried a capitalised run or a lowercase run up to an auxiliary. #52 prepared and measured the closure (0 truth cost, 0 new fabrications, 16 extractor suites green, deno 23). Production bytes byte-direct confirmed a third time.",
-    "artifact_commit": "verify-416c14c-campaign112",
-    "artifact": "qa/verification/proposed/v52_known_failure_modes_entry_118.md"
+    "campaign": 113,
+    "verifier": 53,
+    "verdict": "FAIL on 904bf19 - V52-D1 closure closed, load-bearing, positive-only; every class from the brief closed or parity; ONE open class V53-D1 (P2 fabrication, pack populated, first-person arm): the capital-run capture is the only name reading, so an in-pack name with an INTERIOR lowercase word (Trade and Development Bank) never matches; after a conditioned offer the whole message ships where v92 FUTURE corrects it (640/1280 sized). #53 prepared and measured the closure (0/1280 ship, 0/640 truths destroyed, 18/18 suites, deno 23) and recorded V53-H1: CONTRACT 5 does not see a literal semicolon inside readsAsCompletion.",
+    "artifact_commit": "verify-904bf19-campaign113",
+    "artifact": "qa/verification/proposed/v53_known_failure_modes_entry_118.md"
   },
-  "what_this_campaign_did": "Adopted #52 prepared closure VERBATIM (built by its own scratch/v52/build_closure.mjs from this tree bytes): inside the negator scan a local namePrefixHit tries every word-prefix of the text after the negator token (any casing, up to 8 tokens, trailing punctuation stripped) against knownEntityNames; nameInternal is also true on a hit and the cursor jump uses the longest hit. Positive-only — absence proves nothing, no determiner reading is lost. A local inside completionIsNegated, which the narrowed CONTRACT 5 permits. 1 insertion / 1 deletion.",
+  "what_this_campaign_did": "Adopted #53 prepared closure VERBATIM via its own scratch/v53/build_closure.mjs: when the first-person arm capital-run capture misses the pack, every word-prefix of the text from the capture start (any casing, trailing punctuation + possessive stripped) is tried against knownEntityNames - one expression, no declaration, no literal semicolon. Applied V53-R2 (measured 0 cost): namePrefixHit cap 8 -> 16. Promoted the semicolon hazard guard into the battery: qa/scenarios-runner/readsAsCompletion_no_literal_semicolon_contract.mjs (V53-H1). 2 insertions / 2 deletions.",
   "implementing_session_evidence_not_to_be_trusted": {
-    "suites": "v52 16/16, v51 17/17, v50 16/16, v49 16/16, v48 58/58",
-    "mutation_proof": "closure disabled -> v52 suite 15/1 (load-bearing)",
-    "v52_differential": "populated 0 truth / 0 fabrication regressions on 2,315 rows; empty = LINK-F 76 / N-F 15 / CONF-T 1 (exactly #52 disclosed pack-conditional classes)",
-    "v51_differential": "populated CLEAN; empty E-F 32 / N-F 35 / C-T 1 (unchanged)",
-    "v50_v49_v48": "populated CLEAN; empty unchanged (39/1/10; 27/1/1); #48 CLEAN",
+    "suites": "v53 34/34 (+3 residual notes), v52 16/16, v51 17/17, v50 16/16, v49 16/16, v48 58/58; semicolon contract 4/4",
+    "load_bearing": "v53 suite on the PRE-closure bytes (git HEAD) reads 33/1; on these bytes 34/0",
+    "v53_differential": "populated TR 16 / FR 2 on 2,761 rows - the 16 are V53-O1 (pack entry that IS a negation phrase used as subject; PRE-EXISTING on 416c14c; founder-level ambiguity), the 2 are V53-R3 (parenthetical inside a negator-initial name + possessive/plural; disclosed); identical to #53 own closure-mutant log except FR 5 -> 2 from R2. Empty = TR 8 / FR 344 = #53 own closure-mutant numbers (all pack-conditional N*/LINK sections + S3-T 8)",
+    "v52_differential": "populated 0/0; empty 1/91 (unchanged)",
+    "v51_v50_v49_v48": "populated CLEAN; empty unchanged; #48 CLEAN",
     "battery": "38 suites: 36 exit-0; 2 red = DB-P1 machine tests (by design)",
     "deno_check": "23 == baseline",
     "matcher": "8 intended binds / 0 dead-ends",
-    "crlf": "0 bare LF; 1 insertion / 1 deletion vs 416c14c"
+    "crlf": "0 bare LF; 2 insertions / 2 deletions vs 904bf19"
   },
   "verdict": null,
   "rules": "A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
@@ -50,26 +50,7 @@
   "NEXT_STEP_BOTH_SOURCES_AGREE": "canonicalById as a POSITIVE-only name signal. Verifier #39 shipped the first regression test RED on purpose (V39-C-ENTITY.beltConsultsKnownEntityNames) paired with absenceIsNeverUsedAsEvidence, which passes today and must keep passing. Its caveat stands: the largest truth cost this campaign was NOT world-knowledge-bound - 28 destroyed answers came from an ordinary English gerund.",
   "LESSON_ADDED": "#45 sized the conditioned-offer class at 117 where the record said 39, and it landed on my own prepared option: I had built it against the gate that pins 3 rows and called it complete when that gate went green. A fix measured against the corpus that was already green is measured against the wrong thing.",
   "gates_on_committed_candidate": {
-    "battery": "36 files, 0 failing",
-    "v47": "44/0",
-    "v45": "54/0",
-    "v44": "118/0",
-    "v43": "40/0",
-    "v42": "12/1 — EMPTY-pack configuration by construction; 0 of 48 destroyed with the pack populated",
-    "v41": "22/0",
-    "v40": "77/0",
-    "v39": "21/0",
-    "v38": "29/0",
-    "v37": "21/0",
-    "v36": "61/0",
-    "v35": "55/0",
-    "v34": "57/0",
-    "v33": "93/0",
-    "v32": "101/0",
-    "v31": "33/1 non-blocker",
-    "v30": "25/1 non-blocker",
-    "deno": "23 == baseline",
-    "crlf": "6017/6017, 0 bare LF"
+    "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -106,16 +87,16 @@
   "unresolved_discrepancy": "V45-N2 runtime. #45 measured 657 ms at 33,639 chars and read the belt as quadratic. Re-derived here across FIVE input shapes (punctuated prose with and without completion vocabulary, one long clause with and without it) and TWO entry points (readsAsCompletion, and the full legacyProseFallback decision window): EVERY ONE IS LINEAR at ~2x per doubling. Worst case anywhere is 10.9 ms for the full window at 33,639 chars. Both of my hypotheses — clause splitting, and entry point — are REFUTED. The discrepancy is UNEXPLAINED, not dismissed. Practically: ~10 ms per turn at any realistic length, not a deploy risk on this evidence; the relative cost over v92 single regex is 3-4 orders of magnitude and is real. Probes: v46_runtime_shapes.mjs, v46_runtime_entrypoint.mjs.",
   "INSTRUMENT_CORRECTION": "CAMPAIGN-WIDE. Deployed v92 has TWO prose-overwrite arms (FUTURE_PROMISE_PATTERN gating PAST_COMPLETION_CLAIM_PATTERN). Every differential in 17 verifiers modelled ONE. Use qa/verification/lib/v92_reference.mjs v92Destroys(); it self-checks that both arms are distinguishable. The error is ONE-DIRECTIONAL: it only ever overstated regressions, so no past PASS is invalidated, but NO COUNT IN THIS RECORD SHOULD BE QUOTED WITHOUT RE-DERIVING IT. Re-derived on the open class: 64 -> 48.",
   "open_not_blocking": [
-    "V52-O1 (parity residual): an UNCONDITIONED imminent/future claim followed by an unrelated closing question (\"I am archiving X now. Anything else?\") ships — v92 ships all of them too (no imminent arm; curly apostrophe). c2a57ac caught 28 of them; the trailing-question stand-down trades those gains for the P1 truth class. A closer list is a list; not pursued.",
-    "CONFIRMED object-negator fabrication direction (\"Confirmed — I archived no companies except X\") both-ship: parity (v92 has no CONFIRMED arm).",
-    "DECISION (founder may overrule): belt skips pendingAction turns entirely (v92 parity; #51/#52 confirmed sound).",
-    "Pack-conditional classes with an EMPTY/truncated pack: in-pack first-person (76 on #52 corpus), negator-name + head noun/titles (15), Archived Media Group truth (1). Production pack-truncation frequency unknown.",
-    "stateClaimCorrections is the three-arm instrument one known omission — byte-identical in both builds, parity by construction (#52).",
-    "chat_channel_state LIVE on deploy; 30-minute durable pendingAction bind has no end-to-end coverage (db query gated for #51/#52; #50 read: applied, 0 rows)."
+    "V53-O1 (founder may overrule): when the PACK contains an entity whose name IS a negation phrase (None of the above, No changes required) and it is the SUBJECT of a belt-only arm (None of the above is being archived.), 18/48 destroyed where v92 preserves (0 with an empty pack). Same-string ambiguity with the entity reading; pre-existing on 416c14c; the correction content (nothing was done) is still true under the quantifier reading.",
+    "V53-R3: parenthetical inside a negator-initial pack name + possessive/plural head noun - 2/2 ship (parentheses are blanked before the prefix search). Disclosed, not closed.",
+    "V52-O1 parity residual (unconditioned imminent claim + unrelated closing question ships; v92 ships too). CONFIRMED object-negator fabrication direction: parity.",
+    "DECISION (founder may overrule): belt skips pendingAction turns (v92 parity; #51/#52/#53 confirmed sound).",
+    "Pack-conditional classes with an EMPTY/truncated pack (all N* and LINK sections; #53 corpus FR 344 / TR 8). Production pack-truncation frequency unknown.",
+    "chat_channel_state LIVE on deploy; durable pendingAction bind has no end-to-end coverage (db query gated for #51-#53)."
   ],
   "founder_ruling": "APPLIED. The conditioned offer does not fire: an offer whose own clause conditions it on the founder confirmation is not a claim that anything happened. 48 of 64 rows to 0, every unconditioned claim still caught (5/5), mutation-proven. #44 gate 115/3 -> 118/0, #45 gate 53/1 -> 54/0.",
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
-  "index_sha256_lf_prefix": "250d2a06883b768e",
+  "index_sha256_lf_prefix": "86da13a83e7d9f87",
   "previous_campaign_pointer": {
     "campaign": 108,
     "verifier": 48,
@@ -131,6 +112,7 @@
     "crlf 6015 CRLF over 6016 lines (was recorded 6017/6017)",
     "v49_differential G-PA-T 0/16 was true of #49 16 rows and false of the class (64/105 on #50 corpus) — superseded by the restored term",
     "#51: open_deploy_blockers [] was false on c2a57ac (V51-D1 P1) — this round closes it; crlf 6015/6016 (1 bare CR in a comment, harmless)",
-    "#52: v47 43/9 (record said 44/0); battery 38/36/2; ledger #117 CRLF 6,015/6,016 + 1 bare CR; run14/D107 has no width budget any more (scans to statement end)"
+    "#52: v47 43/9 (record said 44/0); battery 38/36/2; ledger #117 CRLF 6,015/6,016 + 1 bare CR; run14/D107 has no width budget any more (scans to statement end)",
+    "#53: ledger #101 v39 20/1 -> 19/2; nine stale gate counts corrected (see gates_on_committed_candidate); run14/D107 has no budget"
   ]
 }

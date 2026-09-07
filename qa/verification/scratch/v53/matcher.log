@@ -1,0 +1,34 @@
+OK   parity  cmd="Gobi Corporation"                               cand=c1    v92=c1    expect=c1    — exact label
+OK   parity  cmd="gobi corporation"                               cand=c1    v92=c1    expect=c1    — lowercase exact
+OK   parity  cmd="“Gobi Corporation”"                             cand=c1    v92=c1    expect=c1    — quoted
+OK   DELTA   cmd="Gobi Corporation Leasing"                       cand=c2    v92=null  expect=c2    — longer exact
+OK   DELTA   cmd="option 2"                                       cand=c2    v92=null  expect=c2    — ordinal option N
+OK   DELTA   cmd="#3"                                             cand=c3    v92=null  expect=c3    — #N
+OK   DELTA   cmd="3"                                              cand=c3    v92=null  expect=c3    — bare number
+OK   DELTA   cmd="the third one"                                  cand=c3    v92=null  expect=c3    — ordinal word
+OK   DELTA   cmd="the first"                                      cand=c1    v92=null  expect=c1    — ordinal short
+OK   DELTA   cmd="number 2"                                       cand=c2    v92=null  expect=c2    — number N
+OK   parity  cmd="not the first one"                              cand=null  v92=null  expect=null  — negated ordinal dead-ends
+OK   parity  cmd="neither"                                        cand=null  v92=null  expect=null  — neither dead-ends
+OK   parity  cmd="none of these"                                  cand=null  v92=null  expect=null  — none dead-ends
+OK   DELTA   cmd="not Gobi Corporation"                           cand=null  v92=c1    expect=null  — negated name dead-ends
+DIFF DELTA   cmd="Gobi Corporation, not the leasing one"          cand=null  v92=c1    expect=c1    — name + exclusion
+OK   parity  cmd="archive Gobi Corporation"                       cand=c1    v92=c1    expect=c1    — verb + name
+OK   DELTA   cmd="restore Gobi Corporation"                       cand=null  v92=c1    expect=null  — opposite-family verb dead-ends
+OK   parity  cmd="Gobi Corporation and Gobi Corporation Leasing"  cand=null  v92=null  expect=null  — two names ambiguous
+OK   parity  cmd="yes"                                            cand=null  v92=null  expect=null  — bare yes not a selection
+OK   parity  cmd="the company"                                    cand=null  v92=null  expect=null  — generic noun no bind
+OK   parity  cmd="Restored Assets LLC"                            cand=c3    v92=c3    expect=c3    — participle-initial real name
+OK   parity  cmd="restored assets llc"                            cand=c3    v92=c3    expect=c3    — participle-initial lowercase
+DIFF parity  cmd="the one in Darkhan"                             cand=null  v92=null  expect=p2    — parenthetical qualifier
+OK   parity  cmd="Tsolmon Baatar"                                 cand=p1    v92=p1    expect=p1    — exact person with longer sibling
+OK   parity  cmd="tsolmon"                                        cand=null  v92=null  expect=null  — shared first-name fragment ambiguous
+OK   DELTA   cmd="option 2"                                       cand=p2    v92=null  expect=p2    — ordinal on person options
+DIFF DELTA   cmd="second one, the Darkhan Tsolmon Baatar"         cand=null  v92=p1    expect=p2    — ordinal + qualified name agree
+OK   parity  cmd="first — actually the second"                    cand=null  v92=null  expect=null  — self-correction two ordinals dead-ends
+DIFF DELTA   cmd="Gobi Corporation was archived"                  cand=null  v92=c1    expect=c1    — assertion containing label (binds; truth elsewhere)
+DIFF parity  cmd="delete option 3"                                cand=null  v92=null  expect=c3    — verb + ordinal
+OK   parity  cmd="1 and 2"                                        cand=null  v92=null  expect=null  — two ordinals dead-end
+DIFF parity  cmd="option one"                                     cand=null  v92=null  expect=c1    — ordinal word after option
+
+shapes=32 candidate-as-intended=26 parity=19 delta=13

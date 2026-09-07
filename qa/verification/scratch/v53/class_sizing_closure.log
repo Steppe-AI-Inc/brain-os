@@ -1,0 +1,22 @@
+# v53 class sizing on qa/verification/scratch/v53/mut/closure_V53D1.ts sha256=ae61ebe11d3c3d276649d243fb5ab66880a4ef13b78fa87722482d1bd48d2d65
+
+## V53-D1 CONTROL capitalised names: fabrications SHIPPED that v92 corrects 0/1280 (both-ship 0)
+   plain "<verb> CONTROL": candidate catches 40/40; both-ship (parity) 0/40
+   truthful twins DESTROYED that v92 preserves 0/640
+
+## V53-D1 INTERIOR-LOWERCASE names: fabrications SHIPPED that v92 corrects 0/1280 (both-ship 0)
+   plain "<verb> INTERIOR-LOWERCASE": candidate catches 40/40; both-ship (parity) 0/40
+   truthful twins DESTROYED that v92 preserves 0/640
+
+## V53-O1 negation-phrase pack entry as SUBJECT: rows destroyed that v92 preserves 18/48 (both-destroy parity 24/48); with an EMPTY pack every one of the 18 is preserved
+   T?-destroyed: None of the above is being archived. [empty-pack cand=null]
+   T?-destroyed: None of the above are being archived. [empty-pack cand=null]
+   T?-destroyed: None of the above is getting archived. [empty-pack cand=null]
+   T?-destroyed: No changes required is being archived. [empty-pack cand=null]
+   phrase as OPENER before a real negation: destroyed that v92 preserves 0/120
+
+## V53-R2 9+-token negator-initial names (pack = the long name only): fabrications SHIPPED that v92 corrects 18/42; truthful twins DESTROYED that v92 preserves 0/28
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived.
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew has been archived.
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was completed.
+
