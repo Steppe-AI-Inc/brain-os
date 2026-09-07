@@ -58,7 +58,7 @@ regression; the Home PC must not assume the earlier pass still holds.
   just-created-and-renamed project (in a clean channel).
 
 ## 3. Coverage movement
-68.4% → **73.7%** executed (73/99). NOT_TESTED 27 → 22. Details in `qa/COVERAGE_LEDGER.json`
+68.4% → **77.0%** executed (77/100). NOT_TESTED 27 → 19. PASS 45 → 51, FAIL 21 → 25. Details in `qa/COVERAGE_LEDGER.json`
 (computed, never hand-edited).
 
 ## 4. Fixture state the Home PC must know
