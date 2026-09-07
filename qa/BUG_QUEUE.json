@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T12:00:59Z",
+  "last_updated": "2026-09-07T12:08:05Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -440,7 +440,8 @@
         "anchor_test_disposition": "SUPERSEDED / inconclusive as originally framed. The planted ZEBRA-7714 is NOT in the persisted turn-1 command (DB proof), so 'does the anchor survive 50 turns' cannot be measured on this channel - the anchor never entered durable history (itself consistent with Class A loss). The direct turn-1 recall probe above is a stronger test of the same property and does not depend on the anchor.",
         "off_by_one_lag": "Not reproduced in the T13-T17 batch (T13/T15 aligned correctly). Yesterday it appeared at turns 8 and 10. So the lag is intermittent, not deterministic - downgrade any claim that it is constant."
       },
-      "work_pc_evidence_2026_09_07_delete_dept": "Delete-department command for a department Brain could not see returned \"Did you mean QA-SWARM-DEPT-ARCHIVED-PARENT-TEST?\" - a clarification that proposes a DIFFERENT destructive target. Work PC did NOT confirm. This is the Class B precursor shape on a new verb (delete) and should be covered by the assignment-confirmation-cannot-become-archive regression generalised to: a clarification must never bind a destructive verb to an entity the user did not name."
+      "work_pc_evidence_2026_09_07_delete_dept": "Delete-department command for a department Brain could not see returned \"Did you mean QA-SWARM-DEPT-ARCHIVED-PARENT-TEST?\" - a clarification that proposes a DIFFERENT destructive target. Work PC did NOT confirm. This is the Class B precursor shape on a new verb (delete) and should be covered by the assignment-confirmation-cannot-become-archive regression generalised to: a clarification must never bind a destructive verb to an entity the user did not name.",
+      "class_b_regression_2026_09_07": "PASS today on v92: partial-name archive -> clarification; bare \"yes\" did not bind to any candidate and nothing executed (channel 18a876c9, both candidates registered synthetic). The fail-closed fix holds; the surrounding resolution defect is tracked as BUG-020."
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -873,7 +874,8 @@
       "layer_hypothesis_for_home_pc": "The named-company lookup (namedCompanyLookupQuery, 15e868a) appears not to be applied - or its tokens not to match - on the BU/parent-resolution path, while it is applied for questions/rename/project-create. Work PC did not read the source.",
       "regression_requirement": "For each command shape that names a company (question, rename, create-project, create-BU-under, set-parent, archive, restore): assert the same named active company resolves in a fresh channel. A per-path matrix, not a single probe.",
       "_qa_boundary": "Work PC did not modify product code.",
-      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the matrix; the implementation PC may not self-certify."
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the matrix; the implementation PC may not self-certify.",
+      "additional_evidence_archive_path": "Third command shape, 12:06Z channel 18a876c9: \"Archive the company QA-MULTI.\" could not see either QA-MULTI-CO or QA-MULTI-CO-TWIN (both active, both in /companies) and offered four already-archived companies (test5/7/8/9) as archive targets. Widens the defect from BU-create to the archive path; question-shaped commands still resolve the same names."
     },
     {
       "bug_id": "BUG-021",
