@@ -56,3 +56,22 @@ irregularity (reached prod without an authorized push) is the open item.
   live-verified by the context-security scripts above (restricted rows never reach the model
   because they never leave the DB); the model's own refusal behavior is `MANUAL VERIFICATION`
   via the live `/chat` UI (see `qa/REGRESSION_CATALOG.md` "AI adversarial prompt-injection").
+
+
+## 2026-09-07 — Work-PC live re-run of the whole runner (rolled-back impersonation, production)
+
+Method: `supabase db query --linked --file` per script from the Work-PC seat; full verdicts in
+`qa/runs/C002/persona-matrix-2026-09-07.json`. 40 rollback-wrapped scripts executed, 5 skipped
+(no `rollback;`).
+
+| Result | Scripts |
+|---|---|
+| all_pass = true (37) | every `sc0xx`/`sc1xx` persona script incl. SC-056 cross-company, SC-057 manager-not-CFO, SC-058, SC-059/059b, SC-060, SC-069, SC-070, SC-071, SC-072/073, SC-074, SC-093, SC-103, SC-119; investor_viewer_scope; memories_null_company_scope (**BUG-004 regression now EXPECTED_PASS**); org/archive/ownership/lifecycle/factory-truth scripts; **SC-054 after repair** |
+| fixture invalidation, repaired | **SC-054**: production trigger `tasks_force_creator` stamps `created_by_profile_id` from the caller, so postgres-inserted fixtures had NULL creator and `t1_own_visible` failed vacuously. Script now inserts fixtures as the personas. Real user path (employee inserts, then sees own task) verified live — acceptance test 4 holds. |
+| fixture artefact, not yet repaired | **SC-118**: employee `tasks SELECT = HIDDEN` is the same NULL-creator artefact; denial rows remain valid. |
+| script drift suspected, needs diagnosis | `factory_agent_registry_adversarial`: `CANNOT_SELF_ESCALATE_AUTHORITY=false`, `status_no_runs=FAILED` (expected IDLE). Passed post-202608290004; the probed real agent now has real runs. **Not asserted as a product defect.** |
+| script error | `plugin_registry_and_agent_telemetry_truth`: 23505 duplicate key on `plugin_sources` — fixture collides with live data. |
+
+Scope statement (constitution): these results verify the listed persona x resource assertions
+for the fixture personas (founder, employee/technician, company manager, hr_finance,
+investor_viewer, anon) on 2026-09-07 against production — nothing broader.

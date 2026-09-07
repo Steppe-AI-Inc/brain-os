@@ -95,10 +95,11 @@
       "id": "C002-TEAM-READY-SECURITY",
       "order": 90,
       "priority": "P1",
-      "status": "IN_PROGRESS",
+      "status": "PARTIAL",
       "title": "TEAM-READY security - persona matrix, tenant and group isolation",
       "directive": "Run the persona x resource matrix from qa/SECURITY_MATRIX.md against production with SQL impersonation, plus cross-company and cross-group isolation. Per the constitution, no role may be called secure on the strength of one passing test, and every security claim must state its exact verified scope. Test the underlying tables directly, not only the safe views, and confirm the AI context path leaks nothing the direct query denies.",
-      "progress": "2026-09-07T13:12Z: method proven from the Work-PC seat (supabase db query --linked --file, rolled back). SC-056 cross-company isolation all_pass=true (Company A manager sees 0 of Company B tasks/projects/documents/financial_reports/memories/sales_leads/company). Full scenarios-runner sweep running; verdicts recorded on completion."
+      "progress": "2026-09-07T13:12Z: method proven from the Work-PC seat (supabase db query --linked --file, rolled back). SC-056 cross-company isolation all_pass=true (Company A manager sees 0 of Company B tasks/projects/documents/financial_reports/memories/sales_leads/company). Full scenarios-runner sweep running; verdicts recorded on completion.",
+      "partial_reason": "2026-09-07T13:15Z: full runner executed live from the Work-PC seat (qa/runs/C002/persona-matrix-2026-09-07.json): 37 all_pass incl. cross-company (SC-056/071), manager-not-CFO, SoD, approvals, search/audit leakage, founder-only data, investor scope, security-definer audit, BUG-004 regression. SC-054 repaired (fixture invalidation by tasks_force_creator; real path holds). Remaining: SC-118 same repair; factory_agent_registry_adversarial 2 assertions need diagnosis (drift suspected); plugin_registry script duplicate-key fix; browser-level persona tests still BLOCKED (no second credential); AI-context path covered by SQL scripts only."
     },
     {
       "id": "C002-SYNTHETIC-WORLDS",

@@ -77,3 +77,13 @@ multi-line statements preserved). Inline strings are fine only for a single one-
 
 Results are recorded in each scenario doc's `AUTOMATION STATUS` / `LAST VERIFIED DATE`
 and summarized in `qa/scenarios/RESULTS.md`.
+
+
+### Fixture rule (2026-09-07): insert rows AS the persona that should own them
+
+Production has `BEFORE INSERT` trigger `tasks_force_creator` (calls `force_task_creator()`), which
+stamps `created_by_profile_id` from the caller's identity. A fixture inserted as `postgres`
+therefore stores creator **NULL** and any "owner sees own row" assertion fails vacuously
+(this is what broke SC-054 on 2026-09-07). Impersonate the owning persona *before* inserting
+owned fixtures; use the founder sub `cbcc41cf-830d-4600-8545-3b9e22c8297f` for rows that must
+belong to someone else. Expect the same on any table that gains a creator-forcing trigger.

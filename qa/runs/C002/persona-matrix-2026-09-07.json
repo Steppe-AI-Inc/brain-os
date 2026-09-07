@@ -1,0 +1,1464 @@
+{
+  "run_at": "2026-09-07T13:15:00Z",
+  "method": "supabase db query --linked --file; each script begin...rollback with set local role authenticated + request.jwt.claims impersonation; executed from the Work-PC seat",
+  "build": "sem-ai-command v92; production project pvphxgrtdfrudejjhzjk",
+  "scripts": {
+    "approval_deletion_audit_trail": {
+      "verdict": {
+        "all_pass": true,
+        "audit_row_company_correct": true,
+        "audit_row_exists": true,
+        "audit_row_metadata": {
+          "domain": "general",
+          "status_at_deletion": "pending"
+        },
+        "row_gone": true,
+        "scenario": "approval_deletion_audit_trail"
+      }
+    },
+    "chat_history_ordering": {
+      "verdict": {
+        "all_pass": true,
+        "channel_a_never_leaks_into_channel_b": true,
+        "channel_b_full_history_untruncated": true,
+        "channel_b_never_leaks_into_channel_a": true,
+        "classification": "FIXED — chat-history.ts getChatHistory() + sem-ai-command conversationHistoryQuery ordering defect",
+        "kept_count_is_30": true,
+        "newest_message_present": true,
+        "oldest_five_excluded": true,
+        "reversed_result_is_chronological": true,
+        "scenario": "CHAT-HISTORY-ORDERING"
+      }
+    },
+    "company_archive_ownership": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED (KNOWN_FAILURE_MODES.md #19 sibling — see migration 202608280013)",
+        "creator_archive": {
+          "authorized": true,
+          "changed": true,
+          "companyId": "cccc0002-0000-0000-0000-000000000004",
+          "newStatus": "archived",
+          "operation": "company.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "creator_edit_allowed": true,
+        "creator_restore": {
+          "authorized": true,
+          "changed": true,
+          "companyId": "cccc0002-0000-0000-0000-000000000004",
+          "newStatus": "active",
+          "operation": "company.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored"
+        },
+        "direct_bypass_blocked": true,
+        "former_creator_archive": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "cccc0002-0000-0000-0000-000000000004",
+          "newStatus": "active",
+          "operation": "company.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "former_creator_edit_blocked": true,
+        "founder_archive": {
+          "authorized": true,
+          "changed": true,
+          "companyId": "cccc0002-0000-0000-0000-000000000001",
+          "newStatus": "archived",
+          "operation": "company.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "idempotent_archive": {
+          "authorized": true,
+          "changed": false,
+          "companyId": "cccc0002-0000-0000-0000-000000000001",
+          "newStatus": "archived",
+          "operation": "company.archive",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "already_archived"
+        },
+        "nonadmin_insert_blocked": true,
+        "not_found": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "00000000-0000-0000-0000-000000000000",
+          "newStatus": null,
+          "operation": "company.archive",
+          "postconditionPassed": false,
+          "previousStatus": null,
+          "reason": "not_found"
+        },
+        "other_user_archive": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "cccc0002-0000-0000-0000-000000000001",
+          "newStatus": "active",
+          "operation": "company.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "scenario": "COMPANY-ARCHIVE-OWNERSHIP",
+        "spoof_prevented": true,
+        "status_constraint_blocked": true
+      }
+    },
+    "complete_agent_run_lifecycle": {
+      "verdict": {
+        "all_pass": true,
+        "bad_verification_status_blocked": true,
+        "classification": "FIXED (Phase 8 verification gap — see migration 202608290010)",
+        "founder_complete": {
+          "agentRunId": "cccc1003-0000-0000-0000-000000000001",
+          "authorized": true,
+          "changed": true,
+          "newStatus": "done",
+          "operation": "agent_run.complete",
+          "previousStatus": "in_progress",
+          "reason": "completed",
+          "taskUpdated": true
+        },
+        "founder_complete_idempotent": {
+          "agentRunId": "cccc1003-0000-0000-0000-000000000001",
+          "authorized": true,
+          "changed": false,
+          "newStatus": "done",
+          "operation": "agent_run.complete",
+          "previousStatus": "done",
+          "reason": "already_recorded",
+          "taskUpdated": false
+        },
+        "manager_denied": {
+          "agentRunId": "cccc1003-0000-0000-0000-000000000002",
+          "authorized": false,
+          "changed": false,
+          "operation": "agent_run.complete",
+          "reason": "denied",
+          "taskUpdated": false
+        },
+        "no_task_complete": {
+          "agentRunId": "cccc1003-0000-0000-0000-000000000003",
+          "authorized": true,
+          "changed": true,
+          "newStatus": "rejected",
+          "operation": "agent_run.complete",
+          "previousStatus": "in_progress",
+          "reason": "completed",
+          "taskUpdated": false
+        },
+        "not_found": {
+          "agentRunId": "00000000-0000-0000-0000-000000000000",
+          "authorized": false,
+          "changed": false,
+          "operation": "agent_run.complete",
+          "reason": "not_found",
+          "taskUpdated": false
+        },
+        "run2_untouched": true,
+        "run_row_after_complete": {
+          "finished_at_set": true,
+          "head_commit": "a1b2c3d4",
+          "status": "done",
+          "verification_status": "live_verified"
+        },
+        "scenario": "COMPLETE-AGENT-RUN-LIFECYCLE",
+        "task2_untouched": true,
+        "task_status_after_complete": "done",
+        "task_status_still_done": "done"
+      }
+    },
+    "complete_work_order_lifecycle": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED — final factory-state gap (see migration 202608300002_complete_work_order.sql)",
+        "complete_wo1": {
+          "agentRunCount": 2,
+          "authorized": true,
+          "changed": true,
+          "completedAt": "2026-09-07T13:08:28.835568+00:00",
+          "newStatus": "done",
+          "operation": "work_order.complete",
+          "previousStatus": "in_progress",
+          "reason": "completed",
+          "summary": "QA happy path completion",
+          "taskCount": 2,
+          "verifiedByAgentRunId": "cccc2004-0000-0000-0000-000000000001",
+          "verifiedCommitRunCount": 1,
+          "workOrderId": "cccc2002-0000-0000-0000-000000000001"
+        },
+        "complete_wo10": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "no_agent_runs_recorded",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000010"
+        },
+        "complete_wo1_again": {
+          "authorized": true,
+          "changed": false,
+          "completedAt": "2026-09-07T13:08:28.835568+00:00",
+          "currentStatus": "done",
+          "operation": "work_order.complete",
+          "reason": "already_completed",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000001"
+        },
+        "complete_wo2": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "incompleteTaskCount": 1,
+          "incompleteTaskId": "cccc2003-0000-0000-0000-000000000003",
+          "incompleteTaskStatus": "in_progress",
+          "incompleteTaskTitle": "CWO Task 2a",
+          "operation": "work_order.complete",
+          "reason": "incomplete_task",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000002"
+        },
+        "complete_wo3": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "incompleteRunCount": 1,
+          "incompleteRunId": "cccc2004-0000-0000-0000-000000000003",
+          "incompleteRunStatus": "rejected",
+          "operation": "work_order.complete",
+          "reason": "incomplete_or_failed_run",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000003"
+        },
+        "complete_wo4": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "verification_required_not_found",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000004"
+        },
+        "complete_wo5": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "verification_required_not_found",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000005"
+        },
+        "complete_wo7": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "verification_required_not_found",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000007"
+        },
+        "complete_wo8": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "verification_required_not_found",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000008"
+        },
+        "complete_wo9": {
+          "authorized": true,
+          "changed": false,
+          "currentStatus": "in_progress",
+          "operation": "work_order.complete",
+          "reason": "no_tasks_to_complete",
+          "workOrderId": "cccc2002-0000-0000-0000-000000000009"
+        },
+        "cross_company_task_blocked": true,
+        "direct_done_blocked": true,
+        "direct_insert_done_blocked": true,
+        "scenario": "COMPLETE-WORK-ORDER-LIFECYCLE",
+        "terminal_regression_blocked": true,
+        "wo1_completed_at": "2026-09-07 13:08:28.835568+00",
+        "wo1_status": "done",
+        "wo1_status_after_regression_attempt": "done",
+        "wo6_status_after_direct_attempt": "in_progress"
+      }
+    },
+    "create_factory_task_adversarial": {
+      "verdict": {
+        "CREATE_FACTORY_TASK_COMPANY_DERIVED_CORRECTLY": "true",
+        "CREATE_FACTORY_TASK_FOUNDER_OK": "true",
+        "CREATE_FACTORY_TASK_REJECTS_NONEXISTENT_WORK_ORDER": "true",
+        "CREATE_FACTORY_TASK_TRIGGER_BLOCKS_DIRECT_MISMATCH": "true",
+        "all_pass": true
+      }
+    },
+    "create_factory_work_order_adversarial": {
+      "verdict": {
+        "FACTORY_WORK_ORDER_CROSS_COMPANY_NO_ROW_CREATED": "true",
+        "FACTORY_WORK_ORDER_FOUNDER_CROSS_COMPANY_VALID_GOAL_OK": "true",
+        "FACTORY_WORK_ORDER_FOUNDER_SAME_COMPANY_OK": "true",
+        "FACTORY_WORK_ORDER_MANAGER_NO_GOAL_OK": "true",
+        "FACTORY_WORK_ORDER_REJECTS_CROSS_COMPANY_GOAL": "true",
+        "FACTORY_WORK_ORDER_REJECTS_NONEXISTENT_GOAL": "true",
+        "FACTORY_WORK_ORDER_REJECTS_UNAUTHORIZED_CALLER": "true",
+        "FACTORY_WORK_ORDER_TABLE_TRIGGER_BLOCKS_DIRECT_INSERT": "true",
+        "all_pass": true
+      }
+    },
+    "departments_hide_or_mark_archived_parent": {
+      "verdict": {
+        "all_pass": true,
+        "bug_id": "BUG-001",
+        "contradiction_present": true,
+        "departments_query_exposes_parent_status_SQL_CANNOT_OBSERVE": null,
+        "departments_query_returns_row": true,
+        "parent_status_in_db": "archived",
+        "picker_offers_parent": false,
+        "precondition_parent_actually_archived": true,
+        "ui_assertion_owner": "Playwright: CAP-BUG001-ARCHIVED-BADGE-RENDERED (verified PASS 2026-09-01)"
+      }
+    },
+    "factory_agent_registry_adversarial": {
+      "verdict": {
+        "FACTORY_AGENT_CANNOT_SELF_ESCALATE_AUTHORITY": "false",
+        "FACTORY_AGENT_DEFINITION_HASH_DETECTS_CHANGE": "true",
+        "FACTORY_AGENT_RUN_REFERENCES_CANONICAL_AGENT": "true",
+        "FACTORY_AGENT_SYNC_NO_DUPLICATE_SLUG": "true",
+        "FACTORY_STATUS_CANNOT_BE_SPOOFED_VIA_FAKE_AGENT_RUN": "true",
+        "FACTORY_STATUS_DERIVED_FROM_REAL_RUN": false,
+        "FACTORY_UNKNOWN_AGENT_CANNOT_EXECUTE": "true",
+        "all_pass": false,
+        "hash_after": "deadbeef-simulated-changed-hash",
+        "hash_before": "7c5d1d41623bf15cb308e2aa41373dcf7a9933e617f7c5ebf4cf4152056cf6b1",
+        "status_failed_expect_FAILED": "FAILED",
+        "status_no_runs_expect_IDLE": "FAILED",
+        "status_running_expect_RUNNING": "RUNNING"
+      }
+    },
+    "factory_agent_registry_dispatchability_truth": {
+      "verdict": {
+        "all_pass": true,
+        "capable_but_undispatchable_agents": [],
+        "product_architect_state": {
+          "active": true,
+          "has_capabilities": true,
+          "has_execution_provider": true,
+          "has_production_authority": true
+        }
+      }
+    },
+    "factory_notification_lifecycle_truth": {
+      "verdict": {
+        "all_pass": true,
+        "completion_notification_created_at_most_once": true,
+        "dedupe_prevents_same_instant_duplicate": true,
+        "founder_resolve_succeeded": true,
+        "genuinely_new_episode_notifies_again": true,
+        "healthy_heartbeat_not_stale": true,
+        "non_admin_mark_read_blocked": true,
+        "non_admin_resolve_blocked": true
+      }
+    },
+    "factory_realtime_rls_truth": {
+      "verdict": {
+        "all_pass": true,
+        "cannot_see_other_company_agent_run": true,
+        "cannot_see_other_company_task": true,
+        "cannot_see_other_company_work_order": true,
+        "founder_sees_company_a": true,
+        "founder_sees_company_b": true,
+        "founder_sees_notification": true,
+        "non_founder_sees_zero_notifications": true,
+        "sees_own_company_agent_run": true,
+        "sees_own_company_task": true,
+        "sees_own_company_work_order": true
+      }
+    },
+    "factory_rpc_privilege_sweep": {
+      "verdict": {
+        "all_pass": true,
+        "anon_create_denied": true,
+        "founder_canonical_path_works": true,
+        "founder_resolve_allowed": true,
+        "functions_still_holding_anon_grant": [
+          "validate_organization_graph"
+        ],
+        "in_scope_functions_clean": true,
+        "nonadmin_create_denied": true,
+        "nonadmin_resolve_denied": true
+      }
+    },
+    "founder_notification_no_anon_exploit": {
+      "verdict": {
+        "all_pass": true,
+        "anon_call_correctly_denied": true,
+        "anon_still_granted_on_create_founder_notification": false,
+        "other_functions_with_same_defect_class": []
+      }
+    },
+    "investor_viewer_scope": {
+      "verdict": {
+        "all_pass": true,
+        "company_visible": "1",
+        "financial_report_visible": "1",
+        "goal_visible": "1",
+        "has_company_access_own": "false",
+        "internal_doc_hidden": "0",
+        "is_investor_viewer_of_own": "true",
+        "people_hidden": "0",
+        "projects_hidden": "0",
+        "public_doc_visible": "1",
+        "scenario": "investor_viewer_scope",
+        "task_insert": "DENIED"
+      }
+    },
+    "memories_null_company_scope_not_a_bypass": {
+      "verdict": {
+        "all_pass": true,
+        "bug_id": "BUG-004",
+        "expected_state_until_fixed": "EXPECTED_FAIL",
+        "note": "The confidential-read half can pass VACUOUSLY while zero unscoped confidential rows exist. The write half is the load-bearing assertion - it fails deterministically until the company_id IS NULL bypass is removed from memories_write_scope.",
+        "stranger_can_write_unscoped_memory": false,
+        "total_memories_visible_to_stranger": 0,
+        "unscoped_confidential_readable": 0
+      }
+    },
+    "organization_graph_integrity": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED (KNOWN_FAILURE_MODES.md #19)",
+        "cycle_blocked": true,
+        "first_owner_intact": true,
+        "idempotent_row_count": "1",
+        "non_founder_blocked": true,
+        "overownership_blocked": true,
+        "scenario": "ORG-GRAPH-INTEGRITY"
+      }
+    },
+    "org_effective_active": {
+      "verdict": {
+        "all_pass": true,
+        "archive_parent": {
+          "authorized": true,
+          "changed": true,
+          "companyId": "bbbb1001-0000-0000-0000-000000000001",
+          "newStatus": "archived",
+          "operation": "company.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "baseline_child_active": true,
+        "baseline_grandchild_active": true,
+        "child_effective_after_archive": true,
+        "child_effective_after_restore": true,
+        "child_in_selector": true,
+        "child_own_status_untouched": true,
+        "classification": "FIXED (quiet-wiggling-biscuit plan Bug 6 — see migration 202608290009)",
+        "employee_company_id_unchanged": true,
+        "employee_employer_effectively_active": true,
+        "grandchild_effective_after_archive": true,
+        "grandchild_effective_after_restore": true,
+        "grandchild_in_selector": true,
+        "graph_check_after_restore_clean_for_child": true,
+        "graph_check_archived_ancestor_active_ids": [
+          {
+            "id": "bbbb1001-0000-0000-0000-000000000002",
+            "name": "SC-OEA Child",
+            "status": "active"
+          },
+          {
+            "id": "bbbb1001-0000-0000-0000-000000000003",
+            "name": "SC-OEA Grandchild",
+            "status": "active"
+          }
+        ],
+        "parent_effective_after_archive": true,
+        "restore_parent": {
+          "authorized": true,
+          "changed": true,
+          "companyId": "bbbb1001-0000-0000-0000-000000000001",
+          "newStatus": "active",
+          "operation": "company.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored"
+        },
+        "scenario": "ORG-EFFECTIVE-ACTIVE",
+        "standalone_active_no_relationships": true,
+        "standalone_in_selector": true,
+        "sub_effective_after_owner_archived": true
+      }
+    },
+    "org_effective_active_status_check_fix": {
+      "verdict": {
+        "ARCHIVED_ANCESTOR_MAKES_CHILD_EFFECTIVELY_INACTIVE": true,
+        "PAUSED_STATUS_IS_NOT_ARCHIVED": true,
+        "PLANNING_STATUS_IS_NOT_ARCHIVED": true,
+        "STANDALONE_NON_ARCHIVED_COMPANY_NOT_FALSE_POSITIVE": true,
+        "all_pass": true,
+        "graph_no_longer_flags_real_companies": true,
+        "graph_still_flags_genuine_archived_ancestor": true,
+        "no_mutation_side_effect": true,
+        "real_nexpass_no_longer_false_positive": true,
+        "real_nexpass_status_untouched": true,
+        "real_tradebook_no_longer_false_positive": true,
+        "real_tradebook_status_untouched": true
+      }
+    },
+    "permanent_fixture_company_cleanup": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED (KNOWN_FAILURE_MODES.md #33 — see migration 202608300003_permanent_fixture_company_cleanup.sql)",
+        "scenario": "PERMANENT-FIXTURE-COMPANY-CLEANUP",
+        "scenario0_assignment_gone": true,
+        "scenario0_company_gone": true,
+        "scenario0_happy_path": {
+          "assignmentsRemoved": 0,
+          "authorized": true,
+          "changed": true,
+          "companyDeleted": true,
+          "companyId": "fcfc0001-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "peopleDeleted": [
+            {
+              "id": "fcfc0001-0000-0000-0000-000000000002",
+              "name": "QA-VERIFY-DELETE-PERSON"
+            }
+          ],
+          "reason": "deleted",
+          "relationshipsRemoved": 0
+        },
+        "scenario0_person_gone": true,
+        "scenario1_idempotent_not_found": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "fcfc0001-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "not_found"
+        },
+        "scenario2_company_survives": true,
+        "scenario2_non_fixture_person": {
+          "authorized": true,
+          "blockers": [
+            {
+              "id": "fcfc0002-0000-0000-0000-000000000002",
+              "name": "Bob RealEmployee NonFixture"
+            }
+          ],
+          "changed": false,
+          "companyId": "fcfc0002-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "non_fixture_people_attached"
+        },
+        "scenario2_person_survives": true,
+        "scenario3_company_survives": true,
+        "scenario3_not_a_fixture": {
+          "authorized": true,
+          "changed": false,
+          "companyId": "fcfc0003-0000-0000-0000-000000000001",
+          "detail": "Company name does not match the fixture naming convention (test*/QA-*) - this path never permanently deletes a real company.",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "not_a_fixture"
+        },
+        "scenario4_company_survives": true,
+        "scenario4_goal_survives": true,
+        "scenario4_non_fixture_dependents": {
+          "authorized": true,
+          "blockers": [
+            {
+              "count": 1,
+              "table": "goals"
+            }
+          ],
+          "changed": false,
+          "companyId": "fcfc0004-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "has_non_fixture_dependents"
+        },
+        "scenario5_company_survives": true,
+        "scenario5_person_survives": true,
+        "scenario5_same_company_task_blocker": {
+          "authorized": true,
+          "blockers": [
+            {
+              "count": 1,
+              "table": "tasks"
+            }
+          ],
+          "changed": false,
+          "companyId": "fcfc0005-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "has_non_fixture_dependents"
+        },
+        "scenario5b_company_survives": true,
+        "scenario5b_manager_survives": true,
+        "scenario5b_person_delete_blocked": {
+          "authorized": true,
+          "changed": false,
+          "companyId": "fcfc0005-0000-0000-0000-000000000004",
+          "operation": "company.permanentFixtureDelete",
+          "peopleBlocked": [
+            {
+              "dependents": [
+                {
+                  "count": 1,
+                  "table": "people.manager_person_id"
+                }
+              ],
+              "id": "fcfc0005-0000-0000-0000-000000000005",
+              "name": "QA-VERIFY-DELETE-MANAGER"
+            }
+          ],
+          "reason": "person_delete_blocked"
+        },
+        "scenario5b_report_survives": true,
+        "scenario6_company_survives": true,
+        "scenario6_denied": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "fcfc0006-0000-0000-0000-000000000001",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "denied"
+        },
+        "scenario7_not_found": {
+          "authorized": false,
+          "changed": false,
+          "companyId": "00000000-1111-2222-3333-444444444444",
+          "operation": "company.permanentFixtureDelete",
+          "reason": "not_found"
+        }
+      }
+    },
+    "person_lifecycle_ai_routing": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED (quiet-wiggling-biscuit plan Bug 5 — see migration 202608290008)",
+        "company_status_untouched": true,
+        "delete_after_dependents_cleared": {
+          "authorized": true,
+          "changed": true,
+          "destroyedCounts": {
+            "kpi_records": 0,
+            "people": 1,
+            "person_ai_policy": 0,
+            "person_assignments": 0,
+            "salary_private": 0
+          },
+          "operation": "person.delete",
+          "personId": "aaaa1002-0000-0000-0000-000000000005",
+          "reason": "deleted"
+        },
+        "delete_has_dependents": {
+          "authorized": true,
+          "changed": false,
+          "dependents": [
+            {
+              "count": 1,
+              "table": "tasks.owner_person_id"
+            }
+          ],
+          "operation": "person.delete",
+          "personId": "aaaa1002-0000-0000-0000-000000000005",
+          "reason": "has_dependents"
+        },
+        "dept_mismatch_blocked_direct": true,
+        "dept_mismatch_blocked_rpc": true,
+        "direct_bypass_blocked": true,
+        "former_manager_end": {
+          "assignmentsHistoricized": 0,
+          "authorized": false,
+          "changed": false,
+          "operation": "person.endEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000002",
+          "postconditionPassed": false,
+          "reason": "denied"
+        },
+        "founder_end": {
+          "assignmentsHistoricized": 0,
+          "authorized": true,
+          "changed": true,
+          "operation": "person.endEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000004",
+          "postconditionPassed": true,
+          "reason": "employment_ended"
+        },
+        "founder_end_idempotent": {
+          "assignmentsHistoricized": 0,
+          "authorized": true,
+          "changed": false,
+          "operation": "person.endEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000004",
+          "postconditionPassed": true,
+          "reason": "already_inactive"
+        },
+        "founder_restore": {
+          "assignmentsHistoricized": 0,
+          "authorized": true,
+          "changed": true,
+          "operation": "person.restoreEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000004",
+          "postconditionPassed": true,
+          "reason": "restored"
+        },
+        "founder_restore_idempotent": {
+          "assignmentsHistoricized": 0,
+          "authorized": true,
+          "changed": false,
+          "operation": "person.restoreEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000004",
+          "postconditionPassed": true,
+          "reason": "already_active"
+        },
+        "manager_delete_denied": {
+          "authorized": false,
+          "changed": false,
+          "operation": "person.delete",
+          "personId": "aaaa1002-0000-0000-0000-000000000007",
+          "reason": "denied"
+        },
+        "manager_end": {
+          "assignmentsHistoricized": 1,
+          "authorized": true,
+          "changed": true,
+          "operation": "person.endEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000001",
+          "postconditionPassed": true,
+          "reason": "employment_ended"
+        },
+        "manager_restore": {
+          "assignmentsHistoricized": 0,
+          "authorized": true,
+          "changed": true,
+          "operation": "person.restoreEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000001",
+          "postconditionPassed": true,
+          "reason": "restored"
+        },
+        "not_found": {
+          "assignmentsHistoricized": 0,
+          "authorized": false,
+          "changed": false,
+          "operation": "person.endEmployment",
+          "personId": "00000000-0000-0000-0000-000000000000",
+          "postconditionPassed": false,
+          "reason": "not_found"
+        },
+        "p1_active_real": "true",
+        "p1_assignment_end_date_set": true,
+        "p1_assignment_state": "historical",
+        "p4_active_after_bypass_attempt": "true",
+        "p5_really_gone": true,
+        "p6_cascade_after": {
+          "assignments": "0",
+          "kpi": "0",
+          "policy": "0",
+          "salary": "0"
+        },
+        "p6_cascade_before": {
+          "assignments": "1",
+          "kpi": "1",
+          "policy": "1",
+          "salary": "1"
+        },
+        "p6_delete": {
+          "authorized": true,
+          "changed": true,
+          "destroyedCounts": {
+            "kpi_records": 1,
+            "people": 1,
+            "person_ai_policy": 1,
+            "person_assignments": 1,
+            "salary_private": 1
+          },
+          "operation": "person.delete",
+          "personId": "aaaa1002-0000-0000-0000-000000000006",
+          "reason": "deleted"
+        },
+        "p7_still_exists": true,
+        "scenario": "PERSON-LIFECYCLE-AI-ROUTING",
+        "unrelated_end": {
+          "assignmentsHistoricized": 0,
+          "authorized": false,
+          "changed": false,
+          "operation": "person.endEmployment",
+          "personId": "aaaa1002-0000-0000-0000-000000000003",
+          "postconditionPassed": false,
+          "reason": "denied"
+        }
+      }
+    },
+    "plugin_registry_and_agent_telemetry_truth": {
+      "error": "unexpected status 400: {\"message\":\"Failed to run sql query: ERROR:  23505: duplicate key value violates unique constraint \\\"plugin_sources_github_owner_github_repo_key\\\"\\n\"}"
+    },
+    "sc054_employee_task_visibility": {
+      "verdict": {
+        "all_pass": true,
+        "persona": "ORDINARY_EMPLOYEE (technician) at CLIX GPS",
+        "sc054_visible_count": 1,
+        "scenario": "SC-054",
+        "t1_creator_is_employee": true,
+        "t1_own_visible": true,
+        "t2_other_tech_hidden": true,
+        "t3_strategic_hidden": true,
+        "t4_finance_hidden": true,
+        "t5_other_company_hidden": true
+      }
+    },
+    "sc056_cross_company_isolation": {
+      "verdict": {
+        "all_pass": true,
+        "b_company_hidden": true,
+        "b_document_hidden": true,
+        "b_finreport_hidden": true,
+        "b_lead_hidden": true,
+        "b_memory_hidden": true,
+        "b_project_hidden": true,
+        "b_task_count_zero": true,
+        "b_task_hidden": true,
+        "persona": "Company A manager, querying Company B resources",
+        "scenario": "SC-056"
+      }
+    },
+    "sc057_manager_not_cfo": {
+      "verdict": {
+        "all_pass": true,
+        "cash_read_blocked": true,
+        "finance_approve_blocked": true,
+        "legal_approve_blocked": true,
+        "persona": "company manager of CLIX GPS",
+        "production_approve_allowed": true,
+        "salary_approve_blocked": true,
+        "salary_read_blocked": true,
+        "scenario": "SC-057"
+      }
+    },
+    "sc058_bookkeeper_sod_gap": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED",
+        "direct_write_blocked": true,
+        "founder_can_still_approve": true,
+        "persona": "hr_finance (the only mapping for bookkeeper/CFO)",
+        "proposal_created": true,
+        "salary_applied_after_founder_approval": true,
+        "scenario": "SC-058",
+        "self_approval_denied": true
+      }
+    },
+    "sc059b_live_decide_approval": {
+      "verdict": {
+        "A_deleted": true,
+        "B_deleted": true,
+        "D_survived": true,
+        "all_pass": true,
+        "first": "2 task(s) deleted.",
+        "scenario": "SC-059b (LIVE decide_approval)",
+        "second": "noop",
+        "status": "approved"
+      }
+    },
+    "sc059_approval_execution": {
+      "verdict": {
+        "A_deleted": true,
+        "B_deleted": true,
+        "C_deleted": true,
+        "D_survived": true,
+        "all_pass": true,
+        "approval_status": "approved",
+        "audit_written": true,
+        "first_call_summary": "3 task(s) deleted.",
+        "scenario": "SC-059 / SC-094",
+        "second_call_summary": "noop",
+        "status": "LOGIC VERIFIED against committed migration 202608270005; deployment PENDING founder db push"
+      }
+    },
+    "sc060_payload_immutability_gap": {
+      "verdict": {
+        "all_pass": true,
+        "approval_status_after": "approved",
+        "classification": "FIXED",
+        "decide_approval_still_works": true,
+        "mutation_blocked": true,
+        "payload_unchanged": true,
+        "scenario": "SC-060"
+      }
+    },
+    "sc069_search_leakage": {
+      "verdict": {
+        "all_pass": true,
+        "confidential_docs_search_zero": true,
+        "confidential_memory_search_zero": true,
+        "financial_reports_zero": true,
+        "persona": "ordinary employee, CLIX GPS",
+        "salary_search_zero": true,
+        "scenario": "SC-069"
+      }
+    },
+    "sc070_audit_log_leak": {
+      "verdict": {
+        "all_pass": true,
+        "founder_ownership_audit_hidden": true,
+        "founder_salary_audit_hidden": true,
+        "own_audit_visible": true,
+        "persona": "ordinary employee",
+        "scenario": "SC-070"
+      }
+    },
+    "sc071_create_wrong_company": {
+      "verdict": {
+        "all_pass": true,
+        "lead_wrong_company": "DENIED:42501",
+        "scenario": "SC-071",
+        "task_own_company": "ALLOWED-GOOD",
+        "task_wrong_company": "DENIED:42501"
+      }
+    },
+    "sc072_073_security_field_mutation": {
+      "verdict": {
+        "all_pass": true,
+        "doc_downgrade_attempt": "ATTEMPT-NOERROR",
+        "doc_sensitivity_unchanged": true,
+        "scenario": "SC-072 / SC-073",
+        "task_company_unchanged": true,
+        "task_move_attempt": "ATTEMPT-NOERROR"
+      }
+    },
+    "sc074_founder_only_data": {
+      "verdict": {
+        "all_pass": true,
+        "cfo_sees": 0,
+        "employee_sees": 0,
+        "manager_sees": 0,
+        "scenario": "SC-074"
+      }
+    },
+    "sc088_091_access_revocation": {
+      "verdict": {
+        "access_revoked_immediately": true,
+        "employed_companies": 3,
+        "employed_own_task": 0,
+        "note": "RLS re-evaluated live per query; deactivating the membership removed company access on the same JWT with no re-login. Full termination also needs the auth.users session disabled — see SC-088 doc.",
+        "scenario": "SC-088/091 (termination) + SC-089/090 (role/company change) mechanism",
+        "terminated_companies": 0,
+        "terminated_finreports": 0
+      }
+    },
+    "sc093_security_definer_audit": {
+      "verdict": {
+        "all_pass": true,
+        "emp_has_access_malformed_null": "false",
+        "emp_has_access_other": "false",
+        "emp_has_access_own": "true",
+        "emp_is_founder_or_admin": "false",
+        "emp_is_hr_finance": "false",
+        "emp_is_investor_viewer_of_own": "false",
+        "emp_is_manager_own": "false",
+        "emp_mcp_create": "DENIED",
+        "emp_propose_salary_change": "DENIED",
+        "emp_try_uuid_malformed": "NULL",
+        "founder_has_access_any": "true",
+        "founder_is_founder_or_admin": "true",
+        "founder_propose_salary_change": "ALLOWED-GOOD",
+        "scenario": "SC-093"
+      }
+    },
+    "sc103_audit_integrity": {
+      "verdict": {
+        "all_pass": true,
+        "can_read_own": "true",
+        "delete_attempt": "NOERROR",
+        "message_unchanged": true,
+        "row_still_present": true,
+        "scenario": "SC-103",
+        "update_attempt": "NOERROR"
+      }
+    },
+    "sc118_resource_operations_matrix": {
+      "verdict": [
+        {
+          "op": "DELETE",
+          "result": "ZERO-ROWS",
+          "role": "employee",
+          "tbl": "documents"
+        },
+        {
+          "op": "INSERT",
+          "result": "DENIED",
+          "role": "employee",
+          "tbl": "documents"
+        },
+        {
+          "op": "SELECT",
+          "result": "VISIBLE",
+          "role": "employee",
+          "tbl": "documents"
+        },
+        {
+          "op": "UPDATE",
+          "result": "ZERO-ROWS",
+          "role": "employee",
+          "tbl": "documents"
+        },
+        {
+          "op": "INSERT",
+          "result": "DENIED",
+          "role": "employee",
+          "tbl": "financial_reports"
+        },
+        {
+          "op": "SELECT",
+          "result": "HIDDEN",
+          "role": "employee",
+          "tbl": "financial_reports"
+        },
+        {
+          "op": "DELETE",
+          "result": "ZERO-ROWS",
+          "role": "employee",
+          "tbl": "tasks"
+        },
+        {
+          "op": "INSERT",
+          "result": "ALLOWED",
+          "role": "employee",
+          "tbl": "tasks"
+        },
+        {
+          "op": "SELECT",
+          "result": "HIDDEN",
+          "role": "employee",
+          "tbl": "tasks"
+        },
+        {
+          "op": "UPDATE",
+          "result": "ZERO-ROWS",
+          "role": "employee",
+          "tbl": "tasks"
+        },
+        {
+          "op": "DELETE",
+          "result": "AFFECTED",
+          "role": "manager",
+          "tbl": "documents"
+        },
+        {
+          "op": "INSERT",
+          "result": "ALLOWED",
+          "role": "manager",
+          "tbl": "documents"
+        },
+        {
+          "op": "SELECT",
+          "result": "VISIBLE",
+          "role": "manager",
+          "tbl": "documents"
+        },
+        {
+          "op": "UPDATE",
+          "result": "AFFECTED",
+          "role": "manager",
+          "tbl": "documents"
+        },
+        {
+          "op": "INSERT",
+          "result": "ALLOWED",
+          "role": "manager",
+          "tbl": "financial_reports"
+        },
+        {
+          "op": "SELECT",
+          "result": "VISIBLE",
+          "role": "manager",
+          "tbl": "financial_reports"
+        },
+        {
+          "op": "DELETE",
+          "result": "AFFECTED",
+          "role": "manager",
+          "tbl": "tasks"
+        },
+        {
+          "op": "INSERT",
+          "result": "ALLOWED",
+          "role": "manager",
+          "tbl": "tasks"
+        },
+        {
+          "op": "SELECT",
+          "result": "VISIBLE",
+          "role": "manager",
+          "tbl": "tasks"
+        },
+        {
+          "op": "UPDATE",
+          "result": "AFFECTED",
+          "role": "manager",
+          "tbl": "tasks"
+        }
+      ]
+    },
+    "sc119_security_fields": {
+      "verdict": {
+        "all_pass": true,
+        "approval_approver_unchanged": true,
+        "approval_status_unchanged": true,
+        "memory_company_unchanged": true,
+        "memory_sensitivity_unchanged": true,
+        "scenario": "SC-119"
+      }
+    },
+    "sem_ai_command_execution_plan_rpc_truth": {
+      "verdict": {
+        "action1_real_rpc_failure_reason_not_found": true,
+        "action1_success_formula_correctly_false": true,
+        "action2_never_executed_person_assignment_unchanged": true,
+        "action2_never_executed_person_company_unchanged": true,
+        "action3_independent_task_assignment_still_completed": true,
+        "all_pass": true,
+        "dependent_reassign_DOES_run_once_real_dependency_succeeds": true,
+        "real_restore_postcondition_person_active": true,
+        "real_restore_rpc_genuinely_succeeds_on_real_dependency": true
+      }
+    },
+    "task_goal_archive_ownership": {
+      "verdict": {
+        "all_pass": true,
+        "classification": "FIXED (KNOWN_FAILURE_MODES.md #20 follow-through — see migration 202608290001)",
+        "goal_creator_archive": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0002-0000-0000-0000-000000000001",
+          "newStatus": "archived",
+          "operation": "goal.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "goal_creator_restore": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0002-0000-0000-0000-000000000001",
+          "newStatus": "active",
+          "operation": "goal.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored"
+        },
+        "goal_direct_bypass_blocked": true,
+        "goal_former_creator_archive": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0002-0000-0000-0000-000000000001",
+          "newStatus": "active",
+          "operation": "goal.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "goal_founder_archive": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0002-0000-0000-0000-000000000002",
+          "newStatus": "archived",
+          "operation": "goal.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "goal_idempotent_archive": {
+          "authorized": true,
+          "changed": false,
+          "goalId": "eeee0002-0000-0000-0000-000000000002",
+          "newStatus": "archived",
+          "operation": "goal.archive",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "already_archived"
+        },
+        "goal_not_found": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "00000000-0000-0000-0000-000000000000",
+          "operation": "goal.archive",
+          "postconditionPassed": false,
+          "reason": "not_found"
+        },
+        "goal_other_user_archive": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0002-0000-0000-0000-000000000002",
+          "newStatus": "active",
+          "operation": "goal.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "scenario": "TASK-GOAL-ARCHIVE-OWNERSHIP",
+        "task_creator_archive": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "in_progress",
+          "reason": "archived",
+          "taskId": "dddd0001-0000-0000-0000-000000000001"
+        },
+        "task_creator_restore": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "in_progress",
+          "operation": "task.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored",
+          "taskId": "dddd0001-0000-0000-0000-000000000001"
+        },
+        "task_creator_restore_to_prior_status": true,
+        "task_direct_bypass_blocked": true,
+        "task_former_creator_archive": {
+          "authorized": false,
+          "changed": false,
+          "newStatus": "in_progress",
+          "operation": "task.archive",
+          "postconditionPassed": false,
+          "previousStatus": "in_progress",
+          "reason": "denied",
+          "taskId": "dddd0001-0000-0000-0000-000000000001"
+        },
+        "task_founder_archive": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "done",
+          "reason": "archived",
+          "taskId": "dddd0001-0000-0000-0000-000000000003"
+        },
+        "task_idempotent_archive": {
+          "authorized": true,
+          "changed": false,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "already_archived",
+          "taskId": "dddd0001-0000-0000-0000-000000000003"
+        },
+        "task_nocompany_archive": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "queued",
+          "reason": "archived",
+          "taskId": "dddd0001-0000-0000-0000-000000000002"
+        },
+        "task_nocompany_restore": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "queued",
+          "operation": "task.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored",
+          "taskId": "dddd0001-0000-0000-0000-000000000002"
+        },
+        "task_not_found": {
+          "authorized": false,
+          "changed": false,
+          "operation": "task.archive",
+          "postconditionPassed": false,
+          "reason": "not_found",
+          "taskId": "00000000-0000-0000-0000-000000000000"
+        },
+        "task_spoof_prevented": true
+      }
+    },
+    "task_goal_archive_ownership_extended": {
+      "verdict": {
+        "V10_task_reverse_bypass_blocked": "true",
+        "V11_goal_reverse_bypass_blocked": "true",
+        "V1_task_restore_former_creator_denied": {
+          "authorized": false,
+          "changed": false,
+          "newStatus": "archived",
+          "operation": "task.restore",
+          "postconditionPassed": false,
+          "previousStatus": "archived",
+          "reason": "denied",
+          "taskId": "dddd0002-0000-0000-0000-000000000001"
+        },
+        "V2_goal_restore_former_creator_denied": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0003-0000-0000-0000-000000000002",
+          "newStatus": "archived",
+          "operation": "goal.restore",
+          "postconditionPassed": false,
+          "previousStatus": "archived",
+          "reason": "denied"
+        },
+        "V2_goal_restore_unrelated_denied": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0003-0000-0000-0000-000000000002",
+          "newStatus": "archived",
+          "operation": "goal.restore",
+          "postconditionPassed": false,
+          "previousStatus": "archived",
+          "reason": "denied"
+        },
+        "V3_task_owner_archive": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "queued",
+          "reason": "archived",
+          "taskId": "dddd0002-0000-0000-0000-000000000003"
+        },
+        "V3_task_owner_restore": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "queued",
+          "operation": "task.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored",
+          "taskId": "dddd0002-0000-0000-0000-000000000003"
+        },
+        "V4_goal_owner_archive": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0003-0000-0000-0000-000000000004",
+          "newStatus": "archived",
+          "operation": "goal.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "V4_goal_owner_restore": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0003-0000-0000-0000-000000000004",
+          "newStatus": "active",
+          "operation": "goal.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored"
+        },
+        "V5_goal_unrelated_employee_denied": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0003-0000-0000-0000-000000000005",
+          "newStatus": "active",
+          "operation": "goal.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "V5_task_unrelated_employee_denied": {
+          "authorized": false,
+          "changed": false,
+          "newStatus": "queued",
+          "operation": "task.archive",
+          "postconditionPassed": false,
+          "previousStatus": "queued",
+          "reason": "denied",
+          "taskId": "dddd0002-0000-0000-0000-000000000005"
+        },
+        "V6_goal_cross_tenant_denied": {
+          "authorized": false,
+          "changed": false,
+          "goalId": "eeee0003-0000-0000-0000-000000000006",
+          "newStatus": "active",
+          "operation": "goal.archive",
+          "postconditionPassed": false,
+          "previousStatus": "active",
+          "reason": "denied"
+        },
+        "V6_task_cross_tenant_denied": {
+          "authorized": false,
+          "changed": false,
+          "newStatus": "queued",
+          "operation": "task.archive",
+          "postconditionPassed": false,
+          "previousStatus": "queued",
+          "reason": "denied",
+          "taskId": "dddd0002-0000-0000-0000-000000000006"
+        },
+        "V7_goal_cycle_final": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0003-0000-0000-0000-000000000007",
+          "newStatus": "active",
+          "operation": "goal.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored"
+        },
+        "V7_goal_cycle_final_status": "active",
+        "V7_task_cycle_final": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "blocked",
+          "operation": "task.restore",
+          "postconditionPassed": true,
+          "previousStatus": "archived",
+          "reason": "restored",
+          "taskId": "dddd0002-0000-0000-0000-000000000007"
+        },
+        "V7_task_cycle_final_status": "blocked",
+        "V7_task_cycle_previous_status_cleared": "true",
+        "V8_task_select_after_archive_visible": "true",
+        "V9_goal_creator_can_archive": {
+          "authorized": true,
+          "changed": true,
+          "goalId": "eeee0003-0000-0000-0000-000000000009",
+          "newStatus": "archived",
+          "operation": "goal.archive",
+          "postconditionPassed": true,
+          "previousStatus": "active",
+          "reason": "archived"
+        },
+        "V9_goal_creator_delete_blocked": "true",
+        "V9_task_creator_can_archive": {
+          "authorized": true,
+          "changed": true,
+          "newStatus": "archived",
+          "operation": "task.archive",
+          "postconditionPassed": true,
+          "previousStatus": "queued",
+          "reason": "archived",
+          "taskId": "dddd0002-0000-0000-0000-000000000009"
+        },
+        "V9_task_creator_delete_blocked": "true",
+        "all_pass": true,
+        "scenario": "VERIFIER-EXTENDED-TASK-GOAL-ARCHIVE"
+      }
+    }
+  },
+  "skipped_no_rollback": [
+    "_policy_drift_signature",
+    "canonical_work_order_model_adversarial",
+    "dashboard_company_count_excludes_archived",
+    "issue5_channel_state_layer_probe",
+    "privileged_rpc_anon_public_grant_sweep",
+    "sem_ai_command_context_budget"
+  ],
+  "interpretation": {
+    "sc054": "ORIGINAL FAIL was fixture invalidation: BEFORE INSERT trigger tasks_force_creator stamps creator from the caller, so postgres-inserted fixtures get NULL creator. Script repaired to insert fixtures as personas; re-run all_pass=true. Real user path (employee inserts own task, sees it) verified in a rolled-back diagnostic - acceptance test 4 holds.",
+    "sc118": "employee tasks SELECT=HIDDEN is the same fixture artefact (postgres-inserted rows have NULL creator). Manager rows and employee denial rows are valid. Script needs the same persona-insert repair.",
+    "factory_agent_registry_adversarial": "2 of 9 assertions false (CANNOT_SELF_ESCALATE_AUTHORITY, STATUS_DERIVED_FROM_REAL_RUN via status_no_runs=FAILED). Last recorded all_pass=true post-202608290004. Suspected script drift (the probed real agent now has real failed runs; escalation probe logic not yet re-read). NOT asserted as a product defect; needs diagnosis.",
+    "plugin_registry_and_agent_telemetry_truth": "script error 23505 duplicate key on plugin_sources - fixture collides with live data; script not idempotent."
+  }
+}
