@@ -30,7 +30,7 @@ function findRepoFile(rel) {
   }
   throw new Error('could not locate ' + rel + ' from ' + dirname(fileURLToPath(import.meta.url)));
 }
-const { stripTS } = await import(new URL('file://' + findRepoFile('qa/scenarios-runner/_gate_extract.mjs')).href);
+const { stripTS, withPatternsAboveWindow } = await import(new URL('file://' + findRepoFile('qa/scenarios-runner/_gate_extract.mjs')).href);
 const SRC = process.env.SEM_INDEX_SRC || findRepoFile('supabase/functions/sem-ai-command/index.ts');
 const src = readFileSync(SRC, 'utf8');
 
@@ -38,7 +38,7 @@ const src = readFileSync(SRC, 'utf8');
 const gStart = src.indexOf('// STRUCTURED-CLAIM VERIFICATION');
 const gAnchor = src.indexOf('executionEvidence: claimExecutionEvidence,', gStart);
 if (gStart === -1 || gAnchor === -1) throw new Error('gate slice anchors not found — update this harness, do not let it pass');
-const gateSlice = stripTS(src.slice(gStart, src.indexOf('};', gAnchor) + 2));
+const gateSlice = withPatternsAboveWindow(src, stripTS(src.slice(gStart, src.indexOf('};', gAnchor) + 2)));
 const gateFn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno',
   'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById', 'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',

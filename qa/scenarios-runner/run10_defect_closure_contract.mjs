@@ -13,7 +13,7 @@
 //               run8_defect_closure_contract.mjs (or a run10 section) in the same commit.
 // Runnable with plain node from the repo root. SEM_INDEX_SRC overrides the source path.
 import { readFileSync } from 'node:fs';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withPatternsAboveWindow } from './_gate_extract.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -21,7 +21,7 @@ const SRC = process.env.SEM_INDEX_SRC || resolve(dirname(fileURLToPath(import.me
 const src = readFileSync(SRC, 'utf8');
 const start = src.indexOf('// STRUCTURED-CLAIM VERIFICATION');
 const anchor = src.indexOf('executionEvidence: claimExecutionEvidence,', start);
-const slice = stripTS(src.slice(start, src.indexOf('};', anchor) + 2));
+const slice = withPatternsAboveWindow(src, stripTS(src.slice(start, src.indexOf('};', anchor) + 2)));
 const fn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno',
   'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById', 'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',

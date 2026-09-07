@@ -18,7 +18,7 @@
 //   * keep the exit guard at the bottom (run10's promotion had to restore one).
 // Runnable with plain node from the repo root. SEM_INDEX_SRC overrides the source path.
 import { readFileSync } from 'node:fs';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withPatternsAboveWindow } from './_gate_extract.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -51,7 +51,7 @@ function sliceBetween(startAnchor, endAnchor) {
 const gStart = src.indexOf('// STRUCTURED-CLAIM VERIFICATION');
 const gAnchor = src.indexOf('executionEvidence: claimExecutionEvidence,', gStart);
 if (gStart === -1 || gAnchor === -1) throw new Error('gate slice anchors not found');
-const gateSlice = stripTS(src.slice(gStart, src.indexOf('};', gAnchor) + 2));
+const gateSlice = withPatternsAboveWindow(src, stripTS(src.slice(gStart, src.indexOf('};', gAnchor) + 2)));
 const gateFn = new Function(
   'result', 'claimExecutionEvidence', 'contextPack', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'Deno',
   'companyNameById', 'taskTitleById', 'personNameById', 'goalTitleById', 'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',

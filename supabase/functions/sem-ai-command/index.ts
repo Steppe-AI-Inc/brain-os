@@ -2618,6 +2618,14 @@ serve(async (req) => {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
       let workOrderId: string | null = null;
       try {
+        // V54-P0-TDZ: these two patterns are read at the disambiguation replay branch (~:2779) and by the
+        // structured-claim window far below. They are block-scoped consts in THIS try block, so they must be
+        // declared above every use or the replay branch throws ReferenceError (temporal dead zone) and the
+        // founder's selection never executes. Pure regex literals; nothing between here and the old site
+        // was needed to build them. The old placement was made "so the QA harnesses see it" — harnesses
+        // must be taught to look here instead (extractors search the whole file by name).
+        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const COMPLETION_WORD = /\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|ended|moved|added|granted|confirmed|renamed|declined|closed|done|cleared|sent)\b/i;
         // A real row now exists in the database before the LLM call even starts, not
         // just after it finishes — verified live that generation itself survives a
         // client disconnect (a command was sent, the browser hard-disconnected before it
@@ -4773,9 +4781,6 @@ serve(async (req) => {
         // postconditions; claims are matched against that evidence by EXACT id.
         // ==================================================================================
 
-        // (Moved inside the structured-claim window so the QA harnesses that re-execute
-        // this window in isolation see it; its only consumer is safeProseFragment below.)
-        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
 
         // Evidence index keyed by EXACT resource identity. Only postcondition-confirmed rows
         // are indexed, so an attempted-but-unconfirmed mutation can never support a claim.
@@ -5051,7 +5056,6 @@ serve(async (req) => {
         // run9/D71: extended with the rest of the executor's completion vocabulary.
         // Disclosed limitation: lexical and English-only — the structural question cut
         // carries the load for questions; labels/summaries remain lexical.
-        const COMPLETION_WORD = /\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|ended|moved|added|granted|confirmed|renamed|declined|closed|done|cleared|sent)\b/i;
         // run9/D72: a REPAIRING gate, not a blanking one — a blanked label made its
         // disambiguation option unselectable (matchDisambiguationOption matches on the
         // label the founder can see and type). Trailing punctuation is stripped, an

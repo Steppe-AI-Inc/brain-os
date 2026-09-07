@@ -80,6 +80,14 @@ if (/\btype\s+\w+\s*=/.test(slice) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.
 // index.ts derives knownEntityNames (line ~3423) from the four name maps ABOVE the extracted window,
 // and after V48-D3 the belt inside the window consults it. Mirror the derivation exactly from the
 // same injected maps so the harness never invents a pack the code under test would not have had.
+// V54-P0-TDZ: PAST_COMPLETION_CLAIM_PATTERN and COMPLETION_WORD are declared at the top of the try block,
+// ABOVE this window, in production. Inject them by name from the same source (never hoist declarations
+// from BELOW the window — that manufactured scope is how the TDZ hid for eighteen rounds).
+const PATTERNS_ABOVE_WINDOW_PREAMBLE = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].map((n) => {
+  const m = src.match(new RegExp('const ' + n + ' = (/(?:[^/\\\\\n]|\\\\.)+/[a-z]*);'));
+  if (!m) throw new Error('V54 preamble: ' + n + ' not found in source');
+  return 'const ' + n + ' = ' + m[1] + ';';
+}).join('\n') + '\n';
 const KNOWN_ENTITY_NAMES_PREAMBLE = 'const knownEntityNames = new Set([...companyNameById.values(), ...personNameById.values(), ...taskTitleById.values(), ...runtimeLabels.values()]'
   + '.filter((v) => typeof v === "string" && v.trim().length > 0).map((v) => v.trim().toLowerCase()));';
 const fn = new Function(
@@ -87,7 +95,7 @@ const fn = new Function(
   // run7/D50-D51: the deterministic report state is computed above the window in
   // index.ts and only its two derived values are referenced inside — injected here.
   'summaryIsFullyDeterministic', 'deterministicPrefix', 'runtimeLabels',
-  KNOWN_ENTITY_NAMES_PREAMBLE + slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
+  PATTERNS_ABOVE_WINDOW_PREAMBLE + KNOWN_ENTITY_NAMES_PREAMBLE + slice + '\n; return { summary: result.summary, envelope: result.verifiedResponse, corrected: claimsPastCompletionWithNoGrounding };'
 );
 // The block reads Deno.env for the authorized debug-id flag. Stub it so tests exercise
 // the PRODUCTION default (debug OFF) rather than whatever the host happens to have set.

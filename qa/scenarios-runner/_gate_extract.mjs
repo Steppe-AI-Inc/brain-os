@@ -174,3 +174,15 @@ export function extractGateSlice(source) {
   if (end === -1) throw new Error('unbalanced braces in the correction block');
   return assertExecutable(stripTS(source.slice(start, end)));
 }
+
+// V54-P0-TDZ: PAST_COMPLETION_CLAIM_PATTERN and COMPLETION_WORD are declared at the top of the handler's
+// try block, ABOVE the structured-claim window. A window re-executed in isolation must see them the way
+// production does — declared above. Extracted by NAME from the same source text; never a retyped copy.
+export function withPatternsAboveWindow(source, slice) {
+  const decls = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].map((n) => {
+    const m = source.match(new RegExp('const ' + n + ' = (/(?:[^/\\\\\n]|\\\\.)+/[a-z]*);'));
+    if (!m) throw new Error('withPatternsAboveWindow: ' + n + ' not found in source');
+    return 'const ' + n + ' = ' + m[1] + ';';
+  });
+  return decls.join('\n') + '\n' + slice;
+}

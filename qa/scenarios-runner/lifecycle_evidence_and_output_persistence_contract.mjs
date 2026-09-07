@@ -29,7 +29,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withPatternsAboveWindow } from './_gate_extract.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(here, '../../supabase/functions/sem-ai-command/index.ts');
@@ -41,7 +41,7 @@ function slice(startMarker, endMarker, what) {
   if (s === -1) throw new Error('could not find the start of ' + what + ' — update this harness, do not let it pass');
   const e = src.indexOf(endMarker, s);
   if (e === -1) throw new Error('could not find the end of ' + what + ' — update this harness, do not let it pass');
-  const out = stripTS(src.slice(s, e + endMarker.length));
+  const out = withPatternsAboveWindow(src, stripTS(src.slice(s, e + endMarker.length)));
   if (!/recordExecution\(/.test(out) && what !== 'the work_orders.output persist condition') {
     throw new Error(what + ' no longer contains a recordExecution call — update this harness, do not let it pass');
   }
@@ -210,7 +210,7 @@ const CLAIM_SLICE = (() => {
   if (envIdx === -1) throw new Error('verifiedResponse envelope not found — update this harness, do not let it pass');
   const envEnd = src.indexOf('};', envIdx);
   if (envEnd === -1) throw new Error('unterminated verifiedResponse envelope');
-  const out = stripTS(src.slice(s, envEnd + 2));
+  const out = withPatternsAboveWindow(src, stripTS(src.slice(s, envEnd + 2)));
   if (/\btype\s+\w+\s*=/.test(out) || /\b(const|let|var)\s+\w+\s*:\s*[A-Za-z_]/.test(out)) {
     throw new Error('TypeScript survived stripping — fix _gate_extract.mjs rather than letting this pass');
   }
