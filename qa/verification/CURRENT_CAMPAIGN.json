@@ -95,12 +95,12 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 116,
-  "verifier": 56,
+  "campaign": 117,
+  "verifier": 57,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "DISPATCH PENDING — verifier #56 on the P1 package",
-  "closure_commit": "1048b9ef771e836d3e987d5a336f8ebb8b5afd8a",
-  "index_sha256_prefix": "4f5c85a920b77aa4",
+  "status": "DISPATCH PENDING — verifier #57 on the #56 closure",
+  "closure_commit": "32a2d75491dae1a103111389ece62095a79ec03c",
+  "index_sha256_prefix": "ccde932fa5b1aeca",
   "branch": "p1/execution-truth-governance",
   "v92": {
     "deployed_version": 92,
@@ -120,7 +120,7 @@
   "what_this_campaign_did": "P1 package for the Work-PC handover 2026-09-07 (BUG-010/014/002/012/013/011) implemented as the first feature under docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md: ExecutionResultEnvelope on every recordExecution site with fresh create-family postconditions; MutationIntent from the request (verb patterns, model action arrays, confirmation-shaped commands); never-silent receipt; server-side company lifecycle resolution across every status (restoreCompanyNames/archiveCompanyNames schema fields; contextCompanyIds no longer gates archive/restore); context.collections envelopes for every pack collection, companies split active/archived; narrative tier with verdict + UNVERIFIED marker; durable channel state first; work_orders.output persisted every turn with turnVerdict; person-assignment receipt from the executed diff; V55-D1 possessive fix carried. Web: callLifecycleRpc, archived-parent policy on People controls, manager picker semantics, Archived (N) affordance, COMPANY_REF in 22 files, scopeToActiveOrganization in 19 pages. Enforcement: 8 architecture_* contracts + company_lifecycle_matrix + grounding_precedence_canonical_over_history + mutation_receipt_equals_ledger + tenant_authorization_lifecycle.sql.",
   "implementing_session_evidence_not_to_be_trusted": "battery 53/53; gates v48-v55 green, v46 33/3 (recorded standing reds: C8a stale CRLF pin, D1 growth exponent, D5 withdrawn); deno 19 by class (TS7006 x10, TS2322 x6, TS7034, TS7005, TS2339; zero runtime-fatal); index.ts CRLF 0 bare LF; web tsc/eslint/next build clean. RE-DERIVE ALL OF IT.",
   "verdict": null,
-  "rules": "FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule: a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only. Previous rule text: A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
+  "rules": "FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule: a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only. Previous rule text: FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule: a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only. Previous rule text: A v92-differential verifier PASS on the EXACT new SHA is production-deployment certification. #39 FAIL stands against 4941571 and is NOT inherited. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after a fresh verifier PASSES on these exact bytes. Production stays v92 until then.",
   "DESIGN_NOTE_entity_positive_signal": {
     "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
     "proposal": "Use known names as a POSITIVE signal only, exactly as verifier #30 suggested: a capitalised run that equals a known entity name is a NAME (nameInternal true; status-guard subject true) and never a determiner reading. Truncation-safe because absence proves nothing and is never used.",
@@ -139,7 +139,7 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #56 has not run"
+    "verifier #57 has not run"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
@@ -186,9 +186,9 @@
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
   "index_sha256_lf_prefix": "26972b1238c08d3e",
   "previous_campaign_pointer": {
-    "campaign": 115,
-    "verifier": 55,
-    "index_sha256_prefix": "2bad0df120fef86c"
+    "campaign": 116,
+    "verifier": 56,
+    "index_sha256_prefix": "4f5c85a920b77aa4"
   },
   "record_corrections_applied": [
     "v31 32/2 (was 33/1)",
@@ -221,30 +221,118 @@
   "verifier56_resumed_note": "Second pass of verifier #56 (fresh process, same base commit e79eb658, same index sha256 4f5c85a9…). Prior-pass findings were treated as pointers only; every result below was RE-RUN in this pass: battery 55 suites (53 exit 0, 2 machine-posture reds), contract_harness 474/12 (the 12 are harness-shape artefacts — production overwrites result.summary at index.ts:4885 when a lifecycle report exists), lifecycle_harness 35/22, intent_corpus FN 9712/11880 ship + FP 310/310 replaced, company_lifecycle_matrix 19/0, mutation_receipt_equals_ledger 14/0, grounding_precedence 16/0, differential 840 rows, TDZ scan 1 false-positive P0 (:2388 type-literal key) + 1 safe deferred, gates v48-v52/v54/v55 exit 0, v46 33/3 and v53 33/1 = recorded standing reds, git c9dfab5bd433 index.ts sha 795c20c8… == both in-tree v92 copies (321370 B). npx (deno, supabase CLI) gated again in this session; no TypeScript compiler on disk; no browser tools in this session type.",
   "verifier56_status": "COMPLETE. VERDICT: FAIL on e79eb658 under the CONTRACT bar (V56-D1 intent false negatives ship fabrications; V56-D2 intent false positives rewrite truthful reads; V56-D3 command-name fallback archives unrelated companies; V56-D3b questions and explicit negatives ('do not archive Alpha') execute lifecycle RPCs; V56-D4 restore-word inside a name undoes an archive; V56-D5 punctuated names refused). Fix NOT prepared (design change; no write authority on index.ts). Artifacts: qa/verification/proposed/v56_known_failure_modes_entry_126.md, v56_PROMOTION_NOTE.md, v56_regression_additions.mjs (73 CONTRACT green / 56 DEFECT red by design; kills m1/m2b/m10/m12/m13). index.ts sha256 4f5c85a9… preserved.",
   "verifier56_second_pass_findings": [
-    { "id": "V56-D3b", "level": "FAILED (P1, worst shape)", "text": "Non-imperative sentences execute company lifecycle RPCs through the command-name fallback (independent of requestedIntent, question shape and negation): 15/19 probes — 'do not archive Alpha', 'never delete Alpha', 'I decided not to archive Alpha', 'did you archive Alpha?', 'is it safe to delete Alpha?', 'explain how to archive Alpha', 'before we archive Alpha, list its tasks', 'should I restore Beta?', 'how do I restore Beta', 'when did we end Bob' (archives Bob Trucking). Line 4885 then replaces the summary with 'Alpha Holdings: archived.' qa/verification/scratch/v56/question_probe.mjs." },
-    { "id": "V56-H1", "level": "CODE INSPECTED", "text": "Harness judgement: _gate_extract default command '' (no intent) is faithful for window suites that never exercised intent; run8/10-14 default 'archive ACME Holdings' gives every belt case intent for free — faithful for belt-given-intent, but no battery member exercised intent derivation on realistic phrasing, which is how D1/D2 escaped. architecture_final_claim_contract pins head-verb commands only. structured_claim_* hardcode the same default. Not a false pass; a coverage gap closed by v56_regression_additions.mjs." },
-    { "id": "V56-HARNESS-ARTEFACTS", "level": "CODE INSPECTED", "text": "contract_harness 12 failures (verified evidence + claims:null -> 'can't confirm' floor; E lifecycle report) are harness-shape artefacts: production overwrites result.summary with [factLines, lifecycleReports] at index.ts:4885 before the window, and every archive/restore/delete/end-employment site produces a report or factLine; unclaimedLines only render create/update/activate/deactivate. Residual: if any lifecycle-family evidence ever existed without a report line, the floor message would deny a real mutation." },
-    { "id": "V56-MUTATION", "level": "UNIT VERIFIED", "text": "16 mutants × whole battery (own run): 12 killed; m6 was an unfaithful mutant (canonical literal) — faithful bare companies(name) join IS killed by company_ref_no_bare_name_join; m10/m12/m13 survived the committed battery and are killed by v56_regression_additions CONTRACT rows (5/1/2 failures). index.ts sha asserted before/after every mutant." },
-    { "id": "V56-DIFFERENTIAL", "level": "UNIT VERIFIED", "text": "840 rows (465 truthful / 375 fabrications; 15 names incl. negator-initial both directions; possessives incl. bare apostrophe) × {intent, read} × {empty, populated}: read shape — candidate rewrites NOTHING via the belt (destroyed only by LIFECYCLE 100 / FUTURE 15), FAB_REGRESSION 140 = v92 tense catches that no longer fire without intent (INTENDED departure, conditional on D1 being fixed), TRUTH_RESCUE 130; intent shape — receipt fires before the belt on every empty-ledger row (725), TRUTH_REGRESSION 320 is the never-silent rule itself and mostly an artefact of empty lifecycleReports in the harness (production carries the report). qa/verification/scratch/v56/differential.json." },
-    { "id": "V56-2D-2G", "level": "UNIT VERIFIED", "text": "23 capped queries all count:'exact'; envelope total from res.count only; 23 pack arrays / 0 missing envelopes; companies split active/archived newest first. 34 literal-true recordExecution sites, 0 ungated; recordCreate fresh re-read; postcondition_verified mirrors postconditionPassed. Durable-first precedence executed; expired durable row does not bind but its twin in lastTurnOutput does (P3 residual); untyped pendingAction fails closed in resolveClarificationField." },
-    { "id": "V56-TDZ", "level": "UNIT VERIFIED", "text": "Own block-scope scanner: 1 'P0' at :2388 = type-literal key inside `as {…}` (false positive); 1 deferred (UUID_IN_TEXT :5093, decl :5128, earliest invocation displayName :5558) safe. deno check BLOCKED (npx gated; no tsc on disk). command is the founder's raw text (String(body.command||'').trim(), :2646)." },
-    { "id": "V56-GATES", "level": "UNIT VERIFIED", "text": "v48 v49 v50 v51 v52 v54 v55 exit 0; v46 33/3 (C8a stale CRLF pin, D1 growth exponent e=2.22, D5 withdrawn) and v53 33/1 (V53-C1 needs the CLI) = recorded standing reds." },
-    { "id": "V56-VERDICT", "level": "FAILED", "text": "FAIL on e79eb658db6b5298f02977a8ce77719da16d4218 (index.ts sha256 4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e). Blockers: D1 (P1) any mutation-intent fabrication ships on ordinary phrasing; D2 (P1) truthful reads rewritten on command shape; D3/D3b (P1) unrequested lifecycle executions incl. explicit negatives; D4 (P1 narrow); D5 (P2). Machinery (envelopes, receipt, precedence, persistence, resolution) clean. Gaps: deno, CLI, browser." }
+    {
+      "id": "V56-D3b",
+      "level": "FAILED (P1, worst shape)",
+      "text": "Non-imperative sentences execute company lifecycle RPCs through the command-name fallback (independent of requestedIntent, question shape and negation): 15/19 probes — 'do not archive Alpha', 'never delete Alpha', 'I decided not to archive Alpha', 'did you archive Alpha?', 'is it safe to delete Alpha?', 'explain how to archive Alpha', 'before we archive Alpha, list its tasks', 'should I restore Beta?', 'how do I restore Beta', 'when did we end Bob' (archives Bob Trucking). Line 4885 then replaces the summary with 'Alpha Holdings: archived.' qa/verification/scratch/v56/question_probe.mjs."
+    },
+    {
+      "id": "V56-H1",
+      "level": "CODE INSPECTED",
+      "text": "Harness judgement: _gate_extract default command '' (no intent) is faithful for window suites that never exercised intent; run8/10-14 default 'archive ACME Holdings' gives every belt case intent for free — faithful for belt-given-intent, but no battery member exercised intent derivation on realistic phrasing, which is how D1/D2 escaped. architecture_final_claim_contract pins head-verb commands only. structured_claim_* hardcode the same default. Not a false pass; a coverage gap closed by v56_regression_additions.mjs."
+    },
+    {
+      "id": "V56-HARNESS-ARTEFACTS",
+      "level": "CODE INSPECTED",
+      "text": "contract_harness 12 failures (verified evidence + claims:null -> 'can't confirm' floor; E lifecycle report) are harness-shape artefacts: production overwrites result.summary with [factLines, lifecycleReports] at index.ts:4885 before the window, and every archive/restore/delete/end-employment site produces a report or factLine; unclaimedLines only render create/update/activate/deactivate. Residual: if any lifecycle-family evidence ever existed without a report line, the floor message would deny a real mutation."
+    },
+    {
+      "id": "V56-MUTATION",
+      "level": "UNIT VERIFIED",
+      "text": "16 mutants × whole battery (own run): 12 killed; m6 was an unfaithful mutant (canonical literal) — faithful bare companies(name) join IS killed by company_ref_no_bare_name_join; m10/m12/m13 survived the committed battery and are killed by v56_regression_additions CONTRACT rows (5/1/2 failures). index.ts sha asserted before/after every mutant."
+    },
+    {
+      "id": "V56-DIFFERENTIAL",
+      "level": "UNIT VERIFIED",
+      "text": "840 rows (465 truthful / 375 fabrications; 15 names incl. negator-initial both directions; possessives incl. bare apostrophe) × {intent, read} × {empty, populated}: read shape — candidate rewrites NOTHING via the belt (destroyed only by LIFECYCLE 100 / FUTURE 15), FAB_REGRESSION 140 = v92 tense catches that no longer fire without intent (INTENDED departure, conditional on D1 being fixed), TRUTH_RESCUE 130; intent shape — receipt fires before the belt on every empty-ledger row (725), TRUTH_REGRESSION 320 is the never-silent rule itself and mostly an artefact of empty lifecycleReports in the harness (production carries the report). qa/verification/scratch/v56/differential.json."
+    },
+    {
+      "id": "V56-2D-2G",
+      "level": "UNIT VERIFIED",
+      "text": "23 capped queries all count:'exact'; envelope total from res.count only; 23 pack arrays / 0 missing envelopes; companies split active/archived newest first. 34 literal-true recordExecution sites, 0 ungated; recordCreate fresh re-read; postcondition_verified mirrors postconditionPassed. Durable-first precedence executed; expired durable row does not bind but its twin in lastTurnOutput does (P3 residual); untyped pendingAction fails closed in resolveClarificationField."
+    },
+    {
+      "id": "V56-TDZ",
+      "level": "UNIT VERIFIED",
+      "text": "Own block-scope scanner: 1 'P0' at :2388 = type-literal key inside `as {…}` (false positive); 1 deferred (UUID_IN_TEXT :5093, decl :5128, earliest invocation displayName :5558) safe. deno check BLOCKED (npx gated; no tsc on disk). command is the founder's raw text (String(body.command||'').trim(), :2646)."
+    },
+    {
+      "id": "V56-GATES",
+      "level": "UNIT VERIFIED",
+      "text": "v48 v49 v50 v51 v52 v54 v55 exit 0; v46 33/3 (C8a stale CRLF pin, D1 growth exponent e=2.22, D5 withdrawn) and v53 33/1 (V53-C1 needs the CLI) = recorded standing reds."
+    },
+    {
+      "id": "V56-VERDICT",
+      "level": "FAILED",
+      "text": "FAIL on e79eb658db6b5298f02977a8ce77719da16d4218 (index.ts sha256 4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e). Blockers: D1 (P1) any mutation-intent fabrication ships on ordinary phrasing; D2 (P1) truthful reads rewritten on command shape; D3/D3b (P1) unrequested lifecycle executions incl. explicit negatives; D4 (P1 narrow); D5 (P2). Machinery (envelopes, receipt, precedence, persistence, resolution) clean. Gaps: deno, CLI, browser."
+    }
   ],
   "verifier56_findings": [
-    { "id": "V56-PREFLIGHT", "level": "UNIT VERIFIED", "text": "HEAD e79eb658; scratch probe ok; architecture_final_claim_contract 51/0. index.ts sha256 4f5c85a9… (512681 B, 6310 CRLF, 0 bare LF, 1 bare CR). index.ts unchanged 1048b9ef..e79eb65." },
-    { "id": "V56-BATTERY", "level": "UNIT VERIFIED", "text": "qa/scenarios-runner: 55 .mjs suites on disk (record says 53): 53 exit 0, 2 exit 1 = production_write_authority + factory_production_write_inventory (machine posture); 5 self-declared SUPERSEDED one-line stubs (claim_segmentation, d3_past_completion, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding)." },
-    { "id": "V56-DELTA", "level": "CODE INSPECTED", "text": "v92 (git c9dfab5bd433, sha 795c20c8…, 321370 B LF) -> candidate (506371 B LF): 108 hunks +2097/-99; declared identifiers 496 -> 769, 273 added, 0 removed; imports identical (2); index.ts imports nothing from _shared (0 non-comment mentions) — deploy surface is exactly index.ts." },
-    { "id": "V56-MIRRORS", "level": "CODE INSPECTED", "text": "supabase/functions/_shared/{execution,collection,lifecycle}.ts and parent-policy.ts are NOT byte-identical to web/lib/contracts + web/lib/policy (93/33/98/51 differing lines). OPERATING_TRUTH_MODEL.md §4 says 'kept identical by a drift guard' and both file headers cite qa/scenarios-runner/architecture_shared_contracts_mirror_contract.mjs — that file does not exist. AUTHORITY_NOT_ENFORCED; not on the Edge deploy surface." },
-    { "id": "V56-PROVENANCE", "level": "BLOCKED (integration-level)", "text": "supabase CLI and npx are gated in this session; could not fetch live bytes. git c9dfab5bd433 index.ts sha256 795c20c8… == qa/verification/scratch/v92/index.v92.ts (recorded as the live download, BYTE-DIRECT per the campaign record). My link is integration-level via git + the in-tree copy." },
-    { "id": "V56-DENO", "level": "BLOCKED", "text": "npx deno and a global tsc are both gated; class decomposition not re-run. Substitutes: own run of the block-scope TDZ scanner (1 'P0' at :2388 = type-literal key inside an `as {…}` annotation — false positive, same class #55 recorded at :2333; 1 deferred UUID_IN_TEXT :5093/:5128, invoked later — safe), identifier delta 0 removed, CRLF-pure." },
-    { "id": "V56-A", "level": "UNIT VERIFIED", "text": "Own receipt matrix through the real structured-claim window: 68 mutation-intent commands × {claims:null, [], state-only} + pendingAction variant = 272 cases, 0 failures (deterministic receipt, no success wording, receiptRendered, executedOperationCount 0). 100 read cases survive verbatim." },
-    { "id": "V56-D1", "level": "FAILED (P1)", "text": "Intent FALSE NEGATIVES: 68/71 real mutation phrasings derive NO requestedIntent, and with claims:null + no model action field the fabricated completion ships VERBATIM (belt is gated on intent, receipt never fires): 'Could you please archive ACME', 'Let’s archive ACME', 'Go ahead and archive ACME', 'I need ACME archived', 'can you please rename project Alpha to Beta' (BUG-002 with a polite prefix), 'Mark task QA-1 as done', 'close/complete/cancel/reopen/edit/modify/fix/merge …', 'assign QA-1 to Bob', 'create ACME Robotics', 'hire Bob Smith', 'yes, archive it', 'Yes — do it', 'option two', 'the second option', 'B', 'fire/terminate/dismiss Bob', all Mongolian forms. v92 corrects the same prose (PAST arm) — FAB regression AND OTM §3 rule 1/3 violation." },
-    { "id": "V56-D2", "level": "FAILED (P1)", "text": "Intent FALSE POSITIVES: 21/24 read-shaped commands derive intent from a head verb + any entity noun, and the truthful read answer is REPLACED by 'No change was made — that request did not resolve to an operation I can execute from chat': 'make a list of all companies', 'update me on the project status', 'create a report of archived companies', 'end date of the project Alpha?', 'set out the plan for the project Alpha', 'move on — what’s next for the project?', 'restore my memory: who is Bob?', 'assign a number to each company and list them', 'add the numbers: how many people per company?'." },
-    { "id": "V56-D3", "level": "FAILED (P1)", "text": "Server-side lifecycle resolution: the COMMAND-NAME fallback (fromCommand) runs whenever the model emitted no company ids/names, even when the model resolved the command to a task/person/goal, and its fuzzy stage is all-tokens-substring. Real executor slice: 'delete Alpha' (+deleteTaskIds) archives company 'Alpha Holdings'; 'remove Bob' (+endEmploymentPersonIds) archives 'Bobcat Machinery'; 'remove Bob Smith' archives 'Bob Smith Consulting'; 'archive Q3 revenue' (goal) archives 'Q3 Revenue Partners'; 'archive the task Alpha' archives 'Alpha Task Force' — each with a truthful-looking receipt 'X: archived.' Unrequested mutation of the wrong entity." },
-    { "id": "V56-D4", "level": "FAILED (P1 narrow)", "text": "A restore-family word INSIDE a company name ('Restored Furniture Co', 'Reactivate Solutions') makes RESTORE_VERB_PATTERN match the command 'archive Restored Furniture Co': with the model id the archive executes and the restore guess immediately RESTORES it (receipt 'X: archived. X: restored.', final state active); with name only, a restore is attempted instead of the archive ('was already active'). The archive direction is suppressed when the command contains a restore word, but not vice versa." },
-    { "id": "V56-D5", "level": "FAILED (P2)", "text": "Punctuated company names are refused as 'no company by that name': 'Acme (Mongolia) LLC', 'A_B Holdings', '100% Natural Foods' (both via command and via restoreCompanyNames); 'Acme, Inc.' via restoreCompanyNames. Cause: [%_,()] are replaced by spaces in the ilike pattern but not in the row, and the fuzzy tokens keep the punctuation. OTM §5 'restore of a known entity refused'." },
-    { "id": "V56-N1", "level": "CODE INSPECTED", "text": "Notes: ambiguity + a model-armed pendingAction leaves NO lifecycle line and offers no options (C7b); status preference silently picks among fuzzy hits ('archive Beta' -> Beta Labs, C8); questions[] and proposedActions[] are dropped when the receipt renders (only pendingAction.question survives)." }
+    {
+      "id": "V56-PREFLIGHT",
+      "level": "UNIT VERIFIED",
+      "text": "HEAD e79eb658; scratch probe ok; architecture_final_claim_contract 51/0. index.ts sha256 4f5c85a9… (512681 B, 6310 CRLF, 0 bare LF, 1 bare CR). index.ts unchanged 1048b9ef..e79eb65."
+    },
+    {
+      "id": "V56-BATTERY",
+      "level": "UNIT VERIFIED",
+      "text": "qa/scenarios-runner: 55 .mjs suites on disk (record says 53): 53 exit 0, 2 exit 1 = production_write_authority + factory_production_write_inventory (machine posture); 5 self-declared SUPERSEDED one-line stubs (claim_segmentation, d3_past_completion, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding)."
+    },
+    {
+      "id": "V56-DELTA",
+      "level": "CODE INSPECTED",
+      "text": "v92 (git c9dfab5bd433, sha 795c20c8…, 321370 B LF) -> candidate (506371 B LF): 108 hunks +2097/-99; declared identifiers 496 -> 769, 273 added, 0 removed; imports identical (2); index.ts imports nothing from _shared (0 non-comment mentions) — deploy surface is exactly index.ts."
+    },
+    {
+      "id": "V56-MIRRORS",
+      "level": "CODE INSPECTED",
+      "text": "supabase/functions/_shared/{execution,collection,lifecycle}.ts and parent-policy.ts are NOT byte-identical to web/lib/contracts + web/lib/policy (93/33/98/51 differing lines). OPERATING_TRUTH_MODEL.md §4 says 'kept identical by a drift guard' and both file headers cite qa/scenarios-runner/architecture_shared_contracts_mirror_contract.mjs — that file does not exist. AUTHORITY_NOT_ENFORCED; not on the Edge deploy surface."
+    },
+    {
+      "id": "V56-PROVENANCE",
+      "level": "BLOCKED (integration-level)",
+      "text": "supabase CLI and npx are gated in this session; could not fetch live bytes. git c9dfab5bd433 index.ts sha256 795c20c8… == qa/verification/scratch/v92/index.v92.ts (recorded as the live download, BYTE-DIRECT per the campaign record). My link is integration-level via git + the in-tree copy."
+    },
+    {
+      "id": "V56-DENO",
+      "level": "BLOCKED",
+      "text": "npx deno and a global tsc are both gated; class decomposition not re-run. Substitutes: own run of the block-scope TDZ scanner (1 'P0' at :2388 = type-literal key inside an `as {…}` annotation — false positive, same class #55 recorded at :2333; 1 deferred UUID_IN_TEXT :5093/:5128, invoked later — safe), identifier delta 0 removed, CRLF-pure."
+    },
+    {
+      "id": "V56-A",
+      "level": "UNIT VERIFIED",
+      "text": "Own receipt matrix through the real structured-claim window: 68 mutation-intent commands × {claims:null, [], state-only} + pendingAction variant = 272 cases, 0 failures (deterministic receipt, no success wording, receiptRendered, executedOperationCount 0). 100 read cases survive verbatim."
+    },
+    {
+      "id": "V56-D1",
+      "level": "FAILED (P1)",
+      "text": "Intent FALSE NEGATIVES: 68/71 real mutation phrasings derive NO requestedIntent, and with claims:null + no model action field the fabricated completion ships VERBATIM (belt is gated on intent, receipt never fires): 'Could you please archive ACME', 'Let’s archive ACME', 'Go ahead and archive ACME', 'I need ACME archived', 'can you please rename project Alpha to Beta' (BUG-002 with a polite prefix), 'Mark task QA-1 as done', 'close/complete/cancel/reopen/edit/modify/fix/merge …', 'assign QA-1 to Bob', 'create ACME Robotics', 'hire Bob Smith', 'yes, archive it', 'Yes — do it', 'option two', 'the second option', 'B', 'fire/terminate/dismiss Bob', all Mongolian forms. v92 corrects the same prose (PAST arm) — FAB regression AND OTM §3 rule 1/3 violation."
+    },
+    {
+      "id": "V56-D2",
+      "level": "FAILED (P1)",
+      "text": "Intent FALSE POSITIVES: 21/24 read-shaped commands derive intent from a head verb + any entity noun, and the truthful read answer is REPLACED by 'No change was made — that request did not resolve to an operation I can execute from chat': 'make a list of all companies', 'update me on the project status', 'create a report of archived companies', 'end date of the project Alpha?', 'set out the plan for the project Alpha', 'move on — what’s next for the project?', 'restore my memory: who is Bob?', 'assign a number to each company and list them', 'add the numbers: how many people per company?'."
+    },
+    {
+      "id": "V56-D3",
+      "level": "FAILED (P1)",
+      "text": "Server-side lifecycle resolution: the COMMAND-NAME fallback (fromCommand) runs whenever the model emitted no company ids/names, even when the model resolved the command to a task/person/goal, and its fuzzy stage is all-tokens-substring. Real executor slice: 'delete Alpha' (+deleteTaskIds) archives company 'Alpha Holdings'; 'remove Bob' (+endEmploymentPersonIds) archives 'Bobcat Machinery'; 'remove Bob Smith' archives 'Bob Smith Consulting'; 'archive Q3 revenue' (goal) archives 'Q3 Revenue Partners'; 'archive the task Alpha' archives 'Alpha Task Force' — each with a truthful-looking receipt 'X: archived.' Unrequested mutation of the wrong entity."
+    },
+    {
+      "id": "V56-D4",
+      "level": "FAILED (P1 narrow)",
+      "text": "A restore-family word INSIDE a company name ('Restored Furniture Co', 'Reactivate Solutions') makes RESTORE_VERB_PATTERN match the command 'archive Restored Furniture Co': with the model id the archive executes and the restore guess immediately RESTORES it (receipt 'X: archived. X: restored.', final state active); with name only, a restore is attempted instead of the archive ('was already active'). The archive direction is suppressed when the command contains a restore word, but not vice versa."
+    },
+    {
+      "id": "V56-D5",
+      "level": "FAILED (P2)",
+      "text": "Punctuated company names are refused as 'no company by that name': 'Acme (Mongolia) LLC', 'A_B Holdings', '100% Natural Foods' (both via command and via restoreCompanyNames); 'Acme, Inc.' via restoreCompanyNames. Cause: [%_,()] are replaced by spaces in the ilike pattern but not in the row, and the fuzzy tokens keep the punctuation. OTM §5 'restore of a known entity refused'."
+    },
+    {
+      "id": "V56-N1",
+      "level": "CODE INSPECTED",
+      "text": "Notes: ambiguity + a model-armed pendingAction leaves NO lifecycle line and offers no options (C7b); status preference silently picks among fuzzy hits ('archive Beta' -> Beta Labs, C8); questions[] and proposedActions[] are dropped when the receipt renders (only pendingAction.question survives)."
+    }
   ],
   "harness_changes_to_judge": [
     "_gate_extract.mjs REQUEST_SIDE_DEFAULTS above every window (command \"\" by default = no intent)",
@@ -254,5 +342,11 @@
     "v49-v53 request-side globals + SUPERSEDED pendingAction-term pins; scratch/v53/harness.mjs self-check inverted",
     "v92_open_regression_contract decision window takes requestedIntent",
     "company_ref_no_bare_name_join counts ${COMPANY_REF}; org_selector_scoping_coverage accepts scopeToActiveOrganization"
-  ]
+  ],
+  "verifier56_closure": "Ledger #127: structured requestIntent (schema + prompt) validated server-side; request lexicon (Unicode lookarounds, passive shapes, object guards, case-sensitive proper nouns, tail shape, read-shape veto, polite-question exemption); the belt never decides intent; command fallback imperative-only, direction by first verb, exact executes / fuzzy asks, full-remainder + comma-head candidates, model requestIntent.targetName as a name source; receipt keeps questions; history verified=null when nothing executed and no intent; stored pendingAction expires in 30 min. #56 suite promoted to the battery; generators in-tree; mutation proof 8/8.",
+  "verifier57_base_commit": "32a2d75491dae1a103111389ece62095a79ec03c",
+  "verifier57_index_sha256": "ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871",
+  "verifier57_started_at": null,
+  "verifier57_status": "not started",
+  "verifier57_findings": []
 }
