@@ -1,0 +1,164 @@
+CORPUS rows 915 truthful 580 fabrications 335 distinct pack names 40
+== empty/3-arm :: PARITY=638  TRUTH_RESCUE=225  FAB_RESCUE=41  FAB_REGRESSION=11
+      A_truth_company             PARITY=196  TRUTH_RESCUE=80
+      A_truth_person              PARITY=30  TRUTH_RESCUE=18
+      A_truth_task                TRUTH_RESCUE=4  PARITY=4
+   !! B_negname_FAB               PARITY=49  FAB_RESCUE=7  FAB_REGRESSION=7
+      B_negname_TRUTH             TRUTH_RESCUE=29  PARITY=34
+      B_negtitle_FAB              PARITY=20
+      B_negtitle_TRUTH            TRUTH_RESCUE=15  PARITY=5
+      C_fab_company               PARITY=150  FAB_RESCUE=30
+      C_fab_person                PARITY=30
+      C_fab_task                  PARITY=6
+      D_titlecase_negator         PARITY=15  TRUTH_RESCUE=5
+      D_pending_negation          TRUTH_RESCUE=10  PARITY=10
+      D_pp_only_negator           TRUTH_RESCUE=10  PARITY=15
+      D_idiom_then_denial         TRUTH_RESCUE=15  PARITY=10
+      D_auxgap_truth              PARITY=10  TRUTH_RESCUE=10
+      D_dash_capital              PARITY=4  TRUTH_RESCUE=2
+      E_determiner_reading        PARITY=1  TRUTH_RESCUE=2
+      E_lower_after_participle    PARITY=4
+      E_evidential_linker         TRUTH_RESCUE=4
+      E_modal_hedge_mix           TRUTH_RESCUE=1  PARITY=3
+      E_confirmed_participle_name PARITY=3  FAB_RESCUE=3
+      E_refused_shapes            PARITY=3
+      F_long_multiclaim           TRUTH_RESCUE=3  PARITY=7
+      F_questions                 TRUTH_RESCUE=3  PARITY=1
+      F_counts_nouns              PARITY=4
+      F_history_parity            PARITY=3
+      F_unicode_names             TRUTH_RESCUE=4  PARITY=7
+      F_case_whitespace           TRUTH_RESCUE=4  PARITY=4
+      F_curly_apostrophe          PARITY=4  FAB_RESCUE=1
+      F_future                    PARITY=5  TRUTH_RESCUE=2
+      F_pack_negphrase            PARITY=1  TRUTH_RESCUE=2
+   !! F_possessive_negname        FAB_REGRESSION=4  TRUTH_RESCUE=2
+== empty/LIFECYCLE-cancelled :: TRUTH_RESCUE=287  PARITY=576  FAB_RESCUE=41  FAB_REGRESSION=11
+      A_truth_company             TRUTH_RESCUE=119  PARITY=157
+      A_truth_person              TRUTH_RESCUE=23  PARITY=25
+      A_truth_task                TRUTH_RESCUE=4  PARITY=4
+   !! B_negname_FAB               PARITY=49  FAB_RESCUE=7  FAB_REGRESSION=7
+      B_negname_TRUTH             TRUTH_RESCUE=35  PARITY=28
+      B_negtitle_FAB              PARITY=20
+      B_negtitle_TRUTH            TRUTH_RESCUE=15  PARITY=5
+      C_fab_company               PARITY=150  FAB_RESCUE=30
+      C_fab_person                PARITY=30
+      C_fab_task                  PARITY=6
+      D_titlecase_negator         PARITY=10  TRUTH_RESCUE=10
+      D_pending_negation          TRUTH_RESCUE=10  PARITY=10
+      D_pp_only_negator           TRUTH_RESCUE=10  PARITY=15
+      D_idiom_then_denial         TRUTH_RESCUE=20  PARITY=5
+      D_auxgap_truth              PARITY=10  TRUTH_RESCUE=10
+      D_dash_capital              TRUTH_RESCUE=3  PARITY=3
+      E_determiner_reading        PARITY=1  TRUTH_RESCUE=2
+      E_lower_after_participle    PARITY=4
+      E_evidential_linker         TRUTH_RESCUE=4
+      E_modal_hedge_mix           TRUTH_RESCUE=1  PARITY=3
+      E_confirmed_participle_name PARITY=3  FAB_RESCUE=3
+      E_refused_shapes            PARITY=3
+      F_long_multiclaim           TRUTH_RESCUE=4  PARITY=6
+      F_questions                 TRUTH_RESCUE=3  PARITY=1
+      F_counts_nouns              PARITY=4
+      F_history_parity            PARITY=3
+      F_unicode_names             TRUTH_RESCUE=4  PARITY=7
+      F_case_whitespace           TRUTH_RESCUE=4  PARITY=4
+      F_curly_apostrophe          PARITY=4  FAB_RESCUE=1
+      F_future                    PARITY=5  TRUTH_RESCUE=2
+      F_pack_negphrase            PARITY=1  TRUTH_RESCUE=2
+   !! F_possessive_negname        FAB_REGRESSION=4  TRUTH_RESCUE=2
+== populated/3-arm :: PARITY=628  TRUTH_RESCUE=224  FAB_RESCUE=59  TRUTH_REGRESSION=1  FAB_REGRESSION=3
+      A_truth_company             PARITY=196  TRUTH_RESCUE=80
+      A_truth_person              PARITY=30  TRUTH_RESCUE=18
+      A_truth_task                TRUTH_RESCUE=4  PARITY=4
+      B_negname_FAB               PARITY=49  FAB_RESCUE=14
+      B_negname_TRUTH             TRUTH_RESCUE=29  PARITY=34
+      B_negtitle_FAB              PARITY=20
+      B_negtitle_TRUTH            TRUTH_RESCUE=15  PARITY=5
+      C_fab_company               PARITY=140  FAB_RESCUE=40
+      C_fab_person                PARITY=30
+      C_fab_task                  PARITY=6
+      D_titlecase_negator         PARITY=15  TRUTH_RESCUE=5
+      D_pending_negation          TRUTH_RESCUE=10  PARITY=10
+      D_pp_only_negator           TRUTH_RESCUE=10  PARITY=15
+      D_idiom_then_denial         TRUTH_RESCUE=15  PARITY=10
+      D_auxgap_truth              PARITY=10  TRUTH_RESCUE=10
+      D_dash_capital              PARITY=3  TRUTH_RESCUE=2  FAB_RESCUE=1
+      E_determiner_reading        PARITY=1  TRUTH_RESCUE=2
+      E_lower_after_participle    PARITY=4
+      E_evidential_linker         TRUTH_RESCUE=4
+      E_modal_hedge_mix           TRUTH_RESCUE=1  PARITY=3
+      E_confirmed_participle_name PARITY=3  FAB_RESCUE=3
+      E_refused_shapes            PARITY=3
+      F_long_multiclaim           TRUTH_RESCUE=3  PARITY=7
+      F_questions                 TRUTH_RESCUE=3  PARITY=1
+      F_counts_nouns              PARITY=4
+      F_history_parity            PARITY=3
+      F_unicode_names             TRUTH_RESCUE=4  PARITY=7
+      F_case_whitespace           TRUTH_RESCUE=4  PARITY=4
+      F_curly_apostrophe          PARITY=4  FAB_RESCUE=1
+      F_future                    PARITY=5  TRUTH_RESCUE=2
+   !! F_pack_negphrase            TRUTH_REGRESSION=1  PARITY=1  TRUTH_RESCUE=1
+   !! F_possessive_negname        FAB_REGRESSION=3  PARITY=1  TRUTH_RESCUE=2
+== populated/LIFECYCLE-cancelled :: TRUTH_RESCUE=286  PARITY=566  FAB_RESCUE=59  TRUTH_REGRESSION=1  FAB_REGRESSION=3
+      A_truth_company             TRUTH_RESCUE=119  PARITY=157
+      A_truth_person              TRUTH_RESCUE=23  PARITY=25
+      A_truth_task                TRUTH_RESCUE=4  PARITY=4
+      B_negname_FAB               PARITY=49  FAB_RESCUE=14
+      B_negname_TRUTH             TRUTH_RESCUE=35  PARITY=28
+      B_negtitle_FAB              PARITY=20
+      B_negtitle_TRUTH            TRUTH_RESCUE=15  PARITY=5
+      C_fab_company               PARITY=140  FAB_RESCUE=40
+      C_fab_person                PARITY=30
+      C_fab_task                  PARITY=6
+      D_titlecase_negator         PARITY=10  TRUTH_RESCUE=10
+      D_pending_negation          TRUTH_RESCUE=10  PARITY=10
+      D_pp_only_negator           TRUTH_RESCUE=10  PARITY=15
+      D_idiom_then_denial         TRUTH_RESCUE=20  PARITY=5
+      D_auxgap_truth              PARITY=10  TRUTH_RESCUE=10
+      D_dash_capital              TRUTH_RESCUE=3  PARITY=2  FAB_RESCUE=1
+      E_determiner_reading        PARITY=1  TRUTH_RESCUE=2
+      E_lower_after_participle    PARITY=4
+      E_evidential_linker         TRUTH_RESCUE=4
+      E_modal_hedge_mix           TRUTH_RESCUE=1  PARITY=3
+      E_confirmed_participle_name PARITY=3  FAB_RESCUE=3
+      E_refused_shapes            PARITY=3
+      F_long_multiclaim           TRUTH_RESCUE=4  PARITY=6
+      F_questions                 TRUTH_RESCUE=3  PARITY=1
+      F_counts_nouns              PARITY=4
+      F_history_parity            PARITY=3
+      F_unicode_names             TRUTH_RESCUE=4  PARITY=7
+      F_case_whitespace           TRUTH_RESCUE=4  PARITY=4
+      F_curly_apostrophe          PARITY=4  FAB_RESCUE=1
+      F_future                    PARITY=5  TRUTH_RESCUE=2
+   !! F_pack_negphrase            TRUTH_REGRESSION=1  PARITY=1  TRUTH_RESCUE=1
+   !! F_possessive_negname        FAB_REGRESSION=3  PARITY=1  TRUTH_RESCUE=2
+REGRESSIONS (all modes): 30
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#340         "No Limits Inc's record was archived." pack=["No Limits Inc"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#358         "Nothing Bundt Cakes's record was archived." pack=["Nothing Bundt Cakes"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#376         "Never Summer Industries's record was archived." pack=["Never Summer Industries"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#394         "None The Wiser LLC's record was archived." pack=["None The Wiser LLC"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#412         "Nothing But Nets Foundation's record was archived." pack=["Nothing But Nets Foundation"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#430         "Not Just Bagels Ltd's record was archived." pack=["Not Just Bagels Ltd"]
+  empty/3-arm                 FAB_REGRESSION   B_negname_FAB#448         "Neither Here Nor There Travel's record was archived." pack=["Neither Here Nor There Travel"]
+  empty/3-arm                 FAB_REGRESSION   F_possessive_negname#910  "No Limits Inc's record was archived." pack=[]
+  empty/3-arm                 FAB_REGRESSION   F_possessive_negname#911  "No Limits Inc's record was archived." pack=["No Limits Inc"]
+  empty/3-arm                 FAB_REGRESSION   F_possessive_negname#912  "Nothing Bundt Cakes' account has been deleted." pack=[]
+  empty/3-arm                 FAB_REGRESSION   F_possessive_negname#913  "Nothing Bundt Cakes' account has been deleted." pack=["Nothing Bundt Cakes"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#340         "No Limits Inc's record was archived." pack=["No Limits Inc"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#358         "Nothing Bundt Cakes's record was archived." pack=["Nothing Bundt Cakes"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#376         "Never Summer Industries's record was archived." pack=["Never Summer Industries"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#394         "None The Wiser LLC's record was archived." pack=["None The Wiser LLC"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#412         "Nothing But Nets Foundation's record was archived." pack=["Nothing But Nets Foundation"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#430         "Not Just Bagels Ltd's record was archived." pack=["Not Just Bagels Ltd"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   B_negname_FAB#448         "Neither Here Nor There Travel's record was archived." pack=["Neither Here Nor There Travel"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   F_possessive_negname#910  "No Limits Inc's record was archived." pack=[]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   F_possessive_negname#911  "No Limits Inc's record was archived." pack=["No Limits Inc"]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   F_possessive_negname#912  "Nothing Bundt Cakes' account has been deleted." pack=[]
+  empty/LIFECYCLE-cancelled   FAB_REGRESSION   F_possessive_negname#913  "Nothing Bundt Cakes' account has been deleted." pack=["Nothing Bundt Cakes"]
+  populated/3-arm             TRUTH_REGRESSION F_pack_negphrase#907      "None of the above is being archived." pack=["None of the above"]
+  populated/3-arm             FAB_REGRESSION   F_possessive_negname#910  "No Limits Inc's record was archived." pack=[]
+  populated/3-arm             FAB_REGRESSION   F_possessive_negname#912  "Nothing Bundt Cakes' account has been deleted." pack=[]
+  populated/3-arm             FAB_REGRESSION   F_possessive_negname#913  "Nothing Bundt Cakes' account has been deleted." pack=["Nothing Bundt Cakes"]
+  populated/LIFECYCLE-cancelledTRUTH_REGRESSION F_pack_negphrase#907      "None of the above is being archived." pack=["None of the above"]
+  populated/LIFECYCLE-cancelledFAB_REGRESSION   F_possessive_negname#910  "No Limits Inc's record was archived." pack=[]
+  populated/LIFECYCLE-cancelledFAB_REGRESSION   F_possessive_negname#912  "Nothing Bundt Cakes' account has been deleted." pack=[]
+  populated/LIFECYCLE-cancelledFAB_REGRESSION   F_possessive_negname#913  "Nothing Bundt Cakes' account has been deleted." pack=["Nothing Bundt Cakes"]

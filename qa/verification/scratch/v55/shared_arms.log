@@ -1,0 +1,55 @@
+DIFFERS      FUTURE_PROMISE_PATTERN                 v92 71704d06fb5d0bf0 cand 61c8b8fd5b227371 len 225 / 231
+   v92 : const FUTURE_PROMISE_PATTERN = /\b(i'?ll|i will|i'?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+   cand: const FUTURE_PROMISE_PATTERN = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+IDENTICAL    PAST_COMPLETION_CLAIM_PATTERN          v92 bfd42c7289e9f428 cand bfd42c7289e9f428 len 428 / 428
+IDENTICAL    claimsLifecycleClaim()                 v92 133f8438109b68d4 cand 133f8438109b68d4 len 501 / 501
+IDENTICAL    findEntityStateClaimContradiction()    v92 f5fe457bec4225ca cand f5fe457bec4225ca len 792 / 792
+IDENTICAL    COMPANY_STATE_CLAIM_VOCAB              v92 46d3f1d310b07e2d cand 46d3f1d310b07e2d len 132 / 132
+IDENTICAL    PERSON_STATE_CLAIM_VOCAB               v92 09bcbfba206c5e0a cand 09bcbfba206c5e0a len 181 / 181
+IDENTICAL    claimsTaskDeleted                      v92 a0fa40dd0ea187ed cand a0fa40dd0ea187ed len 326 / 326
+IDENTICAL    claimsCompanyDeleted                   v92 7a65db82b5948a9c cand 7a65db82b5948a9c len 411 / 411
+IDENTICAL    claimsPersonDeleted                    v92 ff27f833095182f6 cand ff27f833095182f6 len 393 / 393
+IDENTICAL    claimsGoalDeleted                      v92 d4832c25535394fa cand d4832c25535394fa len 259 / 259
+DIFFERS      claimsFutureActionWithNoPlan           v92 2d01cbb073642215 cand 4af8ab39fea2afe0 len 341 / 780
+   v92 : const claimsFutureActionWithNoPlan = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'\n          && !result.pendingAction && !groundedOutcomeThisTurn\n          && FUTURE_PROMISE_PATTERN.test(String(result.summary || ''));
+   cand: const claimsFutureActionWithNoPlan = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'\n          && !result.pendingAction && !groundedOutcomeThisTurn\n          && ((__s) => FUTURE_PROMISE_PATTERN.test(__s) && !/\b(?:once|if|after|unless|when|provided|assuming|as soon as|subject to|pending|before|until|only with|but first|first)\b[^.]{0,40}?\byou(?:r|rs)?\b|\byou(?:r|rs)?\b[^.]{0,40}?\b(?:confirmation|approval|go-ahead|permission|sign-off|say-so|consent|okay|ok)\b|\b(?:just )?say (?:yes|the word|go|ok)\b|\bsay so\b|\bis that (?:ok|okay)\b|\b(?:ok|okay)\?|\?\s*$|\breply (?:yes|y|ok|okay|go)\b|\bplease confirm\b/i.test(__s))(String(result.summary || ''));
+DIFFERS      matchDisambiguationOption()            v92 19c924a26eec8ef2 cand e69e00f2d361565d len 502 / 14312
+IDENTICAL    commandContradictsActionType()         v92 5ebd78c2383b4b35 cand 5ebd78c2383b4b35 len 429 / 429
+DIFFERS      resolveClarificationField()            v92 8e1a13402ea94f03 cand 06751a65e9a6ef0f len 258 / 823
+   v92 : function resolveClarificationField(entityType: string | undefined | null, actionType: string | undefined | null): string | undefined {\n  if (!entityType || !actionType) return undefined;\n  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType];\n}
+   cand: function resolveClarificationField(entityType: string | undefined | null, actionType: string | undefined | null): string | undefined {\n  if (!entityType || !actionType) return undefined;\n  // run18/D132 (P2): entityType/actionType are model-authored strings and may be prototype\n  // keys ("constructor", "__proto__", "toString"). A plain indexed access would return an\n  // inherited function, which then reads as a valid field and could arm a real mutation.\n  // hasOwnProperty makes every unknown pair fail closed to undefined (fall through to the LLM).\n  if (!Object.prototype.hasOwnProperty.call(CLARIFICATION_ENTITY_ACTION_FIELD, entityType)) return undefined;\n  const row = CLARIFICATION_ENTITY_ACTION_FIELD[entityType];\n  return Object.prototype.hasOwnProperty.call(row, actionType) ?
+IDENTICAL    ARCHIVE_VERB_PATTERN                   v92 2cda35409f338ab8 cand 2cda35409f338ab8 len 120 / 120
+DIFFERS      RESTORE_VERB_PATTERN                   v92 2beb19676dd117f1 cand 0cc0efaa5335174e len 117 / 122
+   v92 : const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
+   cand: const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|(?:re)?activat(e|ed|ing))\b/i;
+v92 call sites: 14
+   :441 function claimsLifecycleClaim(summary: string, verbAlternation: string, nounAlternation: string): boolean {
+   :496 function findEntityStateClaimContradiction(
+   :2669 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'task');
+   :2957 ? findEntityStateClaimContradiction(
+   :2977 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
+   :3037 ? findEntityStateClaimContradiction(
+   :3060 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)|restor(ed|ing)', 'employe(e|d)|person|st
+   :3135 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'goal');
+   :4096 if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No company was actually archived or restored this turn.');
+   :4097 if (claimsTaskDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No task was actually archived, restored, or deleted this turn.');
+   :4098 if (claimsGoalDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No goal was actually archived or restored this turn.');
+   :4099 if (claimsPersonDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No employee’s employment was actually ended or restored this turn.'
+   :4110 stateClaimCorrections.push(`Actually, ${name} is ${label}${realStatus === 'archived' ? '.' : ', not archived.'}`);
+   :4114 stateClaimCorrections.push(`Actually, ${name} is ${realActive ? 'currently employed.' : 'no longer employed.'}`);
+cand call sites: 14
+   :622 function claimsLifecycleClaim(summary: string, verbAlternation: string, nounAlternation: string): boolean {
+   :677 function findEntityStateClaimContradiction(
+   :3068 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'task');
+   :3391 ? findEntityStateClaimContradiction(
+   :3411 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'company');
+   :3484 ? findEntityStateClaimContradiction(
+   :3507 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|end(ed|ing)|restor(ed|ing)', 'employe(e|d)|person|st
+   :3590 && claimsLifecycleClaim(String(result.summary || ''), 'delet(ed|ing)|archiv(ed|ing)|remov(ed|ing)|restor(ed|ing)', 'goal');
+   :4591 if (claimsCompanyDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No company was actually archived or restored this turn.');
+   :4592 if (claimsTaskDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No task was actually archived, restored, or deleted this turn.');
+   :4593 if (claimsGoalDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No goal was actually archived or restored this turn.');
+   :4594 if (claimsPersonDeleted) lifecycleMismatchCorrections.push('Couldn’t confirm that. No employee’s employment was actually ended or restored this turn.'
+   :4605 stateClaimCorrections.push(`Actually, ${name} is ${label}${realStatus === 'archived' ? '.' : ', not archived.'}`);
+   :4609 stateClaimCorrections.push(`Actually, ${name} is ${realActive ? 'currently employed.' : 'no longer employed.'}`);
+SOME SHARED ARMS DIFFER — see above

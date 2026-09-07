@@ -1,0 +1,8 @@
+nameInternal-skipped (capLead+subjectRun)                  chars 3895 ms 2.3 | half-length ms 1.2 | exponent 0.85 | verdict true
+newSubject path (negator then lowercase subject + aux)     chars 3896 ms 0.5 | half-length ms 0.2 | exponent 1.35 | verdict true
+ppInternal path (with no ...)                              chars 3906 ms 0.3 | half-length ms 0.2 | exponent 0.95 | verdict true
+relInternal path (that no ...)                             chars 3896 ms 0.3 | half-length ms 0.1 | exponent 1.22 | verdict true
+quotedHead path                                            chars 3913 ms 17.7 | half-length ms 4.0 | exponent 2.17 | verdict true
+detName path (the No ...)                                  chars 3902 ms 0.3 | half-length ms 0.1 | exponent 0.98 | verdict true
+mixed all paths                                            chars 3890 ms 0.3 | half-length ms 0.1 | exponent 0.93 | verdict true
+8 x 3900-char unsplittable clauses (30947 chars) ms 0.4 | verdict true

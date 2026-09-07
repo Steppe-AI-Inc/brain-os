@@ -1,0 +1,37 @@
+corpus 915
+mutant                                             applied FAB re-open(empty/pack) TRUTH newly destroyed(empty/pack) TRUTH newly preserved(empty/pack)
+revert nameInternal                                yes     42/57                   0/0                               1/3  e.g. "No Limits Inc was archived."
+      truth this fix DESTROYS (parity or not, listed): [empty] No North Depot was archived.
+      truth this fix DESTROYS (parity or not, listed): [pack] No North Depot was archived.
+      truth this fix DESTROYS (parity or not, listed): [pack] None of the above is being archived.
+      truth this fix DESTROYS (parity or not, listed): [pack] None of the above was archived.
+revert titleHead                                   yes     6/0                     0/0                               0/0  e.g. "Pending review of Q3 budget was completed."
+revert titleHeadAfterPrep                          yes     0/0                     0/0                               0/0 
+revert ppInternal                                  yes     0/0                     0/0                               5/5 
+      truth this fix DESTROYS (parity or not, listed): [empty] Since nothing was confirmed, ACME Holdings remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [pack] Since nothing was confirmed, ACME Holdings remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [empty] Since nothing was confirmed, Nomin Holding remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [pack] Since nothing was confirmed, Nomin Holding remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [empty] Since nothing was confirmed, MCS Group remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [pack] Since nothing was confirmed, MCS Group remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [empty] Since nothing was confirmed, Erdenet Mining Corp remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [pack] Since nothing was confirmed, Erdenet Mining Corp remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [empty] Since nothing was confirmed, Gobi Cashmere remains unarchived.
+      truth this fix DESTROYS (parity or not, listed): [pack] Since nothing was confirmed, Gobi Cashmere remains unarchived.
+revert relInternal                                 yes     0/0                     0/0                               0/0 
+revert newSubject                                  yes     2/2                     0/0                               0/0  e.g. "No errors ACME was archived."
+revert quotedHead                                  yes     0/0                     0/0                               0/0 
+revert adjective                                   yes     0/0                     0/0                               0/0 
+revert fewQuant                                    yes     0/0                     0/0                               0/0 
+revert detName                                     yes     0/0                     0/0                               0/0 
+revert idiom strip (both)                          yes     2/2                     0/0                               0/0  e.g. "No problem — Salt and Pepper Co was archived."
+revert R-AUXGAP arm                                yes     0/0                     0/0                               0/0 
+revert namePrefixHit (cap 16->0)                   yes     0/0                     0/0                               0/0 
+revert V45-N2 early return                         yes     0/0                     0/0                               0/0 
+revert order rule (n > p)                          yes     0/0                     0/0                               1/1 
+      truth this fix DESTROYS (parity or not, listed): [empty] Nomin Holding was archived in 2024 and has not been restored since.
+      truth this fix DESTROYS (parity or not, listed): [pack] Nomin Holding was archived in 2024 and has not been restored since.
+revert conditioned-offer stand-down (belt side)    yes     0/0                     1/1                               0/0 
+revert modal-hedge blanking                        yes     0/0                     0/0                               0/0 
+add ppInternal fab probe (no mutation)             yes     0/0                     0/0                               0/0 
+revert first-person entity-signal object check     yes     0/0                     0/0                               0/0 
