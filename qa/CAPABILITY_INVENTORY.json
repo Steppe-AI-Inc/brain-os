@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-07T11:47:36Z",
+  "generated_at": "2026-09-07T11:51:07Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -386,10 +386,16 @@
         "AI",
         "RELATIONSHIP"
       ],
-      "scenario_ids": [],
-      "status": "NOT_TESTED",
+      "scenario_ids": [
+        "C002-orgbu"
+      ],
+      "status": "FAIL",
       "campaign_1_item": 3,
-      "notes": "DUAL-MODEL ATTACK: companies.type='business_unit' + set_company_relationship is a DIFFERENT model from the departments table. Never merge results. Research indicates NO UI path exists to create/edit an org-graph relationship - confirm live and log as a parity defect if true."
+      "notes": "DUAL-MODEL ATTACK: companies.type='business_unit' + set_company_relationship is a DIFFERENT model from the departments table. Never merge results. Research indicates NO UI path exists to create/edit an org-graph relationship - confirm live and log as a parity defect if true.",
+      "tested_against_sha": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "bug_id": "BUG-020",
+      "evidence": "Command \"Create a business unit called QA-C002-BU-01 that sits under QA-MULTI-CO.\" in two fresh channels (5844d51f-89b2-4d6f-b53a-f93c0d50b4ec, e084577e-86c8-405c-8cdb-19b565fbd643): both replied \"I don't see a company named QA-MULTI-CO in the current context. Could you confirm the exact name, or did you mean one of the existing companies like SEM LLC, CLIX GPS, or Trade-book.ai?\" No BU created (/companies table and structure panel unchanged at 11:51:07Z). CONTROL in a third fresh channel (65f779ba-1e48-4d61-b535-daed60861fb7): \"Does a company named QA-MULTI-CO exist right now?\" -> \"QA-MULTI-CO exists and is active.\" The company also resolved for create-project, rename and rename-back commands at 11:35-11:40Z.",
+      "note": "No fabrication - the decline is honest about its own context. The failure is that the BU-create path cannot see an active company that other paths resolve, and this is the ONLY path to a BU parent in the product (CAP-ORGBU-CREATE-UI-MISSING)."
     },
     {
       "capability_id": "CAP-ORGBU-CHANGE-PARENT-CHAT",

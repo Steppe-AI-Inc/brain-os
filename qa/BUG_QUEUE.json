@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T11:45:21Z",
+  "last_updated": "2026-09-07T11:51:07Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 5,
+    "open_p1": 6,
     "open_p2": 6,
     "open_p3": 4,
-    "total_open": 15,
+    "total_open": 16,
     "total_closed": 5
   },
   "bugs": [
@@ -841,6 +841,37 @@
       "severity_reasoning": "P2: an org chart that routes approvals/escalations to an inactive manager is an operational defect, and Brain will confidently give that manager's name to anyone who asks. Same non-cascade family as BUG-013 (archive) - the product records state transitions without propagating them through relationships.",
       "regression_requirement": "In a synthetic org, set A's manager to B, end B's employment; assert A's manager is cleared, reassigned, or rendered with an inactive marker on /people, and that Brain qualifies the manager as inactive. Re-run after restoring B to assert symmetry.",
       "_qa_boundary": "Work PC did not modify product code."
+    },
+    {
+      "bug_id": "BUG-020",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "Business-unit creation via chat cannot resolve an ACTIVE parent company that the same Brain resolves for questions, renames and project creation - deterministic false \"I don't see a company named X\", offering REAL companies as substitutes",
+      "ai_truth_classification": "GROUNDING_GAP on a command path (BUG-017 family) + misbinding precursor (substitute targets offered on a create)",
+      "discovered_by": "work-pc-independent-qa (direct session)",
+      "discovered_at": "2026-09-07T11:51:07Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "sem-ai-command v92 (ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, ACTIVE)",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "resources": {
+        "parent": "QA-MULTI-CO (49ee1875-21b0-4285-bd45-dc1c05f3d987) - REGISTERED, active, visible on /companies",
+        "channels_fail": "5844d51f-89b2-4d6f-b53a-f93c0d50b4ec, e084577e-86c8-405c-8cdb-19b565fbd643",
+        "channel_control_pass": "65f779ba-1e48-4d61-b535-daed60861fb7"
+      },
+      "reproduction": [
+        "1. Fresh channel: \"Does a company named QA-MULTI-CO exist right now?\" -> \"exists and is active\" (control).",
+        "2. Fresh channel: \"Create a business unit called QA-C002-BU-01 that sits under QA-MULTI-CO.\" -> \"I don't see a company named QA-MULTI-CO in the current context ... did you mean SEM LLC, CLIX GPS, or Trade-book.ai?\"",
+        "3. Repeat step 2 in another fresh channel: identical failure. /companies: no BU created."
+      ],
+      "expected": "The named parent is resolved (it is active and was resolved by three other command shapes within the previous 15 minutes) and the BU is created under it; or an honest \"I cannot create business units\".",
+      "actual": "Deterministic non-resolution on this command shape, with real production companies offered as alternatives.",
+      "blast_radius": "Zero mutation. Risk vector: a user replying \"yes, CLIX GPS\" would create the BU under a REAL company.",
+      "severity_reasoning": "P1: (a) the sole product path for BU parenting is non-functional; (b) the reply reads as non-existence of an active company (BUG-014 wording class); (c) it invites a substitution onto real entities - the same shape that produced the issue #5 Class B archive.",
+      "layer_hypothesis_for_home_pc": "The named-company lookup (namedCompanyLookupQuery, 15e868a) appears not to be applied - or its tokens not to match - on the BU/parent-resolution path, while it is applied for questions/rename/project-create. Work PC did not read the source.",
+      "regression_requirement": "For each command shape that names a company (question, rename, create-project, create-BU-under, set-parent, archive, restore): assert the same named active company resolves in a fresh channel. A per-path matrix, not a single probe.",
+      "_qa_boundary": "Work PC did not modify product code.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the matrix; the implementation PC may not self-certify."
     }
   ]
 }
