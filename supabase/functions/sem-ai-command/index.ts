@@ -84,25 +84,6 @@ type AiTask = {
 // needing to set it.
 type PendingActionOption = { label: string; id: string; entityType: string; actionType?: string };
 
-// ExecutionResultEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.1; mirrored in
-// supabase/functions/_shared/execution.ts — the drift guard pins the two). One entry per
-// executed (or attempted) operation. The legacy four fields stay for every consumer; the
-// envelope fields carry request identity, the backend result verbatim, and the fresh
-// postcondition. postconditionPassed === postcondition_verified, always.
-type ExecutionResultEnvelope = {
-  resourceType: string; action: string; id: string; postconditionPassed: boolean;
-  request_id: string | null; channel_id: string | null; turn: number | null;
-  action_type: string; entity_type: string; canonical_entity_ids: string[];
-  requested_values: Record<string, unknown> | null; executed: boolean; rows_affected: number | null;
-  backend_result: unknown; precondition: unknown; postcondition: unknown;
-  postcondition_verified: boolean; error: string | null; timestamp: string;
-};
-type ExecutionDetail = { requestedValues?: Record<string, unknown> | null; rowsAffected?: number | null; backendResult?: unknown; precondition?: unknown; postcondition?: unknown; error?: string | null; executed?: boolean };
-type CompanyLookupRow = { id: string; name: string; status: string };
-type LifecycleLookupRow = { id: string; title: string; status: string };
-type LifecycleDisambiguation = { action: string; name: string; options: CompanyLookupRow[] };
-type MutationIntent = { verb: string | null; field: string | null };
-
 // Bug 11 (2026-08-30 campaign): a real, typed, persisted plan for a genuinely compound
 // multi-action command ("restore employee X, move them to company Y, and assign them task
 // Z") - replaces treating a multi-action request as one flattened prose promise. Each
@@ -204,13 +185,7 @@ const CLARIFICATION_ENTITY_ACTION_FIELD: Record<string, Record<string, string>> 
 // exactly as if no pending action had matched.
 function resolveClarificationField(entityType: string | undefined | null, actionType: string | undefined | null): string | undefined {
   if (!entityType || !actionType) return undefined;
-  // run18/D132 (P2): entityType/actionType are model-authored strings and may be prototype
-  // keys ("constructor", "__proto__", "toString"). A plain indexed access would return an
-  // inherited function, which then reads as a valid field and could arm a real mutation.
-  // hasOwnProperty makes every unknown pair fail closed to undefined (fall through to the LLM).
-  if (!Object.prototype.hasOwnProperty.call(CLARIFICATION_ENTITY_ACTION_FIELD, entityType)) return undefined;
-  const row = CLARIFICATION_ENTITY_ACTION_FIELD[entityType];
-  return Object.prototype.hasOwnProperty.call(row, actionType) ? row[actionType] : undefined;
+  return CLARIFICATION_ENTITY_ACTION_FIELD[entityType]?.[actionType];
 }
 
 // Real, live-reproduced defect found by an independent verifier certifying the fix above
@@ -254,9 +229,7 @@ const COMMON_COMMAND_STOPWORDS = new Set([
 // generic-word-heavy command in a workspace with many similarly-named fixtures.
 const NAMED_LOOKUP_ROW_CAP = 5;
 const ARCHIVE_VERB_PATTERN = /\b(archiv(e|ed|ing)|delet(e|ed|ing)|remov(e|ed|ing)|end(?:ed|ing)?(?:\s+employment)?)\b/i;
-// run17/D127: plain `activate` was missing (only `reactivate` was listed), so a make-active
-// intent against a pending ARCHIVE was not a contradiction. Same family, one more spelling.
-const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|(?:re)?activat(e|ed|ing))\b/i;
+const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|reactivat(e|ed|ing))\b/i;
 function commandContradictsActionType(command: string, actionType: string | undefined): boolean {
   const resolvedActionType = actionType || 'archive';
   if (resolvedActionType === 'archive' && RESTORE_VERB_PATTERN.test(command) && !ARCHIVE_VERB_PATTERN.test(command)) return true;
@@ -437,186 +410,13 @@ function isClarificationAffirmative(command: string): boolean {
 // case-insensitive substring — zero matches or more than one match stays genuinely
 // ambiguous and falls through to the ordinary LLM call (step 5) rather than guessing.
 function matchDisambiguationOption(command: string, options: PendingActionOption[]): PendingActionOption | null {
-  // run12/D93: the F5 label formatter renders an assertion-shaped REAL name in quotes
-  // (“Advanced Closed Systems”) so it reads as a name rather than a statement. The
-  // founder still types the name plainly, so a literal comparison stopped matching and
-  // those options became unselectable — a REGRESSION caused by the display fix, not by
-  // the classifier. Both sides are compared with presentation characters removed, so
-  // how a label is DISPLAYED can never again decide whether it can be SELECTED.
-  const forMatching = (s: string) => s.replace(/[“”‘’"']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-  const normalizedCommand = forMatching(command);
+  const normalizedCommand = command.trim().toLowerCase();
   if (!normalizedCommand) return null;
-  // run18/D133 (P3): the product renders "(option N)" (run12/D95) precisely so the founder
-  // can answer by number. A reply that is ONLY an ordinal reference to an option —
-  // "option 2", "#2", "number 2", "the second one", or a bare "2" — selects that option
-  // when N is in range. A reply that also carries a name ("acme 2") is NOT ordinal-only and
-  // falls through to label matching, so run17/D129's "acme 2 => dead end" is preserved.
-  const ORDINAL_WORDS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'];
-  // run48/V46-D7 (P1): the ordinal was taken from the FIRST matching notation while `rest` below
-  // strips EVERY notation, so a second reference was invisible to the "ordinal-only" test and
-  // "option 1, option 2" bound option 1 and armed a destructive field where deployed v92
-  // dead-ends. Which one won depended only on which alternative matched first: "option 1 #2"
-  // bound 1 while "#2 the first one" bound 2. The matcher's own rule is FAIL CLOSED, NEVER
-  // INTERPRET (run15/D116), and two references is exactly the ambiguity the dead-end exists for.
-  // So: every value `rest` strips as an ordinal notation is COUNTED, and the path binds only when
-  // the reply refers to exactly ONE distinct option. The four notations collected here are the
-  // same four `rest` removes - if one is ever added there it must be added here, or a stripped
-  // reference goes unseen again, which is the whole defect.
-  const ordValues = new Set();
-  for (const m of normalizedCommand.matchAll(/\b(?:option|number)\s*#?(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/#\s*(\d+)/g)) ordValues.add(parseInt(m[1], 10));
-  for (const m of normalizedCommand.matchAll(/\b(\d+)\b/g)) ordValues.add(parseInt(m[1], 10));
-  ORDINAL_WORDS.forEach((w, i) => { if (new RegExp('\\b' + w + '\\b').test(normalizedCommand)) ordValues.add(i + 1); });
-  const ordN = ordValues.size === 1 ? Number([...ordValues][0]) : 0;
-  // run19/D135 (P2): `no` is NOT ordinal filler — admitting a negator is exactly what D116/D123
-  // forbid, and it let "no option 2" arm a destructive field while "acme, no" (the identical
-  // intent) correctly dead-ended. run19/D136 (P3): a company literally NAMED "Option 2 Ltd" makes
-  // "option 2" ambiguous, so the ordinal path defers to the LLM when any option's own label
-  // (its "(option N)" suffix stripped) contains the whole reply.
-  if (ordN >= 1) {
-    const ORD_FILLER = new Set('the a an one it that this these those option options number yes ok okay sure please to want i want id im we go ahead do proceed select pick choose use'.split(' '));
-    const rest = normalizedCommand
-      .replace(/\b(?:option|number)\s*#?\d+\b/g, ' ').replace(/#\s*\d+/g, ' ').replace(/\b\d+\b/g, ' ')
-      .replace(new RegExp('\\b(?:' + ORDINAL_WORDS.join('|') + ')\\b', 'g'), ' ')
-      .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter((w) => w.length > 0);
-    const ambiguousWithAName = options.some((o) => o && typeof o.label === 'string'
-      && forMatching(o.label.replace(/\s*\(option \d+\)$/, '')).length > 0
-      && forMatching(o.label.replace(/\s*\(option \d+\)$/, '')).includes(normalizedCommand));
-    if (rest.every((w) => ORD_FILLER.has(w))) {
-      // Ordinal-only. If the same reply is ALSO a company's whole name ("option 2" with a
-      // company literally named "Option 2 Ltd"), it is genuinely ambiguous — DEAD-END to the
-      // LLM, never guess between the ordinal and the name (run19/D136).
-      if (ambiguousWithAName) return null;
-      return (ordN <= options.length && options[ordN - 1] && typeof options[ordN - 1].id === 'string') ? options[ordN - 1] : null;
-    }
-  }
-  const usable = (o) => o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string';
-  const matches = options.filter((o) => usable(o) && forMatching(o.label).length > 0 && normalizedCommand.includes(forMatching(o.label)));
-  // run15/D116 (P1 — a wrong-entity DESTRUCTIVE bind, the same severity as D106 and in the
-  // same function, but NOT in the code D106 changed). The single-match return below ran
-  // BEFORE any of D106's machinery, so a reply that EXCLUDES the one option it names
-  // ("don't archive acme", "not acme, the other one", "anything except acme holdings")
-  // bound that option and armed archiveCompanyIds with no LLM in the loop. The
-  // contradiction check downstream cannot help: "don't archive acme" contains an archive
-  // verb and no restore verb, which is not a contradiction for an archive option.
-  //
-  // FAIL CLOSED, and NEVER INTERPRET the negation. A negated mention is not resolved to
-  // "the other one" — with three options that would be a guess, and a guess here is an
-  // archive of the wrong company. Any option whose mention sits in a clause carrying a
-  // negator/exclusion dead-ends the whole match and the reply falls through to the LLM
-  // path, exactly as an ambiguous reply does. The negator test is made on the clause with
-  // the option's OWN label removed, so a real name containing "no"/"not" ("No Limits
-  // Inc") cannot disarm itself, and it runs on the presentation-stripped text, so the
-  // apostrophe-less forms ("dont") are the ones listed. Deliberately conservative: a
-  // false dead-end costs one LLM round-trip; a false bind costs a wrong mutation.
-  //
-  // run16/D123 (P1): that D116 guard was a WORD LIST (NEGATED_MENTION) tested per CLAUSE,
-  // and verifier #16 showed both halves of that fail: an exclusion word not on the list
-  // ("exclude acme", "cancel acme", "besides acme") and a negator in an ADJACENT clause
-  // ("acme? no, the holdings one", "acme, no") still bound the option the founder
-  // excluded — 24 of its 48 exclusion replies, decided by whether a comma happened to
-  // create a clause boundary. A blocklist of negators can never be complete. The rule is
-  // INVERTED: a deterministic bind is allowed only for a CLEAN SELECTION — once the chosen
-  // label is removed, every remaining word must be selection filler (an affirmative, an
-  // article, the pending action's own verb, an entity-type noun). ANY other word — a
-  // negator, an exclusion, a correction, a second name, a hedge — dead-ends to the LLM
-  // path, which can actually read the intent. Fail closed: a false dead-end costs one
-  // round-trip; a false bind costs a wrong destructive mutation. The word list is GONE
-  // rather than kept "as defence in depth": once the allowlist exists it can never fire,
-  // and an unobservable guard is the vacuous-guard class this ledger has recorded eleven
-  // times.
-  // run17/D127 (P2): the filler used to be a static union of EVERY lifecycle verb and EVERY
-  // entity-type noun, so "activate acme" (a make-active intent), "reject acme" (an
-  // exclusion) and "archive acme tasks" (a different TARGET) all counted as clean
-  // selections of an ARCHIVE-COMPANY option and armed archiveCompanyIds. The verbs and
-  // nouns admitted are now scoped to the winning option itself: only its own action
-  // family's verbs and its own entity type's nouns. Anything else is a different intent
-  // or a different target and dead-ends to the LLM path.
-  const SELECTION_FILLER = new Set(('yes yeah yep yup ok okay sure please pls thanks thank you confirm confirmed correct right exactly '
-    + 'that this one the a an it its is go ahead do proceed select selected pick choose chose use mean meant want i id im we '
-    + 'option number to for with of on in record').split(' '));
-  const ACTION_FAMILY_VERBS: Record<string, string> = {
-    archive: 'archive archiving archived delete deleting remove removing end ending close closing deactivate deactivating',
-    restore: 'restore restoring restored reactivate reactivating activate activating reopen unarchive undelete',
-  };
-  const ENTITY_NOUNS: Record<string, string> = {
-    company: 'company companies', person: 'person people employee employees', employee: 'person people employee employees',
-    task: 'task tasks', goal: 'goal goals', project: 'project projects', department: 'department departments',
-    channel: 'channel channels', approval: 'approval approvals',
-  };
-  const cleanSelection = (winner: PendingActionOption) => {
-    let residual = normalizedCommand.split(forMatching(winner.label)).join(' ');
-    if (matches.some((o) => o !== winner && residual.includes(forMatching(o.label)))) return false;
-    // run17/D129 (P3): the product itself renders "(option N)" (run12/D95 numbering), so a
-    // reply that names the option by ITS OWN number — "acme (option 1)", "acme #1",
-    // "option 1, acme" — is a clean selection. Only that option's own number, and only in
-    // the option/# shape: a bare digit stays a dead end ("acme 2" is not a selection).
-    const ownNumber = options.indexOf(winner) + 1;
-    residual = residual.replace(new RegExp('(?:\\boption\\s*#?|#)' + ownNumber + '\\b', 'g'), ' ');
-    // run18/D132 (P2): a model-authored actionType/entityType can be any string, including a
-    // prototype key ("constructor", "__proto__", "toString"). Indexing a bare object literal
-    // by such a key returns an inherited FUNCTION, whose `.split` then throws and surfaces a
-    // raw JS error to the founder, losing the disambiguation turn. hasOwnProperty makes every
-    // unknown type fall closed to the base/empty set — a different intent dead-ends, it never
-    // crashes.
-    const at = typeof winner.actionType === 'string' ? winner.actionType : '';
-    const et = typeof winner.entityType === 'string' ? winner.entityType : '';
-    const ownVerbs = Object.prototype.hasOwnProperty.call(ACTION_FAMILY_VERBS, at);
-    const ownNouns = Object.prototype.hasOwnProperty.call(ENTITY_NOUNS, et);
-    const allowed = new Set([...SELECTION_FILLER,
-      ...(ownVerbs ? ACTION_FAMILY_VERBS[at] : ACTION_FAMILY_VERBS.archive).split(' '),
-      ...(ownNouns ? ENTITY_NOUNS[et] : '').split(' ').filter((w) => w.length > 0)]);
-    return residual.replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter((w) => w.length > 0)
-      .every((w) => allowed.has(w));
-  };
-  if (matches.length === 1 && !cleanSelection(matches[0])) return null;
-  if (matches.length === 1) return matches[0];
-  // run13/D102: stripping presentation characters fixed the quoted-label regression but
-  // introduced its own collision — two real names differing ONLY by an apostrophe
-  // ("Bob's Co" / "Bobs Co") normalise to the same string and become mutually
-  // unselectable. When the normalised pass is ambiguous, retry on the RAW labels: the
-  // founder who typed the exact name gets the exact option, and a genuinely ambiguous
-  // reply still resolves to nothing.
-  if (matches.length > 1) {
-    // run14/D106 (P1, MY OWN REGRESSION from the D102 fix above). The first version of this
-    // fallback filtered `options` rather than `matches`, and tested CONTAINMENT rather than
-    // equality — so a short label that was incidentally a raw substring of the reply beat
-    // the one the founder actually named. Options [Smith, Smith's Bakery] + reply "smiths
-    // bakery" bound to SMITH, and its actionType then armed archiveCompanyIds with no LLM
-    // in the loop. Every earlier defect in this family could only DEAD-END; this one
-    // archives the wrong company. It also failed its own goal: typing the exact name
-    // "smith's bakery" still dead-ended.
-    //
-    // Specificity first: when a reply contains several labels, the LONGEST is the one the
-    // founder named and a shorter one is contained only incidentally.
-    //
-    // But longest-wins ALONE guesses whenever a reply genuinely mentions more than one
-    // option — "archive acme, leave acme holdings alone" would select the very option the
-    // reply EXCLUDES. So the winner must be the only option still mentioned once its own
-    // text is removed. A reply naming several options is ambiguous and must dead-end,
-    // exactly as it did before D102. (That guard is verifier #14's, not mine: my own
-    // proposed fix had this hole, and its 12-case probe contained no multi-mention case,
-    // which is precisely why its self-validation read clean. A fix's own author is the
-    // worst judge of what it forgot.)
-    const specificity = (o: PendingActionOption) => forMatching(o.label).length;
-    const maxLen = Math.max(...matches.map(specificity));
-    const longest = matches.filter((o) => specificity(o) === maxLen);
-    if (longest.length === 1) {
-      // run16/D123: the clean-selection rule applies on this path too (a longer label
-      // with an exclusion word around it is still an exclusion).
-      if (!cleanSelection(longest[0])) return null;
-      const rest = normalizedCommand.split(forMatching(longest[0].label)).join(' ');
-      return matches.some((o) => o !== longest[0] && rest.includes(forMatching(o.label))) ? null : longest[0];
-    }
-    // Still tied => the labels differ ONLY in presentation (D102's apostrophe pair). This is
-    // the single situation the raw comparison exists for, and confining it to the tied set
-    // is what makes the D106 mis-bind unrepresentable rather than merely unlikely.
-    const rawCommand = command.replace(/\s+/g, ' ').trim().toLowerCase();
-    const exact = longest.filter((o) => o.label.trim().length > 0
-      && rawCommand.includes(o.label.replace(/\s+/g, ' ').trim().toLowerCase()));
-    if (exact.length === 1) return cleanSelection(exact[0]) ? exact[0] : null;
-  }
-  return null;
+  const matches = options.filter((o) =>
+    o && typeof o.label === 'string' && typeof o.id === 'string' && typeof o.entityType === 'string' &&
+    o.label.trim().length > 0 && normalizedCommand.includes(o.label.trim().toLowerCase())
+  );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 // Shared by claimsCompanyDeleted/claimsTaskDeleted/claimsGoalDeleted/claimsPersonDeleted
@@ -825,12 +625,10 @@ Rules:
   about is never invisible purely from being outside the general cap. CRITICAL, real
   incident (2026-08-30): "what is test4's status?" with test4 outside the general window
   produced a plausible-sounding but entirely FABRICATED "is archived" guess, not grounded
-  in any real field at all. If a company the founder names is STILL absent from
-  context.companies and context.archivedCompanies, say exactly that ("I don't see a
-  company by that name in my current view") — absence from a context window is NEVER
-  proof that it does not exist and NEVER proof that it was deleted; the backend resolves
-  explicit archive/restore targets by name across every status (see restoreCompanyNames
-  below), so never refuse a lifecycle request merely because the name is not in context.
+  in any real field at all. Given this guarantee, if a company the founder names is
+  STILL absent from context.companies, that is real signal it does not currently exist
+  under that name (permanently deleted, or never existed, or misspelled) — say so plainly
+  ("I don't see a company by that name right now") and ask if they mean something else.
   NEVER invent a plausible-sounding status (archived/active/anything) for a company that
   does not appear in context.companies, no matter how familiar the name sounds from
   context.memories or conversationHistory — a memory or a past mention proves only that
@@ -1081,12 +879,10 @@ Rules:
   documents, org relationships, memories) is touched or destroyed, the company just stops
   appearing as an active company until restored. It executes immediately (not a task, not
   an approval). "Restore [company]" / "un-delete [company]" / "bring back [company]" works
-  the same way via restoreCompanyIds (ids from context.archivedCompanies). When the
-  company the founder names is not in context at all, put the EXACT NAME the founder used
-  into restoreCompanyNames (or archiveCompanyNames) instead — the backend resolves it
-  against every company you are allowed to see, active or archived, and reports the real
-  outcome; never resolve an id from memories or conversation history, and never refuse
-  merely because the name is outside your context window. Never invent or guess an id for
+  the same way via restoreCompanyIds, and can target a company that is only resolvable from
+  context.memories or conversation history (an archived company is not necessarily still
+  in context.companies, since that list is the active-company view) — resolve it by name
+  from whatever context you have rather than refusing. Never invent or guess an id for
   either field. The real outcome (archived / restored / denied / already in that state /
   not found) is reported back to you after this call actually runs and REPLACES whatever
   you say here — do not independently declare a company deleted or restored in your own
@@ -1403,26 +1199,6 @@ Rules:
   alongside createCompanyRelationships/updateCompanies in the same turn — check first, let
   the founder act on the real findings next turn, don't guess-fix in the same breath as
   auditing.
-- THE COMMAND YOU ARE ANSWERING is context.currentTurn.command — the FINAL entry in this
-  context, with its absolute turn number. conversationHistory entries are PRIOR turns
-  (each carries its own turn number); never treat the last history entry as the message
-  being answered, and never answer a previous turn instead of currentTurn.
-- CONTINUITY HONESTY (context.continuity, non-negotiable): you see turns
-  historyWindowStart..historyWindowEnd of totalPriorTurns. If historyIsComplete is
-  false, earlier turns EXIST but are NOT visible to you — you must say so when asked
-  about them ("I can see turns N..M of this conversation; earlier turns aren't in my
-  view") and must NEVER state, guess, or reconstruct what the first message or any
-  out-of-window turn said. "Your very first message was X" is only ever sayable when
-  historyIsComplete is true AND turn 1 is in the window. No anti-guess clause from the
-  founder is required for this — it applies to every question, every time.
-- GROUNDING PRECEDENCE (binding; governance/OPERATING_TRUTH_MODEL.md §2): (1) this turn's
-  own execution results reported back to you, (2) the fresh context arrays and
-  context.collections in THIS pack, (3) context.pendingAction / context.continuity,
-  (4) context.conversationHistory, (5) your own inference. A higher tier always wins. A
-  history entry whose summary reads "[UNVERIFIED — …]" establishes nothing about state.
-  When history and fresh context disagree, say so explicitly ("an earlier message in this
-  channel said X; the current data shows Y") and answer from the fresh context. For any
-  count, use context.collections.<name>.total and say "N of M shown" when truncated.
 - If context.conversationHistory is present, this command continues an existing topic —
   treat it as a real ongoing conversation, and refer back to it naturally when relevant.
   CRITICAL LIMIT (2026-08-30, real incident: a founder was told "the conversation history
@@ -1501,46 +1277,10 @@ Rules:
   let it default to this conversation's channel; set companyId/companyIndex the same way
   as other entities when the fact is clearly about a specific company.
 
-REQUEST INTENT ("requestIntent") — ALWAYS classify the founder's request BEFORE you answer, in any
-language: "mutation" when they asked you to change data (archive, restore, rename, assign, create,
-delete, approve, set a manager, end employment, …), "confirmation" when they answered a pending
-question ("yes", "option 2", "go ahead"), "read" when they asked a question or for a list/summary/
-status, "other" otherwise. "action" is the verb you understood, "entityType" the kind of record,
-"targetName" the exact name they used. This classifies the REQUEST, never your answer, and is
-independent of whether you could execute it: the backend uses it to decide whether a truthful
-"No change was made" receipt is owed. Never omit it.
-
-STRUCTURED CLAIMS ("claims") — how your answer is checked for truth.
-Every factual statement you make about system state or about something being done is
-verified independently, by exact canonical id, against what the backend actually executed.
-Prose is NOT how truth is decided; your claims are. State them explicitly:
-  - "mutation_result": something was CHANGED THIS TURN. Requires the exact canonical
-    resourceId and the action. This is only supported if the backend really executed that
-    action on that exact id and the postcondition confirmed it. If you did not actually
-    cause a change, do NOT emit a mutation_result claim.
-  - "current_state"/"approval_state"/"existence"/"count": what is true NOW. Give
-    resourceId plus "predicate" (e.g. "status") and "expectedValue" (e.g. "archived").
-    Checked against a fresh canonical read.
-  - "historical_event": something happened in an EARLIER turn. Current state does not
-    prove it, so these are reported as unverified rather than presented as confirmed.
-  - "assignment": a canonical relationship was established; same id+postcondition rules
-    as mutation_result.
-Anything you ASK goes in "questions". Anything you OFFER to do next goes in
-"proposedActions". Neither is an execution claim and neither is ever grounded.
-A wrong id is never rescued by a right resource type: a claim about approval A is NOT
-supported by evidence about approval D, company B, or anything else. If you are unsure of
-the canonical id, do not assert the claim — ask instead.
-If any claim is unsupported, ONLY that claim is corrected; your truthful claims and your
-questions are preserved.
-
 Output schema:
 {
   "strategicGoal": string,
   "summary": string,
-  "requestIntent": {"kind": "mutation"|"confirmation"|"read"|"other", "action": string|null, "entityType": "company"|"person"|"project"|"task"|"goal"|"department"|"lead"|"document"|"approval"|"other"|null, "targetName": string|null},
-  "claims": [{"type": "current_state"|"mutation_result"|"historical_event"|"existence"|"count"|"assignment"|"approval_state"|"verification_state", "resourceType": "company"|"person"|"project"|"task"|"goal"|"approval"|"department", "resourceId": string|null, "action": string|null, "predicate": string|null, "expectedValue": any, "temporalScope": "current"|"this_turn"|"prior_turn"|"historical"}]|null,
-  "questions": [string]|null,
-  "proposedActions": [string]|null,
   "pendingAction": {"kind": "bulk_confirmation"|"single_entity_clarification"|"disambiguation"|"open_question"|"multi_action_plan", "summary": string|null, "action": object|null, "question": string|null, "candidateIds": [string]|null, "entityType": string|null, "actionType": "archive"|"restore"|null, "options": [{"label": string, "id": string, "entityType": string, "actionType": "archive"|"restore"|null}]|null, "executionPlan": [{"id": string, "operation": "restore_employment"|"end_employment"|"reassign_person"|"assign_task"|"archive_company"|"restore_company"|"archive_task"|"restore_task"|"archive_goal"|"restore_goal", "targetIds": object, "dependsOn": [string]|null, "status": "planned", "result": null}]|null, "partialExecutionPlan": [/* same shape as executionPlan */]|null}|null,
   "riskLevel": "low"|"medium"|"high"|"critical",
   "tasks": [
@@ -1574,8 +1314,6 @@ Output schema:
   ],
   "archiveCompanyIds": [string],
   "restoreCompanyIds": [string],
-  "archiveCompanyNames": [string],
-  "restoreCompanyNames": [string],
   "permanentDeleteFixtureCompanyIds": [string],
   "createPeople": [
     {"fullName": string, "email": string|null, "roleTitle": string|null, "companyId": string|null, "companyIndex": number|null}
@@ -2167,29 +1905,16 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // depends on the true last turn being last) keep their existing chronological-order
   // semantics unchanged.
   const conversationHistoryQuery = channelId
-    ? supabase.from('work_orders').select('command,output,created_at').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
+    ? supabase.from('work_orders').select('command,output').eq('channel_id', channelId).order('created_at', { ascending: false }).limit(8)
     : Promise.resolve({ data: [], error: null });
-  // run10 (Work-PC item H + off-by-one, founder items 5-6): the model can only be honest
-  // about continuity if it KNOWS how much history it is looking at. One cheap head-count
-  // alongside the window query gives absolute turn numbers, window bounds and the
-  // is-this-everything bit — without it, "your very first message was …" is a guess
-  // dressed as a fact (confirmed live at T13 of the 50-turn run).
-  const conversationCountQuery = channelId
-    ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
-    : Promise.resolve({ count: 0, error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
-    archivedTasks, conversationCount] = await Promise.all([
-    // CollectionEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.3): active and archived
-    // companies are two deterministic, newest-first windows, each with an exact count.
-    // Every collection query below carries { count: 'exact' } so context.collections can
-    // report shown/total/truncated from the query's own count, never from array length.
-    supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score', { count: 'exact' }).neq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
+    archivedTasks] = await Promise.all([
+    supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score').limit(12),
     namedCompanyLookupQuery,
-    supabase.from('companies').select('id,name,status,organization_type,updated_at', { count: 'exact' }).eq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
-    supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score', { count: 'exact' }).limit(20),
+    supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score').limit(20),
     // owner_type/owner_person_id/owner_agent_id added 2026-08-30: real incident found live
     // - context.tasks never carried who (if anyone) owns a task at all, so a plain
     // "is QA-MULTI-TASK assigned?" question had zero real data to answer from, and the
@@ -2202,35 +1927,35 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // is now always resolvable via namedTaskLookupQuery below regardless of this general
     // cap, the same "targeted retrieval backstops a smaller default list" pattern already
     // proven for companies/people/goals - a smaller default recent-set is safe.
-    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id', { count: 'exact' }).in('status',TASK_STATUSES).limit(15),
+    supabase.from('tasks').select('id,company_id,project_id,title,status,priority,risk_level,approval_required,deadline,owner_type,owner_person_id,owner_agent_id').in('status',TASK_STATUSES).limit(15),
     namedTaskLookupQuery,
     memoriesQuery,
-    supabase.from('agents').select('id,name,role,skills,cost_limit_usd', { count: 'exact' }).eq('active', true).limit(20),
+    supabase.from('agents').select('id,name,role,skills,cost_limit_usd').eq('active', true).limit(20),
     // unit_cost intentionally not selected — it lives in product_costs now (manager+
     // RLS), not on product_lines itself. The AI's context must not carry cost/margin
     // data for a caller who couldn't otherwise read it.
-    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active', { count: 'exact' }).eq('active', true).limit(20),
-    supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location', { count: 'exact' }).limit(20),
-    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason', { count: 'exact' }).eq('status','pending').limit(20),
+    supabase.from('product_lines').select('id,company_id,name,currency,unit_price,service_fee_monthly,active').eq('active', true).limit(20),
+    supabase.from('inventory_items').select('id,company_id,product_line_id,sku,quantity_on_hand,reserved_quantity,reorder_point,location').limit(20),
+    supabase.from('approvals').select('id,company_id,title,status,risk_level,reason').eq('status','pending').limit(20),
     // active added 2026-08-30: this was the ONLY employment-status field missing from
     // context entirely - the model had no fresh data to answer "is X still employed?"
     // from at all, only conversationHistory (a structural, forced instance of the Bug 4
     // pattern, discovered live via "is test3 employee currently employed?").
-    supabase.from('people').select('id,full_name,email,role_title,company_id,active', { count: 'exact' }).limit(30),
+    supabase.from('people').select('id,full_name,email,role_title,company_id,active').limit(30),
     namedPersonLookupQuery,
-    supabase.from('goals').select('id,company_id,title,status,kind', { count: 'exact' }).limit(20),
+    supabase.from('goals').select('id,company_id,title,status,kind').limit(20),
     namedGoalLookupQuery,
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
-    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state', { count: 'exact' }).limit(20),
-    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state', { count: 'exact' }).limit(30),
+    supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state').limit(20),
+    supabase.from('person_assignments').select('id,person_id,legal_employer_company_id,operating_company_id,manager_person_id,job_title,state').limit(30),
     // RLS-gated to founder/admin or is_company_manager(company_id) — a technician's own
     // RLS-scoped client gets [] back here, same "no special casing" pattern as
     // company_relationships above. This is the actual security boundary the founder's
     // "technician asking for revenue should not reply" requirement depends on: the model
     // never receives restricted rows in the first place, rather than being told not to
     // repeat them.
-    supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary', { count: 'exact' }).order('created_at', { ascending: false }).limit(20),
+    supabase.from('financial_reports').select('id,company_id,period,revenue,expenses,net_income,cash_position,health_status,summary').order('created_at', { ascending: false }).limit(20),
     conversationHistoryQuery,
     // Phase 8: real, persisted Software Factory state - so a fresh chat context can
     // answer "what happened with that work?" from actual canonical_work_orders/tasks/
@@ -2249,34 +1974,34 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // Cap reduced 30->15 (2026-08-30, context-budget pass) - channels were a real,
     // measurable contributor (987 est. tokens for 30 rows) to a base context pack that
     // measured over the hard token cap even in a brand-new channel with zero history.
-    supabase.from('chat_channels').select('id,name,company_id', { count: 'exact' }).eq('archived', false).limit(15),
+    supabase.from('chat_channels').select('id,name,company_id').eq('archived', false).limit(15),
     // Low-risk, chat-creatable/editable entities (createDepartments/updateDepartments,
     // createLeads/updateLeads, createDocuments) — same "check context first, never
     // duplicate" and id-provenance discipline as every other entity above. Documents:
     // no extracted_text/summary here — content isn't needed to avoid a title/category
     // duplicate, and keeping it out holds the same "no restricted content enters the
     // model's context beyond what it needs" line already drawn for financial_reports.
-    supabase.from('departments').select('id,name,company_id', { count: 'exact' }).limit(30),
-    supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate', { count: 'exact' }).limit(30),
-    supabase.from('documents').select('id,title,company_id,category', { count: 'exact' }).limit(30),
+    supabase.from('departments').select('id,name,company_id').limit(30),
+    supabase.from('sales_leads').select('id,client_name,company_id,stage,value_estimate').limit(30),
+    supabase.from('documents').select('id,title,company_id,category').limit(30),
     // Proposals: id/title/company/status only for id-provenance + duplicate checks —
     // subtotal/discount_pct/total/internal_margin deliberately excluded from context.
     // Chat only ever creates a bare draft (no pricing) and updates title/payment terms;
     // the real risk-scored pricing flow (createProposal, lib/proposals/risk-score.ts)
     // only exists in the Next.js app, not duplicated here.
-    supabase.from('proposals').select('id,title,company_id,status', { count: 'exact' }).limit(20),
-    supabase.from('product_specs').select('id,title,company_id,status', { count: 'exact' }).limit(20),
-    supabase.from('engineering_drawings').select('id,title,company_id', { count: 'exact' }).limit(20),
+    supabase.from('proposals').select('id,title,company_id,status').limit(20),
+    supabase.from('product_specs').select('id,title,company_id,status').limit(20),
+    supabase.from('engineering_drawings').select('id,title,company_id').limit(20),
     // ai_providers has no key column by design (founder's explicit choice, see
     // web/CLAUDE.md) — provider/model/label/is_active carry no secret, safe in context.
-    supabase.from('ai_providers').select('id,provider,model,label,is_active', { count: 'exact' }).limit(10),
+    supabase.from('ai_providers').select('id,provider,model,label,is_active').limit(10),
     // mcp_connectors: name/endpoint only, never vault_secret_id — chat can delete a
     // connector by id but can never create/update one (that requires typing a bearer
     // token, which would transit the chat message, the LLM's own context, and the
     // plaintext work_orders.command audit column — a real secret-leak pattern, not just
     // caution; see qa/scenarios/core/audit/SC-104-log-secret-leak.md for the same class
     // of concern this codebase already tracks elsewhere).
-    supabase.from('mcp_connectors').select('id,name,endpoint_url', { count: 'exact' }).limit(10),
+    supabase.from('mcp_connectors').select('id,name,endpoint_url').limit(10),
     // Real aggregate counts, deliberately separate from the (necessarily truncated)
     // arrays above. head:true means no rows are fetched — this is a cheap COUNT, not a
     // second copy of the data. CLAUDE.md §6/§26: the model must never infer a total from
@@ -2302,70 +2027,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // TASK_STATUSES) - an archived task is never in it, so restoreTaskIds would have
     // nothing to resolve from without this separate, small, recent-archived query. Goals
     // need no equivalent: context.goals already carries no status filter.
-    supabase.from('tasks').select('id,company_id,title', { count: 'exact' }).eq('status','archived').order('updated_at',{ascending:false}).limit(15),
-    conversationCountQuery,
+    supabase.from('tasks').select('id,company_id,title').eq('status','archived').order('updated_at',{ascending:false}).limit(15),
   ]);
   // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
   // fetch above deliberately went newest-first so LIMIT kept the right 8 rows.
   const conversationRowsChronological = conversationRows.data ? [...conversationRows.data].reverse() : conversationRows.data;
-  // run10 (off-by-one + continuity, founder items 5-6): every history entry carries its
-  // ABSOLUTE turn number (1 = the channel's first turn ever, not the window's first),
-  // and the pack states exactly what window the model is looking at. The current
-  // command's own turn number is total+1 — the pending row for THIS turn is inserted
-  // AFTER this context is built (create_pending_work_order below), so the window can
-  // never self-include the current turn.
-  // Issue #5 durable state, FEATURE-GATED on the 202609020001 table's existence: any
-  // error (incl. relation-not-found before the migration is approved/applied) yields
-  // null — behavior is then byte-identical to today. When present, the durable row
-  // supplies a pending action that SURVIVES beyond the last turn — but only a FULLY
-  // TYPED one (explicit action type + unexpired + source turn recorded): the Class-B
-  // rule that absence must never resolve to a destructive default is enforced by the
-  // reader too, not just the table's whole-or-nothing constraint.
-  let durableChannelState: Record<string, unknown> | null = null;
-  if (channelId) {
-    try {
-      const { data: dcs, error: dcsError } = await supabase
-        .from('chat_channel_state')
-        .select('pending_action, pending_action_action_type, pending_action_target_ids, pending_action_source_work_order_id, pending_action_expected_confirmation, pending_action_expires_at, focus_stack, resolved_entities, last_successful_mutation, compacted_summary, compacted_turn_count, version')
-        .eq('channel_id', channelId)
-        .maybeSingle();
-      if (!dcsError && dcs) durableChannelState = dcs as Record<string, unknown>;
-    } catch { /* table absent or unreadable: durable state simply does not exist */ }
-  }
-  const totalPriorTurns = conversationCount.count ?? (conversationRowsChronological || []).length;
-  const historyWindowStart = totalPriorTurns - (conversationRowsChronological || []).length + 1;
-  // Narrative tier (governance/OPERATING_TRUTH_MODEL.md §2 tier 4, §3 rule 6): each prior
-  // turn carries its persisted verdict. A turn that carried mutation intent (or rejected
-  // claims) and executed nothing is carried as UNVERIFIED unless its persisted summary is
-  // already the deterministic receipt — the raw prose of such a turn never re-enters the
-  // prompt as a record of what happened; the command still says what was ASKED.
-  const conversationHistory = (conversationRowsChronological || []).map((r:any, idx:number) => {
-    const verdict = r.output?.turnVerdict && typeof r.output.turnVerdict === 'object' ? r.output.turnVerdict : null;
-    const evidence = Array.isArray(r.output?.verifiedResponse?.executionEvidence) ? r.output.verifiedResponse.executionEvidence : null;
-    const executedOperationCount: number | null = typeof verdict?.executedOperationCount === 'number' ? verdict.executedOperationCount
-      : evidence ? evidence.filter((e: any) => e && e.postconditionPassed).length : null;
-    const rejectedClaimCount: number | null = typeof verdict?.rejectedClaimCount === 'number' ? verdict.rejectedClaimCount
-      : Array.isArray(r.output?.verifiedResponse?.rejectedClaims) ? r.output.verifiedResponse.rejectedClaims.length : null;
-    const unverified = (verdict?.mutationIntent != null && executedOperationCount === 0)
-      || (rejectedClaimCount !== null && rejectedClaimCount > 0 && executedOperationCount === 0);
-    const summary = unverified && !verdict?.receiptRendered
-      ? '[UNVERIFIED — no database change was executed on that turn]'
-      : (r.output?.summary || null);
-    const verified: boolean | null = executedOperationCount === null ? null : unverified ? false : (executedOperationCount > 0 ? true : null);
-    return { turn: historyWindowStart + idx, command: r.command, summary, verified, executedOperationCount, rejectedClaimCount };
-  });
-  const continuity = {
-    totalPriorTurns,
-    historyWindowStart: (conversationRowsChronological || []).length > 0 ? historyWindowStart : null,
-    historyWindowEnd: (conversationRowsChronological || []).length > 0 ? totalPriorTurns : null,
-    historyIsComplete: totalPriorTurns <= (conversationRowsChronological || []).length,
-    // Filled from the durable channel-state row when 202609020001 is live; null is an
-    // honest "no compaction checkpoint exists", never a guess.
-    compactionCheckpoint: durableChannelState && durableChannelState.compacted_summary
-      ? { summary: durableChannelState.compacted_summary, turnsCompacted: durableChannelState.compacted_turn_count ?? 0 }
-      : null,
-    channelStateVersion: durableChannelState ? (durableChannelState.version ?? null) : null,
-  };
+  const conversationHistory = (conversationRowsChronological || []).map((r:any) => ({ command: r.command, summary: r.output?.summary || null }));
   const counts = {
     tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
     approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
@@ -2396,29 +2063,13 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // "last element" only means "most recent turn" against the reversed, chronological
   // array; conversationRows.data itself is now newest-first and would silently make this
   // pick the OLDEST of the kept window instead.
-  // Verifier #56 item 8: the previous turn's STORED pendingAction carries the same 30-minute expiry as
-  // the durable row — an old, unanswered question must not bind a bare "yes" hours later.
-  const lastTurnRow = conversationRowsChronological?.[conversationRowsChronological.length - 1];
-  const lastTurnCreatedAt = lastTurnRow && typeof lastTurnRow.created_at === 'string' ? new Date(lastTurnRow.created_at).getTime() : NaN;
-  const lastTurnPendingFresh = Number.isNaN(lastTurnCreatedAt) || (Date.now() - lastTurnCreatedAt) <= 30 * 60 * 1000;
-  const lastTurnOutputRaw = lastTurnRow?.output as {
+  const lastTurnOutput = conversationRowsChronological?.[conversationRowsChronological.length - 1]?.output as {
     pendingAction?: PendingAction | null;
     pendingConfirmation?: { summary?: string; action?: Record<string, unknown> } | null;
     resolvedEntities?: ResolvedEntities | null;
   } | undefined;
-  const lastTurnOutput = lastTurnOutputRaw && !lastTurnPendingFresh ? { ...lastTurnOutputRaw, pendingAction: null, pendingConfirmation: null } : lastTurnOutputRaw;
   const legacyPendingConfirmation = lastTurnOutput?.pendingConfirmation;
-  const durablePendingActionValid = !!(durableChannelState
-    && durableChannelState.pending_action
-    && typeof durableChannelState.pending_action_action_type === 'string'
-    && durableChannelState.pending_action_source_work_order_id
-    && typeof durableChannelState.pending_action_expires_at === 'string'
-    && new Date(String(durableChannelState.pending_action_expires_at)).getTime() > Date.now());
-  // Precedence (governance/OPERATING_TRUTH_MODEL.md §2, tier 3 over tier 4): the durable,
-  // TTL-guarded, fully-typed channel-state row outranks the previous turn's stored output
-  // text; the stored output is the fallback, the legacy shape the last resort.
-  const pendingAction: PendingAction | null = (durablePendingActionValid ? durableChannelState!.pending_action as PendingAction : null)
-    ?? lastTurnOutput?.pendingAction
+  const pendingAction: PendingAction | null = lastTurnOutput?.pendingAction
     ?? (legacyPendingConfirmation && typeof legacyPendingConfirmation === 'object'
       ? { kind: 'bulk_confirmation', summary: legacyPendingConfirmation.summary, action: legacyPendingConfirmation.action }
       : null);
@@ -2604,41 +2255,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       : null,
   }));
 
-  // run10 (Work-PC off-by-one, founder item 5): `command` used to be the pack's FIRST
-  // key with conversationHistory serialized after it — positionally, the most recent
-  // thing the model read was the PREVIOUS turn, and recency-weighted attention answered
-  // T(n-1). The current command is now `currentTurn`, the pack's FINAL key, carrying
-  // its absolute turn number — present exactly once, and the latest thing in context
-  // (CURRENT_USER_COMMAND_IS_PRESENT_EXACTLY_ONCE_AND_IS_LATEST_CONTEXT_TURN). Nothing
-  // else ever read pack.command (verified by grep across functions/web/migrations
-  // before the move).
-  // CollectionEnvelope per pack collection (governance/OPERATING_TRUTH_MODEL.md §4.3):
-  // shown = what this pack carries, total = the query's own exact count, truncated =
-  // total > shown. null total means the source has no authoritative count (semantic
-  // top-K, nested factory summary) and is labelled as such — never presented as complete.
-  const envelope = (res: any, shownOverride: number | null = null, scope: string | null = null) => {
-    const shown = typeof shownOverride === 'number' ? shownOverride : (res?.data || []).length;
-    const total = typeof res?.count === 'number' ? res.count : null;
-    return { shown, total, truncated: total === null ? null : total > shown, ...(scope ? { scope } : {}) };
-  };
-  const collections = {
-    companies: envelope(companies, packCompanies.length, 'active (non-archived), newest first, plus any company named in this command'),
-    archivedCompanies: envelope(archivedCompanies, undefined, 'archived, newest first'),
-    projects: envelope(projects), tasks: envelope(tasks, mergedTasksData.length, 'in-flight statuses, plus any task named in this command'),
-    memories: { shown: packMemories.length, total: null, truncated: null, scope: 'top-8 semantic retrieval' },
-    agents: envelope(agents, undefined, 'active'), products: envelope(products, undefined, 'active'), inventory: envelope(inventory), approvals: envelope(approvals, undefined, 'pending'),
-    people: envelope(people, packPeople.length, 'plus any person named in this command'), goals: envelope(goals, mergedGoalsData.length, 'plus any goal named in this command'),
-    companyRelationships: envelope(companyRelationships), personAssignments: envelope(personAssignments), financialReports: envelope(financialReports, undefined, 'newest first'),
-    conversationHistory: { shown: (conversationRowsChronological || []).length, total: totalPriorTurns, truncated: totalPriorTurns > (conversationRowsChronological || []).length, scope: 'newest turns in this channel' },
-    factoryWorkOrders: { shown: factoryWorkOrders.length, total: null, truncated: null, scope: 'newest 10' },
-    channels: envelope(channels, undefined, 'not archived'), departments: envelope(departments), leads: envelope(leads), documents: envelope(documents), proposals: envelope(proposals),
-    productSpecs: envelope(productSpecs), engineeringDrawings: envelope(engineeringDrawings), aiProviders: envelope(aiProviders), mcpConnectors: envelope(mcpConnectors),
-    archivedTasks: envelope(archivedTasks, undefined, 'archived, newest first'),
-  };
-  // Backstop: every array in the pack literal below must have an envelope here
-  // (qa/scenarios-runner/architecture_collection_envelope_contract.mjs pins this statically).
-  const pack = { continuity, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  const pack = { command, companies:packCompanies, projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, counts };
+  return { pack, errors:[companies.error,namedCompanyLookup.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -2720,14 +2338,6 @@ serve(async (req) => {
       const send = (data: unknown) => controller.enqueue(encoder.encode(sseEvent(data)));
       let workOrderId: string | null = null;
       try {
-        // V54-P0-TDZ: these two patterns are read at the disambiguation replay branch (~:2779) and by the
-        // structured-claim window far below. They are block-scoped consts in THIS try block, so they must be
-        // declared above every use or the replay branch throws ReferenceError (temporal dead zone) and the
-        // founder's selection never executes. Pure regex literals; nothing between here and the old site
-        // was needed to build them. The old placement was made "so the QA harnesses see it" — harnesses
-        // must be taught to look here instead (extractors search the whole file by name).
-        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
-        const COMPLETION_WORD = /\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|ended|moved|added|granted|confirmed|renamed|declined|closed|done|cleared|sent)\b/i;
         // A real row now exists in the database before the LLM call even starts, not
         // just after it finishes — verified live that generation itself survives a
         // client disconnect (a command was sent, the browser hard-disconnected before it
@@ -2803,11 +2413,7 @@ serve(async (req) => {
           // refuse and fall through to the ordinary LLM path (field stays undefined),
           // never silently pick a destructive default. Every legitimate archive/restore
           // clarification sets actionType explicitly (system prompt requirement below)
-          // and is unaffected - the fail-closed shape of the REAL function is pinned by
-          // qa/scenarios-runner/sem_ai_command_source_invariants_drift_guard.mjs, and
-          // issue5_confirmation_action_type_binding.mjs executes the real function extracted
-          // from this file against the full matrix (run15/D122: it used to cite a suite that
-          // re-implemented the product, which proves nothing about this line).
+          // and is unaffected - proven by qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs.
           const field = resolveClarificationField(pendingAction.entityType, pendingAction.actionType);
           if (field) {
             deterministic = {
@@ -2827,70 +2433,14 @@ serve(async (req) => {
           // of the new command's own literal verb. If the new command's own words clearly
           // state the opposite action, this is a fresh command, not a stale confirmation -
           // fall through to the ordinary LLM call instead of resolving deterministically.
-          // run19/D138 (P3): the contradiction test looks for an OPPOSITE-family COMMAND verb,
-          // but a company's own NAME can contain one ("Restored Furniture Co", "Unarchived
-          // Records Ltd", "Reactivated Metals LLC" — the last since run17/D127). The founder
-          // typing that exact name to select the option then tripped the guard as if they had
-          // issued a restore command, and the option became unselectable. The matched option's
-          // own label is removed before the check, so only words OUTSIDE the name — an actual
-          // command verb ("restore Restored Furniture Co", still pending an archive) — count.
-          const commandForContradiction = matchedOption && typeof matchedOption.label === 'string'
-            ? command.replace(new RegExp(matchedOption.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ')
-            : command;
-          // run20/D142 (P1): the strip above can erase the founder's OWN command verb when the
-          // matched option's LABEL *is* a bare opposite-family verb (a company named "Restore",
-          // "ReStore", "Unarchive", "Archive", "Delete"). Reply "restore" against a pending
-          // archive then left an empty command, the contradiction check saw nothing, and the
-          // destructive field armed on the OPPOSITE intent. D136's ambiguity dead-end, already
-          // on the ordinal path, is carried here: when removing the label empties the command
-          // AND the label is itself a bare opposite-family verb (stripping that verb leaves the
-          // label empty), dead-end to the LLM. A real name that merely CONTAINS a verb
-          // ("Restored Furniture Co") leaves a non-empty remainder, so it stays selectable (D138).
-          // run21/D148: the earlier empty-command test only fired for a bare one-token reply,
-          // so "restore it" / "please restore" still armed the opposite field. The founder is
-          // issuing a COMMAND when the reply carries a base/imperative opposite-family verb
-          // (restore/unarchive/reactivate/activate vs a pending archive; archive/delete/remove/
-          // end vs a pending restore — run23/D157 unified this with RESTORE/ARCHIVE_VERB_PATTERN,
-          // so the -ed/-ing forms and "bring back" are recognised too). What keeps a real NAME
-          // selectable is the LABEL-BARENESS gate above: a MULTI-word name leaves a non-empty
-          // remainder when its verb is stripped ("Restored Furniture Co", "Reactivated Metals LLC"
-          // both still select). A SINGLE-token participial name ("Restored", "Archived") IS bare
-          // and dead-ends — the D136 ambiguity answer (D158c). A genuine opposite command dead-ends
-          // to the LLM (D136). commandContradictsActionType still catches an opposite verb left
-          // OUTSIDE the matched name. Fail-closed: evaluated only when the actionType is known.
-          const contradicted = !!matchedOption
-            && (matchedOption.actionType === 'restore' || matchedOption.actionType === 'archive')
-            && (commandContradictsActionType(commandForContradiction, matchedOption.actionType)
-              // run22/D150: gate on the matched LABEL being a BARE opposite-family verb
-              // (stripping the opposite verb-pattern from the label leaves it empty) — a company
-              // named exactly "Restore"/"Archive"/"Delete". A real name that merely CONTAINS a
-              // base verb ("Restore Hardware Ltd", "West End Trading Co", "End Zone Inc") is not
-              // bare, so it stays selectable (D138); the imperative test then confirms the reply
-              // actually invokes that verb ("restore it"/"please restore" dead-end, D148 preserved).
-              || (typeof matchedOption.label === 'string'
-                && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(matchedOption.label)
-                && matchedOption.label.replace(new RegExp((matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).source, 'ig'), ' ').trim().length === 0
-                && (matchedOption.actionType === 'restore' ? ARCHIVE_VERB_PATTERN : RESTORE_VERB_PATTERN).test(command)));
+          const contradicted = !!matchedOption && commandContradictsActionType(command, matchedOption.actionType);
           // Same GitHub issue #5 class-B fail-closed fix as the single_entity_clarification
           // branch above: an option carrying no explicit actionType must refuse, not
           // default to this entity type's destructive field.
           const field = matchedOption && !contradicted ? resolveClarificationField(matchedOption.entityType, matchedOption.actionType) : undefined;
           if (matchedOption && !contradicted && field) {
-            // run13/D100+D103c: this replayed a STORED label into founder-facing prose as
-            // "Confirmed — <label>." — the last place model-authored text could assert a
-            // completion, and the reason "Confirmed — Restored Bob Smith." and
-            // "Confirmed — the company (option 1)." both shipped as unqualified
-            // completions. The confirmation is about WHICH option was chosen, so the
-            // label is rendered as a quoted CHOICE, and a label that reads as an
-            // assertion (or is only a numbered typed fallback, which names nothing)
-            // degrades to a neutral acknowledgement rather than a claim.
-            const replayLabel = String(matchedOption.label ?? '');
-            const isTypedFallbackOnly = /^(the [a-z ]+)(\s*\(option \d+\))?$/i.test(replayLabel.trim());
-            const readsAsAssertion = PAST_COMPLETION_CLAIM_PATTERN.test(replayLabel) || COMPLETION_WORD.test(replayLabel);
             deterministic = {
-              summary: (isTypedFallbackOnly || readsAsAssertion)
-                ? 'Confirmed — proceeding with the option you selected.'
-                : `Confirmed — you selected “${replayLabel}”.`,
+              summary: `Confirmed — ${matchedOption.label}.`,
               fields: { [field]: [matchedOption.id] },
               tag: 'deterministic-disambiguation',
             };
@@ -2909,10 +2459,6 @@ serve(async (req) => {
         // else in this file, never trusting a stored id blindly just because it was
         // stored.
         let planExecutionResultText: string | null = null;
-        // run8/D66: the plan executes here, BEFORE the evidence machinery exists in the
-        // turn — stashed so its per-action outcomes can be folded into
-        // claimExecutionEvidence once recordExecution is declared below.
-        let planExecutedActions: ExecutionPlanAction[] | null = null;
         if (pendingAction && pendingAction.kind === 'multi_action_plan' && isShortAffirmative && Array.isArray(pendingAction.executionPlan) && pendingAction.executionPlan.length > 0) {
           const planCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
           const planPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
@@ -2941,7 +2487,6 @@ serve(async (req) => {
               taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
             });
             planExecutionResultText = JSON.stringify({ summary: report, executionPlan: executedPlan });
-            planExecutedActions = executedPlan;
           } else {
             planExecutionResultText = JSON.stringify({ summary: 'Couldn’t execute that plan — one or more of its stored targets no longer resolves to a real record. Please ask again.' });
           }
@@ -3053,73 +2598,12 @@ serve(async (req) => {
         // scoped to in-flight statuses only and never contains an archived task.
         const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
         const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
-        // ExecutionResultEnvelope (type at module top; governance/OPERATING_TRUTH_MODEL.md
-        // §4.1). One entry per executed (or attempted) operation, written at the real
-        // execution sites; detail carries the backend result verbatim and the fresh
-        // postcondition. postconditionPassed === postcondition_verified, always.
-        const claimExecutionEvidence: ExecutionResultEnvelope[] = [];
-        const executionTurn: number | null = typeof contextPack?.currentTurn?.turn === 'number' ? contextPack.currentTurn.turn : null;
-        const recordExecution = (resourceType: string, action: string, id: unknown, postconditionPassed: boolean, detail: ExecutionDetail | null = null) => {
-          if (typeof id === 'string' && id.length > 0) claimExecutionEvidence.push({
-            resourceType, action, id, postconditionPassed,
-            request_id: null, channel_id: channelId, turn: executionTurn, action_type: action, entity_type: resourceType, canonical_entity_ids: [id],
-            requested_values: detail?.requestedValues ?? null, executed: detail?.executed ?? true, rows_affected: detail?.rowsAffected ?? (postconditionPassed ? 1 : null),
-            backend_result: detail?.backendResult ?? null, precondition: detail?.precondition ?? null, postcondition: detail?.postcondition ?? null,
-            postcondition_verified: postconditionPassed, error: detail?.error ?? null, timestamp: new Date().toISOString(),
-          });
-        };
-        // run8/D67: labels for rows created THIS turn. The canonical read predates them,
-        // so displayName could only ever render "the task" for a fresh create; these are
-        // the request's own human labels, captured at the write site next to the id the
-        // database returned — never invented, never positional across a partial failure.
-        const runtimeLabels = new Map<string, string>();
-        const recordLabel = (resourceType: string, id: unknown, label: unknown) => {
-          if (typeof id === 'string' && id.length > 0 && typeof label === 'string' && label.trim().length > 0) {
-            runtimeLabels.set(resourceType + '|' + id, label.trim());
-          }
-        };
-        // run8/D66: fold the confirmed multi-action plan's outcomes (executed above,
-        // before this machinery existed in the turn) into the evidence record. Only a
-        // genuine transition counts — an 'already_*' outcome changed nothing and must
-        // not be able to ground a mutation claim.
-        const PLAN_EVIDENCE: Record<string, [string, string, string]> = {
-          restore_employment: ['person', 'restore_employment', 'personId'],
-          end_employment: ['person', 'end_employment', 'personId'],
-          reassign_person: ['person', 'reassign', 'personId'],
-          assign_task: ['task', 'assign', 'taskId'],
-          archive_company: ['company', 'archive', 'companyId'],
-          restore_company: ['company', 'restore', 'companyId'],
-          archive_task: ['task', 'archive', 'taskId'],
-          restore_task: ['task', 'restore', 'taskId'],
-          archive_goal: ['goal', 'archive', 'goalId'],
-          restore_goal: ['goal', 'restore', 'goalId'],
-        };
-        for (const a of planExecutedActions || []) {
-          if (a.status !== 'completed') continue;
-          const detail = String((a.result as Record<string, unknown> | null)?.detail || '');
-          if (detail.startsWith('already_')) continue;
-          const mapping = PLAN_EVIDENCE[a.operation];
-          if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true);
-        }
-
-        // Verifier #58 V58-D2 (CONTEXT_WINDOW_AS_UNIVERSE for tasks; governance/CANONICAL_WORK_CONTRACT.md §2): task
-        // lifecycle targets resolve SERVER-SIDE under the caller's RLS across every status — never by membership in
-        // the capped window. context.archivedTasks was queried and enveloped but never placed in the pack, so a chat
-        // restore could never execute; an archive of a task outside the 15-row window was silently dropped.
+        const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id)))];
         const requestedRestoreTaskIds = Array.isArray(result.restoreTaskIds) ? result.restoreTaskIds as unknown[] : [];
-        const LIFECYCLE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const requestedTaskLifecycleIds: string[] = [...new Set([...requestedArchiveTaskIds, ...requestedRestoreTaskIds].filter((id): id is string => typeof id === 'string' && LIFECYCLE_UUID_RE.test(id)))];
-        const taskLifecycleRows = requestedTaskLifecycleIds.length > 0
-          ? (((await supabase.from('tasks').select('id,title,status').in('id', requestedTaskLifecycleIds)).data || []) as LifecycleLookupRow[])
-          : ([] as LifecycleLookupRow[]);
-        const taskLifecycleById = new Map(taskLifecycleRows.map((t) => [t.id, t]));
-        const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
-        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
-        void contextArchivedTaskIds;
+        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && contextArchivedTaskIds.has(id)))];
         const taskTitleById = new Map([
           ...((contextPack?.tasks || []).map((t: any) => [t.id, t.title])),
           ...((contextPack?.archivedTasks || []).map((t: any) => [t.id, t.title])),
-          ...taskLifecycleRows.map((t) => [t.id, t.title]),
         ]);
         const lifecycleReasonText: Record<string, string> = {
           archived: 'archived', restored: 'restored',
@@ -3128,16 +2612,11 @@ serve(async (req) => {
           not_found: 'could not be found',
         };
         const taskArchiveRestoreLines: string[] = [];
-        for (const id of requestedTaskLifecycleIds) if (!taskLifecycleById.has(id)) taskArchiveRestoreLines.push(`Task "${taskTitleById.get(id) || 'that task'}": could not be found (searched the active and archived tasks you can access) — nothing was ${requestedRestoreTaskIds.includes(id) ? 'restored' : 'archived'}.`);
         for (const id of archiveTaskIds) {
           const { data, error } = await supabase.rpc('archive_task', { p_task_id: id });
           const name = taskTitleById.get(id) || id;
           if (error || !data) { taskArchiveRestoreLines.push(`Task "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
-          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
-          // TRUTHFUL task-archive claim was denied. Only a genuine state change counts:
-          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);
           taskArchiveRestoreLines.push(`Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreTaskIds) {
@@ -3148,10 +2627,6 @@ serve(async (req) => {
           // Tasks restore to their exact prior status (not a fixed target like companies/
           // goals) - worth naming explicitly rather than a generic "restored", since
           // which status it landed on is real information the founder would ask about.
-          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
-          // TRUTHFUL task-restore claim was denied. Only a genuine state change counts:
-          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);
           taskArchiveRestoreLines.push(r.reason === 'restored'
             ? `Task "${name}": restored (back to "${r.newStatus}").`
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
@@ -3204,12 +2679,6 @@ serve(async (req) => {
         const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
         const requestedPendingDeleteChannelIds = Array.isArray(result.pendingDeleteChannelIds) ? result.pendingDeleteChannelIds as unknown[] : [];
         const pendingDeleteChannelIds = requestedPendingDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
-        // run8/D66: deletion-failure notes used to be appended straight into
-        // result.summary, where the structured-claim rewrite (correctly) discards
-        // non-deterministic summary text — so a real "deletion failed" fact vanished on
-        // exactly the turns that get corrected. Collected here and folded into factLines
-        // below, they ride the deterministicPrefix and survive every rewrite.
-        const executionFailureNotes: string[] = [];
         let deletedChannelCount = 0;
         if (deleteChannelIds.length > 0) {
           const { data: deletedChannels, error: deleteChannelsError } = await supabase
@@ -3221,10 +2690,9 @@ serve(async (req) => {
           // a hard error, just nothing to report as deleted; a real error (e.g. network)
           // still surfaces in summary so it isn't swallowed.
           if (deleteChannelsError) {
-            executionFailureNotes.push(`(Channel deletion failed: ${deleteChannelsError.message})`);
+            result.summary = `${result.summary || ''}\n\n(Channel deletion failed: ${deleteChannelsError.message})`.trim();
           } else {
             deletedChannelCount = deletedChannels?.length || 0;
-            for (const ch of deletedChannels || []) recordExecution('channel', 'delete', ch.id, true);
           }
         }
 
@@ -3249,10 +2717,9 @@ serve(async (req) => {
             .in('id', deleteApprovalIds)
             .select('id');
           if (deleteApprovalsError) {
-            executionFailureNotes.push(`(Approval deletion failed: ${deleteApprovalsError.message})`);
+            result.summary = `${result.summary || ''}\n\n(Approval deletion failed: ${deleteApprovalsError.message})`.trim();
           } else {
             deletedApprovalCount = deletedApprovals?.length || 0;
-            for (const ap of deletedApprovals || []) recordExecution('approval', 'delete', ap.id, true);
           }
         }
 
@@ -3261,12 +2728,12 @@ serve(async (req) => {
         // optional. A person's companyId is only trusted if it's a real id from
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
-        const contextCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => c.id));
+        const contextCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
         // context.companies has no status filter (archived companies must stay resolvable
         // for "restore X" / historical questions), so new-work creation against an
         // archived company has to be blocked here explicitly rather than by omission from
         // context — see archiveCompanyIds/restoreCompanyIds handling below.
-        const archivedCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].filter((c: any) => c.status === 'archived').map((c: any) => c.id));
+        const archivedCompanyIds = new Set((contextPack?.companies || []).filter((c: any) => c.status === 'archived').map((c: any) => c.id));
         let archivedCompanyBlockedCount = 0;
         // Drops any create whose resolved companyId targets an archived company
         // (companyIndex is untouched — it always points at a company created this same
@@ -3347,7 +2814,7 @@ serve(async (req) => {
           if (c.organizationType) patch.organization_type = c.organizationType;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');
-          if (data && data.length > 0) { updatedCompanyCount++; recordExecution('company', 'update', c.id, true); }
+          if (data && data.length > 0) updatedCompanyCount++;
         }
 
         // Archive/restore: the ONLY real deletion mechanism for a company (there is no
@@ -3357,159 +2824,11 @@ serve(async (req) => {
         // Never invented: only ids present in context.companies are honored (that list
         // carries no status filter, so archived companies are already resolvable there for
         // restore too).
-        // CompanyLifecycle target resolution (governance/CANONICAL_WORK_CONTRACT.md §1-§2).
-        // Targets resolve SERVER-SIDE under the caller's own RLS across every status — never
-        // by membership in the capped context window. BUG-014 (Work-PC, 2026-09-07): a known
-        // archived company outside the 12-row window was silently dropped by the old
-        // contextCompanyIds filter, zero RPC calls ran, and the model's own "restored."
-        // shipped. Sources, in order: ids the model emitted (re-read, any status), names the
-        // model emitted (restoreCompanyNames / archiveCompanyNames), and — when the command
-        // itself carries the lifecycle verb but the model resolved nothing — the name in the
-        // command. One hit executes; several hits ask; zero hits say so. Every branch leaves
-        // a line, so a lifecycle-intent turn can never end silent.
-        const COMPANY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const companyNameById = new Map([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => [c.id, c.name]));
-        const lifecycleUnresolvedLines: string[] = [];
-        const lifecycleDisambiguation: LifecycleDisambiguation[] = [];
-        // Verifier #56 V56-D3/D4/D5. The command-derived fallback runs ONLY when the command is about a
-        // company: the model resolved no other mutation target (a task/person/goal request never becomes a
-        // company archive), the model emitted no company lifecycle field of the other direction, and either
-        // the command names a company noun or the model classified the request's entity as a company. The
-        // direction is decided by the FIRST lifecycle verb in the command (a restore word inside a company
-        // name never flips an archive). Command-derived names resolve by EXACT normalised name only; model-
-        // emitted names may also match as a whole-phrase substring, and several hits always ask.
-        const commandMentionsCompany = /\b(compan(?:y|ies)|business unit|subsidiar(?:y|ies)|holding|entity|org(?:anization)?s?|brand|компани)\b/iu.test(String(command || ''));
-        const modelRequestIntentRaw = (result as Record<string, unknown>).requestIntent;
-        const modelRequestIntent: Record<string, unknown> | null = modelRequestIntentRaw && typeof modelRequestIntentRaw === 'object' ? modelRequestIntentRaw as Record<string, unknown> : null;
-        const modelRequestIntentEntity: string | null = modelRequestIntent && typeof modelRequestIntent.entityType === 'string' ? String(modelRequestIntent.entityType) : null;
-        const modelRequestIntentIsCompanyMutation = !!modelRequestIntent && modelRequestIntent.kind === 'mutation' && modelRequestIntentEntity === 'company';
-        const modelRequestIntentAction = modelRequestIntent && typeof modelRequestIntent.action === 'string' ? String(modelRequestIntent.action) : '';
-        const modelRequestIntentTarget: string | null = modelRequestIntent && typeof modelRequestIntent.targetName === 'string' && modelRequestIntent.targetName.trim().length > 0 ? modelRequestIntent.targetName.trim().slice(0, 120) : null;
-        // The model's own parse of the request (language-independent) is a name source for the
-        // resolver in the direction its action names; never a direction the action does not name.
-        const modelIntentNamesFor = (action: string): string[] => {
-          if (!modelRequestIntentIsCompanyMutation || !modelRequestIntentTarget) return [];
-          const isRestore = RESTORE_VERB_PATTERN.test(modelRequestIntentAction);
-          const isArchive = ARCHIVE_VERB_PATTERN.test(modelRequestIntentAction) && !isRestore;
-          return (action === 'restore' && isRestore) || (action === 'archive' && isArchive) ? [modelRequestIntentTarget] : [];
-        };
-        const OTHER_MUTATION_FIELDS = ['tasks','deleteTaskIds','archiveTaskIds','restoreTaskIds','deleteChannelIds','deleteApprovalIds','pendingDeleteTaskIds','pendingDeleteChannelIds','createCompanies','updateCompanies','permanentDeleteFixtureCompanyIds','createPeople','endEmploymentPersonIds','restoreEmploymentPersonIds','createProjects','createGoals','archiveGoalIds','restoreGoalIds','createFactoryWorkOrders','createDepartments','updateDepartments','createLeads','updateLeads','createDocuments','createProductLines','updateProductLines','deleteProductLineIds','createProductSpecs','updateProductSpecs','deleteProductSpecIds','createEngineeringDrawings','deleteEngineeringDrawingIds','createAiProviders','deleteAiProviderIds','deleteMcpConnectorIds','createProposals','updateProposals','deleteProposalIds','createCompanyRelationships','createPersonAssignments'];
-        const modelResolvedOtherTarget = OTHER_MUTATION_FIELDS.some((f) => Array.isArray((result as Record<string, unknown>)[f]) && ((result as Record<string, unknown>)[f] as unknown[]).length > 0);
         const requestedArchiveIds = Array.isArray(result.archiveCompanyIds) ? result.archiveCompanyIds as unknown[] : [];
+        const archiveCompanyIds = [...new Set(requestedArchiveIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
         const requestedRestoreIds = Array.isArray(result.restoreCompanyIds) ? result.restoreCompanyIds as unknown[] : [];
-        const modelEmittedArchive = requestedArchiveIds.length > 0 || (Array.isArray(result.archiveCompanyNames) && result.archiveCompanyNames.length > 0);
-        const modelEmittedRestore = requestedRestoreIds.length > 0 || (Array.isArray(result.restoreCompanyNames) && result.restoreCompanyNames.length > 0);
-        // The raw command is a lifecycle target source only for an IMPERATIVE lifecycle command: not a
-        // question, not a negated / hypothetical lead, no other entity type resolved by the model this
-        // turn, no model lifecycle field, and the model's own classification (when present) is a mutation.
-        const commandLower = String(command || '').toLowerCase();
-        const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
-          && !/^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|please)\b/.test(commandLower);
-        const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|not|no longer|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
-          || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,2}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
-          || /^\s*(?:i|we|they|he|she|someone|somebody|(?!(?:archive|archiving|restore|restoring|delete|deleting|remove|removing|unarchive|reactivate|bring|end|ending|please|pls|kindly|just|now|ok|okay|also|then|and)\b)[a-z]+)\s+(?:have |has |had |already |just |recently |also |accidentally |mistakenly )*(?:archived|deleted|removed|restored|ended|reactivated|unarchived)\b/.test(commandLower);
-        const commandReadLead = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|if|when|before|after|should i|shall i|should we|shall we|could we|can we|would it|what if|suppose|supposing|imagine|thinking|wondering|considering|not sure|unsure|maybe|perhaps)\b/.test(commandLower);
-        // Verifier #58 V58-D1: a deny-list of leads cannot enumerate every declarative ("I nearly archived Alpha",
-        // "we discussed archiving Alpha", "Bob will archive Alpha" all executed). The verb must sit in IMPERATIVE
-        // POSITION: head of the command after optional politeness / adverb / connective / polite-frame words, or head
-        // of the LAST clause after a non-conditional lead clause ("since Alpha is done, archive Alpha"). A conditional
-        // lead ("if / unless / once / when / only if …, archive X") is not an instruction to act now.
-        const IMPERATIVE_HEAD_RE = /^\s*(?:(?:ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|go ahead(?: and)?|do me a favou?r and|hey brain|brain|quick one|time to|make sure to|be sure to|remember to|let['’]?s|we need to|(?:i think )?(?:we|you) should|i need you to|i want you to|i['’]?d like you to|you should|you need to|need you to|you can|could you(?: please)?|can you(?: please)?|would you(?: please| mind)?|will you|can we|could we|shall we)[\s,:—–-]+)*(?:archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|bring(?:ing)? back|end(?:ing)?|архивла|сэргээ|устга)\b/u;
-        const commandClauses = commandLower.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then)\s+/);
-        const commandLastClause = commandClauses[commandClauses.length - 1] || commandLower;
-        const commandLeadClause = commandClauses.length > 1 ? commandClauses.slice(0, -1).join(' ') : '';
-        const commandConditionalLead = /^\s*(?:if|unless|once|when|whenever|after|before|as soon as|only if|provided|providing|assuming|in case|until|while|should)\b/.test(commandLeadClause);
-        const commandImperativePosition = IMPERATIVE_HEAD_RE.test(commandLower) || (commandLeadClause.length > 0 && !commandConditionalLead && IMPERATIVE_HEAD_RE.test(commandLastClause));
-        const commandFallbackAllowed = commandImperativePosition && !modelResolvedOtherTarget && !modelEmittedArchive && !modelEmittedRestore && !commandIsQuestion && !commandNegatedLead && !commandReadLead && (!modelRequestIntent || (modelRequestIntent.kind === 'mutation' && (modelRequestIntentEntity === null || modelRequestIntentEntity === 'company' || modelRequestIntentEntity === 'other')));
-        function normaliseName(v: unknown): string { return String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
-        async function resolveCompanyLifecycleTargets(action: string, rawIds: unknown, rawNames: unknown, commandName: string | null): Promise<string[]> {
-          const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x) => typeof x === 'string' && COMPANY_UUID_RE.test(x)) as string[])];
-          const names: string[] = [...new Set([...((Array.isArray(rawNames) ? rawNames : []).filter((x) => typeof x === 'string' && x.trim().length > 0) as string[]), ...modelIntentNamesFor(action)].map((x) => x.trim().slice(0, 120)))];
-          const resolved: Set<string> = new Set();
-          if (ids.length > 0) {
-            const { data } = await supabase.from('companies').select('id,name,status').in('id', ids);
-            for (const c of (data || []) as CompanyLookupRow[]) { resolved.add(String(c.id)); companyNameById.set(String(c.id), String(c.name)); }
-            for (const id of ids) if (!resolved.has(id)) lifecycleUnresolvedLines.push(`${companyNameById.get(id) || 'That company'}: could not be found (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`);
-          }
-          // A command guess is tried as the FULL remainder first and then as the head before the first
-          // comma/period — "restore Acme, Inc." is one name, "restore Acme, then Beta" is two clauses.
-          const commandCandidates: string[] = names.length === 0 && resolved.size === 0 && commandName
-            ? [...new Set([commandName, commandName.split(/[,.;]/)[0].trim()].filter((x) => x.length >= 2))] : [];
-          let commandGuessDone = false;
-          for (const name of [...names, ...commandCandidates]) {
-            const isCommandGuess = commandCandidates.includes(name);
-            if (isCommandGuess && commandGuessDone) continue;
-            const wantStatus = action === 'restore' ? 'archived' : 'active';
-            const target = normaliseName(name);
-            if (target.length < 2) continue;
-            // Candidate rows by the longest word; exactness is decided on the normalised name in code
-            // (punctuation, case and spacing never decide — V56-D5).
-            const anchorWord = target.split(' ').sort((a, b) => b.length - a.length)[0];
-            const { data: candidates } = await supabase.from('companies').select('id,name,status').ilike('name', `%${anchorWord}%`).limit(50);
-            // V57-D4: the anchor-word window is capped; a second query on the whole name (any punctuation
-            // between the words) guarantees the exact row is a candidate whatever shares its longest word.
-            const wholePattern = '%' + target.split(' ').map((w) => w.replace(/[%_]/g, '')).join('%') + '%';
-            const { data: wholeRows } = await supabase.from('companies').select('id,name,status').ilike('name', wholePattern).limit(50);
-            const seenIds: Set<string> = new Set();
-            const rows: CompanyLookupRow[] = [];
-            for (const r of [...((candidates || []) as CompanyLookupRow[]), ...((wholeRows || []) as CompanyLookupRow[])]) { if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); } }
-            const exact = rows.filter((r) => normaliseName(r.name) === target);
-            let pick: CompanyLookupRow[] = exact;
-            let fuzzy = false;
-            if (pick.length === 0) { pick = rows.filter((r) => normaliseName(r.name).includes(target)); fuzzy = true; }
-            if (pick.length > 1 && !fuzzy) { const preferred = pick.filter((r) => r.status === wantStatus); if (preferred.length === 1) pick = preferred; }
-            // A fuzzy hit from the raw COMMAND never executes — it asks (verifier #56 V56-D3: "delete Alpha"
-            // archived "Alpha Holdings"). A fuzzy hit from a MODEL-emitted name executes only when unique.
-            if (isCommandGuess && fuzzy && pick.length > 0) { commandGuessDone = true; lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); continue; }
-            if (pick.length === 1) { resolved.add(pick[0].id); companyNameById.set(pick[0].id, pick[0].name); if (isCommandGuess) commandGuessDone = true; }
-            else if (pick.length === 0) { if (!isCommandGuess) lifecycleUnresolvedLines.push(`${name}: no company by that name (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`); }
-            else { commandGuessDone = commandGuessDone || isCommandGuess; lifecycleDisambiguation.push({ action, name, options: pick.map((r) => ({ id: r.id, name: r.name, status: r.status })) }); for (const r of pick) companyNameById.set(r.id, r.name); }
-          }
-          // A command guess that matched nothing at all still leaves a line when the command named a company.
-          if (commandCandidates.length > 0 && !commandGuessDone && commandMentionsCompany) lifecycleUnresolvedLines.push(`${commandCandidates[0]}: no company by that name (searched the active and archived companies you can access) — nothing was ${action === 'restore' ? 'restored' : 'archived'}.`);
-          return [...resolved];
-        }
-        const lifecycleCommandName = (pattern: RegExp): string | null => {
-          const text = String(command || '');
-          const m = text.match(pattern);
-          if (!m) return null;
-          const after = text.slice((m.index ?? 0) + m[0].length)
-            .replace(/^\s*(?:the|this|that|our|my)\s+/i, '')
-            .replace(/^\s*(?:company|business unit|entity|organization|org)\s+/i, '')
-            .trim();
-          const name = after.split(/[!?\n]|\s+(?:and|then|please|now|again|from|to|so|because)\s+/i)[0].replace(/[.,;]+$/, '')
-            .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-            .replace(/\s+(?:company|business unit|entity)$/i, '')
-            .replace(/\s+(?:now|please|again|immediately|asap|today|right away)$/i, '')
-            .trim();
-          return name.length >= 2 && name.length <= 80 && !/^(it|them|that|this|those|these|him|her)$/i.test(name) ? name : null;
-        };
-        function lifecycleVerbAt(pattern: RegExp): number { const m = String(command || '').match(pattern); return m && typeof m.index === 'number' ? m.index : -1; }
-        const archiveVerbAt = lifecycleVerbAt(ARCHIVE_VERB_PATTERN);
-        const restoreVerbAt = lifecycleVerbAt(RESTORE_VERB_PATTERN);
-        const headLifecycleAction: string | null = archiveVerbAt < 0 && restoreVerbAt < 0 ? null : restoreVerbAt < 0 ? 'archive' : archiveVerbAt < 0 ? 'restore' : (archiveVerbAt <= restoreVerbAt ? 'archive' : 'restore');
-        const archiveCompanyIds = await resolveCompanyLifecycleTargets('archive', requestedArchiveIds, result.archiveCompanyNames,
-          commandFallbackAllowed && headLifecycleAction === 'archive' ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
-        const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', requestedRestoreIds, result.restoreCompanyNames,
-          commandFallbackAllowed && headLifecycleAction === 'restore' ? lifecycleCommandName(RESTORE_VERB_PATTERN) : null);
-
-        // ==================================================================================
-        // BACKEND-GENERATED EXECUTION EVIDENCE (2026-09-01, structured-claim architecture).
-        //
-        // The single canonical record of what THIS TURN actually changed, written at the
-        // real execution sites and keyed by EXACT resource id. It is the only thing a
-        // mutation claim may be grounded against.
-        //
-        // Backend-generated evidence is deliberately stronger than anything the model says
-        // about its own execution: the model proposes operations, the backend executes them
-        // and alone knows the real ids, results and postconditions. Nothing here is derived
-        // from prose, from entity resolution, or from the model's retelling.
-        //
-        // postconditionPassed is carried per row because "the RPC returned" is not proof:
-        // archive_company/restore_company re-read the row afterwards, and a mutation whose
-        // postcondition did not confirm must never support a success claim.
-        // ==================================================================================
-
+        const restoreCompanyIds = [...new Set(requestedRestoreIds.filter((id): id is string => typeof id === 'string' && contextCompanyIds.has(id)))];
+        const companyNameById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.name]));
         const archiveRestoreLines: string[] = [];
         const reasonText: Record<string, string> = {
           archived: 'archived', restored: 'restored',
@@ -3520,7 +2839,7 @@ serve(async (req) => {
         for (const id of archiveCompanyIds) {
           const { data, error } = await supabase.rpc('archive_company', { p_company_id: id });
           const name = companyNameById.get(id) || id;
-          if (error || !data) { recordExecution('company', 'archive', id, false, { executed: false, error: error?.message || 'no result', requestedValues: { status: 'archived' } }); archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
+          if (error || !data) { archiveRestoreLines.push(`${name}: archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
           // archive_company()/restore_company() (schema-v0.7-production-core.sql) already
           // re-read the row after the UPDATE and return a real postconditionPassed
@@ -3529,45 +2848,22 @@ serve(async (req) => {
           // is satisfied at the DB layer already, but this still defensively cross-checks
           // it rather than only ever reading `reason`, in case the two ever disagree.
           if (r.changed === true && r.postconditionPassed !== true) {
-            recordExecution('company', 'archive', id, false, { executed: true, backendResult: r, error: 'postcondition_not_confirmed', requestedValues: { status: 'archived' } });
             archiveRestoreLines.push(`${name}: archive attempted, but the persisted status did not confirm it afterward — treat as not archived.`);
             continue;
           }
-          // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
-          // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
-          // mutation performed this turn, so they must never support a mutation claim.
-          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true, { backendResult: r, precondition: { status: r.previousStatus }, postcondition: { status: r.newStatus }, requestedValues: { status: 'archived' } });
-          else recordExecution('company', 'archive', id, false, { executed: false, backendResult: r, error: String(r.reason), requestedValues: { status: 'archived' } });
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreCompanyIds) {
           const { data, error } = await supabase.rpc('restore_company', { p_company_id: id });
           const name = companyNameById.get(id) || id;
-          if (error || !data) { recordExecution('company', 'restore', id, false, { executed: false, error: error?.message || 'no result', requestedValues: { status: 'active' } }); archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
+          if (error || !data) { archiveRestoreLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
           if (r.changed === true && r.postconditionPassed !== true) {
-            recordExecution('company', 'restore', id, false, { executed: true, backendResult: r, error: 'postcondition_not_confirmed', requestedValues: { status: 'active' } });
             archiveRestoreLines.push(`${name}: restore attempted, but the persisted status did not confirm it afterward — treat as not restored.`);
             continue;
           }
-          // Evidence ONLY when the row genuinely CHANGED and the re-read confirmed it.
-          // 'already_archived'/'already_active' are truthful CURRENT_STATE answers, not a
-          // mutation performed this turn, so they must never support a mutation claim.
-          if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true, { backendResult: r, precondition: { status: r.previousStatus }, postcondition: { status: r.newStatus }, requestedValues: { status: 'active' } });
-          else recordExecution('company', 'restore', id, false, { executed: false, backendResult: r, error: String(r.reason), requestedValues: { status: 'active' } });
           archiveRestoreLines.push(`${name}: ${reasonText[String(r.reason)] || String(r.reason)}.`);
         }
-        // Several companies matched a name: ask, never guess — and say so in the report.
-        if (lifecycleDisambiguation.length > 0) {
-          const d = lifecycleDisambiguation[0];
-          result.pendingAction = {
-            kind: 'disambiguation',
-            question: `Which company should I ${d.action}? ` + d.options.map((o, i) => `${i + 1}. ${o.name} (${o.status})`).join('  '),
-            options: d.options.map((o) => ({ id: o.id, label: `${o.name} (${o.status})`, entityType: 'company', actionType: `${d.action}_company` })),
-          } as PendingAction;
-          archiveRestoreLines.push(`${d.name}: more than one company matches — please pick one.`);
-        }
-        for (const line of lifecycleUnresolvedLines) archiveRestoreLines.push(line);
         // Same reasoning as organizationGraphCheck below: when a real archive/restore was
         // attempted, the real outcome is the entire point of the turn and fully replaces
         // the model's own prose rather than being prepended to it — live-tested elsewhere
@@ -3625,8 +2921,7 @@ serve(async (req) => {
             const deletedPeople = peopleDeletedRaw.map((p) => p.name).join(', ');
             permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`);
             deletedCompanyEntities.push({ id, name: String(name) });
-            recordExecution('company', 'permanent_delete', id, true);
-            for (const p of peopleDeletedRaw) { deletedPersonEntities.push({ id: String(p.id), name: String(p.name) }); recordExecution('person', 'permanent_delete', String(p.id), true); }
+            for (const p of peopleDeletedRaw) deletedPersonEntities.push({ id: String(p.id), name: String(p.name) });
             continue;
           }
           permanentDeleteLines.push(`**Couldn't permanently delete ${name}** — unexpected result.`);
@@ -3694,15 +2989,6 @@ serve(async (req) => {
         const requestedRestoreEmploymentIds = Array.isArray(result.restoreEmploymentPersonIds) ? result.restoreEmploymentPersonIds as unknown[] : [];
         const restoreEmploymentPersonIds = [...new Set(requestedRestoreEmploymentIds.filter((id): id is string => typeof id === 'string' && contextPersonIds.has(id)))];
         const personNameById = new Map((contextPack?.people || []).map((p: any) => [p.id, p.full_name]));
-        // The per-turn canonical entity names, as a POSITIVE-ONLY signal for the prose belt.
-        // A capitalised phrase that EQUALS a known name is a NAME, never a predicate. A name being
-        // ABSENT proves NOTHING - the context pack is truncated - so this set is never negated.
-        // runtimeLabels carries rows created THIS turn, which are absent from every context-pack
-        // map by definition (run8/D67) and are exactly the rows a founder is most likely asking about.
-        const knownEntityNames = new Set<string>([...companyNameById.values(), ...personNameById.values(),
-          ...taskTitleById.values(), ...runtimeLabels.values()]
-          .filter((v: any): v is string => typeof v === 'string' && v.trim().length > 0)
-          .map((v: string) => v.trim().toLowerCase()));
         const personLifecycleLines: string[] = [];
         const personReasonText: Record<string, string> = {
           employment_ended: 'employment ended', restored: 'restored',
@@ -3715,9 +3001,6 @@ serve(async (req) => {
           const name = personNameById.get(id) || id;
           if (error || !data) { personLifecycleLines.push(`${name}: end-employment failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
-          // Evidence only on a genuine transition — already_inactive/denied/not_found
-          // changed nothing and must not be able to ground a mutation claim.
-          if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true);
           personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreEmploymentPersonIds) {
@@ -3725,7 +3008,6 @@ serve(async (req) => {
           const name = personNameById.get(id) || id;
           if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
-          if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true);
           personLifecycleLines.push(`${name}: ${personReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const personLifecycleReport = personLifecycleLines.length > 0 ? personLifecycleLines.join(' ') : null;
@@ -3825,27 +3107,16 @@ serve(async (req) => {
         // an already-archived goal is still resolvable there by name for "restore X".
         const contextGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
         const requestedArchiveGoalIds = Array.isArray(result.archiveGoalIds) ? result.archiveGoalIds as unknown[] : [];
-        // Verifier #58 V58-D2 (same class for goals): re-read model-emitted goal ids under RLS across every status.
+        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
         const requestedRestoreGoalIds = Array.isArray(result.restoreGoalIds) ? result.restoreGoalIds as unknown[] : [];
-        const requestedGoalLifecycleIds: string[] = [...new Set([...requestedArchiveGoalIds, ...requestedRestoreGoalIds].filter((id): id is string => typeof id === 'string' && LIFECYCLE_UUID_RE.test(id)))];
-        const goalLifecycleRows = requestedGoalLifecycleIds.length > 0
-          ? (((await supabase.from('goals').select('id,title,status').in('id', requestedGoalLifecycleIds)).data || []) as LifecycleLookupRow[])
-          : ([] as LifecycleLookupRow[]);
-        const goalLifecycleById = new Map(goalLifecycleRows.map((g) => [g.id, g]));
-        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
-        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
-        const goalTitleById = new Map([...((contextPack?.goals || []).map((g: any) => [g.id, g.title])), ...goalLifecycleRows.map((g) => [g.id, g.title])]);
+        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
+        const goalTitleById = new Map((contextPack?.goals || []).map((g: any) => [g.id, g.title]));
         const goalArchiveRestoreLines: string[] = [];
-        for (const id of requestedGoalLifecycleIds) if (!goalLifecycleById.has(id)) goalArchiveRestoreLines.push(`Goal "${goalTitleById.get(id) || 'that goal'}": could not be found (searched the active and archived goals you can access) — nothing was ${requestedRestoreGoalIds.includes(id) ? 'restored' : 'archived'}.`);
         for (const id of archiveGoalIds) {
           const { data, error } = await supabase.rpc('archive_goal', { p_goal_id: id });
           const name = goalTitleById.get(id) || id;
           if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": archive failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
-          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
-          // TRUTHFUL goal-archive claim was denied. Only a genuine state change counts:
-          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreGoalIds) {
@@ -3853,10 +3124,6 @@ serve(async (req) => {
           const name = goalTitleById.get(id) || id;
           if (error || !data) { goalArchiveRestoreLines.push(`Goal "${name}": restore failed (${error?.message || 'no result'}).`); continue; }
           const r = data as Record<string, unknown>;
-          // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
-          // TRUTHFUL goal-restore claim was denied. Only a genuine state change counts:
-          // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
@@ -4110,21 +3377,13 @@ serve(async (req) => {
         // Execute all six deletions now (immediate, same as channels/approvals above) —
         // one shared helper since the shape (delete by id list, count real affected rows,
         // surface a real error instead of swallowing it) is identical across all of them.
-        // Table -> claim resourceType, so per-id deletion evidence lands in the same
-        // vocabulary the structured-claim verifier and the model's claims use.
-        const DELETE_EVIDENCE_TYPE: Record<string, string> = {
-          product_lines: 'product_line', product_specs: 'product_spec', engineering_drawings: 'drawing',
-          ai_providers: 'ai_provider', mcp_connectors: 'mcp_connector', proposals: 'proposal',
-        };
         async function deleteByIds(table: string, ids: string[], label: string): Promise<number> {
           if (ids.length === 0) return 0;
           const { data, error } = await supabase.from(table).delete().in('id', ids).select('id');
           if (error) {
-            executionFailureNotes.push(`(${label} deletion failed: ${error.message})`);
+            result.summary = `${result.summary || ''}\n\n(${label} deletion failed: ${error.message})`.trim();
             return 0;
           }
-          const evidenceType = DELETE_EVIDENCE_TYPE[table];
-          if (evidenceType) for (const row of data || []) recordExecution(evidenceType, 'delete', row.id, true);
           return data?.length || 0;
         }
         const deletedProductLineCount = await deleteByIds('product_lines', deleteProductLineIds, 'Product line');
@@ -4373,48 +3632,6 @@ serve(async (req) => {
         const createdPersonAssignments = rpcResult.createdPersonAssignments || [];
         const createdMemories = rpcResult.createdMemories || [];
 
-        // Backend-generated evidence for creates and deletes. These come straight from the
-        // execution RPC and carry the REAL ids the database assigned, so a claim can be
-        // matched by exact id rather than by resource type alone. Creates are recorded with
-        // postconditionPassed=true because the row id existing IS the postcondition - the
-        // RPC only returns an id for a row it actually inserted.
-        // Fresh postcondition for the create family (governance/OPERATING_TRUTH_MODEL.md
-        // §4.1): the ids the RPC returned are re-read under the caller's own RLS after the
-        // transaction committed. An id the re-read cannot see is recorded as executed but
-        // NOT verified — it can never support a success claim. A deleted task's postcondition
-        // is the inverse: the row must no longer be readable.
-        async function verifyRowsExist(table: string, ids: unknown[]): Promise<Set<string>> {
-          const wanted: string[] = ids.filter((x) => typeof x === 'string' && x.length > 0) as string[];
-          const seen: Set<string> = new Set();
-          if (wanted.length === 0) return seen;
-          try {
-            const { data } = await supabase.from(table).select('id').in('id', wanted);
-            for (const r of (data || []) as Array<Record<string, unknown>>) seen.add(String(r.id));
-          } catch { /* unreadable after commit: unverified, never assumed */ }
-          return seen;
-        }
-        const idOf = (row: unknown): unknown => (row && typeof row === 'object' ? (row as { id?: unknown }).id : undefined);
-        const [tasksSeen, approvalsSeen, companiesSeen, peopleSeen, projectsSeen, goalsSeen, relationshipsSeen, assignmentsSeen, memoriesSeen, deletedTasksStillPresent] = await Promise.all([
-          verifyRowsExist('tasks', createdTasks.map(idOf)), verifyRowsExist('approvals', createdApprovals.map(idOf)),
-          verifyRowsExist('companies', createdCompanies.map(idOf)), verifyRowsExist('people', createdPeople.map(idOf)),
-          verifyRowsExist('projects', createdProjects.map(idOf)), verifyRowsExist('goals', createdGoals.map(idOf)),
-          verifyRowsExist('company_relationships', createdCompanyRelationships.map(idOf)), verifyRowsExist('person_assignments', createdPersonAssignments.map(idOf)),
-          verifyRowsExist('memories', createdMemories.map(idOf)), verifyRowsExist('tasks', deletedTaskIds),
-        ]);
-        const recordCreate = (resourceType: string, rows: unknown[], seen: Set<string>) => {
-          for (const row of rows) { const id = idOf(row); const ok = typeof id === 'string' && seen.has(id); recordExecution(resourceType, 'create', id, ok, { postcondition: { exists: ok }, rowsAffected: ok ? 1 : 0 }); }
-        };
-        recordCreate('task', createdTasks, tasksSeen);
-        recordCreate('approval', createdApprovals, approvalsSeen);
-        recordCreate('company', createdCompanies, companiesSeen);
-        recordCreate('person', createdPeople, peopleSeen);
-        recordCreate('project', createdProjects, projectsSeen);
-        recordCreate('goal', createdGoals, goalsSeen);
-        for (const id of deletedTaskIds) { const gone = typeof id === 'string' && !deletedTasksStillPresent.has(id); recordExecution('task', 'delete', id, gone, { postcondition: { exists: !gone }, rowsAffected: gone ? 1 : 0 }); }
-        recordCreate('company_relationship', createdCompanyRelationships, relationshipsSeen);
-        recordCreate('person_assignment', createdPersonAssignments, assignmentsSeen);
-        recordCreate('memory', createdMemories, memoriesSeen);
-
         // Bugs 7/9 (2026-08-30 campaign): a person-assignment change touching BOTH the
         // legal employer and operating company (a real "reassign X entirely to Y"
         // confirmation) deserves the same full-replacement grounding as archive/restore,
@@ -4441,33 +3658,14 @@ serve(async (req) => {
         const personAssignmentReport = (reassignmentEntries.length > 0
           && createdPersonAssignments.length === createPersonAssignmentsFiltered.length)
           ? reassignmentEntries.map((a) => {
-              // MutationReceipt (governance/OPERATING_TRUTH_MODEL.md §4.2): rendered from the
-              // requested-vs-current DIFF, never from the request shape alone. BUG-012
-              // (Work-PC, 2026-09-07): a manager change was receipted as a company move
-              // because this renderer only ever looked at the company ids.
               const personName = personNameById.get(a.personId as string) || a.personId;
-              const current = ((contextPack?.personAssignments || []) as Array<Record<string, unknown>>)
-                .find((pa) => pa.person_id === a.personId && pa.state === 'current') || null;
               const legalName = a.legalEmployerCompanyId ? (companyNameById.get(a.legalEmployerCompanyId) || a.legalEmployerCompanyId) : null;
               const operatingName = a.operatingCompanyId ? (companyNameById.get(a.operatingCompanyId) || a.operatingCompanyId) : null;
-              const newManagerId = typeof a.managerPersonId === 'string' && a.managerPersonId.length > 0 ? a.managerPersonId : null;
-              const managerChanged = newManagerId !== null && (!current || current.manager_person_id !== newManagerId);
-              const companyChanged = !current
-                || (!!a.legalEmployerCompanyId && current.legal_employer_company_id !== a.legalEmployerCompanyId)
-                || (!!a.operatingCompanyId && current.operating_company_id !== a.operatingCompanyId);
-              const parts: string[] = [];
-              if (managerChanged) {
-                const newManager = personNameById.get(newManagerId as string) || newManagerId;
-                const oldManager = current && typeof current.manager_person_id === 'string' ? (personNameById.get(current.manager_person_id) || 'a previous manager') : null;
-                parts.push(`**${personName}'s manager set to ${newManager}**${oldManager ? ` (was ${oldManager})` : ''}.`);
+              if (legalName && operatingName && legalName !== operatingName) {
+                return `**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`;
               }
-              if (companyChanged) {
-                if (legalName && operatingName && legalName !== operatingName) parts.push(`**${personName} reassigned.** Legal employer: ${legalName}. Operating company: ${operatingName}.`);
-                else if (legalName && operatingName) parts.push(`**${personName} reassigned to ${operatingName}** (legal employer and operating company).`);
-                else parts.push(`**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`);
-              }
-              if (parts.length === 0) parts.push(`**${personName}: assignment re-saved — company and manager unchanged.**`);
-              return parts.join(' ');
+              if (legalName && operatingName) return `**${personName} reassigned to ${operatingName}** (legal employer and operating company).`;
+              return `**${personName} reassigned to ${operatingName || legalName || 'the specified company'}.**`;
             }).join(' ')
           : null;
 
@@ -4546,7 +3744,7 @@ serve(async (req) => {
             p_priority: w.priority,
             p_acceptance_criteria: w.acceptanceCriteria,
           });
-          if (!error && data) { createdFactoryWorkOrders.push({ id: data as string, title: w.title }); recordExecution('work_order', 'create', data as string, true); recordLabel('work_order', data as string, w.title); }
+          if (!error && data) createdFactoryWorkOrders.push({ id: data as string, title: w.title });
         }
 
         const createdDepartments: { id: string }[] = [];
@@ -4555,7 +3753,7 @@ serve(async (req) => {
           if (!companyId) continue;
           const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
           const { data, error } = await supabase.from('departments').insert({ company_id: companyId, name: d.name, slug }).select('id').single();
-          if (!error && data) { createdDepartments.push(data); recordExecution('department', 'create', data.id, true); recordLabel('department', data.id, d.name); }
+          if (!error && data) createdDepartments.push(data);
         }
         let updatedDepartmentCount = 0;
         for (const d of updateDepartmentsReq) {
@@ -4565,7 +3763,7 @@ serve(async (req) => {
           if (companyId) patch.company_id = companyId;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('departments').update(patch).eq('id', d.id).select('id');
-          if (data && data.length > 0) { updatedDepartmentCount++; recordExecution('department', 'update', d.id, true); }
+          if (data && data.length > 0) updatedDepartmentCount++;
         }
 
         // owner_person_id must be the caller's own person row — matches createLead's own
@@ -4587,7 +3785,7 @@ serve(async (req) => {
             client_name: l.clientName, company_id: companyId, contact_name: l.contactName, contact_email: l.contactEmail,
             stage: l.stage || 'lead', value_estimate: l.valueEstimate ?? 0, owner_person_id: callerPersonId,
           }).select('id').single();
-          if (!error && data) { createdLeads.push(data); recordExecution('lead', 'create', data.id, true); recordLabel('lead', data.id, l.clientName); }
+          if (!error && data) createdLeads.push(data);
         }
         let updatedLeadCount = 0;
         for (const l of updateLeadsReq) {
@@ -4599,7 +3797,7 @@ serve(async (req) => {
           if (l.valueEstimate !== null) patch.value_estimate = l.valueEstimate;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('sales_leads').update(patch).eq('id', l.id).select('id');
-          if (data && data.length > 0) { updatedLeadCount++; recordExecution('lead', 'update', l.id, true); }
+          if (data && data.length > 0) updatedLeadCount++;
         }
 
         const createdDocuments: { id: string }[] = [];
@@ -4610,7 +3808,7 @@ serve(async (req) => {
             extracted_text: doc.text, summary: doc.text.slice(0, 200), sensitivity: doc.sensitivity,
             uploaded_by_profile_id: profile.id,
           }).select('id').single();
-          if (!error && data) { createdDocuments.push(data); recordExecution('document', 'create', data.id, true); recordLabel('document', data.id, doc.title); }
+          if (!error && data) createdDocuments.push(data);
         }
 
         const createdProductLines: { id: string }[] = [];
@@ -4626,8 +3824,6 @@ serve(async (req) => {
             // same line already drawn for what enters its read-side context.
             await supabase.from('product_costs').insert({ product_line_id: inserted.id, unit_cost: 0 });
             createdProductLines.push(inserted);
-            recordExecution('product_line', 'create', inserted.id, true);
-            recordLabel('product_line', inserted.id, p.name);
           }
         }
         let updatedProductLineCount = 0;
@@ -4638,7 +3834,7 @@ serve(async (req) => {
           if (p.active !== null) patch.active = p.active;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('product_lines').update(patch).eq('id', p.id).select('id');
-          if (data && data.length > 0) { updatedProductLineCount++; recordExecution('product_line', 'update', p.id, true); }
+          if (data && data.length > 0) updatedProductLineCount++;
         }
         // Any product-line create/update that actually touched pricing gets the same
         // forced audit-approval as a deletion — pricing is on the "discounts/financing"
@@ -4649,14 +3845,12 @@ serve(async (req) => {
         // the RPC's own result) — a plain insert has the identical real-world effect.
         const productLinePricingTouched = createdProductLines.length > 0 || (updatedProductLineCount > 0 && updateProductLinesReq.some((p) => p.unitPrice !== null));
         if (productLinePricingTouched) {
-          const pricingApprovalTitle = `Approval required: product line pricing changed via chat (${createdProductLines.length} created, ${updatedProductLineCount} updated)`;
-          const { data: pricingApproval } = await supabase.from('approvals').insert({
+          await supabase.from('approvals').insert({
             company_id: primaryCompanyId,
-            title: pricingApprovalTitle,
+            title: `Approval required: product line pricing changed via chat (${createdProductLines.length} created, ${updatedProductLineCount} updated)`,
             reason: 'Server-side risk policy forces approval for any product/pricing change.',
             risk_level: 'high', domain: 'general',
-          }).select('id').single();
-          if (pricingApproval) { recordExecution('approval', 'create', pricingApproval.id, true); recordLabel('approval', pricingApproval.id, pricingApprovalTitle); }
+          });
         }
 
         const createdProductSpecs: { id: string }[] = [];
@@ -4667,8 +3861,6 @@ serve(async (req) => {
           }).select('id').single();
           if (error || !spec) continue;
           createdProductSpecs.push(spec);
-          recordExecution('product_spec', 'create', spec.id, true);
-          recordLabel('product_spec', spec.id, `AI PRD: ${s.title}`);
           // Mirrors createSoftwareSpec's fixed ticket template exactly (web/lib/data/software.ts)
           // — same 6 titles, same approval-required split, so chat-created specs behave
           // identically to UI-created ones rather than a thinner lookalike.
@@ -4681,19 +3873,15 @@ serve(async (req) => {
             'Prepare release approval summary',
           ];
           for (let i = 0; i < ticketTitles.length; i++) {
-            const ticketTitle = `${ticketTitles[i]}: ${s.title}`;
-            const { data: ticket } = await supabase.from('tasks').insert({
-              title: ticketTitle, company_id: companyId, owner_type: 'human', status: 'queued',
+            await supabase.from('tasks').insert({
+              title: `${ticketTitles[i]}: ${s.title}`, company_id: companyId, owner_type: 'human', status: 'queued',
               priority: 'high', risk_level: 'medium', approval_required: i >= 2, source: 'software_factory',
-            }).select('id').single();
-            if (ticket) { recordExecution('task', 'create', ticket.id, true); recordLabel('task', ticket.id, ticketTitle); }
+            });
           }
-          const releaseApprovalTitle = `Approve software factory release: AI PRD: ${s.title}`;
-          const { data: releaseApproval } = await supabase.from('approvals').insert({
-            company_id: companyId, title: releaseApprovalTitle,
+          await supabase.from('approvals').insert({
+            company_id: companyId, title: `Approve software factory release: AI PRD: ${s.title}`,
             reason: 'Production-impacting software changes require release gate approval.', risk_level: 'high', domain: 'production',
-          }).select('id').single();
-          if (releaseApproval) { recordExecution('approval', 'create', releaseApproval.id, true); recordLabel('approval', releaseApproval.id, releaseApprovalTitle); }
+          });
         }
         let updatedProductSpecCount = 0;
         for (const s of updateProductSpecsReq) {
@@ -4703,7 +3891,7 @@ serve(async (req) => {
           if (s.bodyMd !== null) patch.body_md = s.bodyMd;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('product_specs').update(patch).eq('id', s.id).select('id');
-          if (data && data.length > 0) { updatedProductSpecCount++; recordExecution('product_spec', 'update', s.id, true); }
+          if (data && data.length > 0) updatedProductSpecCount++;
         }
 
         // Engineering drawings: invokes the same real generate-technical-drawing Edge
@@ -4724,24 +3912,19 @@ serve(async (req) => {
             notes: typeof genResult.notes === 'string' ? genResult.notes : null,
             created_by_profile_id: profile.id,
           }).select('id').single();
-          if (!error && inserted) { createdDrawings.push(inserted); recordExecution('drawing', 'create', inserted.id, true); recordLabel('drawing', inserted.id, typeof genResult.title === 'string' && genResult.title.trim() ? genResult.title.trim() : d.description.slice(0, 80)); }
+          if (!error && inserted) createdDrawings.push(inserted);
         }
 
         const createdAiProviders: { id: string }[] = [];
         for (const p of createAiProvidersReq) {
           const { data, error } = await supabase.from('ai_providers').insert({ provider: p.provider, model: p.model, label: p.label }).select('id').single();
-          if (!error && data) { createdAiProviders.push(data); recordExecution('ai_provider', 'create', data.id, true); recordLabel('ai_provider', data.id, p.label || p.model); }
+          if (!error && data) createdAiProviders.push(data);
         }
         let activatedAiProvider = false;
         if (activateAiProviderId) {
-          // run8/D66: the implicit "deactivate everything else" is a real mutation too —
-          // recorded per id so a claim about the OLD provider being switched off can
-          // ground, and only for rows that were actually flipped (is_active filter).
-          const { data: deactivated } = await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId).eq('is_active', true).select('id');
-          for (const row of deactivated || []) recordExecution('ai_provider', 'deactivate', row.id, true);
+          await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId);
           const { data } = await supabase.from('ai_providers').update({ is_active: true }).eq('id', activateAiProviderId).select('id');
           activatedAiProvider = !!data && data.length > 0;
-          if (activatedAiProvider) recordExecution('ai_provider', 'activate', activateAiProviderId, true);
         }
 
         const createdProposals: { id: string }[] = [];
@@ -4749,7 +3932,7 @@ serve(async (req) => {
           const companyId = resolveCompanyId(p.companyId, p.companyIndex);
           if (!companyId) continue;
           const { data, error } = await supabase.from('proposals').insert({ title: p.title, company_id: companyId, status: 'draft' }).select('id').single();
-          if (!error && data) { createdProposals.push(data); recordExecution('proposal', 'create', data.id, true); recordLabel('proposal', data.id, p.title); }
+          if (!error && data) createdProposals.push(data);
         }
         let updatedProposalCount = 0;
         for (const p of updateProposalsReq) {
@@ -4758,7 +3941,7 @@ serve(async (req) => {
           if (p.paymentTerms !== null) patch.payment_terms = p.paymentTerms;
           if (Object.keys(patch).length === 0) continue;
           const { data } = await supabase.from('proposals').update(patch).eq('id', p.id).select('id');
-          if (data && data.length > 0) { updatedProposalCount++; recordExecution('proposal', 'update', p.id, true); }
+          if (data && data.length > 0) updatedProposalCount++;
         }
 
         // Ground the reply in what the executor actually did, not what the model's own
@@ -4771,7 +3954,6 @@ serve(async (req) => {
         // verified result. One line per action actually requested this turn; nothing shown
         // for actions that weren't requested at all.
         const factLines: string[] = [];
-        factLines.push(...executionFailureNotes);
         if (deleteTaskIds.length > 0) factLines.push(`Deleted ${deletedTaskIds.length} of ${deleteTaskIds.length} requested task(s).`);
         if (deleteChannelIds.length > 0) factLines.push(`Deleted ${deletedChannelCount} of ${deleteChannelIds.length} requested channel(s).`);
         if (deleteApprovalIds.length > 0) factLines.push(`Deleted ${deletedApprovalCount} of ${deleteApprovalIds.length} requested approval(s).`);
@@ -4985,23 +4167,14 @@ serve(async (req) => {
         } else if (model === 'deterministic-plan-execution') {
           // result.summary already set at plan-execution time - never touched here.
         } else if (lifecycleReports.length > 0) {
-          // run8/D64: full replacement must not drop factLines — a mixed-intent turn
-          // ("archive ACME and delete its 3 proposals") earns BOTH reports.
-          result.summary = [factLines.join(' '), lifecycleReports.join(' ')].filter(Boolean).join(' ');
+          result.summary = lifecycleReports.join(' ');
         } else if (stateClaimCorrections.length > 0) {
-          result.summary = [factLines.join(' '), stateClaimCorrections.join(' ')].filter(Boolean).join(' ');
+          result.summary = stateClaimCorrections.join(' ');
         } else if (lifecycleMismatchCorrections.length > 0) {
-          result.summary = [factLines.join(' '), lifecycleMismatchCorrections.join(' ')].filter(Boolean).join(' ');
+          result.summary = lifecycleMismatchCorrections.join(' ');
         }
-        // run8/D58: a confirmed backend mutation grounds the turn. Before this, a real
-        // task/project/department/lead/document/product/spec/drawing/provider/proposal
-        // create set NO grounding flag (factLines are quiet on success), so the legacy
-        // gate could blanket-deny a real create ("nothing was changed", persisted) and
-        // the confirmation safety net could deny a confirmed create the same way.
-        const hasConfirmedMutationEvidence = claimExecutionEvidence.some((e) => e.postconditionPassed);
         const groundedOutcomeThisTurn = factLines.length > 0 || !!organizationGraphCheck || lifecycleReports.length > 0
           || stateClaimCorrections.length > 0 || hasResolvedEntities || hasExecutionEvidence
-          || hasConfirmedMutationEvidence
           || model === 'deterministic-plan-execution' || !!proposedPlan;
 
         // Bug 1/10, a THIRD shape (2026-08-30, real live incident, found immediately after
@@ -5019,13 +4192,10 @@ serve(async (req) => {
         // no grounded outcome) - a legitimate bulk_confirmation/multi_action_plan proposal
         // that says "I'll do X, confirm?" is completely unaffected, since that turn's own
         // pendingAction is real and non-null.
-        // run8: ['’] added — the typographic apostrophe models actually emit ("I’ll")
-        // never matched the ASCII-only form, so a curly-quoted bare promise slipped
-        // this gate from the day it shipped.
-        const FUTURE_PROMISE_PATTERN = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+        const FUTURE_PROMISE_PATTERN = /\b(i'?ll|i will|i'?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
         const claimsFutureActionWithNoPlan = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
           && !result.pendingAction && !groundedOutcomeThisTurn
-          && ((__s) => FUTURE_PROMISE_PATTERN.test(__s) && !/\b(?:once|if|after|unless|when|provided|assuming|as soon as|subject to|pending|before|until|only with|but first|first)\b[^.]{0,40}?\byou(?:r|rs)?\b|\byou(?:r|rs)?\b[^.]{0,40}?\b(?:confirmation|approval|go-ahead|permission|sign-off|say-so|consent|okay|ok)\b|\b(?:just )?say (?:yes|the word|go|ok)\b|\bsay so\b|\bis that (?:ok|okay)\b|\b(?:ok|okay)\?|\?\s*$|\breply (?:yes|y|ok|okay|go)\b|\bplease confirm\b/i.test(__s))(String(result.summary || ''));
+          && FUTURE_PROMISE_PATTERN.test(String(result.summary || ''));
         if (claimsFutureActionWithNoPlan) {
           result.summary = 'I described an action but didn’t actually queue or execute it — nothing happened yet. Please ask again and I’ll either do it immediately or ask for confirmation first.';
         }
@@ -5066,1214 +4236,13 @@ serve(async (req) => {
         // EXACT correct-refusal shape QA's own report praised) would itself match and
         // get overwritten - verified live this session via a standalone regex unit test
         // (13/13 cases, including this one) before this pattern was ever wired in.
-        // ---- run7/D51: the deterministic backend report is the PRIMARY truth. ----
-        // Everything above this point that wrote result.summary deterministically —
-        // factLines, the organization graph report, lifecycle full-replacement reports,
-        // grounded state corrections, plan confirmations, the future-promise correction —
-        // is derived from real execution results, not from the model. The claim rewrite
-        // below must never discard it: run7 proved the old rewrite replaced a correct
-        // "Deleted 3 of 3 requested approval(s)." with claim-only lines, so real
-        // mutations the model failed to claim vanished (D51) and truthful claims about
-        // paths without per-id evidence were answered with a false denial (D50).
-        // Computed HERE, above the structured-claim window, because it reads this
-        // function's deterministic execution state — inside the window only the two
-        // resulting values are referenced (the QA harnesses re-execute the window in
-        // isolation and inject these as parameters).
-        const summaryIsFullyDeterministic = !!organizationGraphCheck || !!proposedPlan
-          || model === 'deterministic-plan-execution' || lifecycleReports.length > 0
-          || stateClaimCorrections.length > 0 || lifecycleMismatchCorrections.length > 0
-          || claimsFutureActionWithNoPlan;
-        const deterministicPrefix = summaryIsFullyDeterministic
-          ? String(result.summary || '')
-          : (factLines.length > 0 ? factLines.join(' ') : '');
-        // ==================================================================================
-        // STRUCTURED-CLAIM VERIFICATION (2026-09-01). Truth is no longer inferred from prose.
-        //
-        //   canonical context + executable capabilities -> model structured response
-        //   -> structured claims -> backend execution -> canonical evidence
-        //   -> per-claim verification -> verified envelope -> founder-facing prose
-        //
-        // WHY. Three prose-based generations were independently rejected (#62, #64, #65),
-        // each trading one error class for another. The ceiling is intrinsic: resource
-        // identity misattributes, INSTANCE identity is not recoverable from prose at all, and
-        // intent read from command text is vocabulary- and language-bound (the previous
-        // build's gate was simply OFF for Mongolian, a stated product requirement). Prose is
-        // now an OUTPUT of verified structure, never an input to determining truth.
-        //
-        // The model proposes; the backend executes and alone knows the real ids and
-        // postconditions; claims are matched against that evidence by EXACT id.
-        // ==================================================================================
-
-
-        // Evidence index keyed by EXACT resource identity. Only postcondition-confirmed rows
-        // are indexed, so an attempted-but-unconfirmed mutation can never support a claim.
-        const evidenceIndex = new Map();
-        for (const e of claimExecutionEvidence) {
-          if (!e.postconditionPassed) continue;
-          const key = e.resourceType + '|' + e.id;
-          if (!evidenceIndex.has(key)) evidenceIndex.set(key, new Set());
-          evidenceIndex.get(key).add(e.action);
+        const PAST_COMPLETION_CLAIM_PATTERN = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+          && !result.pendingAction && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
+          && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
+        if (claimsPastCompletionWithNoGrounding) {
+          result.summary = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
         }
-
-        // Fresh canonical read for CURRENT_STATE claims: contextPack was built from the
-        // database at the start of THIS turn, so it is a real read, not the model's memory.
-        const canonicalById = new Map();
-        for (const [bucket, type] of [['companies', 'company'], ['archivedCompanies', 'company'], ['people', 'person'], ['projects', 'project'], ['tasks', 'task'], ['goals', 'goal'], ['approvals', 'approval'], ['departments', 'department']]) {
-          for (const row of (contextPack || {})[bucket] || []) {
-            if (row && typeof row.id === 'string') canonicalById.set(type + '|' + row.id, row);
-          }
-        }
-
-        // #66/D46 (F5): corrected prose leaked raw UUIDs and dropped the entity name the
-        // founder actually recognises. Resolve names from the same canonical read used for
-        // state verification, falling back to the id only when there is genuinely no name.
-        // ==================================================================================
-        // THE single canonical formatter for founder-facing resource references.
-        // (#66/D46 — treated as a correctness/privacy defect, not cosmetic cleanup.)
-        //
-        // FOUNDER-FACING PROSE MUST NEVER SURFACE A RAW CANONICAL UUID. Internal ids are an
-        // implementation detail: they mean nothing to the founder, and echoing them into a
-        // reply that may be read, forwarded or persisted leaks internal identifiers for no
-        // benefit. The previous form appended "(uuid)" to every name and fell back to a bare
-        // uuid when no name resolved.
-        //
-        // Resolution order, and it never guesses:
-        //   1. the canonical read for this turn;
-        //   2. the last-known safe label from the lifecycle name maps, which include
-        //      archived/deleted entities — so a resource this turn archived is still named;
-        //   3. a neutral TYPED reference ("the company"). Never a uuid, never an invented
-        //      name.
-        //
-        // Everything routes through this one helper rather than each response branch doing
-        // its own formatting, so the invariant is enforced in a single place.
-        //
-        // Raw ids are emitted ONLY under an explicit, authorized developer mode
-        // (SEM_AI_DEBUG_RESOURCE_IDS), which is off unless deliberately set on the Edge
-        // Function. It is never enabled by anything the model or a caller can influence.
-        // ==================================================================================
-        const DEBUG_RESOURCE_IDS = Deno.env.get('SEM_AI_DEBUG_RESOURCE_IDS') === '1';
-        const TYPED_FALLBACK: Record<string, string> = {
-          company: 'the company', person: 'the person', project: 'the project', task: 'the task',
-          goal: 'the goal', approval: 'the approval', department: 'the department',
-          business_unit: 'the business unit', work_order: 'the work order', agent: 'the agent',
-          channel: 'the channel', lead: 'the lead', document: 'the document',
-          product_line: 'the product line', product_spec: 'the software spec', drawing: 'the drawing',
-          ai_provider: 'the AI provider', mcp_connector: 'the MCP connector', proposal: 'the proposal',
-          company_relationship: 'the company relationship', person_assignment: 'the assignment',
-          memory: 'the memory entry',
-        };
-        const lastKnownLabel = (resourceType: string, id: string): string | null => {
-          // run8/D67: rows created THIS turn are absent from every contextPack-derived
-          // map by definition — their request-supplied labels (captured at the write
-          // site next to the returned id) are consulted first.
-          const created = runtimeLabels.get(resourceType + '|' + id);
-          if (typeof created === 'string' && created.length > 0) return created;
-          const fromMap = resourceType === 'company' ? companyNameById.get(id)
-            : resourceType === 'task' ? taskTitleById.get(id)
-            : resourceType === 'person' ? personNameById.get(id)
-            : resourceType === 'goal' ? goalTitleById.get(id)
-            : null;
-          return typeof fromMap === 'string' && fromMap.length > 0 ? fromMap : null;
-        };
-        // run9/D74: EVERY label displayName renders is ultimately writable by the model
-        // (runtime labels come from result.* request fields; canonical names were
-        // themselves created through requests). A label is a NAME, not a channel: uuids
-        // are scrubbed, length is bounded, and a label that reads as a completion
-        // assertion ("ACME has been archived") collapses to the typed reference — the
-        // F5 invariant holds against label-smuggling, not only claim fields.
-        // run10/D79: run9's collapse-on-assertion erased real identities — a company
-        // genuinely named "Was Archived Holdings" became "the company" on its OWN
-        // supported line, and two such disambiguation options collapsed to IDENTICAL
-        // labels (a dead-ended flow). The F5 concern (label-smuggled assertions) is
-        // answered by QUOTING instead of erasing: an assertion-shaped label renders as
-        // "Was Archived Holdings" — framed as a NAME exactly the way the lifecycle
-        // lines have always framed titles (Task "NAME": archived) — keeping identity
-        // and uniqueness while making the text unmistakably a label, not a statement.
-        // uuid-bearing labels still collapse to the typed reference: an id is never a
-        // name under any framing.
-        const safeDisplayLabel = (raw: unknown): string | null => {
-          if (typeof raw !== 'string') return null;
-          let label = raw.trim();
-          if (label.length === 0) return null;
-          if (UUID_IN_TEXT.test(label)) return null;
-          if (label.length > 80) label = label.slice(0, 77) + '…';
-          if (PAST_COMPLETION_CLAIM_PATTERN.test(label) || COMPLETION_WORD.test(label)) {
-            // A COMPOUND assertion (aux-completion plus a conjunction/comma clause —
-            // "ACME has been archived and all tasks were deleted") is a sentence, not
-            // a name, under any framing: it collapses to the typed reference. A short
-            // assertion-shaped NAME ("Was Archived Holdings", a task titled "Verify
-            // the contract was approved by legal") keeps its identity, quoted.
-            if (PAST_COMPLETION_CLAIM_PATTERN.test(label) && /(\band\b|,|;)/i.test(label)) return null;
-            return `“${label}”`;
-          }
-          return label;
-        };
-        const displayName = (resourceType: string, id: string): string => {
-          const row = canonicalById.get(resourceType + '|' + id);
-          const canonical = row && (row.name || row.title || row.full_name);
-          const label = safeDisplayLabel(typeof canonical === 'string' && canonical.length > 0 ? canonical : null)
-            || safeDisplayLabel(lastKnownLabel(resourceType, id));
-          if (label) return DEBUG_RESOURCE_IDS ? `${label} (${id})` : label;
-          // No safe label exists. Use a neutral typed reference — never the raw id, and
-          // never a fabricated name. The resourceType itself is MODEL-AUTHORED text on a
-          // claim, so it is never interpolated raw either (run7/D54): only a lowercase
-          // word-shaped type may appear, anything else collapses to "the record".
-          const typed = TYPED_FALLBACK[resourceType]
-            || (typeof resourceType === 'string' && /^[a-z][a-z_]{0,29}$/.test(resourceType) ? `the ${resourceType.replace(/_/g, ' ')}` : 'the record');
-          return DEBUG_RESOURCE_IDS ? `${typed} (${id})` : typed;
-        };
-
-        // ---- run7/D54: NOTHING model-authored is interpolated raw into founder prose. ----
-        // displayName covers the resource reference; these cover every other field a claim
-        // carries. An action outside the executor's own vocabulary renders as "changed",
-        // a predicate that isn't a plain column name is dropped, and any value carrying a
-        // canonical uuid is replaced with a neutral reference — the founder-facing reply
-        // must stay uuid-free even when the uuid arrives via expectedValue (the exact
-        // no-smuggling-required leak run7 demonstrated).
-        const UUID_IN_TEXT = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
-        const ACTION_PAST: Record<string, string> = {
-          create: 'created', delete: 'deleted', update: 'updated', archive: 'archived',
-          restore: 'restored', activate: 'activated', deactivate: 'deactivated',
-          assign: 'assigned', reassign: 'reassigned',
-          permanent_delete: 'permanently deleted', end_employment: 'removed from active employment',
-          restore_employment: 'restored to active employment',
-        };
-        const safeActionPast = (action: unknown): string => ACTION_PAST[String(action)] || 'changed';
-        const safePredicate = (p: unknown): string | null =>
-          typeof p === 'string' && /^[a-zA-Z0-9_]{1,40}$/.test(p) ? p : null;
-        const safeValueText = (v: unknown): string => {
-          const s = String(v);
-          if (UUID_IN_TEXT.test(s)) return 'the referenced record';
-          // Values render inside one correction sentence — a paragraph-length field
-          // (description, notes) is truncated rather than flooding the reply.
-          return s.length > 120 ? s.slice(0, 117) + '…' : s;
-        };
-        // run7/D53: questions[] and the pendingAction prompt/options are model-authored
-        // prose spliced into the CORRECTED summary — the one output path that exists
-        // because the model's prose could not be trusted. A fragment that asserts a past
-        // completion or carries a uuid is not a question/prompt, it is laundering through
-        // the question channel, and is dropped rather than rendered.
-        const safeProseFragment = (s: unknown): string | null => {
-          if (typeof s !== 'string') return null;
-          const t = s.trim();
-          if (t.length === 0) return null;
-          if (UUID_IN_TEXT.test(t)) return null;
-          if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return null;
-          return t;
-        };
-        // run8/D61: the past-completion regex is an allowlist-by-omission — present
-        // tense ("is now archived"), simple past ("I archived ACME"), imperative-done
-        // ("Done — ACME deleted"), adverb-first, markdown and Mongolian assertions all
-        // walked straight through the QUESTION channel. The gate is now STRUCTURAL,
-        // not lexical: a question-channel entry is reduced to its FINAL interrogative
-        // sentence — everything before the last sentence terminator is dropped
-        // wholesale, so a declarative assertion cannot ride in front of a trailing
-        // "ok?", in any language or tense. Bounded, uuid-checked, and still refused
-        // outright when the surviving question itself is a promise.
-        // ['’] — the typographic apostrophe models actually emit ("I’ll") is NOT the
-        // ASCII one; matching only ASCII was a real bypass (run8, future-promise case).
-        const FUTURE_PROMISE_IN_QUESTION = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
-        const safeQuestionFragment = (s: unknown): string | null => {
-          // run10 (R10.paQuestion): the base gate runs on the SURVIVING question, not
-          // the raw input — pre-rejecting the whole string for an assertion in its
-          // preamble threw away the genuine question the structural cut exists to
-          // rescue ("ACME has been archived. Which did you mean?" must yield "Which
-          // did you mean?", not null). Only the uuid check applies to the whole input:
-          // an id anywhere means the fragment was never founder-safe.
-          if (typeof s !== 'string') return null;
-          const t = s.trim();
-          if (t.length === 0) return null;
-          if (UUID_IN_TEXT.test(t)) return null;
-          if (!t.includes('?')) return null; // the question channel carries questions
-          const lastQ = t.lastIndexOf('?');
-          const head = t.slice(0, lastQ);
-          // run9/D69+D70: the cut recognises the full terminator set (; : … 。 ！ em-dash
-          // and newlines, not only . ! ？), while a '.' followed by a lowercase letter or
-          // digit is an abbreviation/decimal ("Acme Inc. still interested?", "1.5"), not
-          // a boundary — cutting there corrupted legitimate questions.
-          // run10/D77+D83: the '.' guard direction was INVERTED in run9 — "any lowercase
-          // /digit after the period" treated EVERY mid-sentence continuation as an
-          // abbreviation, so "I archived ACME. ok?" survived whole (re-opening run8
-          // D61 for lowercase continuations). A '.' is a boundary UNLESS the token
-          // BEFORE it is abbreviation-shaped (a known abbreviation or a single letter)
-          // or it sits between digits (a decimal). And an ASCII '?' inside the head IS
-          // a cut point (D83): in "I archived ACME, right? Continue?" the tag question
-          // must not shield the assertion in front of it.
-          const KNOWN_ABBREVIATION = /^(inc|ltd|co|corp|llc|plc|gmbh|dr|mr|mrs|ms|jr|sr|st|no|nr|vs|etc|approx|dept|div)$/i;
-          let cut = -1;
-          for (let k = head.length - 1; k >= 0; k--) {
-            const ch = head[k];
-            if (ch === '!' || ch === '?' || ch === ';' || ch === ':' || ch === '…' || ch === '。' || ch === '！' || ch === '？' || ch === '—' || ch === '\n') { cut = k; break; }
-            if (ch === '.') {
-              const beforeWordMatch = head.slice(0, k).match(/([A-Za-z0-9.]+)$/);
-              const beforeWord = beforeWordMatch ? beforeWordMatch[1].replace(/\.+$/, '') : '';
-              const next = head[k + 1] === ' ' ? head[k + 2] : head[k + 1];
-              const decimal = /[0-9]$/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
-              const abbreviation = /^[A-Za-z]$/.test(beforeWord) || KNOWN_ABBREVIATION.test(beforeWord);
-              if (decimal || abbreviation) continue;
-              cut = k; break;
-            }
-          }
-          let q = t.slice(cut + 1).replace(/^[\s*_>#•-]+/, '').trim();
-          // run11/D88 (4th instance of this class: D61, D77, D83, now D88): an assertion
-          // with NO sentence terminator in front of a trailing short question survived
-          // whole — "I archived ACME, ok?" has nothing to cut on. Terminator-based
-          // cutting can never see this shape, so the surviving fragment is additionally
-          // reduced to its LAST COMMA-DELIMITED clause whenever an earlier clause reads
-          // as a completion. A genuine multi-clause question ("If we archive it, does
-          // the team lose access?") keeps its clauses: only a clause carrying completion
-          // vocabulary triggers the reduction.
-          if (q.includes(',')) {
-            const clauses = q.split(',');
-            const tail = clauses[clauses.length - 1].trim();
-            const head = clauses.slice(0, -1).join(',');
-            if (tail.length > 0 && (COMPLETION_WORD.test(head) || PAST_COMPLETION_CLAIM_PATTERN.test(head))) q = tail;
-          }
-          if (q.length === 0 || q.length > 200) return null;
-          if (FUTURE_PROMISE_IN_QUESTION.test(q)) return null;
-          // Belt over the structural cut (run9): a completion assertion phrased AS the
-          // question itself ("Did you know ACME has been archived?") is still laundering.
-          if (PAST_COMPLETION_CLAIM_PATTERN.test(q)) return null;
-          // run12/D92: this belt was `COMPLETION_WORD.test(q)`, which dropped any question
-          // that MENTIONS completion vocabulary rather than one that ASSERTS a completion —
-          // measured at 12 of 20 realistic clarifications lost ("Who should the task be
-          // assigned to?", "Which archived company did you mean?"). Those are the questions
-          // the structural cut exists to rescue, so the blanket test was worse than the
-          // hole it closed. It was load-bearing for exactly ONE shape: a first-person
-          // assertion shielded from the cut by the abbreviation rule ("I archived ACME B.
-          // ok?"). That shape — and only that shape — is what this now matches: a personal
-          // subject followed by a past-tense completion verb is a statement; the same verb
-          // used adjectivally or in a passive infinitive is ordinary question grammar.
-          // run13/D98+D99 (verifier #13's FIX-3b, measured across three SHAs): run12 chose
-          // the SUBJECT as the discriminating axis (`i|we` + past tense), which gave up 18
-          // of 20 assertion shapes while still dropping 7 of 27 legitimate clarifications.
-          // The axis that actually separates the two is whether the surviving fragment is
-          // INTERROGATIVE-LED: a fragment opening with a wh-word or an auxiliary is a
-          // question however its subordinate clauses are worded, and one opening with a
-          // noun phrase or bare participle that merely ends in "ok?" is a statement.
-          // Measured 0/20 leaks and 0/27 drops — strictly better on BOTH axes than any
-          // previous build, which neither run11 nor run12 achieved.
-          const INTERROGATIVE_LEAD = /^(please\s+)?(who|whom|whose|which|what|when|where|why|how|do|does|did|is|are|was|were|am|can|could|should|shall|will|would|may|might|have|has|had|if)\b/i;
-          // run14/D114: FIX-3b REPLACED run12's first-person belt rather than adding to it,
-          // and thereby reopened exactly the class that belt closed — 13 of 20 natural
-          // interrogative-led first-person assertions that ace9b6a caught began shipping
-          // again ("Did I mention I archived ACME already?"). The two axes are
-          // COMPLEMENTARY, NOT ALTERNATIVES. This was the third consecutive campaign to
-          // close one direction of this belt by reopening the other; keeping both is the
-          // only thing that ends that cycle.
-          //
-          // The first-person axis itself needs CLAUSE POSITION, not bare person: in every
-          // legitimate D98 clarification the completion sits inside a noun phrase ("the
-          // tasks we completed", "the ones I removed", "the company I archived"); in every
-          // assertion it is the main predicate. The lookbehind encodes that, and D98's seven
-          // committed cases are what observe it. A blanket re-add WITHOUT the lookbehind
-          // breaks eight of them — measured, not assumed, and D114.hold.0–6 exist to catch
-          // a fourth attempt at that swap.
-          const FIRST_PERSON_MAIN_CLAUSE_COMPLETION = /(?<!\b(?:the|a|an|all|any|some|those|these|our|your|my|their|both|each|every)\s\w{1,24}\s)\b(i|we)\s+(?:\w+ly\s+|just\s+|already\s+|have\s+|has\s+|had\s+){0,2}(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)\b/i;
-          if (FIRST_PERSON_MAIN_CLAUSE_COMPLETION.test(q)) return null;
-          if (COMPLETION_WORD.test(q) && !INTERROGATIVE_LEAD.test(q)) return null;
-          return q;
-        };
-        // Option labels are NAMES, never sentences: short, no terminal punctuation, no
-        // completion vocabulary in any form the executor could be quoted with.
-        // run9/D71: extended with the rest of the executor's completion vocabulary.
-        // Disclosed limitation: lexical and English-only — the structural question cut
-        // carries the load for questions; labels/summaries remain lexical.
-        // run9/D72: a REPAIRING gate, not a blanking one — a blanked label made its
-        // disambiguation option unselectable (matchDisambiguationOption matches on the
-        // label the founder can see and type). Trailing punctuation is stripped, an
-        // over-long name is truncated, and only a label that asserts a completion or
-        // fails the base gate returns null — the CALLER then substitutes a safe derived
-        // label instead of an empty string.
-        const safeOptionLabel = (s: unknown): string | null => {
-          let t = safeProseFragment(s);
-          if (t === null) return null;
-          t = t.replace(/[.!?\s]+$/, '').trim();
-          if (t.length === 0) return null;
-          if (t.length > 80) t = t.slice(0, 77) + '…';
-          if (PAST_COMPLETION_CLAIM_PATTERN.test(t)) return null;
-          // run10/D78: run9's repair over-corrected — dropping the completion check let
-          // every non-aux completion shape ("ACME deleted", "I archived ACME", "Done:
-          // ACME deleted") render under "Options:" and replay as "Confirmed — ACME
-          // deleted." Restored with a NAME-SHAPE discriminator instead of the old
-          // blanket word test: a label carrying completion vocabulary is refused
-          // (falling back to the derived canonical reference — never blank, never
-          // accepted) UNLESS it is Title-Cased throughout the way real names are.
-          // "Closed Loop Systems" survives as itself; "ACME deleted" cannot — the
-          // lowercase participle is sentence syntax, not name casing, in any bicameral
-          // script (Cyrillic included).
-          if (COMPLETION_WORD.test(t)) {
-            const NAME_CONNECTOR = /^(of|to|in|at|on|by|for|and|or|the|a|an|de|von|van|&)$/i;
-            // Quote characters are handled via charCode, never inside a regex class —
-            // a literal quote in a class breaks the QA extractor's string-skipper
-            // (it reads it as a string opening and swallows the rest of the window).
-            const QUOTE_CODES = [34, 39, 8220, 8216];
-            const words = t.split(/\s+/).map((w) => (QUOTE_CODES.includes(w.charCodeAt(0)) ? w.slice(1) : w));
-            const titleCasedName = words.every((w) => /^[\p{Lu}0-9(&[-]/u.test(w) || NAME_CONNECTOR.test(w));
-            if (!titleCasedName) return null;
-            // run11/D86: Title-Case alone was defeated by capitalising one letter —
-            // "ACME Deleted", "Project Completed", "ACME Deleted Everything" and
-            // participle-led "Deleted ACME" all passed as names. The separating fact is
-            // POSITION, not case: a completion participle anywhere but the first word is
-            // predicate syntax ("<Subject> deleted"), while a leading one is adjectival
-            // in a real name ("Closed Loop Systems") UNLESS a named object follows it,
-            // which makes it a verb phrase ("Deleted ACME").
-            //
-            // Heuristic and stated as such — the real safety net is the caller's
-            // derived-canonical fallback, which replaces any refused label with the
-            // database's own name, so a genuinely-named entity always keeps a
-            // selectable, distinct option.
-            const completionIdx = words.findIndex((w) => COMPLETION_WORD.test(w));
-            if (completionIdx > 0) return null;
-            // run12/D91: requiring an ALL-CAPS or determiner token after a LEADING
-            // participle still let 17 assertions through ("Granted Full Access", "Added
-            // Three People"). Chasing the object's shape is the wrong axis — the tell is
-            // the PARTICIPLE itself. Only a small set of completion words genuinely lead
-            // real names as adjectives ("Closed Loop Systems", "Completed Works Ltd");
-            // the rest are verbs, and a label starting with one is a sentence. Anything
-            // refused here still reaches the founder as the derived canonical name, so a
-            // genuinely-named entity loses nothing but its model-authored spelling.
-            // run13/D101 (TENTH vacuous-guard recurrence, and mine): `advanced` and
-            // `integrated` were dead alternatives — this list is only consulted for a word
-            // COMPLETION_WORD already matched, and neither appears there. They were added
-            // by the same commit that closed the ninth recurrence, which is the tell: a
-            // list written from intuition rather than from the set it filters. Removed
-            // rather than "fixed" by adding them to COMPLETION_WORD — "advanced" and
-            // "integrated" are not completion claims, so they do not belong in either list.
-            const ADJECTIVAL_COMPLETION = /^(closed|completed|restored)$/i;
-            if (completionIdx === 0 && !ADJECTIVAL_COMPLETION.test(words[0])) return null;
-            const DETERMINER_OR_PRONOUN = /^(the|a|an|all|any|every|each|both|its|his|her|their|our|your|my|this|that|these|those|everything|everyone|anyone|nothing|it|them|us|me|him|files?|data)$/i;
-            if (completionIdx === 0 && words.length > 1
-                && (/^[\p{Lu}0-9]{2,}$/u.test(words[1]) || DETERMINER_OR_PRONOUN.test(words[1]))) return null;
-          }
-          return t;
-        };
-        // A pendingAction summary describes what WOULD happen — it is replayed next
-        // turn as "Confirmed — <summary>", so completion vocabulary in ANY tense is a
-        // pre-written false completion and is refused.
-        const safePendingSummary = (s: unknown): string | null => {
-          const t = safeProseFragment(s);
-          if (t === null) return null;
-          if (t.length > 200) return null;
-          // run10/D84: the blanket word test refused LEGITIMATE imperative summaries
-          // ("Mark 3 tasks as done", "Archive ACME (currently closed)"), silently
-          // dropping the visible prompt while the destructive action payload stayed
-          // armed — worse than what it prevented. A pending summary describes what
-          // WOULD happen: an imperative-led summary is exactly that shape and is
-          // allowed; what is refused is an ASSERTION — the aux-verb shapes, or a
-          // completion participle as the summary's final content word ("ACME deleted"),
-          // which replays as "Confirmed — ACME deleted."
-          const IMPERATIVE_LEAD = /^(archive|restore|create|delete|update|assign|reassign|mark|set|move|end|add|remove|rename|close|clear|send|grant|decline|approve|reject|complete|activate|deactivate|make|change)\b/i;
-          if (!IMPERATIVE_LEAD.test(t)) {
-            // run10 (R10.paSummaryWord): an assertion-LED compound ("ACME deleted —
-            // also purge its tasks") hides the participle behind a continuation, so
-            // the HEAD clause is tested the same way as the tail.
-            const headClause = t.split(/[—;,.\n]/)[0].trim();
-            if (/\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined|done)$/i.test(headClause)) return null;
-            // Trailing closers (incl. quote chars, stripped via charCode — a literal
-            // quote in a regex class breaks the QA extractor's string-skipper) are
-            // peeled before the participle-tail test.
-            let tail = t;
-            const CLOSER_CODES = [34, 39, 8221, 8217, 41, 93, 46, 33, 32];
-            while (tail.length > 0 && CLOSER_CODES.includes(tail.charCodeAt(tail.length - 1))) tail = tail.slice(0, -1);
-            if (/\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined|done)$/i.test(tail)) return null;
-          }
-          return t;
-        };
-
-        const rawClaims = Array.isArray(result.claims) ? result.claims : null;
-        const verifiedClaims = [];
-        const rejectedClaims = [];
-        // MutationIntent from the REQUEST (governance/OPERATING_TRUTH_MODEL.md §3 rule 3;
-        // CANONICAL_WORK_CONTRACT.md §1 INTENT). Detected from the founder's command and from
-        // the structured action fields the model emitted — never from the response text, its
-        // tense, its shape or its punctuation. It drives the never-silent receipt below: a
-        // mutation-intent turn cannot end with the model's own prose as the final answer.
-        // MutationIntent v2 (verifier #56 V56-D1/D2; governance/OPERATING_TRUTH_MODEL.md §3 rule 3).
-        // Three request-side signals, none of them the response text:
-        //   (1) the model's structured classification of the REQUEST (requestIntent), language-independent;
-        //   (2) the model's action arrays (it decided to act);
-        //   (3) a request lexicon: a mutation verb ANYWHERE in the command (polite prefixes, participles
-        //       after need/want/should, Mongolian stems), with OBJECT GUARDS for the verbs that also open
-        //       ordinary read requests, and a READ-SHAPE veto (a question, a wh-opener, "show/list/tell me").
-        // A lexicon-only hit never outranks the model saying "read" unless the belt independently reads the
-        // reply as a completion (defence-in-depth, decided below once the belt exists) — so a truthful read
-        // answer is never rewritten on a verb alone, and a fabricated completion on a real mutation request
-        // never ships on a phrasing the lexicon missed.
-        const MUTATION_ARRAY_FIELDS = ['tasks','deleteTaskIds','archiveTaskIds','restoreTaskIds','deleteChannelIds','deleteApprovalIds','pendingDeleteTaskIds','pendingDeleteChannelIds','createCompanies','updateCompanies','archiveCompanyIds','restoreCompanyIds','archiveCompanyNames','restoreCompanyNames','permanentDeleteFixtureCompanyIds','createPeople','endEmploymentPersonIds','restoreEmploymentPersonIds','createProjects','createGoals','archiveGoalIds','restoreGoalIds','createFactoryWorkOrders','createDepartments','updateDepartments','createLeads','updateLeads','createDocuments','createProductLines','updateProductLines','deleteProductLineIds','createProductSpecs','updateProductSpecs','deleteProductSpecIds','createEngineeringDrawings','deleteEngineeringDrawingIds','createAiProviders','deleteAiProviderIds','deleteMcpConnectorIds','createProposals','updateProposals','deleteProposalIds','createCompanyRelationships','createPersonAssignments'];
-        const commandText = String(command || '');
-        const resultRecord = result as Record<string, unknown>;
-        const modelIntentRaw = resultRecord.requestIntent;
-        const modelIntent = modelIntentRaw && typeof modelIntentRaw === 'object' ? modelIntentRaw as Record<string, unknown> : null;
-        const modelIntentKind: string | null = modelIntent && typeof modelIntent.kind === 'string' && ['mutation', 'confirmation', 'read', 'other'].includes(modelIntent.kind) ? modelIntent.kind : null;
-        const modelIntentAction: string | null = modelIntent && typeof modelIntent.action === 'string' && modelIntent.action.trim().length > 0 ? modelIntent.action.trim().toLowerCase().slice(0, 40) : null;
-        const modelMutationField: string | null = MUTATION_ARRAY_FIELDS.find((f) => Array.isArray(resultRecord[f]) && (resultRecord[f] as unknown[]).length > 0)
-          || (typeof resultRecord.activateAiProviderId === 'string' ? 'activateAiProviderId' : null);
-        // Unconditional mutation verbs: base and gerund forms anywhere in the command (a participle alone
-        // is an adjective — "a report of archived companies"); Mongolian stems with Unicode-letter
-        // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
-        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*|нэрийг)(?!\p{L})/iu;
-        // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
-        const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
-        // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
-        // a field, a relationship phrase). Case-insensitive; proper nouns are checked separately below.
-        const MUTATION_VERB_WITH_OBJECT = /\b(?:(?:creat(?:e|ing)|make|making|add(?:ing)?|register(?:ing)?|set(?:ting)?|updat(?:e|ing)|chang(?:e|ing)|edit(?:ing)?|fix(?:ing)?|modif(?:y|ying)|correct(?:ing)?|clos(?:e|ing)|complet(?:e|ing)|finish(?:ing)?|cancel(?:ling|ing)?|reopen(?:ing)?|mark(?:ing)?|assign(?:ing)?|mov(?:e|ing)|transfer(?:ring)?|end(?:ing)?) (?:the |a |an |that |this |new |another |its |his |her |their |my |our )?(?:compan(?:y|ies)|business unit|person|people|employee|staff|manager|task|goal|project|department|lead|document|proposal|product|memory|note|approval|channel|team|role|employment|assignment|contract|ticket|manager|status|deadline|priority|owner|title|name|description|email|role|stage|value|budget|price|start date|end date|due date|\S+-\d+)\b|make \S+(?: \S+)? (?:the |a )?(?:manager|owner|lead|admin)\b|add \S+(?: \S+)? (?:to|as|under) \b|(?:set|updat(?:e|ing)|chang(?:e|ing)) \S+(?:'s|’s) \w+(?: \w+)? to\b|mov(?:e|ing) \S+(?: \S+)? (?:to|into|under)\b|transfer(?:ring)? \S+(?: \S+)? (?:to|into|under)\b|mark \S+(?: \S+){0,3} as (?:done|complete|completed|closed|archived|active|inactive|resolved)\b)|[:—–-]\s*(?:assign|set|update|change|edit|fix|modify|close|complete|finish|cancel|reopen|mark|move|transfer|end|create|add|make|archive|restore|delete|remove|rename)(?:\s+(?:it|them|this|that))?\s*[.!]?\s*$/i;
-        // Proper-noun objects, CASE-SENSITIVE: "create ACME Robotics", "assign QA-1 to Bob", "Set Bob’s title".
-        const MUTATION_VERB_PROPER_OBJECT = /(?:^|[\s,.;:—–-])(?:[Cc]reat(?:e|ing)|CREATE|[Mm]ak(?:e|ing)|MAKE|[Aa]dd(?:ing)?|ADD|[Rr]egister(?:ing)?|[Ss]et(?:ting)?|SET|[Uu]pdat(?:e|ing)|UPDATE|[Cc]hang(?:e|ing)|CHANGE|[Ee]dit(?:ing)?|EDIT|[Ff]ix(?:ing)?|FIX|[Mm]odif(?:y|ying)|MODIFY|[Cc]los(?:e|ing)|CLOSE|[Cc]omplet(?:e|ing)|COMPLETE|[Ff]inish(?:ing)?|FINISH|[Cc]ancel(?:ling|ing)?|CANCEL|[Rr]eopen(?:ing)?|REOPEN|[Mm]ark(?:ing)?|MARK|[Aa]ssign(?:ing)?|ASSIGN|[Mm]ov(?:e|ing)|MOVE|[Tt]ransfer(?:ring)?|TRANSFER|[Hh]ir(?:e|ing)|HIRE|[Oo]nboard(?:ing)?|ONBOARD|[Ee]nd(?:ing)?|END)\s+(?:the\s+|a\s+|an\s+|new\s+|THE\s+)?(?:[A-Z][A-Za-z0-9_-]+|[A-Z]{2,}|\S+-\d+|"[^"]+"|“[^”]+”|'[^']+')|(?:[A-Z]\S*|\S+-\d+|\S+(?:'s|’s) \w+)\s+(?:set|add|mark|move|edit|update|end|close|complete|cancel|finish|reopen|assign|create|make|fix|modify|change)\s*[.!]?\s*$/;
-        // A read-shaped request: a question, a wh-opener, or an explicit read verb; a trailing "ok?/right?"
-        // on an imperative is not a read. Plus the idioms that only LOOK like lifecycle verbs.
-        const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?\b|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
-        // A polite request phrased as a question is still a request ("could you please archive ACME?").
-        const POLITE_REQUEST = /^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|shall i|may i ask you to|please)\b/i;
-        const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText) && !POLITE_REQUEST.test(commandText);
-        const readShaped = isQuestion || READ_SHAPE.test(commandText);
-        // A bare confirmation or a choice is a request to execute what was pending.
-        const CONFIRMATION_COMMAND = /^\s*(?:yes|yep|yeah|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative|go ahead|do it|proceed|please do|go for it|approved)\b[\s,.!—–-]*(?:(?:go ahead|do it|proceed|please|now|thanks|then)[\s,.!—–-]*)*$|^\s*(?:option|choice|number|the)?\s*(?:\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\s+(?:one|option|choice))?\s*[.!]?\s*$/i;
-        const confirmationShaped = CONFIRMATION_COMMAND.test(commandText);
-        const lexiconAlways = (commandText.match(MUTATION_VERB_ALWAYS) || []).slice(1).find((g) => typeof g === 'string' && g.length > 0) || null;
-        const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
-        const lexiconObject = (MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) ? ((commandText.match(/\b(creat|make|add|register|set|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard)\w*/i) || [])[0] || 'update') : null;
-        const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject) ? String(lexiconAlways || lexiconPassive || lexiconObject).toLowerCase() : null;
-        const lexiconReadVetoed = lexiconVerb !== null && (readShaped || modelIntentKind === 'read' || modelIntentKind === 'other');
-        // Primary intent, in authority order. The lexicon-only case is decided after the belt exists.
-        const requestedIntentPrimary: MutationIntent | null = modelMutationField
-          ? { verb: modelIntentAction || lexiconVerb, field: modelMutationField }
-          : (modelIntentKind === 'mutation' || modelIntentKind === 'confirmation')
-            ? { verb: modelIntentAction || lexiconVerb || (modelIntentKind === 'confirmation' ? 'confirm' : null), field: null }
-            : (confirmationShaped && modelIntentKind !== 'read')
-              ? { verb: 'confirm', field: null }
-              : (lexiconVerb !== null && !lexiconReadVetoed)
-                ? { verb: lexiconVerb, field: null }
-                : null;
-        // Final request intent: the request-side derivation alone. The belt (a property of the REPLY) never
-        // decides whether a request carried intent — a read-vetoed lexicon hit is null, full stop
-        // (verifier #56 V56-D2: the defence-in-depth tier rewrote truthful dated history on read requests).
-        const requestedIntent: MutationIntent | null = requestedIntentPrimary;
-        void lexiconReadVetoed;
-        const executedVerifiedCount = claimExecutionEvidence.filter((e) => e.postconditionPassed).length;
-
-        function verifyStructuredClaim(claim) {
-          const type = typeof claim.type === 'string' ? claim.type : '';
-          const resourceType = typeof claim.resourceType === 'string' ? claim.resourceType : '';
-          const resourceId = typeof claim.resourceId === 'string' ? claim.resourceId : null;
-          const action = typeof claim.action === 'string' ? claim.action : null;
-          const key = resourceType + '|' + resourceId;
-
-          if (type === 'mutation_result' || type === 'assignment') {
-            // Requires an executable operation that ACTUALLY RAN against this EXACT id, with
-            // a matching action and a confirmed postcondition. Deliberately fails closed:
-            // a missing id, an id we never touched, or a different action on the same
-            // resource type are all UNSUPPORTED. This is the clause every prose generation
-            // could not satisfy — "same resource type but wrong UUID must not support it".
-            if (!resourceId) return { verdict: 'unsupported', reason: 'mutation claim carries no canonical resource id' };
-            // #66/D42 (L11/L12): an action-less claim previously matched ANY action recorded
-            // for that id, so archive evidence supported a permanent-deletion claim, and a
-            // non-string action silently coerced to null and did the same. The action is
-            // half the claim's identity - without it there is nothing to verify.
-            if (!action) return { verdict: 'unsupported', reason: 'mutation claim carries no action to verify' };
-            const actions = evidenceIndex.get(key);
-            if (!actions) return { verdict: 'unsupported', reason: 'no execution evidence for ' + resourceType + ' ' + resourceId + ' this turn' };
-            if (!actions.has(action)) return { verdict: 'unsupported', reason: 'executed ' + [...actions].join('/') + ' on this resource, not ' + action };
-            return { verdict: 'supported', reason: 'backend execution evidence with confirmed postcondition' };
-          }
-
-          if (type === 'current_state' || type === 'approval_state' || type === 'existence' || type === 'count') {
-            // Verified against the fresh canonical read, never against the model's assertion.
-            if (!resourceId) return { verdict: 'unknown', reason: 'state claim carries no canonical resource id' };
-            const row = canonicalById.get(key);
-            if (!row) return { verdict: 'unknown', reason: 'resource not present in this turn’s canonical read' };
-            // #66/D43 (F3/F4): contextPack is read at the START of the turn, so for any
-            // resource this turn then MUTATED it is stale. Judging against it inverted the
-            // truth — a correct post-mutation state claim was CONTRADICTED while the
-            // now-false pre-mutation state was SUPPORTED. Stale evidence must not decide
-            // either way: say unknown until a post-mutation re-read exists.
-            if (evidenceIndex.has(key)) {
-              return { verdict: 'unknown', reason: 'this turn mutated ' + resourceType + ' ' + resourceId + '; the canonical read predates that change and cannot settle its current state' };
-            }
-            const predicate = typeof claim.predicate === 'string' ? claim.predicate : null;
-            if (!predicate) return { verdict: 'supported', reason: 'resource exists in the canonical read' };
-            // run8/D62b: a predicate the canonical row doesn't carry means row[p] is
-            // undefined, which made EVERY garbage predicate "contradicted" — and forced
-            // a rendered correction line for model-invented field names. Unknown, not
-            // contradicted: absence of the field is not evidence about its value.
-            if (!Object.prototype.hasOwnProperty.call(row, predicate)) return { verdict: 'unknown', reason: 'predicate not present in the canonical read' };
-            const actual = row[predicate];
-            if (claim.expectedValue === undefined) return { verdict: 'unknown', reason: 'no expected value supplied for predicate ' + predicate };
-            if (String(actual) === String(claim.expectedValue)) return { verdict: 'supported', reason: predicate + '=' + String(actual) + ' in the canonical read' };
-            return { verdict: 'contradicted', reason: predicate + ' is ' + String(actual) + ', not ' + String(claim.expectedValue) };
-          }
-
-          if (type === 'historical_event') {
-            // Current state does NOT prove a historical occurrence. Without an indexed audit
-            // trail this is honestly UNKNOWN - reported as such rather than blessed. It is
-            // not an execution claim about this turn, so it is not failed closed either.
-            return { verdict: 'unknown', reason: 'no indexed audit trail for prior-turn events (see issue #5 A/C/D/E, still open)' };
-          }
-
-          if (type === 'verification_state') return { verdict: 'supported', reason: 'informational verification state' };
-          return { verdict: 'unknown', reason: 'unrecognised claim type: ' + (type || '(none)') };
-        }
-
-        if (rawClaims) {
-          for (const claim of rawClaims) {
-            if (!claim || typeof claim !== 'object') continue;
-            const outcome = verifyStructuredClaim(claim);
-            const row = { claim, verdict: outcome.verdict, reason: outcome.reason };
-            if (outcome.verdict === 'supported') verifiedClaims.push(row);
-            else if (outcome.verdict === 'unsupported' || outcome.verdict === 'contradicted') rejectedClaims.push(row);
-            else verifiedClaims.push(row);
-          }
-        }
-
-        // Questions and proposed actions are NOT factual execution claims and are never
-        // GROUNDED — but they are still model-authored prose that gets spliced into the
-        // corrected summary and persisted in the envelope, so they pass the run7/D53
-        // laundering gate: no past-completion assertions, no uuids. A genuine question
-        // survives untouched.
-        const envelopeQuestions = (Array.isArray(result.questions) ? result.questions : [])
-          .map(safeQuestionFragment).filter((q) => q !== null) as string[];
-        const envelopeProposedActions = (Array.isArray(result.proposedActions) ? result.proposedActions : [])
-          .map(safeProseFragment).filter((a) => a !== null) as string[];
-
-        // run8/D60: the pendingAction OBJECT is persisted in work_orders.output and
-        // replayed verbatim next turn ("Confirmed — <summary>") — gating the splice into
-        // THIS turn's summary was not enough. Sanitize the object in place, on every
-        // turn: structure (kind/action/candidateIds/executionPlan/option ids) survives
-        // so the confirmation mechanism keeps working; only model-authored TEXT is
-        // gated. The gated arrays also replace the raw ones on result itself, so the
-        // persisted output never carries an ungated copy.
-        // run9/D73: the RPC already persisted a RAW snapshot of result as p_output
-        // BEFORE this gating ran, and the corrected re-persist below only fired on
-        // correction turns — so a plain clarification turn kept the ungated
-        // pendingAction durably. Tracked here: any field the gating actually changed
-        // forces the re-persist, closing the raw-snapshot window on exactly the turns
-        // that need it.
-        let pendingActionGatingChanged = false;
-        if (result.pendingAction && typeof result.pendingAction === 'object') {
-          const paObj = result.pendingAction;
-          // run10/D80: normalized to null BEFORE comparing — an absent key is the same
-          // gated outcome as an explicit null, and undefined !== null was flagging a
-          // spurious re-persist on most clarification turns.
-          const beforeSummary = paObj.summary ?? null, beforeQuestion = paObj.question ?? null;
-          paObj.summary = safePendingSummary(paObj.summary);
-          paObj.question = safeQuestionFragment(paObj.question);
-          if (paObj.summary !== beforeSummary || paObj.question !== beforeQuestion) pendingActionGatingChanged = true;
-          if (Array.isArray(paObj.options)) {
-            // run9/D72: never blank a label — an empty label makes the option
-            // unselectable in the disambiguation flow. A refused label falls back to a
-            // safe DERIVED reference from the option's own canonical identity.
-            const unresolvableOptionIndexes: number[] = [];
-            // run16/D124: model-authored entity types that the canonical read keys under
-            // another name. Anything not listed keeps its own name and is simply
-            // unresolvable (and therefore dropped) unless the read knows it under that name.
-            const CANONICAL_TYPE_ALIAS: Record<string, string> = {
-              employee: 'person', staff: 'person', user: 'person', member: 'person', contact: 'person',
-              organization: 'company', organisation: 'company', org: 'company', business: 'company',
-              client: 'company', customer: 'company', vendor: 'company', supplier: 'company', partner: 'company',
-              subsidiary: 'company', ticket: 'task', todo: 'task', objective: 'goal', okr: 'goal',
-            };
-            for (let oi = 0; oi < paObj.options.length; oi++) {
-              const o = paObj.options[oi];
-              if (!o || typeof o !== 'object') continue;
-              const beforeLabel = o.label;
-              // run13/D100 — the DECISION verifier #13 deliberately left open, and the end
-              // of four rounds of narrowing this class by guessing at label shape.
-              //
-              // The axis was always wrong. "Closed Loop Systems" and "Completed Migration"
-              // are not separable by grammar, and each new rule closed some shapes while
-              // admitting others (D78 -> D86 -> D91 -> D100). What actually distinguishes
-              // them is not how they read but whether the DATABASE agrees the entity is
-              // called that. So: a label carrying completion vocabulary is shown verbatim
-              // ONLY when the canonical read independently corroborates it as that
-              // entity's real name. Uncorroborated, it is model-authored text asserting a
-              // completion, and the derived reference is used instead.
-              //
-              // This deliberately changes a committed contract (an adjectival-led label
-              // surviving for an entity ABSENT from the canonical read). That contract
-              // pinned showing an unverifiable model claim as if it were a name — and per
-              // run13/D103, such an option cannot be executed anyway, since its id fails
-              // the contextPack filter. Losing an unverifiable spelling is the cheaper
-              // error.
-              // run16/D124 (P1): the model may name an entity type the canonical read keys
-              // differently — 'employee' is EXECUTABLE (endEmploymentPersonIds) but the read
-              // is keyed 'person|', so two real, named, in-context people rendered as "the
-              // employee (option 1/2)" and the founder was asked whose employment to end
-              // with no name shown. The type is resolved through the canonical alias so a
-              // real person is shown by name; and "known" is decided from the READ ITSELF
-              // below, never by comparing two independently-derived fallback strings
-              // (displayName says "the <type>" for any word-shaped type, TYPED_FALLBACK
-              // said "the record" — they disagreed, so the drop never fired).
-              const derivedLabel = typeof o.id === 'string' && o.id
-                ? displayName(CANONICAL_TYPE_ALIAS[typeof o.entityType === 'string' ? o.entityType : ''] || (typeof o.entityType === 'string' ? o.entityType : 'record'), o.id)
-                : `option ${oi + 1}`;
-              const canonicalType = CANONICAL_TYPE_ALIAS[typeof o.entityType === 'string' ? o.entityType : '']
-                || (typeof o.entityType === 'string' ? o.entityType : 'record');
-              const safeLabel = safeOptionLabel(o.label);
-              const bare = (v) => String(v).replace(/[“”‘’"']/g, '').trim().toLowerCase();
-              // run14/D113 — THE DECISION THAT ENDS THIS CLASS. The corroboration above was
-              // itself GATED ON `COMPLETION_WORD`, the very lexical test the comment three
-              // paragraphs up calls "always wrong". So the database check only ran when the
-              // discredited grammar test happened to fire, and any fabricated label using
-              // completion vocabulary outside the 24-word English list ("Terminated Bob
-              // Smith", "Wiped All Data", "Revoked Access") or spelled with a Cyrillic
-              // confusable was never corroborated at all — it shipped VERBATIM as a
-              // selectable option whose id resolves to an entity with a completely different
-              // canonical name. The founder could select "Terminated Bob Smith" and archive
-              // ACME Holdings.
-              //
-              // D78 -> D86 -> D91 -> D100 -> D113 is five campaigns of narrowing a lexical
-              // gate. The class does not end until the gate stops being lexical, so it is
-              // removed: when the id resolves against the canonical read, the CANONICAL NAME
-              // is what the founder sees. The model's label is used only when there is no
-              // canonical name to use instead.
-              //
-              // Accepted cost, stated plainly: a legitimate model paraphrase of a real name
-              // is now replaced by the canonical spelling. That is the correct trade. An
-              // option is a POINTER TO AN ENTITY, and the founder choosing between entities
-              // must see what those entities are actually called — a paraphrase is exactly
-              // the channel a fabricated label travels through, and no paraphrase is worth
-              // one wrong archive.
-              // ONE RULE, and it is not lexical (run15/D119 — the decision verifier #15
-              // put to the founder, taken):
-              //
-              //   The founder sees the CANONICAL NAME. A model label survives only when it
-              //   IS that name modulo presentation. No word list is involved anywhere, so
-              //   "Terminated Bob Smith" for an entity actually called ACME Holdings is
-              //   caught, and so is a Cyrillic homoglyph, and so is a progressive assertion
-              //   ("Now removing ACME." — run15/D120, closed by this same rule: the label
-              //   channel no longer has a lexical gate for a new shape to slip past).
-              //
-              // D113 kept a second, LEXICAL rule for the branch where the canonical read
-              // does NOT know the entity, so that a benign label could survive there
-              // (run8/D72b). Verifier #15 measured that fallback: over 18 execution
-              // assertions and 13 real completion-shaped names it let 6 assertions ship
-              // VERBATIM and destroyed 10 real names — it separated "verbs on the 24-word
-              // list" from "verbs not on it", and both sides contained both kinds. It had
-              // no discriminating power, so it is gone. An option whose id resolves to
-              // NOTHING this turn is not shown at all (dropped below): it cannot execute
-              // anyway (run13/D103 — its id fails the contextPack filter), so offering it
-              // only invites the founder to select a pointer to nowhere under a label only
-              // the model vouches for. run8/D72b is RETIRED by this decision, deliberately
-              // and on the record (ledger #75): the trailing-period repair of a name the
-              // database cannot corroborate is not a property worth an unverifiable label.
-              const canonicalKnowsIt = !!derivedLabel
-                && typeof o.id === 'string' && o.id.length > 0
-                && (canonicalById.has(canonicalType + '|' + o.id) || lastKnownLabel(canonicalType, o.id) !== null);
-              const agrees = !!safeLabel && bare(safeLabel) === bare(derivedLabel);
-              o.label = agrees ? safeLabel : derivedLabel;
-              if (o.label !== beforeLabel) pendingActionGatingChanged = true;
-              if (!canonicalKnowsIt) unresolvableOptionIndexes.push(oi);
-            }
-            // run15/D119: the drop itself. Structural, not lexical — an option the canonical
-            // read cannot name is removed before the founder ever sees it. When NOTHING is
-            // left, the pending action is downgraded to an OPEN question: the question text
-            // survives (it is already gated), the option list does not, so the next turn
-            // cannot bind a bare reply to a fabricated id — the disambiguation branch
-            // requires a non-empty option list and falls through to the LLM path.
-            if (unresolvableOptionIndexes.length > 0) {
-              paObj.options = paObj.options.filter((_: unknown, oi: number) => !unresolvableOptionIndexes.includes(oi));
-              pendingActionGatingChanged = true;
-            }
-            // run12/D95: when two options both fall back to a bare TYPED reference (their
-            // entities are absent from the canonical read and carry no runtime label),
-            // they collapse to the identical "the company" — matchDisambiguationOption
-            // then finds two matches and returns null, dead-ending the flow with no way
-            // for the founder to answer. Colliding fallbacks are numbered so every option
-            // stays uniquely selectable. Real distinct names are untouched.
-            // run13/D102: the collision key must be the SAME normalized form
-            // matchDisambiguationOption compares, or two options identical once
-            // presentation characters are stripped stay un-numbered AND mutually
-            // unselectable — a seam between the two run12 fixes, each correct alone.
-            // run13/D103a: a running counter can re-mint a number an already-numbered
-            // (replayed) label carries; the option's own index is unique by construction
-            // and stable for a given emitted list.
-            const labelKey = (s) => s.replace(/[“”‘’"']/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
-              .replace(/\s*\(option \d+\)$/, '');
-            const labelCounts = new Map();
-            for (const o of paObj.options) {
-              if (o && typeof o.label === 'string') labelCounts.set(labelKey(o.label), (labelCounts.get(labelKey(o.label)) || 0) + 1);
-            }
-            for (let oi = 0; oi < paObj.options.length; oi++) {
-              const o = paObj.options[oi];
-              if (o && typeof o.label === 'string' && labelCounts.get(labelKey(o.label)) > 1) {
-                o.label = `${o.label.replace(/\s*\(option \d+\)$/, '')} (option ${oi + 1})`;
-                pendingActionGatingChanged = true;
-              }
-            }
-          }
-        }
-        // Same run9/D73 durability rule for the arrays: a dropped/reduced question or
-        // proposed action means the persisted copy must be the gated one, not the RPC's
-        // raw snapshot.
-        if ((Array.isArray(result.questions) ? result.questions.length : 0) !== envelopeQuestions.length
-          || (Array.isArray(result.proposedActions) ? result.proposedActions.length : 0) !== envelopeProposedActions.length
-          || envelopeQuestions.some((q, qi) => q !== (result.questions || [])[qi])) {
-          pendingActionGatingChanged = true;
-        }
-        result.questions = envelopeQuestions;
-        result.proposedActions = envelopeProposedActions;
-
-        const hasRejectedClaims = rejectedClaims.length > 0;
-
-        // CATASTROPHIC-DRIFT CHECK — defense-in-depth, and deliberately ADDITIVE.
-        //
-        // #66/D40-D41: this was previously gated on `!rawClaims`, so ANY claims array
-        // suppressed it — including a trivially-true existence claim, an always-unknown
-        // historical_event, or an always-supported verification_state. That handed the model
-        // a switch for its own truth gate: emit one harmless claim and fabricate freely in
-        // prose. Eleven laundering shapes, and a REGRESSION against deployed v92, which
-        // catches every one of them.
-        //
-        // The fix is not to make prose authoritative again (#65 item 8 forbids that).
-        // Structured claims remain primary and decide WHAT is corrected. This check only
-        // asks a narrower question: does the prose assert a completion that NO supported
-        // mutation claim accounts for? If so the reply has drifted from the verified
-        // structure and must not be shipped as-is. A turn whose mutation claims were
-        // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
-
-        // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
-        // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
-        // ACME." was corrected — the same claim, two outcomes. One shared verb list now
-        // feeds every arm, plus the broader progressive shapes the narrow arms missed
-        // ("Processing the request", "Working on archiving", "I am archiving",
-        // "Currently archiving"). Still defense-in-depth: evidence remains primary.
-        const PROGRESS_VERBS = 'assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending';
-        // run12/D94: the residual is now covered rather than left undisclosed —
-        // passive-progressive ("is being archived", "is getting archived"), imminent
-        // ("about to", "in the process of", "going ahead and", "proceeding to",
-        // "starting the", "kicking off"), and the polite first person ("let me archive").
-        // Still lexical and English-only: this is defense-in-depth, and evidence stays
-        // primary. A shape outside this list does not ship a fabricated completion on a
-        // turn that HAS execution evidence — it is re-rendered from that evidence.
-        const EXECUTION_IN_PROGRESS = new RegExp(
-          '\\b(' +
-          '(?:^|\\b(?:i(?:\x27|\u2019)?m |i am |we(?:\x27|\u2019)?re |we are )(?:now |currently |just )?)executing (?:the )?(?:plan|request|action|changes?)' +
-          '|(?:^|\\b(?:i(?:\x27|\u2019)?m |i am |we(?:\x27|\u2019)?re |we are )(?:now |currently |just )?)working on (?:' + PROGRESS_VERBS + ')' +
-          '|(?:^|\\b(?:i(?:\x27|\u2019)?m |i am |we(?:\x27|\u2019)?re |we are )(?:now |currently |just )?)processing (?:the |your )?(?:plan|request|action|changes?)' +
-          '|i(?:\'|’)?m (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
-          '|i am (?:now |currently |just )?(?:' + PROGRESS_VERBS + ')' +
-          '|(?:now|currently) (?:' + PROGRESS_VERBS + ')' +
-          // Passive progressive takes PAST PARTICIPLES ("is being archived"), not the
-          // gerunds the other arms use — the original arm could never match it.
-          // run19/D137: present-tense "is/are <participle>" is a STATE ("ACME is archived",
-          // "the task is completed"), not a mutation this turn — and the belt destroyed those
-          // truthful state answers (incl. the file's own must-never-touch "test3 is archived.
-          // Should I restore it?"). Past tense "was/were <participle>" is the completion event
-          // (also caught by LEGACY); present tense fires ONLY when explicitly progressive
-          // ("is being archived", "is getting archived").
-          '|(?:was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|moved|granted|declined)' +
-          '|(?<!\\b(?:that|which|who)\\s)(?:is|are) (?:being|getting) (?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)(?![^.]{0,60}?\\bby (?:the|a|an|our|their|its))' +
-          // A bare gerund LEADING the reply is the same claim without a subject
-          // ("Archiving ACME as we speak.").
-          '|^(?:' + PROGRESS_VERBS + ') ' +
-          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)(?:about to|going to|proceeding to|starting to) (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate|add|send)' +
-          '|(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?in the process of (?:' + PROGRESS_VERBS + ')' +
-          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)(?:go(?:ing)? ahead and|kick(?:ing)? off) (?:the )?(?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
-          '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)starting the (?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
-          '|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)' +
-          ')\\b', 'i');
-        // A supported mutation/assignment claim is the only thing that can account for
-        // completion wording. State, existence, historical and verification claims cannot —
-        // that asymmetry is exactly what L7/L8/L9/L10 exploited.
-        const hasSupportedMutationClaim = verifiedClaims.some((v) => v.verdict === 'supported'
-          && (v.claim.type === 'mutation_result' || v.claim.type === 'assignment'));
-        // run8/D59: `&& !result.pendingAction` is the EXACT D3 short-circuit 606cfa8
-        // removed from the prose-era gate — the structured-claim rewrite re-introduced
-        // it here, so "The approval has been approved. Should I also archive ACME?"
-        // (fabricated completion + a pendingAction + no claims) shipped uncorrected and
-        // persisted. Removed again; the correction branch below preserves the gated
-        // pending prompt so a genuine clarification is corrected, not stranded. (The
-        // FUTURE-promise gate keeps its pendingAction exclusion on purpose — a future
-        // promise WITH a pending question is honest.)
-        // run13/D100+D103c: "Confirmed — <completion>." is the one shape where a bare
-        // participle (no auxiliary, so LEGACY_PAST_COMPLETION never saw it) reads to the
-        // founder as a finished action — "Confirmed — Restored Bob Smith.",
-        // "Confirmed — the company (option 1)." The backend no longer composes either
-        // (the replay site renders a quoted CHOICE, or a neutral acknowledgement when the
-        // label names nothing), so this is defense-in-depth for any path that still could.
-        // Genuine deterministic-* turns are excluded below, so a legitimate imperative
-        // confirmation summary ("Confirmed — Archive ACME?") is unaffected.
-        // run14/D112: the original `.*` carried no negation handling and no part-of-speech
-        // constraint, so the belt fired on a completion word used in a NEGATION ("the
-        // company is not archived"), as a NOUN ("the archived list", "3 archived
-        // companies") or in an explicit not-done statement ("still pending, not approved") —
-        // nine truthful founder-facing answers of sixteen, each replaced with "I can't
-        // actually do that from chat", which is itself false. Destroying a true answer and
-        // substituting a false one is a worse outcome than the fabrication this belt exists
-        // to catch. A completion word directly preceded by a determiner or a cardinal is
-        // a noun, not a claim (that part-of-speech guard stays here).
-        // run15/D117+D118: D112's negation handling was a `(?![^]*\b(?:not|...)\b)` lookahead
-        // INSIDE this one regex — a WHOLE-SUMMARY test, and applied to ONE arm only. Both
-        // are recurrences of classes this ledger already recorded: a negation word in a
-        // later sentence ("Confirmed — Archived ACME. No further action needed.") disarmed
-        // the belt for the fabrication beside it (the mechanism struck down at ledger
-        // #5277), while LEGACY_PAST_COMPLETION and EXECUTION_IN_PROGRESS had no negation
-        // handling at all, so "no company was archived" was still destroyed (#4905).
-        // Negation now lives in NEGATED_CLAUSE below and is applied ONCE, per CLAUSE, in
-        // readsAsCompletion — for every arm, so the two halves of run13/D100's "one
-        // predicate, both arms" can no longer diverge on negation either.
-        const CONFIRMED_COMPLETION = /^\s*confirmed\s*[—–-]\s*[^]*?(?<!\bthe )(?<!\ba )(?<!\ban )(?<!\bany )(?<!\byour )(?<!\bmy )(?<!\bour )(?<!\bis )(?<!\bare )(?<!\bam )(?<!\d )\b(archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|cleared|sent|moved|granted|declined)\b/i;
-        // The D112 negator list, unchanged, now scoped to a clause. Clause boundaries are
-        // sentence punctuation and the comma, so "Deleted ACME, nothing else was changed"
-        // keeps its fabrication in a clause of its own. Disclosed residual: a fabrication
-        // and a negator in the SAME clause ("Archived ACME with no issues") still disarms
-        // that clause; evidence, not this belt, remains the primary defence.
-        // run18/D131: "without" is REMOVED from the negator list. It is a name word
-        // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
-        // qualifier ("archived without incident") far more often than a genuine negation, and
-        // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /(?<!-)\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b(?!-)/i;
-        // run13/D103c: the other half of the same shape carries no completion word at
-        // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
-        // definite phrase naming a TYPE, never an instance, so it confirms nothing the
-        // founder can check while reading as though something was settled. Anchored to
-        // end-of-string, so a confirmation that goes on to say something checkable
-        // ("Confirmed — the company you asked about is in Ulaanbaatar") is untouched;
-        // D103.hold.substantive is what observes that anchor.
-        const REFERENCELESS_CONFIRMATION = /^\s*confirmed\s*[—–-]\s*the\s+[a-z]+(\s+[a-z]+)?(\s*\(option\s+\d+\))?\s*[.!]?\s*$/i;
-        // run13/D100: the two drift arms below each carried their OWN copy of this
-        // pattern list, so extending one silently left the other behind. One predicate,
-        // both arms — a new completion shape cannot be half-covered again.
-        // run15/D117+D118: negation is decided HERE, once, per clause, for every arm. A
-        // clause carrying a negator is a truthful negative and is skipped; any other clause
-        // asserting a completion makes the whole summary read as one. (The semicolon in the
-        // clause splitter is written as \x3b so this stays a single statement for the
-        // source-extracting suites, which slice this predicate up to its first `;`.)
-        // run16/D125: the splitter knew only [.!?,;], so a fabrication followed by a negator
-        // in the SAME typographic clause ("archived – no undo available", "archived (no undo
-        // available)", "archived without incident", "archived and no errors occurred") was
-        // disarmed — four shapes d724d8c had caught. Dashes, colon, parentheses, newline and
-        // the conjunctions and/but/without are boundaries now; the residual is a negator
-        // inside one bare clause with no separator at all.
-        // run17/D128 (P1): run16/D125 widened the clause splitter to and/but/without, dashes,
-        // parentheses and colons — and inside a NOUN PHRASE those are not clause boundaries.
-        // "No company named Salt and Pepper Co was archived." split into ["No company named
-        // Salt", "Pepper Co was archived"] and the truthful negative was destroyed: 97/130 on
-        // the verifier's corpus, 0/130 one candidate earlier — the D112 class again, in the
-        // direction index.ts itself calls the worse one. The splitter is back to sentence
-        // punctuation, the comma and the newline. What decides negation is no longer "a
-        // negator anywhere in the clause" but ORDER: a negator disarms a clause only when it
-        // PRECEDES the completion vocabulary ("no company … was archived", "the company is
-        // not archived"); a negator that follows the verb ("archived – no undo available",
-        // "archived without incident", "archived and no errors occurred") is a qualifier on a
-        // completion that was still asserted, and the belt fires. Disclosed residual: a real
-        // name that itself begins with a negator word before the verb ("Nothing Bundt Cakes
-        // was archived") disarms the belt; evidence, not this belt, remains primary.
-        // run18/D130 (P1): run17/D128's order rule compared the negator to the first
-        // COMPLETION WORD — but a completion word used as a NOUN ("the archived list") or in
-        // a NAME ("Closed Loop Systems", "Archived Media Group") sits before the negator and
-        // was mistaken for the completion verb, so "Closed Loop Systems was not archived."
-        // read as a completion and the true answer was destroyed (24/26 real names). The
-        // comparison is now against the VERBAL completion only: an auxiliary immediately
-        // governing a past participle ("was archived", "has been restored", "were not
-        // deleted"), or the "<participle> successfully" form. A leading name word is a noun,
-        // not a verb, and is never the reference point. Present-tense "is/are archived" is a
-        // STATE, not a completion event, so it is deliberately excluded from the verbal set
-        // (that is what lets "ACME is archived but was not deleted." survive).
-        const COMPLETION_PARTICIPLE = /\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|confirmed)\b/i;
-        const COMPLETION_VERB = /\b(?:has|have|had|was|were)(?:\s+(?:not|been|being|already|just|recently|successfully|also|now))*\s+(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b|\b(?:archived|deleted|updated|created|restored|removed|completed|renamed|approved|rejected|assigned|reassigned|moved|sent|cleared|granted|declined|ended|activated|deactivated)\s+successfully\b/i;
-        // A clause is a TRUTHFUL NEGATIVE (not a completion assertion) when it carries a
-        // negator AND either there is no verbal completion in it at all (the completion words
-        // are nouns/names), or the negator falls at/before that verb's PARTICIPLE — i.e. it
-        // negates the verb ("was NOT archived") rather than trailing it ("archived — no undo").
-        // run19/D131 (R9b): the previous rule ("negator before the verb's participle disarms")
-        // over-caught, so a fabrication whose only separator was and/but/a dash escaped ONLY
-        // because run18 refused those boundaries (they occur in names). The negator-before-verb
-        // test is refined: a negator that precedes the completion verb disarms it only when it
-        // actually scopes over the verb — i.e. the negator directly precedes the verb (n >=
-        // m.index is impossible here; kept for symmetry), OR a relative/complement marker
-        // (that/which/who/whom) sits between the negator and the verb (the verb is inside the
-        // negated noun phrase: "no record THAT X was archived"), OR no finite auxiliary/modal
-        // has occurred before the negator yet (the negator is the clause's own, not a
-        // subordinate one). A trailing "no errors" after a real "was archived" no longer
-        // disarms. Verifier #19 measured this: 0 of 9 paired real names destroyed, 0 new false
-        // positives on a 61-case corpus, 5 of the 9 residual fabrications now caught.
-        const NEGATION_AUX = /\b(?:is|are|am|was|were|has|have|had|do|does|did|can|could|will|would|should|may|might|must)\b/i;
-        const completionIsNegated = (c: string): boolean => {
-          // v45/V45-N2: no completion vocabulary in this clause means there is nothing for a
-          // negator to negate, so the scan loop below cannot change the answer. Measured:
-          // 1.2-1.4x on ordinary prose, neutral where the vocabulary is present, 0 verdict
-          // changes. #45's 657ms figure could NOT be reproduced here - see v46_runtime_probe.
-          if (!COMPLETION_VERB.test(c) && !COMPLETION_PARTICIPLE.test(c) && !EXECUTION_IN_PROGRESS.test(c)) return false;
-          // run31/D170+D172: a negator TOKEN can sit where it negates NOTHING. Taking the first
-          // match blindly let fabrications deployed v92 corrects through the belt. Each position
-          // below is skipped and the scan CONTINUES, so a real negator later in the same clause
-          // ("Nothing Bundt Cakes was not archived") still disarms it.
-          //   nameInternal  the negator opens a proper name used as the SUBJECT. Capitalisation
-          //                 alone does not establish that - at sentence start every negator is
-          //                 capitalised, and "Confirmed - No Business Unit Archived." is a TRUE
-          //                 report v92 shows the founder. So an AUXILIARY must govern the run
-          //                 ("Nothing Bundt Cakes HAS BEEN archived"). A lowercase noun in
-          //                 between ("No ACME Holdings task was completed") or a bare participle
-          //                 with no auxiliary leaves it a determiner. A lowercase "nor" anywhere
-          //                 means a genuine neither/nor negation.
-          //                 the speaker claims ("I archived No Limits Inc."). A genuine negator
-          //                 there is lowercase ("I archived no companies."), which is the test.
-          //   titleHead     clause-initial "Pending"/"Awaiting" heading a titled subject.
-          //   ppInternal    the negator sits in a prepositional phrase modifying something other
-          //                 than the completion ("The company with no active tasks was archived").
-          let n = -1;
-          const scan = new RegExp(NEGATED_CLAUSE.source, 'gi');
-          for (let mm = scan.exec(c); mm !== null; mm = scan.exec(c)) {
-            const after = c.slice(mm.index + mm[0].length);
-            const FN_WORDS = "(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)"; const capLead = /^[A-Z]/.test(mm[0]) && /^\s+[A-Z]/.test(after);
-            const subjectRun = new RegExp("^\\s+(?:(?:[A-Z][\\w&.’'-]*|and|&|of|the|for|de|von|van)\\s+){0,5}?[A-Z][\\w&.’'-]*\\s+(?:(?:was|were|has|have|had|been)\\b|" + COMPLETION_PARTICIPLE.source.slice(2) + "\\s+successfully\\b)").test(after);
-            const namePrefixHit = ((__a) => { let __best = 0; let __acc = ''; const __re = /\s+[^\s]+/g; for (let __k = 0; __k < 16; __k++) { const __m = __re.exec(__a); if (__m === null || __m.index !== __acc.length) break; __acc += __m[0]; if (knownEntityNames.has((mm[0] + __acc).replace(/[.,;:!?]+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase())) __best = __acc.length; } return __best; })(after); const nameInternal = (namePrefixHit > 0 || (capLead && subjectRun) || ((__r) => __r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase()))(/^(?:\s+[A-Z][\w&.'’-]*)+/.exec(after)) || ((__l) => __l !== null && knownEntityNames.has((mm[0] + __l[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase()))(/^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/.exec(after))) && !/\bnor\b/.test(c); if (nameInternal) { const __hit = [/^(?:\s+[A-Z][\w&.'’-]*)+/, /^(?:\s+[a-z][\w&.'’-]*){1,6}?(?=\s+(?:was|were|has|have|had|is|are)\b)/].map((__re) => __re.exec(after)).map((__r) => (__r !== null && knownEntityNames.has((mm[0] + __r[0]).replace(/\s+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').toLowerCase())) ? __r[0].length : 0).concat([namePrefixHit]).sort((__a, __b) => __b - __a)[0]; if (__hit) { scan.lastIndex = mm.index + mm[0].length + __hit; continue; } }
-            const titleHeadAfterPrep = /\b(?:for|of|on|about|regarding|concerning|in|at|to|from|with)\s+(?:Pending|Awaiting)\s+[a-z]/.test(c) && /^[A-Z]/.test(mm[0]); const titleHead = /^(?:Pending|Awaiting)$/.test(mm[0]) && (mm.index === c.search(/\S/) || /["“‘']\s*$/.test(c.slice(0, mm.index)));
-            const newSubject = !/\bnor\b/.test(c) && ((sre) => { for (let sm = sre.exec(c); sm !== null; sm = sre.exec(c)) { if (sm.index <= mm.index + mm[0].length) continue; const span = c.slice(mm.index + mm[0].length, sm.index); if (/^[a-z][\w.&'-]*\s+(?:was|were|has been|have been|had been)\b/.test(sm[0]) && !new RegExp('^\\s*(?!' + FN_WORDS + '\\b)[a-z][a-z-]*\\s*$').test(span)) continue; const endsFiniteVerb = /^\s*(?:[a-z]+(?<![sui])s\s+)?[a-z]+(?:ed|en)\s*$/.test(span) && !/\b(?:showed|proved|indicated|confirmed|stated|recorded|suggested|reported|mentioned|noted|revealed|implied|found|said|established|named|called|titled|listed|marked|dated|assigned|labell?ed|entitled|known|shown|seen|held|described|referenced)\s*$/.test(span); const endsLinked = !endsFiniteVerb && new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s*$', 'i').test(span); const linksAName = new RegExp('\\b(?:and|or|nor|a(?:t|s|bout|gainst|mong|cross|fter|round)|i[nf]|into|on|onto|of|for|from|with|within|without|by|per|via|under|over|beyond|besides|between|beneath|behind|before|during|through|to|than|toward|towards|regarding|concerning|including|like|unlike|near|upon|that|which|who|whom|whose|where|when|[a-z]+(?:ing|ed|en)|shows?|showed|confirms?|indicates?|states?|records?|proves?|suggests?|reports?|mentions?|notes?|sees?|seen|finds?|found|says?|said)\\s+[A-Z]').test(span); if (!endsLinked && !linksAName) return true; } return false; })(/(?:\b[A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*){0,4}|\b(?:the|that|this|these|those|its|their|our|his|her|my|your)\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*(?:\s+(?!(?:shows|showed|confirms|confirmed|indicates|indicated|states|stated|records|recorded|proves|proved|suggests|suggested|reports|reported|mentions|mentioned|notes|noted|says|said|sees|finds|found|reveals|revealed|implies|implied)\s+(?:was|has been|had been)\b)[a-z][\w-]*){0,3}|\b(?!(?:a|an|the|any|all|some|each|every|no|none|other|another|such|more|most|many|few|several|both|either|neither|this|that|these|those|my|our|your|their|his|her|its|one|new|old|open|current|recent|same|only|further|additional|remaining|pending|active|valid|matching|related|relevant|existing|available)\b)[a-z][\w.&'-]*)\s+(?:was|were|has been|have been|had been)\b/g);
-            const ppInternal = /\b(?:with|without|since|despite|after|before|besides|regarding|about|following|given|amid|notwithstanding|barring|excepting)\s+$/i.test(c.slice(0, mm.index)) && LEGACY_PAST_COMPLETION.test(c);
-            const relInternal = /\w,?\s+(?:that|which|who|whom|whose)\s+(?:[\w’'-]+\s+){0,4}$/i.test(c.slice(0, mm.index)) && !(/^(?:not|never|nowhere)$/i.test(mm[0]) && /\b(?:is|are|was|were|has|have|had|been|being|do|does|did|can|could|will|would|should|may|might|must)\s+$/i.test(c.slice(0, mm.index))) && !/^(?:isn|aren|wasn|weren|hasn|haven|didn|don|cannot|can)/i.test(mm[0]);
-            const quotedHead = /["“‘']\s*$/.test(c.slice(0, mm.index)) && /^\s*\S/.test(after);
-            const adjective = /^(?:pending|awaiting)$/i.test(mm[0]) && /\b(?:the|a|an|your|our|their|its|my|his|her|all|any|each|every|this|that|these|those|some|several)\s+$/i.test(c.slice(0, mm.index));
-            const fewQuant = /^few$/i.test(mm[0]) && /\b(?:a|the|these|those|several)\s+$/i.test(c.slice(0, mm.index));
-            const detName = /^[A-Z]/.test(mm[0]) && (/\b(?:[Tt]he|[Aa]n?|[Oo]ur|[Yy]our|[Tt]heir|[Ii]ts|[Mm]y|[Hh]is|[Hh]er)\s+(?:[a-z][\w-]*\s+){0,2}$/.test(c.slice(0, mm.index)) && /^\s+[A-Z]/.test(after) || /^[’']s\s+[A-Z]/.test(after));
-            if (nameInternal || titleHead || titleHeadAfterPrep || ppInternal || relInternal || newSubject || quotedHead || adjective || fewQuant || detName) continue;
-            n = mm.index;
-            break;
-          }
-          if (n < 0) return false;
-          const m = COMPLETION_VERB.exec(c);
-          if (m === null) return true;
-          const rel = m[0].search(COMPLETION_PARTICIPLE);
-          const p = m.index + (rel < 0 ? 0 : rel);
-          if (n > p) return false;
-          // run22/D151 (R-ZR2, clause-initial free pass removed): a negator disarms the
-          // completion verb it precedes UNLESS a clause-linker sits between them. A coordinator
-          // (and/but) counts only after a LOWERCASE token ("no errors and X was archived" links;
-          // "no record Salt and Pepper Co was archived" is name-internal); a subordinator
-          // (although/though/however/therefore) links anywhere. The old third disjunct
-          // (!NEGATION_AUX before the negator => always disarm) is DELETED: it gave a
-          // clause-initial negator a free pass ("No errors occurred and ACME was archived." was
-          // missed — D147b), and the linker test decides those correctly too. Zero-relativizer
-          // truthful negatives and the re-lexiconed nobody/neither/nor/few/hardly ones survive.
-          return n >= m.index || /\b(?:that|which|who|whom)\b/i.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '') || new RegExp((c.slice(n, m.index).split(/\b(?:although|though|however|therefore|so|yet|because)\b/i).length > 1 ? '^\\s*(?:(?:in|of|at|on|from|within|across|among|between|for|by|under|over|per)\\s+(?:\\w+\\s+){0,3})?' : '\\b') + '(?:show(?:s|ed)?|prove(?:s|d)?|indicate(?:s|d)?|say(?:s|ing)?|state(?:s|d)?|record(?:s|ed)?|confirm(?:s|ed)?|establish(?:es|ed)?|suggest(?:s|ed)?|report(?:s|ed)?|mention(?:s|ed)?|note(?:s|d)?)\\b', 'i').test((c.slice(n, m.index).split(/\b(?:although|though|however|therefore|so|yet|because)\b/i).pop() ?? '').split(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/).pop() ?? '')
-            || !(/(?:^|\s)[a-z][^\s]*\s+(?:and|but)\s/.test(c.slice(n, m.index)) || /\b(?:although|though|however|therefore)\b/i.test(c.slice(n, m.index))
-              || (c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).length > 1 && !NEGATED_CLAUSE.test(c.slice(n, m.index).split(/\b(?:so|yet|because)\s+/i).pop() ?? '')));
-        };
-        // Boundaries: sentence punctuation, comma, semicolon, newline, a SPACED dash, and a
-        // colon FOLLOWED BY SPACE — so a filler negator set off by punctuation ("No problem —
-        // ACME was archived", "Nothing failed: ACME was archived") no longer shields the
-        // fabrication beside it, while a hyphenated or conjunction-bearing NAME ("Salt and
-        // Pepper Co"), a parenthetical ("No entity (including ACME) was archived") and a clock
-        // time ("14:30") are left whole. Parentheses are deliberately NOT boundaries: the
-        // order rule already catches "archived (no undo available)" because the negator
-        // trails the verb. The "Confirmed —" prefix is handled by testing CONFIRMED_COMPLETION
-        // on the whole string, so splitting the dash cannot blind it. (One statement — the
-        // source-extracting suites slice this up to its first `;`.)
-        // run19/D134 (P1): CONFIRMED_COMPLETION is a whole-string match (so "Confirmed — as
-        // requested, Restored Bob Smith." is caught by the later-clause participle), but the
-        // negation was checked on clause[0] only — so a truthful "Confirmed — <benign>, <verb>
-        // was not <done>." had its negator ignored and the true answer destroyed. Negation is
-        // now checked on the CLAUSE THAT CONTAINS the matched completion word: the text up to
-        // the end of the CONFIRMED match, last clause. (Optional chaining keeps it null-safe
-        // and a single statement for the source-extracting suites.)
-        // run23/D155 (fallback 1, Deno-safe): the third .some() arm below is a first-person
-        // active-voice completion, tested CASE-SENSITIVELY (no /i) so its object must be a proper
-        // name ([A-Z]) or a real entity noun — "I removed it from my draft" / "I restored order"
-        // are NOT claims, "I deleted Beta Corp" / "I deleted the company" are. It lives INLINE (no
-        // new const: run15-18 assemble the belt from a named-const list and would drop a new one)
-        // and uses NO (?-i:) modifier (unverified in the Deno Edge runtime — a bad modifier fails
-        // to construct at module load and takes the whole function down).
-        // v92-differential/D27 (P1, REGRESSION vs deployed v92 — production row 9dda919c): the
-        // `renamed: "X" → "Y"` completion-report arm inherited from PAST_COMPLETION_CLAIM_PATTERN
-        // was UNREACHABLE here because the clause splitter below breaks on ":\s" before any arm
-        // sees the colon (verifier #29 called it "decorative" — it is the exact shape v92 corrects
-        // and this build shipped). Tested on the WHOLE summary, before the split, exactly as v92
-        // does. The arrow format is a completion report, not a truthful negative; measured 0
-        // truthful destroyed on the 303-case v92-differential corpus.
-        // run31/D171 (R-AUXGAP, rebuilt): an adverbial interposed between auxiliary and
-        // participle is cut apart by the clause splitter, so no clause carries a whole
-        // completion. Verifier #31 showed the first version was net-negative: its guard read a
-        // negator lexicon blind to couldn/wouldn/shouldn/won-t, so attributed TRUE history was
-        // destroyed. That lexicon gap is closed above, and the window is v92's own 30 rather
-        // than 40, so this reaches no shape v92 never touched. Participles come from
-        // COMPLETION_PARTICIPLE itself, never a private copy (D100).
-        const readsAsCompletion = (s) => ((s) => [String(s), String(s).replace(/[?!]/g, ' ')].some((__s) => __s.split(/(?<=[.!?])\s+/).some((q) => LEGACY_PAST_COMPLETION.test(q) && !NEGATED_CLAUSE.test(q) && !/\b(?:may|might|could|can|would|should)\b(?:\s+\w+){0,4}\s+(?:have|has|had)\s+been\b|\b(?:could|would|should|wo)n['’]?t\b/i.test(q))) || REFERENCELESS_CONFIRMATION.test(s) || /\brenamed:\s*.+(→|->)/i.test(String(s))
-          || (!(/^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\s+(?!(?:the|a|an|this|that|these|those|its|their|our|my|your|his|her|to|for|from|with|by|in|on|at|of|and|or|but|it|them|him|us|me|you|all|any|each|every|some|no|nothing|none)\b)[a-z]|^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\s+(?:no longer|not|never|no|nothing|none|nobody|no one|neither|nor)\b/.test(String(s)) || ((__m) => __m !== null && knownEntityNames.has(String(__m[1]).toLowerCase()) && !COMPLETION_PARTICIPLE.test(String(s).slice((__m.index ?? 0) + __m[0].length)) && !/^\s*(?:and|plus|,)\s+[A-Z]/.test(String(s).slice((__m.index ?? 0) + __m[0].length)))(String(s).match(/^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?((?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)(?:\s+[A-Z][\w&'’-]*(?:\.[\w&'’-]+)*)+)/)) || /^\s*[Cc]onfirmed\s*[—–-][^.!?]*\?/.test(String(s)) || !LEGACY_PAST_COMPLETION.test(String(s)) && /^\s*[Cc]onfirmed\s*[—–-]\s*(?:[^,]{0,60},\s*)?(?:Archived|Deleted|Updated|Created|Restored|Activated|Deactivated|Assigned|Reassigned|Approved|Rejected|Declined|Removed|Completed|Renamed|Ended|Closed|Cleared|Sent|Moved|Granted|Added)\b(?:(?:(?!\b(?:not|never|no|nobody|nothing|none|neither|nor)\b)(?:[^.]|\.(?!\s|$))){0,80}?\b(?:(?:remains|remain|stays|stay|continues|continue|still|exists|looks|appears|seems)\b|(?:is|are|was|were|has|have|had)\b(?!\s+(?:complete|completed|successful|finished|done|archived|deleted|removed|updated|created|restored|renamed|approved|rejected|granted|sent|moved|added|cleared|ended)\b))|(?=\s+[A-Z])(?:[^.]|\.(?!\s|$)){0,80}?\.\s+(?:It|They|This|That)\b(?:(?![Nn]o\b|[Nn]ot\b|[Nn]ever\b|[Nn]othing\b|[Nn]obody\b|[Nn]one\b|[Nn]either\b|[Nn]or\b)[^.]){0,60}?\b(?:remains|remain|stays|stay|continues|continue|still|exists)\b)/.test(String(s))) && CONFIRMED_COMPLETION.test(String(s)) && !/^\s*[Cc]onfirmed\s*[—–-]\s*(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated|updated|created|closed|added|moved|cleared|sent|approved|rejected|declined|granted|completed|ended)\s+(?:nothing|none|no|nobody|no one|neither|not)\b/i.test(String(s)) && !((__m) => __m !== null && __m[1] !== undefined && !knownEntityNames.has(String(__m[1]).replace(/['’]s$|(?<=s)['’]$/, '').trim().toLowerCase()))(String(s).match(/^\s*[Cc]onfirmed\s*[—–-]\s*(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated|updated|created|closed|added|moved|cleared|sent|approved|rejected|declined|granted|completed|ended)\s+(?:the |that |this |its |our )?([A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*)*)/)) && !completionIsNegated(String(s).slice(0, (String(s).match(CONFIRMED_COMPLETION)?.index ?? 0) + (String(s).match(CONFIRMED_COMPLETION)?.[0]?.length ?? 0)).split(/[!?,\x3b\n]|\.(?=\s|$)|:\s/).pop() ?? ''))
-          || String(s).replace(new RegExp('(?<!\\b(?:couldn|wouldn|shouldn|won|can|isn|wasn|weren|hasn|haven|didn|don)[\'’]?t\\s)(?<!\\b(?:couldn|wouldn|shouldn|won|can|isn|wasn|weren|hasn|haven|didn|don)[\'’]?t\\s(?:have|has)\\s)(\\b(?:was|were|has been|have been)\\b)(?=[^.]{0,30}\\b' + COMPLETION_PARTICIPLE.source.slice(2) + ')\\s*[,—–]\\s*[^.]{0,30}?[,—–]\\s*(?=' + COMPLETION_PARTICIPLE.source.slice(2) + ')', 'gi'), '$1 ').replace(/^\s*(?:(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\s+at all)?\s*[—–-]\s*)+/i, '').replace(/^\s*(?:no problem|no worries|not to worry|no issue|no issues|nothing to worry about|no trouble|not a problem|no harm done|nothing failed|sure thing|of course|absolutely)(?:\s+at all)?\s+(?=(?:the|a|an|our|their|my|its|his|her)\s+\w)/i, (i0, o0, t0) => (LEGACY_PAST_COMPLETION.test(t0.slice(o0 + i0.length)) ? '' : i0)).replace(/,\s*((?:[^,.\x3b:!?()]{0,20}?)\b(?:[Nn]one|[Nn]obody|[Nn]o one)\b(?!\s+[A-Z])[^,.\x3b:!?()]{0,20}?),\s*(?=(?:[Ii]s|[Aa]re|[Ii]sn|[Aa]ren)\b)/g, ' $1 ').replace(/,\s*(?:(?:(?!\b(?:not|never|no|nobody|nothing|none|neither|nor)\b)[^,.\x3b:!?()]){1,40}?),\s*(?=(?:is|are|was|were|has|have|had|isn|aren|wasn|weren|hasn|haven|shows?|showed|indicates?|indicated|confirms?|confirmed|suggests?|suggested|reports?|reported)\b)/gi, ' ').split(/(?:[!?,\x3b\n]|\.(?=\s|$))+|:\s|(?<!\bgo(?:ing)? ahead)\s(?:and|but)\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|\s[—–-]\s+(?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])|[—–](?=(?!(?:was|were|is|are|has|have|had|been|being|not)\b)[a-z])/).map((c) => c.replace(/\([^()]*\)/g, (p0) => ' '.repeat(p0.length)).replace(/\b(?:may|might|could|can|would|should)\s+(?:(?:not|never|also|already|just|now|still|well|very|quite|really|truly|indeed|perhaps|possibly|probably|conceivably|previously|recently|actually|certainly|definitely|surely|maybe|in|fact|and|or|by|then|somehow|otherwise)\s+){0,3}(?:have been|has been|had been)\s+[a-z]+/gi, ' ').trim()).concat((String(s).match(/\([^()]*\)/g) || []).map((p) => p.slice(1, -1).trim())).some((c) => !completionIsNegated(c)
-            && (LEGACY_PAST_COMPLETION.test(c) || (EXECUTION_IN_PROGRESS.test(c) && !/\b(?:once|if|after|unless|when|provided|assuming|as soon as|subject to|pending|before|until|only with|but first|first)\b[^.]{0,40}?\byou(?:r|rs)?\b|\byou(?:r|rs)?\b[^.]{0,40}?\b(?:confirmation|approval|go-ahead|permission|sign-off|say-so|consent|okay|ok)\b|\b(?:just )?say (?:yes|the word|go|ok)\b|\bsay so\b|\bis that (?:ok|okay)\b|\b(?:ok|okay)\?|\?\s*$|\breply (?:yes|y|ok|okay|go)\b|\bplease confirm\b/i.test(String(s)) && !/^\s*(?:(?:now|currently|just|also|then)[,]?\s+)?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending|processing|executing|working|starting|kicking)\b(?:(?!\b(?:I|we)\b)[^.]){0,90}?\s(?:is|are|was|were|isn|aren|requires?|needs?|takes?|keeps?|ends|leaves?|means?|happens?|stays?|remains?|gets?|becomes?|costs?|involves?|depends?|applies|allows?|lets?|makes?|does|do|notifies|switches|drops?|hides?|shows?|works?|can|cannot|will|would|should|must|archives|deletes|creates|updates|removes|assigns|restores|renames|closes|clears|sends|adds|reopens|preserves|affects)\b/i.test(c) && !/^\s*(?:(?:[Nn]ow|[Cc]urrently|[Jj]ust|[Aa]lso|[Tt]hen)[,]?\s+)?(?:[Aa]ssigning|[Rr]eassigning|[Uu]pdating|[Cc]reating|[Mm]oving|[Aa]rchiving|[Rr]estoring|[Dd]eleting|[Rr]emoving|[Ee]nding|[Rr]enaming|[Cc]losing|[Cc]learing|[Gg]ranting|[Dd]eclining|[Aa]pproving|[Rr]ejecting|[Cc]ompleting|[Aa]ctivating|[Dd]eactivating|[Aa]dding|[Ss]ending)\s+(?:an?\b|(?:[a-z]+\s+){0,2}[a-z]+s\b|(?:(?:\S+\s+){1,8}?(?<!\b(?:the|a|an|its|their|our|my|your|his|her|this|that|these|those|of|in|on|at|to|for|from|with|by|and|or|but|no|some|any|all|each|every|two|three|several|many|few)\s)(?:(?!(?:as|its|his|this|us|thus|plus|less|yes|hers|ours|yours|theirs|always|perhaps|sometimes|unless|whereas|besides|various|previous|obvious|serious|numerous|instead|indeed|ahead|else|ok)\b)[a-z]{3,}(?:s|es|ed)\b|(?:is|are|was|were|has|have|had|can|cannot|will|would|should|must|may|might|does|do|did)\b)|(?:[a-z][a-z'’-]*\s+){1,8}?\b(?:at|of|to|for|in|on|by|with|among|across)\s+(?:all|any|these|those|each|every|some|many|few|several|both|them)\s+(?!(?:as|its|his|this|us|thus|plus|less|yes|hers|ours|yours|theirs|always|perhaps|sometimes|unless|whereas|besides|various|previous|obvious|serious|numerous|instead|indeed|ahead|else|ok)\b)[a-z]{3,}(?:s|es)\b(?=\s+\S)))/.test(c) && !/(?:^|\s)(?!(?:I|We|i|we)\b)(?:[A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*){0,3}|(?:[Tt]he|[Oo]ur|[Yy]our|[Tt]heir)\s+[a-z][\w-]*(?:\s+[a-z][\w-]*){0,2})\s+(?:is|are|was|were)\s+(?:now\s+|currently\s+|just\s+)?(?:assigning|reassigning|updating|creating|moving|archiving|restoring|deleting|removing|ending|renaming|closing|clearing|granting|declining|approving|rejecting|completing|activating|deactivating|adding|sending|working\s+on|processing|executing)\b/.test(c)) || ((__f) => __f !== null && (__f[1] === undefined || knownEntityNames.has(String(__f[1]).replace(/['’]s$|(?<=s)['’]$/, '').trim().toLowerCase()) || ((__t) => __t.split(/(?<=\S)(?=\s)/).map((__w, __i, __ws) => __ws.slice(0, __i + 1).join('')).slice(0, 8).some((__p) => knownEntityNames.has(__p.replace(/[.,\x3b:!?]+$/, '').replace(/['’]s$|(?<=s)['’]$/, '').trim().toLowerCase())))(c.slice((__f.index ?? 0) + __f[0].length - String(__f[1]).length))))(c.match(/(?:^|\b[Cc]onfirmed\s*[—–-]\s*|[—–\u003b\x2d]\s+|\s(?:and|but|so|then|&|because|although|whereas|while|since|after),?\s+)(?:and |but |so |then |[Mm]eanwhile,? |[Aa]lso,? )?(?:I|We|i|we)\s+(?:just |already |also |now |recently |successfully |have |had )*(?:deleted|archived|unarchived|removed|restored|reassigned|renamed|deactivated|reactivated)\s+(?:the |that |this |its |our )?(?:([A-Z][\w&.’'-]*(?:\s+[A-Z][\w&.’'-]*)*)|(?:company|companies|employee|person|people|task|tasks|goal|goals|project|projects|department|departments|approval|approvals|document|documents|account|record|records|binding|bindings|channel|channels)\b(?![ \t]+(?!(?:from|to|for|in|on|at|by|with|and|or|but|so|because|as|per|via|after|before|since|yesterday|today|now|just|already|successfully|earlier|then|too|also|instead)\b)[a-z]))/)))))(String(s).slice(0, 4000)) || (String(s).length > 4000 && (LEGACY_PAST_COMPLETION.test(String(s).slice(4000 - 64)) || /\brenamed:\s*.+(→|->)/i.test(String(s))));
-        const legacyProseFallback = !hasSupportedMutationClaim
-          && model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
-          && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
-          // Founder correction 2026-09-07 (governance/OPERATING_TRUTH_MODEL.md §3 rule 2):
-          // the pendingAction skip does not survive on v92-parity grounds, and the belt
-          // is never the sole reason a reply is rewritten — request intent comes first.
-          && requestedIntent !== null && readsAsCompletion(String(result.summary || ''));
-
-        // run7/D52: a single supported mutation claim used to disarm the drift check
-        // entirely, so the model could pair one real create with fabricated completion
-        // prose about anything else. The rewrite now triggers on ANY mutation-shaped
-        // claim, not only on rejections — a mutation turn's founder-facing prose is
-        // re-rendered from verified structure every time, so unclaimed fabrications in
-        // the raw prose never ship regardless of what else was genuinely done. Read-only
-        // turns (no mutation claims, no rejections) are untouched, per the standing
-        // "read-only turns must not enter mutation-completion correction" rule.
-        const hasMutationShapedClaim = rawClaims
-          ? rawClaims.some((c) => c && typeof c === 'object' && (c.type === 'mutation_result' || c.type === 'assignment'))
-          : false;
-        // run8/D58: the model must not hold the switch. If the backend confirmed ANY
-        // mutation this turn, the founder-facing prose is re-rendered from verified
-        // structure whether or not the model chose to claim it — a prompt-compliant
-        // create turn has NO id-bearing mutation claim, so a model-claims-only trigger
-        // was an open door (omit claims => gate off). Read-only turns (no evidence, no
-        // mutation claims, no rejections) remain untouched.
-        const hasConfirmedMutationEvidenceInWindow = claimExecutionEvidence.some((e) => e.postconditionPassed);
-        // run8/D58b3 (the last laundering residue): a claims ARRAY of only state/
-        // historical claims plus fabricated completion PROSE, on a turn grounded by
-        // something other than evidence, hit no trigger — the model opted into
-        // structured mode precisely to disarm the prose gate. Opting in now means the
-        // prose is accountable: completion wording with no supported mutation claim
-        // behind it forces the re-render. Prose is still never PARSED for truth — the
-        // re-render comes entirely from verified structure.
-        // run9/D68 widened this from "claims array present" to "the turn is grounded at
-        // all": a turn grounded ONLY by factLines (a failed or zero-count deletion, a
-        // batch gap notice) shipped pre-written completion prose with claims:null —
-        // grounding switched the legacy gate off while nothing switched the rewrite on.
-        // Unaccounted completion prose on ANY grounded turn now re-renders; ungrounded
-        // turns keep hitting the legacy gate. Truthful read-only answers are unaffected
-        // (no grounding, or no completion wording).
-        // run10 (Work-PC E-multi live case + founder item 4): "Confirmed. Executing the
-        // plan to reassign CLIX GPS…" — a PROGRESSIVE execution fabrication on a bare
-        // "yes", zero DB changes. Past-completion regexes never saw it. Progressive/
-        // present-continuous execution claims join the drift vocabulary — defense-in-
-        // depth only, evidence remains primary: with matching execution evidence the
-        // turn re-renders from that evidence anyway; without it, no execution-progress
-        // claim may survive.        // run10/D81: the drift arm keyed on bare groundedOutcomeThisTurn floored
-        // TRUTHFUL history ("ACME was created on 2026-03-01…") on resolution-grounded
-        // read-only turns — a truth DEGRADATION. The arm now requires something
-        // STRUCTURAL to re-render from (a deterministic report, execution evidence, or
-        // the model's own claims array); a resolution-only grounded turn keeps its
-        // prose (v92-parity on that narrow shape, disclosed), while the D68
-        // factLines-only case stays caught via deterministicPrefix.
-        const unaccountedCompletionProse = !hasSupportedMutationClaim
-          && requestedIntent !== null && readsAsCompletion(String(result.summary || ''));
-        const structuredProseDrift = unaccountedCompletionProse
-          && (rawClaims !== null || deterministicPrefix.length > 0 || claimExecutionEvidence.length > 0);
-        const rewriteFromStructure = hasRejectedClaims || hasMutationShapedClaim || hasConfirmedMutationEvidenceInWindow || structuredProseDrift;
-        const claimsPastCompletionWithNoGrounding = rewriteFromStructure || legacyProseFallback;
-
-        if (rewriteFromStructure) {
-          // VERIFIED STRUCTURE -> PROSE. The reply is re-rendered from what was actually
-          // verified, so an unsupported claim is never displayed as success and the prose is
-          // never parsed to decide what to keep. Supported claims, questions and any pending
-          // prompt all survive - a single false claim must not discard a truthful reply.
-          const supportedLines = verifiedClaims
-            .filter((v) => v.verdict === 'supported')
-            .map((v) => {
-              const c = v.claim;
-              // displayName already carries the type when it falls back ("the company"), so
-              // the resourceType is not repeated — otherwise a fallback read "company the
-              // company: archive confirmed."
-              const subject = displayName(c.resourceType, c.resourceId);
-              if (c.type === 'mutation_result' || c.type === 'assignment') return `${subject}: ${safeActionPast(c.action)} — confirmed.`;
-              const predicate = safePredicate(c.predicate);
-              if (predicate) return `${subject}: ${predicate} is ${safeValueText(c.expectedValue)}.`;
-              return `${subject}: confirmed.`;
-            });
-          // run7/D50: "nothing was changed for it" was a DENIAL, and with evidence
-          // coverage necessarily finite it denied real mutations. An unsupported claim
-          // means exactly one thing — this turn's execution record cannot confirm it —
-          // so that is all the correction asserts. Only a CONTRADICTED state claim,
-          // disproven by the fresh canonical read, earns an assertive correction.
-          // run8/D65: an id-less mutation claim is the ONLY prompt-compliant way to
-          // claim a create (the id doesn't exist when the model writes). When the
-          // backend record already carries a postcondition-passed row of the same
-          // resourceType+action, the evidence line reports reality — also emitting
-          // "I can't confirm the task was created" beside "the task: created." is a
-          // self-contradiction. The claim stays REJECTED in the envelope (it never
-          // grounds — identity is unverifiable); only the redundant sentence is
-          // skipped.
-          const rejectedLines = rejectedClaims.filter((r) => {
-            const c = r.claim;
-            if ((c.type === 'mutation_result' || c.type === 'assignment') && !c.resourceId && typeof c.action === 'string') {
-              return !claimExecutionEvidence.some((e) => e.postconditionPassed && e.resourceType === c.resourceType && e.action === c.action);
-            }
-            return true;
-          }).map((r) => {
-            const c = r.claim;
-            const subject = displayName(c.resourceType, c.resourceId);
-            if (r.verdict === 'contradicted') {
-              // run8/D62: expectedValue is model-authored free text — rendering it (even
-              // uuid-scrubbed) was the last raw interpolation channel. The correction
-              // states what the canonical read ACTUALLY holds, which the founder can
-              // verify, instead of quoting the model's wrong guess back at them.
-              const predicate = safePredicate(c.predicate);
-              const canonicalRow = canonicalById.get(c.resourceType + '|' + c.resourceId);
-              const actual = canonicalRow && predicate && Object.prototype.hasOwnProperty.call(canonicalRow, predicate) ? canonicalRow[predicate] : undefined;
-              return predicate && actual !== undefined
-                ? `Actually, ${subject}’s ${predicate} is ${safeValueText(actual)} in the current records.`
-                : `Actually, the records show otherwise for ${subject}.`;
-            }
-            return c.action
-              ? `I can’t confirm from this turn’s execution record that ${subject} was ${safeActionPast(c.action)}.`
-              : `I can’t confirm that claim about ${subject} from this turn’s execution record.`;
-          });
-          // run7/D51 (other half): real mutations the model did NOT claim must not vanish.
-          // Deletes and lifecycle transitions already surface through factLines/lifecycle
-          // reports (preserved via deterministicPrefix below); creates/updates/activations
-          // are quiet-on-success there, so any such evidence row no supported claim covers
-          // is reported directly from the backend record.
-          const claimedEvidenceKeys = new Set(verifiedClaims
-            .filter((v) => v.verdict === 'supported' && (v.claim.type === 'mutation_result' || v.claim.type === 'assignment'))
-            .map((v) => v.claim.resourceType + '|' + v.claim.resourceId + '|' + v.claim.action));
-          const unclaimedLines = [];
-          const unclaimedTypes = [];
-          const seenUnclaimed = new Set();
-          for (const e of claimExecutionEvidence) {
-            if (!e.postconditionPassed) continue;
-            if (e.action !== 'create' && e.action !== 'update' && e.action !== 'activate' && e.action !== 'deactivate') continue;
-            const k = e.resourceType + '|' + e.id + '|' + e.action;
-            if (claimedEvidenceKeys.has(k) || seenUnclaimed.has(k)) continue;
-            seenUnclaimed.add(k);
-            unclaimedLines.push(`${displayName(e.resourceType, String(e.id))}: ${safeActionPast(e.action)}.`);
-            unclaimedTypes.push(e.resourceType);
-          }
-
-          const pa = result.pendingAction;
-          const pendingPrompt = pa && typeof pa === 'object'
-            ? [pa.question, pa.summary].map(safeProseFragment).find((v) => v !== null) || ''
-            : '';
-          const rawOptions = pa && typeof pa === 'object' && Array.isArray(pa.options) ? pa.options : [];
-          const paOptions = rawOptions.map((o) => safeProseFragment(o && o.label)).filter((l) => l !== null) as string[];
-          const promptWithOptions = paOptions.length > 0
-            ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
-            : pendingPrompt;
-
-          // The deterministic report leads. run8/D64: lifecycle full-replacement
-          // reports only ever restate archive/restore/employment/permanent-delete/
-          // work-order/assignment outcomes — a create or update of any OTHER type is
-          // NOT in them, so on a fully-deterministic mixed-intent turn ("archive ACME
-          // and create department Sales") the unclaimed evidence lines are appended,
-          // filtered only for the types the deterministic reports genuinely restate.
-          // Supported claim lines stay omitted there (they always restate).
-          const RESTATED_BY_LIFECYCLE_REPORT = new Set(['work_order', 'person_assignment']);
-          const unclaimedNotRestated = summaryIsFullyDeterministic
-            ? unclaimedLines.filter((_, i) => !RESTATED_BY_LIFECYCLE_REPORT.has(unclaimedTypes[i]))
-            : unclaimedLines;
-          const claimParts = summaryIsFullyDeterministic
-            ? [deterministicPrefix, ...unclaimedNotRestated, ...rejectedLines, ...envelopeQuestions, promptWithOptions]
-            : [deterministicPrefix, ...supportedLines, ...unclaimedLines, ...rejectedLines, ...envelopeQuestions, promptWithOptions];
-          result.summary = claimParts.filter((p) => p && String(p).trim().length > 0).join(' ').trim();
-          // run9/D68: a drift-triggered re-render on a turn with nothing structural to
-          // say (grounded only by entity resolution, every fragment gated away) must not
-          // ship an EMPTY reply — the non-denial correction is the honest floor.
-          if (result.summary.length === 0) {
-            result.summary = 'I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app.';
-          }
-        } else if (legacyProseFallback) {
-          // run8/D59: with the pendingAction short-circuit removed, a genuine
-          // clarification turn whose prose ALSO fabricated a completion lands here —
-          // the fabrication is replaced, but the gated pending question must survive
-          // or the founder is stranded mid-clarification with no way to answer.
-          const paLegacy = result.pendingAction;
-          const legacyPrompt = paLegacy && typeof paLegacy === 'object'
-            ? [paLegacy.question, paLegacy.summary].map((v) => (typeof v === 'string' ? v.trim() : '')).find((v) => v.length > 0) || ''
-            : '';
-          result.summary = ['I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.', legacyPrompt]
-            .filter((p) => p.length > 0).join(' ');
-        }
-
 
         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving
         // deterministically to a pendingAction.action payload (see the resolution
@@ -6288,71 +4257,6 @@ serve(async (req) => {
         if (model === 'deterministic-confirmation' && !groundedOutcomeThisTurn) {
           result.summary = 'I understood and you confirmed that, but I don’t have a way to actually carry it out yet — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute (archive/restore a company, end/restore someone’s employment, etc.).';
         }
-
-        // ONE AUTHORITATIVE RESPONSE ENVELOPE. The same object feeds the live SSE reply and
-        // the persisted work_orders.output, so a reload or a fresh context recovers exactly
-        // what the founder was shown. No separate unverified model-summary copy is kept.
-        // (VERIFIED_RESPONSE_ENVELOPE_IS_SINGLE_SOURCE_OF_OUTPUT_TRUTH /
-        //  LIVE_RESPONSE_EQUALS_PERSISTED_VERIFIED_RESPONSE)
-        // NEVER-SILENT RECEIPT (governance/OPERATING_TRUTH_MODEL.md §3 rule 3, §4.2). A
-        // mutation-intent turn with no verified execution and no lifecycle report ends with a
-        // deterministic receipt rendered from the ledger and the request — never with the
-        // model's own prose, whatever its tense, its shape, or its trailing question.
-        // BUG-002 / BUG-010 (Work-PC, 2026-09-07): "Done. Project renamed to X. What next?"
-        // with an unchanged row is exactly this branch.
-        const receiptExempt = model === 'deterministic-confirmation' || model === 'deterministic-plan-execution'
-          || model === 'deterministic-clarification' || model === 'deterministic-disambiguation' || !!organizationGraphCheck;
-        let receiptRendered = false;
-        // A model-claimed mutation that the ledger does not hold is already rendered as a specific
-        // rejected-claim line by the structural re-render; the receipt covers every other shape
-        // (no claims, an empty claims array, state-only claims, pending questions).
-        if (requestedIntent !== null && executedVerifiedCount === 0 && lifecycleReports.length === 0 && !receiptExempt && !hasMutationShapedClaim && !hasRejectedClaims) {
-          const pa = result.pendingAction && typeof result.pendingAction === 'object' ? result.pendingAction as Record<string, unknown> : null;
-          const pendingQuestion = pa ? String(pa.question || pa.summary || '').trim() : '';
-          const failed = claimExecutionEvidence.find((e) => e.error) || null;
-          const attempted = claimExecutionEvidence.length > 0;
-          const verb = requestedIntent.verb;
-          const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
-            approve: 'deciding an approval from chat is not available yet — use the Approvals page',
-            reject: 'deciding an approval from chat is not available yet — use the Approvals page',
-            decline: 'deciding an approval from chat is not available yet — use the Approvals page',
-            invite: 'inviting someone from chat is not available yet — use the People page',
-          };
-          const negatedRequest = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/i.test(commandText) || /\b(?:do not|don['’]t|never|not to|no longer|instead of|rather than|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|rename|assign|approve|reject|unarchive|reactivate|end|close|cancel)/i.test(commandText);
-          const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText) || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to|could we|should we|shall we)\b/i.test(commandText);
-          const reason = pendingQuestion ? 'I need your answer first'
-            : negatedRequest ? 'you asked me not to, so nothing was executed'
-            : hypotheticalRequest ? 'that read as a hypothetical, not an instruction — say the word and I will do it'
-            : failed ? `the operation did not succeed (${failed.error})`
-            : attempted ? 'the operation did not confirm in the database'
-            : (verb && UNSUPPORTED_FROM_CHAT[verb]) ? UNSUPPORTED_FROM_CHAT[verb]
-            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which ${entity} you meant (searched the active and archived ${entity === 'company' ? 'companies' : entity + 's'} you can access)`)(
-                (modelIntent && typeof modelIntent.entityType === 'string' && ['company', 'task', 'goal', 'person', 'project', 'department'].includes(modelIntent.entityType)) ? String(modelIntent.entityType)
-                : /Task/.test(String(requestedIntent.field || '')) ? 'task' : /Goal/.test(String(requestedIntent.field || '')) ? 'goal' : 'company')
-            : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'
-            : 'that request did not resolve to an operation I can execute from chat';
-          const receiptPrefix = typeof deterministicPrefix === 'string' && deterministicPrefix.trim().length > 0 ? deterministicPrefix.trim() : factLines.join(' ');
-          const receiptQuestions = (Array.isArray(envelopeQuestions) ? envelopeQuestions : []).map((q) => String(q).trim()).filter((q) => q.length > 0 && q !== pendingQuestion);
-          result.summary = [receiptPrefix, `No change was made — ${reason}.`, ...receiptQuestions, pendingQuestion].filter(Boolean).join(' ');
-          receiptRendered = true;
-        }
-        for (const e of claimExecutionEvidence) if (!e.request_id) e.request_id = workOrder.id;
-        result.turnVerdict = {
-          executedOperationCount: executedVerifiedCount,
-          attemptedOperationCount: claimExecutionEvidence.length,
-          rejectedClaimCount: rejectedClaims.length,
-          mutationIntent: requestedIntent,
-          receiptRendered,
-        };
-        result.verifiedResponse = {
-          verifiedClaims,
-          rejectedClaims,
-          questions: envelopeQuestions,
-          proposedActions: envelopeProposedActions,
-          pendingAction: result.pendingAction || null,
-          summary: result.summary,
-          executionEvidence: claimExecutionEvidence,
-        };
 
         // Real, systemic gap found live: work_orders.output was written once, as
         // p_output, INSIDE the sem_execute_ai_command call above — necessarily before
@@ -6385,67 +4289,9 @@ serve(async (req) => {
         // even carried two raw entity UUIDs directly in that never-corrected stored text -
         // the exact "no raw UUIDs in founder-facing text" invariant this campaign
         // otherwise holds elsewhere. Same fix shape as the rest of this comment.
-        // run9/D73: pendingActionGatingChanged joins the persist condition — the RPC's
-        // p_output snapshot predates the gating, so a plain clarification turn whose
-        // pendingAction text WAS gated must re-persist or the raw text is what a reload
-        // and the next turn's "Confirmed — …" replay read back.
-        // Operating Truth Model §3 rule 6: the verified envelope, the execution ledger and
-        // the turn verdict are persisted on EVERY turn (an empty ledger included), so the
-        // next turn's narrative tier and any reload read the verified output, never the
-        // RPC's pre-verification p_output snapshot. The old gate (persist only when a
-        // correction fired) is what let uncorrected fabrications re-enter history as fact.
-        void groundedOutcomeThisTurn; void lifecycleMismatchCorrections; void claimsFutureActionWithNoPlan; void claimsPastCompletionWithNoGrounding; void pendingActionGatingChanged;
-        await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
-
-        // Issue #5 durable channel state — the WRITE half, FEATURE-GATED like the read:
-        // any error (incl. relation-not-found before 202609020001 is approved/applied)
-        // is swallowed and this turn behaves exactly as today. What gets durable:
-        //   * the (already-gated) pendingAction — but ONLY when it is FULLY TYPED
-        //     (explicit actionType); an untyped pendingAction stores NULL pending state,
-        //     so a later bare "yes" can never bind to it — the Class-B fail-closed rule,
-        //     enforced at write time as well as by the table constraint and the reader;
-        //   * the focus stack (top of resolvedEntities from this turn, bounded);
-        //   * the last successful mutation, from backend evidence, never prose.
-        // Optimistic CAS on version; a lost race means the OTHER concurrent turn's
-        // state stands — never a blind overwrite.
-        try {
-          if (channelId) {
-            const paDurable = result.pendingAction && typeof result.pendingAction === 'object' && typeof (result.pendingAction as any).actionType === 'string'
-              ? result.pendingAction : null;
-            const CONFIRMATION_KIND: Record<string, string> = {
-              bulk_confirmation: 'confirmation', multi_action_plan: 'confirmation',
-              disambiguation: 'choice', single_entity_clarification: 'choice', open_question: 'free_text_answer',
-            };
-            const lastMutation = [...claimExecutionEvidence].reverse().find((e) => e.postconditionPassed) || null;
-            const focusEntries: Array<Record<string, unknown>> = [];
-            for (const [ftype, list] of [['company', (result.resolvedEntities || {}).companies], ['person', (result.resolvedEntities || {}).people], ['goal', (result.resolvedEntities || {}).goals]] as Array<[string, any]>) {
-              for (const ent of Array.isArray(list) ? list.slice(0, 3) : []) {
-                if (ent && typeof ent.id === 'string') focusEntries.push({ resourceType: ftype, id: ent.id, label: typeof ent.name === 'string' ? ent.name : null, sourceWorkOrderId: workOrder.id, at: new Date().toISOString() });
-              }
-            }
-            const stateWrite = {
-              pending_action: paDurable,
-              pending_action_action_type: paDurable ? (paDurable as any).actionType : null,
-              pending_action_target_ids: paDurable && Array.isArray((paDurable as any).candidateIds)
-                ? (paDurable as any).candidateIds.map((cid: unknown) => ({ resourceType: (paDurable as any).entityType || 'record', id: cid })) : null,
-              pending_action_source_work_order_id: paDurable ? workOrder.id : null,
-              pending_action_expected_confirmation: paDurable ? (CONFIRMATION_KIND[String((paDurable as any).kind)] || 'confirmation') : null,
-              pending_action_created_at: paDurable ? new Date().toISOString() : null,
-              pending_action_expires_at: paDurable ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null,
-              last_successful_mutation: lastMutation ? { resourceType: lastMutation.resourceType, id: lastMutation.id, action: lastMutation.action, workOrderId: workOrder.id, at: new Date().toISOString() } : undefined,
-              updated_at: new Date().toISOString(),
-            } as Record<string, unknown>;
-            if (focusEntries.length > 0) stateWrite.focus_stack = focusEntries;
-            const priorVersionRaw = (contextPack as any)?.continuity?.channelStateVersion;
-            const priorVersion = typeof priorVersionRaw === 'number' ? priorVersionRaw : null;
-            if (priorVersion !== null) {
-              await supabase.from('chat_channel_state').update({ ...stateWrite, version: priorVersion + 1 })
-                .eq('channel_id', channelId).eq('version', priorVersion);
-            } else {
-              await supabase.from('chat_channel_state').insert({ channel_id: channelId, ...stateWrite });
-            }
-          }
-        } catch { /* durable state unavailable: identical behavior to pre-migration */ }
+        if (groundedOutcomeThisTurn || lifecycleMismatchCorrections.length > 0 || model === 'deterministic-confirmation' || claimsFutureActionWithNoPlan || claimsPastCompletionWithNoGrounding) {
+          await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
+        }
 
         await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, companiesPermanentFixtureDeleteAttempted:permanentDeleteFixtureCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
