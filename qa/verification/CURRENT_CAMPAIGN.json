@@ -815,5 +815,13 @@
     "23 duplicated-concept pairs at >=60% vocabulary overlap, 2 of them 100% identical; the largest is a seven-list family describing \"words that claim something was done\" across the belt tiers. Ratcheted by concept_duplication_ratchet_contract.mjs; convergence is the first item of the next source window (ledger #141).",
     "one bare CR remains in index.ts (~offset 554776, comment-to-comment, harmless today); removal is a deploy-surface byte change awaiting a source window",
     "sem_ai_command_confirmation_truth.mjs re-implements product logic; a drift guard now fails it loudly, but slicing the real windows is the proper fix"
-  ]
+  ],
+  "token_budget_incident_status": {
+    "conditions_checked_on": "77d6f0523bcb (candidate cbb4c1c)",
+    "request_budget_contract": "GREEN — architecture_context_budget_contract 38/0",
+    "fresh_channel_413_witness": "GREEN — covered on BOTH halves: the saturated production pack measures 25,595 tokens pre-fix (over the 12,000 cap) and 11,297 post-fix inside an 11,400 budget with 12 truthful trims",
+    "trimming_semantics": "GREEN — v61 budget/language 25/0, collection envelope 84/0",
+    "resolved": false,
+    "why_not_resolved": "All three conditions the founder set are met, and none of them is a live request. CLAUDE.md §6 records that static/source verification cannot substitute for live request-shape acceptance — that rule exists because this exact incident passed 24 rounds of source verification and then 413d on the first real workspace. The incident closes when a deployed build answers an ordinary question on the founder own workspace and the measured contextBudget is recorded from production, not before."
+  }
 }

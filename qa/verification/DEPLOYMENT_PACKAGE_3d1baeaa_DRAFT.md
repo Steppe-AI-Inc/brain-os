@@ -1,8 +1,8 @@
-# Production deployment package — Edge candidate `c30a0cc` — DRAFT, NOT AUTHORIZED
+# Production deployment package — Edge candidate `cbb4c1c` — DRAFT, NOT AUTHORIZED
 
-**Status: DRAFT pending verifier #62.** Nothing here is deployed and nothing may be deployed on the strength
+**Status: DRAFT pending verifier #65.** Nothing here is deployed and nothing may be deployed on the strength
 of this document. It exists so that a PASS needs only the verdict attached rather than an hour of assembly.
-If verifier #62 returns FAIL, this draft is void and is replaced, exactly as the previous package was.
+If verifier #65 returns FAIL, this draft is void and is replaced, exactly as the previous package was.
 
 **The previous authorization is void and its bytes are known bad.** `ALLOW_FUNCTIONS_DEPLOY=1` of 2026-09-08
 was scoped to commit `821f5308…` / index.ts `715246f3…`. Those bytes were deployed as v93, breached the token
@@ -13,12 +13,12 @@ below needs a **fresh** founder authorization scoped to its own exact bytes.
 
 | Item | Value |
 |---|---|
-| Candidate commit | `c30a0cc09d37d985fa50ff14fc0335a48e342f6f` (branch `p1/execution-truth-governance`) — the commit verifier #62 was dispatched on; `736d150` carries the identical deploy surface |
+| Candidate commit | `cbb4c1c` (branch `p1/execution-truth-governance`) — the commit verifier #65 was dispatched on; `736d150` carries the identical deploy surface |
 | Deploy surface | exactly `supabase/functions/sem-ai-command/index.ts` |
-| Edge source sha256 | `0af353b5267fafa6d4ed3b80c61d9a62838cbf3d43c0f3746eeed8d8b465648f` (CRLF-pure, 0 bare LF) |
+| Edge source sha256 | `77d6f0523bcbad0c01a99865c5171025d862665cbc77b9116303b609dfd9e7a0` (CRLF-pure, 0 bare LF) |
 | Migrations in this package | none |
 | Web changes in this package | none deployed; unchanged this round |
-| Independent verifier | **#62, campaign #122, RUNNING** on `c30a0cc`. No verdict yet. Verifiers #60 and #61 both FAILED their candidates; #62 is the third attempt at this gate. |
+| Independent verifier | **#65, campaign #125, RUNNING** on `cbb4c1c`. No verdict yet. Verifiers #60 through #64 all FAILED their candidates; #65 is the sixth attempt at this gate. Each round found real defects, and three of them found defects introduced by the previous round own fixes. |
 
 ## 2. Production today
 
