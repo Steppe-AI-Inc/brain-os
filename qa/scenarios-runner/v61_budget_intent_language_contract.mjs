@@ -404,6 +404,18 @@ console.log('\n=== v61 DEFECT rows (red by design on 4f44544) ===');
     'оноо=score, нэрийг=the name(acc), архивласан=archived(attr)), and EVERY veto path (READ_SHAPE, POLITE_REQUEST, ' +
     'COMPOSITION_REQUEST, PHRASAL_READ, MUTATION_IMPERATIVE_HEAD, NEGATED_IMPERATIVE_HEAD) is ASCII/English-only. ' +
     'examples: ' + rewritten.slice(0, 4).map((x) => JSON.stringify(x)).join(', '));
+  // REPORTED SPEECH AND METALINGUISTIC MENTION. Added 2026-09-08 because a mutation proof showed the
+  // verb-final rule was not load-bearing for any case in any corpus — the morphology and read-shape rules
+  // covered them all — which is a coverage gap, not a redundant rule. These are the cases only verb-final
+  // catches: "Архивла гэж хэлсэн" (he said "archive"), "Сэргээ гэсэн тушаал ирсэн" (an order saying
+  // "restore" arrived). The verb is in imperative FORM and carries no case suffix; only its POSITION, at
+  // the head rather than the end, distinguishes a quotation from an instruction. This is the Mongolian
+  // counterpart of the English quoted-text case, and without it both answers are destroyed.
+  const MN_QUOTED = ['Архивла гэж хэлсэн', 'Сэргээ гэсэн тушаал ирсэн', 'Устга гэж бичсэн байна'];
+  const quotedRewritten = MN_QUOTED.filter((c) => turn({ command: c, summary: truthful }).summary !== truthful);
+  check('CONTRACT', 'Mongolian reported speech is not a command (only verb-final position separates them)',
+    quotedRewritten.length === 0,
+    quotedRewritten.length + '/' + MN_QUOTED.length + ' destroyed: ' + JSON.stringify(quotedRewritten));
 }
 
 // -------- V61-D7: an English statement whose FIRST WORD is an allow-listed verb.

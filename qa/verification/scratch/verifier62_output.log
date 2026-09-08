@@ -1,0 +1,82 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #62 — CAMPAIGN #122 — FINAL REPORT
+
+```
+CHANGE VERIFIED: sem-ai-command context-budget / request-gate / language-tier candidate c30a0cc
+SCENARIOS:       source+harness scenarios executed in full; 3 evidence classes BLOCKED
+CANONICAL GRAPH: PASS (lifecycle resolution is server-side and survives a full budget gut)
+UI ↔ DB:         BLOCKED — no browser tools in this session type
+AI ↔ DB:         FAIL — V62-D1b states a falsehood about canonical state
+DEPENDENCIES:    FAIL — V62-D1, V62-D3
+PERMISSIONS:     PASS at source level (RLS is the boundary; the pack carries no permission object to trim)
+RELOAD/PERSISTENCE: PASS (turn ledger persisted every turn; durable row outranks stored output)
+IDEMPOTENCY:     PASS (trim is deterministic and terminating)
+```
+
+## STEP 1 — PROVENANCE AND DELTA
+
+- **v92 = git `c9dfab5bd433`**, `index.ts` sha256 `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` (LF-pure, 4,312 lines) — re-derived by me from the repo, matching the stated `795c20c8…`. My link to the **running** function is **integration-level, not byte-direct**: `supabase functions list` / `download` are gated in this session.
+- **Candidate** = `0af353b5…`, 573,598 bytes, 6,810 CRLF, **0 bare LF** — CRLF-pure.
+- **Deploy surface is exactly `index.ts`**: the only imports are `deno.land/std@0.224.0/http/server.ts` and `esm.sh/@supabase/supabase-js@2`. `supabase/functions/_shared/*` is not imported by anything on the deploy path.
+- Battery: **61 committed `.mjs` suites, 61 exit-0** (the brief said 53; I derived 61 from the filesystem).
+
+## THE FOUNDER'S SEVEN QUESTIONS
+
+**1. Attack the token-budget fix.** The degradation itself is sound and I confirmed each named invariant on my own fixtures (built from the `.limit()` caps in `buildContext()`, not the candidate's): a fitting pack is unchanged; optional context trims before core; history trims oldest-first and keeps the newest turns; envelopes retain the exact total; `truncated: true` whenever rows are omitted; `currentTurn`/`namedTargets`/`counts`/`collections`/`pendingAction`/`activeChannelId`/`continuity` come out byte-identical; the loop terminates (500 KB untrimmable input → 69 ms) and is deterministic; **the estimator reports within +1 token of the bytes actually shipped** in every case. Headroom 730–1,569 tokens (6.1–13.1%) across empty/short/50/100/200-turn channels, many companies, many archived companies, many archived tasks, 80–400-char names and long free text.
+
+Then it breaks: **the trim empties the very collections that every non-lifecycle mutation's id-provenance gate is built from** (V62-D1), and it breaks the durable pending action while claiming its targets "no longer resolve to a real record" (V62-D1b). Canonical target ids do **not** remain available: `namedTargets` is protected for the *model*, but no server-side gate reads it.
+
+**2. Whole-request gate inventory.**
+- SAFE DEGRADATION — per-collection `.limit()` caps, history window, named-lookup cap, the pack trim.
+- DETERMINISTIC REFUSAL — auth, missing command, the pack 413, model-reply JSON parse failure, provider/stream error, output `max_tokens` truncation.
+- **UNSAFE HARD STOP (P1) — the image branch of the model-context 413.**
+- UNMEASURED, honestly named by the candidate (two, not four — two came off the list this round): wall-clock timeout, SSE stream initialisation.
+- **UNMEASURED and NOT named — the fifth place I was told to look for**: model-specific context limits (`ai_providers.model` is free-form; the ceiling is one global env var), serialized request-body size against the provider's HTTP limit, and image *token* accounting. All three are on the founder's own §2 list.
+
+**3. The promoted contract.** `MINIMUM_SAFE_CONTEXT` is *not* the §4.4 set. Identity, organization scope, permissions and the safety/truth contract are siblings of `contextPack` in the payload — safe by construction, not by assertion. Execution evidence is produced after the pack, also out of reach. "Exact canonical entity and action state for this turn's targets" maps to `namedTargets`, which covers only 4 of 19 collections and is unreachable to Cyrillic names. Members are protected by omission from `TRIM_ORDER` **plus** two real assertions; the byte assertion is unreachable given today's `TRIM_ORDER` (V61-D4 stands) but is **not vacuous** — it is the only guard against a future non-`TRIM_ORDER` edit, and its mutant dies.
+
+**4. NOT INCLUDED ≠ DOES NOT EXIST.** Holds for every collection with a real count. **Fails for `memories` and `factoryWorkOrders`** (`total: null`, `truncated: null` after being emptied; `factoryWorkOrders` also falls outside the 12-line trim report). And the pack's own `contextBudget.note` tells the model something false about fifteen collections (V62-D3) — including `projects`, which the pinned witness question is about.
+
+**5. Estimator accuracy re-measured on my fixtures.** Reported vs shipped: **+1 token**, always, from the digit-width of `estimatedTokens` writing itself. Headroom above. **The candidate's own headroom table cannot fail** — the trim drives every case to `≤ packBudget` by construction, and the suite never varies command length, which is the one lever that actually breaks the budget. Not tuned to 11,999; the 600-token margin is structural and its mutant dies.
+
+**6. v59 hardening on these exact bytes.** D1 (bring-back) and D2 (imperative frames) re-derived behaviourally — 20/20 imperatives and 10/10 polite frames carry intent with the model silent. D4 (receipt entity) present and exercised. **D3 (Cyrillic alternatives) present but incomplete** — V62-D7 is its residual.
+
+**7. The pinned witness, both halves.** Pre-fix genuinely fails on *my* fixtures (untrimmed 21,965–62,728 vs the 12,000 cap) — not a fixture too small to have failed. Post-fix fits with real margin. The three live v93 successes are covered by `company_lifecycle_matrix` (31/0) and are exactly what dies when I revert server-side resolution. **The post-fix half is still weaker than it reads**: it asserts `estimate <= budget`, which is guaranteed whenever trimming succeeds, and never checks the witness pack can still *answer* — projects trim 20→8 with no targeted lookup behind them.
+
+## FINDINGS
+
+| ID | Sev | Finding |
+|---|---|---|
+| **V62-D1** | **P1** | Trim to floor 0 empties `companies/people/tasks/goals`; `contextCompanyIds/PersonIds/TaskIds/GoalIds` go empty; rename, every create family's company binding, `personAssignments` (manager/employer), end/restore employment and every `delete*` family silently drop the founder's own target. Reachable: pasted command ≥12,000 chars → floor 2; ≥20,000 chars → zero; also a ~40,000-char `compactionCheckpoint.summary` or a ~120-action `pendingAction`. |
+| **V62-D1b** | **P1** | `index.ts:3141-3144` validates a **durable** `multi_action_plan` against those same trimmable arrays, then answers *"one or more of its stored targets no longer resolves to a real record"* — false. AI↔DB contradiction stated as canonical fact. |
+| **V62-D2** | **P1** | New model-context gate counts an image as `base64.length/4` against a **token** window. 256 KB ships (121,270), **512 KB → 413** (208,651), 1 MB → 383,414. Threshold ≈430 KB of image bytes; the UI accepts 5 MB with no downscale; **v92 has no such gate and serves these turns**. `VALID FOUNDER TURN → HARD STOP`, newly introduced. |
+| V62-D3 | P2 | The pack's own note claims server-side resolution for every named entity; true only for companies/people/tasks/goals — 15 collections have no targeted lookup and are all trimmable. |
+| V62-D4 | P2 | `memories`/`factoryWorkOrders` → `shown 0, total null, truncated null`; truncation becomes non-existence. |
+| V62-D9 | P2 | 24 mutants / 30 suites → **19 killed, 5 survived**. `HISTORY_FIELD_CAP` (the V61-D1 P1 fix) is asserted only as a *declaration* + marker string by two suites — disconnecting the use leaves both green. The model-context 413 is asserted by counting `, 413)` — making it unreachable or raising the ceiling 100× survives. `MN_READ_SHAPE` is referenced by **no suite**; removing it makes 5/5 Mongolian wh-questions false positives. |
+| V62-D5 | P3 | 22,000–23,999-char commands are 413'd with *"this workspace has grown…"*; the command is counted twice but the reason ternary compares one copy. |
+| V62-D6 | P2 | 6/37 short Mongolian verbal-noun phrases read as commands → truthful answer replaced by an English receipt. **Truth regression vs v92.** |
+| V62-D7 | P2 | `өөрчил`/`нэм` are not matched by their own stems (`өөрчл`/`нэмэ`); 3/21 Mongolian imperatives ship a fabrication. v92 parity. |
+| V62-D8 | P2 | V61-D11 confirmed: `Эрдэнэт ХХК-г архивла` and `Батбаярыг менежерээр томил` yield **0** command name tokens → `namedTargets` empty, no head-merge protection, no uncapped lookup. v92 parity; compounds V62-D1 in the workspace's own language. |
+
+**Measured clean:** 252 fabrications × claims variants → 0 shipped; 62 + 486 truthful reads (incl. negator-initial names and both apostrophe possessives) → 0 rewritten; 600 generated fabrications → 0 shipped; 20 verified envelopes rendered; 20 executed-but-unverified suppressed; company/task/goal lifecycle survives a full gut; 0 genuine statement-position TDZ pre-uses (all 24 raw candidates triaged to regex-literal words, TS type members and object property keys).
+
+## WHAT I COULD NOT MEASURE — real coverage gaps, not skipped
+
+`deno check` (npx gated), live database queries (Supabase CLI gated), live UI, live AI chat, and **any real request** — no browser tools exist in this session type. **Every conclusion above is source-level and harness-level and would still need live acceptance to be trusted.** V62-D2 in particular must be confirmed live with a real 1 MB photo. The v92 belt comparison on my own corpus could not run (the prose-era v92 window is structurally incompatible with the extraction); v92 deltas are derived structurally plus the committed `v92_parity_contract` (46/0) and `v92_open_regression_contract` (28/0). **No `QA-VERIFY-*` data was created — there was no live database access, so there is nothing to clean up.**
+
+## COMMITS / ARTIFACTS (branch `verify-c30a0cc-campaign122`)
+
+`327f93d` — `qa/verification/proposed/v62_known_failure_modes_entry_137.md`, `v62_PROMOTION_NOTE.md`, `v62_regression_additions.mjs` (16 CONTRACT pass / 9 DEFECT reproduce, exits 1, runs from any cwd, honours `SEM_INDEX_SRC`), laboratories under `qa/verification/scratch/v62/`, and the `verifier62_*` checkpoint. Work-PC files untouched. `qa/verification/scratch/p1/mutants/V60-D8-probe.ts` was dirtied by `v60_budget_intent_and_plan_evidence_contract.mjs:193` (it writes a derived probe at run time) and was restored from `HEAD`.
+
+**FOUNDER-APPROVAL SECTION: none.** No migration was needed, none was written, nothing is `BLOCKED — DB PUSH`. No Edge Function was deployed, no migration applied, no production secret touched.
+
+---
+
+## VERDICT
+
+**FAIL** — candidate `c30a0cc09d37d985fa50ff14fc0335a48e342f6f` is **NOT fit to deploy over v92 under the contract bar**. Three P1s: a trim that disables the id-provenance gates every non-lifecycle mutation depends on (V62-D1), a durable pending action rendered unexecutable and then lied about (V62-D1b), and a newly-introduced UNSAFE HARD STOP that refuses images v92 serves, measured in the wrong unit (V62-D2). The two-gate split is right in principle; 180,000 is the wrong number, applied to the wrong quantity, and is not model-specific.
+
+`0af353b5267fafa6d4ed3b80c61d9a62838cbf3d43c0f3746eeed8d8b465648f`

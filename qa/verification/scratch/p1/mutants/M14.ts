@@ -1690,13 +1690,19 @@ function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length /
 // the accounting error that produced the 2026-09-08 incident one level down. One definition, used by the
 // preflight and by the pack budget, so the two can never drift apart again.
 const SYSTEM_PROMPT_TOKENS = Math.ceil(SYSTEM_PROMPT.length / 4);
-function estimateRequestTokens(payload: unknown, imageBase64: string | null): number {
+function estimateRequestTokens(payload: unknown): number {
   // null, 2 is what streamAnthropic and streamOpenAI both serialize with.
   const body = JSON.stringify(payload, null, 2) || '';
-  // A base64 image is billed as image tokens, not characters; its transported size is what matters for the
-  // request, and it is counted here rather than left as an unnamed input.
-  const imageTokens = imageBase64 ? Math.ceil(imageBase64.length / 4) : 0;
-  return SYSTEM_PROMPT_TOKENS + Math.ceil(body.length / 4) + imageTokens;
+  return SYSTEM_PROMPT_TOKENS + Math.ceil(body.length / 4);
+}
+// An image's cost to a vision model is a function of its DIMENSIONS, which this function cannot know;
+// base64 length is not a token count and using it as one refused ordinary photos that v92 serves
+// (verifier #62, V62-D2). What IS knowable is the transported size, and that is what the provider itself
+// limits — 5 MB per image for Anthropic, which is also what the web client allows.
+const IMAGE_BYTES_MAX = Number(Deno.env.get('SEM_AI_IMAGE_BYTES_MAX') || 5 * 1024 * 1024);
+function imageBytes(base64: string): number {
+  // 4 base64 characters carry 3 bytes; padding makes this an over-estimate by at most 2 bytes.
+  return Math.ceil((base64.length * 3) / 4);
 }
 
 // Claude/GPT sometimes wrap "strict JSON only" replies in a markdown code fence anyway.
@@ -2121,7 +2127,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // (.limit(NAMED_LOOKUP_ROW_CAP)), bounding worst-case contribution to context size no
   // matter how many rows a broad/generic token set happens to match.
   const commandNameTokens = [...new Set(
-    (command.match(/[A-Za-z][A-Za-z0-9'&.-]{3,}/g) || [])
+    // Unicode letter classes, not [A-Za-z]: a Cyrillic company or person name produced ZERO tokens, so
+    // every targeted lookup silently did not run in the language this workspace is operated in
+    // (verifier #62, V62-D8; verifier #61, V61-D11). Mongolian case suffixes attach directly or after a
+    // hyphen (ХХК-г, Батбаярыг), and the ilike '%token%' match still finds the stem either way.
+    (command.match(/[\p{L}][\p{L}\p{N}'&.-]{3,}/gu) || [])
       .map((t) => t.toLowerCase())
       .filter((t) => !COMMON_COMMAND_STOPWORDS.has(t)),
   )].slice(0, 8);
@@ -2145,6 +2155,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // Bug 12 (2026-08-30 campaign, same root cause/fix shape as the two above): a goal
   // named directly in a multi-entity status question ("status of X, Y goal, and Z") could
   // also fall outside context.goals' own cap with zero real data to ground an answer.
+  // Same targeted-lookup pattern, for the two collections verifier #62 named: a project or department the
+  // founder names must be resolvable whatever the display window holds (V62-D3).
+  const namedProjectLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score')
+        .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
+    : Promise.resolve({ data: [] as any[] });
+  const namedDepartmentLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('departments').select('id,name,company_id')
+        .or(commandNameTokens.map((t) => `name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
+    : Promise.resolve({ data: [] as any[] });
   const namedGoalLookupQuery = commandNameTokens.length > 0
     ? supabase.from('goals').select('id,company_id,title,status,kind')
         .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
@@ -2177,7 +2199,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const wantsFactoryDetail = FACTORY_INTENT_PATTERN.test(command);
   const factoryWorkOrdersQuery = wantsFactoryDetail
     ? supabase.from('canonical_work_orders')
-        .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)')
+        .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .limit(10)
     : supabase.from('canonical_work_orders')
@@ -2196,7 +2218,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // unavailable this request.
   const memoriesQuery = queryEmbedding
     ? supabase.rpc('match_memories', { query_embedding: `[${queryEmbedding.join(',')}]`, match_count: 8 })
-    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(8);
+    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity', { count: 'exact' }).or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(8);
   // Short-term continuity: the last few turns in this same channel, chronological.
   // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
   // Same ordering defect as web/lib/data/chat-history.ts (fixed alongside this one, see
@@ -2220,7 +2242,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
     : Promise.resolve({ count: 0, error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, namedProjectLookup, namedDepartmentLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
     archivedTasks, conversationCount] = await Promise.all([
@@ -2262,6 +2284,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     namedPersonLookupQuery,
     supabase.from('goals').select('id,company_id,title,status,kind', { count: 'exact' }).limit(20),
     namedGoalLookupQuery,
+    namedProjectLookupQuery,
+    namedDepartmentLookupQuery,
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state', { count: 'exact' }).limit(20),
@@ -2713,6 +2737,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     people: (namedPersonLookup.data || []),
     tasks: (namedTaskLookup.data || []),
     goals: (namedGoalLookup.data || []),
+    projects: (namedProjectLookup.data || []),
+    departments: (namedDepartmentLookup.data || []),
   };
   const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
@@ -2746,6 +2772,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // legitimately be refused — and it is refused with the minimum intact, never with a silently gutted pack.
   const MINIMUM_SAFE_CONTEXT = ['currentTurn', 'continuity', 'counts', 'collections', 'pendingAction',
     'recentlyResolvedEntities', 'recentlyDeletedEntities', 'activeChannelId', 'namedTargets'];
+  // ID PROVENANCE, captured BEFORE any trimming and returned beside the pack rather than inside it
+  // (verifier #62, V62-D1). The executor needs to know which ids were real this turn; the model does not,
+  // and putting them in the pack spent the very budget the trim exists to protect.
+  const provenanceIds: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(pack as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue;
+    const ids = value
+      .map((r) => (r && typeof r === 'object' ? (r as Record<string, unknown>).id : null))
+      .filter((id) => typeof id === 'string' && id.length > 0) as string[];
+    if (ids.length > 0) provenanceIds[key] = ids;
+  }
   const contextTrimmed: string[] = [];
   const packRecord = pack as Record<string, unknown>;
   // 'collections' is protected from being trimmed as a collection, but its envelopes are UPDATED by a trim
@@ -2760,7 +2797,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const contextBudget = {
     estimatedTokens: 0, budget: packBudget, overBudget: false, trimmedCount: 0, trimmed: contextTrimmed,
     protected: MINIMUM_SAFE_CONTEXT,
-    note: 'A trimmed collection is truncated, never absent: its envelope in context.collections keeps the real total and truncated=true, and any entity named in a command is still resolved server-side across every status.',
+    note: 'A trimmed collection is truncated, never absent: its envelope in context.collections keeps the real total and truncated=true, Companies, people, tasks, goals, projects and departments named in a command are additionally re-read server-side across every status and appear in context.namedTargets; for other collections a trimmed window is a window, so say what you can see and do not conclude that anything is absent from the database.',
   };
   packRecord.contextBudget = contextBudget;
   for (const [key] of TRIM_ORDER) {
@@ -2772,7 +2809,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     if (!Array.isArray(arr) || arr.length <= keep) continue;
     packRecord[key] = keepNewest ? arr.slice(arr.length - keep) : arr.slice(0, keep);
     const env = collectionsRecord[key];
-    if (env) { env.shown = keep; env.truncated = env.total === null ? null : env.total > keep; }
+    // A collection whose count was never exact (total: null) still must not read as "there are none":
+    // what we know for certain is that at least this many rows existed before the trim (V62-D4).
+    if (env) {
+      env.shown = keep;
+        env.truncated = env.total === null ? null : env.total > keep;
+    }
     contextTrimmed.push(`${key} ${arr.length}->${keep}`);
   }
   // A floor is a ROW count, not a BYTE count: a workspace with few rows but long free text can still
@@ -2795,7 +2837,10 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       if (!Array.isArray(arr) || arr.length <= thisFloor) continue;
       packRecord[key] = keepNewest ? arr.slice(arr.length - thisFloor) : arr.slice(0, thisFloor);
       const envHard = collectionsRecord[key];
-      if (envHard) { envHard.shown = thisFloor; envHard.truncated = envHard.total === null ? null : envHard.total > thisFloor; }
+      if (envHard) {
+        envHard.shown = thisFloor;
+        envHard.truncated = envHard.total === null ? null : envHard.total > thisFloor;
+      }
       contextTrimmed.push(`${key} ${arr.length}->${thisFloor}`);
     }
   }
@@ -2817,7 +2862,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // Stated, never inferred: if even the hardest trim could not reach the budget, the pack says so and
   // serve() turns it into a refusal the founder can act on rather than an opaque hard stop.
   contextBudget.overBudget = contextBudget.estimatedTokens > packBudget;
-  return { pack, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  return { pack, provenanceIds, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -2832,6 +2877,9 @@ serve(async (req) => {
   // same as before — nothing here is streamed, it all has to happen before the LLM
   // call regardless. ----
   let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
+  // Server-side id provenance for this turn, captured before the context budget trims anything. It never
+  // travels in the pack: the model has no use for it and it would spend the budget the trim protects.
+  let contextProvenance: Record<string, string[]> = {};
   let channelId: string | null = null;
   let providerName: 'openai' | 'anthropic' = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
@@ -2871,6 +2919,7 @@ serve(async (req) => {
 
     const ctx = await buildContext(supabase, command, channelId, openaiKey);
     contextPack = ctx.pack;
+    contextProvenance = ctx.provenanceIds || {};
     contextErrors = ctx.errors;
     tokenEstimate = estimateTokens({ command, contextPack });
     const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
@@ -2879,7 +2928,10 @@ serve(async (req) => {
       // the irreducible part is too large. Say which part and what to do — a refusal the founder can act
       // on, never a bare number (verifier #60, V60-D1 residual). The context pack is never the reason
       // given unless it really is: contextBudget.overBudget records whether trimming fell short.
-      const commandTokens = estimateTokens(command);
+      // The command is serialized TWICE — at the top level and inside contextPack.currentTurn — so its real
+      // contribution is double what a single copy measures. Comparing one copy blamed the workspace for a
+      // 22,000-character paste (verifier #62, V62-D5).
+      const commandTokens = estimateTokens(command) * 2;
       const budgetInfo = (contextPack as Record<string, unknown> | null)?.contextBudget as
         { estimatedTokens?: number; overBudget?: boolean; trimmedCount?: number } | undefined;
       const reason = commandTokens > Math.floor(hardMax / 2)
@@ -2902,17 +2954,23 @@ serve(async (req) => {
     // prompt (18.8k tokens on its own), the pretty-printed body, and any attached image. An image bypasses
     // the pack budget entirely, so without this gate it was an unnamed input with no limit at all. The two
     // thresholds are far apart on purpose: they constrain different things.
-    const requestTokens = estimateRequestTokens(
-      { profile: { id: profile.id, role: profile.role }, command, contextPack },
-      attachedImage ? attachedImage.base64 : null);
+    const requestTokens = estimateRequestTokens({ profile: { id: profile.id, role: profile.role }, command, contextPack });
+    if (attachedImage && imageBytes(attachedImage.base64) > IMAGE_BYTES_MAX) {
+      return json({
+        error: 'Request too large',
+        limit: 'attached image size',
+        reason: 'that image is larger than the ' + Math.round(IMAGE_BYTES_MAX / (1024 * 1024)) + ' MB the model accepts — send a smaller or more compressed image, or ask without it',
+        imageBytes: imageBytes(attachedImage.base64),
+        imageBytesMax: IMAGE_BYTES_MAX,
+        note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
+      }, 413);
+    }
     const modelContextMax = Number(Deno.env.get('SEM_AI_MODEL_CONTEXT_TOKENS') || 180000);
     if (requestTokens > modelContextMax) {
       return json({
         error: 'Request too large',
         limit: 'model context window',
-        reason: attachedImage
-          ? 'the attached image is too large to send with this turn — attach a smaller image, or ask without it'
-          : 'this turn is too large for the model to read in one request — ask about one company or one area at a time',
+        reason: 'this turn is too large for the model to read in one request — ask about one company or one area at a time',
         requestTokens,
         systemPromptTokens: SYSTEM_PROMPT_TOKENS,
         imageAttached: !!attachedImage,
@@ -3138,10 +3196,24 @@ serve(async (req) => {
         // claimExecutionEvidence once recordExecution is declared below.
         let planExecutedActions: ExecutionPlanAction[] | null = null;
         if (pendingAction && pendingAction.kind === 'multi_action_plan' && isShortAffirmative && Array.isArray(pendingAction.executionPlan) && pendingAction.executionPlan.length > 0) {
-          const planCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
-          const planPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
-          const planTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
-          const planGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+          // A DURABLE plan was stored with canonical ids. Validating it against a display window that the
+          // context budget may have emptied, and then telling the founder its targets "no longer resolve to
+          // a real record", is a false statement about canonical state (verifier #62, V62-D1b). The ids the
+          // trim dropped and the rows resolved from this turn count as present, exactly as they do for every
+          // other gate.
+          function planIdSet(...names: string[]): Set<string> {
+            const out: Set<string> = new Set();
+            for (const name of names) {
+              for (const row of ((contextPack as any)?.[name] || [])) if (row && typeof row.id === 'string') out.add(row.id);
+              for (const id of (contextProvenance?.[name] || [])) out.add(id);
+              for (const row of (((contextPack as any)?.namedTargets || {})[name] || [])) if (row && typeof row.id === 'string') out.add(row.id);
+            }
+            return out;
+          }
+          const planCompanyIds = planIdSet('companies', 'archivedCompanies');
+          const planPersonIds = planIdSet('people');
+          const planTaskIds = planIdSet('tasks', 'archivedTasks');
+          const planGoalIds = planIdSet('goals');
           const isRealId = (v: unknown, set: Set<unknown>): v is string => typeof v === 'string' && set.has(v);
           const validPlan = pendingAction.executionPlan.every((a) => {
             if (!a || typeof a !== 'object' || typeof a.id !== 'string' || typeof a.operation !== 'string' || !a.targetIds || typeof a.targetIds !== 'object') return false;
@@ -3256,7 +3328,24 @@ serve(async (req) => {
         // to keyword-scan the way task creation is) — cross-check against the real ids
         // this request's own context pack fetched, so the model can't smuggle in an
         // arbitrary uuid it merely guessed at.
-        const contextTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
+        // ID PROVENANCE AFTER A TRIM (verifier #62, V62-D1). The rows may be gone; the ids are not. Every
+        // gate below is built from the surviving rows PLUS the ids the budget dropped PLUS the rows the
+        // targeted lookups resolved from this turn's command, so trimming can never turn the founder's own
+        // target into an id the executor refuses to act on.
+        function packIdSet(...names: string[]): Set<string> {
+          const out: Set<string> = new Set();
+          for (const name of names) {
+            for (const row of ((contextPack as any)?.[name] || [])) {
+              if (row && typeof row.id === 'string') out.add(row.id);
+            }
+            for (const id of (contextProvenance?.[name] || [])) out.add(id);
+            for (const row of (((contextPack as any)?.namedTargets || {})[name] || [])) {
+              if (row && typeof row.id === 'string') out.add(row.id);
+            }
+          }
+          return out;
+        }
+        const contextTaskIds = packIdSet('tasks');
         const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
         const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
@@ -3275,7 +3364,7 @@ serve(async (req) => {
         // 'archived' (202608290001_task_goal_archive_restore.sql). restoreTaskIds
         // resolves against context.archivedTasks specifically, since context.tasks is
         // scoped to in-flight statuses only and never contains an archived task.
-        const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
+        const contextArchivedTaskIds = packIdSet('archivedTasks');
         const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
         // ExecutionResultEnvelope (type at module top; governance/OPERATING_TRUTH_MODEL.md
         // §4.1). One entry per executed (or attempted) operation, written at the real
@@ -3426,7 +3515,7 @@ serve(async (req) => {
         // its own existing RLS delete policy (the same one the manual "..." > Delete menu
         // in channel-sidebar.tsx already relies on), so a plain scoped delete here reuses
         // that real enforcement rather than adding a new RPC parameter/migration for it.
-        const contextChannelIds = new Set((contextPack?.channels || []).map((c: any) => c.id));
+        const contextChannelIds = packIdSet('channels');
         if (contextPack?.activeChannelId) contextChannelIds.add(contextPack.activeChannelId);
         const requestedDeleteChannelIds = Array.isArray(result.deleteChannelIds) ? result.deleteChannelIds as unknown[] : [];
         const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
@@ -3466,7 +3555,7 @@ serve(async (req) => {
         // qa/KNOWN_FAILURE_MODES.md #16 in KNOWN_FAILURE_MODES for the incident, and the
         // factual result-line built below for how the response is now grounded in what
         // actually happened instead of the model's own claim).
-        const contextApprovalIds = new Set((contextPack?.approvals || []).map((a: any) => a.id));
+        const contextApprovalIds = packIdSet('approvals');
         const requestedDeleteApprovalIds = Array.isArray(result.deleteApprovalIds) ? result.deleteApprovalIds as unknown[] : [];
         const deleteApprovalIds = requestedDeleteApprovalIds.filter((id): id is string => typeof id === 'string' && contextApprovalIds.has(id));
         let deletedApprovalCount = 0;
@@ -3489,7 +3578,7 @@ serve(async (req) => {
         // optional. A person's companyId is only trusted if it's a real id from
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
-        const contextCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => c.id));
+        const contextCompanyIds = packIdSet('companies', 'archivedCompanies');
         // context.companies has no status filter (archived companies must stay resolvable
         // for "restore X" / historical questions), so new-work creation against an
         // archived company has to be blocked here explicitly rather than by omission from
@@ -3509,7 +3598,7 @@ serve(async (req) => {
             }
             return true;
           });
-        const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
+        const contextPersonIds = packIdSet('people');
         const VALID_ORGANIZATION_TYPES = new Set(['legal_entity', 'holding_company', 'subsidiary', 'business_unit', 'brand', 'department', 'country_operation']);
         const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
         const createCompanies = requestedCompanies
@@ -4055,7 +4144,7 @@ serve(async (req) => {
         // Archive/restore for goals: context.goals carries no status filter (unlike
         // context.tasks), so both archive and restore ids resolve from the same set -
         // an already-archived goal is still resolvable there by name for "restore X".
-        const contextGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+        const contextGoalIds = packIdSet('goals');
         const requestedArchiveGoalIds = Array.isArray(result.archiveGoalIds) ? result.archiveGoalIds as unknown[] : [];
         // Verifier #58 V58-D2 (same class for goals): re-read model-emitted goal ids under RLS across every status.
         const requestedRestoreGoalIds = Array.isArray(result.restoreGoalIds) ? result.restoreGoalIds as unknown[] : [];
@@ -4177,8 +4266,8 @@ serve(async (req) => {
         // way. Documents require title+text only (chat can never attach a real file);
         // company is optional for a text-content document, matching createDocument's own
         // manual "paste text" path in web/lib/data/documents.ts.
-        const contextDepartmentIds = new Set((contextPack?.departments || []).map((d: any) => d.id));
-        const contextLeadIds = new Set((contextPack?.leads || []).map((l: any) => l.id));
+        const contextDepartmentIds = packIdSet('departments');
+        const contextLeadIds = packIdSet('leads');
         const VALID_SENSITIVITY = new Set(['public', 'internal', 'confidential', 'restricted', 'founder_only']);
         const requestedDepartmentCreates = Array.isArray(result.createDepartments) ? result.createDepartments as unknown[] : [];
         const createDepartmentsReq = requestedDepartmentCreates
@@ -4242,12 +4331,12 @@ serve(async (req) => {
         // deliberately never accepted from the model — matches web/CLAUDE.md's existing
         // line that margin/cost data must not enter a caller's context beyond what
         // their own RLS already allows, extended here to the write path too.
-        const contextProductIds = new Set((contextPack?.products || []).map((p: any) => p.id));
-        const contextProductSpecIds = new Set((contextPack?.productSpecs || []).map((s: any) => s.id));
-        const contextDrawingIds = new Set((contextPack?.engineeringDrawings || []).map((d: any) => d.id));
-        const contextAiProviderIds = new Set((contextPack?.aiProviders || []).map((p: any) => p.id));
-        const contextMcpConnectorIds = new Set((contextPack?.mcpConnectors || []).map((c: any) => c.id));
-        const contextProposalIds = new Set((contextPack?.proposals || []).map((p: any) => p.id));
+        const contextProductIds = packIdSet('products');
+        const contextProductSpecIds = packIdSet('productSpecs');
+        const contextDrawingIds = packIdSet('engineeringDrawings');
+        const contextAiProviderIds = packIdSet('aiProviders');
+        const contextMcpConnectorIds = packIdSet('mcpConnectors');
+        const contextProposalIds = packIdSet('proposals');
 
         const requestedProductLineCreates = Array.isArray(result.createProductLines) ? result.createProductLines as unknown[] : [];
         const createProductLinesReq = requestedProductLineCreates
@@ -5744,7 +5833,7 @@ serve(async (req) => {
         // Unconditional mutation verbs: base and gerund forms anywhere in the command (a participle alone
         // is an adjective — "a report of archived companies"); Mongolian stems with Unicode-letter
         // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
-        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
+        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
         // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
         const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
         // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
@@ -5808,6 +5897,12 @@ serve(async (req) => {
         const MN_READ_SHAPE = /(?:^|\P{L})(?:юу|юун|хэн|хэзээ|хаана|яагаад|ямар|хэд|хэдэн|аль|хэрхэн|яаж)(?!\p{L})|(?:^|\P{L})(?:уу|үү|вэ|бэ|вээ|бээ)\s*[?!.]?\s*$|(?:^|\P{L})(?:байна|байгаа\S*|мэдэхгүй|санахгүй|болно\s*уу|хэлээч|харуулна)(?!\p{L})/iu;
         // A participle, a verbal noun or an infinitive is not a command: архивласан (archived, attributive),
         // өөрчлөлт (a change), устгах (to delete). Only a finite/imperative form is.
+        // A token carrying a NOMINAL CASE SUFFIX is a noun, not an imperative: Устгалын (genitive of
+        // устгал, "deletion"), Томилгооны (genitive of томилгоо, "appointment"), нэрийг (accusative of
+        // нэр, "name"). A Mongolian imperative carries no case ending at all — архивла, сэргээ, устга,
+        // өөрчил, нэм (verifier #62, V62-D6). Kept separate from the participle/verbal-noun test so each
+        // rule stays readable and independently checkable.
+        const MN_CASE_SUFFIX = /(?:ын|ийн|ны|ний|ыг|ийг|аас|ээс|оос|өөс|аар|ээр|оор|өөр|тай|тэй|той|луу|рүү|д|т)$/u;
         const MN_NOT_A_COMMAND = /(?:сан|сэн|сон|сөн|лт|лга|лгэ|даг|дэг|дог|дөг|маар|мээр|х)(?:ыг|ийг|ын|ий|ийн|ын|аас|ээс|оос|өөс|д|т|тай|тэй|той|нь)?$/u;
         // Mongolian is VERB-FINAL — the reason group 4 is exempt from the English head rule. A stem that
         // appears anywhere else in the clause is a noun, an attribute or a converb, not the command.
@@ -5816,10 +5911,11 @@ serve(async (req) => {
         // Every Cyrillic stem occurrence, not just the first: a compound command carries converbs before
         // the operative verb ("ACME компанийг архивлаад Beta-г сэргээ" — "having archived ACME, restore
         // Beta"), and the command is the LAST verb, not the first token that matched.
-        const MN_STEMS_GLOBAL = /(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/giu;
+        const MN_STEMS_GLOBAL = /(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/giu;
         const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
+        const mnIsCommandForm = (w: string) => true;
         const alwaysCyrillic = (alwaysCyrillicRaw || mnCandidates.length > 0)
-          ? (mnCandidates.find((w) => mnFinalWindow.includes(w)) || null)
+          ? (mnCandidates.find((w) => mnIsCommandForm(w) && mnFinalWindow.includes(w)) || null)
           : null;
         // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
         // imperative position, behind a negation. The request carried intent — the executor must fail

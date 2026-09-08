@@ -80,8 +80,12 @@ const companies = () => [{ id: A, name: 'Alpha', status: 'active' }, { id: B, na
 async function life(command, result = {}) { const sb = companiesClient(companies()); const out = await lifeFn(sb, { ...result }, command, { companies: [], archivedCompanies: [] }, () => {}, ARCHIVE_VERB_PATTERN, RESTORE_VERB_PATTERN); return { ...out, calls: sb.calls }; }
 
 // ── the REAL task-lifecycle slice (recordExecution is declared inside it) ────────────────────────
-const TASK_SLICE = depred(stripTS(slice('        const contextTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));', "const taskArchiveRestoreReport = taskArchiveRestoreLines.length > 0 ? taskArchiveRestoreLines.join(' ') : null;")));
-const taskFn = new AsyncFunction('supabase', 'result', 'contextPack', 'planExecutedActions', 'channelId', TASK_SLICE + '\n; return { archiveTaskIds, restoreTaskIds, report: taskArchiveRestoreReport, evidence: claimExecutionEvidence };');
+// The window starts at the executor's shared id-provenance gate. It used to read the trimmed pack array
+// directly; since verifier #62 (V62-D1) every id set comes from packIdSet(), which also consults the
+// provenance captured before the trim, so a deep trim can no longer make the founder's own target
+// unrecognisable to the executor. contextProvenance is therefore a parameter of the window now.
+const TASK_SLICE = depred(stripTS(slice("        function packIdSet(...names: string[]): Set<string> {", "const taskArchiveRestoreReport = taskArchiveRestoreLines.length > 0 ? taskArchiveRestoreLines.join(' ') : null;")));
+const taskFn = new AsyncFunction('supabase', 'result', 'contextPack', 'planExecutedActions', 'channelId', 'contextProvenance', TASK_SLICE + '\n; return { archiveTaskIds, restoreTaskIds, report: taskArchiveRestoreReport, evidence: claimExecutionEvidence };');
 const TASK = '77777777-7777-4777-8777-777777777777', OTHER = '88888888-8888-4888-8888-888888888888';
 function tasksClient(rows) {
   const calls = [];

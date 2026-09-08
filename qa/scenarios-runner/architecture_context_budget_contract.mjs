@@ -29,7 +29,7 @@ const check = (name, cond, detail) => { if (cond) { pass++; console.log('OK   ' 
 
 // ---- the real block: from the budget constant to the return that closes buildContext ----
 const START = '  const packBudget = Math.max(2000,';
-const END = '  return { pack, errors:';
+const END = '  return { pack, provenanceIds, errors:';
 const s = src.indexOf(START); const e = src.indexOf(END, s);
 check('the budget block exists in index.ts', s > 0 && e > s, 'incident 2026-09-08 must not regress');
 if (s < 0 || e < 0) { console.log('\narchitecture_context_budget_contract: 0 passed, 1 failed'); process.exit(1); }
@@ -128,9 +128,25 @@ const snapshot = (pack, keys) => JSON.stringify(keys.map((k) => pack[k] ?? null)
 {
   const { pack, collections } = fixture(40);
   const r = run('restore QA-SWARM-TEST-CO-VIA-CHAT', pack, collections, DENO);
+  // The note's wording changed in campaign #122: it used to claim server-side resolution for ANY named
+  // entity, which was true of four collections and false of fifteen (verifier #62, V62-D3). It now names
+  // the six that have a targeted lookup and tells the model not to infer absence for the rest.
   check('archived entities stay canonically resolvable after trimming (server-side, not from the pack)',
-    /async function resolveCompanyLifecycleTargets/.test(src) && /taskLifecycleById\.has\(id\)/.test(src) && r.pack.contextBudget.note.includes('resolved server-side'),
+    /async function resolveCompanyLifecycleTargets/.test(src) && /taskLifecycleById\.has\(id\)/.test(src)
+    && r.pack.contextBudget.note.includes('re-read server-side across every status'),
     'lifecycle resolution must not depend on the trimmed window');
+  check('the note does not overstate which collections are resolved server-side (V62-D3)',
+    r.pack.contextBudget.note.includes('Companies, people, tasks, goals, projects and departments')
+    && r.pack.contextBudget.note.includes('do not conclude that anything is absent from the database'),
+    'a note that promises more than the code delivers invites exactly the confident wrong answer this contract prevents');
+  // The server keeps id provenance for rows the trim removed, and keeps it OUT of the pack, where it would
+  // spend the very budget it is meant to protect (verifier #62, V62-D1 and its correction).
+  check('id provenance is captured before the trim and returned beside the pack, not inside it',
+    /const provenanceIds: Record<string, string\[\]> = \{\};/.test(src)
+    && /return \{ pack, provenanceIds, errors:/.test(src)
+    && !/droppedIds/.test(src)
+    && /for \(const id of \(contextProvenance\?\.\[name\] \|\| \[\]\)\) out\.add\(id\)/.test(src),
+    'the executor must still recognise an id whose row the budget removed');
 }
 
 // ---- 5. source-level guarantees ----

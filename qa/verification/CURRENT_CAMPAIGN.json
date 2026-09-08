@@ -95,10 +95,10 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 122,
-  "verifier": 62,
+  "campaign": 123,
+  "verifier": 63,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "verifier #62 DISPATCHED — the closure of every verifier #61 finding except D11/D4/D5, which stay open",
+  "status": "DISPATCH PENDING — verifier #63 on the #62 closure",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -139,8 +139,8 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #62 has not run",
-    "V61-D11, V61-D4 and V61-D5 remain OPEN and are not closed by this candidate",
+    "verifier #63 has not run",
+    "V61-D4, V61-D5 and V62-D9 remain OPEN",
     "the previous authorization was scoped to bytes 715246f3 which breached the token budget in production; new bytes need a fresh founder ALLOW_FUNCTIONS_DEPLOY=1"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -751,6 +751,22 @@
   ],
   "verifier61_closure": "V61-D1/D1b/D2/D3/D6/D7/D8/D9 closed on 118aeb41. v61 suite 23/0 (promoted). Mutation proof 19/19 killed, 0 survived — 4 initially survived and exposed three uncovered guards plus two assertions that checked machinery without checking its use. Corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0, v60 22/0, v92 parity 46/0. Ledger #136. V61-D10 also closed, but NOT as asked: measuring the real request against the 12,000 cap would have refused every turn, because SYSTEM_PROMPT alone is 18,824 tokens — 57% larger than that cap, which is therefore a pack-size policy cap and never was a request-size limit. Closed by naming two gates: pack budget (12,000, compact measure) and model context window (180,000, real request incl. system prompt and attached image, which previously bypassed every limit). Ledger 136b. STILL OPEN and carried to #62: V61-D11 (ASCII-only named lookups), V61-D4, V61-D5.",
   "verifier62_index_sha256": "0af353b5267fafa6d4ed3b80c61d9a62838cbf3d43c0f3746eeed8d8b465648f",
-  "verifier62_status": "DISPATCHED",
-  "verifier62_base_commit": "HEAD"
+  "verifier62_status": "COMPLETE — FAIL",
+  "verifier62_base_commit": "c30a0cc",
+  "verifier62_verdict": "FAIL — NOT DEPLOYMENT READY. V62-D1/D1b/D2 (P1), V62-D3/D4/D6/D7/D8/D9 (P2), V62-D5 (P3). Artifacts: verify-c30a0cc-campaign122 @ 327f93d.",
+  "verifier62_findings": [
+    "V62-D1 the trim empties the collections every non-lifecycle mutation id gate is built from; reachable with a ~12,000-char pasted command",
+    "V62-D1b a durable multi_action_plan is validated against those same trimmable arrays and then declared unreal — a false statement about canonical state",
+    "V62-D2 the model-context gate counts an image as base64.length/4 against a TOKEN window: 512 KB refused, 1 MB refused, while v92 serves them (introduced by the V61-D10 closure)",
+    "V62-D3 contextBudget.note promises server-side resolution for every named entity; true for four collections, false for fifteen",
+    "V62-D4 memories and factoryWorkOrders have no exact count, so a trim cannot express itself",
+    "V62-D5 the command is counted twice but the refusal reason compares one copy, blaming the workspace for an oversized message",
+    "V62-D6 six Mongolian verbal-noun phrases read as commands",
+    "V62-D7 өөрчил and нэм are not matched by their own stems",
+    "V62-D8 the command tokenizer is ASCII-only, so Cyrillic names produce zero tokens (V61-D11 confirmed)",
+    "V62-D9 five mutants survive its own proof"
+  ],
+  "verifier62_closure": "All V62 findings closed on 86620b36 except V62-D9, addressed in part. TWO fixes were wrong on the first attempt and caught by measurement within minutes: id provenance placed in the pack (which spent the budget it protects — moved server-side, zero model tokens), and a null total filled from the surviving array length (a lower bound published as exact — reverted; both queries now carry count: exact). v62 suite 25/0 promoted; mutation proof 19/19 killed. The Mongolian verb-final rule was found to be load-bearing only for reported speech, which no corpus covered; now pinned. V61-D11 closed here.",
+  "verifier63_index_sha256": "86620b369baa800178678af5d032c62fdce321eaa954d4ff957e3feec833769c",
+  "verifier63_status": "NOT DISPATCHED"
 }

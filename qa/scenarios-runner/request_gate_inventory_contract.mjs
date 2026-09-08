@@ -61,20 +61,29 @@ for (const [gate, present, klass, safe] of GATES) {
   //   2. MODEL CONTEXT WINDOW (SEM_AI_MODEL_CONTEXT_TOKENS, 180,000) — the real request: system prompt +
   //      pretty-printed body + any attached image. An image bypasses the pack budget entirely, so this is
   //      the only gate that bounds it.
-  // A THIRD 413 means a new whole-request cap was added without a classification here.
+  //   3. ATTACHED IMAGE SIZE (SEM_AI_IMAGE_BYTES_MAX, 5 MB) — added in campaign #122 after verifier #62
+  //      found that counting an image as base64_chars/4 against a TOKEN window refused ordinary photos that
+  //      v92 serves. An image's cost to a vision model depends on its dimensions, which this code cannot
+  //      know; its transported SIZE is knowable and is what the provider actually limits.
+  // A FOURTH 413 means a new whole-request cap was added without a classification here.
   const refusals = (src.match(/, 413\)/g) || []).length;
   check('every whole-request size cap is classified in this inventory',
-    refusals === 2 && /const packBudget/.test(src) && /hardMax/.test(preflight)
-      && /SEM_AI_MODEL_CONTEXT_TOKENS/.test(src),
+    refusals === 3 && /const packBudget/.test(src) && /hardMax/.test(preflight)
+      && /SEM_AI_MODEL_CONTEXT_TOKENS/.test(src) && /SEM_AI_IMAGE_BYTES_MAX/.test(src),
     'found ' + refusals + ' whole-request refusals; add any new one to this inventory with a classification');
-  check('the two size caps are named, so neither is mistaken for the other',
-    /limit: 'context pack'/.test(src) && /limit: 'model context window'/.test(src),
+  check('the three size caps are named, so none is mistaken for another',
+    /limit: 'context pack'/.test(src) && /limit: 'model context window'/.test(src) && /limit: 'attached image size'/.test(src),
     'a refusal must say WHICH limit it hit, or the founder cannot act on it');
-  check('the real request is measured against the model context window, prompt and image included',
+  check('the real request is measured against the model context window, prompt included',
     /const requestTokens = estimateRequestTokens\(/.test(src)
       && /systemPromptTokens: SYSTEM_PROMPT_TOKENS/.test(src)
       && /imageAttached: !!attachedImage/.test(src),
-    'the provider gate was UNMEASURED until verifier #61; an attached image bypasses the pack budget entirely');
+    'the provider gate was UNMEASURED until verifier #61');
+  check('an image is bounded by its SIZE, never counted as text tokens (V62-D2)',
+    /function imageBytes\(base64: string\): number/.test(src)
+      && !/function estimateRequestTokens\(payload: unknown, imageBase64/.test(src)
+      && /imageBytes\(attachedImage\.base64\) > IMAGE_BYTES_MAX/.test(src),
+    'base64 length is not a token count; using it as one refuses photos the provider would accept');
   // The refusal itself must be actionable, not a bare number: the founder is told which input could not
   // be reduced and what to do about it, and that nothing was changed (verifier #60, V60-D1 residual).
   check('the whole-request refusal states a cause and an action, and is not an opaque hard stop',
@@ -116,7 +125,7 @@ for (const u of UNMEASURED) console.log('     UNMEASURED: ' + u);
 // The production estimator is JSON.stringify({command, contextPack}).length / 4. Measure the assembled pack
 // across realistic workspaces and require a real margin below the hard limit, not 11,999.
 const START = '  const packBudget = Math.max(2000,';
-const END = '  return { pack, errors:';
+const END = '  return { pack, provenanceIds, errors:';
 const block = stripTS(src.slice(src.indexOf(START), src.indexOf(END, src.indexOf(START))));
 const run = new Function('command', 'pack', 'collections', 'Deno', block + '\n; return { estimate: packTokens(), budget: packBudget, trimmed: contextTrimmed };');
 const DENO = { env: { get: () => undefined } };
