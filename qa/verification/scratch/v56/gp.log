@@ -1,0 +1,18 @@
+OK   intent + zero execution + raw prose -> UNVERIFIED marker replaces the prose
+OK   intent + zero execution + persisted receipt -> the receipt is kept (it is truthful)
+OK   verified mutation turn keeps its summary and count
+OK   legacy row: rejected claims + no evidence -> UNVERIFIED
+OK   legacy read-only row with no verdict: summary kept, verified unknown
+OK   absolute turn numbers preserved
+OK   a valid durable row outranks the last turn stored output
+OK   an EXPIRED durable row yields to the last turn stored output
+OK   an UNTYPED durable row never binds (Class-B fail-closed)
+OK   no durable row, no stored output -> legacy shape resolves
+OK   nothing anywhere -> null
+OK   prompt states the five-tier precedence
+OK   prompt tells the model to surface a history/fresh-context contradiction explicitly
+OK   prompt: an UNVERIFIED history entry establishes nothing
+OK   prompt no longer tells the model to resolve a restore target from memories or history
+OK   the history entry shape carries verified / executedOperationCount / rejectedClaimCount
+
+grounding_precedence_canonical_over_history: 16 passed, 0 failed

@@ -1,0 +1,36 @@
+Verifier #19 (campaign #79): FAIL on d34af15 — D134 (P1), D135 (P2), D136 (P3), D131 irreducibility disproven for 5 of 9
+
+D130/D132/D133 close for the shapes they name (40/40 real names both directions;
+27 prototype-key combinations fail closed end to end, plus 18 via the new ordinal
+path; in-range ordinals select, out-of-range and name+digit dead-end), and all 10
+required mutants are killed by the committed battery.
+
+New defects:
+  D134 (P1) CONFIRMED_COMPLETION now matches the WHOLE summary while negation is
+            tested on clause[0] only — 12/12 truthful "Confirmed — ..." negatives
+            destroyed, 0/12 on fbafded/a559f8f/9535f0b/52e830f, proven at gate
+            level on both correction paths. The #5277 class in mirror image.
+  D135 (P2) `no` is ordinal filler, so "no option 2" / "option 2, no" bind and arm
+            archiveCompanyIds with no LLM in the loop; the same intent dead-ends on
+            the label path (D116/D123).
+  D136 (P3) the ordinal path preempts a real NAME ("Option 2 Ltd").
+  D131 (P2) the pinned "irreducible" residual is separable for 5 of its 9 pairs,
+            measured: 0 paired real names destroyed, 0 new false positives, battery
+            green except the 5 pins that encode the residual.
+  D137/D138 inherited, undisclosed: present-tense STATE answers read as completions;
+            a company whose NAME contains a lifecycle verb is unselectable.
+
+Bookkeeping: the battery is 30 .mjs (1 library + 5 stubs + 24 assertion-bearing),
+not 29 — the same pre-change count error for the third consecutive generation; and
+index.ts:5507 documents a SPACED-DASH clause boundary the splitter does not have.
+
+Artifacts: v19_known_failure_modes_entry_79.md, v19_PROMOTION_NOTE.md,
+v19_regression_additions.mjs (61 cases: 28 pass / 33 fail, 0 CONTRACT failures).
+Prepared fixes F1+F2+F3 close all 19 D134/D135/D136 cases with the battery still
+909 OK / 0 failures — prepared only, never applied.
+
+index.ts sha256 d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30
+asserted before, after each of 14 mutations, and at the end. Production untouched:
+sem-ai-command v92, ezbr_sha256 33255b31...4fe475.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>

@@ -1,0 +1,227 @@
+[
+ {
+  "tag": "BASELINE ace9b6a",
+  "b": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "a": {
+   "src": "HEAD",
+   "assertion_leaks": "18/20",
+   "leaks": [
+    "ACME archived everything ok?",
+    "ACME deleted everything B. ok?",
+    "ACME Holdings deleted all the tasks ok?",
+    "The company deleted the tasks ok?",
+    "Bob removed 3 people from ACME ok?",
+    "The migration completed ok?",
+    "Everything archived ok?",
+    "Archived everything B. ok?",
+    "Deleted all the tasks ok?",
+    "Removed the whole team ok?",
+    "ACME now archived ok?",
+    "All tasks now deleted ok?",
+    "The team archived ACME ok?",
+    "My assistant deleted the project ok?",
+    "I successfully archived ACME ok?",
+    "I have archived ACME ok?",
+    "We finally deleted the project ok?",
+    "I quietly removed the person ok?"
+   ],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "l": {
+   "assertion_labels_accepted": [
+    "Restored Three Companies",
+    "Closed Five Deals",
+    "Restored Full Access",
+    "Completed Final Migration",
+    "Restored Backup Yesterday",
+    "Completed Migration",
+    "Closed Deals Today",
+    "Restored Bob Smith",
+    "Completed Bob Smith Onboarding"
+   ],
+   "real_names_kept": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "real_names_selectable": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "seam_rendered": [
+    "Closed Loop Systems",
+    "“Closed Loop Systems”"
+   ],
+   "seam_match": null,
+   "triple": [
+    "the company (option 1)",
+    "the company (option 2)",
+    "the company (option 1)"
+   ],
+   "triple_unique": false,
+   "apostrophe_pair_match": null
+  }
+ },
+ {
+  "tag": "FIX-1+2 D102 seam key + D103a stable index",
+  "b": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "a": {
+   "src": "HEAD",
+   "assertion_leaks": "18/20",
+   "leaks": [
+    "ACME archived everything ok?",
+    "ACME deleted everything B. ok?",
+    "ACME Holdings deleted all the tasks ok?",
+    "The company deleted the tasks ok?",
+    "Bob removed 3 people from ACME ok?",
+    "The migration completed ok?",
+    "Everything archived ok?",
+    "Archived everything B. ok?",
+    "Deleted all the tasks ok?",
+    "Removed the whole team ok?",
+    "ACME now archived ok?",
+    "All tasks now deleted ok?",
+    "The team archived ACME ok?",
+    "My assistant deleted the project ok?",
+    "I successfully archived ACME ok?",
+    "I have archived ACME ok?",
+    "We finally deleted the project ok?",
+    "I quietly removed the person ok?"
+   ],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "l": {
+   "assertion_labels_accepted": [
+    "Restored Three Companies",
+    "Closed Five Deals",
+    "Restored Full Access",
+    "Completed Final Migration",
+    "Restored Backup Yesterday",
+    "Completed Migration",
+    "Closed Deals Today",
+    "Restored Bob Smith",
+    "Completed Bob Smith Onboarding"
+   ],
+   "real_names_kept": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "real_names_selectable": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "seam_rendered": [
+    "Closed Loop Systems (option 1)",
+    "“Closed Loop Systems” (option 2)"
+   ],
+   "seam_match": null,
+   "triple": [
+    "the company (option 1)",
+    "the company (option 2)",
+    "the company (option 3)"
+   ],
+   "triple_unique": true,
+   "apostrophe_pair_match": null
+  }
+ },
+ {
+  "tag": "FIX-3b D98+D99 interrogative-lead belt REPLACES first-person belt",
+  "b": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "a": {
+   "src": "HEAD",
+   "assertion_leaks": "0/20",
+   "leaks": [],
+   "legit_dropped": "0/27",
+   "dropped": [],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "l": {
+   "assertion_labels_accepted": [
+    "Restored Three Companies",
+    "Closed Five Deals",
+    "Restored Full Access",
+    "Completed Final Migration",
+    "Restored Backup Yesterday",
+    "Completed Migration",
+    "Closed Deals Today",
+    "Restored Bob Smith",
+    "Completed Bob Smith Onboarding"
+   ],
+   "real_names_kept": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "real_names_selectable": [
+    "Closed Loop Systems",
+    "Completed Works Ltd",
+    "Restored Timber Co"
+   ],
+   "seam_rendered": [
+    "Closed Loop Systems",
+    "“Closed Loop Systems”"
+   ],
+   "seam_match": null,
+   "triple": [
+    "the company (option 1)",
+    "the company (option 2)",
+    "the company (option 1)"
+   ],
+   "triple_unique": false,
+   "apostrophe_pair_match": null
+  }
+ }
+]

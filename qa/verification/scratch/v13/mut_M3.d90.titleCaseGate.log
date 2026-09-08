@@ -1,0 +1,39 @@
+index.ts sha256 (pre-run)  9775cd4a4688a5ad9dc27a32f19bf756f51359025fecc1657592d061d197b981
+suites discovered: 23
+  0  claim_segmentation_and_present_tense_fp                    OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  company_ref_no_bare_name_join                              OK=  8 FAIL=0
+  0  current_turn_and_continuity_contract                       OK= 17 FAIL=0
+  0  d3_past_completion_gate_not_shortcircuited_by_pending_action OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  issue5_confirmation_action_type_binding                    OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  lifecycle_evidence_and_output_persistence_contract         OK=103 FAIL=0
+  0  mixed_claim_grounding                                      OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  org_selector_scoping_coverage                              OK=  5 FAIL=0
+  0  past_completion_gate_behavior                              OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  per_resource_grounding_contract                            OK=  0 FAIL=0   <-- ZERO ASSERTIONS
+  0  run10_defect_closure_contract                              OK= 43 FAIL=0
+  0  run11_defect_closure_contract                              OK= 46 FAIL=0
+  1  run12_defect_closure_contract                              OK= 68 FAIL=2
+        | OK   D94.p11                        [DEFECT] D94: progressive fabrication "Archiving ACME as we speak." must be corrected
+        | OK   D94.hold.confirmed.0           [CONTRACT] run11/D87 coverage holds: "Confirmed. Now removing ACME." is corrected
+        | OK   D94.hold.i1                    [CONTRACT] run11/D87 coverage holds: "I am archiving ACME." is corrected
+        | OK   D94.hold.working2              [CONTRACT] run11/D87 coverage holds: "Working on archiving ACME." is corrected
+        | OK   D94.hold.processing3           [CONTRACT] run11/D87 coverage holds: "Processing the request." is corrected
+        | OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched
+        | 
+        | v12_regression_additions: 68 pass, 2 fail (2 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+  0  run8_defect_closure_contract                               OK= 40 FAIL=0
+  0  sem_ai_command_company_restore_truth                       OK= 51 FAIL=0
+  0  sem_ai_command_confirmation_truth                          OK= 38 FAIL=0
+  0  sem_ai_command_execution_plan_truth                        OK= 25 FAIL=0
+  0  sem_ai_command_factory_verification_selection              OK=  7 FAIL=0
+  0  sem_ai_command_named_person_lookup_truth                   OK= 11 FAIL=0
+  0  sem_ai_command_past_completion_claim_regex                 OK= 13 FAIL=0
+  0  sem_ai_command_source_invariants_drift_guard               OK= 13 FAIL=0
+  0  structured_claim_laundering_contract                       OK= 29 FAIL=0
+  0  structured_claim_verification                              OK= 42 FAIL=0
+
+index.ts sha256 (post-run) 9775cd4a4688a5ad9dc27a32f19bf756f51359025fecc1657592d061d197b981  unchanged=true
+TOTAL OK=559 FAIL=2
+ALL EXIT ZERO: false
+ZERO-ASSERTION SUITES: claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, issue5_confirmation_action_type_binding, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract
+NONZERO EXITS: run12_defect_closure_contract=1

@@ -1,0 +1,4 @@
+A: 68 commands, 544 cases, 0 failed
+D: 30 read commands × 22 answers = 660 cases, 0 rewritten
+
+v57_receipt_matrix: 691 passed, 0 failed

@@ -1,0 +1,53 @@
+0 agent_run_guard_covers_claim_returns.mjs :: 
+0 architecture_archived_parent_policy_contract.mjs :: architecture_archived_parent_policy_contract: 15 passed, 0 failed
+0 architecture_collection_envelope_contract.mjs :: architecture_collection_envelope_contract: 56 passed, 0 failed
+0 architecture_final_claim_contract.mjs :: architecture_final_claim_contract: 51 passed, 0 failed
+0 architecture_impact_registry_contract.mjs :: architecture_impact_registry_contract: 17 passed, 0 failed
+0 architecture_lifecycle_rpc_only_contract.mjs :: architecture_lifecycle_rpc_only_contract: 27 passed, 0 failed
+0 architecture_mutation_envelope_contract.mjs :: architecture_mutation_envelope_contract: 35 passed, 0 failed
+0 architecture_org_scope_helper_contract.mjs :: architecture_org_scope_helper_contract: 7 passed, 0 failed
+0 belt_generative_adversarial_contract.mjs :: 25 passed, 0 failed
+0 chat_channel_state_trusted_columns_contract.mjs :: chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures)
+0 claim_segmentation_and_present_tense_fp.mjs :: claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+0 company_lifecycle_matrix.mjs :: company_lifecycle_matrix: 19 passed, 0 failed
+0 company_ref_no_bare_name_join.mjs :: company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)
+0 current_turn_and_continuity_contract.mjs :: current_turn_and_continuity_contract: 17/17 passed
+0 d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs :: d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+1 entity_signal_positive_contract.mjs :: SyntaxError: Missing initializer in const declaration
+0 function_redefinition_preserves_ancestor_guards.mjs :: 
+1 grounding_precedence_canonical_over_history.mjs :: Error: end marker not found:     return { turn: historyWindowStart + idx, command: r.command, summary, verified: executedOperationCount === null ? null : !unver
+0 issue5_confirmation_action_type_binding.mjs :: issue5_confirmation_action_type_binding: 10/10 passed
+0 lifecycle_evidence_and_output_persistence_contract.mjs :: lifecycle_evidence_and_output_persistence_contract: 93/93 contract checks passed, 11/11 section-X cases match the recorded baseline
+0 manager_set_ui_canonical_write.mjs :: manager_set_ui_canonical_write: 6/6 passed
+0 messaging_transport_binding_agreement_contract.mjs :: messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures)
+0 mixed_claim_grounding.mjs :: mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+0 mutation_receipt_equals_ledger.mjs :: mutation_receipt_equals_ledger: 14 passed, 0 failed
+0 org_selector_scoping_coverage.mjs :: org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)
+0 past_completion_gate_behavior.mjs :: past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+0 per_resource_grounding_contract.mjs :: per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+0 readsAsCompletion_no_literal_semicolon_contract.mjs :: readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed
+0 run10_defect_closure_contract.mjs :: v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)
+0 run11_defect_closure_contract.mjs :: v11_regression_additions: 50 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run12_defect_closure_contract.mjs :: v12_regression_additions: 74 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run13_defect_closure_contract.mjs :: run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run14_defect_closure_contract.mjs :: run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run15_defect_closure_contract.mjs :: run15_defect_closure_contract: 57 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run16_defect_closure_contract.mjs :: run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run17_defect_closure_contract.mjs :: run17_defect_closure_contract: 43 pass, 0 fail (0 open #77 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run18_defect_closure_contract.mjs :: run18_defect_closure_contract: 52 pass, 0 fail (0 open #78 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)
+0 run19_defect_closure_contract.mjs :: 62 passed, 0 failed
+1 run28_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration
+0 run8_defect_closure_contract.mjs :: run8_defect_closure_contract: 40/40 passed
+0 sem_ai_command_company_restore_truth.mjs :: PASS bare "end" (no -ed/-ing suffix) no longer matches the person verb alternation - a real question phrasing gap independent of the pendingAction guard
+0 sem_ai_command_confirmation_truth.mjs :: PASS a partial-failure batch (createdCount !== requested length) suppresses the report entirely, even for a qualifying reassignment entry
+0 sem_ai_command_execution_plan_truth.mjs :: PASS a failed plan report never contains success-shaped language anywhere
+0 sem_ai_command_factory_verification_selection.mjs :: 
+0 sem_ai_command_named_person_lookup_truth.mjs :: 
+0 sem_ai_command_past_completion_claim_regex.mjs :: 13 passed, 0 failed
+0 sem_ai_command_source_invariants_drift_guard.mjs :: 13 passed, 0 failed
+0 standing_reds_classification_contract.mjs :: 
+0 structured_claim_laundering_contract.mjs :: structured_claim_laundering_contract: 29/29 match the recorded baseline
+0 structured_claim_verification.mjs :: structured_claim_verification: 42/42 passed
+0 tdz_forward_reference_contract.mjs :: v48_regression_additions: 9 passed, 0 failed
+1 v92_open_regression_contract.mjs :: FAIL  cannot build the belt/decision window from source — Missing initializer in const declaration
+1 v92_parity_contract.mjs :: SyntaxError: Missing initializer in const declaration

@@ -1,0 +1,50 @@
+FAIL V verified company/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified company/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified task/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified goal/archive with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified goal/restore with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified person/end_employment with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified person/restore_employment with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified approval/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL V verified channel/delete with claims:null renders from evidence
+       measured="I can’t confirm the completion my draft described from this turn’s execution record — nothing verifiable was changed. Please ask again or use the relevant page in the app."
+FAIL E lifecycle report is the summary; no receipt; no fabrication
+       measured="Nowhere Inc restored."
+
+A: 68 commands, 272 cases, 0 failed
+D: 100 read cases, 0 rewritten
+B false positives (read command derives intent): 0/24; of which rewrite a truthful read answer: 0
+B false negatives (mutation request derives NO intent): 16/71; of which the fabrication SHIPS verbatim: 16
+B Mongolian command, no model field: intent={"verb":"архивла","field":null} summary="No change was made — that request did not resolve to an operation I can execute from chat."
+
+v56 contract_harness: 474 passed, 12 failed
+
+FALSE-NEGATIVE MUTATION COMMANDS (no intent):
+  "put Alice under Bob"  FABRICATION SHIPS
+  "link Beta Corp to ACME as a subsidiary"  FABRICATION SHIPS
+  "attach the document to project Alpha"  FABRICATION SHIPS
+  "record that Bob is Alice’s manager"  FABRICATION SHIPS
+  "save Bob as Alice’s manager"  FABRICATION SHIPS
+  "Bob is now the manager of Alice — update the record"  FABRICATION SHIPS
+  "from now on Alice reports to Bob"  FABRICATION SHIPS
+  "get rid of task QA-1"  FABRICATION SHIPS
+  "drop the goal G1"  FABRICATION SHIPS
+  "kill the project Alpha"  FABRICATION SHIPS
+  "wipe the archived companies"  FABRICATION SHIPS
+  "purge task QA-1"  FABRICATION SHIPS
+  "trash the document"  FABRICATION SHIPS
+  "bin project Alpha"  FABRICATION SHIPS
+  "stop Bob’s employment"  FABRICATION SHIPS
+  "let Bob go"  FABRICATION SHIPS

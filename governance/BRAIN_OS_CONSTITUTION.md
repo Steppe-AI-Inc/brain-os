@@ -13,13 +13,18 @@ security model from migration archaeology.
 ## The hierarchy
 
 ```
-BRAIN OS CONSTITUTION                    (this file)
+DEVELOPMENT CONSTITUTION                 CLAUDE.md (how work is done; Layer A)
+        |
+BRAIN OS CONSTITUTION                    (this file — the security/authorization model)
+        |
+Operating Truth Model                    OPERATING_TRUTH_MODEL.md (what is true; Layer B)
+Canonical Work Contract                  CANONICAL_WORK_CONTRACT.md (the operation chain; Layer C)
         |
 Security / Privacy Invariants            SECURITY_INVARIANTS.md
         |
 Data Classification                      DATA_CLASSIFICATION.md
         |
-Role + Capability Matrix                 capabilities/CAPABILITY_MATRIX.md, roles/*.md
+Role + Capability Matrix                 capabilities/CAPABILITY_MATRIX.yaml, roles/*.md
         |
 Domain-specific Agent Rules              agents/*.md
         |
@@ -49,13 +54,14 @@ production — that gap is itself the next thing to fix, not the prose.
 
 ## What this replaces
 
-`CLAUDE.md` at the repo root remains the operating constitution for *how an agent works*
-(verification discipline, evidence standards, release-state vocabulary) — that document
-is unchanged and still governs every session. This `governance/` directory is new and
-narrower: it is the *content* of the security/authorization model itself — what the
-roles are, what data classifications exist, what each agent may do — so that content
-doesn't have to be re-derived from reading migrations every time. `CLAUDE.md` §"Before
-building anything" now points here.
+`CLAUDE.md` at the repo root is the Development Constitution: *how* work is defined,
+verified and released. This file is the *content* of the security/authorization model —
+what the roles are, what data classifications exist, what each agent may do — so that
+content doesn't have to be re-derived from reading migrations every time. Two sibling
+documents complete the model: `OPERATING_TRUTH_MODEL.md` defines what is true about live
+state and how the AI layer may speak about it; `CANONICAL_WORK_CONTRACT.md` defines the
+one chain every business action walks and the parent/child policy. Each concept has one
+home; none of these documents restates another.
 
 ## How to use this directory
 
@@ -64,7 +70,7 @@ external action:**
 1. Read `SECURITY_INVARIANTS.md` — does this feature touch anything listed there?
 2. Read `DATA_CLASSIFICATION.md` — what classification does the data involved carry, and
    does a table for it already exist, or does a new one need a classification assigned?
-3. Read `capabilities/CAPABILITY_MATRIX.md` — does an existing capability cover this
+3. Read `capabilities/CAPABILITY_MATRIX.yaml` — does an existing capability cover this
    action, or does a new one need to be defined and added to the matrix (and to every
    role's file that should or shouldn't have it)?
 4. Read `ACTION_RISK_LEVELS.md` — what risk level does this action carry, and does that

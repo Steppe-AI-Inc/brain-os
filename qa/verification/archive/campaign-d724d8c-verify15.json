@@ -1,0 +1,164 @@
+{
+ "campaign_id": "verify-d724d8c-run14-closure",
+ "campaign_number": 75,
+ "verifier": 15,
+ "base_commit": "d724d8c",
+ "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+ "started_at": "2026-09-03T12:55:17.349Z",
+ "last_checkpoint_at": "2026-09-03T13:17:12.905Z",
+ "project_ref": "pvphxgrtdfrudejjhzjk",
+ "index_ts_sha256_required": "1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64",
+ "index_ts_sha256_observed_at_start": "1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64",
+ "sha_baseline_match": true,
+ "prior_campaign_archived": "qa/verification/archive/campaign-f1722f2-verify14.json (sha256 48ad6e71a927e88e81cb89e0ddab56453bc2921d92c13ddfa561f4b9eba3f2f9, campaign #74, verifier #14, verdict FAIL on f1722f2 with D105-D115)",
+ "status": "COMPLETED",
+ "what_changed_since_74": [
+  "D106 (P1): matchDisambiguationOption uses SPECIFICITY (longest matched label wins) plus a RESIDUAL-MENTION guard, and the raw tie-break is confined to the normalisation-tied set. Closes the wrong-entity bind while keeping multi-mention replies dead-ending.",
+  "D112: CONFIRMED_COMPLETION gains a negation lookahead and determiner/cardinal lookbehinds, so it no longer destroys truthful answers.",
+  "D114: the first-person completion belt is RESTORED ALONGSIDE the interrogative-lead rule, with a clause-position lookbehind.",
+  "D113: the corroboration gate is no longer lexical where the canonical read knows the entity. Two rules: read knows it and label disagrees -> replace; read does not know it AND label reads as a completion -> replace.",
+  "run14_defect_closure_contract.mjs promoted (68 cases). D115 ledger corruption deleted."
+ ],
+ "what_verifier_15_must_independently_establish": [
+  "Assert sha256 1b291f37…ef64 before and after EVERY temporary edit. Any mismatch invalidates the run.",
+  "Classify from OUTPUT TEXT, never exit code. exit 0 + provider-capacity text => BLOCKED — PROVIDER_CAPACITY.",
+  "Write your OWN mutation battery; do not run v14_mutation_proof.mjs and call that verification. Cover every guard’s LIMITS — eleven vacuous guards have now shipped and the last two were found only by limit mutants.",
+  "ATTACK THE D106 MATCHER HARDEST. It is the only change here that can select a DIFFERENT entity. Probe: three or more options, nested/overlapping labels, labels differing only by case or unicode, replies naming an option inside a longer phrase, replies with negation (“not acme”), and any path where the residual-mention guard can be evaded.",
+  "Attack the D113 two-rule gate: can a fabricated label reach the founder through the ABSENT branch by avoiding COMPLETION_WORD? That branch is still lexical BY DESIGN — measure how much it lets through and whether any of it is dangerous given such options cannot execute (run13/D103).",
+  "Re-measure BOTH question-belt axes on your own corpora. This is the fourth campaign in a row where that belt changed; confirm neither direction reopened.",
+  "Verify run8/D72b, run10/D78, run11/D86, run12/D91+D100, run13 all still hold — the D113 change touched the code path all of them depend on."
+ ],
+ "scenarios": {
+  "s0_d106_matcher_attack": {
+   "status": "FAIL",
+   "evidence": "40 probes against the REAL matchDisambiguationOption extracted from index.ts (sha-asserted). 34 pass / 6 fail. D106's own class is CLOSED (A2 smiths-bakery no longer binds Smith; A4/F2/G1/G2 multi-mention dead-ends hold; F5 duplicate-name dead-ends). NEW P1 FOUND (D116): NEGATION IS UNHANDLED. matches.length===1 short-circuits BEFORE any residual/negation check, so a reply that EXCLUDES an option binds that option. Reproduced: \"don't archive acme\"->a, \"not acme, the other one\"->a, \"anything except acme holdings\"->ah, \"no, not beta\"->b, \"everything but acme\"->a, \"not bob's co\"->apos (tied raw branch). Reachability proven end-to-end: index.ts:2583 commandContradictsActionType is false (no opposite-family verb), :2587 resolveClarificationField(company,archive)='archiveCompanyIds', :2604 fields={archiveCompanyIds:[option.id]}, :3047 the contextCompanyIds provenance filter PASSES because an offered option is by construction a context company, :3076 supabase.rpc('archive_company') executes. No LLM in the loop. Same severity/shape as D106.",
+   "checkpointed_at": "2026-09-03T13:00:13.568Z"
+  },
+  "s1_sha_full_battery": {
+   "status": "PASS_WITH_FINDING",
+   "evidence": "26 .mjs suites enumerated FROM THE FILESYSTEM (readdirSync), not a hardcoded list. All 26 exit 0; ZERO textual failure lines; run10=43/0 run11=46/0 run12=71/0 run13=60/0 run14=68/0. No provider-capacity text anywhere. .sql suites (60 files) NOT run - see s1 note on DB scope. ASSERTS-NOTHING audit: 7 flagged by my detector; 1 (_gate_extract.mjs) is a module not a suite; 5 (claim_segmentation_and_present_tense_fp, past_completion_gate_behavior, mixed_claim_grounding, per_resource_grounding_contract, d3_past_completion_gate_not_shortcircuited_by_pending_action) SELF-DECLARE 'SUPERSEDED (prose-era)' and point at structured_claim_verification.mjs - honest, acceptable, but it means 5 of 26 filenames are inert placeholders; 1 (issue5_confirmation_action_type_binding) was a DETECTOR ARTIFACT (prints '10/10 passed', has a real exit guard) BUT is a full REIMPLEMENTATION - it declares its own copy of CLARIFICATION_ENTITY_ACTION_FIELD and its own resolveFieldFixed and never reads index.ts, while index.ts:2563 cites it BY NAME as proof of the issue-5 class-B fail-closed fix. Candidate vacuous guard #12; confirmed by mutation in s2.",
+   "checkpointed_at": "2026-09-03T13:01:33.378Z"
+  },
+  "s2_independent_mutation": {
+   "status": "PASS_WITH_FINDINGS",
+   "evidence": "MY OWN 25-mutant battery (qa/verification/scratch/v15_mutations.mjs), written from scratch; v14_mutation_proof.mjs deliberately NOT run. Mutants written to the REAL index.ts because only 5 of 26 suites honour SEM_INDEX_SRC - a temp-copy-only battery would score against a fifth of the suite and over-report survival. Restored from a pristine byte buffer in a finally block after every mutant; sha re-asserted after EVERY restore and at the end = 1b291f37...ef64. Baseline gate caught my own detector bug (a bare /\\d+ fail/ matched the prose 'action a1 fails') before any mutant ran. RESULT 20 killed / 5 survived. ALL SEVEN NEW GUARDS ARE OBSERVED IN BOTH DIRECTIONS: D106-specificity M01c+M02l, D106-residual M04c+M05l, D106-rawTieBreak M07c+M08l, D112-negation M09c, D112-lookbehinds M11l+M12l+M13l, D114-firstPerson M14c+M15l(clause-position), D114-interrogative M16l+M17c, D113-rule1 M18c, D113-rule2 M19c+M20l. This is a real improvement on the vacuous-guard history. SURVIVORS: M03 (specificity on raw vs normalised length - contrived quote-collision, LOW), M06 (join('') vs join(' ') - fails SAFE, more dead-ends, LOW), M10 (negation lookahead widened - points at a REAL escape, see s3), M21 (agrees widened equality->containment - real mis-display risk, CONTRACT case added), M25 (EQUIVALENT MUTANT: the ||'archive' default in commandContradictsActionType cannot change the outcome because resolveClarificationField already refuses an absent actionType - dead default, not a defect). CORRECTION TO MY s1 HYPOTHESIS: M23/M24 were KILLED by sem_ai_command_source_invariants_drift_guard.mjs, so the issue-5 fail-closed invariant IS observed - by a SOURCE-TEXT drift guard, not behaviourally. issue5_confirmation_action_type_binding.mjs is still a reimplementation that proves nothing about the product, and index.ts:2563 citing it by name is inaccurate, but the invariant is not unobserved. Not vacuous guard #12.",
+   "checkpointed_at": "2026-09-03T13:06:46.092Z"
+  },
+  "s3_drift_belt_corpora": {
+   "status": "FAIL",
+   "evidence": "33 fabricated + 28 legitimate summaries through the REAL readsAsCompletion (all four arms extracted from index.ts, negation lookahead byte-asserted present in the executed slice). FALSE NEGATIVES 6/33. FALSE POSITIVES 3/28. BOTH directions leak - the campaign did NOT merely trade one for the other, it left both open. FN CLASS (D117, new): D112's negation lookahead is (?![^]*\\b(?:not|no|nothing|...)\\b) - [^]* scans the ENTIRE remainder of the summary, so ANY later sentence containing a negation word disarms CONFIRMED_COMPLETION completely. 'Confirmed - Archived ACME.' is caught; 'Confirmed - Archived ACME. No further action needed.' escapes ALL FOUR ARMS (-none-). Also escaping: 'Confirmed - Deleted ACME, nothing else was changed.', 'Confirmed - Restored Bob Smith. No changes to his tasks.', 'Confirmed - Archived ACME; no other companies were touched.', 'Confirmed - Assigned the task to Bob. Nothing is pending.', 'Confirmed - Removed Bob Smith. There is no undo.'. Reachable: on an LLM turn with a claims array of only state claims, rawClaims!==null so structuredProseDrift is armed, but unaccountedCompletionProse is false because readsAsCompletion is false - the exact run8/D58b3 laundering shape, reopened by a one-sentence suffix that is boilerplate LLM phrasing. FP CLASS (D118, new): D112 added negation handling to CONFIRMED_COMPLETION ONLY, but readsAsCompletion ORs four arms and LEGACY_PAST_COMPLETION has NO negation handling. 'Nothing was archived - the id did not resolve.' and 'Confirmed - no company was archived.' both fire LEGACY on 'was ... archived' and are destroyed - these are exactly the truthful answers D112 exists to protect, and for the second one CONFIRMED_COMPLETION correctly declined while its sibling arm fired anyway. Third FP 'ACME was created on 2026-03-01 and is still active.' is the DISCLOSED run10/D81 shape (mitigated by the arm's outer conditions, not by the belt). Reachable via legacyProseFallback on a read-only turn: no mutation claims, non-deterministic model, no grounded outcome.",
+   "checkpointed_at": "2026-09-03T13:08:12.913Z"
+  },
+  "s4_d100_corroboration": {
+   "status": "PASS",
+   "evidence": "D113 rule 1 (canonical PRESENT) is CORRECT ON EVERY PROBE. 18 execution assertions x canonical-row-present: 0/18 survive - all render the id's OWN canonical name. 13 real completion-shaped names x canonical-row-present: 0/13 destroyed. Targeted probes all correct: a fabricated label naming a DIFFERENT real entity renders the id's own canonical name; a Cyrillic confusable of the canonical name renders the canonical spelling; a label CONTAINING the canonical name plus a fabricated verb ('Terminated Bob Smith' over canonical 'Bob Smith') is REPLACED because agreement is equality not containment; case and quote variants agree; an empty label does not blank the option. No fabricated assertion label reached the founder verbatim by any PRESENT-branch path I could construct.",
+   "checkpointed_at": "2026-09-03T13:09:31.791Z"
+  },
+  "s5_d102_raw_fallback_misbind": {
+   "status": "PASS",
+   "evidence": "Covered by the s0 battery plus mutants M07/M08. The raw fallback CANNOT reach outside the normalisation-tied set on the candidate: confining it to 'longest' is what makes the D106 mis-bind unrepresentable rather than unlikely. Proven by mutation - M07 (widen back to ALL options) and M08 (widen to the whole matched set) are BOTH killed by run14. Substring-containment cases all correct: A2 [Smith, Smith's Bakery]+'smiths bakery'->bakery (not smith); B1/B2/B3 nested labels bind the longest actually named; F5 two distinct entities sharing a name DEAD-END rather than coin-flipping. Ambiguous replies resolve to nothing, not to a guess (A4, B5, B6, F2, F3, F4, G1, G2). The ONE residual raw-fallback quirk is F6 (two labels differing only by quote characters resolve to the unquoted one) - contrived, because the F5 label formatter quotes deterministically by label SHAPE, so two options with the same normalised name would both be quoted or both not. LOW. NOTE: the wrong-entity bind I did find (D116) is NOT in the raw fallback - it is in the matches.length===1 short-circuit that runs BEFORE any of this.",
+   "checkpointed_at": "2026-09-03T13:12:07.454Z"
+  },
+  "s6_no_prior_closure_reopened": {
+   "status": "PASS",
+   "evidence": "All prior closure contracts re-run on the candidate and GREEN: run8=40/0, run10=43/0, run11=46/0, run12=71/0, run13=60/0, run14=68/0, plus lifecycle_evidence_and_output_persistence_contract=103/0, structured_claim_verification=42/0, structured_claim_laundering_contract=29/0, sem_ai_command_confirmation_truth=38/0, sem_ai_command_company_restore_truth=51/0. The run11->run12 both-directions reopening of D98/D99 has NOT recurred - independently confirmed by the s7 three-SHA measurement, not merely by the suites passing. D113 touched the code path run8/D72b, run10/D78, run11/D86, run12/D91+D100 and run13 all depend on, and my mutation battery shows those contracts actively OBSERVE it: M20 (rule 2 made unconditional) was killed by run8 + run10 + lifecycle; M22 (typed-fallback exclusion dropped) killed by run8 + run10; M19 (rule 2 lexical dropped) killed by run12 + run14. PRODUCTION READ-ONLY CHECK (npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk): sem-ai-command is version 92, status ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 (~2026-08-30). THE GAP IS LARGE AND MUST STAY VISIBLE: production v92 predates the entire run9..run14 sequence, so NONE of D58-D118 is live. Every finding in this campaign is about a CANDIDATE branch, not about what the founder is running today. ezbr_sha256 is a deployed-bundle hash and is not comparable to the index.ts source sha; the version number and date are the usable evidence.",
+   "checkpointed_at": "2026-09-03T13:10:56.720Z"
+  },
+  "s7_question_belt_both_axes": {
+   "status": "PASS",
+   "evidence": "MY OWN corpora (20 assertions x 27 clarifications) run through the REAL safeQuestionFragment extracted at THREE revisions via git show. CORRECTED LEAK METRIC: a leak is a surviving fragment that STILL CARRIES completion vocabulary - cutting 'I archived ACME, ok?' down to 'ok?' is the belt working, not failing. My first draft counted any non-null return and scored the candidate 11/20 when its true figure is 0/20; I corrected it before reporting. RESULT ace9b6a(#72) 0 leaks / 5 clarifications lost; f1722f2(#73) 7 leaks / 1 lost; d724d8c(CANDIDATE) 0 leaks / 1 lost. The candidate STRICTLY DOMINATES BOTH predecessors on BOTH axes - the first build in this sequence to do so, and it independently confirms the D114 claim that the two axes are complementary rather than alternatives. The 7 f1722f2 leaks are exactly the interrogative-led first-person shape D114 describes ('Did I mention I archived ACME already?'). RESIDUAL, not a regression: 'Please confirm which archived record you meant.' is dropped by ALL THREE builds - INTERROGATIVE_LEAD allows 'please' only before a wh-word or auxiliary, and 'confirm' is neither, while COMPLETION_WORD matches 'archived'. Pre-existing, low severity, imperative-led clarification.",
+   "checkpointed_at": "2026-09-03T13:10:46.136Z"
+  },
+  "s8_absent_branch_lexical_judgement": {
+   "status": "FAIL",
+   "evidence": "MEASURED, NOT ASSERTED. BRANCH B (no canonical row): 10 of 13 legitimate completion-shaped REAL NAMES destroyed to a bare typed fallback ('the company' - identity lost entirely), AND 6 of 18 EXECUTION ASSERTIONS survive verbatim ('Terminated Bob Smith', 'Wiped All Data', 'Revoked Access', 'Suspended Bob Smith', 'Disabled the account', 'Purged the records'). A further 2 survive in substance with only a trailing period stripped ('Now removing ACME', \"I'm now removing ACME\") because safeOptionLabel consults PAST_COMPLETION_CLAIM_PATTERN and COMPLETION_WORD but NEVER EXECUTION_IN_PROGRESS - progressive assertions are unguarded in the label channel entirely. So 8 of 18 in substance. The fallback has essentially ZERO discriminating power: it separates 'verbs on a 24-item English list' from 'verbs not on it', and BOTH categories contain both real names and fabricated assertions. 'Terminated Cable Co' (a real name) survives only by the same accident that lets 'Terminated Bob Smith' (an assertion) survive. Comparison against the two degenerate alternatives, measured with mutants M19/M20: always-keep = 0 names destroyed / 18 assertions survive; always-replace = 13 destroyed / 0 survive; CURRENT = 10 destroyed / 6 survive. Current buys 3 surviving names at the price of 6 surviving fabricated completions.",
+   "checkpointed_at": "2026-09-03T13:09:38.312Z"
+  },
+  "s9_ledger_bookkeeping_truth": {
+   "status": "PASS_WITH_FINDING",
+   "evidence": "LEDGER ACCURACY: the #74 entry and CLOSURE POSTSCRIPT describe the code accurately on D106, D113 and D114 - I executed the postscript's own quoted examples against the real extracted source and they behave as stated ('smiths bakery'->bakery not smith; multi-mention->null; both named D112 examples survive the belt). D115 IS GENUINELY DELETED: lines 6931-6936 now read as a clean section boundary before the legitimate '## #72' heading, and a scan for promotion-preamble markers found only legitimate in-prose references to proposed/ files. No D97/D104-style leak. CURRENT_CAMPAIGN.json names base d724d8c and sha 1b291f37...ef64 accurately; I added actual_head_commit_at_start (32f1891) and a note proving index.ts is byte-identical at d724d8c and HEAD, which the file did not previously distinguish. ONE OVERSTATEMENT FOUND: the postscript presents D112 as closed, but the closure is scoped to the CONFIRMED_COMPLETION arm only. Changing the postscript's own example 'Confirmed - the company is NOT archived' from 'is' to 'was' reproduces the defect in full, and 7 of 7 same-class truthful negatives are still destroyed by LEGACY_PAST_COMPLETION / EXECUTION_IN_PROGRESS, neither of which has negation handling. That is D118 and it is a fix-the-instance-not-the-class miss, made despite run13/D100's own headline being 'one predicate, both arms'. SECOND, SMALLER: index.ts:2563 cites qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs BY NAME as proof of the issue-5 fail-closed fix, but that suite declares its own private copy of CLARIFICATION_ENTITY_ACTION_FIELD and its own resolveFieldFixed and never reads index.ts - it cannot prove anything about the product. The invariant IS observed, by sem_ai_command_source_invariants_drift_guard.mjs (source-text, killed my M23/M24), so this is an inaccurate citation rather than an unobserved guard.",
+   "checkpointed_at": "2026-09-03T13:14:21.991Z"
+  },
+  "sF_founder_directed_lexical_branch_verdict": {
+   "status": "FAIL",
+   "evidence": "VERDICT ON THE REMAINING LEXICAL FALLBACK: NOT ACCEPTABLE, and stated explicitly rather than implied. Where canonical evidence EXISTS the design is correct and proven (0/13 real names destroyed, 0/18 assertions surviving). Where it is ABSENT the fallback fails in BOTH directions AT THE SAME TIME (10/13 real names destroyed AND 6/18 assertions surviving, 8/18 counting punctuation-only strips). It is not a tuned trade-off point; it has no discriminating power, because it separates 'verbs on a 24-word English list' from 'verbs not on it' and both categories contain both real names and fabricated assertions - 'Terminated Cable Co' survives by the identical accident that lets 'Terminated Bob Smith' survive. REMEDY PROPOSED, honouring the explicit design constraint (no sixth grammar rule): STOP OFFERING THE OPTION. run13/D103 already establishes that an option whose id is absent from the canonical read CANNOT EXECUTE (its id fails the contextCompanyIds provenance filter at index.ts:3047), so it is a dead pointer; offering a selectable choice that can do nothing, labelled with unverifiable model-authored text, is the actual defect and the label gate is downstream of it. Drop options whose id does not resolve against the canonical read before rendering, and ask an open question if that empties the list. This obtains/requires canonical evidence instead of guessing at grammar and collapses both failure directions at once. NOTE THIS RETIRES A COMMITTED CONTRACT: run8/D72b currently pins the opposite, and mutant M20 was killed by run8+run10+lifecycle. It is therefore a founder/product decision, not a patch, and D72b must be retired deliberately rather than broken silently.",
+   "checkpointed_at": "2026-09-03T13:16:41.399Z"
+  }
+ },
+ "attempts": [
+  {
+   "attempt": 1,
+   "dispatched_at_local": "2026-09-03T12:44:28+08:00",
+   "pid": 22980,
+   "outcome": "BLOCKED — PROVIDER_CAPACITY",
+   "classified_from": "OUTPUT TEXT, not exit code. The process exited 0 with a 66-byte log reading \"You have hit your session limit · resets 3:10pm (Asia/Ulaanbaatar)\". Per the standing rule exit 0 + provider-capacity text is BLOCKED, never PASS and never FAIL.",
+   "scenarios_completed": [],
+   "work_lost": "NONE — it blocked before the baseline, so there is nothing to resume mid-way. Attempt 2 starts at scenario 0 legitimately, not because a checkpoint was discarded.",
+   "provider_stated_reset_local": "2026-09-03T15:10:00+08:00"
+  },
+  {
+   "attempt": 2,
+   "started_at": "2026-09-03T12:55:17.350Z",
+   "outcome": "FAIL (completed, fully executed)",
+   "note": "Verifier #15 attempt 2. Attempt 1 blocked pre-baseline with zero scenarios completed, so this starts at scenario 0 legitimately."
+  }
+ ],
+ "blocked_reason": "PROVIDER_CAPACITY",
+ "blocked_at": "2026-09-03T12:44:40+08:00",
+ "retry_after": "2026-09-03T15:10:00+08:00",
+ "attempt_count": 2,
+ "source_sha_pinned_across_retries": "1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64",
+ "base_commit_pinned_across_retries": "d724d8c",
+ "resume_rule": "PROVIDER_CAPACITY_BLOCKED -> RUNNING on retry, never -> COMPLETED. The exact SHA and base commit above are pinned: a retry that runs against a different SHA is a NEW campaign, not a resumption.",
+ "actual_head_commit_at_start": "32f18917710308ccf9e3627a73a124935153a347",
+ "head_vs_base_note": "HEAD 32f1891 is 2 commits after base d724d8c (f651b76 campaign rotation, 32f1891 checkpoint). git diff d724d8c..HEAD touches ONLY qa/verification/* bookkeeping. supabase/functions/sem-ai-command/index.ts is BYTE-IDENTICAL at d724d8c and at HEAD (both sha256 1b291f37...ef64), verified via `git show d724d8c:<path> | sha256sum`. Source under test is unambiguous.",
+ "verdict": "FAIL",
+ "verdict_basis": "Classified from OUTPUT TEXT, never from an exit code. The committed battery is green (25 suites, exit 0, zero textual failures) but that is not the verdict: five NEW defects were demonstrated by executing the real shipped source, one of them a P1 wrong-entity DESTRUCTIVE bind (D116). No provider-capacity or session-limit text was seen at any point in this run.",
+ "index_ts_sha256_observed_at_end": "1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64",
+ "sha_intact_at_end": true,
+ "new_defects": {
+  "D116": "P1. matchDisambiguationOption short-circuits on matches.length===1 before every D106 guard, and models no negation, so a reply EXCLUDING an option binds it and arms archiveCompanyIds with no LLM in the loop. Traced end-to-end index.ts:2572->2583->2587->2604->3047->3076.",
+  "D117": "The D112 negation lookahead is whole-summary ([^]*), so any later sentence containing a negation word disarms CONFIRMED_COMPLETION and with it all four arms. 6/33 fabricated summaries escape. RECURRENCE of the class struck down at KNOWN_FAILURE_MODES.md:5277.",
+  "D118": "D112 was applied to CONFIRMED_COMPLETION only; LEGACY_PAST_COMPLETION and EXECUTION_IN_PROGRESS have no negation handling, so 7/7 same-class truthful negatives are still destroyed - including the postscript’s own example with \"is\" changed to \"was\". RECURRENCE of the class at :4905.",
+  "D119": "The ABSENT-branch lexical fallback fails in both directions simultaneously: 10/13 real names destroyed AND 6/18 execution assertions surviving. Product decision, remedy must obtain canonical evidence rather than add a sixth grammar rule.",
+  "D120": "safeOptionLabel never consults EXECUTION_IN_PROGRESS, so progressive execution assertions ship verbatim as option labels.",
+  "D121": "Three guard limits unobserved (mutants M03, M06, M21) plus one equivalent mutant (M25: the ||'archive' default in commandContradictsActionType is dead).",
+  "D122": "index.ts:2563 cites issue5_confirmation_action_type_binding.mjs as proof of the issue-5 P1 fix, but that suite reimplements the map and never reads index.ts. The invariant is observed elsewhere (source_invariants_drift_guard), so this is an inaccurate citation, not a vacuous guard."
+ },
+ "confirmed_closed": {
+  "D106": "CLOSED and closed well. 34/40 probes pass; all 6 failures are D116, in code D106 never touched.",
+  "D113": "CLOSED where canonical evidence exists: 0/18 assertions survive, 0/13 real names destroyed, every targeted probe correct.",
+  "D114": "CLOSED and ends the four-campaign oscillation. Candidate 0 leaks / 1 lost STRICTLY DOMINATES ace9b6a (0/5) and f1722f2 (7/1) on both axes.",
+  "D112": "PARTIALLY closed - see D117 and D118.",
+  "guards": "All seven new guards observed in BOTH coverage and LIMIT directions by committed cases (20 of my 25 mutants killed)."
+ },
+ "artifacts": {
+  "ledger_entry": "qa/verification/proposed/v15_known_failure_modes_entry_75.md",
+  "promotion_note": "qa/verification/proposed/v15_PROMOTION_NOTE.md",
+  "regression_cases": "qa/verification/proposed/v15_regression_additions.mjs (46 cases, 17 pass / 29 fail, 0 CONTRACT failures, exits 1)",
+  "scratch": [
+   "qa/verification/scratch/v15_extract.mjs",
+   "qa/verification/scratch/v15_mutations.mjs",
+   "qa/verification/scratch/v15_battery.mjs",
+   "qa/verification/scratch/v15_s0_matcher_attack.mjs",
+   "qa/verification/scratch/v15_s3_drift_corpora.mjs",
+   "qa/verification/scratch/v15_s4_corroboration.mjs",
+   "qa/verification/scratch/v15_s7_question_belt.mjs",
+   "qa/verification/scratch/v15_s9_ledger_claims.mjs"
+  ]
+ },
+ "production_state": {
+  "function": "sem-ai-command",
+  "version": 92,
+  "status": "ACTIVE",
+  "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+  "updated_at_ms": 1788239725518,
+  "note": "Production predates the entire run9->run14 sequence. NONE of D58-D122 is live. Every finding concerns a candidate branch."
+ },
+ "scope_not_covered": [
+  "The 60 .sql suites were NOT run and no database query was issued. DB/RLS/lifecycle truth is OUT OF SCOPE for campaign #75 and is neither verified nor implied.",
+  "No UI verification and no live AI-chat verification were performed.",
+  "NO synthetic data was created: this campaign issued zero writes of any kind, so there is no QA-VERIFY-* cleanup to perform.",
+  "No source file was modified and nothing was committed or deployed."
+ ]
+}

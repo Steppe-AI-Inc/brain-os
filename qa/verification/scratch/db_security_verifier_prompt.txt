@@ -1,37 +1,17 @@
+INDEPENDENT DB/SECURITY VERIFICATION — three PREPARED migrations, three SEPARATE verdicts (campaign db-review-202609020001-2-3).
 
-=== ADDENDUM (2026-09-03): FOURTH MIGRATION + FACTORY RUNTIME REVIEW ===
+Repo: C:/Users/Dell/dev/brain-os-bug006 (master worktree). The three files under review, committed as SOURCE ONLY (none applied anywhere; no db push is authorized; you must NOT execute any DDL against production — your production access, if any is granted in your allowlist, is read-only reference):
+  1. supabase/migrations/202609020001_chat_channel_state_durable_conversation.sql
+  2. supabase/migrations/202609020002_set_person_assignment_clear_manager.sql
+  3. supabase/migrations/202609020003_messaging_transport_foundation.sql
+Context docs (read, do not trust): qa/verification/proposed/202609020001-channel-state-migration-review.md, docs/MESSAGING-TRANSPORT-ARCHITECTURE.md, post-apply test qa/scenarios-runner/chat_channel_state_rls_personas.sql. The FEATURE-GATED runtime consumer for #1 is in supabase/functions/sem-ai-command/index.ts on branch pending/d3-past-completion-gate-pendingaction-shortcircuit @ C:/Users/Dell/dev/brain-os (grep for chat_channel_state; verify the gate is real: any error -> pre-migration behavior).
 
-4. supabase/migrations/202609030001_agent_run_capacity_retry.sql — durable
-   provider-capacity retry state for agent_runs + claim_blocked_run_for_retry().
-   Its own verdict, like the others.
+A PASS on one migration MUST NOT imply anything about another. Emit one verdict per migration: READY FOR AUTHORIZATION or NOT READY with exact defects.
 
-Verify for 202609030001: retry metadata does not increase task/company visibility;
-retry claims cannot be forged by ordinary employee users; claim_blocked_run_for_retry
-authority is founder/admin ONLY as intended; SECURITY DEFINER has a safe search_path;
-explicit REVOKE/GRANT posture; PUBLIC and anon cannot execute it; FOR UPDATE SKIP LOCKED
-plus the in-transaction status flip genuinely prevents a double claim (two supervisors
-cannot restart one run); only eligible PROVIDER_CAPACITY_BLOCKED runs are claimable;
-retry_after enforced; unclassified failures cannot auto-restart; source_sha mismatch
-invalidates the old verification checkpoint; requested_ and actual_ provider/model stay
-SEPARATE and fallback_reason cannot hide a substitution; attempt_count monotonic;
-cross-organization Agent Runs remain isolated; rollback safe.
+For 202609020001 verify (at minimum): the EXISTS-under-RLS select policy cannot WIDEN chat_channels visibility in any direction; write policy is the channel WRITE tier spelled out (a reader must not plant pending actions); anon has zero access (grants + policies); authenticated-but-uninvited zero; whole-or-nothing pending action CHECK is complete (no half-written shape passes; NULLs only together); action-type vocabulary constrained; source work-order binding + ON DELETE semantics (reader must treat null source as expired — verify the runtime does); expected-confirmation constrained; expiry present and reader-enforced; version CAS semantics (writer-driven, no trigger interference); cross-org isolation via the channel; focus_stack/resolved_entities can never become an authority source; last_successful_mutation is evidence-derived in the runtime; rollback (drop table) genuinely safe with the feature-gated runtime both before AND after.
+For 202609020002: old 11-arg signature dropped (no ambiguous overload possible); all existing callers compatible (positional 11-arg call in 202608280012 line ~351; named-param web caller web/lib/data/people.ts setPersonManager); p_clear_manager explicit; NULL never implicitly clears; clear=true + non-null manager RAISES; search_path='' preserved from 202608280013 (the file documents a caught near-miss — verify the body against the LIVE definition if you have read access, else against 202608280013's text); schema-qualified enum casts preserved; authority check unchanged; cross-org manager assignment impossible through this RPC path (note: the RPC itself doesn't same-company-check the manager — the web action does; decide whether that split is acceptable and record it); anon/public revoked on the new signature; rollback text correct (must restore the 0013 body, not 0011).
+For 202609020003: chat_channels stays the canonical layer (bindings reference, never replace); explicit company binding NOT NULL; external identity mapping is founder/admin-only and one-live-mapping-per-identity; unknown external sender acquires zero authority anywhere; anon zero; outbound queue requires channel WRITE tier (viewer cannot speak as the company); disabled binding blocks sends at the queue layer (verify the design doc's claim matches the schema's capability); unique (transport, external_conversation_id) idempotency; duplicate-webhook handling adequacy at schema level; NO secrets columns in ordinary tables; cross-org isolation; rollback order safe.
 
-ALSO REVIEW THE FACTORY RUNTIME (not only the SQL), in the master worktree:
-scripts/factory-runner/supervisor.mjs, scheduler.mjs, provider.mjs and their
-regression tests. Verify: PROCESS LIFETIME != WORK ORDER LIFETIME actually holds (the
-supervisor must not need the dead session); exit 0 + provider-capacity text classifies
-BLOCKED and never PASS; retry eligibility; atomic claiming; checkpoint injection;
-source-SHA validation; NO silent provider/model fallback; bounded backoff; no runaway
-retry loop.
+Also run a same-defect sweep across all three: grant/revoke completeness (202608310004 discipline), search_path on any function, FK delete behaviors, unique constraints vs partial indexes, and anything the three share that could fail together.
 
-ADVERSARIAL, EXPLICITLY REQUIRED: attack the supervisor/RPC boundary for injection or
-authority escalation through checkpoint_location, worktree, branch, source_sha, and the
-provider/model strings. Database-controlled strings must never become unquoted shell
-commands, nor silently redirect a spawned session's cwd, nor act as instructions to the
-resumed agent. The implementing session already hardened this (safeMeta/safeWorktree,
-execFile with an argv array, untrusted-metadata framing in the resume prompt) — treat
-that as a claim to break, not a guarantee. Judge whether the allowlist roots are correct
-and whether a founder/admin-only write path makes the residual risk acceptable.
-
-Write per-migration verdicts to qa/verification/DB_REVIEW_202609020001-3.json (add a
-202609030001 section). A PASS on any one migration must not imply PASS on another.
+Write your record to qa/verification/DB_REVIEW_202609020001-3.json in the master worktree (do NOT touch CURRENT_CAMPAIGN.json — that belongs to the Edge campaign). Checkpoint per-migration; provider-limit rule: checkpoint FIRST, verdicts stay PENDING.

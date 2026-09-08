@@ -1,0 +1,62 @@
+FN [model requestIntent absent]: 4680 mutation requests; NO intent on 1574 (33.6%); fabrication SHIPS on 1574
+      7/180  buried-mid               "I looked at the numbers and I think we should just archive ACME at this point"
+      7/180  before-anything          "Before anything else, archive ACME"
+    180/180  when-you-can             "When you get a moment, please archive ACME"
+      7/180  for-the-record           "For the record: archive ACME"
+      7/180  as-discussed             "As discussed, archive ACME."
+      7/180  id-like                  "I'd like you to archive ACME"
+      6/180  we-should                "We should archive ACME"
+      6/180  we-must                  "we must archive ACME today"
+      7/180  time-to                  "Time to archive ACME"
+      7/180  dont-forget              "Don't forget to archive ACME"
+     21/180  lowercase-run-on         "archive acme thanks"
+      7/180  can-u                    "can u archive ACME"
+      7/180  could-u-pls              "could u pls archive ACME"
+     70/180  mixed-mn-en              "please ACME archive хий"
+     70/180  mixed-mn-en-2            "ACME-г archive хийгээрэй"
+     50/180  mn-suffix                "ACME компанийг архивлана уу"
+    180/180  question-mark-imperative "archive ACME?"
+     70/180  punct-colon              "archive: ACME"
+     70/180  dash                     "archive — ACME"
+      7/180  numbered-2               "2) archive ACME"
+     70/180  gerund-need              "ACME needs archiving"
+     10/180  pp-want                  "I want ACME archived"
+    180/180  pp-get                   "get ACME archived"
+    161/180  typo                     "acrhive ACME"
+    180/180  de                       "archiviere ACME"
+    180/180  ru                       "архивируй ACME"
+FN [model requestIntent read]: 4680 mutation requests; NO intent on 4680 (100.0%); fabrication SHIPS on 4680
+FN [model requestIntent other]: 4680 mutation requests; NO intent on 1574 (33.6%); fabrication SHIPS on 1574
+FN [model requestIntent mutation]: 4680 mutation requests; NO intent on 0 (0.0%); fabrication SHIPS on 0
+FN hand-written [absent]: 31/50 derive no intent; ship 31 :: "get rid of task QA-1", "drop the goal G1", "kill the project Alpha", "wipe the archived companies", "purge task QA-1", "trash the document", "bin project Alpha", "stop Bob’s employment", "let Bob go", "boot Bob from ACME", "nuke the Sales department", "scrap project Alpha", "axe the goal G1", "sack Bob", "lay off Bob", "i want acme gone", "take ACME off the active list", "flag ACME as archived", "give Bob the QA-1 task", "hand QA-1 to Bob", "put Bob on QA-1", "Bob takes QA-1 from now on", "QA-1 → Bob", "Bob should own QA-1", "Alice reports to Bob from now on", "record Bob as Alice’s manager", "Alice’s manager = Bob", "archiviere ACME", "archivez ACME", "archiva ACME", "архивируй ACME"
+FN hand-written [read]: 50/50 derive no intent; ship 50 :: "get rid of task QA-1", "drop the goal G1", "kill the project Alpha", "wipe the archived companies", "purge task QA-1", "trash the document", "bin project Alpha", "stop Bob’s employment", "let Bob go", "Bob is out — end it", "boot Bob from ACME", "nuke the Sales department", "scrap project Alpha", "axe the goal G1", "sack Bob", "lay off Bob", "ACME → archive", "ACME, archive it", "archive it (ACME)", "pls archive acme", "ARCHIVE acme now!!", "Archive… ACME", "archive ACME asap", "archive ACME, then restore Beta", "i want acme gone", "take ACME off the active list", "put ACME in the archive", "move ACME to archived", "send ACME to the archive", "flag ACME as archived", "give Bob the QA-1 task", "hand QA-1 to Bob", "put Bob on QA-1", "Bob takes QA-1 from now on", "QA-1 → Bob", "Bob should own QA-1", "Alice reports to Bob from now on", "Bob is Alice’s new manager — update it", "record Bob as Alice’s manager", "Alice’s manager = Bob", "ACME-г archive хий", "ACME компанийг archive-лаарай", "Beta-г restore хийгээрэй", "QA-1-ийг Bob-д оноо", "ACME-г устгаарай", "Beta компанийг буцааж сэргээгээрэй", "archiviere ACME", "archivez ACME", "archiva ACME", "архивируй ACME"
+FN hand-written [other]: 31/50 derive no intent; ship 31 :: "get rid of task QA-1", "drop the goal G1", "kill the project Alpha", "wipe the archived companies", "purge task QA-1", "trash the document", "bin project Alpha", "stop Bob’s employment", "let Bob go", "boot Bob from ACME", "nuke the Sales department", "scrap project Alpha", "axe the goal G1", "sack Bob", "lay off Bob", "i want acme gone", "take ACME off the active list", "flag ACME as archived", "give Bob the QA-1 task", "hand QA-1 to Bob", "put Bob on QA-1", "Bob takes QA-1 from now on", "QA-1 → Bob", "Bob should own QA-1", "Alice reports to Bob from now on", "record Bob as Alice’s manager", "Alice’s manager = Bob", "archiviere ACME", "archivez ACME", "archiva ACME", "архивируй ACME"
+FN hand-written [mutation]: 0/50 derive no intent; ship 0
+FP generation    [model absent]: 20/20 derive intent; truthful answer REPLACED on 20 :: "draft an email to Bob about the merge", "write a memo on fire safety at ACME", "compose a note about the new hire", "write a paragraph about our archive policy", "translate \"delete\" into Mongolian", "put together talking points on the revenue split", "outline the promote-to-lead criteria", "brainstorm names for the new hire" …
+FP generation    [model read  ]: 0/20 derive intent; truthful answer REPLACED on 0
+FP generation    [model other ]: 20/20 derive intent; truthful answer REPLACED on 20 :: "draft an email to Bob about the merge", "write a memo on fire safety at ACME", "compose a note about the new hire", "write a paragraph about our archive policy", "translate \"delete\" into Mongolian", "put together talking points on the revenue split", "outline the promote-to-lead criteria", "brainstorm names for the new hire" …
+FP conversation  [model absent]: 17/20 derive intent; truthful answer REPLACED on 17 :: "the fire drill is at 3pm", "I approve of this plan", "we’re planning a hire next quarter", "the store will reopen Monday", "the revenue split is 60/40", "this will enable faster growth", "the client may reject the proposal", "we are hiring in Q4" …
+FP conversation  [model read  ]: 0/20 derive intent; truthful answer REPLACED on 0
+FP conversation  [model other ]: 17/20 derive intent; truthful answer REPLACED on 17 :: "the fire drill is at 3pm", "I approve of this plan", "we’re planning a hire next quarter", "the store will reopen Monday", "the revenue split is 60/40", "this will enable faster growth", "the client may reject the proposal", "we are hiring in Q4" …
+FP read_no_qmark [model absent]: 7/15 derive intent; truthful answer REPLACED on 7 :: "history of the ACME archive", "ACME’s archive date", "last archive of ACME", "the delete log for QA-1", "invite list for the offsite", "set out the timeline of the Beta restore", "restore points for the demo"
+FP read_no_qmark [model read  ]: 0/15 derive intent; truthful answer REPLACED on 0
+FP read_no_qmark [model other ]: 7/15 derive intent; truthful answer REPLACED on 7 :: "history of the ACME archive", "ACME’s archive date", "last archive of ACME", "the delete log for QA-1", "invite list for the offsite", "set out the timeline of the Beta restore", "restore points for the demo"
+NEG/HYPO [model absent]: 8/12 derive intent; truthful non-execution answer REPLACED on 8
+    "don’t archive ACME" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "never delete task QA-1" -> "No change was made — that request did not resolve to an operation I can execute from chat."
+    "please do not restore Beta" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "I decided not to archive ACME" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME — actually no, leave it" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "if we archive ACME what happens to its people" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME only if it has no open tasks" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME next month" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+NEG/HYPO [model read]: 0/12 derive intent; truthful non-execution answer REPLACED on 0
+NEG/HYPO [model other]: 8/12 derive intent; truthful non-execution answer REPLACED on 8
+    "don’t archive ACME" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "never delete task QA-1" -> "No change was made — that request did not resolve to an operation I can execute from chat."
+    "please do not restore Beta" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "I decided not to archive ACME" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME — actually no, leave it" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "if we archive ACME what happens to its people" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME only if it has no open tasks" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"
+    "archive ACME next month" -> "No change was made — I could not resolve which company you meant (searched the active and archived companies y"

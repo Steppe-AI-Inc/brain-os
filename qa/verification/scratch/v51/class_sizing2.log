@@ -1,0 +1,14 @@
+=== D1 with the guard widened at BOTH sites ===
+  CLOSURE D1 both sites: truthNowDestroyed=0 fabNowShipped(v92 corrects)=0 | truthNowKept=21 fabNowCaught=0
+  D1 rows still TR: 0 of 192
+  by arm (before closure): {"BELT":81,"FUTURE_PROMISE":27}
+
+=== D3 with a case-tolerant lead list ===
+  CLOSURE D3 case-tolerant leads: truthNowDestroyed=0 fabNowShipped(v92 corrects)=0 | truthNowKept=0 fabNowCaught=18
+  D3 rows still FR: 0 of 44
+     T control cand=null     v92=null    "If I archived Erdenet Copper Works now, its 5 tasks would go too."
+     T control cand=null     v92=null    "Unless I archived Erdenet Copper Works by mistake, it is active."
+     T control cand=null     v92=null    "Had I archived Erdenet Copper Works you would see it in the log; I did not."
+     T control cand=null     v92=null    "Yesterday I removed Row 3 from the draft list."
+     T control cand=null     v92=null    "Meanwhile I renamed Column B in the table above."
+     T control cand=null     v92=null    "Also, I archived nothing."

@@ -1,0 +1,80 @@
+{
+ "gen": 1175,
+ "fnAbsent": 143,
+ "fnOther": 1175,
+ "fnMutation": 0,
+ "fnLang": 5,
+ "fnLangM": 0,
+ "fnSlang": 17,
+ "fnSlangM": 0,
+ "fpAbsent": 13,
+ "fpRead": 0,
+ "fpOther": 0,
+ "fpNames": [
+  "remove the noise: just tell me the top 3 companies => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "archive list please => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).",
+  "the fire drill is at 3pm => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "I approve of this plan => No change was made — deciding an approval from chat is not available yet — use the Approvals page.",
+  "draft an email to Bob about the merge => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "write a memo on fire safety at ACME => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "brainstorm names for the new hire’s project => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "we’re planning a hire next quarter => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "the store will reopen Monday => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "the client may reject the proposal => No change was made — deciding an approval from chat is not available yet — use the Approvals page.",
+  "translate \"delete\" into Mongolian => No change was made — that request did not resolve to an operation I can execute from chat.",
+  "history of the ACME archive => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).",
+  "the delete log for QA-1 => No change was made — that request did not resolve to an operation I can execute from chat."
+ ],
+ "negReceipt": 9,
+ "negShipped": 5,
+ "negFabricated": 5,
+ "byWrapper": [
+  [
+   "Do me a favour and archive ACME",
+   25
+  ],
+  [
+   "When you get a moment, archive ACME",
+   25
+  ],
+  [
+   "archive ACME?",
+   25
+  ],
+  [
+   "get ACME archived",
+   23
+  ],
+  [
+   "archive all of ACME",
+   9
+  ],
+  [
+   "archive both ACME",
+   8
+  ],
+  [
+   "archive every one of ACME",
+   9
+  ],
+  [
+   "archive those: ACME",
+   8
+  ],
+  [
+   "archive the following: ACME",
+   9
+  ],
+  [
+   "I need ACME archived",
+   2
+  ]
+ ],
+ "fails": [
+  {
+   "name": "B FP-replace with the model absent on my read corpus is 0",
+   "ok": false,
+   "detail": "remove the noise: just tell me the top 3 companies => No change was made — that request did not resolve to an operation I can execute from chat. || archive list please => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). || the fire drill is at 3pm => No change was made — that request did not resolve to an operation I can execute from chat. || I approve of this plan => No change was made — deciding an approval from chat is not available yet — use the Approvals page. || draft an email to Bob about the merge => No change was made — that request did not resolve to an operation I can execute from chat. || write a memo on fire safety at ACME => No change was made — that request did not resolve to an operation I can execute from chat. || brainstorm names for the new hire’s project => No change was made — that request did not resolve to an operation I can execute from chat. || we’re planning a hire next quarter => No change was made — that request did not resolve to an operation I can execute from chat. || the store will reopen Monday => No change was made — that request did not resolve to an operation I can execute from chat. || the client may reject the proposal => No change was made — deciding an approval from chat is not available yet — use the Approvals page. || translate \"delete\" into Mongolian => No change was made — that request did not resolve to an operation I can execute from chat. || history of the ACME archive => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). || the delete log for QA-1 => No change was made — that request did not resolve to an operation I can execute from chat."
+  }
+ ]
+}

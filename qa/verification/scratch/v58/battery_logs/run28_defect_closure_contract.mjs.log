@@ -1,0 +1,141 @@
+source : C:\Users\Dell\dev\brain-os-verify-5ebc695\supabase\functions\sem-ai-command\index.ts
+sha256 : 0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b
+
+--- [CONTRACT] D163 / FIX-H: the modal window may not swallow a real completion
+ok    [CONTRACT] D163.modal.may :: I may confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.modal.might :: I might confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.modal.could :: I could confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.modal.can :: I can confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.modal.would :: I would confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.modal.should :: I should confirm ACME Holding has been archived.
+ok    [CONTRACT] D163.oneTokenName :: I can confirm ACME has been archived.
+ok    [CONTRACT] D163.singleCharName :: I can confirm X has been archived.
+ok    [CONTRACT] D163.digitInName :: I can confirm Unit 42 has been archived.
+ok    [CONTRACT] D163.digitOnlyName :: I can confirm 42 has been archived.
+ok    [CONTRACT] D163.weForm :: We can verify Beta Corp has been deleted.
+ok    [CONTRACT] D163.lexiconWordThenSubject :: I can now confirm ACME has been archived.
+ok    [CONTRACT] D163.haveBeenPlural :: I can confirm the tasks have been deleted.
+
+--- [CONTRACT] D161 / FIX-H: a genuine hedge inside the lexicon still survives
+ok    [CONTRACT] D161.bare.may :: ACME may have been archived.
+ok    [CONTRACT] D161.bare.might :: ACME might have been deleted.
+ok    [CONTRACT] D161.bare.could :: ACME could have been restored.
+ok    [CONTRACT] D161.well :: ACME might well have been deleted.
+ok    [CONTRACT] D161.lexiconBothEnds :: ACME may indeed already have been archived.
+ok    [CONTRACT] D161.threeLexiconWords :: ACME may possibly already recently have been archived.
+ok    [CONTRACT] D161.shortestName :: X may have been archived.
+ok    [CONTRACT] D161.inFact :: ACME may in fact have been archived.
+
+--- [CONTRACT] D164 / FIX-I: a SINGLE-token determiner-led evidential subject fires
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.theLogShows :: No record exists however the log shows ACME was archived.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.ourAuditConfirms :: No entry found however our audit confirms Beta Corp was deleted.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.thisReportStates :: No trace remains although this report states ACME was deleted.
+ok    [CONTRACT] D164.andLinkerStillCaught :: No errors occurred and the log shows ACME was archived.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.therefore :: No issue therefore their system records ACME was archived.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.coordinatorName.1 :: Nothing failed however the log shows Acme and Sons was archived.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.coordinatorName.2 :: No errors occurred however the audit confirms Salt and Pepper Co was archived.
+ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.determinerInitialName1Word :: No record exists however The Archive shows ACME was archived.
+
+--- [CONTRACT] D156 / D162b / FIX-I: the NEGATED-NP evidential must still survive
+ok    [CONTRACT] D164.keep.noLogHoweverShows :: No log however shows ACME was archived.
+ok    [CONTRACT] D164.keep.noAuditHoweverShows :: No audit however shows Beta Corp was deleted.
+ok    [CONTRACT] D164.keep.nothingInOurRecords :: Nothing in our records however shows ACME was archived.
+ok    [CONTRACT] D164.keep.neitherNor :: Neither our log nor our report shows ACME was archived.
+ok    [CONTRACT] D164.keep.zeroLinker :: No file our system shows was archived.
+ok    [CONTRACT] D164.keep.notASingleOne :: Not a single one of the logs however shows ACME was archived.
+ok    [CONTRACT] D164.keep.evidentialInEarlierSegment :: No log shows ACME was archived however the task remains open.
+
+--- [CONTRACT] prior closures must not reopen
+ok    [CONTRACT] D112.noun :: There are 3 archived companies in the list.
+ok    [CONTRACT] D112.negation :: The company is not archived.
+ok    [CONTRACT] D128.nameWithAnd :: No company named Salt and Pepper Co was archived.
+ok    [CONTRACT] D130.nameLeadingParticiple :: Closed Loop Systems was not archived.
+ok    [CONTRACT] D131.withoutQualifier :: ACME was archived without incident.
+ok    [CONTRACT] D137.presentState :: test3 is archived. Should I restore it?
+ok    [CONTRACT] D137.stateButNegatedPast :: ACME is archived but was not deleted.
+ok    [CONTRACT] D147b.clauseInitialNegatorThenFabrication :: No errors occurred and ACME was archived.
+ok    [CONTRACT] D125.trailingNegator :: ACME was archived — no undo available.
+ok    [CONTRACT] D155.firstPersonProperName :: I deleted Beta Corp.
+ok    [CONTRACT] D155.firstPersonNonEntity :: I removed it from my draft.
+ok    [CONTRACT] D155.firstPersonEntityNoun :: I deleted the company.
+ok    [CONTRACT] D134.confirmedThenNegative :: Confirmed — as requested, the company was not archived.
+ok    [CONTRACT] D134.confirmedThenCompletion :: Confirmed — as requested, Restored Bob Smith.
+ok    [CONTRACT] D103c.referencelessConfirmation :: Confirmed — the company (option 1).
+ok    [CONTRACT] D103.substantiveConfirmation :: Confirmed — the company you asked about is in Ulaanbaatar.
+ok    [CONTRACT] D151.nobody :: Nobody was assigned to that task.
+ok    [CONTRACT] D151.hardly :: Hardly any records were deleted.
+ok    [CONTRACT] D139_D142_D146.zeroRelativizer :: No record we found was archived.
+ok    [CONTRACT] BUG002.approvalFabrication :: The approval has been approved.
+ok    [CONTRACT] honestDecline :: I can't actually do that from chat.
+ok    [CONTRACT] clarifyingQuestion :: Which company did you mean — ACME or ACME Holding?
+ok    [CONTRACT] futurePromiseIsAnotherGate :: I'll archive ACME for you.
+ok    [CONTRACT] D136.progressive :: I'm now archiving ACME.
+ok    [CONTRACT] D136.bareGerundLead :: Archiving ACME as we speak.
+ok    [CONTRACT] D157_D158.stateAnswer :: ACME is currently archived.
+ok    [CONTRACT] lastSegmentSplit.evidentialBeforeCoordinator.and :: No audit shows nothing and ACME was archived.
+ok    [CONTRACT] lastSegmentSplit.evidentialBeforeCoordinator.but :: No log proves anything but Beta Corp was deleted.
+
+--- [DEFECT] D166 (P2): FIX-I closes only a ONE-TOKEN determiner-led evidential subject
+ok    [RESIDUAL] D166r.multiTokenEvidentialMissed.adjectiveBeforeNoun :: No record exists however the internal log shows ACME was archived.
+ok    [RESIDUAL] D166r.multiTokenEvidentialMissed.twoTokenSubject :: No record exists however our audit team confirms ACME was archived.
+ok    [RESIDUAL] D166r.multiTokenEvidentialMissed.possessiveApostrophe :: No record exists however the client's log shows ACME was archived.
+ok    [RESIDUAL] D166r.multiTokenEvidentialMissed.hyphenatedSubject :: No record exists however the audit-trail shows ACME was archived.
+ok    [RESIDUAL] D166r.multiTokenEvidentialMissed.determinerInitialName2Word :: No record exists however The Archive Co shows ACME was archived.
+
+--- [DEFECT] D167 (P2): FIX-I destroys a negated subject carrying a determiner-led PP
+ok    [DEFECT] D167.ourRecords :: No entry however in our records shows ACME was archived.
+ok    [DEFECT] D167.ourRecentRecords :: No entry however in our recent records shows ACME was archived.
+ok    [DEFECT] D167.theirReports :: No document however in their reports indicates Beta Corp was deleted.
+ok    [DEFECT] D167.theNotes :: No item however in the notes confirms ACME was archived.
+ok    [DEFECT] D167.myStatements :: No line however in my statements proves the invoice was sent.
+ok    [DEFECT] D167.ourAudit :: No finding however from our audit shows ACME was archived.
+ok    [DEFECT] D167.theCompanyRecord :: No trace however of the company record shows Beta Corp was deleted.
+ok    [DEFECT] D167.thisQuarterReport :: No evidence however in this quarter report states ACME was archived.
+
+--- [DEFECT] D169 (P3): a hedge disarms a fabrication that shares its clause
+ok    [RESIDUAL] D169r.modalDropsWholeClause.andCoordinated :: ACME may have been archived and Beta Corp has been deleted.
+ok    [RESIDUAL] D169r.modalDropsWholeClause.butCoordinated :: ACME might have been archived but Delta Ltd was deleted.
+ok    [RESIDUAL] D169r.modalDropsWholeClause.dashSeparated :: It could have been a mistake — ACME has been archived.
+
+--- [RESIDUAL] pinned at CURRENT behaviour
+ok    [RESIDUAL] D168.adverb.reasonably :: ACME may reasonably have been archived.
+ok    [RESIDUAL] D168.adverb.easily :: Beta Corp could easily have been deleted.
+ok    [RESIDUAL] D168.adverb.therefore :: ACME may therefore have been archived.
+ok    [RESIDUAL] D168.adverb.arguably :: ACME might arguably have been deleted.
+ok    [RESIDUAL] D168.adverb.simply :: ACME may simply have been archived.
+ok    [RESIDUAL] D168.adverb.instead :: ACME may instead have been archived.
+ok    [RESIDUAL] D168.question.nameInWindow :: Might Beta Corp have been deleted?
+ok    [RESIDUAL] D168.question.pronounInWindow :: Could this have been archived by someone else?
+ok    [RESIDUAL] D168.question.detNounInWindow :: Could the company have been archived earlier?
+ok    [RESIDUAL] D168.pp.byThatTime :: ACME may by that time have been archived.
+ok    [RESIDUAL] D170.digitFinalName.test3 :: Confirmed — test3 archived.
+ok    [RESIDUAL] D170.digitFinalName.unit42 :: Confirmed — Unit 42 archived.
+ok    [RESIDUAL] D170.digitFinalName.q4 :: Confirmed — Q4 deleted.
+ok    [RESIDUAL] D170.digitFinalName.sector7 :: Confirmed — Sector 7 restored.
+ok    [RESIDUAL] D170.control.wasArm :: Confirmed — test3 was archived.
+ok    [RESIDUAL] D170.control.nonDigitName :: Confirmed — ACME archived.
+ok    [RESIDUAL] D116.negatorInitialName.closed :: Nothing Bundt Cakes was archived.
+ok    [RESIDUAL] D116.negatorInitialName.pairedRealNameSurvives :: Nothing Bundt Cakes was not archived.
+ok    [RESIDUAL] D156b.subjectNP :: That ACME was archived cannot be confirmed.
+ok    [PARITY] D158d.allcapsNonEntityObject :: I restored ORDER to the layout.
+ok    [RESIDUAL] D153.droppedLinker.closed :: No errors ACME was archived.
+ok    [RESIDUAL] D153.introducerStillNegates.named :: No company named CLIX GPS was archived.
+ok    [RESIDUAL] D153.introducerStillNegates.at :: No unit at Erdenet — Copper Works was archived.
+ok    [RESIDUAL] D153.introducerStillNegates.shows :: No record shows ACME was archived.
+ok    [RESIDUAL] lowercaseNameWithAnd :: No record shows salt and pepper co was archived.
+ok    [RESIDUAL] D165.hasBeen.activated :: Delta Ltd has been activated.
+ok    [RESIDUAL] D165.hasBeen.closed :: Delta Ltd has been closed.
+ok    [RESIDUAL] D165.confirmed.added :: Confirmed — Delta Ltd added.
+ok    [RESIDUAL] D165.control.was :: Delta Ltd was archived.
+ok    [RESIDUAL] D165.activated.sharedWithV92 :: Delta Ltd was activated.
+ok    [RESIDUAL] D166b.linkerFreePlainName.closed :: No problem the log shows ACME was archived.
+ok    [RESIDUAL] D166b.negatedNounIsTheSubject :: No record shows ACME was archived.
+ok    [RESIDUAL] D166b.prepositionalContinuation :: No problem with the archive was reported.
+
+--- [CONTRACT] structural invariants
+ok    [CONTRACT] beltRegion.constCount=12 (no new const — run15 assembles the belt from a named list)
+ok    [CONTRACT] noInlineModifierGroup ((?i:)/(?-i:)) outside comments
+ok    [CONTRACT] predicate never throws (2000-case fuzz)
+ok    [CONTRACT] FIX-I lookahead is not quadratic (26KB clause < 50ms)
+
+117 passed, 0 failed

@@ -1,0 +1,41 @@
+Committed to `verify-0ba51a1-campaign81` as `2f60fbc`. Index bytes unchanged, implementation tree untouched.
+
+---
+
+## PREFLIGHT: EXECUTION_READY
+
+## FOUND
+
+**Two P1s open** on `0ba51a1`, one of them the very defect this candidate claims to have closed.
+
+### D148 (P1) — D142 is not closed, it was narrowed to one sentence
+The new dead-end requires `commandForContradiction.trim().length === 0` — it fires only for a **bare one-token reply**. Pending *archive* disambiguation, one option a company literally named **"Restore"**, founder means the verb:
+
+| reply | result |
+|---|---|
+| `restore` | dead end ✓ |
+| `restore.` / `restore!` / `restore it` / `please restore` / `restore that` / `yes restore` / `restore, please` / `ok restore it` / `restore the company` | **arms `archiveCompanyIds`** |
+
+**10 of 11 ordinary phrasings still archive the company the founder asked to restore, no LLM in the loop.** Lineage: `d34af15` 0/11, `9535f0b` 0/11, `52e830f` 0/11, `b32e0e4` 11/11, candidate 10/11. The closure moved the number by one. #80's own measured direction said "*and the **raw command** is an opposite-family verb*"; the implementation substituted "*and the **label** is*" while keeping the empty-command requirement — that substitution is the whole defect.
+
+### D145 (P1, NEW) — D144's active-voice arm destroys truthful answers
+No assertion-position constraint, so any embedded/interrogative/conditional/reported-speech use fires. **12 of 15** realistic replies destroyed, **none destroyed at any of the four baselines**. Proven end-to-end through the shipped gate block: `Are you asking whether I deleted Beta Corp?` → founder sees *"I can't actually do that from chat — nothing was changed"*, which is itself false. That is a clarifying question — a shape the repo's own preflight suite exists to protect.
+
+Plus **D146** (R-ZR2's `or/so/yet/before/after/since/while/though` are not clause linkers — 12 truthful negatives destroyed that survive at `d34af15`/`52e830f`), **D147** (D141's five new negators create 5 new fabrication-disarm vectors), **D149** (D141 broke run15's product pin — 57 assertions silently stopped running and were logged as a "pre-existing stub"; run15 is 57/0 at `b32e0e4` and 57/0 here with only the pin relaxed).
+
+## Genuinely closed, confirmed
+D139's headline (0/24 completion-word names destroyed vs 24/24 at `b32e0e4`; name-internal coordinators and em-dash place names all survive), D142's five bare-verb shapes, D144's headline fabrication, `PAST_COMPLETION_CLAIM_PATTERN` untouched, D137 not reopened, question belt **byte-identical at all five SHAs**, 0 CONTRACT failures across 92 passing assertions.
+
+## Bookkeeping truth
+Two closure-commit evidence claims are untrue: *"run15 exit-1 is the pre-existing superseded stub"* and *"zero new misses"*. R-IDIOM's non-adoption **is** stated openly with a reason — no criticism there.
+
+## Not verified — stated, not skipped
+`deno check` **BLOCKED** (deno not installed). **Live UI and live AI-chat truth checks BLOCKED by construction** — the candidate is not deployed (production is v92), so no browser or chat session can exercise these bytes; no browser tooling was available in this session type either. Every finding is CODE-EXECUTED against the shipped bytes, not LIVE VERIFIED. The 60 `*.sql` suites were **not run**.
+
+No `QA-VERIFY-*` synthetic data was created — this campaign is pure Edge-Function source verification with zero production writes, so there is nothing to clean up.
+
+---
+
+**VERDICT: FAIL**
+
+`c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2`

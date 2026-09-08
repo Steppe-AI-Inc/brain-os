@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
 import { classifyGoal, type GoalKind } from "@/lib/goals/classify";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 const GOAL_LIST_COLUMNS =
-  "id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, companies(name, status), departments(name), updated_at";
+  `id, title, description, status, kind, progress, due_at, cron_expr, company_id, department_id, ${COMPANY_REF}, departments(name), updated_at`;
 
 // Overnight multi-org milestone: activeOrganizationId scopes Goals to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —
@@ -30,7 +32,7 @@ export async function getGoal(id: string) {
   const { data, error } = await supabase
     .from("goals")
     .select(
-      "*, companies(name, status), departments(name), key_results(*), goal_context(content_md)"
+      `*, ${COMPANY_REF}, departments(name), key_results(*), goal_context(content_md)`
     )
     .eq("id", id)
     .maybeSingle();
@@ -137,12 +139,8 @@ export async function deleteGoal(id: string) {
 // manager. Matches AI chat exactly - both call the same RPC.
 export async function archiveGoal(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("archive_goal", { p_goal_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Archive failed — no result returned.";
-  if (result.reason === "not_found") return "This goal no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to archive this goal.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "archive_goal", idParam: "p_goal_id", id, entityType: "goal", action: "archive", requestedValues: { status: "archived" } });
+  if (userMessage) return userMessage;
   revalidatePath("/goals");
   revalidatePath("/board");
   revalidatePath(`/goals/${id}`);
@@ -152,12 +150,8 @@ export async function archiveGoal(id: string) {
 
 export async function restoreGoal(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("restore_goal", { p_goal_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Restore failed — no result returned.";
-  if (result.reason === "not_found") return "This goal no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to restore this goal.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "restore_goal", idParam: "p_goal_id", id, entityType: "goal", action: "restore" });
+  if (userMessage) return userMessage;
   revalidatePath("/goals");
   revalidatePath("/board");
   revalidatePath(`/goals/${id}`);

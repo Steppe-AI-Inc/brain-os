@@ -1,0 +1,53 @@
+OK   self.stripped                                  [CONTRACT] comment-stripped SQL still contains the table and all three RPCs
+OK   self.strippingWorks                            [CONTRACT] stripping actually removed comments (otherwise every assertion below is comment-satisfiable)
+OK   A2.updateGuardExists                           [DEFECT] R-A2: a BEFORE UPDATE guard on trusted columns exists in code, not only in a comment
+OK   A2.insertGuardExists                           [DEFECT] R-A2: a BEFORE INSERT guard exists too — a row must not be BORN holding fabricated state
+OK   A2.upd.pending_action                          [DEFECT] R-A2: UPDATE guard observes pending_action
+OK   A2.ins.pending_action                          [DEFECT] R-A2: INSERT guard observes pending_action
+OK   A2.upd.pending_action_action_type              [DEFECT] R-A2: UPDATE guard observes pending_action_action_type
+OK   A2.ins.pending_action_action_type              [DEFECT] R-A2: INSERT guard observes pending_action_action_type
+OK   A2.upd.pending_action_target_ids               [DEFECT] R-A2: UPDATE guard observes pending_action_target_ids
+OK   A2.ins.pending_action_target_ids               [DEFECT] R-A2: INSERT guard observes pending_action_target_ids
+OK   A2.upd.pending_action_source_work_order_id     [DEFECT] R-A2: UPDATE guard observes pending_action_source_work_order_id
+OK   A2.ins.pending_action_source_work_order_id     [DEFECT] R-A2: INSERT guard observes pending_action_source_work_order_id
+OK   A2.upd.pending_action_expected_confirmation    [DEFECT] R-A2: UPDATE guard observes pending_action_expected_confirmation
+OK   A2.ins.pending_action_expected_confirmation    [DEFECT] R-A2: INSERT guard observes pending_action_expected_confirmation
+OK   A2.upd.pending_action_created_at               [DEFECT] R-A2: UPDATE guard observes pending_action_created_at
+OK   A2.ins.pending_action_created_at               [DEFECT] R-A2: INSERT guard observes pending_action_created_at
+OK   A2.upd.pending_action_expires_at               [DEFECT] R-A2: UPDATE guard observes pending_action_expires_at
+OK   A2.ins.pending_action_expires_at               [DEFECT] R-A2: INSERT guard observes pending_action_expires_at
+OK   A2.upd.last_successful_mutation                [DEFECT] R-A2: UPDATE guard observes last_successful_mutation
+OK   A2.ins.last_successful_mutation                [DEFECT] R-A2: INSERT guard observes last_successful_mutation
+OK   A2.upd.compacted_summary                       [DEFECT] R-A2: UPDATE guard observes compacted_summary
+OK   A2.ins.compacted_summary                       [DEFECT] R-A2: INSERT guard observes compacted_summary
+OK   A2.upd.compacted_through_work_order_id         [DEFECT] R-A2: UPDATE guard observes compacted_through_work_order_id
+OK   A2.ins.compacted_through_work_order_id         [DEFECT] R-A2: INSERT guard observes compacted_through_work_order_id
+OK   A2.upd.compacted_turn_count                    [DEFECT] R-A2: UPDATE guard observes compacted_turn_count
+OK   A2.ins.compacted_turn_count                    [DEFECT] R-A2: INSERT guard observes compacted_turn_count
+OK   A2.upd.compacted_canonical_ids                 [DEFECT] R-A2: UPDATE guard observes compacted_canonical_ids
+OK   A2.ins.compacted_canonical_ids                 [DEFECT] R-A2: INSERT guard observes compacted_canonical_ids
+OK   A2.updRaises                                   [DEFECT] R-A2: the UPDATE guard refuses with a permission error, not a warning
+OK   A2.insRaises                                   [DEFECT] R-A2: the INSERT guard refuses with a permission error
+OK   A2.triggersWired                               [DEFECT] R-A2: both guards are actually attached as triggers — a guard function nothing calls is decorative
+OK   A2.guardNotDefiner                             [CONTRACT] the guard is SECURITY INVOKER and requires BOTH the flag AND the definer execution context (current_user = owner) — ROUND 3 / A-1
+OK   A1.rpcExists                                   [DEFECT] R-A1: arming a pending action goes through an RPC, not a direct table write
+OK   A1.noManagerTier                               [DEFECT] R-A1: the pending-action RPC does NOT grant the company-manager tier (that is the confused-deputy escalation)
+OK   A1.creatorTier                                 [DEFECT] R-A1: the pending-action RPC authorizes the channel CREATOR or a founder/admin, and checks it
+OK   flag.on.set_chat_channel_pending_action        [DEFECT] set_chat_channel_pending_action raises the trusted-write flag transaction-locally
+OK   flag.off.set_chat_channel_pending_action       [DEFECT] set_chat_channel_pending_action lowers the flag again before returning — is_local lasts to end of TRANSACTION, not end of function
+OK   flag.local.set_chat_channel_pending_action     [CONTRACT] set_chat_channel_pending_action uses is_local => true, so an exception cannot leave the flag raised
+OK   flag.on.record_chat_channel_mutation           [DEFECT] record_chat_channel_mutation raises the trusted-write flag transaction-locally
+OK   flag.off.record_chat_channel_mutation          [DEFECT] record_chat_channel_mutation lowers the flag again before returning — is_local lasts to end of TRANSACTION, not end of function
+OK   flag.local.record_chat_channel_mutation        [CONTRACT] record_chat_channel_mutation uses is_local => true, so an exception cannot leave the flag raised
+OK   flag.on.set_chat_channel_compaction            [DEFECT] set_chat_channel_compaction raises the trusted-write flag transaction-locally
+OK   flag.off.set_chat_channel_compaction           [DEFECT] set_chat_channel_compaction lowers the flag again before returning — is_local lasts to end of TRANSACTION, not end of function
+OK   flag.local.set_chat_channel_compaction         [CONTRACT] set_chat_channel_compaction uses is_local => true, so an exception cannot leave the flag raised
+OK   A4.confirmationBindsTargets                    [DEFECT] R-A4: a confirmation-type pending action must name its target ids
+OK   A3.jsonbShapes                                 [DEFECT] R-A3: the collection columns refuse a planted scalar at write time
+OK   A7.compactionInvalidates                       [DEFECT] R-A7: losing the compaction anchor invalidates the whole checkpoint rather than leaving it un-anchored
+OK   A7.triggerOrder                                [CONTRACT] the invalidation trigger sorts BEFORE the guard trigger, or the guard would reject the FK-driven reset
+OK   A6.updatedAtTrigger                            [DEFECT] R-A6: updated_at is maintained by the database, not by developer convention
+OK   A6.versionHasNoTrigger                         [CONTRACT] version is deliberately NOT trigger-maintained — that would break the compare-and-set it exists for
+OK   A10.shapeGuard                                 [DEFECT] R-A10: `create table if not exists` cannot silently adopt a differently-shaped table
+
+chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures)

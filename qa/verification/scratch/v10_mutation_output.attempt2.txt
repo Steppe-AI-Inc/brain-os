@@ -1,0 +1,76 @@
+BASELINE via suite copies (unmutated): {"structured_claim_verification":0,"structured_claim_laundering_contract":0,"lifecycle_evidence_and_output_persistence_contract":0,"run8_defect_closure_contract":0}
+M01 KILLED   [KILL (D68)] D68: drop the groundedOutcomeThisTurn arm of structuredProseDrift
+      run8_defect_closure_contract: FAIL D68 factLines-only grounding no longer shields pre-written completion prose
+M02 SURVIVED [expect SURVIVE (no test renders an all-gated re-render)] D68: remove the honest non-empty floor
+M03.1 SURVIVED [expect SURVIVE?] D69: drop terminator "!"
+M03.2 KILLED   [KILL (D69)] D69: drop terminator ";"
+      run8_defect_closure_contract: FAIL D69 semicolon-joined assertion is cut from the question
+M03.3 SURVIVED [expect SURVIVE?] D69: drop terminator ":"
+M03.4 SURVIVED [expect SURVIVE?] D69: drop terminator "…"
+M03.5 SURVIVED [expect SURVIVE?] D69: drop terminator "。"
+M03.6 SURVIVED [expect SURVIVE?] D69: drop terminator "！"
+M03.7 SURVIVED [expect SURVIVE?] D69: drop terminator "？"
+M03.8 SURVIVED [expect SURVIVE?] D69: drop terminator "—"
+M03.9 KILLED   [KILL (D69b)] D69: drop the newline terminator
+      run8_defect_closure_contract: FAIL D69b newline-joined assertion is cut
+M04 KILLED   [KILL (D70/D70b)] D70: remove the abbreviation/decimal guard (always cut at ".")
+      run8_defect_closure_contract: FAIL D70 an abbreviation period does NOT truncate a legitimate question | FAIL D70b a decimal does NOT truncate a legitimate question
+M05 KILLED   [KILL (D61 present tense)] D70: widen the guard to any letter (skip uppercase continuations too)
+      run8_defect_closure_contract: FAIL D61 present tense assertion never reaches the corrected summary | FAIL D61 simple past assertion never reaches the corrected summary | FAIL D61 imperative/done assertion never reaches the corrected summary
+M06 SURVIVED [KILL (D69c)] D69c: remove the belt over the surviving question
+M07 SURVIVED [expect SURVIVE?] question channel: drop the "must contain ?" rule
+M08 SURVIVED [KILL (D61 future promise)] question channel: drop the future-promise refusal
+M09 KILLED   [KILL (D74b)] D74: safeDisplayLabel drops the uuid scrub
+      run8_defect_closure_contract: FAIL D74b a uuid-bearing label collapses to the typed reference
+M10 SURVIVED [expect SURVIVE?] D74: safeDisplayLabel drops the length bound
+M11 KILLED   [KILL (D74)] D74: safeDisplayLabel drops the assertion collapse
+      run8_defect_closure_contract: FAIL D74 an assertion-shaped runtime label collapses to the typed reference
+M12 SURVIVED [expect SURVIVE? (canonical arm untested)] D74: canonical-name arm bypasses safeDisplayLabel
+M13 SURVIVED [expect SURVIVE?] D74: empty/whitespace label not refused
+M14 SURVIVED [expect SURVIVE (flag unobserved)] D73: flag site 1 (summary/question) never set
+M15 SURVIVED [expect SURVIVE (flag unobserved)] D73: flag site 2 (option label) never set
+M16 SURVIVED [expect SURVIVE (flag unobserved)] D73: flag site 3 (arrays) never set
+M17 KILLED   [KILL (P8)] D73: flag removed from the persist condition
+      lifecycle_evidence_and_output_persistence_contract: FAIL P8 a gated-pendingAction turn IS persisted (run9/D73)
+M18 SURVIVED [expect SURVIVE (D72 only asserts non-blank)] D72: fallback uses "option N" instead of the derived canonical reference
+M19 KILLED   [KILL (D72)] D72: fallback blanks the label again
+      run8_defect_closure_contract: FAIL D72 an assertion-shaped label falls back to a derived reference, never blank
+M20 KILLED   [KILL (D72b)] D72: trailing-punctuation repair removed
+      run8_defect_closure_contract: FAIL D72b a legitimate name with a trailing period is REPAIRED, not blanked
+M21 SURVIVED [expect SURVIVE?] D72: option-label truncation removed
+M22 SURVIVED [expect SURVIVE (redundant with safeProseFragment)] D72: post-repair assertion test removed in safeOptionLabel
+M23 KILLED   [KILL (D58a)] D58: evidence no longer arms the rewrite
+      run8_defect_closure_contract: FAIL D58a a REAL create with claims:null is REPORTED, never denied | FAIL D58a2 the runtime label names the created row when the write site captured one | FAIL D74 an assertion-shaped runtime label collapses to the typed reference
+M24 KILLED   [KILL (D58b3/D68)] D58b3: drift arm dropped entirely
+      run8_defect_closure_contract: FAIL D58b3 state-only claims + fabricated mutation prose is re-rendered (structured-mode prose drift) | FAIL D68 factLines-only grounding no longer shields pre-written completion prose
+M25 KILLED   [KILL (D59)] D59: re-add the pendingAction short-circuit to the legacy gate
+      run8_defect_closure_contract: FAIL D59 pendingAction no longer shields a fabricated completion from the legacy gate
+M26 KILLED   [KILL (D60)] D60: in-place pendingAction summary gating removed
+      run8_defect_closure_contract: FAIL D60 envelope.pendingAction.summary never carries a completion assertion | FAIL D73 the envelope carries the GATED pendingAction, assertion stripped, question intact
+M27 SURVIVED [KILL (D73 check)] D60: in-place pendingAction question gating removed
+M28 SURVIVED [KILL (D60)] D60: safePendingSummary completion-word refusal removed
+M29 KILLED   [KILL (D62)] D62: render the model expectedValue instead of the canonical actual
+      run8_defect_closure_contract: FAIL D62 the correction quotes the canonical actual, not model-authored expectedValue
+M30 KILLED   [KILL (D62b)] D62b: absent predicate is contradicted again
+      run8_defect_closure_contract: FAIL D62b a predicate absent from the canonical row is UNKNOWN — no rendered correction
+M31 KILLED   [KILL (D64)] D64: unclaimed lines dropped on fully-deterministic turns
+      run8_defect_closure_contract: FAIL D64 a fully-deterministic turn appends the unclaimed department create
+M32 KILLED   [KILL (D65)] D65: id-less create claim fold removed
+      run8_defect_closure_contract: FAIL D65 id-less create claim renders once, as the evidence line
+M33 KILLED   [KILL (D58a2/D74c)] D67: runtime labels ignored
+      run8_defect_closure_contract: FAIL D58a2 the runtime label names the created row when the write site captured one | FAIL D74c an honest label still renders
+M34 KILLED   [KILL (Section S)] D75/D63: evidence site commented out with a BLOCK comment
+      lifecycle_evidence_and_output_persistence_contract: FAIL S live guarded site: person end_employment (guarded) | FAIL S live evidence site: person end_employment
+M35 KILLED   [KILL (Section S guarded)] D75/D63: evidence site guard weakened (records on any reason)
+      lifecycle_evidence_and_output_persistence_contract: FAIL S live guarded site: person end_employment (guarded)
+M36 KILLED   [KILL (Section E + S)] D75: evidence site neutralised via a trailing comment
+      lifecycle_evidence_and_output_persistence_contract: FAIL E company-archive: a REAL confirmed change RECORDS evidence | FAIL S live guarded site: company archive (guarded)
+M37 KILLED   [KILL (D61)] D61: structural cut disabled (keep whole text)
+      run8_defect_closure_contract: FAIL D61 present tense assertion never reaches the corrected summary | FAIL D61 simple past assertion never reaches the corrected summary | FAIL D61 imperative/done assertion never reaches the corrected summary
+M38 KILLED   [KILL (D54/X7)] F5/D54: safeValueText uuid scrub removed
+      lifecycle_evidence_and_output_persistence_contract: DRIFT X7   [CONTRACT] a real canonical uuid arriving via predicate/expectedValue never reaches founder prose (run7/D54 FIXED)
+
+index.ts sha256 before 0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006
+index.ts sha256 after  0272f24555fc97e16a496284f4b23fa4eb7b6f22fb1fdb031f011b1d0f8a5006
+UNTOUCHED: true
+SUMMARY: 24 killed, 22 survived, 0 invalid of 46

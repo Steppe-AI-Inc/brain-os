@@ -1,0 +1,100 @@
+---
+
+# VERIFIER #54 — CAMPAIGN #114 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (A: `8eb8cbd23f16c338efb7fd4115f9376c2d29de74` ✓ · B: write probe ✓ · C: 13/13 ✓)
+
+## VERDICT: **FAIL**
+
+Not on the belt. **The belt is better than deployed v92 in every direction I could construct.** The candidate is unfit to deploy because it breaks a working production feature outright.
+
+---
+
+## V54-P0-TDZ — the blocker
+
+`index.ts:2779` reads `PAST_COMPLETION_CLAIM_PATTERN` (declared `:4778`) and `COMPLETION_WORD` (declared `:5054`) from **inside the same block** (the `try {` at `:2620`), with **no function boundary** between use and declaration.
+
+```
+Brain:   "Which one did you mean — ACME Corp or ACME Company?"
+Founder: "ACME Corp"   →  ReferenceError: Cannot access 'PAST_COMPLETION_CLAIM_PATTERN'
+                          before initialization
+                       →  catch at :6002 → mark_work_order_failed → {type:'error'}
+                       →  the founder's selection NEVER executes
+```
+
+**21 of my 31 disambiguation shapes reach that branch** — every plain-name selection, every ordinal selection. **Deployed v92 has no such construct and performs this correctly.**
+
+Three independent proofs, none a code read:
+
+| proof | result |
+|---|---|
+| block-scope analysis (`scratch/v54/tdz.mjs`) | chain `2542 serve( > 2616 ReadableStream > 2617 async start( > 2620 try > 2709 else-if > 2768 if` — `2709`/`2768` are plain blocks |
+| runtime, real statements in real order (`tdz_runtime.mjs`) | `ReferenceError: Cannot access 'PAST_COMPLETION_CLAIM_PATTERN' before initialization` |
+| `deno check` | candidate **TS2448 ×2 + TS2454 ×2** at `:2779`; **v92: zero** |
+
+Each identifier is declared exactly once — nothing shadows it. Present in `f1722f2`, `4476c92`, `904bf19`, `416c14c`, `8eb8cbd`. **Present in no deployed version.**
+
+### Why eighteen rounds missed it
+
+1. **The harness manufactures a scope production does not have.** `belt_extract.buildDecide()` does `mutate(deps) + branch` — concatenating the dependencies **first**, hoisting exactly the two declarations whose ordering is the bug. No extractor-based suite can see it, by construction.
+2. **The `deno` gate pins a COUNT, not the classes.** The 23 decompose as v92's benign 7 (`TS2322×6`+`TS2339`) + 12 benign implicit-`any` + **4 runtime-fatal TDZ diagnostics**. "23 == baseline" cannot tell an implicit `any` from a guaranteed `ReferenceError`.
+3. **Root cause is written in the file** (`:4776`): the declaration was *moved into the window "so the QA harnesses … see it"* — and its claim that "its only consumer is `safeProseFragment` below" is false.
+
+**FIX PREPARED, NOT APPLIED** (no write authority on `index.ts`; byte preservation required): move both consts above the resolution block; module top level is correct.
+
+---
+
+## STEP 1 — provenance: **BYTE-DIRECT, established by me**
+
+Live `functions list` on `pvphxgrtdfrudejjhzjk`: `sem-ai-command **version 92** ACTIVE, ezbr_sha256 `33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475`, updated_at 1788239725518`. Live `functions download` → `index.ts` sha256 **`795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`** = git `c9dfab5bd433` **exactly**. **CONFIRMED, not refuted.**
+
+The download **landed on the working tree** — rule 4's hazard is real. Restored byte-identically; candidate sha re-asserted `4779ef4f…` and re-asserted again at the end.
+
+## The seven deploy questions
+
+1. **Delta** — only `supabase/functions/sem-ai-command/index.ts`. 0 migrations, 0 other functions. Identifiers re-derived: **221 added, 0 removed**.
+2. **Behaviour preserved** — no, see V54-P0-TDZ. Prose-wise yes (below).
+3. **Reintroduced** — nothing; 0 identifiers removed.
+4. **`4476c92` assumptions** — moot; I compared against byte-verified v92.
+5. **#64 D16 / #65 D25 / #65 D27 (row `9dda919c`) / #66 D40** — INTEGRATION VERIFIED (37/0 suites + my corpus catches `Approval 9dda919c has been approved.`).
+6. **Rollback** — `c9dfab5bd433` / v92, exact, downloaded live. Nothing deployed, so none needed.
+7. **Only intended Edge changes** — yes for scope; **no** for content (V54-P0-TDZ).
+
+## The belt — measured, and it is good
+
+| corpus | result |
+|---|---|
+| generated truthful sweep, **3,952 rows / 38 attack classes** | **TRUTH REGRESSIONS = 0**, TRUTH RESCUES = **2,624** |
+| labelled corpus 346 rows (230 truthful / 116 fab), populated | PARITY 194 · TR **2** · FR **0** · rescues 150 |
+| same, empty pack | TR **0** · FR **1** |
+| fabrication-only 1,440 rows, populated | **FR 0 / RESCUE 364** |
+| fabrication-only, empty pack | FR **100**, confined to **one form** (negator-initial name in the **possessive**) |
+
+Covered and clean: Title-Case negator + Title-Case token · negator after `with/since/despite/after/before/given/amid` · `Pending`/`Awaiting` real negations · reassurance idiom then denial · R-AUXGAP · evidential-after-linker · determiner readings · modal hedges · conditioned offers · punctuation.
+
+**Rulings you asked for:** V53-O1 **confirmed** (pack-conditional). V53-R3 **refuted in your favour** — both shapes *are* caught with the pack populated. `No North Depot was archived.` — the session is **right**, v92 destroys it too. The three refused shapes — **refusal confirmed and moot**, both binaries correct all three. Dash-before-capital names — both survive. First-person history: 246/294 v92-preserve/candidate-destroy, **correctly classified as fabrications-caught** per `CLAUDE.md` false-execution truth — a chosen cost, and that is its size.
+
+**Mutation proof (my own):** `nameInternal` (dominant), idiom strip, R-AUXGAP arm, V53-D1 prefix search are **load-bearing**, all at **zero truth cost**. `titleHead`, `ppInternal` and **V53-R2 (cap 8→16)** show **no marginal effect on any family I could build**.
+
+## Suite integrity
+
+**37 Edge/QA `.mjs` suites, 37 PASS / 0 FAIL** (`run15` **57/0** ✓, `v92_parity` 46/0, `v92_open_regression` 28/0, `run28` 117/0, V53-H1 4/0). 5 one-line suites are self-declared `SUPERSEDED` stubs — honest, not vacuous. The 2 failing `*.regression.test.mjs` are **machine-posture** assertions, red by design on a founder-credentialed host. **Ledger #101's "34 suites" undercounts by 3.**
+
+**CONTRACT 5's narrowing:** defensible and non-vacuous for its stated hazard, but the whole family guards *which* identifiers are declared, never *where relative to their uses* — it could never have caught this.
+
+**Instrument gap for the next verifier:** v92 has a **fourth** prose path — `findEntityStateClaimContradiction`'s *confirmed-true* branch **suppresses** `claimsCompanyDeleted`/`PersonDeleted`. It cancels here only because the function is byte-identical in both binaries; `CONTRACT 4` now pins that.
+
+## Artifacts committed → `verify-8eb8cbd-campaign114` @ `0f508f5`
+
+`qa/verification/proposed/v48_known_failure_modes_entry_118.md` · `v48_PROMOTION_NOTE.md` · `v48_regression_additions.mjs` — **green on v92 (8/0, exit 0), red on the candidate (5/4, exit 1)**; TDZ detector is general, cwd-independent, `SEM_INDEX_SRC`-aware, non-vacuity proved by running the real detector on three synthetic sources (fires on hazard; quiet on declared-first; quiet on closure).
+
+## Not measured — stated as gaps
+
+- **No live browser / authenticated chat turn.** V54-P0-TDZ is proven at source, scope, type-check and JS-semantics level — **not** observed in a production SSE stream. It could not be, without deploying the thing being blocked. `BLOCKED` for UI/AI-chat truth checks.
+- **No DB writes, no synthetic entities created.** `QA-VERIFY-Alpha/Beta` exist only as strings in my corpus file, never in the database. Nothing to clean up; nothing was deployed (`functions list` / `functions download` only).
+
+## EDGE STATUS = **NOT DEPLOYMENT READY**
+
+**FAIL**
+
+`4779ef4f9e2bf3fbdba2ab2b6511c5a2daa944a1e53d72a4522c5da42f535062`

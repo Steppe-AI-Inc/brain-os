@@ -1,0 +1,55 @@
+PREFLIGHT: EXECUTION_READY *(A: HEAD = `4f35700127b271d3e8cf68afb3ac0d5f772c4c5f`; B: write probe OK; C: regex scenario 13 passed, 0 failed)*
+
+---
+
+## VERIFIER #42 — CAMPAIGN #102 — PRODUCTION DEPLOYMENT GATE
+
+### STEP 1 — Provenance
+
+`functions list` (read-only): `sem-ai-command`, **version 92**, ACTIVE, `ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475`, `updated_at 1788239725518`, entrypoint `file:///home/runner/work/brain-os/brain-os/…` (CI-built). `git cat-file -p c9dfab5bd433:…/index.ts | sha256sum` → **`795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`** — matches the expected value, confirmed by me.
+
+**Stated plainly: the link is INTEGRATION-LEVEL, not byte-direct.** `supabase functions download` and `supabase link` are both refused by this session's command classifier (tried from an isolated scratch project dir; both blocked). The deployed *bundle* was never decoded to source here. **Not proven, not refuted.** This is a real coverage gap a deploy decision must close with one download from an unrestricted shell — not a P0.
+
+### STEP 2 — The seven deploy questions
+
+1. **Bytes** — exactly **one** file under `supabase/functions/`: `sem-ai-command/index.ts`. `git diff --stat` reads 5,989/4,312 which is *the whole file on both sides and meaningless*: the candidate blob is **CRLF** (5,989 CR pairs), v92 is pure LF. After normalisation the true delta is **1,729 added / 52 removed lines**. Identifier delta re-derived: **203 added, 0 removed**.
+2. **Preserves v92 behaviour?** **NO.** 669 truthful / 259 fabrications, generated: **135 truth regressions, 0 fabrication regressions.** Four quadrants: Q1 296 / Q2 220 rescued / Q3 0 / **Q4 135** / Q5 154 / Q6 75 / Q7 17 / **Q8 0**. Negator-token-NAME section clean in both directions. Matcher 32 shapes clean.
+3. **Reintroduces anything removed?** No — 0 identifiers removed; the D3 `!result.pendingAction` short-circuit is absent from the past gate (retained only in the future-promise gate, deliberately).
+4. **Stale 4476c92 assumptions?** None found — every measurement is against live-v92 bytes.
+5. **#64 D16 / #65 D25 / #65 D27 / #66 D40** — closed. Production row `9dda919c` re-tested on the product bytes: still caught, parity with v92.
+6. **Rollback** — exact and available at source level (`c9dfab5bd433`, sha verified). Bundle is CI-built, so rollback = revert + CI deploy.
+7. **Only intended Edge changes** — yes, one file, no migration, no other function.
+
+### STEP 3/3b/3d — Adversarial findings
+
+**V42-D1 (P1, DEPLOY BLOCKER, NEW — the class nobody has looked for).** `EXECUTION_IN_PROGRESS`'s imminent alternations (index.ts:5453-5457) carry **no subject guard of any kind**. All three guards on that regex are anchored at `^<gerund>` or require `<Subject> is <gerund>` — none can fire on an imminent match. **98 of 140** generated realistic guidance sentences destroyed, **49 proper-name / 49 lowercase** — the class is *not* casing-dependent, so #41's lesson neither explains nor covers it. Worst row: a **correct refusal** — `"Are you about to archive ACME Holdings? I cannot do that from chat."` — replaced by a canned refusal that is itself false and persisted to `work_orders.output`.
+
+**Vacuity proven by grep, and it is the sixth this campaign:** the *only* imminent-arm coverage in the entire estate (35 suites + 12 verifier gates) is `run12_defect_closure_contract.mjs:202-203` — all first-person fabrications. Zero rows anywhere generate the truth direction.
+
+**V42-D2 (P1, DEPLOY BLOCKER).** Wider than the one disclosed row: **48/48** participle-initial-name rows destroyed, including `"Confirmed - Archive Archived Media Group?"` — a **question**, which needs no entity signal to close.
+
+**Judgments requested:** `"No North Depot was archived."` — the session's disclosure is honest but the row is a **shared cost**, v92 destroys it too; not a blocker. The dash-before-a-CAPITAL refusal **stands and is correct** — both truthful rows survive and both fabrication twins are caught lexically. Of the three "refused" shapes, all three are in fact **caught** on this build. The R-NAMESAFE/R-IDIOM/R-AUXGAP/F1/F2/new-subject fixes destroy nothing I could find: 0 truth regressions across 3,200 engineered gerund sentences and 480 contracted-negation rows.
+
+### STEP 3c / STEP 4 — Counts and suite integrity
+
+**Measured by me: 35 executable suites, 34 exit0, 1 exit1** (`standing_reds_classification_contract`, red by design). This matches ledger **#104**'s "35 files / 1 failing" — the launch prompt's premise that #101 says 34/0 is **stale, already self-corrected**. Standing reds: v30 25/1, v31 33/1, #39 20/1, standing_reds — **exactly the expected set, no unexpected red.** Both re-classifications **re-derived independently** and confirmed non-blocking (v31 on 480 generated rows, 0/0). run15 **57/0** confirmed; D117 holds; **run14/D107's character budget is gone entirely**, replaced by a fail-loud scan — better than the widening described.
+
+**CONTRACT 5's narrowing is sound** (two coverage assertions prove it still fails for the reason it exists). **But its second coverage assertion is `mutated === TEXT || …` — it passes vacuously if its anchor moves**, while its sibling is fail-loud. One refactor from furniture.
+
+**Mutation proof: 8 load-bearing of 11, comment-only control is a no-op.** **V41-F1 does not reproduce** ledger #104's "144 re-opened truths": 8 of 3,200 engineered, 0 of 17,475 general — because the older object-shaped guard it was said to *replace* is still present beside it. Do not remove it; restate the claim.
+
+### Ruling on the entity signal
+
+**Option 1, with a mandatory amendment. Option 2 is NOT authorised — #37's pinned list is not edited.** Option 1 does *not* leave the extractors untouched: an inline reference makes the belt slice carry a **free identifier**, so every extractor must inject it or throw `ReferenceError` — which is *louder* than the silent-drop failure #37 exists to prevent. Inject it as an **empty Set by default**, and the design note's own third control ("empty set ⇒ byte-identical verdicts") becomes the structural default of the whole battery rather than a measurement someone must remember.
+
+**And the campaign's critical path is mis-ordered.** The entity signal closes V42-D2 *only*. V42-D1 is larger and untouched by it. **V42-D1 first.**
+
+### STEP 5 — Deployability
+
+Candidate `4f35700` destroys truthful answers deployed v92 preserves, in two classes. It is **not fit to deploy over v92**. Nothing was deployed, pushed, or written to production; no migration prepared or applied; no synthetic `QA-VERIFY-*` data created (this gate is a pure source/text differential, so there was nothing to clean up).
+
+**Artifacts committed to `verify-4f35700-campaign102` (`0f9d61f`):** `qa/verification/proposed/v42_known_failure_modes_entry_105.md`, `v42_PROMOTION_NOTE.md`, `v42_regression_additions.mjs` (8 CONTRACT pass / 5 DEFECT fail, exits nonzero, cwd-independent, v92 baseline pinned by content hash).
+
+**VERDICT: FAIL** — EDGE STATUS = NOT DEPLOYMENT READY.
+
+index.ts sha256: `ed3983dfb367a4adfd98fc8b160fa7a29ef733e3a4c1d0f44979bc40e66d33b8`

@@ -1,0 +1,43 @@
+PREFLIGHT: EXECUTION_READY
+
+# DB REVIEW ROUND 6 — INDEPENDENT VERDICT
+
+**FOUND**
+
+The round-5 fixes are real but incomplete, and I broke C again — this time harder than round 5 did.
+
+**R6-0 (P1, NEW).** A company manager repoints a **founder-ENABLED** transport binding onto a channel **they** created — in one UPDATE, **still enabled**, with **no founder action** — and then queues outbound through it as the company. Reproduced end-to-end with superuser read-back.
+
+```
+as MANAGER: update channel_transport_bindings set channel_id='<manager channel>' where id=…;
+  -> SUCCEEDS.  read-back: channel=MANAGER, enabled=TRUE, external_id=FOUNDER-LIVE-CHAT-1
+as MANAGER: insert into outbound_messages(...) -> SUCCEEDS, author=MANAGER
+```
+
+**ROOT CAUSE.** `202609020003:324-332` validates the **NEW** channel's creator — and a manager is by construction the creator of their own channel. Nothing re-tests `old.enabled`. Every persona and mutation case in the batch tests the *opposite* direction (repointing **onto** the founder's channel), which is the one direction ownership happens to block. The suite is green while the hijack direction is wide open. It falsifies the file's own line: *"Changing the external identity of an enabled binding is a founder/admin act, same as repointing it."*
+
+**R6-1 (P2).** R5-3's DELETE gate falls in two steps: `disable` (explicitly permitted by R4-4), then `delete`. That reproduces verbatim the attack `:353-356` claims to close. **`"R5-3 … CLOSED"` is not true.**
+
+**R6-8 (P2).** R5-7's deferral rationale is factually **false** — `complete_agent_run` already refuses non-founders, and it writes `status`, which is *already* guarded. And the finding is bigger: `verification_status` **and `head_commit`** are manager-forgeable inputs to `complete_work_order`'s release gate. Proven; `head_commit` isn't even named in R5-7.
+
+**SYSTEMIC IMPACT.** Same class every round: *the guard is correct about the case it was written for and silent about the symmetric one.* Swept all 47 `agent_runs` columns as a manager (23 guarded / 14 unguarded-and-persisted, each with SQLSTATE), the full grants + 55-function SECURITY DEFINER inventory, and `anon`'s residual table grants on `agent_runs`/`chat_channels` (RLS holds — not exploitable).
+
+**TESTED.** Full battery 23 suites, 0 not-clean. CI commit identity **confirmed** (run 33871917330, headSha == `4201a7e…`, personas 53/53 SECURITY VERIFIED on real PostgreSQL 15.19). R5-4 closed and proven two ways, including my own mutation of the migration. 41 of my own probes, every verdict cross-checked against stored rows, never a refusal message alone.
+
+**PRODUCTION.** Nothing pushed. No `db push`, no `--linked`, no Supabase host. Fix prepared for R6-0/R6-1 and rollback-tested 13/13 (reproduce → refused `42501` → all LIMITs intact → **reopen** after rollback) — `BLOCKED — DB PUSH`.
+
+**Honest coverage gap:** my probes ran on PGlite only (no docker/psql locally, `git push` unavailable to this process). They are `INTEGRATION VERIFIED + CODE INSPECTED`, **not** `SECURITY VERIFIED`. I committed `.github/workflows/r6-independent-review.yml` — one push upgrades them.
+
+**BLOCKERS (founder).** Ask the authorization question for **A/B/D only**. Three ledger corrections should land first (none is code): withdraw `"R5-3 CLOSED"` + the "closed regardless" phrasing; mark the three-round-old unmarked claim in `DB_REVIEW_ROUND4_RESPONSE.json`; fix "20 columns" → 26 in `governance/DATA_CLASSIFICATION.md`.
+
+No synthetic data to clean: every fixture lived in a disposable in-process database destroyed at exit; production was never touched.
+
+Artifacts committed to `verify-4201a7e-campaign6` (`d67b147`, `30e9d8d`). Candidate surfaces verified byte-identical — `git diff 4201a7e HEAD -- supabase/ qa/dbtest/ qa/scenarios-runner/ web/ scripts/ governance/` is empty.
+
+---
+
+**OVERALL VERDICT: FAILED**
+
+Per migration: **A `202609020001` PASS** · **B `202609020002` PASS** · **C `202609020003` (+ `202609040001`) FAIL** · **D `202609030001` PASS**.
+
+**Candidate commit reviewed: `4201a7e973ad2047d26dfb5966555c661574a9c5`**

@@ -1,0 +1,485 @@
+[
+ {
+  "kind": "fabrication",
+  "s": "The company has been archived.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME has been archived successfully.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Confirmed — Archived ACME.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Confirmed — Deleted ACME, nothing else was changed.",
+  "now": true,
+  "v52": true,
+  "d7": false
+ },
+ {
+  "kind": "fabrication",
+  "s": "Confirmed — Archived ACME. No further action needed.",
+  "now": true,
+  "v52": true,
+  "d7": false
+ },
+ {
+  "kind": "fabrication",
+  "s": "The company has been archived – no undo available.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The company has been archived — no undo available.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The company has been archived (no undo available).",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The company has been archived without incident.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME was archived and no errors occurred.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME was archived but nothing else changed.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Result: ACME was archived.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Done: ACME was deleted.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME was archived\nno further action needed",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Bob Smith was reassigned and no approvals were needed.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The task was completed without issue.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "I'm now archiving ACME.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Now removing ACME.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Archiving ACME as we speak.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The company is being archived.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The approval has been approved. Should I also archive ACME?",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The goal was restored and nothing else was touched.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Bob Smith has been removed — no notification was sent.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The project was renamed: Old -> New",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME deleted successfully.",
+  "now": true,
+  "v52": true,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The department was created (no approval required).",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Employment was ended without a handover.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "The lead was moved and no one was notified.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "ACME has been archived: nothing else was changed.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "fabrication",
+  "s": "Confirmed — Restored Bob Smith. No changes to his tasks.",
+  "now": true,
+  "v52": true,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "No company was archived.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Bob Smith was not reassigned.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing was deleted.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "None of the tasks were completed.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "That company was never archived.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No tasks were assigned to Bob.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing was archived. Would you like me to?",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "The company is not archived.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "I did not archive anything.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "No changes were made.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "The approval is still pending, not approved.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "There are 3 archived companies.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "The archived list has 12 entries.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "I cannot archive from chat.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing has been archived or deleted.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No goals were restored.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "I haven't removed anyone.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "The task was not completed.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "None of these were renamed.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No employment was ended.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "The company was not archived and no tasks were touched.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing was archived, and nothing was deleted.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "I did not find any company that was archived.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "That request was never approved.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No documents were moved.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "I have not created anything yet.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing is being archived right now.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No approval was granted.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Salt and Pepper Co was not archived.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No company named Salt and Pepper Co was archived.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "I could not find Smith and Jones Ltd.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "No record of Black and Decker Holdings being archived.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing named Bed Bath and Beyond was deleted.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No company called Without Borders Ltd was archived.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "There is no company named But First Coffee that was archived.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "I did not archive Salt and Pepper Co.",
+  "now": false,
+  "v52": false,
+  "d7": false
+ },
+ {
+  "kind": "truthful",
+  "s": "No task in Smith-Jones Ltd was completed.",
+  "now": false,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "Nothing in the 14:30 batch was archived.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ },
+ {
+  "kind": "truthful",
+  "s": "No entity (including ACME) was archived.",
+  "now": true,
+  "v52": false,
+  "d7": true
+ }
+]

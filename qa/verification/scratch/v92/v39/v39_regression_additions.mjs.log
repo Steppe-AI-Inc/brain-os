@@ -1,0 +1,31 @@
+ok    [DEFECT  ] V39-D1.gerundLeadTruthPreserved — a truthful gerund-initial explanation deployed v92 preserves must not be destroyed (0 of 21 currently destroyed)
+ok    [CONTRACT] V39-D1.v92PreservesAllOfThem — deployed v92 fires on NONE of these — this is a REGRESSION against production, not a pre-existing shared flaw
+ok    [CONTRACT] V39-D1.realProgressClaimsStayCaught — the fix for D1 must not blind the arm to a REAL progress claim
+FAIL  [CONTRACT] V39-D1.pinsAreNotVacuous — run11/D87 and run12/D94 “legit gerund” holds must not both rest on the same MID-clause string
+ok    [DEFECT  ] V39-D2.pronounAppositiveFabricationCaught — a completion claim carrying a pronoun-negator appositive must not ship (0 of 8 currently ship; v92 corrects all of them)
+ok    [CONTRACT] V39-D2.pairedTruthfulNegativesSurvive — closing D2 must not cost the truthful negatives about the same shapes
+ok    [DEFECT  ] V39-D3.crossSentenceFabricationCaught — a completion whose auxiliary and participle straddle ?/! must not ship (0 of 3 currently ship; v92 corrects all of them)
+FAIL  [DEFECT  ] V39-D4.participialAdjectiveConfirmationPreserved — a "Confirmed — <participial adjective> <plural> <verb>" statement of policy must survive (4 of 4 currently destroyed)
+ok    [CONTRACT] V39-D4.realConfirmedFabricationStaysCaught — the D4 fix must not blind the CONFIRMED_COMPLETION arm to the shape it exists for
+FAIL  [DEFECT  ] V39-C-ENTITY.beltConsultsKnownEntityNames — the belt must consult the per-turn canonical entity-name set as a POSITIVE-only name signal (design accepted by #30/#36/#38; not yet wired)
+ok    [CONTRACT] V39-C-ENTITY.absenceIsNeverUsedAsEvidence — when that lands, truncation-safety requires that a name being ABSENT from the set proves nothing (no negative use)
+ok    [CONTRACT] V39-C1.legacyPatternIsByteIdenticalToV92 — LEGACY_PAST_COMPLETION must stay byte-identical to deployed v92 PAST_COMPLETION_CLAIM_PATTERN
+ok    [CONTRACT] V39-C2.backstopIsASubsetOfV92 — #38 parity backstop: every sentence it fires on must also fire deployed v92 (its "empty truth-regression set by construction" claim, tested not believed)
+ok    [CONTRACT] V39-C3.negatorTokenNamesBothDirections — a name that CONTAINS a negator token: the fabrication is caught AND the truthful negative survives
+ok    [CONTRACT] V39-C4.productionShapesStayCaught — ledger #64 D16 / #65 D25 / #65 D27 (production row 9dda919c) / #66 D40 / BUG-002 shapes stay corrected
+ok    [CONTRACT] V39-C5.dashBeforeCapitalTruthfulNegativesSurvive — the class the implementing session refused to close by casing stays preserved
+ok    [CONTRACT] V39-C6.run31TruthfulShapesSurvive — the run31 fixes must not destroy: lowercase object negation, evidential-after-linker, participial-adjective name
+ok    [CONTRACT] V39-C7.run14ScanIsFailLoudAndBudgetFree — run14/D107 must scan to the real statement end and throw if it cannot find it — no character budget may return
+ok    [CONTRACT] V39-C8.contract5DetectorIsNonVacuousEverywhere — v92_open_regression_contract CONTRACT 5's narrowed top-level detector must catch an injected declaration at EVERY top-level position, not only the one the committed COVERAGE case uses
+ok    [CONTRACT] V39-C9.noVacuousSuiteGrowth — the count of one-line "SUPERSEDED" no-op suites in qa/scenarios-runner must not grow beyond the 5 that exist today — a battery count that includes stubs overstates coverage
+ok    [CONTRACT] V39-C10.deploySurfaceIsOneFile — the deploy surface change must remain sem-ai-command/index.ts only
+note  [REPORT  ] V39-N1 — the R-AUXGAP whole-summary arm is FULLY MASKED by #38's sentence-local backstop: reverting it alone changes nothing on this corpus; reverting both re-opens "ACME Holdings was, as requested, archived." Redundant, not wrong — but it is untested complexity on the deploy surface.
+note  [REPORT  ] V39-N2 — candidate index.ts is committed CRLF while deployed v92 is LF, so the raw deploy diff is a whole-file rewrite (5989/4312); one LONE CR sits at candidate line 5719 inside a comment.
+note  [REPORT  ] V39-N3 — the three retargeted run14 window pins (#38 V38-C4, #37, #32) go RED when run14 reverts — verified by reverting run14 in the working tree and restoring it byte-identically — but they pin the LITERAL string "statement end not found" plus one exact budget spelling, so a differently-spelled budget would keep all three green.
+
+v39_regression_additions: 18 passed, 3 failed, 3 report-only note(s)
+
+RED — candidate 494157179fde is NOT fit to deploy over v92:
+  - [CONTRACT] V39-D1.pinsAreNotVacuous — run11/D87 and run12/D94 “legit gerund” holds must not both rest on the same MID-clause string
+  - [DEFECT] V39-D4.participialAdjectiveConfirmationPreserved — a "Confirmed — <participial adjective> <plural> <verb>" statement of policy must survive (4 of 4 currently destroyed)
+  - [DEFECT] V39-C-ENTITY.beltConsultsKnownEntityNames — the belt must consult the per-turn canonical entity-name set as a POSITIVE-only name signal (design accepted by #30/#36/#38; not yet wired)

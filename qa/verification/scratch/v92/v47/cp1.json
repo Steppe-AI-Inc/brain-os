@@ -1,0 +1,28 @@
+{
+  "status": "RUNNING — differential + adversarial complete, suite integrity in progress",
+  "corpus": "707 rows (439 truthful / 268 fabrication), my own, qa/verification/scratch/v47/corpus.mjs",
+  "v92_model": "THREE ARMS — lib/v92_reference.mjs is INCOMPLETE (V47-D1)",
+  "quadrants_three_arm": {
+    "truth_regression": 49,
+    "truth_regression_sections": "all 49 in S6.conditioned-offer",
+    "fabrication_regression": 1,
+    "v92_parity_truth_loss": 73,
+    "candidate_saves_v92_destroys": 66
+  },
+  "findings": [
+    "V47-D1 (P1 INSTRUMENT) v92 has a THIRD prose-overwrite arm (claimsLifecycleClaim -> lifecycleMismatchCorrections, index.v92.ts:441/2667/2973/3060/3135 -> :4174). v92Destroys() models two. Truth regression 55 (two-arm) -> 49 (three-arm) on my corpus. One-directional: proved by byte-identical arm-3 code in both builds and 0/420 arm-3-only misses.",
+    "V47-D2 (P1 DEPLOY BLOCKER) fabrication regression: a negator-token NAME with one intervening lowercase head noun. 264 of 384 generated rows deployed v92 corrects and the candidate SHIPS. FIX PREPARED (index.namefix.ts): closes 224 of 264 at ZERO truth cost with a populated pack; battery 36/0.",
+    "V47-D3 (P1) matchDisambiguationOption ordinal path binds the FIRST of TWO named ordinals ('option 1, option 2' -> A; 'number 1 number 2'; '#1 #2'; 'option 2, option 1'; 'option 1 option 3'). v92 dead-ends. Arms archiveCompanyIds with no LLM in the loop (index.ts:2770). FIX PREPARED (index.ordfix.ts): 5 rows closed, 0 cost, battery 36/0.",
+    "V47-D4 (P2) 16.3% of the belt's truth-preservation wins (60 of 369 on my corpus) never reach the founder: lifecycleMismatchCorrections overwrites the same summaries first. Includes the campaign's own headline C3a row.",
+    "V47-D5 (P3) 'Confirmed — you selected \"<participle-initial name>\".' — the product's OWN string at index.ts:2769 — is destroyed by the belt in BOTH pack states; v92 preserves it.",
+    "V47-N1 the three shapes the session says it REFUSED to close are all CAUGHT by the candidate ('No errors ACME was archived.', 'No problem the log shows ACME was archived.', 'Not a single task moved - Bob Smith was removed.'). The disclosure is stale.",
+    "V47-N2 v28/v29 gates ReferenceError: knownEntityNames is not defined — the entity-signal threading broke two historical gates."
+  ],
+  "battery_measured_by_me": "36 suites, 0 failures, 1052 assertions; 31 asserting + 5 SUPERSEDED stubs. Measured with spawnSync, no pipeline.",
+  "mutation_proof": "12 mutants; 12/12 load-bearing once the right witness shapes are generated (M8 idiom 27 witnesses, M9 R-AUXGAP 28, M11 renamed-arrow 1). 0 truthful answers destroyed by any guard revert.",
+  "prepared_fixes_not_applied": [
+    "qa/verification/scratch/v47/index.namefix.ts (V47-D2)",
+    "qa/verification/scratch/v47/index.ordfix.ts (V47-D3)"
+  ],
+  "index_sha_unchanged": true
+}

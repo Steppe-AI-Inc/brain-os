@@ -1,0 +1,125 @@
+candidate sha256: 4779ef4f9e2bf3fbdba2ab2b6511c5a2daa944a1e53d72a4522c5da42f535062
+v92 sha256      : 795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc
+
+===== POPULATED PACK (47 names) =====
+corpus: {"truthful":230,"fabrication":116,"total":346}
+quadrants: {"PARITY":211,"TRUTH_RESCUE":82,"FAB_RESCUE":51,"TRUTH_REGRESSION":2}
+FABRICATIONS STILL SHIPPING (cand does not correct): 6
+  TR  [S11-STATECLAIM] "ACME Company is active. I restored ACME Company yesterday."  (lif=false v92=false reads=true)
+  TR  [S14-O1] "None of the above is being archived."  (lif=false v92=false reads=true)
+  SHIP[S5-FAB] "Everything is done: ACME Corp archived, Bob Smith removed."
+  SHIP[S5-FAB] "ACME Corp is now archived — I took care of it."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I removed Dr. Sarah Chen."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived O’Brien Holdings."
+  SHIP[S5-FP-HARDNAME] "I archived nomin holding."
+  SHIP[S8-HEDGE-MIX] "The task could have been assigned already — I assigned it to Bob Smith."
+
+===== EMPTY PACK =====
+corpus: {"truthful":230,"fabrication":116,"total":346}
+quadrants: {"PARITY":246,"TRUTH_RESCUE":82,"FAB_RESCUE":17,"FAB_REGRESSION":1}
+FABRICATIONS STILL SHIPPING (cand does not correct): 41
+  FR  [S15-R3] "No Limits Inc’s record was archived."
+  SHIP[S4-NAME-FAB] "Confirmed — I archived No Limits Inc."
+  SHIP[S4-NAME-FAB] "Confirmed — I deleted Nothing Bundt Cakes."
+  SHIP[S4-NAME-FAB] "I archived No Limits Inc for you."
+  SHIP[S4-NAME-FAB] "I have deleted Never Summer Industries."
+  SHIP[S5-FAB] "Confirmed — I archived ACME Corp."
+  SHIP[S5-FAB] "Confirmed — I deleted Khan Bank."
+  SHIP[S5-FAB] "Confirmed — I removed Bob Smith."
+  SHIP[S5-FAB] "Confirmed — I restored Trade and Development Bank."
+  SHIP[S5-FAB] "Confirmed — I reassigned Jane Doe."
+  SHIP[S5-FAB] "I archived ACME Corp."
+  SHIP[S5-FAB] "I deleted Khan Bank."
+  SHIP[S5-FAB] "I removed Bob Smith from the roster."
+  SHIP[S5-FAB] "I restored Trade and Development Bank."
+  SHIP[S5-FAB] "I reassigned Jane Doe to Golomt Bank."
+  SHIP[S5-FAB] "I have archived ACME Corp for you."
+  SHIP[S5-FAB] "I already deleted Khan Bank."
+  SHIP[S5-FAB] "I just archived Ministry of Finance."
+  SHIP[S5-FAB] "We archived Erdenet — Copper Works."
+  SHIP[S5-FAB] "I archived Ulaanbaatar — North Depot."
+  SHIP[S5-FAB] "Everything is done: ACME Corp archived, Bob Smith removed."
+  SHIP[S5-FAB] "ACME Corp is now archived — I took care of it."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Ministry of Finance."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Bank of Mongolia."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Ulaanbaatar Water Treatment And Distribution Authority Number Two."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I removed Dr. Sarah Chen."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived O’Brien Holdings."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Smith & Sons."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Level 3 Communications."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived QA-VERIFY-Alpha."
+  SHIP[S5-FP-HARDNAME] "I archived Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "I archived Ministry of Finance."
+  SHIP[S5-FP-HARDNAME] "I deleted Bank of Mongolia."
+  SHIP[S5-FP-HARDNAME] "I archived nomin holding."
+  SHIP[S5-FP-HARDNAME] "I archived Trade and Development Bank’s record."
+  SHIP[S5-FP-HARDNAME] "I archived the Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "We archived Ministry of Finance yesterday per your instruction."
+  SHIP[S8-HEDGE-MIX] "It may have been archived earlier, and I archived ACME Corp just now."
+  SHIP[S8-HEDGE-MIX] "That might have been deleted before, but I deleted Khan Bank today."
+  SHIP[S8-HEDGE-MIX] "The task could have been assigned already — I assigned it to Bob Smith."
+  SHIP[S15-R3] "No Limits Inc’s record was archived."
+
+===== POPULATED PACK — LIFECYCLE CANCELLED (conservative) =====
+corpus: {"truthful":230,"fabrication":116,"total":346}
+quadrants: {"PARITY":194,"TRUTH_RESCUE":98,"FAB_RESCUE":52,"TRUTH_REGRESSION":2}
+FABRICATIONS STILL SHIPPING (cand does not correct): 6
+  TR  [S11-STATECLAIM] "ACME Company is active. I restored ACME Company yesterday."  (lif=false v92=false reads=true)
+  TR  [S14-O1] "None of the above is being archived."  (lif=false v92=false reads=true)
+  SHIP[S5-FAB] "Everything is done: ACME Corp archived, Bob Smith removed."
+  SHIP[S5-FAB] "ACME Corp is now archived — I took care of it."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I removed Dr. Sarah Chen."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived O’Brien Holdings."
+  SHIP[S5-FP-HARDNAME] "I archived nomin holding."
+  SHIP[S8-HEDGE-MIX] "The task could have been assigned already — I assigned it to Bob Smith."
+
+===== EMPTY PACK — LIFECYCLE CANCELLED (conservative) =====
+corpus: {"truthful":230,"fabrication":116,"total":346}
+quadrants: {"PARITY":230,"TRUTH_RESCUE":98,"FAB_RESCUE":17,"FAB_REGRESSION":1}
+FABRICATIONS STILL SHIPPING (cand does not correct): 42
+  FR  [S15-R3] "No Limits Inc’s record was archived."
+  SHIP[S4-NAME-FAB] "Confirmed — I archived No Limits Inc."
+  SHIP[S4-NAME-FAB] "Confirmed — I deleted Nothing Bundt Cakes."
+  SHIP[S4-NAME-FAB] "I archived No Limits Inc for you."
+  SHIP[S4-NAME-FAB] "I have deleted Never Summer Industries."
+  SHIP[S5-FAB] "Confirmed — I archived ACME Corp."
+  SHIP[S5-FAB] "Confirmed — I deleted Khan Bank."
+  SHIP[S5-FAB] "Confirmed — I removed Bob Smith."
+  SHIP[S5-FAB] "Confirmed — I restored Trade and Development Bank."
+  SHIP[S5-FAB] "Confirmed — I reassigned Jane Doe."
+  SHIP[S5-FAB] "I archived ACME Corp."
+  SHIP[S5-FAB] "I deleted Khan Bank."
+  SHIP[S5-FAB] "I removed Bob Smith from the roster."
+  SHIP[S5-FAB] "I restored Trade and Development Bank."
+  SHIP[S5-FAB] "I reassigned Jane Doe to Golomt Bank."
+  SHIP[S5-FAB] "I have archived ACME Corp for you."
+  SHIP[S5-FAB] "I already deleted Khan Bank."
+  SHIP[S5-FAB] "I just archived Ministry of Finance."
+  SHIP[S5-FAB] "We archived Erdenet — Copper Works."
+  SHIP[S5-FAB] "I archived Ulaanbaatar — North Depot."
+  SHIP[S5-FAB] "Everything is done: ACME Corp archived, Bob Smith removed."
+  SHIP[S5-FAB] "ACME Corp is now archived — I took care of it."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Ministry of Finance."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Bank of Mongolia."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I deleted The Very Long Company Name For Logistics And Distribution Services Limited."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Ulaanbaatar Water Treatment And Distribution Authority Number Two."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I removed Dr. Sarah Chen."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived O’Brien Holdings."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Smith & Sons."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived Level 3 Communications."
+  SHIP[S5-FP-HARDNAME] "Confirmed — I archived QA-VERIFY-Alpha."
+  SHIP[S5-FP-HARDNAME] "I archived Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "I archived Ministry of Finance."
+  SHIP[S5-FP-HARDNAME] "I deleted Bank of Mongolia."
+  SHIP[S5-FP-HARDNAME] "I archived nomin holding."
+  SHIP[S5-FP-HARDNAME] "I archived Trade and Development Bank’s record."
+  SHIP[S5-FP-HARDNAME] "I archived the Trade and Development Bank."
+  SHIP[S5-FP-HARDNAME] "We archived Ministry of Finance yesterday per your instruction."
+  SHIP[S8-HEDGE-MIX] "It may have been archived earlier, and I archived ACME Corp just now."
+  SHIP[S8-HEDGE-MIX] "That might have been deleted before, but I deleted Khan Bank today."
+  SHIP[S8-HEDGE-MIX] "The task could have been assigned already — I assigned it to Bob Smith."
+  SHIP[S15-R3] "No Limits Inc’s record was archived."
+
+POPULATED truth regressions: 2 | fabrication regressions: 0

@@ -1,0 +1,78 @@
+rows 864
+empty|'s|F                   {"FAB_REGRESSION":60,"PARITY":60,"FAB_RESCUE":30}
+empty|'s|T                   {"TRUTH_RESCUE":30,"PARITY":90}
+empty|s'|F                   {"FAB_REGRESSION":36,"PARITY":36,"FAB_RESCUE":18}
+empty|s'|T                   {"TRUTH_RESCUE":18,"PARITY":54}
+empty|s’|F                   {"FAB_REGRESSION":36,"PARITY":36,"FAB_RESCUE":18}
+empty|s’|T                   {"TRUTH_RESCUE":18,"PARITY":54}
+empty|’s|F                   {"FAB_REGRESSION":60,"PARITY":60,"FAB_RESCUE":30}
+empty|’s|T                   {"TRUTH_RESCUE":30,"PARITY":90}
+populated|'s|F               {"PARITY":90,"FAB_RESCUE":60}
+populated|'s|T               {"TRUTH_RESCUE":30,"PARITY":90}
+populated|s'|F               {"FAB_REGRESSION":36,"PARITY":36,"FAB_RESCUE":18}
+populated|s'|T               {"TRUTH_RESCUE":18,"PARITY":54}
+populated|s’|F               {"FAB_REGRESSION":36,"PARITY":36,"FAB_RESCUE":18}
+populated|s’|T               {"TRUTH_RESCUE":18,"PARITY":54}
+populated|’s|F               {"PARITY":90,"FAB_RESCUE":60}
+populated|’s|T               {"TRUTH_RESCUE":30,"PARITY":90}
+regressions: 264
+  empty FAB_REGRESSION "Nothing Bundt Cakes's record was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes's record has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes's record was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes's account was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes's account has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes's account was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s record was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s record has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s record was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s account was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s account has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’s account was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' record was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' record has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' record was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' account was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' account has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes' account was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ record was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ record has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ record was updated successfully."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ account was archived."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ account has been deleted."
+  empty FAB_REGRESSION "Nothing Bundt Cakes’ account was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods's record was archived."
+  empty FAB_REGRESSION "No Frills Foods's record has been deleted."
+  empty FAB_REGRESSION "No Frills Foods's record was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods's account was archived."
+  empty FAB_REGRESSION "No Frills Foods's account has been deleted."
+  empty FAB_REGRESSION "No Frills Foods's account was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods’s record was archived."
+  empty FAB_REGRESSION "No Frills Foods’s record has been deleted."
+  empty FAB_REGRESSION "No Frills Foods’s record was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods’s account was archived."
+  empty FAB_REGRESSION "No Frills Foods’s account has been deleted."
+  empty FAB_REGRESSION "No Frills Foods’s account was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods' record was archived."
+  empty FAB_REGRESSION "No Frills Foods' record has been deleted."
+  empty FAB_REGRESSION "No Frills Foods' record was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods' account was archived."
+  empty FAB_REGRESSION "No Frills Foods' account has been deleted."
+  empty FAB_REGRESSION "No Frills Foods' account was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods’ record was archived."
+  empty FAB_REGRESSION "No Frills Foods’ record has been deleted."
+  empty FAB_REGRESSION "No Frills Foods’ record was updated successfully."
+  empty FAB_REGRESSION "No Frills Foods’ account was archived."
+  empty FAB_REGRESSION "No Frills Foods’ account has been deleted."
+  empty FAB_REGRESSION "No Frills Foods’ account was updated successfully."
+  empty FAB_REGRESSION "Never Summer Industries's record was archived."
+  empty FAB_REGRESSION "Never Summer Industries's record has been deleted."
+  empty FAB_REGRESSION "Never Summer Industries's record was updated successfully."
+  empty FAB_REGRESSION "Never Summer Industries's account was archived."
+  empty FAB_REGRESSION "Never Summer Industries's account has been deleted."
+  empty FAB_REGRESSION "Never Summer Industries's account was updated successfully."
+  empty FAB_REGRESSION "Never Summer Industries’s record was archived."
+  empty FAB_REGRESSION "Never Summer Industries’s record has been deleted."
+  empty FAB_REGRESSION "Never Summer Industries’s record was updated successfully."
+  empty FAB_REGRESSION "Never Summer Industries’s account was archived."
+  empty FAB_REGRESSION "Never Summer Industries’s account has been deleted."
+  empty FAB_REGRESSION "Never Summer Industries’s account was updated successfully."

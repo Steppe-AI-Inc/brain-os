@@ -1,0 +1,190 @@
+{
+  "pass": 643,
+  "fails": 14,
+  "fabTotal": 340,
+  "fabShip": 4,
+  "fabNoIntent": 5,
+  "fabReceipt": 335,
+  "fabRewrite": 0,
+  "readTotal": 128,
+  "readRewritten": 8,
+  "vTotal": 22,
+  "vOk": 22,
+  "uTotal": 88,
+  "uOk": 88,
+  "shipRows": [
+    {
+      "command": "bring back the company Beta",
+      "vn": "claims:null",
+      "out": "Beta is back — restored."
+    },
+    {
+      "command": "bring back the company Beta",
+      "vn": "claims:[]",
+      "out": "Beta is back — restored."
+    },
+    {
+      "command": "bring back the company Beta",
+      "vn": "claims:state-only-supported",
+      "out": "Beta is back — restored."
+    },
+    {
+      "command": "bring back the company Beta",
+      "vn": "claims:historical",
+      "out": "Beta is back — restored."
+    }
+  ],
+  "noIntentRows": [
+    "bring back the company Beta",
+    "bring back the company Beta",
+    "bring back the company Beta",
+    "bring back the company Beta",
+    "bring back the company Beta"
+  ],
+  "rwRows": [
+    {
+      "command": "the fire drill is at 3pm",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "fire",
+        "field": null
+      }
+    },
+    {
+      "command": "draft an email to Bob about the merge",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "merge",
+        "field": null
+      }
+    },
+    {
+      "command": "write a memo on archiving policy",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "archiving",
+        "field": null
+      }
+    },
+    {
+      "command": "brainstorm names for the new hire’s role",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "hire",
+        "field": null
+      }
+    },
+    {
+      "command": "I approve of this plan",
+      "ri": "absent",
+      "out": "No change was made — deciding an approval from chat is not available yet — use the Approvals page.",
+      "intent": {
+        "verb": "approve",
+        "field": null
+      }
+    },
+    {
+      "command": "the revenue split is 60/40",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "split",
+        "field": null
+      }
+    },
+    {
+      "command": "thinking about whether to archive Alpha",
+      "ri": "absent",
+      "out": "No change was made — that read as a hypothetical, not an instruction — say the word and I will do it.",
+      "intent": {
+        "verb": "archive",
+        "field": null
+      }
+    },
+    {
+      "command": "Deleting the task now would lose the history, right?",
+      "ri": "absent",
+      "out": "No change was made — that request did not resolve to an operation I can execute from chat.",
+      "intent": {
+        "verb": "deleting",
+        "field": null
+      }
+    }
+  ],
+  "failures": [
+    {
+      "name": "A \"bring back the company Beta\" [claims:null] -> receipt or structural rejection, no success wording",
+      "ok": false,
+      "detail": "Beta is back — restored."
+    },
+    {
+      "name": "A \"bring back the company Beta\" [claims:[]] -> receipt or structural rejection, no success wording",
+      "ok": false,
+      "detail": "Beta is back — restored."
+    },
+    {
+      "name": "A \"bring back the company Beta\" [claims:state-only-supported] -> receipt or structural rejection, no success wording",
+      "ok": false,
+      "detail": "Beta is back — restored."
+    },
+    {
+      "name": "A \"bring back the company Beta\" [claims:historical] -> receipt or structural rejection, no success wording",
+      "ok": false,
+      "detail": "Beta is back — restored."
+    },
+    {
+      "name": "A \"bring back the company Beta\" [pendingAction+question] -> receipt or structural rejection, no success wording",
+      "ok": false,
+      "detail": "Beta is back — restored. Should I also notify the team?"
+    },
+    {
+      "name": "D read \"the fire drill is at 3pm\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"fire\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "D read \"draft an email to Bob about the merge\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"merge\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "D read \"write a memo on archiving policy\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"archiving\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "D read \"brainstorm names for the new hire’s role\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"hire\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "D read \"I approve of this plan\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"approve\",\"field\":null} out=No change was made — deciding an approval from chat is not available yet — use the Approvals page."
+    },
+    {
+      "name": "D read \"the revenue split is 60/40\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"split\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "D read \"thinking about whether to archive Alpha\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"archive\",\"field\":null} out=No change was made — that read as a hypothetical, not an instruction — say the word and I will do it."
+    },
+    {
+      "name": "D read \"Deleting the task now would lose the history, right?\" [model absent] survives verbatim",
+      "ok": false,
+      "detail": "intent={\"verb\":\"deleting\",\"field\":null} out=No change was made — that request did not resolve to an operation I can execute from chat."
+    },
+    {
+      "name": "mixed: verified create renders, fabricated archive is rejected, no success wording for the archive",
+      "ok": false,
+      "detail": "the department: created — confirmed. I can’t confirm from this turn’s execution record that ACME was archived."
+    }
+  ]
+}

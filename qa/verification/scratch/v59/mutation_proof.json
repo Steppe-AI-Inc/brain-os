@@ -1,0 +1,140 @@
+{
+  "baselineRed": [],
+  "mutants": [
+    {
+      "name": "m01_receipt_block_deleted",
+      "killed": true,
+      "killers": [
+        "architecture_final_claim_contract.mjs",
+        "v56_intent_lifecycle_contract.mjs",
+        "v57_intent_other_veto_contract.mjs",
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m02_pendingAction_exemption_restored",
+      "killed": true,
+      "killers": [
+        "architecture_final_claim_contract.mjs",
+        "run8_defect_closure_contract.mjs"
+      ]
+    },
+    {
+      "name": "m03_create_postcondition_reverted",
+      "killed": true,
+      "killers": [
+        "lifecycle_evidence_and_output_persistence_contract.mjs",
+        "v57_intent_other_veto_contract.mjs"
+      ]
+    },
+    {
+      "name": "m04_durable_read_last",
+      "killed": true,
+      "killers": [
+        "grounding_precedence_canonical_over_history.mjs",
+        "run11_defect_closure_contract.mjs",
+        "v57_intent_other_veto_contract.mjs"
+      ]
+    },
+    {
+      "name": "m05_envelope_dropped",
+      "killed": true,
+      "killers": [
+        "architecture_collection_envelope_contract.mjs"
+      ]
+    },
+    {
+      "name": "w06_handwritten_companies_join",
+      "killed": true,
+      "killers": [
+        "architecture_archived_parent_policy_contract.mjs"
+      ]
+    },
+    {
+      "name": "w07_handwritten_org_sentinel",
+      "killed": true,
+      "killers": [
+        "architecture_org_scope_helper_contract.mjs"
+      ]
+    },
+    {
+      "name": "m08_receipt_ignores_intent",
+      "killed": true,
+      "killers": [
+        "architecture_final_claim_contract.mjs",
+        "run10_defect_closure_contract.mjs",
+        "run11_defect_closure_contract.mjs",
+        "run12_defect_closure_contract.mjs",
+        "run8_defect_closure_contract.mjs",
+        "v56_intent_lifecycle_contract.mjs",
+        "v57_intent_other_veto_contract.mjs",
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m09_read_veto_dropped",
+      "killed": true,
+      "killers": [
+        "v56_intent_lifecycle_contract.mjs",
+        "v57_intent_other_veto_contract.mjs",
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m10_imperative_allowlist_dropped",
+      "killed": true,
+      "killers": [
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m11_task_ids_window_gated",
+      "killed": true,
+      "killers": [
+        "v58_lifecycle_window_and_imperative_contract.mjs",
+        "lifecycle_rpc_only_repaired.mjs"
+      ]
+    },
+    {
+      "name": "m12_executedCount_ignores_postcondition",
+      "killed": true,
+      "killers": [
+        "architecture_final_claim_contract.mjs",
+        "v56_intent_lifecycle_contract.mjs",
+        "v57_intent_other_veto_contract.mjs",
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m13_receipt_always_company",
+      "killed": true,
+      "killers": [
+        "v58_lifecycle_window_and_imperative_contract.mjs"
+      ]
+    },
+    {
+      "name": "m14_persist_only_when_grounded",
+      "killed": true,
+      "killers": [
+        "architecture_mutation_envelope_contract.mjs",
+        "lifecycle_evidence_and_output_persistence_contract.mjs",
+        "v57_intent_other_veto_contract.mjs"
+      ]
+    },
+    {
+      "name": "m15_history_unverified_marker_dropped",
+      "killed": true,
+      "killers": [
+        "grounding_precedence_canonical_over_history.mjs",
+        "v57_intent_other_veto_contract.mjs"
+      ]
+    },
+    {
+      "name": "m16_companies_lookup_not_in_lifecycle_resolver",
+      "killed": true,
+      "killers": [
+        "v57_intent_other_veto_contract.mjs"
+      ]
+    }
+  ]
+}

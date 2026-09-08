@@ -1,0 +1,216 @@
+# v53 differential v53_cand_populated
+candidate=C:\Users\Dell\dev\brain-os\supabase\functions\sem-ai-command\index.ts sha256=4779ef4f9e2bf3fbdba2ab2b6511c5a2daa944a1e53d72a4522c5da42f535062
+v92=C:\Users\Dell\dev\brain-os\qa\verification\scratch\v53\dl\supabase\functions\sem-ai-command\index.ts sha256=795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc
+rows=2761 (T=1513, F=1248)
+
+section        n   T:bothKeep bothDestroy RESCUE REGRESSION | F:bothDestroy GAIN bothShip REGRESSION
+CAP-F          12          0           0      0          0 |          12    0        0          0
+CAP-T           2          1           1      0          0 |           0    0        0          0
+COND-T         24         16           0      8          0 |           0    0        0          0
+CONF-F         20          0           0      0          0 |           0   10       10          0
+CONF-T         20         20           0      0          0 |           0    0        0          0
+DASH-F          4          0           0      0          0 |           3    1        0          0
+DASH-T          3          0           1      2          0 |           0    0        0          0
+F-PLAIN       324          0           0      0          0 |         198  120        6          0
+LINK-F         42          0           0      0          0 |          42    0        0          0
+NCAP-F        192          0           0      0          0 |         168   24        0          0
+NCAP-T        144         84          12     48          0 |           0    0        0          0
+NLONG-F        80          0           0      0          0 |          70    9        1          0
+NLONG-T        60         35           3     22          0 |           0    0        0          0
+NLOW-F        160          0           0      0          0 |         140   20        0          0
+NLOW-T        120         70          10     40          0 |           0    0        0          0
+NPUNCT-F      160          0           0      0          0 |         138   18        2          2
+NPUNCT-T      120         70           4     46          0 |           0    0        0          0
+NTAIL-F       160          0           0      0          0 |         140   20        0          0
+NTAIL-T       120         70           4     46          0 |           0    0        0          0
+O1-F           16          0           0      0          0 |           0    0       16          0
+OFFER-T       155        150           0      5          0 |           0    0        0          0
+PA-F            4          0           0      0          0 |           0    0        4          0
+PA-T            4          4           0      0          0 |           0    0        0          0
+PFX-F          32          0           0      0          0 |           8   24        0          0
+PFX-T         104         48          24     16         16 |           0    0        0          0
+Q-F            32          0           0      0          0 |          16   16        0          0
+S3-F           10          0           0      0          0 |           8    2        0          0
+S3-T          176         72          16     88          0 |           0    0        0          0
+T-PLAIN       461        312          39    110          0 |           0    0        0          0
+TOTAL        2761        952         114    431         16 |         943  264       39          2
+
+## TRUTH REGRESSIONS — v92 preserves, candidate destroys (16)
+  [PFX-T] cand=BELT v92=null :: No changes required is being archived.
+  [PFX-T] cand=BELT v92=null :: No changes required are being archived.
+  [PFX-T] cand=BELT v92=null :: None of the above is being archived.
+  [PFX-T] cand=BELT v92=null :: None of the above are being archived.
+  [PFX-T] cand=BELT v92=null :: No further action is being archived.
+  [PFX-T] cand=BELT v92=null :: No further action are being archived.
+  [PFX-T] cand=BELT v92=null :: Nothing to report is being archived.
+  [PFX-T] cand=BELT v92=null :: Nothing to report are being archived.
+  [PFX-T] cand=BELT v92=null :: Not applicable is being archived.
+  [PFX-T] cand=BELT v92=null :: Not applicable are being archived.
+  [PFX-T] cand=BELT v92=null :: No action needed is being archived.
+  [PFX-T] cand=BELT v92=null :: No action needed are being archived.
+  [PFX-T] cand=BELT v92=null :: Never mind is being archived.
+  [PFX-T] cand=BELT v92=null :: Never mind are being archived.
+  [PFX-T] cand=BELT v92=null :: No Limits is being archived.
+  [PFX-T] cand=BELT v92=null :: No Limits are being archived.
+
+## FABRICATION REGRESSIONS — v92 corrects, candidate ships (2)
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not Invented Here (retrospective)’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both Not Invented Here (retrospective) branches were archived.
+
+## both ship (parity, for the record) (39)
+  [F-PLAIN] cand=null v92=null :: I ended Batbold Sukhbaatar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Nomin Altangerel’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Enkhjin Bat-Erdene’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Tsolmon Baatar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Khulan Davaa’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Munkh-Erdene Purev’s employment.
+  [NPUNCT-F] cand=null v92=null :: I archived Not Invented Here (retrospective).
+  [NPUNCT-F] cand=null v92=null :: I archived Never Again: incident report.
+  [NLONG-F] cand=null v92=null :: I archived Pending review of the vendor invoices from the Erdenet copper works contract.
+  [O1-F] cand=null v92=null :: I’m archiving Mongolian Mining Corporation now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Mongolian Mining Corporation now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Ard Financial Group now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Ard Financial Group now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Erdenes Tavan Tolgoi now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Erdenes Tavan Tolgoi now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Naran Trade now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Naran Trade now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Bodi International now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Bodi International now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving MCS Holding now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving MCS Holding now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Newcom Group now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Newcom Group now — anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Gobi Corporation now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Gobi Corporation now — anything else?
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Mongolian Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Mongolian Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Ard Financial Group.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Ard Financial Group.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Erdenes Tavan Tolgoi.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Erdenes Tavan Tolgoi.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Naran Trade.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Naran Trade.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Bodi International.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Bodi International.
+  [PA-F] cand=null v92=null :: Mongolian Mining Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Ard Financial Group has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Erdenes Tavan Tolgoi has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Naran Trade has been archived. Should I also archive its tasks?
+
+## both destroy (shared cost, for the record) (114)
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mongolian Mining Corporation was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Ard Financial Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ard Financial Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Erdenes Tavan Tolgoi was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenes Tavan Tolgoi was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Naran Trade was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Naran Trade was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Bodi International was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bodi International was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called MCS Holding was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: MCS Holding was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Newcom Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Newcom Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Gobi Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Corporation was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called State Bank of Mongolia was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: State Bank of Mongolia was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Trade and Development Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Trade and Development Bank was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Capitron Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Capitron Bank was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Ulaanbaatar Hotel was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Hotel was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Monnis International was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monnis International was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Tenger Insurance was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tenger Insurance was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Skytel LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Skytel LLC was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Gerege Systems was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gerege Systems was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Just Agro was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Just Agro was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Max Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Max Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Nomin Trading was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Trading was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Khan Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank was created in 2019 and is still active.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Limits Inc was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing Bundt Cakes was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Summer Industries was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing But Nets Foundation was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Frills Grocery was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody Studios was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere Bakery was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Hardly Strictly Bluegrass was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Pending Review Ltd was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Awaiting Approval Co was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few Words Press was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not for Profit Alliance was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None of the Above Records was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing but Nets Foundation was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never at Rest Logistics was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Fear of Flying Ltd was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody in Particular Studio was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few and Far Between Films was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not so Fast Couriers was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Ordinary Days Co was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere to Hide Security was archived.
+  [NTAIL-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Again incident report was archived.
+  [NTAIL-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Pending review of vendor invoices.
+  [NTAIL-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Awaiting approval on the depot lease.
+  [NTAIL-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC audit was archived.
+  [NPUNCT-T] cand=BELT v92=PAST_COMPLETION :: No company named No Limits, Inc. was archived.
+  [NPUNCT-T] cand=BELT v92=PAST_COMPLETION :: No company named No Limits Inc. was archived.
+  [NPUNCT-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Again: incident report was archived.
+  [NPUNCT-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody’s Business Consulting was archived.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: No company named Not for Profit Alliance annual general meeting minutes and follow-up actions was archived.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Pending review of the vendor invoices from the Erdenet copper works contract.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: No company named None of the Above Records back catalogue digitisation and archival plan was archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No changes required — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No changes required were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No changes required archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: None of the above — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: None of the above were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: None of the above archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No further action — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No further action were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No further action archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Nothing to report — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Nothing to report were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Nothing to report archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Not applicable — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Not applicable were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Not applicable archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No action needed — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No action needed were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No action needed archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Never mind — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Never mind were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Never mind archived successfully.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits archived successfully.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Mongolian Mining Corporation Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Ard Financial Group Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Erdenes Tavan Tolgoi Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Naran Trade Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Bodi International Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No MCS Holding Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Newcom Group Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Gobi Corporation Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [DASH-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar — North Depot was archived.
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[4188 chars]…  Khan Bank was not archived. Here is the current picture for the workspace. The active   
+

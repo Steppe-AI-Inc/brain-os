@@ -1,0 +1,40 @@
+candidate matcher deps:  | v92 deps: (none)
+  same "ACME Corp"                      cand=ACME Corp              v92=ACME Corp              | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  same "acme corp"                      cand=ACME Corp              v92=ACME Corp              | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  same "ACME Company"                   cand=ACME Company           v92=ACME Company           | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “ACME Company”."
+  same "ACME"                           cand=null                   v92=null                   | replay armed=null summary=null
+  DIFF "the first one"                  cand=ACME Corp              v92=null                   | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  DIFF "option 1"                       cand=ACME Corp              v92=null                   | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  DIFF "1"                              cand=ACME Corp              v92=null                   | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  DIFF "2"                              cand=ACME Company           v92=null                   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “ACME Company”."
+  DIFF "the second one"                 cand=ACME Company           v92=null                   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “ACME Company”."
+  DIFF "second"                         cand=ACME Company           v92=null                   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “ACME Company”."
+  same "do the ACME Corp one"           cand=ACME Corp              v92=ACME Corp              | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  same "ACME Corp please"               cand=ACME Corp              v92=ACME Corp              | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  same "I meant ACME Corp"              cand=ACME Corp              v92=ACME Corp              | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “ACME Corp”."
+  same "both"                           cand=null                   v92=null                   | replay armed=null summary=null
+  same "neither"                        cand=null                   v92=null                   | replay armed=null summary=null
+  same "none of them"                   cand=null                   v92=null                   | replay armed=null summary=null
+  same "Nomin Foods"                    cand=Nomin Foods            v92=Nomin Foods            | replay armed=archiveCompanyIds:id-3 summary="Confirmed — you selected “Nomin Foods”."
+  DIFF "the third"                      cand=Nomin Foods            v92=null                   | replay armed=archiveCompanyIds:id-3 summary="Confirmed — you selected “Nomin Foods”."
+  DIFF "option 3"                       cand=Nomin Foods            v92=null                   | replay armed=archiveCompanyIds:id-3 summary="Confirmed — you selected “Nomin Foods”."
+  same "the last one"                   cand=null                   v92=null                   | replay armed=null summary=null
+  same "Nomin"                          cand=null                   v92=null                   | replay armed=null summary=null
+  same "nomin trading"                  cand=Nomin Trading          v92=Nomin Trading          | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “Nomin Trading”."
+  DIFF "3"                              cand=Nomin Foods            v92=null                   | replay armed=archiveCompanyIds:id-3 summary="Confirmed — you selected “Nomin Foods”."
+  DIFF "restore Restored Furniture Co"  cand=null                   v92=Restored Furniture Co  | replay armed=null summary=null
+  same "Restored Furniture Co"          cand=Restored Furniture Co  v92=Restored Furniture Co  | replay armed=archiveCompanyIds:id-1 summary="Confirmed — proceeding with the option you selected."
+  same "archive Restore Hardware Ltd"   cand=Restore Hardware Ltd   v92=Restore Hardware Ltd   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “Restore Hardware Ltd”."
+  same "Restore Hardware Ltd"           cand=Restore Hardware Ltd   v92=Restore Hardware Ltd   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “Restore Hardware Ltd”."
+  same "restore it"                     cand=null                   v92=null                   | replay armed=null summary=null
+  same "Bob Smith"                      cand=Bob Smith              v92=Bob Smith              | replay armed=null summary=null
+  DIFF "bob smithers"                   cand=Bob Smithers           v92=null                   | replay armed=null summary=null
+  same "the Bob Smith one"              cand=Bob Smith              v92=Bob Smith              | replay armed=null summary=null
+  same "No Limits Inc"                  cand=No Limits Inc          v92=No Limits Inc          | replay armed=archiveCompanyIds:id-1 summary="Confirmed — you selected “No Limits Inc”."
+  same "Nothing Bundt Cakes"            cand=Nothing Bundt Cakes    v92=Nothing Bundt Cakes    | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “Nothing Bundt Cakes”."
+  DIFF "option 2"                       cand=Nothing Bundt Cakes    v92=null                   | replay armed=archiveCompanyIds:id-2 summary="Confirmed — you selected “Nothing Bundt Cakes”."
+  same "yes"                            cand=null                   v92=null                   | replay armed=null summary=null
+  same "cancel"                         cand=null                   v92=null                   | replay armed=null summary=null
+  same "ACME Corp or ACME Company"      cand=null                   v92=null                   | replay armed=null summary=null
+  DIFF "not ACME Corp"                  cand=null                   v92=ACME Corp              | replay armed=null summary=null
+shapes 38 same 25 diff 13 my-harness-vs-belt_extract mismatches 0

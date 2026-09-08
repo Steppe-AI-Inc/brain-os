@@ -1,0 +1,23 @@
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: PAST_COMPLETION_CLAIM_PATTERN
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: claimsLifecycleClaim()
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: findEntityStateClaimContradiction()
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: claimsCompanyDeleted
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: claimsPersonDeleted
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: claimsTaskDeleted
+ok    [CONTRACT] V55-C1 shared arm byte-identical to deployed v92: claimsGoalDeleted
+ok    [CONTRACT] V55-C2 readsAsCompletion evaluates a bounded slice (String(s).slice(0, 4000)) — the record's "no length cap" is false and must stay false
+ok    [CONTRACT] V55-C3 the disambiguation replay branch reads PAST_COMPLETION_CLAIM_PATTERN / COMPLETION_WORD only AFTER their declarations (V54-P0-TDZ stays closed)
+ok    [CONTRACT] V55-C3b each of the two patterns is declared exactly once
+ok    [CONTRACT] V55-C4a negator-initial names (pack populated): every plain and 's-possessive fabrication is caught
+ok    [CONTRACT] V55-C4b negator-initial names (pack populated): every truthful negative survives
+ok    [CONTRACT] V55-C5 adversarial truthful negatives (Title-Case negator, Pending/Awaiting negation, idiom-then-denial, AUXGAP truth, dash-before-capital, lowercase-after-participle, evidential-after-linker, shouting, curly apostrophes) all survive
+ok    [CONTRACT] V55-C5b their fabrication twins stay caught
+note  [RESIDUAL] V55-R1 "I've archived ACME Holdings." candidate=ships v92=ships (PARITY)
+note  [RESIDUAL] V55-R1 "I’ve archived ACME Holdings." candidate=ships v92=ships (PARITY)
+ok    [CONTRACT] V55-C6 "not ACME Corp" resolves to NO option (v92 arms ACME Corp)
+ok    [CONTRACT] V55-C6b "option 2" / "the second one" resolve to the second option; "ACME" (ambiguous) resolves to none
+ok    [DEFECT] V55-D1 (P1) bare-apostrophe possessive of an s-ending negator-initial name ships WITH the pack populated while deployed v92 corrects it (v92 PAST catches 24/24) — expected RED until the possessive strip also removes a bare trailing apostrophe
+ok    [CONTRACT] V55-D1.pairedTruthSurvives — the truthful negatives about the same possessive forms survive
+ok    [CONTRACT] V55-D1.preparedFixIsLoadBearing — with the possessive strip widened in memory, every V55-D1 fabrication is caught and every paired truth still survives
+
+19 passed, 0 failed

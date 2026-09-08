@@ -1,0 +1,37 @@
+OK   ExecutionResultEnvelope type declared
+OK   envelope field request_id
+OK   envelope field channel_id
+OK   envelope field turn
+OK   envelope field action_type
+OK   envelope field entity_type
+OK   envelope field canonical_entity_ids
+OK   envelope field requested_values
+OK   envelope field executed
+OK   envelope field rows_affected
+OK   envelope field backend_result
+OK   envelope field precondition
+OK   envelope field postcondition
+OK   envelope field postcondition_verified
+OK   envelope field error
+OK   envelope field timestamp
+OK   mirror web/lib/contracts/execution.ts carries every envelope field
+OK   mirror supabase/functions/_shared/execution.ts carries every envelope field
+OK   recordExecution declared
+OK   postcondition_verified mirrors postconditionPassed
+OK   every literal-true evidence site is gated on a backend result (34/34)
+OK   recordCreate exists and re-reads ids under RLS
+OK   create family: task recorded via recordCreate
+OK   create family: approval recorded via recordCreate
+OK   create family: company recorded via recordCreate
+OK   create family: person recorded via recordCreate
+OK   create family: project recorded via recordCreate
+OK   create family: goal recorded via recordCreate
+OK   create family: company_relationship recorded via recordCreate
+OK   create family: person_assignment recorded via recordCreate
+OK   create family: memory recorded via recordCreate
+OK   no create-family literal true remains
+OK   deleted tasks verify the row is gone
+OK   work_orders.output persisted unconditionally
+OK   turnVerdict carries executed / attempted / rejected counts and the request intent
+
+architecture_mutation_envelope_contract: 35 passed, 0 failed

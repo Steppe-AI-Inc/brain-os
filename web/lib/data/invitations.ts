@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Invite-only onboarding (202608310009) management surface. Creation goes through
 // create_company_invitation() and acceptance through accept_company_invitation() — this
@@ -17,7 +18,7 @@ export async function getPendingInvitations() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("company_invitations")
-    .select("id, email, invited_role, status, expires_at, created_at, companies(name, status)")
+    .select(`id, email, invited_role, status, expires_at, created_at, ${COMPANY_REF}`)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
   if (error) throw error;

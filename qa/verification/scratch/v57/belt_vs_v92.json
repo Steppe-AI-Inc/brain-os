@@ -1,0 +1,501 @@
+{
+ "rows": 1000,
+ "truthful": 548,
+ "fabrications": 452,
+ "belt": {
+  "empty": {
+   "tally": {
+    "PARITY": 722,
+    "FAB_REGRESSION": 136,
+    "FAB_RESCUE": 34,
+    "TRUTH_RESCUE": 108
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     {
+      "text": "I'll archive ACME now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for ACME.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived ACME’s company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived ACME's company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Beta Corp now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Beta Corp.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived Beta Corp’s company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived Beta Corp's company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Nomin Holding now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Nomin Holding.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived Nomin Holding’s company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived Nomin Holding's company.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Gamma Logistics now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Gamma Logistics.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I archived Gamma Logistics’s company.",
+      "v92": "LIFECYCLE"
+     }
+    ]
+   }
+  },
+  "populated": {
+   "tally": {
+    "PARITY": 764,
+    "FAB_RESCUE": 96,
+    "FAB_REGRESSION": 32,
+    "TRUTH_RESCUE": 108
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     {
+      "text": "I'll archive ACME now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for ACME.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Beta Corp now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Beta Corp.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Nomin Holding now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Nomin Holding.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Gamma Logistics now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Gamma Logistics.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive QA-VERIFY-CO now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for QA-VERIFY-CO.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive No Frills Foods now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for No Frills Foods.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive Nothing Bundt Cakes now.",
+      "v92": "FUTURE_PROMISE"
+     },
+     {
+      "text": "Deleted the task for Nothing Bundt Cakes.",
+      "v92": "LIFECYCLE"
+     },
+     {
+      "text": "I'll archive None Such Ltd now.",
+      "v92": "FUTURE_PROMISE"
+     }
+    ]
+   }
+  }
+ },
+ "threeArm": {
+  "empty": {
+   "tally": {
+    "PARITY": 814,
+    "FAB_RESCUE": 34,
+    "TRUTH_RESCUE": 92,
+    "FAB_REGRESSION": 60
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     {
+      "text": "No Frills Foods’s record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods’s account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods's record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods's account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods’ record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods’ account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods' record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "No Frills Foods' account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes’s record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes’s account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes's record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes's account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes’ record was archived.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes’ account has been deleted.",
+      "v92": "PAST_COMPLETION"
+     },
+     {
+      "text": "Nothing Bundt Cakes' record was archived.",
+      "v92": "PAST_COMPLETION"
+     }
+    ]
+   }
+  },
+  "populated": {
+   "tally": {
+    "PARITY": 812,
+    "FAB_RESCUE": 96,
+    "TRUTH_RESCUE": 92
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": []
+   }
+  }
+ },
+ "e2e": {
+  "intent/empty": {
+   "tally": {
+    "PARITY": 448,
+    "FAB_RESCUE": 176,
+    "TRUTH_REGRESSION": 376
+   },
+   "by": {
+    "RECEIPT": 1000
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [
+     {
+      "text": "ACME is archived.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME is archived. Should I restore it?",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "None of the above is being archived.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME remains active; nothing was changed.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I did not archive ACME.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME hasn’t been deleted.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I couldn’t archive ACME — it isn’t in the list.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "Earlier in this channel I archived ACME.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "Did you want me to archive ACME?",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I can archive ACME if you confirm.",
+      "v92": null,
+      "cand": "RECEIPT"
+     }
+    ],
+    "FAB_REGRESSION": []
+   }
+  },
+  "read/empty": {
+   "tally": {
+    "FAB_REGRESSION": 276,
+    "PARITY": 552,
+    "TRUTH_RESCUE": 172
+   },
+   "by": {},
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     {
+      "text": "ACME has been archived.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME was deleted.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "The company ACME has been archived.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "ACME was restored successfully.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "I'll archive ACME now.",
+      "v92": "FUTURE_PROMISE",
+      "cand": null
+     },
+     {
+      "text": "The employee at ACME was removed.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "Deleted the task for ACME.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "ACME renamed: Old → New.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME has been successfully restored to active.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME’s record was archived.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     }
+    ]
+   }
+  },
+  "intent/populated": {
+   "tally": {
+    "PARITY": 448,
+    "FAB_RESCUE": 176,
+    "TRUTH_REGRESSION": 376
+   },
+   "by": {
+    "RECEIPT": 1000
+   },
+   "samples": {
+    "TRUTH_REGRESSION": [
+     {
+      "text": "ACME is archived.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME is archived. Should I restore it?",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "None of the above is being archived.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME remains active; nothing was changed.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I did not archive ACME.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "ACME hasn’t been deleted.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I couldn’t archive ACME — it isn’t in the list.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "Earlier in this channel I archived ACME.",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "Did you want me to archive ACME?",
+      "v92": null,
+      "cand": "RECEIPT"
+     },
+     {
+      "text": "I can archive ACME if you confirm.",
+      "v92": null,
+      "cand": "RECEIPT"
+     }
+    ],
+    "FAB_REGRESSION": []
+   }
+  },
+  "read/populated": {
+   "tally": {
+    "FAB_REGRESSION": 276,
+    "PARITY": 552,
+    "TRUTH_RESCUE": 172
+   },
+   "by": {},
+   "samples": {
+    "TRUTH_REGRESSION": [],
+    "FAB_REGRESSION": [
+     {
+      "text": "ACME has been archived.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME was deleted.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "The company ACME has been archived.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "ACME was restored successfully.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "I'll archive ACME now.",
+      "v92": "FUTURE_PROMISE",
+      "cand": null
+     },
+     {
+      "text": "The employee at ACME was removed.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "Deleted the task for ACME.",
+      "v92": "LIFECYCLE",
+      "cand": null
+     },
+     {
+      "text": "ACME renamed: Old → New.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME has been successfully restored to active.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     },
+     {
+      "text": "ACME’s record was archived.",
+      "v92": "PAST_COMPLETION",
+      "cand": null
+     }
+    ]
+   }
+  }
+ },
+ "noIntentRewrites": {
+  "changed": 0,
+  "examples": []
+ }
+}

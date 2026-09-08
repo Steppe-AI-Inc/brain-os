@@ -1,0 +1,196 @@
+[
+ {
+  "tag": "BASELINE ace9b6a (unmodified)",
+  "battery": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "ab": {
+   "src": "HEAD",
+   "assertion_leaks": "18/20",
+   "leaks": [
+    "ACME archived everything ok?",
+    "ACME deleted everything B. ok?",
+    "ACME Holdings deleted all the tasks ok?",
+    "The company deleted the tasks ok?",
+    "Bob removed 3 people from ACME ok?",
+    "The migration completed ok?",
+    "Everything archived ok?",
+    "Archived everything B. ok?",
+    "Deleted all the tasks ok?",
+    "Removed the whole team ok?",
+    "ACME now archived ok?",
+    "All tasks now deleted ok?",
+    "The team archived ACME ok?",
+    "My assistant deleted the project ok?",
+    "I successfully archived ACME ok?",
+    "I have archived ACME ok?",
+    "We finally deleted the project ok?",
+    "I quietly removed the person ok?"
+   ],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "labels": {
+   "error": "node:internal/modules/run_main:107\r\n    triggerUncaughtException(\r\n    ^\r\n\r\nError [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\qa\\verification\\scratch\\v13_probe.mjs' imported from C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\_probe_labels.mjs\r\nDid you mean to import \"../v13_probe.mjs\"?\r\n    at finalizeResolution (node:internal/modules/esm/resolve:271:11)\r\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\r\n    at defaultResolve (node:internal/modules/esm/resolve:992:11)\r\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)\r\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)\r\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\r\n    at #resolve (node:internal/modules/esm/loader:683:17)\r\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\r\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)\r\n    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {\r\n  code: 'ERR_MODULE_NOT_FOUND',\r\n  url: 'file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v13/qa/verification/scratch/v13_probe.mjs'\r\n}\r\n\r\nNode.js v24.19.0\r\n"
+  }
+ },
+ {
+  "tag": "FIX-1+2 (D102 seam key + D103a stable unique index)",
+  "battery": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "ab": {
+   "src": "HEAD",
+   "assertion_leaks": "18/20",
+   "leaks": [
+    "ACME archived everything ok?",
+    "ACME deleted everything B. ok?",
+    "ACME Holdings deleted all the tasks ok?",
+    "The company deleted the tasks ok?",
+    "Bob removed 3 people from ACME ok?",
+    "The migration completed ok?",
+    "Everything archived ok?",
+    "Archived everything B. ok?",
+    "Deleted all the tasks ok?",
+    "Removed the whole team ok?",
+    "ACME now archived ok?",
+    "All tasks now deleted ok?",
+    "The team archived ACME ok?",
+    "My assistant deleted the project ok?",
+    "I successfully archived ACME ok?",
+    "I have archived ACME ok?",
+    "We finally deleted the project ok?",
+    "I quietly removed the person ok?"
+   ],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "labels": {
+   "error": "node:internal/modules/run_main:107\r\n    triggerUncaughtException(\r\n    ^\r\n\r\nError [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\qa\\verification\\scratch\\v13_probe.mjs' imported from C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\_probe_labels.mjs\r\nDid you mean to import \"../v13_probe.mjs\"?\r\n    at finalizeResolution (node:internal/modules/esm/resolve:271:11)\r\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\r\n    at defaultResolve (node:internal/modules/esm/resolve:992:11)\r\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)\r\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)\r\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\r\n    at #resolve (node:internal/modules/esm/loader:683:17)\r\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\r\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)\r\n    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {\r\n  code: 'ERR_MODULE_NOT_FOUND',\r\n  url: 'file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v13/qa/verification/scratch/v13_probe.mjs'\r\n}\r\n\r\nNode.js v24.19.0\r\n"
+  }
+ },
+ {
+  "tag": "FIX-3 (D98/D99 interrogative-lead belt)",
+  "battery": {
+   "green": true,
+   "line": "TOTAL OK=561 FAIL=0",
+   "failing": []
+  },
+  "ab": {
+   "src": "HEAD",
+   "assertion_leaks": "0/20",
+   "leaks": [],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "labels": {
+   "error": "node:internal/modules/run_main:107\r\n    triggerUncaughtException(\r\n    ^\r\n\r\nError [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\qa\\verification\\scratch\\v13_probe.mjs' imported from C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\_probe_labels.mjs\r\nDid you mean to import \"../v13_probe.mjs\"?\r\n    at finalizeResolution (node:internal/modules/esm/resolve:271:11)\r\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\r\n    at defaultResolve (node:internal/modules/esm/resolve:992:11)\r\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)\r\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)\r\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\r\n    at #resolve (node:internal/modules/esm/loader:683:17)\r\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\r\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)\r\n    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {\r\n  code: 'ERR_MODULE_NOT_FOUND',\r\n  url: 'file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v13/qa/verification/scratch/v13_probe.mjs'\r\n}\r\n\r\nNode.js v24.19.0\r\n"
+  }
+ },
+ {
+  "tag": "FIX-4 (D100 completion label must match the canonical name)",
+  "battery": {
+   "green": false,
+   "line": "TOTAL OK=558 FAIL=3",
+   "failing": [
+    "run10_defect_closure_contract",
+    "run11_defect_closure_contract",
+    "run12_defect_closure_contract",
+    "OK=558"
+   ]
+  },
+  "ab": {
+   "src": "HEAD",
+   "assertion_leaks": "18/20",
+   "leaks": [
+    "ACME archived everything ok?",
+    "ACME deleted everything B. ok?",
+    "ACME Holdings deleted all the tasks ok?",
+    "The company deleted the tasks ok?",
+    "Bob removed 3 people from ACME ok?",
+    "The migration completed ok?",
+    "Everything archived ok?",
+    "Archived everything B. ok?",
+    "Deleted all the tasks ok?",
+    "Removed the whole team ok?",
+    "ACME now archived ok?",
+    "All tasks now deleted ok?",
+    "The team archived ACME ok?",
+    "My assistant deleted the project ok?",
+    "I successfully archived ACME ok?",
+    "I have archived ACME ok?",
+    "We finally deleted the project ok?",
+    "I quietly removed the person ok?"
+   ],
+   "legit_dropped": "7/27",
+   "dropped": [
+    "Which of the tasks we completed should be reopened?",
+    "Do you want the ones I removed restored?",
+    "Did you mean the company I archived last week?",
+    "Should I reopen the goal we closed in July?",
+    "Is the invoice I sent the one you meant?",
+    "Which of the people I assigned should be moved?",
+    "Do you want the report we created yesterday?"
+   ],
+   "legit_truncated": "4/27",
+   "truncated": [
+    "Have we archived ACME already, or should I do it now?",
+    "When the company is archived, do its tasks stay visible?",
+    "Since the task was assigned to Bob, should I reassign it?",
+    "Given the goal is closed, do you still want the report?"
+   ]
+  },
+  "labels": {
+   "error": "node:internal/modules/run_main:107\r\n    triggerUncaughtException(\r\n    ^\r\n\r\nError [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\qa\\verification\\scratch\\v13_probe.mjs' imported from C:\\Users\\Dell\\dev\\brain-os\\qa\\verification\\scratch\\v13\\_probe_labels.mjs\r\nDid you mean to import \"../v13_probe.mjs\"?\r\n    at finalizeResolution (node:internal/modules/esm/resolve:271:11)\r\n    at moduleResolve (node:internal/modules/esm/resolve:865:10)\r\n    at defaultResolve (node:internal/modules/esm/resolve:992:11)\r\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)\r\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)\r\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)\r\n    at #resolve (node:internal/modules/esm/loader:683:17)\r\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)\r\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33)\r\n    at ModuleJob.link (node:internal/modules/esm/module_job:253:17) {\r\n  code: 'ERR_MODULE_NOT_FOUND',\r\n  url: 'file:///C:/Users/Dell/dev/brain-os/qa/verification/scratch/v13/qa/verification/scratch/v13_probe.mjs'\r\n}\r\n\r\nNode.js v24.19.0\r\n"
+  }
+ }
+]

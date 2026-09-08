@@ -1,0 +1,108 @@
+{
+ "index_ts_sha256": "3f133bf8b0b534ec81679067deeeb67d582b47c538cc6ac95b3f64c22db01c20",
+ "ran_at": "2026-09-02T15:09:28.232Z",
+ "node": "v24.19.0",
+ "results": [
+  {
+   "suite": "structured_claim_verification",
+   "exit": 0,
+   "ok": 42,
+   "fail": 0,
+   "tail": [
+    "structured_claim_verification: 42/42 passed"
+   ]
+  },
+  {
+   "suite": "structured_claim_laundering_contract",
+   "exit": 0,
+   "ok": 29,
+   "fail": 0,
+   "tail": [
+    "structured_claim_laundering_contract: 29/29 match the recorded baseline",
+    "DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present."
+   ]
+  },
+  {
+   "suite": "lifecycle_evidence_and_output_persistence_contract",
+   "exit": 0,
+   "ok": 103,
+   "fail": 0,
+   "tail": [
+    "lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match the recorded baseline",
+    "DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source."
+   ]
+  },
+  {
+   "suite": "run8_defect_closure_contract",
+   "exit": 0,
+   "ok": 40,
+   "fail": 0,
+   "tail": [
+    "OK   D73 the envelope carries the GATED pendingAction, assertion stripped, question intact",
+    "run8_defect_closure_contract: 40/40 passed"
+   ]
+  },
+  {
+   "suite": "issue5_confirmation_action_type_binding",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": [
+    "issue5_confirmation_action_type_binding: 10/10 passed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_factory_verification_selection",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_company_restore_truth",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_named_person_lookup_truth",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_execution_plan_truth",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_confirmation_truth",
+   "exit": 0,
+   "ok": 0,
+   "fail": 0,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_past_completion_claim_regex",
+   "exit": 0,
+   "ok": 13,
+   "fail": 0,
+   "tail": [
+    "13 passed, 0 failed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_source_invariants_drift_guard",
+   "exit": 0,
+   "ok": 13,
+   "fail": 0,
+   "tail": [
+    "13 passed, 0 failed"
+   ]
+  }
+ ]
+}

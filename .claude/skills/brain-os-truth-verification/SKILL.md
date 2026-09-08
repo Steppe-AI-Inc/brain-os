@@ -264,16 +264,18 @@ style, matching this repo's existing conventions there) → ADD/UPDATE
 safe and within your authority → RERUN THE COMPLETE BUSINESS SCENARIO, not just the
 failing assertion → VERIFY AFTER A HARD RELOAD.
 
-Within your authority — fix it, commit it, push it (`git push` to `master`; Vercel
-auto-deploys), keep going: a bug in `web/` (React/TS, wrong call site, missing UI
-affordance), a bug in a Supabase Edge Function (redeploy with `supabase functions
-deploy <name> --project-ref <ref>`, byte-verify with `supabase functions download` +
-diff before trusting the deploy), a missing or wrong permanent regression test.
+Within your authority — fix it, commit it on a branch, open a pull request, keep going: a
+bug in `web/` (React/TS, wrong call site, missing UI affordance), a bug in a Supabase Edge
+Function (prepare the fix and its regression; deployment itself is a founder-only action
+taken through `ALLOW_FUNCTIONS_DEPLOY=1?`, then byte-verified with
+`scripts/factory-runner/verify-deployed-bytes.sh`), a missing or wrong permanent
+regression test.
 
-**The one hard stop: never run `supabase db push` or apply any new migration to
-production.** This is not a judgment call — it is this project's own standing rule
-(`CLAUDE.md`, "Never modify production blindly" / no DB-push authority for an
-unattended/autonomous agent — a real past incident, not theoretical caution). If a
+**The hard stops are the founder-only actions in `CLAUDE.md` §8: never run
+`supabase db push`, never apply, repair or roll back a production migration, never deploy
+an Edge Function, never touch production secrets or auth configuration.** This is not a
+judgment call — it is this project's own standing rule (a real past incident,
+`qa/KNOWN_FAILURE_MODES.md` #16 and #63, not theoretical caution). If a
 confirmed defect needs a schema/RLS/RPC/trigger change: (1) write the migration; (2) test
 it exhaustively in a rolled-back transaction — this is your evidence, and it never
 substitutes for actually pushing it; (3) add the regression test; (4) mark only that

@@ -1,0 +1,22 @@
+INDEPENDENT ADVERSARIAL VERIFICATION — campaign verify-f4763ef-run11-closure (verifier #12, campaign #72).
+
+Repo: C:/Users/Dell/dev/brain-os, branch pending/d3-past-completion-gate-pendingaction-shortcircuit, commit f4763ef. index.ts sha256 MUST be 1db385790f42286497540187c7c18e5661d59742eec67dc61cc978e8c8b369ec — verify with sha256sum FIRST; a mismatch means the baseline moved: stop and record. Production remains sem-ai-command v92; no deploys, production access read-only (`npx supabase functions list` only). You HAVE execution rights (node, sha256sum, read-only git) — USE them.
+
+Archive qa/verification/CURRENT_CAMPAIGN.json (campaign #71, verifier #11's record incl. its DEPLOY GATE OPEN verdict for the PRIOR sha and defects D85-D89) to qa/verification/archive/campaign-fdb4564-verify11.json, then start your own record. Checkpoint after EVERY scenario; on a provider limit, checkpoint FIRST and leave the verdict PENDING/BLOCKED.
+
+WHY THIS CAMPAIGN EXISTS: #11 opened the gate for fdb4564 and simultaneously reported five defects (D85 vacuous guards/8th recurrence, D86 Title-Case label bypass, D87 progressive-vocabulary omission, D88 assertion-before-trailing-question/4th instance, D89 bookkeeping). The implementing session closed all five, which invalidated #11's certification by design. You certify the NEW sha. Treat every closure claim as unverified.
+
+Scenarios:
+1. sha baseline, then EXECUTE the full battery (every qa/scenarios-runner suite, including the newly promoted run11_defect_closure_contract.mjs at 46 cases).
+2. MUTATION-TEST the run11 fixes yourself, sha-verified byte-identical restores: the D86 POSITION rule (completionIdx>0 refusal AND the leading-participle+named-object refusal), the D87 shared PROGRESS_VERBS list feeding all arms, the D88 comma-clause reduction AND its completion-in-question belt, the shared callback-arrow strip in _gate_extract.mjs, and the ordering-check anchor guards. The implementing session recorded ONE equivalent mutant (removing `iCtx >= 0 && iPending >= 0` while both anchors exist) — confirm or refute that classification rather than accepting it.
+3. ATTACK the new rules — this is the important scenario:
+   - D86: find a label that is an assertion yet passes the position rule (completion word first, no ALL-CAPS token after: e.g. "Deleted the project", "Archived everything", "Removed all people"), and any REAL name the rule now wrongly refuses. Decide whether the derived-canonical fallback makes each acceptable, and say so explicitly.
+   - D88: assertions joined by something other than a comma or a terminator (" - ", " and ", " so ", parenthetical, newline-free run-ons); an assertion whose last comma-clause still asserts; a legitimate multi-clause question wrongly truncated.
+   - D87: progressive shapes still outside the vocabulary (non-English, "about to", "in the process of", "kicking off", passive "is being archived").
+   - The interaction of the D88 belt with genuine questions: does any legitimate clarification now get dropped wholesale? (Two committed cases pin "ok?" survival — try to find one that does not.)
+4. Production read-only: v92 ACTIVE unchanged; zero writes.
+5. Bookkeeping honesty: KNOWN_FAILURE_MODES #71 postscript accuracy (incl. the equivalent-mutant disclosure), the run11 exit-guard hardening, and whether SESSION_CHECKPOINT.md's corrected migration-location statement is now accurate (the four prepared migrations live on branch master in the C:/Users/Dell/dev/brain-os-bug006 worktree — verify, do not assume).
+
+Record defects D90+. Verdict: DEPLOY GATE OPEN (battery + mutations independently executed on this exact sha, no new P0/P1) or DO NOT DEPLOY with exact reasons. The founder-facing Edge deploy question depends on your verdict alone.
+
+Standing rules: no deploys, no production writes, working-tree writes only under qa/verification/**.

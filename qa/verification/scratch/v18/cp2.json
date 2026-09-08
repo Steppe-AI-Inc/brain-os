@@ -1,0 +1,36 @@
+{
+ "status": "COMPLETE",
+ "verdict": "FAIL",
+ "verdict_basis": "classified from OUTPUT TEXT, not from any exit code: v18_regression_additions.mjs prints '15 pass, 41 fail (41 open #78 defects reproduce; 0 CONTRACT failures)'; s2_mutation.mjs prints 'SURVIVORS (coverage gaps): M3.dropNewline, M10.actionFamilyUnioned, M12.bareDigitIsFiller'; s7 prints '24/26 real names destroyed, 0/26 on 9535f0b and 52e830f'.",
+ "index_sha256_observed_at_end": "cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb",
+ "defects_opened": ["D130 (P1)", "D131 (P2)", "D132 (P2)", "D133 (P3)", "D134 coverage (3 surviving mutants)", "bookkeeping: 29/23 not 28/22"],
+ "scenarios": {
+  "6_belt_diffs": {
+   "status": "PASS",
+   "evidence": "qa/verification/scratch/v18/s6_belt_diffs.mjs — safeQuestionFragment hashes 04cd67c0e48dd3ce IDENTICALLY on d724d8c / 52e830f / 9535f0b / candidate, and 0 behavioural divergences over an 8-case question corpus. The completion-belt statement differs from 9535f0b as expected. Full diff 9535f0b->a559f8f is 3 code sites + comments."
+  },
+  "7_founder_directed_lexical_branch": {
+   "status": "FAIL",
+   "evidence": "qa/verification/scratch/v18/s7_lexical_branch.mjs. LABEL branch unchanged by this candidate (26/26 real names dropped with no canonical row, 0/26 with one; 8/8 assertions ship verbatim when the DB says that IS the name). PROSE branch F1/F2 clean (0/26 all revisions). PROSE branch F3 '<Name> was not archived.': candidate destroys 24/26, 9535f0b 0/26, 52e830f 0/26, d724d8c 26/26."
+  },
+  "5_no_prior_closure_reopened": {
+   "status": "PASS_WITH_QUALIFICATION",
+   "evidence": "full battery 711 assertions / 0 failures: every committed D72-class, D106, D112, D116, D117/D118, D119, D123, D124, D126, D127-D129 contract holds. QUALIFICATION: run14's committed D112 cases pass while the D112 CLASS is reopened by D130 — add one auxiliary to 'Confirmed - the archived list is empty.' and the same sentence is destroyed. Contracts hold, class does not."
+  },
+  "8_ledger_bookkeeping_truth": {
+   "status": "FAIL",
+   "evidence": "closure postscript says '28 suites, 0 failures (22 assertion-bearing)'; git ls-tree a559f8f qa/scenarios-runner shows 29 .mjs (run17 added by the same commit) = 1 library + 5 stubs + 23 assertion-bearing. Identical error to the one #77's entry corrected a generation earlier. Postscript claim 'a bare digit ... both pinned' is false (M12 survives). Ledger #77 entry has no leaked preamble and starts with '## #77 -'. CURRENT_CAMPAIGN.json names the candidate SHA and closure commit correctly; branch pending/d3-past-completion-gate-pendingaction-shortcircuit exists and contains a559f8f."
+  }
+ },
+ "deliverables": [
+  "qa/verification/proposed/v18_known_failure_modes_entry_78.md",
+  "qa/verification/proposed/v18_regression_additions.mjs",
+  "qa/verification/proposed/v18_PROMOTION_NOTE.md"
+ ],
+ "not_covered": [
+  "60 *.sql suites NOT RUN (npx supabase db query --linked permission-gated in this process)",
+  "UI truth and live AI-chat truth BLOCKED (no browser/MCP tooling in this process)",
+  "deno check claim NOT INDEPENDENTLY VERIFIED (deno gated)"
+ ],
+ "synthetic_data": "none created — this campaign performs no writes of any kind; the only production call was a read-only `supabase functions list`. Nothing to clean up."
+}

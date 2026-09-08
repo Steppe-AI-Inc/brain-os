@@ -1,0 +1,9 @@
+OK   no page or data file compares against the organization sentinel directly
+OK   pages resolve scope through the helper (19 adopters)
+OK   multi-membership + company => that company
+OK   multi-membership + sentinel => no filter
+OK   single membership => no filter (RLS alone)
+OK   no membership => none
+OK   inScope agrees with the scope
+
+architecture_org_scope_helper_contract: 7 passed, 0 failed

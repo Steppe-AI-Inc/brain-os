@@ -1,0 +1,5 @@
+TDZ SCAN qa/verification/scratch/v92/index.v92.ts
+declarations (const/let/class): 971  blocks: 919  function-body blocks: 283
+SYNCHRONOUS use-before-declaration in an enclosing block (P0 class): 1
+  P0  pendingAction use :2067 decl :2072 declBlockOpens :1790
+DEFERRED (use inside a nested function declared before the binding; TDZ only if invoked early): 0

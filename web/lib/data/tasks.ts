@@ -2,15 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
 import { TASK_COLUMNS } from "./task-columns";
 import type { Database } from "@/types/database";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 type PriorityLevel = Database["public"]["Enums"]["priority_level"];
 type RiskLevel = Database["public"]["Enums"]["risk_level"];
 type WorkStatus = Database["public"]["Enums"]["work_status"];
 
 const TASK_SELECT =
-  "id, title, description, status, priority, risk_level, approval_required, company_id, companies(name, status), owner_person_id, people(full_name), created_at, updated_at";
+  `id, title, description, status, priority, risk_level, approval_required, company_id, ${COMPANY_REF}, owner_person_id, people(full_name), created_at, updated_at`;
 
 // Overnight multi-org milestone: activeOrganizationId scopes Tasks to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —
@@ -130,12 +132,8 @@ export async function updateTaskStatus(id: string, status: WorkStatus) {
 // doesn't destroy or reassign anything, so there is nothing to check first.
 export async function archiveTask(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("archive_task", { p_task_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Archive failed — no result returned.";
-  if (result.reason === "not_found") return "This task no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to archive this task.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "archive_task", idParam: "p_task_id", id, entityType: "task", action: "archive", requestedValues: { status: "archived" } });
+  if (userMessage) return userMessage;
   revalidatePath("/tasks");
   return null;
 }
@@ -145,12 +143,8 @@ export async function archiveTask(id: string) {
 // in 202608290001_task_goal_archive_restore.sql.
 export async function restoreTask(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("restore_task", { p_task_id: id });
-  if (error) return error.message;
-  const result = data as { changed: boolean; authorized: boolean; reason: string } | null;
-  if (!result) return "Restore failed — no result returned.";
-  if (result.reason === "not_found") return "This task no longer exists.";
-  if (result.reason === "denied") return "You do not have permission to restore this task.";
+  const { userMessage } = await callLifecycleRpc(supabase, { rpc: "restore_task", idParam: "p_task_id", id, entityType: "task", action: "restore" });
+  if (userMessage) return userMessage;
   revalidatePath("/tasks");
   return null;
 }

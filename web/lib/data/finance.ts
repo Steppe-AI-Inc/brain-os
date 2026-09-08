@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: the pre-existing optional company filter is now the canonical
 // activeOrganizationId parameter, same pattern as getPeople() in lib/data/people.ts —
@@ -11,7 +12,7 @@ export async function getFinancialReports(activeOrganizationId?: string | null) 
   let query = supabase
     .from("financial_reports")
     .select(
-      "id, company_id, period, revenue, expenses, net_income, cash_position, health_status, notable_flags, summary, created_at, companies(name, status)"
+      `id, company_id, period, revenue, expenses, net_income, cash_position, health_status, notable_flags, summary, created_at, ${COMPANY_REF}`
     )
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);

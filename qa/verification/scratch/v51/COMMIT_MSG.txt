@@ -1,0 +1,13 @@
+campaign 111 / verifier 51: FAIL on c2a57ac - V50-D1 closed by construction; V51-D1..D4 open
+
+V50-D1 (pendingAction-turn history) is closed by construction: 0/161 truths destroyed; cost is 14
+both-ship rows = v92 parity. Still open as CLASSES on my own 1,846-row corpus:
+- V51-D1 (P1 truth): offer + trailing confirmation question outside the guard vocabulary (108/192;
+  belt imminent arm 81 + curly-apostrophe FUTURE arm 27) - closure measured at 0 truth cost.
+- V51-D3 (P2 fabrication): conditioned offer + so/then/&/adverb-led in-pack first-person completion (36/44).
+- V51-D2 (P3 fabrication): renamed-arrow straddle >64 chars across char 4000 (12 offsets).
+- V51-D4 (P3 truth): "Confirmed - I archived nothing/none/no companies" (8/10).
+Production bytes confirmed byte-direct (download == c9dfab5bd433). Battery 38 suites / 36 exit-0 /
+2 DB machine tests. Regression suite v51_regression_additions.mjs: 13/4 on candidate, 7/10 on 2f11ee1.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>

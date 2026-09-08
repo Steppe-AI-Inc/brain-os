@@ -1,0 +1,9 @@
+OK   the claim RPC has a parsable RETURN list
+OK   the claim RPC has a parsable predicate
+OK   the guard function is present
+OK   every column the claim RETURNS (14) or READS (9) plus the liveness/attestation columns is guarded (26 guarded)
+OK   the guard raises an AUTHORITY refusal (42501), not a business-rule error (R4-9)
+OK   the guard tests session_user, never current_user (R-D1)
+OK   the guard function is not PUBLIC-executable (A-6 class)
+
+agent_run_guard_covers_claim_returns: guard list covers the claim (returned: id, canonical_work_order_id, task_id, agent_id, checkpoint_location, source_sha, branch, worktree, last_completed_scenario, remaining_scenarios, verification_campaign_id, attempt_count, requested_provider, requested_model)

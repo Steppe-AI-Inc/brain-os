@@ -1,0 +1,425 @@
+{
+  "S4": [
+    {
+      "name": "4.1 ALL unresolvable -> option list is EMPTY",
+      "got": [],
+      "expect": [],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.2 MIXED -> only the canonically-known option survives, under its CANONICAL name",
+      "got": [
+        "Beta Corp"
+      ],
+      "expect": [
+        "Beta Corp"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.3 resolvable ONLY via companyNameById (lastKnownLabel), not canonicalById",
+      "got": [
+        "ACME Holdings"
+      ],
+      "expect": [
+        "ACME Holdings"
+      ],
+      "ok": true,
+      "note": "<-- SURVIVES via lastKnownLabel, NOT contextPack"
+    },
+    {
+      "name": "4.3b resolvable ONLY via runtimeLabels (row created THIS turn)",
+      "got": [
+        "Fresh Co"
+      ],
+      "expect": [
+        "Fresh Co"
+      ],
+      "ok": true,
+      "note": "<-- SURVIVES via runtimeLabels"
+    },
+    {
+      "name": "4.4 two resolvable options, identical canonical names -> still distinguishable",
+      "got": [
+        "ACME (option 1)",
+        "ACME (option 2)"
+      ],
+      "expect": [
+        "ACME (option 1)",
+        "ACME (option 2)"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5 entityType='record' unresolvable -> dropped",
+      "got": [],
+      "expect": [],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5 entityType='work_order' unresolvable -> dropped",
+      "got": [],
+      "expect": [],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5 entityType='document' unresolvable -> dropped",
+      "got": [],
+      "expect": [],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5 entityType='lead' unresolvable -> dropped",
+      "got": [],
+      "expect": [],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5 entityType='wharrgarbl' unresolvable -> dropped",
+      "got": [
+        "the wharrgarbl"
+      ],
+      "expect": [],
+      "ok": false,
+      "note": ""
+    },
+    {
+      "name": "4.5b entityType='work_order' WITH a canonical row -> canonical name shown",
+      "got": [
+        "Real WO Name"
+      ],
+      "expect": [
+        "Real WO Name"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.5b entityType='document' WITH a canonical row -> canonical name shown",
+      "got": [
+        "Real WO Name"
+      ],
+      "expect": [
+        "Real WO Name"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.6 label agrees modulo quotes -> model spelling kept",
+      "got": [
+        "“ACME Holdings”"
+      ],
+      "expect": [
+        "“ACME Holdings”"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.6b label agrees modulo CASE -> model spelling kept",
+      "got": [
+        "acme holdings"
+      ],
+      "expect": [
+        "acme holdings"
+      ],
+      "ok": true,
+      "note": ""
+    },
+    {
+      "name": "4.6c label agrees modulo trailing period -> period is stripped by safeOptionLabel, so it AGREES",
+      "got": [
+        "ACME Holdings"
+      ],
+      "expect": [
+        "ACME Holdings"
+      ],
+      "ok": true,
+      "note": ""
+    }
+  ],
+  "reachable": [
+    {
+      "desc": "fabricated label ALSO written into runtimeLabels (model-writable per run9/D74)",
+      "survived": [
+        "Terminated Bob Smith"
+      ]
+    },
+    {
+      "desc": "progressive assertion in runtimeLabels",
+      "survived": [
+        "Now removing ACME."
+      ]
+    }
+  ],
+  "rows8": [
+    {
+      "branch": "absent",
+      "s": "Terminated Bob Smith",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "Terminated Bob Smith",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Closed Loop Systems",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Confirmed — the company is not archived",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "ACME Deleted",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Deleted ACME",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "I archived ACME, ok?",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Now removing ACME.",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "Now removing ACME",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "I'm now removing ACME.",
+      "isReal": false,
+      "shown": "(DROPPED)",
+      "base": "I'm now removing ACME",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Archived Goods Ltd",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Deleted Scenes Media",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Closed Loop Systems",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Terminated Cable Co",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "Terminated Cable Co",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Completed Works Inc",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Assigned Media Group",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Removed Media",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Restored Classics LLC",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "absent",
+      "s": "Approved Foods Co",
+      "isReal": true,
+      "shown": "(DROPPED)",
+      "base": "the company",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Terminated Bob Smith",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Closed Loop Systems",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Confirmed — the company is not archived",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "ACME Deleted",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Deleted ACME",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "I archived ACME, ok?",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Now removing ACME.",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "I'm now removing ACME.",
+      "isReal": false,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Archived Goods Ltd",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Deleted Scenes Media",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Closed Loop Systems",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Terminated Cable Co",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Completed Works Inc",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Assigned Media Group",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Removed Media",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Restored Classics LLC",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    },
+    {
+      "branch": "present",
+      "s": "Approved Foods Co",
+      "isReal": true,
+      "shown": "ACME Holdings",
+      "survivedVerbatim": false
+    }
+  ],
+  "realDestroyedAbsent": 10,
+  "realDestroyedPresent": 10,
+  "assertSurvivedAbsent": 0,
+  "assertSurvivedPresent": 0,
+  "honestKept": 9
+}

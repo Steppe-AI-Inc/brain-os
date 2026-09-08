@@ -1,0 +1,29 @@
+OK   no raw status UPDATE into archived under web/lib/data
+OK   web/lib/data/companies.ts imports callLifecycleRpc
+OK   web/lib/data/companies.ts: archive_company is called only through callLifecycleRpc
+OK   web/lib/data/companies.ts: restore_company is called only through callLifecycleRpc
+OK   web/lib/data/companies.ts has no hand-rolled lifecycle result reading
+OK   web/lib/data/tasks.ts imports callLifecycleRpc
+OK   web/lib/data/tasks.ts: archive_task is called only through callLifecycleRpc
+OK   web/lib/data/tasks.ts: restore_task is called only through callLifecycleRpc
+OK   web/lib/data/tasks.ts has no hand-rolled lifecycle result reading
+OK   web/lib/data/goals.ts imports callLifecycleRpc
+OK   web/lib/data/goals.ts: archive_goal is called only through callLifecycleRpc
+OK   web/lib/data/goals.ts: restore_goal is called only through callLifecycleRpc
+OK   web/lib/data/goals.ts has no hand-rolled lifecycle result reading
+OK   web/lib/data/people.ts imports callLifecycleRpc
+OK   web/lib/data/people.ts: end_person_employment is called only through callLifecycleRpc
+OK   web/lib/data/people.ts: restore_person_employment is called only through callLifecycleRpc
+OK   web/lib/data/people.ts has no hand-rolled lifecycle result reading
+OK   verified outcome: executed + postcondition_verified, no user message
+OK   changed but unconfirmed: executed, NOT verified, told to treat as unchanged
+OK   already_* is a truthful no-op: not executed, not verified, no error message
+OK   denied: not executed, permission message
+OK   invalid id never reaches the RPC
+OK   edge calls archive_company / restore_company
+OK   edge resolves lifecycle targets server-side across statuses
+OK   edge no longer gates archive/restore on context membership (BUG-014)
+OK   edge: zero hits and several hits both leave a line (never silent)
+OK   prompt no longer equates window absence with deletion
+
+architecture_lifecycle_rpc_only_contract: 27 passed, 0 failed

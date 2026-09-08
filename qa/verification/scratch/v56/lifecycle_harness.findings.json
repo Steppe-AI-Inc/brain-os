@@ -1,0 +1,267 @@
+{
+ "failures": [
+  "C2 punctuated name via command: \"Acme (Mongolia) LLC\"\n       calls=[] report=null",
+  "C2 punctuated name via model restoreCompanyNames: \"Acme (Mongolia) LLC\"\n       calls=[] report=\"Acme (Mongolia) LLC: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"",
+  "C2 punctuated name via model restoreCompanyNames: \"Acme, Inc.\"\n       calls=[] report=\"Acme, Inc.: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"",
+  "C2 punctuated name via command: \"A_B Holdings\"\n       calls=[] report=null",
+  "C2 punctuated name via model restoreCompanyNames: \"A_B Holdings\"\n       calls=[] report=\"A_B Holdings: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"",
+  "C2 punctuated name via command: \"100% Natural Foods\"\n       calls=[] report=null",
+  "C2 punctuated name via model restoreCompanyNames: \"100% Natural Foods\"\n       calls=[] report=\"100% Natural Foods: no company by that name (searched the active and archived companies you can access) — nothing was restored.\"",
+  "C3a \"archive Restored Furniture Co\" (model id) ends ARCHIVED, one archive RPC, no restore RPC\n       calls=[[\"archive_company\",\"00000005-0000-4000-8000-000000000000\"],[\"restore_company\",\"00000005-0000-4000-8000-000000000000\"]] report=\"Restored Furniture Co: archived. Restored Furniture Co: restored.\" final=active",
+  "C3b \"archive Restored Furniture Co\" (name only) ends ARCHIVED\n       calls=[[\"restore_company\",\"00000005-0000-4000-8000-000000000000\"]] report=\"Restored Furniture Co: was already active.\"",
+  "C3e \"archive Reactivate Solutions\" (model id) ends ARCHIVED\n       calls=[[\"archive_company\",\"00000009-0000-4000-8000-000000000000\"],[\"restore_company\",\"00000009-0000-4000-8000-000000000000\"]] report=\"Reactivate Solutions: archived. Reactivate Solutions: restored.\" final=active",
+  "C4 non-company target never mutates a company: \"delete Alpha\" with company \"Alpha Holdings\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Alpha Holdings: archived.\" final=archived",
+  "C4 non-company target never mutates a company: \"remove Bob Smith\" with company \"Bob Smith Consulting\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Bob Smith Consulting: archived.\" final=archived",
+  "C4 non-company target never mutates a company: \"archive Q3 revenue\" with company \"Q3 Revenue Partners\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Q3 Revenue Partners: archived.\" final=archived",
+  "C4 non-company target never mutates a company: \"remove Bob\" with company \"Bobcat Machinery\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Bobcat Machinery: archived.\" final=archived",
+  "C4 non-company target never mutates a company: \"archive the task Alpha\" with company \"Alpha Task Force\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Alpha Task Force: archived.\" final=archived",
+  "C4b same command, model emitted nothing: \"delete Alpha\" / \"Alpha Holdings\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Alpha Holdings: archived.\"",
+  "C4b same command, model emitted nothing: \"remove Bob Smith\" / \"Bob Smith Consulting\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Bob Smith Consulting: archived.\"",
+  "C4b same command, model emitted nothing: \"archive Q3 revenue\" / \"Q3 Revenue Partners\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Q3 Revenue Partners: archived.\"",
+  "C4b same command, model emitted nothing: \"remove Bob\" / \"Bobcat Machinery\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Bobcat Machinery: archived.\"",
+  "C4b same command, model emitted nothing: \"archive the task Alpha\" / \"Alpha Task Force\"\n       calls=[[\"archive_company\",\"00000010-0000-4000-8000-000000000000\"]] report=\"Alpha Task Force: archived.\"",
+  "C7b model already armed a pendingAction: no execution, and the report says more than one matches\n       {\"pa\":{\"kind\":\"open_question\",\"question\":\"Which region?\"},\"report\":null}",
+  "C11 command shape resolves by name: \"Polite Co needs to be restored\"\n       calls=[] report=null"
+ ],
+ "findings": [
+  {
+   "id": "C2",
+   "name": "Acme (Mongolia) LLC",
+   "via": "command",
+   "report": null
+  },
+  {
+   "id": "C2",
+   "name": "Acme (Mongolia) LLC",
+   "via": "restoreCompanyNames",
+   "report": "Acme (Mongolia) LLC: no company by that name (searched the active and archived companies you can access) — nothing was restored."
+  },
+  {
+   "id": "C2",
+   "name": "Acme, Inc.",
+   "via": "restoreCompanyNames",
+   "report": "Acme, Inc.: no company by that name (searched the active and archived companies you can access) — nothing was restored."
+  },
+  {
+   "id": "C2",
+   "name": "A_B Holdings",
+   "via": "command",
+   "report": null
+  },
+  {
+   "id": "C2",
+   "name": "A_B Holdings",
+   "via": "restoreCompanyNames",
+   "report": "A_B Holdings: no company by that name (searched the active and archived companies you can access) — nothing was restored."
+  },
+  {
+   "id": "C2",
+   "name": "100% Natural Foods",
+   "via": "command",
+   "report": null
+  },
+  {
+   "id": "C2",
+   "name": "100% Natural Foods",
+   "via": "restoreCompanyNames",
+   "report": "100% Natural Foods: no company by that name (searched the active and archived companies you can access) — nothing was restored."
+  },
+  {
+   "id": "C3a",
+   "calls": [
+    [
+     "archive_company",
+     "00000005-0000-4000-8000-000000000000"
+    ],
+    [
+     "restore_company",
+     "00000005-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Restored Furniture Co: archived. Restored Furniture Co: restored.",
+   "final": "active"
+  },
+  {
+   "id": "C3b",
+   "calls": [
+    [
+     "restore_company",
+     "00000005-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Restored Furniture Co: was already active.",
+   "final": "active"
+  },
+  {
+   "id": "C3e",
+   "calls": [
+    [
+     "archive_company",
+     "00000009-0000-4000-8000-000000000000"
+    ],
+    [
+     "restore_company",
+     "00000009-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Reactivate Solutions: archived. Reactivate Solutions: restored.",
+   "final": "active"
+  },
+  {
+   "id": "C4",
+   "command": "delete Alpha",
+   "companyName": "Alpha Holdings",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha Holdings: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "C4",
+   "command": "remove Bob Smith",
+   "companyName": "Bob Smith Consulting",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Bob Smith Consulting: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "C4",
+   "command": "archive Q3 revenue",
+   "companyName": "Q3 Revenue Partners",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Q3 Revenue Partners: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "C4",
+   "command": "remove Bob",
+   "companyName": "Bobcat Machinery",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Bobcat Machinery: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "C4",
+   "command": "archive the task Alpha",
+   "companyName": "Alpha Task Force",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha Task Force: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "C4b",
+   "command": "delete Alpha",
+   "companyName": "Alpha Holdings",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha Holdings: archived."
+  },
+  {
+   "id": "C4b",
+   "command": "remove Bob Smith",
+   "companyName": "Bob Smith Consulting",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Bob Smith Consulting: archived."
+  },
+  {
+   "id": "C4b",
+   "command": "archive Q3 revenue",
+   "companyName": "Q3 Revenue Partners",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Q3 Revenue Partners: archived."
+  },
+  {
+   "id": "C4b",
+   "command": "remove Bob",
+   "companyName": "Bobcat Machinery",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Bobcat Machinery: archived."
+  },
+  {
+   "id": "C4b",
+   "command": "archive the task Alpha",
+   "companyName": "Alpha Task Force",
+   "calls": [
+    [
+     "archive_company",
+     "00000010-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha Task Force: archived."
+  },
+  {
+   "id": "C7b-note",
+   "note": "when the model already armed a pendingAction the disambiguation options are NOT offered (only the line); the founder cannot pick",
+   "pa": {
+    "kind": "open_question",
+    "question": "Which region?"
+   },
+   "report": null
+  },
+  {
+   "id": "C8-note",
+   "note": "\"archive Beta\" with Beta Corp(archived)+Beta Labs(active): status preference picks the active one without asking",
+   "calls": [
+    [
+     "archive_company",
+     "00000061-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Beta Labs: archived."
+  },
+  {
+   "id": "C10-note",
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "C11",
+   "command": "Polite Co needs to be restored",
+   "calls": [],
+   "report": null
+  }
+ ]
+}

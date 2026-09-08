@@ -1,0 +1,10 @@
+OK   no bare companies(name) join remains anywhere under web/
+OK   canonical company-ref module exists
+OK   COMPANY_REF selects status, not just name
+OK   isArchivedParent treats ONLY status==="archived" as archived
+OK   shared ArchivedCompanyBadge still exists
+OK   canonical companies(name, status) joins are present in bulk (>= 20)
+OK   every high-value surface RENDERS the archived marker, not just fetches status
+OK   every ArchivedCompanyBadge is fed a real .status expression, never a literal
+
+company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)

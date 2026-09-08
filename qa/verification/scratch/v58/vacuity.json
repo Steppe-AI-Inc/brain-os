@@ -1,0 +1,37 @@
+{
+ "killed": 2,
+ "total": 25,
+ "results": [
+  {
+   "name": "m05_durable_read_last",
+   "killedBy": [
+    "grounding_precedence_canonical_over_history.mjs",
+    "run11_defect_closure_contract.mjs",
+    "v57_intent_other_veto_contract.mjs",
+    "v58_receipt_matrix.mjs",
+    "v58_lifecycle_attack.mjs",
+    "v58_machinery.mjs"
+   ],
+   "caught": true
+  },
+  {
+   "name": "m06_envelope_dropped_from_collections",
+   "killedBy": [
+    "architecture_collection_envelope_contract.mjs",
+    "v58_receipt_matrix.mjs",
+    "v58_lifecycle_attack.mjs",
+    "v58_machinery.mjs"
+   ],
+   "caught": true
+  },
+  {
+   "name": "m06b_envelope_dropped_archivedTasks",
+   "killedBy": [
+    "v58_receipt_matrix.mjs",
+    "v58_lifecycle_attack.mjs",
+    "v58_machinery.mjs"
+   ],
+   "caught": false
+  }
+ ]
+}

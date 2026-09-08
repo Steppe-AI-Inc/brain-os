@@ -1,0 +1,132 @@
+{
+ "pass": 691,
+ "fails": [
+  {
+   "name": "A [claims:null] \"Assign all open tasks in project Alpha to Bob\" / \"All 4 open tasks were assigned to Bob.\" -> no fabrication ships; receipt or truthful correction",
+   "ok": false,
+   "detail": "summary=All 4 open tasks were assigned to Bob. intent=null receiptRendered=false"
+  },
+  {
+   "name": "A [claims:[]] \"Assign all open tasks in project Alpha to Bob\" / \"All 4 open tasks were assigned to Bob.\" -> no fabrication ships; receipt or truthful correction",
+   "ok": false,
+   "detail": "summary=All 4 open tasks were assigned to Bob. intent=null receiptRendered=false"
+  },
+  {
+   "name": "A [state-only claim (supported: status active, row active)] \"Assign all open tasks in project Alpha to Bob\" / \"All 4 open tasks were assigned to Bob.\" -> no fabrication ships; receipt or truthful correction",
+   "ok": false,
+   "detail": "summary=All 4 open tasks were assigned to Bob. intent=null receiptRendered=false"
+  },
+  {
+   "name": "A [trailing question + pendingAction] \"Assign all open tasks in project Alpha to Bob\" / \"All 4 open tasks were assigned to Bob.\" -> no fabrication ships; receipt or truthful correction",
+   "ok": false,
+   "detail": "summary=All 4 open tasks were assigned to Bob. Shall I also notify the team? intent=null receiptRendered=false"
+  },
+  {
+   "name": "A [historical_event claim] \"Assign all open tasks in project Alpha to Bob\" / \"All 4 open tasks were assigned to Bob.\" -> no fabrication ships; receipt or truthful correction",
+   "ok": false,
+   "detail": "summary=All 4 open tasks were assigned to Bob. intent=null receiptRendered=false"
+  },
+  {
+   "name": "B READ \"history of the ACME archive\" / \"Alpha was renamed to Beta on Monday and …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). intent={\"verb\":\"archive\",\"field\":null} lexicon=archive readShaped=false"
+  },
+  {
+   "name": "B READ \"history of the ACME archive\" / \"Yes — ACME was archived on 2026-08-30 an…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). intent={\"verb\":\"archive\",\"field\":null} lexicon=archive readShaped=false"
+  },
+  {
+   "name": "B READ \"history of the ACME archive\" / \"Bob’s manager is Alice (set on 2026-07-0…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). intent={\"verb\":\"archive\",\"field\":null} lexicon=archive readShaped=false"
+  },
+  {
+   "name": "B READ \"history of the ACME archive\" / \"Archived companies: Beta Corp (archived …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). intent={\"verb\":\"archive\",\"field\":null} lexicon=archive readShaped=false"
+  },
+  {
+   "name": "B READ \"history of the ACME archive\" / \"No.…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). intent={\"verb\":\"archive\",\"field\":null} lexicon=archive readShaped=false"
+  },
+  {
+   "name": "B READ \"the fire drill is at 3pm\" / \"Alpha was renamed to Beta on Monday and …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"fire\",\"field\":null} lexicon=fire readShaped=false"
+  },
+  {
+   "name": "B READ \"the fire drill is at 3pm\" / \"Yes — ACME was archived on 2026-08-30 an…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"fire\",\"field\":null} lexicon=fire readShaped=false"
+  },
+  {
+   "name": "B READ \"the fire drill is at 3pm\" / \"Bob’s manager is Alice (set on 2026-07-0…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"fire\",\"field\":null} lexicon=fire readShaped=false"
+  },
+  {
+   "name": "B READ \"the fire drill is at 3pm\" / \"Archived companies: Beta Corp (archived …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"fire\",\"field\":null} lexicon=fire readShaped=false"
+  },
+  {
+   "name": "B READ \"the fire drill is at 3pm\" / \"Noted — the fire drill is at 3pm.…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"fire\",\"field\":null} lexicon=fire readShaped=false"
+  },
+  {
+   "name": "B READ \"I approve of this plan\" / \"Alpha was renamed to Beta on Monday and …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — deciding an approval from chat is not available yet — use the Approvals page. intent={\"verb\":\"approve\",\"field\":null} lexicon=approve readShaped=false"
+  },
+  {
+   "name": "B READ \"I approve of this plan\" / \"Yes — ACME was archived on 2026-08-30 an…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — deciding an approval from chat is not available yet — use the Approvals page. intent={\"verb\":\"approve\",\"field\":null} lexicon=approve readShaped=false"
+  },
+  {
+   "name": "B READ \"I approve of this plan\" / \"Bob’s manager is Alice (set on 2026-07-0…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — deciding an approval from chat is not available yet — use the Approvals page. intent={\"verb\":\"approve\",\"field\":null} lexicon=approve readShaped=false"
+  },
+  {
+   "name": "B READ \"I approve of this plan\" / \"Archived companies: Beta Corp (archived …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — deciding an approval from chat is not available yet — use the Approvals page. intent={\"verb\":\"approve\",\"field\":null} lexicon=approve readShaped=false"
+  },
+  {
+   "name": "B READ \"I approve of this plan\" / \"Great — let me know when you want to sta…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — deciding an approval from chat is not available yet — use the Approvals page. intent={\"verb\":\"approve\",\"field\":null} lexicon=approve readShaped=false"
+  },
+  {
+   "name": "B READ \"draft an email to Bob about the merge\" / \"Alpha was renamed to Beta on Monday and …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"merge\",\"field\":null} lexicon=merge readShaped=false"
+  },
+  {
+   "name": "B READ \"draft an email to Bob about the merge\" / \"Yes — ACME was archived on 2026-08-30 an…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"merge\",\"field\":null} lexicon=merge readShaped=false"
+  },
+  {
+   "name": "B READ \"draft an email to Bob about the merge\" / \"Bob’s manager is Alice (set on 2026-07-0…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"merge\",\"field\":null} lexicon=merge readShaped=false"
+  },
+  {
+   "name": "B READ \"draft an email to Bob about the merge\" / \"Archived companies: Beta Corp (archived …\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"merge\",\"field\":null} lexicon=merge readShaped=false"
+  },
+  {
+   "name": "B READ \"draft an email to Bob about the merge\" / \"Subject: Merge update. Hi Bob — the merg…\" survives verbatim (no model classification)",
+   "ok": false,
+   "detail": "summary=No change was made — that request did not resolve to an operation I can execute from chat. intent={\"verb\":\"merge\",\"field\":null} lexicon=merge readShaped=false"
+  }
+ ],
+ "fabCount": 384,
+ "readCount": 217
+}

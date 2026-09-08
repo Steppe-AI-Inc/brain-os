@@ -14,3 +14,12 @@
 # everywhere this repo is checked out, independent of any individual machine's
 # core.autocrlf setting.
 .claude/agents/*.md text eol=lf
+
+# run41: the deployed-v92 reference copies must check out BYTE-EXACT on every machine. The committed
+# blobs are pure LF and hash to 795c20c82301aba1..., but with no attribute git's autocrlf rewrote them
+# to CRLF on checkout (sha 49d53882...), so verifiers #38 and #39 both reported the reference as
+# untrustworthy for rollback and worked around it from git instead. They were right about their own
+# worktrees and the blob was right too; the file just had no eol attribute.
+qa/verification/scratch/v92/index.v92.ts eol=lf
+qa/verification/scratch/v92/**/v92.lf.ts eol=lf
+qa/verification/scratch/v92/v92.lf.ts eol=lf

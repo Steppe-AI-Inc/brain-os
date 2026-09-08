@@ -1,0 +1,13 @@
+shape A: one clause, skipped negators, ends with a completion
+   1 KB:     0.13 ms
+   2 KB:     0.16 ms  doubling exponent 0.34
+   4 KB:     0.16 ms  doubling exponent 0.03
+   8 KB:     0.17 ms  doubling exponent 0.08
+  16 KB:     0.16 ms  doubling exponent -0.12
+shape B: ordinary punctuated prose with completion vocabulary
+   1 KB:     0.14 ms
+   2 KB:     0.29 ms  doubling exponent 1.04
+   4 KB:     0.50 ms  doubling exponent 0.81
+   8 KB:     0.54 ms  doubling exponent 0.10
+  16 KB:     0.48 ms  doubling exponent -0.17
+  32 KB:     0.45 ms  doubling exponent -0.09

@@ -42,6 +42,6 @@ CLEANUP: n/a.
 AUTOMATION STATUS: PARTIAL. The LLM-timeout handling is REAL and CODE-VERIFIED (and its
 edge-runtime quirk is documented in the function's own comments from live testing). The
 messaging-timeout case is NOT APPLICABLE — feature not yet implemented. Cross-ref SC-085,
-SC-096, SC-109, CLAUDE.md §11.
+SC-096, SC-109, CLAUDE.md §5.
 
 LAST VERIFIED DATE: 2026-08-27 (LLM-timeout pattern code-verified; messaging case N/A)

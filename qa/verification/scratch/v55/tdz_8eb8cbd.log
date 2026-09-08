@@ -1,0 +1,11 @@
+TDZ SCAN qa/verification/scratch/v55/index.8eb8cbd.ts
+declarations (const/let/class): 1336  blocks: 1178  function-body blocks: 385
+SYNCHRONOUS use-before-declaration in an enclosing block (P0 class): 3
+  P0  pendingAction use :2333 decl :2344 declBlockOpens :2009
+  P0  PAST_COMPLETION_CLAIM_PATTERN use :2779 decl :4778 declBlockOpens :2620
+  P0  COMPLETION_WORD use :2779 decl :5054 declBlockOpens :2620
+DEFERRED (use inside a nested function declared before the binding; TDZ only if invoked early): 4
+  DEF UUID_IN_TEXT use :4870 decl :4905 declBlockOpens :2620
+  DEF COMPLETION_WORD use :4872 decl :5054 declBlockOpens :2620
+  DEF COMPLETION_WORD use :5002 decl :5054 declBlockOpens :2620
+  DEF COMPLETION_WORD use :5046 decl :5054 declBlockOpens :2620

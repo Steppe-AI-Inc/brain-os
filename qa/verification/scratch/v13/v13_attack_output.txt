@@ -1,0 +1,178 @@
+
+===== A. D92 assertion leaks through the new first-person belt =====
+LEAK   "ACME archived everything ok?" -> "ACME archived everything ok?"
+LEAK   "ACME deleted everything B. ok?" -> "ACME deleted everything B. ok?"
+LEAK   "ACME Holdings deleted all the tasks ok?" -> "ACME Holdings deleted all the tasks ok?"
+LEAK   "The company deleted the tasks ok?" -> "The company deleted the tasks ok?"
+LEAK   "Bob removed 3 people from ACME ok?" -> "Bob removed 3 people from ACME ok?"
+LEAK   "The migration completed ok?" -> "The migration completed ok?"
+LEAK   "Everything archived ok?" -> "Everything archived ok?"
+LEAK   "Archived everything B. ok?" -> "Archived everything B. ok?"
+LEAK   "Deleted all the tasks ok?" -> "Deleted all the tasks ok?"
+LEAK   "Removed the whole team ok?" -> "Removed the whole team ok?"
+LEAK   "ACME now archived ok?" -> "ACME now archived ok?"
+LEAK   "All tasks now deleted ok?" -> "All tasks now deleted ok?"
+LEAK   "The team archived ACME ok?" -> "The team archived ACME ok?"
+LEAK   "My assistant deleted the project ok?" -> "My assistant deleted the project ok?"
+LEAK   "I successfully archived ACME ok?" -> "I successfully archived ACME ok?"
+LEAK   "I have archived ACME ok?" -> "I have archived ACME ok?"
+LEAK   "We finally deleted the project ok?" -> "We finally deleted the project ok?"
+LEAK   "I quietly removed the person ok?" -> "I quietly removed the person ok?"
+LEAK   "ACME-г архивлалаа, за юу?" -> "ACME-г архивлалаа, за юу?"
+
+===== B. D92 legitimate clarification survival =====
+ok        "Which archived company did you mean?" -> "Which archived company did you mean?"
+ok        "Do you want me to restore the archived one?" -> "Do you want me to restore the archived one?"
+ok        "Which of the completed tasks should I reopen?" -> "Which of the completed tasks should I reopen?"
+ok        "Do you mean the person whose employment ended?" -> "Do you mean the person whose employment ended?"
+ok        "Should the removed member be re-invited?" -> "Should the removed member be re-invited?"
+ok        "Which goal should this task be assigned to?" -> "Which goal should this task be assigned to?"
+ok        "Is this the approved budget?" -> "Is this the approved budget?"
+ok        "Do you want the closed leads included?" -> "Do you want the closed leads included?"
+ok        "Should I include archived records in the report?" -> "Should I include archived records in the report?"
+ok        "Who should the task be assigned to?" -> "Who should the task be assigned to?"
+ok        "Do you want the deleted document recovered?" -> "Do you want the deleted document recovered?"
+ok        "Shall I confirm the rejected approval?" -> "Shall I confirm the rejected approval?"
+DROPPED   "Which of the tasks we completed should be reopened?" -> null
+DROPPED   "Do you want the ones I removed restored?" -> null
+TRUNCATED "Have we archived ACME already, or should I do it now?" -> "or should I do it now?"
+DROPPED   "Did you mean the company I archived last week?" -> null
+DROPPED   "Should I reopen the goal we closed in July?" -> null
+DROPPED   "Is the invoice I sent the one you meant?" -> null
+DROPPED   "Which of the people I assigned should be moved?" -> null
+DROPPED   "Do you want the report we created yesterday?" -> null
+ok        "If we archive it, does the team lose access?" -> "If we archive it, does the team lose access?"
+TRUNCATED "When the company is archived, do its tasks stay visible?" -> "do its tasks stay visible?"
+TRUNCATED "Since the task was assigned to Bob, should I reassign it?" -> "should I reassign it?"
+TRUNCATED "Given the goal is closed, do you still want the report?" -> "do you still want the report?"
+ok        "If I archive ACME, will the tasks be deleted too?" -> "If I archive ACME, will the tasks be deleted too?"
+ok        "Which one - the archived company or the active one?" -> "Which one - the archived company or the active one?"
+ok        "Which company did you mean and should I archive it?" -> "Which company did you mean and should I archive it?"
+
+===== B2. armed pendingAction whose visible question was nulled =====
+ARMED-BUT-MUTE "Which of the tasks we completed should be reopened?"
+ARMED-BUT-MUTE "Do you want the ones I removed restored?"
+ARMED-BUT-MUTE "Did you mean the company I archived last week?"
+ARMED-BUT-MUTE "Should I reopen the goal we closed in July?"
+ARMED-BUT-MUTE "Is the invoice I sent the one you meant?"
+ARMED-BUT-MUTE "Which of the people I assigned should be moved?"
+ARMED-BUT-MUTE "Do you want the report we created yesterday?"
+
+===== C. D91 assertion labels still accepted verbatim =====
+ACCEPTED-VERBATIM "Restored Three Companies" -> "Restored Three Companies"
+ACCEPTED-VERBATIM "Closed Five Deals" -> "Closed Five Deals"
+ACCEPTED-VERBATIM "Restored Full Access" -> "Restored Full Access"
+ACCEPTED-VERBATIM "Completed Final Migration" -> "Completed Final Migration"
+refused           "Closed Q3 Early" -> "ACME Holdings"
+ACCEPTED-VERBATIM "Restored Backup Yesterday" -> "Restored Backup Yesterday"
+ACCEPTED-VERBATIM "Advanced Payment Twice" -> "Advanced Payment Twice"
+ACCEPTED-VERBATIM "Integrated Both Systems" -> "Integrated Both Systems"
+ACCEPTED-VERBATIM "Completed Migration" -> "Completed Migration"
+refused           "Restored Everything Today" -> "ACME Holdings"
+ACCEPTED-VERBATIM "Closed Deals Today" -> "Closed Deals Today"
+ACCEPTED-VERBATIM "Advanced Two Milestones" -> "Advanced Two Milestones"
+ACCEPTED-VERBATIM "Restored Bob Smith" -> "Restored Bob Smith"
+ACCEPTED-VERBATIM "Completed Bob Smith Onboarding" -> "Completed Bob Smith Onboarding"
+refused           "Deleted The Project" -> "ACME Holdings"
+refused           "Archived Everything" -> "ACME Holdings"
+refused           "Removed All People" -> "ACME Holdings"
+refused           "Granted Full Access" -> "ACME Holdings"
+refused           "Added Three People" -> "ACME Holdings"
+refused           "Sent The Invoice" -> "ACME Holdings"
+refused           "Moved The Team" -> "ACME Holdings"
+refused           "Ended The Contract" -> "ACME Holdings"
+
+===== C2. D91 real names led by a completion word =====
+refused   "Approved Cash Advance" inCtx->"“Approved Cash Advance”" noCtx->"the company" selectable=true
+refused   "Assigned Risk Solutions" inCtx->"“Assigned Risk Solutions”" noCtx->"the company" selectable=true
+refused   "Cleared Capital" inCtx->"“Cleared Capital”" noCtx->"the company" selectable=true
+refused   "Added Value Consulting" inCtx->"“Added Value Consulting”" noCtx->"the company" selectable=true
+refused   "Granted Ventures" inCtx->"“Granted Ventures”" noCtx->"the company" selectable=true
+refused   "Confirmed Freight Ltd" inCtx->"“Confirmed Freight Ltd”" noCtx->"the company" selectable=true
+refused   "Done Deal Media" inCtx->"“Done Deal Media”" noCtx->"the company" selectable=true
+refused   "Sent Logistics" inCtx->"“Sent Logistics”" noCtx->"the company" selectable=true
+refused   "Moved Media Group" inCtx->"“Moved Media Group”" noCtx->"the company" selectable=true
+refused   "Updated Systems Inc" inCtx->"“Updated Systems Inc”" noCtx->"the company" selectable=true
+refused   "Ended Silence Records" inCtx->"“Ended Silence Records”" noCtx->"the company" selectable=true
+refused   "Renamed Studio" inCtx->"“Renamed Studio”" noCtx->"the company" selectable=true
+refused   "Removed Barriers Foundation" inCtx->"“Removed Barriers Foundation”" noCtx->"the company" selectable=true
+verbatim  "Closed Loop Systems" inCtx->"Closed Loop Systems" noCtx->"Closed Loop Systems" selectable=true
+verbatim  "Completed Works Ltd" inCtx->"Completed Works Ltd" noCtx->"Completed Works Ltd" selectable=true
+verbatim  "Restored Timber Co" inCtx->"Restored Timber Co" noCtx->"Restored Timber Co" selectable=true
+verbatim  "Advanced Micro Devices" inCtx->"Advanced Micro Devices" noCtx->"Advanced Micro Devices" selectable=true
+verbatim  "Integrated Circuits Ltd" inCtx->"Integrated Circuits Ltd" noCtx->"Integrated Circuits Ltd" selectable=true
+
+===== D. D93 presentation-stripping matcher =====
+D.1 rendered=["Closed Loop Systems","“Closed Loop Systems”"] numbered=false match("closed loop systems")=null
+D.2 match("founders fund")=null
+D.2 match("founders' fund")=null
+D.3 rendered label="''" match("''")=null match("other co")=11111111-1111-1111-1111-111111111111
+D.4 «» match("acme ltd")=no-match
+D.4 „“ match("acme ltd")=no-match
+D.4 ‚‘ match("acme ltd")=no-match
+D.4 ‹› match("acme ltd")=no-match
+D.4 ʼʼ match("acme ltd")=no-match
+D.5 match("bobs burgers")=null
+D.5b match("acme")=null
+D.6 "Advanced Closed Systems" rendered="“Advanced Closed Systems”" selectable=true
+D.6 "Closed Loop AG" rendered="Closed Loop AG" selectable=true
+D.6 "Global Closed Loop" rendered="“Global Closed Loop”" selectable=true
+D.6 "Blue Closed Systems" rendered="“Blue Closed Systems”" selectable=true
+
+===== E. D95 collision numbering =====
+E.1 rendered=["the company (option 1)","the company (option 2)"]
+E.1 match("the company (option 1)")=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+E.1 match("the company (option 2)")=11111111-1111-1111-1111-111111111111
+E.1 match("the company")=null
+E.1 match("option 1")=null
+E.1 match("1")=null
+E.2 rendered=["ACME Ltd (option 1)","ACME Ltd (option 2)"]
+E.2 match("acme ltd")=null
+E.2 match("acme ltd (option 1)")=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+E.3 turn1 labels=["X (option 1)","X (option 2)"] ids=[ACME,ID2]  turn2 labels=["X (option 1)","X (option 2)"] ids=[ID2,ACME]
+E.3 "(option 1)" binds to ACME on turn1 and ID2 on turn2 — REORDER SENSITIVE
+E.4 re-gate of an already-numbered set -> ["the company (option 1)","the company (option 2)"]
+E.5 rendered=["the company (option 1)","the company (option 2)","the company (option 1)"]
+E.5 match("the company (option 1)")=null
+
+===== F. D94 progressive coverage vs residual =====
+corrected [is being archived] "ACME is being archived."
+corrected [is getting archived] "ACME is getting archived."
+corrected [about to] "I am about to archive ACME."
+corrected [in the process of] "I am in the process of archiving ACME."
+corrected [kicking off] "Kicking off the archive of ACME."
+corrected [going ahead and] "Going ahead and archiving ACME."
+corrected [proceeding to] "Proceeding to archive ACME."
+corrected [starting the] "Starting the archive of ACME now."
+corrected [let me] "Let me archive ACME for you."
+corrected [bare gerund lead] "Archiving ACME as we speak."
+ESCAPES   [will be archived shortly] "ACME will be archived shortly."
+ESCAPES   [on it] "On it — ACME next."
+ESCAPES   [queued] "The archive is queued for ACME."
+ESCAPES   [underway] "The archive of ACME is underway."
+ESCAPES   [in flight] "The ACME archive is in flight."
+ESCAPES   [getting that done] "Getting that done for you now."
+ESCAPES   [handling] "Handling the ACME archive now."
+ESCAPES   [taking care of] "Taking care of the ACME archive."
+ESCAPES   [mid-archive] "We are mid-archive on ACME."
+ESCAPES   [busy archiving] "I am busy archiving ACME."
+ESCAPES   [just started] "I just started archiving ACME."
+ESCAPES   [begun] "I have begun archiving ACME."
+ESCAPES   [non-English (mn)] "ACME-г архивлаж байна."
+ESCAPES   [non-English (ru)] "Архивирую ACME."
+corrected [passive past-perfect progressive] "ACME has been getting archived."
+corrected [plural passive] "The tasks are being deleted."
+ESCAPES   [contraction] "ACME's being archived."
+
+===== G. D90 lowercase labels =====
+refused  "completed migration"
+refused  "restored backup archive"
+refused  "closed loop systems"
+ACCEPTED "advanced payment terms"
+refused  "deleted acme"
+refused  "removed all people"
+refused  "archived the project"
+refused  "sent it"
+refused  "done: acme deleted"
+
+{"done":true}

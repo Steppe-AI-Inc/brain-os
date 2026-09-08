@@ -1,0 +1,224 @@
+{
+ "index_ts_sha256_before": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "index_ts_sha256_after": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "untouched": true,
+ "ran_at": "2026-09-02T15:21:15.267Z",
+ "node": "v24.19.0",
+ "suites": 21,
+ "results": [
+  {
+   "suite": "claim_segmentation_and_present_tense_fp",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 57,
+   "tail": []
+  },
+  {
+   "suite": "company_ref_no_bare_name_join",
+   "exit": 0,
+   "signal": null,
+   "ok": 8,
+   "fail": 0,
+   "ms": 122,
+   "tail": [
+    "company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)"
+   ]
+  },
+  {
+   "suite": "current_turn_and_continuity_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 17,
+   "fail": 0,
+   "ms": 72,
+   "tail": [
+    "current_turn_and_continuity_contract: 17/17 passed"
+   ]
+  },
+  {
+   "suite": "d3_past_completion_gate_not_shortcircuited_by_pending_action",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 55,
+   "tail": []
+  },
+  {
+   "suite": "issue5_confirmation_action_type_binding",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 52,
+   "tail": [
+    "issue5_confirmation_action_type_binding: 10/10 passed"
+   ]
+  },
+  {
+   "suite": "lifecycle_evidence_and_output_persistence_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 103,
+   "fail": 0,
+   "ms": 78,
+   "tail": [
+    "lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match the recorded baseline",
+    "DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source."
+   ]
+  },
+  {
+   "suite": "mixed_claim_grounding",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 61,
+   "tail": []
+  },
+  {
+   "suite": "org_selector_scoping_coverage",
+   "exit": 0,
+   "signal": null,
+   "ok": 5,
+   "fail": 0,
+   "ms": 71,
+   "tail": [
+    "org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)"
+   ]
+  },
+  {
+   "suite": "past_completion_gate_behavior",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 63,
+   "tail": []
+  },
+  {
+   "suite": "per_resource_grounding_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 63,
+   "tail": []
+  },
+  {
+   "suite": "run10_defect_closure_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 43,
+   "fail": 0,
+   "ms": 97,
+   "tail": [
+    "v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)"
+   ]
+  },
+  {
+   "suite": "run8_defect_closure_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 40,
+   "fail": 0,
+   "ms": 76,
+   "tail": [
+    "OK   D73 the envelope carries the GATED pendingAction, assertion stripped, question intact",
+    "run8_defect_closure_contract: 40/40 passed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_company_restore_truth",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 60,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_confirmation_truth",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 58,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_execution_plan_truth",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 53,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_factory_verification_selection",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 56,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_named_person_lookup_truth",
+   "exit": 0,
+   "signal": null,
+   "ok": 0,
+   "fail": 0,
+   "ms": 53,
+   "tail": []
+  },
+  {
+   "suite": "sem_ai_command_past_completion_claim_regex",
+   "exit": 0,
+   "signal": null,
+   "ok": 13,
+   "fail": 0,
+   "ms": 53,
+   "tail": [
+    "13 passed, 0 failed"
+   ]
+  },
+  {
+   "suite": "sem_ai_command_source_invariants_drift_guard",
+   "exit": 0,
+   "signal": null,
+   "ok": 13,
+   "fail": 0,
+   "ms": 67,
+   "tail": [
+    "13 passed, 0 failed"
+   ]
+  },
+  {
+   "suite": "structured_claim_laundering_contract",
+   "exit": 0,
+   "signal": null,
+   "ok": 29,
+   "fail": 0,
+   "ms": 71,
+   "tail": [
+    "structured_claim_laundering_contract: 29/29 match the recorded baseline",
+    "DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present."
+   ]
+  },
+  {
+   "suite": "structured_claim_verification",
+   "exit": 0,
+   "signal": null,
+   "ok": 42,
+   "fail": 0,
+   "ms": 69,
+   "tail": [
+    "structured_claim_verification: 42/42 passed"
+   ]
+  }
+ ]
+}

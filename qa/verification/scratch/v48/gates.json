@@ -1,0 +1,272 @@
+[
+  {
+    "f": "qa/verification/proposed/v10_regression_additions.mjs",
+    "status": 0,
+    "reported": "33/7",
+    "tail": "OK   D84.hold               [CONTRACT] D60 still holds: a bulk summary that ASSERTS a completion is refused |  | v10_regression_additions: 33 pass, 7 fail (5 open #70 defects reproduce; 2 CONTRACT failures = guards/observations that do not hold as claimed)"
+  },
+  {
+    "f": "qa/verification/proposed/v11_regression_additions.mjs",
+    "status": 1,
+    "reported": "43/1",
+    "tail": "OK   D87.hold.legit             [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched |  | v11_regression_additions: 43 pass, 1 fail (0 open #71 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+  },
+  {
+    "f": "qa/verification/proposed/v12_regression_additions.mjs",
+    "status": 1,
+    "reported": "66/2",
+    "tail": "OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched |  | v12_regression_additions: 66 pass, 2 fail (1 open #72 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+  },
+  {
+    "f": "qa/verification/proposed/v13_regression_additions.mjs",
+    "status": 1,
+    "reported": "58/2",
+    "tail": "FAIL D103.hold.numbered               [CONTRACT] the committed D95 case still holds: two out-of-context options render distinguishably |  | v13_regression_additions: 58 pass, 2 fail (1 open #73 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+  },
+  {
+    "f": "qa/verification/proposed/v14_regression_additions.mjs",
+    "status": 1,
+    "reported": "63/3",
+    "tail": "OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) |  | v14_regression_additions: 63 pass, 3 fail (0 open #74 defects reproduce; 3 CONTRACT failures = guards that do not hold as claimed)"
+  },
+  {
+    "f": "qa/verification/proposed/v15_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-27bd9f0/qa/verification/proposed/v15_regression_additions.mjs:99:9\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v16_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v17_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v18_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v19_regression_additions.mjs",
+    "status": 1,
+    "reported": "52/9",
+    "tail": "52 passed, 9 failed |   CONTRACT failures (something that was true is now broken): 5 |   DEFECT failures (defects reproduced, expected until fixed): 4"
+  },
+  {
+    "f": "qa/verification/proposed/v20_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v21_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v22_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v23_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v24_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-27bd9f0/qa/verification/proposed/v24_regression_additions.mjs:312:4\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v25_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-27bd9f0/qa/verification/proposed/v25_regression_additions.mjs:246:4\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v26_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v27_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v28_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v29_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async node:internal/modules/esm/loader:643:26\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/proposed/v46_regression_additions.mjs",
+    "status": 1,
+    "reported": "33/3",
+    "tail": "  - CONTRACT :: C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6017 bareLF=0 |   - DEFECT :: V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.67  (1.84 ms at 1 KB -> 74.86 ms at 4 KB) |   - DEFECT :: V46-D5 CONFIRMED_COMPLETION carries the same partic"
+  },
+  {
+    "f": "qa/verification/scratch/v40/v40_regression_additions.mjs",
+    "status": 1,
+    "reported": "75/2",
+    "tail": "FAILURES: |   - [CONTRACT] V40-D2.hold.realConfirmedClaimsStayCaught — closing D2 must not blind the CONFIRMED arm to a real claim — threw: knownEntityNames is not defined |   - [CONTRACT] V40-D3.hold.realFirstPersonClaimsStayCaught — closing D3 must not blind the first-person arm — threw: knownEnti"
+  },
+  {
+    "f": "qa/verification/scratch/v41/v41_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/scratch/v42/v42_regression_additions.mjs",
+    "status": 1,
+    "reported": "-",
+    "tail": "    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\r | \r | Node.js v24.19.0"
+  },
+  {
+    "f": "qa/verification/scratch/v43/v43_regression_additions.mjs",
+    "status": 0,
+    "reported": "40/0",
+    "tail": "ok      [CONTRACT] V43-C10.ordinaryProductHelpSurvives |  | v43_regression_additions: 40 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v44/v44_regression_additions.mjs",
+    "status": 0,
+    "reported": "118/0",
+    "tail": "ok    [CONTRACT] predicate never throws on 4000 fuzzed strings INCLUDING the Confirmed shape |  | v44_regression_additions: 118 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v47/v47_regression_additions.mjs",
+    "status": 1,
+    "reported": "44/8",
+    "tail": "  - DEFECT :: V47-D7b v47_guard_repro.mjs must be able to reach the CANDIDATE it claims to measure  -- its GUARD anchor is absent from the candidate, so it exits 2 (\"STALE\") after writing pre_guard.ts into a DIFFERENT checkout — the replacement for a retracted vacuous probe is itself inert here |   "
+  },
+  {
+    "f": "qa/verification/scratch/v92/v30_regression_additions.mjs",
+    "status": 1,
+    "reported": "25/1",
+    "tail": " | OPEN — this is the campaign #90 deployment gate and it is RED: |   - [CONTRACT] belt declares exactly the known const list (no new declaration) — got: LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_PROGRESS,me,hasSupportedMutationClaim,CONFIRMED_COMPLETION,NEGATED_CLAUSE,REFERENCELESS_CONFIRM"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v31_regression_additions.mjs",
+    "status": 1,
+    "reported": "33/1",
+    "tail": "    a truthful answer deployed v92 PRESERVES that the candidate DESTROYS -> blocker |     anything deployed v92 gets wrong too                                 -> shared, not a blocker |   V31-F3b specifically was re-derived by verifier #41 as SHARED, not a blocker."
+  },
+  {
+    "f": "qa/verification/scratch/v92/v32_regression_additions.mjs",
+    "status": 0,
+    "reported": "101/0",
+    "tail": "ok    [CONTRACT] run14/D107 slices the WHOLE readsAsCompletion statement (no character budget) |  | 101 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v33_regression_additions.mjs",
+    "status": 0,
+    "reported": "93/0",
+    "tail": "ok    [CONTRACT] and its fabrication twin is still caught |  | 93 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v34/v34_regression_additions.mjs",
+    "status": 0,
+    "reported": "57/0",
+    "tail": "ok    [CONTRACT] no whole-summary negation test guards the AUXGAP arm (the D177 property) |  | 57 passed, 0 failed, 1 residual note(s)"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v35/v35_regression_additions.mjs",
+    "status": 0,
+    "reported": "55/0",
+    "tail": "ok    [CONTRACT] evidential grammar: noun-that-is-also-a-verb subject is a subject |  | 55 passed, 0 failed, 2 residual note(s)"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v36/v36_regression_additions.mjs",
+    "status": 0,
+    "reported": "61/0",
+    "tail": "ok    [CONTRACT] production BUG-002 shapes stay caught |  | 61 passed, 0 failed, 2 residual note(s)"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v37/v37_regression_additions.mjs",
+    "status": 0,
+    "reported": "21/0",
+    "tail": "OK   [CONTRACT] matcher: no v92-safe disambiguation answer regressed (12 shapes) |  | 21 passed, 0 failed, 1 residual note(s)"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v38/v38_regression_additions.mjs",
+    "status": 0,
+    "reported": "29/0",
+    "tail": "OK   [CONTRACT] V38-C4 readsAsCompletion statement is spanned by run14 4000-char window |  | 29 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v39/v39_regression_additions.mjs",
+    "status": 0,
+    "reported": "21/0",
+    "tail": " | v39_regression_additions: 21 passed, 0 failed, 3 report-only note(s) | GREEN — no v92 regression detected by this gate."
+  },
+  {
+    "f": "qa/verification/scratch/v92/v40/v40_regression_additions.mjs",
+    "status": 0,
+    "reported": "77/0",
+    "tail": "ok    [CONTRACT] V40-C4.hold.stateAnswersAndCountsSurvive |  | 77 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v41/v41_regression_additions.mjs",
+    "status": 0,
+    "reported": "22/0",
+    "tail": "ok    [CONTRACT] V41-C8 NON-VACUOUS: the belt fires on an obvious fabrication and spares an obvious truthful negative |  | 22 passed, 0 failed, 1 report-only note(s)"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v42/v42_regression_additions.mjs",
+    "status": 1,
+    "reported": "12/1",
+    "tail": "A failure here means candidate index.ts is NOT fit to deploy over v92. | Do NOT record any of these as a \"disclosed residual\". That sentence is what let a blocker | sit red through four verifiers (ledger #102), and writing it again is the failure repeating."
+  },
+  {
+    "f": "qa/verification/scratch/v92/v43/v43_regression_additions.mjs",
+    "status": 0,
+    "reported": "40/0",
+    "tail": "ok      [CONTRACT] V43-C10.ordinaryProductHelpSurvives |  | v43_regression_additions: 40 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v44/v44_regression_additions.mjs",
+    "status": 0,
+    "reported": "118/0",
+    "tail": "ok    [CONTRACT] predicate never throws on 4000 fuzzed strings INCLUDING the Confirmed shape |  | v44_regression_additions: 118 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v45/v45_regression_additions.mjs",
+    "status": 0,
+    "reported": "54/0",
+    "tail": " | 4 report-only note(s) | v45_regression_additions: 54 passed, 0 failed"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v46/v46_regression_additions.mjs",
+    "status": 2,
+    "reported": "-",
+    "tail": "v46: ROOT resolved wrong -> C:\\Users\\Dell\\dev\\brain-os-verify-27bd9f0\\qa\\verification"
+  },
+  {
+    "f": "qa/verification/scratch/v92/v47/v47_regression_additions.mjs",
+    "status": 1,
+    "reported": "44/8",
+    "tail": "  - DEFECT :: V47-D7b v47_guard_repro.mjs must be able to reach the CANDIDATE it claims to measure  -- its GUARD anchor is absent from the candidate, so it exits 2 (\"STALE\") after writing pre_guard.ts into a DIFFERENT checkout — the replacement for a retracted vacuous probe is itself inert here |   "
+  }
+]

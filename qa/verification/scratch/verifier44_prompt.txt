@@ -1,0 +1,171 @@
+You are VERIFIER #44, campaign #104 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your
+context. Do not trust its claims, ledger #91/#92, v92_parity_contract, v92_open_regression_contract,
+v30_open_regressions_probe or v31_mutation_proof — re-derive from bytes you obtain yourself.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, SECOND ROUND: a candidate-vs-DEPLOYED-v92 differential.
+Verifier #29 certified an older candidate against the campaign baseline 4476c92 — that is NOT
+deployability and is historical only. Verifier #31 FAILED the previous candidate 6774b52 because,
+on its OWN corpus, it shipped 28 fabrication shapes deployed v92 corrects, in five classes R1-R5.
+Verifiers #34-#39 then each FAILED the next candidate and each PREPARED ITS OWN FIX; the implementing session ADOPTED all six verbatim. #39's finding is the campaign's worst: EXECUTION_IN_PROGRESS, an arm deployed v92 DOES NOT HAVE, read a CLAUSE-INITIAL gerund as an execution claim and destroyed 28 of 29 ordinary product-help sentences, persisting a false refusal to work_orders.output. The regression files of #33-#39 are committed under qa/verification/scratch/v92/. Read them and RE-DERIVE the measurements yourself. The implementing session claims all of #30 AND #31 are now closed except three disclosed
+residuals. Your job is to confirm or refute that on evidence you build yourself, and
+to hunt for the classes NOBODY has looked for yet.
+
+WORKTREE (cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-3f6e05c
+ARTIFACT BRANCH (commit QA artifacts here only): verify-3f6e05c-campaign104
+CANDIDATE COMMIT: 3f6e05cfb751aeaac5796defd10c37ea24075bf8   REQUIRED index.ts sha256: 3e56dbd163bbfc89ae1a9107763dee2eea684dabedfa7301fcb40d21bc2ca717 (preserve byte-for-byte)
+NO write authority on the implementation branch. Ledger: qa/KNOWN_FAILURE_MODES.md (#92 entry).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD (must print 3f6e05cfb751aeaac5796defd10c37ea24075bf8)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All pass -> print exactly PREFLIGHT: EXECUTION_READY ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert sha256 before/after every temporary edit and at end; restore byte-identically.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code.
+3. WRITE NOTHING to production. `supabase functions list` and `supabase functions download` are
+   READ-ONLY and permitted; `functions deploy`, `db push`, any migration — FORBIDDEN.
+4. Do NOT overwrite the candidate's index.ts with a download: download into a SCRATCH directory, or
+   use `git show c9dfab5bd433:supabase/functions/sem-ai-command/index.ts`. If a download lands on the
+   working tree, restore it with `git checkout --` and re-assert the sha.
+5. BUDGET YOUR RUN. Verifier #30's first attempt died on provider capacity after ~20 minutes with an
+   empty log. Write each finding to an artifact file AS YOU GO, and checkpoint into
+   qa/verification/CURRENT_CAMPAIGN.json, so an interruption never loses the work.
+
+======================== STEP 1 — OBTAIN THE PRODUCTION BYTES YOURSELF ========================
+Independently establish the deployed v92 source for project pvphxgrtdfrudejjhzjk: record version,
+ezbr_sha256 and updated_at; obtain the source; compute its sha256. CONFIRM OR REFUTE that deployed
+v92 == git c9dfab5bd433, index.ts sha256
+795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc. If the bytes differ, that is a P0
+finding — say so and stop the deploy path. State plainly whether your provenance link is byte-direct
+or integration-level, and do not overstate it.
+
+======================== STEP 2 — THE SEVEN DEPLOY QUESTIONS ========================
+1. What exact bytes differ between deployed v92 and candidate 3f6e05cfb751aeaac5796defd10c37ea24075bf8 / 3e56dbd163bbfc89ae1a9107763dee2eea684dabedfa7301fcb40d21bc2ca717?
+   (deploy surface under supabase/functions/; semantic delta; identifier delta — ledger #90 reported
+   this count wrongly once, so re-derive it, do not restate it.)
+2. Does the candidate preserve every production behaviour intentionally present in v92? Build YOUR
+   OWN corpus (>= 200 truthful negatives with real names, >= 150 fabrications). It MUST include, as
+   its own labelled section, entity names and titles that CONTAIN a negator token — "No Limits Inc",
+   "Nothing Bundt Cakes", "Never Summer Industries", "None The Wiser LLC", "Nothing But Nets
+   Foundation", "Pending review…", "Awaiting approval…" — in BOTH directions: the fabrication that
+   must now be caught, AND the truthful negative about the same name that must still survive.
+   Report all four quadrants; truth regression must be 0 and fabrication regression must be 0.
+   Do the same for the matcher on >= 25 disambiguation shapes.
+3. Does the candidate reintroduce anything previously removed from production?
+4. Do campaign assumptions depend on 4476c92 behaviour that differs from live v92?
+5. Are ledger #64 D16, #65 D25, #65 D27 (production row 9dda919c), #66 D40 still genuinely closed?
+6. Is the rollback target exact and available?
+7. Does the deploy change contain only intended Edge changes?
+
+======================== STEP 3 — ADVERSARIAL: ATTACK THIS SPECIFIC FIX ========================
+The five shipped fixes are a name-safe negator scan (nameInternal / titleHead / ppInternal inside
+completionIsNegated), a widened reassurance-idiom strip, and an R-AUXGAP whole-summary arm. Each
+BUYS coverage by declaring some negator occurrences non-negating — so each can, in principle, DESTROY
+A TRUTHFUL ANSWER. Hunt for exactly that, and treat any instance as a P1:
+  - a truthful negative whose genuine negator is Title-Case and followed by a Title-Case token;
+  - a truthful negative opening with "Pending"/"Awaiting" that really is a negation;
+  - a truthful negative whose only negator sits after with/since/despite/after/before/given/amid;
+  - a truthful negative that opens with a reassurance idiom and then denies the action;
+  - a truthful negative matching the R-AUXGAP shape whose negator the whole-summary guard misses.
+Also re-check the class the implementing session says it REFUSED to close: a dash before a CAPITAL is
+not a clause boundary, because "No company named Ulaanbaatar — North Depot was archived." and "No
+unit at Erdenet — Copper Works was archived." are truthful. Confirm the candidate still preserves
+both, and confirm the corresponding fabrications are handled lexically rather than by casing.
+Independently mutation-test all five fixes; each revert must re-open its shapes on YOUR corpus.
+
+
+======================== STEP 3b — ATTACK THE run31 FIXES SPECIFICALLY ========================
+These fixes each BUY coverage by declaring something non-negating or non-completing, so each can
+DESTROY A TRUTHFUL ANSWER. Any instance is a P1. Hunt for:
+  - a truthful negative whose capitalised run really IS governed by an auxiliary but is a determiner
+    reading, e.g. "No North Depot was archived." The session DISCLOSES this one as destroyed and
+    argues it is indistinguishable from "No Limits Inc was archived." Judge that argument.
+  - a truthful negative where the negator follows a completion participle but is genuinely lowercase-
+    equivalent, e.g. "I archived no companies."
+  - a truthful negative where an evidential follows a linker with no new subject, e.g. "No log
+    however shows ACME was archived.", "No entry however in our records shows ACME was archived."
+  - a truthful report where a modal hedge and a real completion share a clause and the hedge span
+    blanking removes the wrong text.
+  - a truthful "Confirmed - <Participle> <Name> <verb>" report, and its fabrication twin
+    "Confirmed - Archived ACME." which must still be caught.
+The session also DISCLOSES three shapes it refused to close ("No errors ACME was archived.", "No
+problem the log shows ACME was archived.", "Not a single task moved - Bob Smith was removed."),
+arguing every rule that separates them from a real name destroys truthful answers. Judge that too:
+either find a rule that closes them at zero truth cost, or confirm the refusal.
+
+
+======================== STEP 3d - THERE ARE NO KNOWN OPEN BLOCKERS. FIND ONE. ========================
+This is the first candidate in the campaign with an empty open-blocker list and a fully green battery
+(36 files, 0 failing). Fourteen verifiers in a row have failed a candidate that looked ready to the
+session that built it. Treat the green as the strongest reason for suspicion, not for confidence.
+
+WHAT THE LAST ROUND FOUND, so you do not spend time rediscovering it:
+  - the suite designated as the ONLY measurement of the entity signal was 4/5 VACUOUS: a
+    four-parameter assertion helper called with five arguments, so the description string was
+    evaluated as the condition. Seventh vacuity. It is fixed and now fails on a disabled-signal
+    mutant. ATTACK THE FIX: is the corrected helper itself sound? Is there a second suite anywhere
+    whose helper can be called over-arity? #43 shipped a scanner, V43-D4.noAssertionHelperIsCalledOverArity.
+  - "world-knowledge-bound" was an ASSUMPTION carried four rounds, never a measurement, and was
+    refuted: 672 of 784 rows closed by three regex edits with zero fabrication cost. Look for the
+    next assumption of that shape. The ledger's word for a thing it has not counted is where to start.
+  - the entity signal creates its own fabrication surface when a rescued PREFIX excuses a whole
+    reply. That was narrowed. Find what else rides along.
+
+REQUIRED OF THIS ROUND SPECIFICALLY:
+  1. GENERATE both directions of every arm, across BOTH capitalised proper names and lowercase
+     objects, and report the halves separately. Blended numbers hid a class for six verifiers.
+  2. The entity signal covers companies, people, tasks and runtimeLabels ONLY. A project, goal,
+     department, approval, document or proposal is never rescued by it. Measure what that costs.
+  3. The pack is capped (companies 12, people 30, tasks 15). Measure the signal's reach as a function
+     of pack membership, and say whether the residual is deploy-blocking.
+  4. Expected gate states: battery 36/0, v43 40/0, v42 12/1 (EMPTY-pack configuration by
+     construction — 0 of 48 destroyed with the pack populated; re-derive both numbers), v41 22/0,
+     v40 77/0, v39 21/0, v38 29/0, v37 21/0, v36 61/0, v35 55/0, v34 57/0, v33 93/0, v32 101/0,
+     v30 25/1 and v31 33/1 (non-blockers). ANYTHING else red is a real failure.
+  5. deno must equal the 23-error baseline. The last round's stacked fix read 25 because it indexed
+     a match object TypeScript types as optional; verifier sessions cannot run deno, so if you cannot
+     either, SAY SO rather than omitting it.
+
+PROVENANCE IS CLOSED and you do not need to re-open it. The live function was downloaded from an
+unrestricted shell and is BYTE-IDENTICAL to git c9dfab5bd433, sha256 795c20c82301aba1…, 321,370 bytes
+(ledger #108; tool: scripts/factory-runner/verify-deployed-bytes.sh). If your session cannot run
+`functions download`, that is expected — do not record it as an open gap, and do not restate the
+old "integration-level only" caveat as if it still stood.
+
+IF YOU PASS THIS CANDIDATE, say so explicitly and completely: the exact SHA, the exact index.ts
+sha256, what you measured, what you could NOT measure, and every residual you are accepting with its
+size. A PASS here goes straight to the founder as a deploy question.
+
+======================== STEP 3c — COUNT CHECK ========================
+Ledger #101 states 34 suites executed / 0 failures and verifier #39's gate at 20/1 (its entity test is
+red by design). Measure it yourself, and check every suite for the vacuity pattern: FIVE times this
+campaign a gate was green only because its corpus never generated the shape.
+
+======================== STEP 4 — SUITE INTEGRITY ========================
+The implementing session NARROWED a contract this campaign: v92_open_regression_contract's CONTRACT 5
+went from a flat pinned identifier sequence over the belt block to TOP-LEVEL declarations only, on
+the argument that locals inside completionIsNegated are not the hazard the suites drop. Judge that
+independently: is the narrowed contract still able to fail for the reason it exists, and does the
+narrowing hide anything real? It also re-pinned four residuals as CLOSED (run18 D131 "but" member and
+disclosedResidual, run19 D131, run28 D116) and widened run14/D107's slicing window from 2000 to 2600.
+For each: is the re-pin honest, and does the paired real name genuinely survive? Confirm run15 57/0
+and the D117 no-whole-span-lookahead invariant. Run the full battery from the filesystem yourself and
+confirm no suite is vacuous. Retract-check one specific claim: the session states an earlier "battery
+33/0" measurement was invalid because the exit status came from a pipeline; verify the battery number
+you measure yourself.
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+State plainly, as an engineering judgment: is candidate 3f6e05cfb751aeaac5796defd10c37ea24075bf8 fit to deploy over v92?
+If any truthful answer v92 preserves is destroyed by the candidate, or any fabrication v92 corrects
+is shipped, that is a FAIL. If clean, say PASS and that EDGE STATUS = DEPLOYMENT READY.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v44_known_failure_modes_entry_110.md (## #110-V — …, no preamble),
+v44_PROMOTION_NOTE.md, v44_regression_additions.mjs (CONTRACT/DEFECT, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or a path correct from ANY cwd). COMMIT to verify-3f6e05c-campaign104. Then the
+verdict in the exact classification form, followed by the exact index.ts sha256 at the end. On
+provider capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json and stop.

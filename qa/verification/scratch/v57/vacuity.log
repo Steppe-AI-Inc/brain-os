@@ -1,0 +1,22 @@
+KILLED   m1_receipt_block_deleted                   red=["architecture_final_claim_contract.mjs","v56_intent_lifecycle_contract.mjs"] (5050ms)
+KILLED   m2_legacy_pendingAction_exempt_restored    red=["architecture_final_claim_contract.mjs","run8_defect_closure_contract.mjs"] (5179ms)
+KILLED   m3_create_postcondition_no_reread          red=["lifecycle_evidence_and_output_persistence_contract.mjs"] (5223ms)
+KILLED   m3b_create_family_literal_true             red=["architecture_mutation_envelope_contract.mjs"] (5117ms)
+KILLED   m4_durable_read_last                       red=["grounding_precedence_canonical_over_history.mjs","run11_defect_closure_contract.mjs"] (5351ms)
+SURVIVED m5_envelope_dropped                        red=[] (5290ms)
+SURVIVED m6_web_handwritten_companies_join          red=[] (5217ms)
+KILLED   m7_web_handwritten_org_sentinel            red=["architecture_org_scope_helper_contract.mjs"] (5218ms)
+SURVIVED m8_model_read_no_longer_vetoes             red=[] (5205ms)
+KILLED   m9_receipt_keyed_on_attempted              red=["v56_intent_lifecycle_contract.mjs"] (5221ms)
+SURVIVED m10_negated_lead_gate_dropped              red=[] (5177ms)
+KILLED   m11_history_verified_true_when_unknown     red=["grounding_precedence_canonical_over_history.mjs"] (5150ms)
+KILLED   m12_persist_gated_again                    red=["architecture_mutation_envelope_contract.mjs","lifecycle_evidence_and_output_persistence_contract.mjs"] (5109ms)
+KILLED   m13_envelope_total_from_length             red=["architecture_collection_envelope_contract.mjs"] (5157ms)
+KILLED   m14_fallback_ignores_model_kind            red=["company_lifecycle_matrix.mjs"] (5116ms)
+SURVIVED m15_turnVerdict_intent_null                red=[] (5145ms)
+SURVIVED m16_stored_pendingAction_ttl_removed       red=[] (5087ms)
+KILLED   m17_fuzzy_command_executes                 red=["v56_intent_lifecycle_contract.mjs"] (5116ms)
+KILLED   m18_other_target_gate_dropped              red=["company_lifecycle_matrix.mjs"] (5153ms)
+index.ts sha256 at end: ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871
+
+v57_vacuity: 13/19 mutants killed; survivors: m5_envelope_dropped, m6_web_handwritten_companies_join, m8_model_read_no_longer_vetoes, m10_negated_lead_gate_dropped, m15_turnVerdict_intent_null, m16_stored_pendingAction_ttl_removed

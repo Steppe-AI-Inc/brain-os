@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RowActionsMenu } from "@/components/row-actions-menu";
 import { EditSheet } from "@/components/edit-sheet";
 import { ArchivedCompanyBadge } from "@/components/archived-company-badge";
+import { parentPolicy } from "@/lib/policy/archived-parent";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,7 @@ type PersonRow = {
   // Resolved server-side in getPeople() from person_assignments, scoped to this
   // person's own company (per-organization manager relationship, not a global field).
   manager_name: string | null;
+  manager_person_id: string | null;
 };
 
 const EMPTY: PersonInput = { fullName: "", email: "", roleTitle: "", companyId: null };
@@ -154,16 +156,20 @@ export function PeopleTable({
                     // the value lives, same pattern as the row's other quick actions.
                     // Disabled (plain text) for ended employment and company-less people:
                     // the relationship is org-scoped, so there is nothing to scope it to.
-                    className={p.active !== false && p.company_id ? "flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-secondary/60" : "cursor-default"}
-                    disabled={p.active === false || !p.company_id}
-                    title={p.active === false ? undefined : !p.company_id ? "Assign a company first — managers are per-organization" : "Set manager"}
+                    className={p.active !== false && parentPolicy(p.companies, p.company_id).canActOnChild ? "flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-secondary/60" : "cursor-default"}
+                    disabled={p.active === false || !parentPolicy(p.companies, p.company_id).canActOnChild}
+                    // BUG-013 (Work-PC, 2026-09-07): lifecycle-dependent controls consult the ONE
+                    // archived-parent policy (lib/policy/archived-parent.ts) — an archived parent
+                    // disables set-manager / invite / onboarding with the same visible reason.
+                    title={p.active === false ? undefined : (parentPolicy(p.companies, p.company_id).reason ?? "Set manager")}
                     onClick={() => {
                       setManagerFor(p);
-                      setManagerChoice(null);
+                      // BUG-011: pre-select the current manager the sheet says it will replace.
+                      setManagerChoice(p.manager_person_id);
                     }}
                   >
                     {p.manager_name ?? "—"}
-                    {p.active !== false && p.company_id && <UserCog className="h-3 w-3 text-muted-foreground opacity-0 group-hover/row:opacity-70" />}
+                    {p.active !== false && parentPolicy(p.companies, p.company_id).canActOnChild && <UserCog className="h-3 w-3 text-muted-foreground opacity-0 group-hover/row:opacity-70" />}
                   </button>
                 </TableCell>
                 <TableCell>{p.email ?? "—"}</TableCell>
@@ -177,8 +183,8 @@ export function PeopleTable({
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        title={p.email ? "Invite to log in" : "Add an email before inviting"}
-                        disabled={!p.email || (isPending && invitingId === p.id)}
+                        title={!parentPolicy(p.companies, p.company_id).canActOnChild ? (parentPolicy(p.companies, p.company_id).reason ?? "Unavailable") : p.email ? "Invite to log in" : "Add an email before inviting"}
+                        disabled={!p.email || !parentPolicy(p.companies, p.company_id).canActOnChild || (isPending && invitingId === p.id)}
                         className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                         onClick={() => setInviteConfirm(p)}
                       >
@@ -188,8 +194,8 @@ export function PeopleTable({
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      title="Generate 1-week onboarding plan"
-                      disabled={isPending && generatingId === p.id}
+                      title={parentPolicy(p.companies, p.company_id).parentState === "archived" ? (parentPolicy(p.companies, p.company_id).reason ?? "Unavailable") : "Generate 1-week onboarding plan"}
+                      disabled={parentPolicy(p.companies, p.company_id).parentState === "archived" || (isPending && generatingId === p.id)}
                       className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
                       onClick={() => generatePlan(p)}
                     >
@@ -243,7 +249,7 @@ export function PeopleTable({
           }
         }}
         title={`Set manager for ${managerFor?.full_name ?? ""}`}
-        saveDisabled={!managerChoice}
+        saveDisabled={!managerChoice || managerChoice === (managerFor?.manager_person_id ?? null)}
         onSave={async () => {
           if (!managerFor || !managerChoice) return null;
           // EditSheet renders a returned string as its inline error and stays open;
@@ -265,7 +271,8 @@ export function PeopleTable({
             <SelectContent>
               {/* Org-scoped by construction: only CURRENT employees of the SAME company
                   are offered — the server action re-checks both against a real read, so
-                  this filter is convenience, not the authority. */}
+                  this filter is convenience, not the authority. A person is never offered
+                  as their own manager (governance/CANONICAL_WORK_CONTRACT.md §6). */}
               {people
                 .filter((c) => c.id !== managerFor?.id && c.company_id === managerFor?.company_id && c.active !== false)
                 .map((c) => (
@@ -274,10 +281,19 @@ export function PeopleTable({
                     {c.role_title ? ` — ${c.role_title}` : ""}
                   </SelectItem>
                 ))}
+              {people.filter((c) => c.id !== managerFor?.id && c.company_id === managerFor?.company_id && c.active !== false).length === 0 && (
+                // BUG-011: a silent empty picker is a defect — say why it is empty.
+                <div className="px-2 py-1.5 text-xs text-muted-foreground" data-testid="manager-picker-empty">
+                  No other active people in {managerFor?.companies?.name ?? "this company"} — add someone to this company first.
+                </div>
+              )}
             </SelectContent>
           </Select>
+          <p className="text-xs text-muted-foreground" data-testid="manager-current">
+            Current manager: {managerFor?.manager_name ?? "none"}.
+          </p>
           <p className="text-xs text-muted-foreground">
-            Manager relationships are per-organization. Changing it replaces {managerFor?.full_name}
+            Manager relationships are per-organization. Saving replaces {managerFor?.full_name}
             &apos;s current manager in {managerFor?.companies?.name ?? "this company"}; it can&apos;t be cleared from here yet.
           </p>
         </div>

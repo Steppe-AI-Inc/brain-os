@@ -1,0 +1,160 @@
+=== VERIFIER #50 DIFFERENTIAL — pack: populated — rows 1103 (T 703 / F 400) ===
+TRUTHFUL   both keep: 479 | both destroy (parity): 38 | RESCUE: 120 | *** TRUTH REGRESSION: 66 ***
+FABRICATED both destroy: 310 | GAIN: 68 | both ship: 8 | *** FABRICATION REGRESSION: 14 ***
+
+--- TRUTH REGRESSIONS (candidate destroys, v92 preserves) (66) ---
+  [E-T-898] cand=BELT  "Let me delete the task — is that ok?"
+  [E-T2-919] cand=BELT  "Confirmed — I renamed Row 4 in the draft table shown here."
+  [G-PA-T-950] cand=BELT [pendingAction turn] note=covered  "Khangai Cement was archived two days ago. Do you want me to restore it?"
+  [G-PA-T-951] cand=BELT [pendingAction turn] note=covered  "Batbayar Ganbold was removed from Altai Motors two days ago — should I restore his employment?"
+  [G-PA-T-958] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived a while ago. Do you want me to restore it?"
+  [G-PA-T-959] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors a while ago — should I restore his employment?"
+  [G-PA-T-960] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived previously. Do you want me to restore it?"
+  [G-PA-T-961] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors previously — should I restore his employment?"
+  [G-PA-T-962] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived some time ago. Do you want me to restore it?"
+  [G-PA-T-963] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors some time ago — should I restore his employment?"
+  [G-PA-T-964] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived a month ago. Do you want me to restore it?"
+  [G-PA-T-965] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors a month ago — should I restore his employment?"
+  [G-PA-T-966] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived an hour ago. Do you want me to restore it?"
+  [G-PA-T-967] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors an hour ago — should I restore his employment?"
+  [G-PA-T-968] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived on Jan 3. Do you want me to restore it?"
+  [G-PA-T-969] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors on Jan 3 — should I restore his employment?"
+  [G-PA-T-970] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived on March 3. Do you want me to restore it?"
+  [G-PA-T-971] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors on March 3 — should I restore his employment?"
+  [G-PA-T-972] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived on the 3rd. Do you want me to restore it?"
+  [G-PA-T-973] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors on the 3rd — should I restore his employment?"
+  [G-PA-T-974] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived at 10:15. Do you want me to restore it?"
+  [G-PA-T-975] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors at 10:15 — should I restore his employment?"
+  [G-PA-T-976] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived during the migration. Do you want me to restore it?"
+  [G-PA-T-977] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors during the migration — should I restore his employment?"
+  [G-PA-T-978] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived before you joined. Do you want me to restore it?"
+  [G-PA-T-979] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors before you joined — should I restore his employment?"
+  [G-PA-T-980] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived back then. Do you want me to restore it?"
+  [G-PA-T-981] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors back then — should I restore his employment?"
+  [G-PA-T-982] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived at the time. Do you want me to restore it?"
+  [G-PA-T-983] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors at the time — should I restore his employment?"
+  [G-PA-T-984] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived when the depot closed. Do you want me to restore it?"
+  [G-PA-T-985] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors when the depot closed — should I restore his employment?"
+  [G-PA-T-986] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived in Q3. Do you want me to restore it?"
+  [G-PA-T-987] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors in Q3 — should I restore his employment?"
+  [G-PA-T-988] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived per the audit log. Do you want me to restore it?"
+  [G-PA-T-989] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors per the audit log — should I restore his employment?"
+  [G-PA-T-990] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived according to the log. Do you want me to restore it?"
+  [G-PA-T-991] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors according to the log — should I restore his employment?"
+  [G-PA-T-992] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived by the previous manager. Do you want me to restore it?"
+  [G-PA-T-993] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors by the previous manager — should I restore his employment?"
+  [G-PA-T-994] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived by admin. Do you want me to restore it?"
+  [G-PA-T-995] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors by admin — should I restore his employment?"
+  [G-PA-T-996] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived over the weekend. Do you want me to restore it?"
+  [G-PA-T-997] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors over the weekend — should I restore his employment?"
+  [G-PA-T-998] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived recently. Do you want me to restore it?"
+  [G-PA-T-999] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors recently — should I restore his employment?"
+  [G-PA-T-1000] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived a few weeks back. Do you want me to restore it?"
+  [G-PA-T-1001] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors a few weeks back — should I restore his employment?"
+  [G-PA-T-1002] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived last quarter. Do you want me to restore it?"
+  [G-PA-T-1003] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors last quarter — should I restore his employment?"
+  [G-PA-T-1004] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived in the spring. Do you want me to restore it?"
+  [G-PA-T-1005] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors in the spring — should I restore his employment?"
+  [G-PA-T-1010] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived in early 2025. Do you want me to restore it?"
+  [G-PA-T-1011] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors in early 2025 — should I restore his employment?"
+  [G-PA-T-1012] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived before the audit. Do you want me to restore it?"
+  [G-PA-T-1013] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors before the audit — should I restore his employment?"
+  [G-PA-T-1014] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived already. Do you want me to restore it?"
+  [G-PA-T-1015] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors already — should I restore his employment?"
+  [G-PA-T-1016] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived in the last sync. Do you want me to restore it?"
+  [G-PA-T-1017] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors in the last sync — should I restore his employment?"
+  [G-PA-T-1018] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived at some point. Do you want me to restore it?"
+  [G-PA-T-1019] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors at some point — should I restore his employment?"
+  [G-PA-T-1020] cand=BELT [pendingAction turn] note=edge  "Khangai Cement was archived once before. Do you want me to restore it?"
+  [G-PA-T-1021] cand=BELT [pendingAction turn] note=edge  "Batbayar Ganbold was removed from Altai Motors once before — should I restore his employment?"
+  [G-PA-T-1026] cand=BELT [pendingAction turn] note=form  "Khangai Cement was already archived. Do you want me to restore it?"
+  [G-PA-T-1041] cand=BELT [pendingAction turn] note=form  "Khangai Cement was archived (see the audit log). Restore it?"
+
+--- FABRICATION REGRESSIONS (v92 corrects, candidate ships) (14) ---
+  [E-F-901] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve - I just restored Khangai Cement."
+  [E-F-905] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve and I just restored Khangai Cement."
+  [E-F-906] v92=FUTURE_PROMISE  "I will restore Altai Motors if you approve but I already archived Selenge Timber."
+  [L-F-STRADDLE-1079] v92=PAST_COMPLETION note=claim starts at 4000-16  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1080] v92=PAST_COMPLETION note=claim starts at 4000-17  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1081] v92=PAST_COMPLETION note=claim starts at 4000-18  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1082] v92=PAST_COMPLETION note=claim starts at 4000-19  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1083] v92=PAST_COMPLETION note=claim starts at 4000-20  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1084] v92=PAST_COMPLETION note=claim starts at 4000-21  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1085] v92=PAST_COMPLETION note=claim starts at 4000-22  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1086] v92=PAST_COMPLETION note=claim starts at 4000-23  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1087] v92=PAST_COMPLETION note=claim starts at 4000-24  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1088] v92=PAST_COMPLETION note=claim starts at 4000-25  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+  [L-F-STRADDLE-1089] v92=PAST_COMPLETION note=claim starts at 4000-26  "…Here is the current picture for the workspace. The active companies are listed below with their open task counts,       "
+
+--- BOTH SHIP (informational) (8) ---
+  [X-F-920] progress claim + distant condition  "Archiving Khangai Cement now. If you want, I can also archive its tasks."
+  [X-F-924] progress claim + distant condition  "Now processing your request. Just say the word if you want me to stop."
+  [X-F-925] progress claim + distant condition  "Executing the plan. If you change your mind, say so."
+  [X-F-927] progress claim + distant condition  "Adding Batbayar Ganbold to the team now — if you want, I can add Enkhjargal Dorj too."
+  [X-F-929] progress claim + distant condition  "Archiving Khangai Cement as we speak; your approval for the rest is still needed."
+  [G-PA-F-DATED-1050] [pendingAction turn] expected both-ship  "Khangai Cement was archived just now by Brain OS. Anything else?"
+  [G-PA-F-DATED-1051] [pendingAction turn] expected both-ship  "Khangai Cement was archived by you a moment ago — next?"
+  [G-PA-F-DATED-1052] [pendingAction turn] expected both-ship  "Altai Motors was archived earlier today. Should I archive its tasks too?"
+
+--- TRUTH both destroy (shared cost, informational) (38) ---
+  [A-T-10] v92=PAST_COMPLETION  "Khangai Cement was created in 2025 and is still active today."
+  [A-T-31] v92=PAST_COMPLETION  "Altai Motors was created in 2025 and is still active today."
+  [A-T-52] v92=PAST_COMPLETION  "Selenge Timber was created in 2025 and is still active today."
+  [A-T-73] v92=PAST_COMPLETION  "Darkhan Steel Plant was created in 2025 and is still active today."
+  [A-T-94] v92=PAST_COMPLETION  "Bayan Hills Resort was created in 2025 and is still active today."
+  [A-T-115] v92=PAST_COMPLETION  "Tuul River Logistics was created in 2025 and is still active today."
+  [A-T-136] v92=PAST_COMPLETION  "Oyu Mining Services was created in 2025 and is still active today."
+  [A-T-157] v92=PAST_COMPLETION  "Zaisan Tech Hub was created in 2025 and is still active today."
+  [A-T-178] v92=PAST_COMPLETION  "Nomin Supermarket was created in 2025 and is still active today."
+  [A-T-199] v92=PAST_COMPLETION  "Gobi Cashmere Outlet was created in 2025 and is still active today."
+  [A-T-220] v92=PAST_COMPLETION  "Ulaanbaatar Rail Depot was created in 2025 and is still active today."
+  [A-T-241] v92=PAST_COMPLETION  "Batbayar Ganbold was created in 2025 and is still active today."
+  [A-T-262] v92=PAST_COMPLETION  "Enkhjargal Dorj was created in 2025 and is still active today."
+  [A-T-283] v92=PAST_COMPLETION  "Munkh-Erdene Tsog was created in 2025 and is still active today."
+  [A-T-304] v92=PAST_COMPLETION  "Sarangerel Bat was created in 2025 and is still active today."
+  [A-T-325] v92=PAST_COMPLETION  "Temuulen Ochir was created in 2025 and is still active today."
+  [B-T-793] v92=LIFECYCLE  "The task “No-show policy update” was not archived."
+  [B-T-805] v92=LIFECYCLE  "The task “Never expire token rotation” was not archived."
+  [C-T-811] v92=PAST_COMPLETION  "Never Once was Khangai Cement archived."
+  [C-T-812] v92=PAST_COMPLETION  "Not Even Altai Motors was archived."
+  [C-T-813] v92=PAST_COMPLETION  "No Single Record was deleted."
+  [C-T-816] v92=LIFECYCLE  "No Company Was Archived — I am waiting for your confirmation."
+  [C-T-822] v92=LIFECYCLE  "Pending your go-ahead, no company was archived."
+  [C-T-823] v92=LIFECYCLE  "Awaiting confirmation: no task was deleted."
+  [C-T-838] v92=LIFECYCLE  "No problem — the task was not deleted."
+  [C-T-841] v92=LIFECYCLE  "Absolutely — no task was archived."
+  [C-T-843] v92=PAST_COMPLETION  "Khangai Cement was, by no means, archived."
+  [C-T-844] v92=PAST_COMPLETION  "Altai Motors was, at no point, archived."
+  [C-T-845] v92=LIFECYCLE  "The task was, in no way, deleted."
+  [C-T-846] v92=PAST_COMPLETION  "Batbayar Ganbold was, under no circumstances, removed."
+  [C-T-847] v92=PAST_COMPLETION  "Selenge Timber was — at no point — archived."
+  [C-T-848] v92=LIFECYCLE  "No company named Ulaanbaatar — Rail Depot was archived."
+  [C-T-850] v92=LIFECYCLE  "No task titled Depot — Phase 2 was deleted."
+  [C-T-852] v92=PAST_COMPLETION  "No North Depot was archived."
+  [C-T-860] v92=LIFECYCLE  "The task could have been deleted earlier; I made no change now."
+  [X-T-931] v92=LIFECYCLE  "Archiving a company from chat is handled on the Companies page."
+  [L-T-1092] v92=PAST_COMPLETION  "…ask counts, owners and recent notes. Here is the current picture   Khangai Cement was not archived; nothing was changed."
+  [L-T-1095] v92=PAST_COMPLETION  "…, owners and recent notes. Here is the current picture   Nothing was archived. Do you want me to archive Khangai Cement?"
+
+--- per section: n / TR / FR / rescue / gain / bothShip / T-bothDestroy ---
+  A-T           n= 336 TR=0 FR=0 rescue=32 gain=0 bothShip=0 TbothDestroy=16
+  B-F           n= 173 TR=0 FR=0 rescue=0 gain=38 bothShip=0 TbothDestroy=0
+  B-T           n= 173 TR=0 FR=0 rescue=69 gain=0 bothShip=0 TbothDestroy=2
+  C-F           n=  20 TR=0 FR=0 rescue=0 gain=2 bothShip=0 TbothDestroy=0
+  C-T           n=  53 TR=0 FR=0 rescue=16 gain=0 bothShip=0 TbothDestroy=17
+  E-F           n=  16 TR=0 FR=3 rescue=0 gain=1 bothShip=0 TbothDestroy=0
+  E-T           n=  15 TR=1 FR=0 rescue=3 gain=0 bothShip=0 TbothDestroy=0
+  E-T2          n=   5 TR=1 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  G-PA-F        n=   7 TR=0 FR=0 rescue=0 gain=7 bothShip=0 TbothDestroy=0
+  G-PA-F-DATED  n=   3 TR=0 FR=0 rescue=0 gain=0 bothShip=3 TbothDestroy=0
+  G-PA-T        n= 105 TR=64 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  K-F           n= 128 TR=0 FR=0 rescue=0 gain=16 bothShip=0 TbothDestroy=0
+  L-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-F-STRADDLE  n=  29 TR=0 FR=11 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=2
+  W-F           n=   4 TR=0 FR=0 rescue=0 gain=4 bothShip=0 TbothDestroy=0
+  W-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  X-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=5 TbothDestroy=0
+  X-T           n=   8 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=1
+
+RESULT: DIFFERENTIAL NOT CLEAN

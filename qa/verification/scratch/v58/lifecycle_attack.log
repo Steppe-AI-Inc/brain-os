@@ -1,0 +1,12 @@
+C1 non-imperatives that executed: ["the board recommended we archive Alpha -> [[\"archive_company\",\"00000001-0000-4000-8000-000000000000\"]]","I’m wondering if I should archive Alpha -> [[\"archive_company\",\"00000001-0000-4000-8000-000000000000\"]]"]
+C12 compound result: {"calls":[["archive_company","00000001-0000-4000-8000-000000000000"]],"report":"Alpha: archived."}
+C12 opposite-direction model field: command says archive Alpha, model emits restore Beta -> {"calls":[["restore_company","00000003-0000-4000-8000-000000000000"]],"report":"Beta: restored."}
+C12 1-char name: {"calls":[],"report":null}
+
+v58_lifecycle_attack: 158 passed, 3 failed
+  FAIL C1 non-imperative "the board recommended we archive Alpha" executes nothing (model emitted nothing)
+       [["archive_company","00000001-0000-4000-8000-000000000000"]] gate=true
+  FAIL C1 non-imperative "I’m wondering if I should archive Alpha" executes nothing (model emitted nothing)
+       [["archive_company","00000001-0000-4000-8000-000000000000"]] gate=true
+  FAIL C12 "archive Alpha Holdings Ltd" (no exact row; fuzzy would need the DB name to CONTAIN the target) → no execution, a line or a question
+       {"calls":[],"report":null}

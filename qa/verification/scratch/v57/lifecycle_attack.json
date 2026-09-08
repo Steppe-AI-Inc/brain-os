@@ -1,0 +1,152 @@
+{
+ "pass": 195,
+ "fail": 4,
+ "fails": [
+  {
+   "name": "3 punctuated via command: \"X\"",
+   "ok": false,
+   "detail": "calls=[] report=null pa=undefined"
+  },
+  {
+   "name": "3 punctuated via restoreCompanyNames: \"X\"",
+   "ok": false,
+   "detail": "calls=[] report=null"
+  },
+  {
+   "name": "3 punctuated via requestIntent.targetName: \"X\"",
+   "ok": false,
+   "detail": "calls=[] report=null"
+  },
+  {
+   "name": "10 an exact-named archived company is restored even when 55 other rows share its anchor word",
+   "ok": false,
+   "detail": "calls=[] report=null"
+  }
+ ],
+ "executedNonImp": [],
+ "notes": [
+  {
+   "id": "polite-question-fallback",
+   "command": "could you please archive Alpha?",
+   "calls": [],
+   "report": null,
+   "fallbackAllowed": false
+  },
+  {
+   "id": "polite-question-fallback",
+   "command": "can you restore Beta?",
+   "calls": [],
+   "report": null,
+   "fallbackAllowed": false
+  },
+  {
+   "id": "polite-question-fallback",
+   "command": "would you mind archiving Alpha?",
+   "calls": [],
+   "report": null,
+   "fallbackAllowed": false
+  },
+  {
+   "id": "requestIntent-entityType-task",
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "requestIntent-entityType-person",
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "requestIntent-entityType-goal",
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "requestIntent-entityType-project",
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "non-company-name-asks",
+   "command": "delete Bob",
+   "companyName": "Bobcat Machinery",
+   "pa": {
+    "kind": "disambiguation",
+    "question": "Which company should I archive? 1. Bobcat Machinery (active)",
+    "options": [
+     {
+      "id": "00000056-0000-4000-8000-000000000000",
+      "label": "Bobcat Machinery (active)",
+      "entityType": "company",
+      "actionType": "archive_company"
+     }
+    ]
+   },
+   "report": "Bob: more than one company matches — please pick one."
+  },
+  {
+   "id": "non-company-name-asks",
+   "command": "end Bob Smith",
+   "companyName": "Bob Smith Consulting",
+   "pa": {
+    "kind": "disambiguation",
+    "question": "Which company should I archive? 1. Bob Smith Consulting (active)",
+    "options": [
+     {
+      "id": "00000056-0000-4000-8000-000000000000",
+      "label": "Bob Smith Consulting (active)",
+      "entityType": "company",
+      "actionType": "archive_company"
+     }
+    ]
+   },
+   "report": "Bob Smith: more than one company matches — please pick one."
+  },
+  {
+   "id": "model-opposite-direction",
+   "command": "restore Alpha",
+   "modelField": "archiveCompanyIds[A]",
+   "calls": [
+    [
+     "archive_company",
+     "00000001-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha: archived.",
+   "final": "archived"
+  },
+  {
+   "id": "anchor-cap",
+   "command": "restore AB Ltd",
+   "anchorQueries": [
+    [
+     "ilike",
+     "name",
+     "%ltd%"
+    ]
+   ],
+   "calls": [],
+   "report": null
+  },
+  {
+   "id": "compound",
+   "calls": [
+    [
+     "archive_company",
+     "00000001-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha: archived."
+  },
+  {
+   "id": "compound-and",
+   "calls": [
+    [
+     "archive_company",
+     "00000001-0000-4000-8000-000000000000"
+    ]
+   ],
+   "report": "Alpha: archived."
+  }
+ ]
+}

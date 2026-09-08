@@ -1,0 +1,63 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #28 — CAMPAIGN #88 FINAL REPORT
+
+**Candidate:** `45d05ccd020f2ea59240a2cef7f6951b35386fa1` (closure `b6cca5f`)
+**index.ts sha256:** `291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778` — asserted at preflight, after each of 4 mutations, and at end. **index.ts was never written**; `git status -- supabase/ web/` is empty.
+**Artifact branch:** `verify-45d05cc-campaign88`, commit `baa4098` (local; not pushed — no push authority on the implementation branch).
+**Real change surface, re-derived:** exactly **2 lines** in a 5939-line file — 5593 (FIX-I) and 5623 (FIX-H).
+
+## FOUND
+
+**FIX-H / D163 is genuinely closed. FIX-I is not — and it regresses *both* axes at once.**
+
+| # | defect | sev | evidence level |
+|---|---|---|---|
+| **D166** | FIX-I's lookahead recognises a determiner-led evidential subject of **exactly one `\w+` token**. `the internal log shows`, `our audit team confirms`, `the client's log shows`, `the audit-trail shows`, `The Archive Co shows` all bypass it. **5 shapes CAUGHT at `4476c92`, MISSED here.** | P2 | UNIT VERIFIED |
+| **D167** | The *same* lookahead matches its evidential slot `\w*`-suffixed against words that are ordinary **nouns** (`our records`, `their reports`, `the notes`, `my statements`). A negated subject with a determiner-led prepositional phrase is read as positive and the **truthful negative is destroyed — 8 of 10, every one SURVIVING at `a3fc006`.** | P2 | UNIT VERIFIED |
+| **D168** | FIX-H's closed hedging lexicon newly destroys **13** out-of-lexicon hedges/questions vs `a3fc006` (`may reasonably…`, `Might Beta Corp have been deleted?`). Not a regression vs `4476c92`; the failure is **disclosure** — the trade is reported one-directionally. | P3 | UNIT VERIFIED |
+| **D169** | The modal guard drops a **whole clause**, so a hedge disarms the fabrication beside it (`ACME may have been archived and Beta Corp has been deleted.`). 3 shapes **CAUGHT at `4476c92`**, undisclosed, inherited from FIX-E. | P3 | UNIT VERIFIED |
+| **D170** | `CONFIRMED_COMPLETION`'s `(?<!\d )` exempts any name whose last token ends in a digit — `test3` (index.ts's **own** must-never-touch name), `Unit 42`, `Q4`. Pre-existing everywhere, undisclosed. | P3 | UNIT VERIFIED |
+
+## ROOT CAUSE
+
+FIX-I was measured only on the 5 sentences that motivated it. The campaign's own new standing rule **(d)** says widening a rescue must be measured on its false-positive corpus; FIX-I *narrows* a rescue, and the mirror of the rule was never applied. `run27`'s D156/D162b pins are all **linker-free**, so the last disjunct rescues them before the evidential arm is reached — **the suite is structurally incapable of observing FIX-I's cost.** Same shape for FIX-H: the D161 hedge corpus is built entirely from lexicon words.
+
+**Seventh consecutive campaign** in which a two-directional trade is reported as one-directional — and the first where a single one-line change regresses both axes simultaneously.
+
+## SYSTEMIC IMPACT
+
+Searched the same class file-wide: the noun/verb ambiguity affects every lexical "evidential" list; the whole-clause-drop affects every guard that `return`s/skips a clause rather than scoping to a predicate (negation already got per-clause treatment at run15/D117-D118; hedging never did).
+
+## TESTED
+
+- **Battery** (filesystem): 32 `.mjs`, **0 failures** — honestly **26 assertion-executing + 5 `SUPERSEDED … DOES NOT RUN` by design + 1 helper** (the postscript's "31 executable + helper" counts the 5 retired no-ops). `run15` **57/0**, `run19` 62/0, **`run26` absent**, **`run27` 161/0 and genuinely assertion-bearing**. 60 `.sql` **not** run.
+- **My own corpora:** 86-case differential × 3 SHAs; 36-case three-way FIX-H/FIX-I; 10-case FIX-I false-positive; **2288-sentence** lexical-branch sweep (13 names × 22 completion words × 8 branches, incl. determiner-initial and internal-`and` names) → 2118 correct, 150 explained residuals, **20 unexplained, all D170**, 0 regressions vs `4476c92`.
+- **My own mutation harness: 4/4** — revert FIX-H → D163 headline missed; remove the FIX-I lookahead → D164 headline + #27 shape 1 missed; remove the last-segment split → 2 named coordinated fabrications missed; neutralise the modal guard → a named D161 hedge destroyed. sha re-asserted after each.
+- **No prior closure reopened.** All 15 cand-vs-`a3fc006` divergences fall inside the FIX-H/FIX-I families. Question belt **byte-identical** across all three SHAs; **12** belt consts (no new const); the only `(?-i:` is in a comment; 0 throws in a 4000-case fuzz; lookahead not quadratic (26 KB clause → 0.31 ms). Matcher closures sit in **byte-untouched** lines (re-extracted and spot-checked anyway).
+
+## PRODUCTION
+
+Read-only, re-derived: `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…`, `updated_at 1788239725518` — unchanged since #75. **Nothing deployed. None of D58–D170 is live.** Nothing was written to production or outside my worktree.
+
+## BLOCKERS
+
+- **Deno type-check: BLOCKED** — no `deno` binary on PATH, `npx deno@2` gated by this session's classifier. Substituted: both changed literals construct/evaluate under Node ES2022, lookAHEAD only, no modifier group.
+- **UI / AI-chat truth checks: not applicable and not attempted** — this candidate changes no DB object, no RLS, no RPC and no UI; it is a pure Edge-Function predicate that is *not deployed*. There is no live surface to exercise. **No synthetic `QA-VERIFY-*` data was created**, so there is nothing to clean up; all production contact was a single read-only `functions list`.
+- **No DB pushes prepared or needed.** Nothing is `BLOCKED — DB PUSH`.
+
+## BOOKKEEPING (scenario 5)
+
+The #87 **axis self-contradiction IS fixed** — keep it. But its *conclusion* (“no longer worse on the fabrication axis”) drops the scope its premise carries, and is false on an independent corpus (8 fabrications caught at `4476c92`, missed here). And the DOCUMENTED RESIDUALS line claims **D158b, D154/D158c, D146b** are “pinned [RESIDUAL] in run27” — **none of those identifiers occurs in `run27`**; their pins died with `run20`–`run26`, which no longer exist on disk. New standing rules proposed: **(e)** narrowing a rescue must be measured on the corpus the rescue was adopted to save; **(f)** retiring a suite must carry its pins forward in the same change; **(g)** a closed lexicon is a bounded window — rule (c) applies to it.
+
+## ARTIFACTS
+
+`qa/verification/proposed/v28_known_failure_modes_entry_88.md` · `v28_PROMOTION_NOTE.md` (incl. the measured-but-**not**-recommended FIX-J and its cost table) · `v28_regression_additions.mjs` (**94 pass / 16 fail**, exits 1 — RED by design; goes green only when D166/D167/D169 are actually fixed) · 10 evidence harnesses in `qa/verification/scratch/` · `CURRENT_CAMPAIGN.json` updated per scenario.
+
+---
+
+**VERDICT: FAIL**
+
+index.ts sha256: `291800b1163f64823c7d6df47b6a6c35f5c1985d2fa18aeb27076cf140076778`

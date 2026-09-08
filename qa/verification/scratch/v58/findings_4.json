@@ -1,0 +1,32 @@
+[
+  {
+    "id": "V58-D2",
+    "level": "FAILED (P1, contract; v92 PARITY — not a regression; in the founder's stated scope) — FIX PREPARED",
+    "text": "A chat TASK restore can never execute: buildContext queries the 15 newest archived tasks (:2304, comment :2300 says the query exists so restoreTaskIds has something to resolve from), envelopes them (:2635) and the prompt tells the model 4× to resolve restores from context.archivedTasks (:971-984) — but the pack literal (:2639) never sets archivedTasks, so contextArchivedTaskIds (:3053) is always empty and restoreTaskIds (:3106) always []. Executed through the real slice: model-emitted id of an archived task the caller can see → restoreTaskIds [] / 0 RPC / report null, even with the task inside context.tasks. archiveTaskIds (:3104) and archiveGoalIds/restoreGoalIds (:3803/:3805) are filtered by membership in the 15-/20-row window (an id carried from history for a row outside the window is dropped). The founder reads the receipt with the WRONG entity: 'No change was made — I could not resolve which company you meant (searched the active and archived companies you can access)' on a task request. OTM §5 row 5 + CWC §2 — the class ledger #121 (BUG-014) closed for companies only. Byte-identical in deployed v92 (:2597-2606; no pack key). Founder's FAIL list: 'any lifecycle request … gated by the context window'. Fix prepared (F2 pack key + server-side re-read of task/goal ids under RLS, F3 entity-aware receipt reason) on qa/verification/scratch/v58/index.fixed.ts."
+  },
+  {
+    "id": "V58-FIX",
+    "level": "FIX PREPARED (scratch copy; not applied — no write authority on index.ts)",
+    "text": "qa/verification/scratch/v58/v58_fix.mjs → index.fixed.ts sha256 715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9 (537756 B raw, 0 bare LF). F1 imperative-position allow-list on the company fallback (27/56 → 1/56 non-imperative executions; the 1 is the polite request 'would you archive Alpha'; controls unchanged; #56 lifecycle_harness 56/1 = candidate; #56 question_probe 0/19). F2 archivedTasks in the pack; task/goal ids re-read from tasks/goals under RLS across every status (type LifecycleLookupRow at module top); unresolved ids leave 'could not be found' lines. F3 receipt reason names the entity (task/goal/person/…; company wording kept for company requests). Measured on the fixed bytes: all 27 SEM_INDEX_SRC battery suites exit 0 (collection_envelope 57/0 sees the new pack key), company_lifecycle_matrix 31/0, v56 129/0, v57 306/0, own lifecycle attack 161/0, task_restore_trace all green, v58_regression_additions 48/0, TDZ 0 SYNC, 0 bare LF. Lexicon-tier residuals untouched by design (receipt matrix 691/25 and intent attack 23/1 identical on both builds)."
+  },
+  {
+    "id": "V58-REGRESSION",
+    "level": "UNIT VERIFIED",
+    "text": "qa/verification/proposed/v58_regression_additions.mjs: on the candidate 29 CONTRACT green / 19 DEFECT red by design (D1 ×12, D2 ×7; exit 1; run from qa/verification to prove walk-up); on index.fixed.ts 48/0 (exit 0). Windows: structured/intent/receipt, company lifecycle executor, task lifecycle slice (recordExecution declared inside), all via _gate_extract + a type-predicate/generic-constructor detype helper."
+  },
+  {
+    "id": "V58-STEP3-VACUITY-FINAL",
+    "level": "UNIT VERIFIED",
+    "text": "25 mutants total: 24 faithful killed (m05 durable-read-last killed by grounding_precedence + run11; m06 proposals envelope dropped killed by collection_envelope); m06b (archivedTasks envelope dropped) survives because archivedTasks is not a pack array — unfaithful, and the other face of V58-D2. index.ts sha unchanged throughout."
+  },
+  {
+    "id": "V58-SYNTAX-SUBSTITUTE",
+    "level": "BLOCKED (partial)",
+    "text": "deno gated; whole-file V8 parse of the detyped source NOT achieved after six extensions of the repo's generic detyper (remaining: template-literal / typed-destructuring interplay). Coverage instead: every changed block executes in V8 through the windows (structured/intent/receipt, company lifecycle, task lifecycle, history, precedence, envelope helper); own TDZ scanner 0 SYNC on candidate and fixed; 197/197 regex literals construct; the 25-line delta since 712760d (the last recorded deno-checked build) read by eye."
+  },
+  {
+    "id": "V58-VERDICT",
+    "level": "FAILED",
+    "text": "FAIL on 5ebc6953ca6665ccc22c54bee6c8573d8ee2ed62 (index.ts sha256 0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b, preserved). Blocker: V58-D2 (P1, contract: task restore from chat impossible; task/goal lifecycle gated by the capped window; wrong-entity receipt) — v92 PARITY, not a regression, founder may waive explicitly. Carried: V58-D1 (P2 conditional: 27/56 declaratives execute the company fallback with the model emitting nothing; closure #129 overstated). FIX PREPARED for both, measured (regression 48/0, battery green on fixed bytes), NOT applied. The #57 closure re-derives clean; envelopes, receipt, precedence, persistence, company resolution, belt vs v92 (0 truth regressions) all clean. Gaps: deno check, live CLI download, browser/AI-chat turn, live requestIntent compliance."
+  }
+]

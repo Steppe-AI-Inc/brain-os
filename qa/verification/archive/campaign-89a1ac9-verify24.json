@@ -1,0 +1,24 @@
+{
+ "campaign": 84,
+ "verifier": 24,
+ "candidate_sha": "89a1ac9d149819004d5f00e7519bc34d7d877f00",
+ "index_sha256": "bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066",
+ "verdict": "FAIL",
+ "defects": [
+  "D158 (P2, passive-evidential disarm from FIX-A)",
+  "D158b (P3, D155 object narrowing drops 5 rare completions)",
+  "D158c (P4, D157 unification dead-ends single-token participial names; D148 comment falsified)",
+  "D159 (P4, pre-existing unreachable renamed-arrow arm)"
+ ],
+ "confirmed_closed": [
+  "D155 (0/32 destroyed & 25/25 caught — only SHA holding both)",
+  "D156 13/13",
+  "D157 4/4",
+  "no prior closure reopened",
+  "no modifier shipped (DEPLOY NOTE true)",
+  "question belt byte-identical x4 SHAs"
+ ],
+ "prepared_fix": "FIX-C (adopted): fixed-length lookbehinds excluding passive/perfect auxiliaries before the evidential verbs",
+ "report": "qa/verification/scratch/verifier24_output.log",
+ "artifact_branch": "verify-89a1ac9-campaign84 (d603b77)"
+}

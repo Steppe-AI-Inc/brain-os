@@ -1,0 +1,26 @@
+{
+ "scenarios": {
+  "1_full_battery": {
+   "status": "PASS",
+   "evidence": "qa/verification/scratch/v18/s1_battery.mjs — filesystem-enumerated. 29 .mjs files (28 suites + _gate_extract.mjs, a library). From OUTPUT TEXT: 711 assertions passed, 0 failed. Exit codes: 0/29. 23 assertion-bearing suites, 5 genuine SUPERSEDED stubs (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract). 60 *.sql suites WERE NOT RUN (db query permission-gated).",
+   "note": "the implementing session claimed '28 suites / 22 assertion-bearing'; I count 28 suites / 23 assertion-bearing (they appear not to count issue5_confirmation_action_type_binding.mjs, which does assert: '10/10 agree with the fixed contract'). Bookkeeping discrepancy of 1, not a defect."
+  },
+  "2_independent_mutation": {
+   "status": "FAIL",
+   "evidence": "qa/verification/scratch/v18/s2_mutation.mjs — my own harness, 14 mutants x 28 suites, baseline-differential kill rule, sha asserted before/after every edit and restored byte-identically (cf4b6f4d...).",
+   "survivors": ["M3.dropNewline", "M10.actionFamilyUnioned", "M12.bareDigitIsFiller"],
+   "killed": 11,
+   "harness_self_correction": "my first kill rule sniffed /FAILED/i anywhere in output and was fooled by a CONTRACT description containing the word 'failed' (run11: 'a failed head-count query'), which made 3 suites appear to kill all 14 mutants. Replaced with a baseline-differential rule; that first result would have been a vacuous mutation proof."
+  },
+  "3_scoped_filler": {
+   "status": "FAIL",
+   "evidence": "qa/verification/scratch/v18/s3_scoped_filler.mjs driving the REAL matchDisambiguationOption via my own extractor v18_matcher.mjs",
+   "defects_found": ["D132 (P2) prototype-key actionType/entityType THROWS a TypeError inside matchDisambiguationOption — new in this candidate, all three prior SHAs fail closed instead"],
+   "observations": ["'record' is in the global SELECTION_FILLER but is not an ENTITY_NOUNS key, so it is admitted for every entity type", "'end bob smith employment' dead-ends although endEmploymentPersonIds is the field being armed"]
+  },
+  "4_d95_seam": {
+   "status": "FAIL",
+   "evidence": "s3_scoped_filler.mjs section 4. With the product's own colliding labels 'the company (option 1)'/'the company (option 2)', only a verbatim copy of the whole label binds; 'option 1', '1', '#1', 'the first one', 'the first' ALL dead-end. D129's fix only helps when the reply also carries the entity NAME — which by construction does not exist in the collision case D95 numbering was invented for."
+  }
+ }
+}

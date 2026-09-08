@@ -1,0 +1,21 @@
+{
+ "campaign": 82,
+ "verifier": 22,
+ "candidate_sha": "be8d9ca9fe4d99199b448a3a129dcb2cea21873d",
+ "index_sha256": "272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2",
+ "verdict": "FAIL",
+ "defects": [
+  "D150 (P2, NEW regression — D148 imperative not label-gated, real base-verb names dead-end)",
+  "D153 (P3, false disclosure — D146 narrowing drops 8 linked fabrications, run21 claimed no regression)",
+  "D141 revert REFUTED (P2, safe close exists: re-add lexicon + delete clause-initial free pass)",
+  "D144 revert PARTIALLY REFUTED (P3, clause-anchored active arm works with 1 idiom FP)",
+  "D146b confirmed still open"
+ ],
+ "prepared_fixes_adopted_in_run22": [
+  "D150 label-gate",
+  "D151 lexicon + free-pass deletion",
+  "D152 clause-anchored active arm"
+ ],
+ "report": "qa/verification/scratch/verifier22_output.log",
+ "artifact_branch": "verify-be8d9ca-campaign82 (f32e7ad)"
+}

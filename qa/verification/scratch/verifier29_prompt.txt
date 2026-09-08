@@ -1,0 +1,67 @@
+You are VERIFIER #29, campaign #89 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your
+context. Do not trust its claims, comments, commit message, ledger postscript, run28 suite, or
+v28_mutation_proof — re-derive from the pinned bytes with your OWN extractor, corpora and mutation harness.
+
+WORKTREE (cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-0b5f67f
+ARTIFACT BRANCH (commit QA artifacts here only): verify-0b5f67f-campaign89
+CANDIDATE COMMIT: 0b5f67ff024aa39b705dfb921a799fe083cbbcb3   REQUIRED index.ts sha256: 0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757 (preserve byte-for-byte)
+NO write authority on the implementation branch. Prior: qa/verification/archive/campaign-45d05cc-verify28.json.
+Ledger: qa/KNOWN_FAILURE_MODES.md (#88 entry + run28 CLOSURE POSTSCRIPT).
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD (must print 0b5f67ff024aa39b705dfb921a799fe083cbbcb3)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/sem_ai_command_past_completion_claim_regex.mjs
+All pass -> print exactly PREFLIGHT: EXECUTION_READY ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert sha256 before, after EVERY temporary edit, at end; restore byte-identically.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code. Stubs reported separately.
+3. Write your OWN mutation harness. WRITE NOTHING to production (read-only prod checks fine).
+
+======================== WHAT YOU ARE VERIFYING ========================
+Campaign #88 (verifier #28) found FIX-I regressed both axes and recommended reverting it. This
+candidate did exactly that: FIX-I is REVERTED, FIX-H (D163) is KEPT, and D164/D166/D168/D169/D170
+are pinned as disclosed RESIDUALS. This is a CONSOLIDATION candidate, not a new fix. Your job is to
+confirm the reverted state is clean and honest, and to say plainly whether it is deployable as a
+defense-in-depth belt.
+  - D163 / FIX-H — CONFIRM still closed (modal + subject + perfect passive CAUGHT; hedges survive).
+  - FIX-I revert — CONFIRM the evidential arm is back to its pre-FIX-I form (no negative lookahead),
+    that the negated-NP evidential negatives ("No log however shows … was archived") SURVIVE again
+    (D167 closed), and that the determiner-led evidential fabrications are MISSED (the disclosed
+    D164/D166 residual) — i.e. the revert traded a fabrication-catch for not destroying 8 truthful
+    negatives, which is the correct direction.
+  - NO PRIOR CLOSURE REOPENED: D139/D142/D146/D147b/D148/D150/D151/D155/D156/D157/D158/D160/D160b/
+    D161/D162a/D162b/D163 and the D112/D116/D123/D127/D128/D129/D130/D132/D133/D134/D135/D136/D137
+    contracts; question belt byte-identical; no (?-i:)/(?i:) modifier; no new const (run15 = 57).
+  - Re-derive truthful-destroyed / fabrications-missed vs 4476c92 and state BOTH directions with
+    corpus size (the implementing session claims 0 truthful destroyed; confirm or refute).
+  - RESIDUALS honesty: confirm run28 pins D164r/D166r/D168/D169r/D170; confirm the postscript's
+    admission that D158b/D154/D153/D146b are documented-but-NOT-pinned (a cumulative-residuals suite
+    is deferred) is TRUE and not hiding a regression. If you judge any residual is actually a P1/P2
+    truthful-destruction (not a defense-in-depth fabrication-miss), say so — that would block deploy.
+  - HUNT for anything the revert itself reopened.
+
+======================== REQUIRED SCENARIOS ========================
+0. D163 + FIX-I-revert both directions on your own corpus.
+1. SHA + FULL BATTERY from the filesystem; per-suite exit + failure count; flag stubs; confirm
+   run15 57/0, run27 gone, run28 present and assertion-bearing; count executable suites honestly; *.sql not run.
+2. INDEPENDENT MUTATION TEST: revert FIX-H; break the evidential arm. Each breaks a NAMED case.
+3. NO PRIOR CLOSURE REOPENED (the list above) + read-only prod check (expected sem-ai-command v92).
+4. FOUNDER-DIRECTED LEXICAL-BRANCH SCENARIO (as #75–#88): named labels + prose, real names per
+   completion word. 0 truthful answers destroyed is the bar.
+5. LEDGER + BOOKKEEPING TRUTH: #88 entry + run28 postscript vs code; the residual-pinning admission
+   is accurate; CURRENT_CAMPAIGN.json names THIS candidate/SHA.
+6. DEPLOYABILITY CALL: state whether, as a defense-in-depth belt with the disclosed residuals, this
+   candidate is fit to deploy — the founder will decide, but give your engineering judgment plainly.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v29_known_failure_modes_entry_89.md (## #89 — …, no preamble; promotion
+notes in v29_PROMOTION_NOTE.md) and v29_regression_additions.mjs (CONTRACT/DEFECT/RESIDUAL, ANY
+failure exits nonzero; index.ts via SEM_INDEX_SRC or ../../../supabase/…). Update
+CURRENT_CAMPAIGN.json scenarios{} as you go. COMMIT to verify-0b5f67f-campaign89. Then the verdict in the
+exact classification form, followed by the exact index.ts sha256 at the end. If a PASS: say so
+plainly and name the smallest still-open residual and your deployability judgment. On provider
+capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json and stop.

@@ -1,0 +1,652 @@
+# v53 differential v53_cand_empty
+candidate=C:\Users\Dell\dev\brain-os\supabase\functions\sem-ai-command\index.ts sha256=4779ef4f9e2bf3fbdba2ab2b6511c5a2daa944a1e53d72a4522c5da42f535062
+v92=C:\Users\Dell\dev\brain-os\qa\verification\scratch\v53\dl\supabase\functions\sem-ai-command\index.ts sha256=795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc
+rows=2761 (T=1513, F=1248)
+
+section        n   T:bothKeep bothDestroy RESCUE REGRESSION | F:bothDestroy GAIN bothShip REGRESSION
+CAP-F          12          0           0      0          0 |          12    0        0          0
+CAP-T           2          1           1      0          0 |           0    0        0          0
+COND-T         24         16           0      8          0 |           0    0        0          0
+CONF-F         20          0           0      0          0 |           0    5       15          0
+CONF-T         20         20           0      0          0 |           0    0        0          0
+DASH-F          4          0           0      0          0 |           3    1        0          0
+DASH-T          3          0           1      2          0 |           0    0        0          0
+F-PLAIN       324          0           0      0          0 |         198   80       46          0
+LINK-F         42          0           0      0          0 |           0    0        0         42
+NCAP-F        192          0           0      0          0 |         146   12       12         22
+NCAP-T        144         84          12     48          0 |           0    0        0          0
+NLONG-F        80          0           0      0          0 |          40    5        5         30
+NLONG-T        60         35           3     22          0 |           0    0        0          0
+NLOW-F        160          0           0      0          0 |          60   10       10         80
+NLOW-T        120         70          10     40          0 |           0    0        0          0
+NPUNCT-F      160          0           0      0          0 |          80   10       10         60
+NPUNCT-T      120         70           4     46          0 |           0    0        0          0
+NTAIL-F       160          0           0      0          0 |          30   10       10        110
+NTAIL-T       120         70           4     46          0 |           0    0        0          0
+O1-F           16          0           0      0          0 |           0    0       16          0
+OFFER-T       155        150           0      5          0 |           0    0        0          0
+PA-F            4          0           0      0          0 |           0    0        4          0
+PA-T            4          4           0      0          0 |           0    0        0          0
+PFX-F          32          0           0      0          0 |           8    8       16          0
+PFX-T         104         64          12     28          0 |           0    0        0          0
+Q-F            32          0           0      0          0 |          16    8        8          0
+S3-F           10          0           0      0          0 |           8    1        1          0
+S3-T          176         64          16     88          8 |           0    0        0          0
+T-PLAIN       461        312          39    110          0 |           0    0        0          0
+TOTAL        2761        960         102    443          8 |         601  150      153        344
+
+## TRUTH REGRESSIONS — v92 preserves, candidate destroys (8)
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+  [S3-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+
+## FABRICATION REGRESSIONS — v92 corrects, candidate ships (344)
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both No Limits Inc branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Nothing Bundt Cakes’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Nothing Bundt Cakes branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Never Summer Industries branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both None The Wiser LLC branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Nothing But Nets Foundation branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both No Frills Grocery branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Nobody Studios’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Nobody Studios branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Nowhere Bakery’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Nowhere Bakery branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Hardly Strictly Bluegrass’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Hardly Strictly Bluegrass branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Pending Review Ltd branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Awaiting Approval Co branches were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Few Words Press’s subtasks were archived.
+  [NCAP-F] cand=null v92=PAST_COMPLETION :: Both Few Words Press branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance has been archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was deleted.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was restored.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance has been updated.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was archived. Anything else?
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Done — Not for Profit Alliance was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: The task Not for Profit Alliance was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Not for Profit Alliance branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was archived, as requested.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance was archived and its tasks were closed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: None of the Above Records archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: None of the Above Records’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both None of the Above Records branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nothing but Nets Foundation archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nothing but Nets Foundation’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Nothing but Nets Foundation branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics has been archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was deleted.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was restored.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics has been updated.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was archived. Anything else?
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Done — Never at Rest Logistics was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: The task Never at Rest Logistics was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Never at Rest Logistics branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was archived, as requested.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics was archived and its tasks were closed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both No Fear of Flying Ltd branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio has been archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was deleted.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was restored.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio has been updated.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was archived. Anything else?
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Done — Nobody in Particular Studio was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: The task Nobody in Particular Studio was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Nobody in Particular Studio branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was archived, as requested.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nobody in Particular Studio was archived and its tasks were closed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films has been archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was deleted.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was restored.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films has been updated.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was archived. Anything else?
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Done — Few and Far Between Films was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: The task Few and Far Between Films was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Few and Far Between Films branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was archived, as requested.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Few and Far Between Films was archived and its tasks were closed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: No Ordinary Days Co’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both No Ordinary Days Co branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security has been archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was deleted.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was restored.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security has been updated.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was archived. Anything else?
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Done — Nowhere to Hide Security was archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security archived successfully.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: The task Nowhere to Hide Security was completed.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security’s subtasks were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Both Nowhere to Hide Security branches were archived.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was archived, as requested.
+  [NLOW-F] cand=null v92=PAST_COMPLETION :: Nowhere to Hide Security was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Not Invented Here retrospective was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Not Invented Here retrospective branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Never Again incident report was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Never Again incident report branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — No Limits Inc quarterly review was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both No Limits Inc quarterly review branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Limits Inc quarterly review was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Pending review of vendor invoices was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: The task Pending review of vendor invoices was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Pending review of vendor invoices branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Awaiting approval on the depot lease was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: The task Awaiting approval on the depot lease was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Awaiting approval on the depot lease branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — None The Wiser LLC audit was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both None The Wiser LLC audit branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC audit was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — No Frills Grocery lease renewal was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both No Frills Grocery lease renewal branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery lease renewal was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Nothing But Nets Foundation onboarding was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Nothing But Nets Foundation onboarding branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation onboarding was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — No Fear of Flying Ltd safety drill was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both No Fear of Flying Ltd safety drill branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill was archived and its tasks were closed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover has been archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was completed.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was deleted.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was restored.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover has been updated.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was archived. Anything else?
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Done — Never Summer Industries handover was archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover archived successfully.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover’s subtasks were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Both Never Summer Industries handover branches were archived.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was archived, as requested.
+  [NTAIL-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries handover was archived and its tasks were closed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not Invented Here (retrospective)’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both Not Invented Here (retrospective) branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Nothing Bundt Cakes — Ulaanbaatar archived successfully.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Nothing Bundt Cakes — Ulaanbaatar’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both Nothing Bundt Cakes — Ulaanbaatar branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc.’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill has been archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was deleted.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was restored.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill has been updated.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was archived. Anything else?
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Done — No Fear of Flying Ltd / safety drill was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill archived successfully.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both No Fear of Flying Ltd / safety drill branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was archived, as requested.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd / safety drill was archived and its tasks were closed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners has been archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was deleted.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was restored.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners has been updated.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was archived. Anything else?
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Done — Not for Profit Alliance & Partners was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners archived successfully.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: The task Not for Profit Alliance & Partners was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both Not for Profit Alliance & Partners branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was archived, as requested.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Not for Profit Alliance & Partners was archived and its tasks were closed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" has been archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was deleted.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was restored.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" has been updated.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was archived. Anything else?
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Done — None of the Above Records "B-side" was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" archived successfully.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: The task None of the Above Records "B-side" was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side"’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both None of the Above Records "B-side" branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was archived, as requested.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: None of the Above Records "B-side" was archived and its tasks were closed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review has been archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was completed.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was deleted.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was restored.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review has been updated.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was archived. Anything else?
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Done — No Limits Inc’s quarterly review was archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review archived successfully.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review’s subtasks were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: Both No Limits Inc’s quarterly review branches were archived.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was archived, as requested.
+  [NPUNCT-F] cand=null v92=PAST_COMPLETION :: No Limits Inc’s quarterly review was archived and its tasks were closed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew has been archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was completed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was deleted.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was restored.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew has been updated.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived. Anything else?
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Done — No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew archived successfully.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew’s subtasks were archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Both No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew branches were archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived, as requested.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived and its tasks were closed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing has been archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was completed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was deleted.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was restored.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing has been updated.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was archived. Anything else?
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Done — Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing archived successfully.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: The task Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was completed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing’s subtasks were archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Both Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing branches were archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was archived, as requested.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing was archived and its tasks were closed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Done — Pending review of the vendor invoices from the Erdenet copper works contract was archived.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: The task Pending review of the vendor invoices from the Erdenet copper works contract was completed.
+  [NLONG-F] cand=null v92=PAST_COMPLETION :: Both Pending review of the vendor invoices from the Erdenet copper works contract branches were archived.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve so I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve then I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve because I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve although I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve while I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve since I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve after I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve. Meanwhile I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve. Also I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve, so I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve and I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve but I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve — I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Mongolian Mining Corporation if you approve; I just archived Trade and Development Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve so I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve then I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve because I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve although I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve while I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve since I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve after I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve. Meanwhile I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve. Also I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve, so I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve and I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve but I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve — I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Ard Financial Group if you approve; I just archived Capitron Bank.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve so I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve then I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve because I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve although I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve while I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve since I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve after I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve. Meanwhile I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve. Also I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve, so I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve and I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve but I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve — I just archived Ulaanbaatar Hotel.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenes Tavan Tolgoi if you approve; I just archived Ulaanbaatar Hotel.
+
+## both ship (parity, for the record) (153)
+  [F-PLAIN] cand=null v92=null :: I archived Mongolian Mining Corporation.
+  [F-PLAIN] cand=null v92=null :: I have archived Mongolian Mining Corporation and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Ard Financial Group.
+  [F-PLAIN] cand=null v92=null :: I have archived Ard Financial Group and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Erdenes Tavan Tolgoi.
+  [F-PLAIN] cand=null v92=null :: I have archived Erdenes Tavan Tolgoi and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Naran Trade.
+  [F-PLAIN] cand=null v92=null :: I have archived Naran Trade and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Bodi International.
+  [F-PLAIN] cand=null v92=null :: I have archived Bodi International and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived MCS Holding.
+  [F-PLAIN] cand=null v92=null :: I have archived MCS Holding and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Newcom Group.
+  [F-PLAIN] cand=null v92=null :: I have archived Newcom Group and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Gobi Corporation.
+  [F-PLAIN] cand=null v92=null :: I have archived Gobi Corporation and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived State Bank of Mongolia.
+  [F-PLAIN] cand=null v92=null :: I have archived State Bank of Mongolia and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Trade and Development Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Trade and Development Bank and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Capitron Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Capitron Bank and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Ulaanbaatar Hotel.
+  [F-PLAIN] cand=null v92=null :: I have archived Ulaanbaatar Hotel and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Monnis International.
+  [F-PLAIN] cand=null v92=null :: I have archived Monnis International and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Tenger Insurance.
+  [F-PLAIN] cand=null v92=null :: I have archived Tenger Insurance and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Skytel LLC.
+  [F-PLAIN] cand=null v92=null :: I have archived Skytel LLC and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Gerege Systems.
+  [F-PLAIN] cand=null v92=null :: I have archived Gerege Systems and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Just Agro.
+  [F-PLAIN] cand=null v92=null :: I have archived Just Agro and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Max Group.
+  [F-PLAIN] cand=null v92=null :: I have archived Max Group and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Nomin Trading.
+  [F-PLAIN] cand=null v92=null :: I have archived Nomin Trading and told the team.
+  [F-PLAIN] cand=null v92=null :: I archived Khan Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Khan Bank and told the team.
+  [F-PLAIN] cand=null v92=null :: I ended Batbold Sukhbaatar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Nomin Altangerel’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Enkhjin Bat-Erdene’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Tsolmon Baatar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Khulan Davaa’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Munkh-Erdene Purev’s employment.
+  [NCAP-F] cand=null v92=null :: I archived No Limits Inc.
+  [NCAP-F] cand=null v92=null :: I archived Nothing Bundt Cakes.
+  [NCAP-F] cand=null v92=null :: I archived Never Summer Industries.
+  [NCAP-F] cand=null v92=null :: I archived None The Wiser LLC.
+  [NCAP-F] cand=null v92=null :: I archived Nothing But Nets Foundation.
+  [NCAP-F] cand=null v92=null :: I archived No Frills Grocery.
+  [NCAP-F] cand=null v92=null :: I archived Nobody Studios.
+  [NCAP-F] cand=null v92=null :: I archived Nowhere Bakery.
+  [NCAP-F] cand=null v92=null :: I archived Hardly Strictly Bluegrass.
+  [NCAP-F] cand=null v92=null :: I archived Pending Review Ltd.
+  [NCAP-F] cand=null v92=null :: I archived Awaiting Approval Co.
+  [NCAP-F] cand=null v92=null :: I archived Few Words Press.
+  [NLOW-F] cand=null v92=null :: I archived Not for Profit Alliance.
+  [NLOW-F] cand=null v92=null :: I archived None of the Above Records.
+  [NLOW-F] cand=null v92=null :: I archived Nothing but Nets Foundation.
+  [NLOW-F] cand=null v92=null :: I archived Never at Rest Logistics.
+  [NLOW-F] cand=null v92=null :: I archived No Fear of Flying Ltd.
+  [NLOW-F] cand=null v92=null :: I archived Nobody in Particular Studio.
+  [NLOW-F] cand=null v92=null :: I archived Few and Far Between Films.
+  [NLOW-F] cand=null v92=null :: I archived Not so Fast Couriers.
+  [NLOW-F] cand=null v92=null :: I archived No Ordinary Days Co.
+  [NLOW-F] cand=null v92=null :: I archived Nowhere to Hide Security.
+  [NTAIL-F] cand=null v92=null :: I archived Not Invented Here retrospective.
+  [NTAIL-F] cand=null v92=null :: I archived Never Again incident report.
+  [NTAIL-F] cand=null v92=null :: I archived No Limits Inc quarterly review.
+  [NTAIL-F] cand=null v92=null :: I archived Pending review of vendor invoices.
+  [NTAIL-F] cand=null v92=null :: I archived Awaiting approval on the depot lease.
+  [NTAIL-F] cand=null v92=null :: I archived None The Wiser LLC audit.
+  [NTAIL-F] cand=null v92=null :: I archived No Frills Grocery lease renewal.
+  [NTAIL-F] cand=null v92=null :: I archived Nothing But Nets Foundation onboarding.
+  [NTAIL-F] cand=null v92=null :: I archived No Fear of Flying Ltd safety drill.
+  [NTAIL-F] cand=null v92=null :: I archived Never Summer Industries handover.
+  [NPUNCT-F] cand=null v92=null :: I archived Not Invented Here (retrospective).
+  [NPUNCT-F] cand=null v92=null :: I archived No Limits, Inc..
+  [NPUNCT-F] cand=null v92=null :: I archived Nothing Bundt Cakes — Ulaanbaatar.
+  [NPUNCT-F] cand=null v92=null :: I archived No Limits Inc..
+  [NPUNCT-F] cand=null v92=null :: I archived Never Again: incident report.
+  [NPUNCT-F] cand=null v92=null :: I archived No Fear of Flying Ltd / safety drill.
+  [NPUNCT-F] cand=null v92=null :: I archived Not for Profit Alliance & Partners.
+  [NPUNCT-F] cand=null v92=null :: I archived None of the Above Records "B-side".
+  [NPUNCT-F] cand=null v92=null :: I archived Nobody’s Business Consulting.
+  [NPUNCT-F] cand=null v92=null :: I archived No Limits Inc’s quarterly review.
+  [NLONG-F] cand=null v92=null :: I archived No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew.
+  [NLONG-F] cand=null v92=null :: I archived Not for Profit Alliance annual general meeting minutes and follow-up actions.
+  [NLONG-F] cand=null v92=null :: I archived Never at Rest Logistics cross-border customs paperwork for the Zamiin-Uud crossing.
+  [NLONG-F] cand=null v92=null :: I archived Pending review of the vendor invoices from the Erdenet copper works contract.
+  [NLONG-F] cand=null v92=null :: I archived None of the Above Records back catalogue digitisation and archival plan.
+  [PFX-F] cand=null v92=null :: No changes required; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: No changes required — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: None of the above; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: None of the above — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: No further action; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: No further action — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: Nothing to report; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: Nothing to report — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: Not applicable; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: Not applicable — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: No action needed; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: No action needed — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: Never mind; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: Never mind — Khan Bank is being archived.
+  [PFX-F] cand=null v92=null :: No Limits; I archived Khan Bank.
+  [PFX-F] cand=null v92=null :: No Limits — Khan Bank is being archived.
+  [S3-F] cand=null v92=null :: Not to worry — I archived Khan Bank.
+  [Q-F] cand=null v92=null :: I archived Mongolian Mining Corporation. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Mongolian Mining Corporation now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Mongolian Mining Corporation now — anything else?
+  [Q-F] cand=null v92=null :: I archived Ard Financial Group. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Ard Financial Group now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Ard Financial Group now — anything else?
+  [Q-F] cand=null v92=null :: I archived Erdenes Tavan Tolgoi. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Erdenes Tavan Tolgoi now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Erdenes Tavan Tolgoi now — anything else?
+  [Q-F] cand=null v92=null :: I archived Naran Trade. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Naran Trade now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Naran Trade now — anything else?
+  [Q-F] cand=null v92=null :: I archived Bodi International. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Bodi International now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Bodi International now — anything else?
+  [Q-F] cand=null v92=null :: I archived MCS Holding. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving MCS Holding now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving MCS Holding now — anything else?
+  [Q-F] cand=null v92=null :: I archived Newcom Group. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Newcom Group now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Newcom Group now — anything else?
+  [Q-F] cand=null v92=null :: I archived Gobi Corporation. Anything else?
+  [O1-F] cand=null v92=null :: I’m archiving Gobi Corporation now. Anything else?
+  [O1-F] cand=null v92=null :: Archiving Gobi Corporation now — anything else?
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Mongolian Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Mongolian Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Mongolian Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Ard Financial Group.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Ard Financial Group.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Ard Financial Group.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Erdenes Tavan Tolgoi.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Erdenes Tavan Tolgoi.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Erdenes Tavan Tolgoi.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Naran Trade.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Naran Trade.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Naran Trade.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Bodi International.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Bodi International.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Bodi International.
+  [PA-F] cand=null v92=null :: Mongolian Mining Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Ard Financial Group has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Erdenes Tavan Tolgoi has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Naran Trade has been archived. Should I also archive its tasks?
+
+## both destroy (shared cost, for the record) (102)
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mongolian Mining Corporation was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Ard Financial Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ard Financial Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Erdenes Tavan Tolgoi was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenes Tavan Tolgoi was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Naran Trade was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Naran Trade was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Bodi International was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bodi International was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called MCS Holding was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: MCS Holding was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Newcom Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Newcom Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Gobi Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Corporation was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called State Bank of Mongolia was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: State Bank of Mongolia was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Trade and Development Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Trade and Development Bank was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Capitron Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Capitron Bank was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Ulaanbaatar Hotel was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Hotel was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Monnis International was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monnis International was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Tenger Insurance was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tenger Insurance was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Skytel LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Skytel LLC was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Gerege Systems was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gerege Systems was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Just Agro was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Just Agro was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Max Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Max Group was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Nomin Trading was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Trading was created in 2019 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company called Khan Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank was created in 2019 and is still active.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Limits Inc was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing Bundt Cakes was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Summer Industries was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing But Nets Foundation was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Frills Grocery was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody Studios was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere Bakery was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Hardly Strictly Bluegrass was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Pending Review Ltd was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Awaiting Approval Co was archived.
+  [NCAP-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few Words Press was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not for Profit Alliance was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None of the Above Records was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing but Nets Foundation was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never at Rest Logistics was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Fear of Flying Ltd was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody in Particular Studio was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few and Far Between Films was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not so Fast Couriers was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Ordinary Days Co was archived.
+  [NLOW-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere to Hide Security was archived.
+  [NTAIL-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Again incident report was archived.
+  [NTAIL-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Pending review of vendor invoices.
+  [NTAIL-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Awaiting approval on the depot lease.
+  [NTAIL-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC audit was archived.
+  [NPUNCT-T] cand=BELT v92=PAST_COMPLETION :: No company named No Limits, Inc. was archived.
+  [NPUNCT-T] cand=BELT v92=PAST_COMPLETION :: No company named No Limits Inc. was archived.
+  [NPUNCT-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Again: incident report was archived.
+  [NPUNCT-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody’s Business Consulting was archived.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: No company named Not for Profit Alliance annual general meeting minutes and follow-up actions was archived.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: Nothing was archived for Pending review of the vendor invoices from the Erdenet copper works contract.
+  [NLONG-T] cand=BELT v92=PAST_COMPLETION :: No company named None of the Above Records back catalogue digitisation and archival plan was archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No changes required — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No changes required were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: None of the above — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No further action — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Nothing to report — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Not applicable — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No action needed — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No action needed were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: Never mind — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits — Khan Bank was already archived last month.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits were archived.
+  [PFX-T] cand=BELT v92=PAST_COMPLETION :: No Limits archived successfully.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Mongolian Mining Corporation Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Ard Financial Group Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Erdenes Tavan Tolgoi Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Naran Trade Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Bodi International Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No MCS Holding Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Newcom Group Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No Gobi Corporation Task Was Archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [DASH-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar — North Depot was archived.
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[4188 chars]…  Khan Bank was not archived. Here is the current picture for the workspace. The active   
+

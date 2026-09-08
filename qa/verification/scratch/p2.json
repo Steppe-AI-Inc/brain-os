@@ -1,0 +1,29 @@
+{
+  "scenarios": {
+    "S1_sha_and_full_battery": {
+      "status": "PASS",
+      "evidence": "25 .mjs enumerated from filesystem; all exit 0; 0 failure lines in OUTPUT TEXT across all 25. _gate_extract.mjs is a library (no output). 5 suites are explicit SUPERSEDED stubs asserting nothing (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract). 19 asserting suites, ~622 enumerated checks. sem_ai_command_execution_plan_truth summaryFail=1 was a FALSE PARSE of prose ('the failing dependency'); its own last line is 'ALL REGRESSIONS PASSED'. No provider-capacity text anywhere. *.sql suites NOT run - DB/RLS/lifecycle truth OUT OF SCOPE for this campaign.",
+      "defects_found": [],
+      "regressions_added": []
+    },
+    "S2_independent_mutation_test": {
+      "status": "FAIL",
+      "evidence": "Own harness (qa/verification/scratch/v14_mutations.mjs + v14_mutate_run.mjs), 34 mutants across all 7 guards, COVERAGE and LIMIT. Real source mutated; full 25-suite battery per mutant; restored byte-identically each cycle; final sha256 10db5838...a70d2a MATCH. 18 killed, 16 SURVIVED.",
+      "defects_found": [
+        "D106 (P2): G6.arm.unaccountedPrivateCopy is a SURVIVING COVERAGE mutant - reverting arm 2 (unaccountedCompletionProse) to its private pattern copy leaves the whole battery green, so the commit's headline 'one predicate, both arms' claim is only half-observed.",
+        "D107 (P2): guard 7 (the disambiguation replay site) has ZERO executable coverage - reverting it to the pre-fix 'Confirmed - <label>.' leaves the battery green (G7.cov.revertReplaySummary + 3 LIMIT survivors).",
+        "D108 (P3): the D78/D86/D91 sub-guards inside safeOptionLabel (title-case, position rule, determiner test) are now entirely unobserved - all three can be deleted with no failing case, because D100 corroboration subsumes their fabrication-suppression role.",
+        "D109 (P2): the D102 raw fallback's uniqueness requirement is unobserved (G4.lim.firstNotUnique survived) - nothing pins 'a genuinely ambiguous reply still resolves to nothing' through the RAW path.",
+        "D110 (P3): D100 corroboration's equality is unobserved in both dangerous loosenings (substring containment; corroborating against ANY option's canonical name rather than this id's).",
+        "D111 (P3): CONFIRMED_COMPLETION and REFERENCELESS_CONFIRMATION start anchors unobserved; INTERROGATIVE_LEAD trailing word-boundary unobserved; labelKey over-broadening unobserved."
+      ],
+      "regressions_added": []
+    },
+    "S5_attack_d102_raw_fallback_misbinding": {
+      "status": "FAIL",
+      "evidence": "CONFIRMED MIS-BINDING. matchDisambiguationOption A/B across fdb4564 / ace9b6a / f1722f2 (qa/verification/scratch/v14_ab_matcher.mjs). On f1722f2, options [Smith, Smith's Bakery] + founder reply 'smiths bakery' binds to SMITH (the wrong entity, id aaaaaaaa...). Same for [Fund, Founders' Fund] + 'founders fund' -> Fund, and [OBrien, O'Brien Logistics, Zeta] + 'obrien logistics' -> OBrien. ace9b6a returned null (safe dead end) for all three; fdb4564 mis-bound identically. D102's raw fallback therefore REOPENS a mis-binding class that D93's normalisation had closed. The bound option's actionType resolves a DESTRUCTIVE field (archiveCompanyIds) with no LLM in the loop, and commandContradictsActionType cannot fire (the reply carries no opposite-family verb). Additionally the fix does not even solve its own stated case: typing the EXACT name \"smith's bakery\" still dead-ends.",
+      "defects_found": ["D105 (P1): D102 raw-label fallback mis-binds a founder's disambiguation reply to a DIFFERENT entity and arms a destructive field with it."],
+      "regressions_added": []
+    }
+  }
+}

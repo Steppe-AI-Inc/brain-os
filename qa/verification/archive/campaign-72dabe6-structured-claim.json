@@ -1,0 +1,176 @@
+{
+  "campaign_id": "verify-72dabe6-structured-claim-architecture",
+  "base_commit": "72dabe60e359e3a7e54b8990536b5eae2d508bce",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run6-start",
+  "last_checkpoint_at": "2026-09-01T-run6-final",
+  "verifier": "independent verifier #6 (fresh context, campaign #66)",
+  "prior_campaign": "verify-a313053-per-resource-grounding archived to qa/verification/archive/campaign-a313053-per-resource-grounding.json. DIFFERENT base_commit -> ALL prior evidence treated as UNVERIFIED and re-derived from real source, real corpus and live DB.",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "verdict": "DO NOT DEPLOY 72dabe6 AS WRITTEN - NET REGRESSION vs deployed v92 on real production data. BUG-002 - STRUCTURED-CLAIM ARCHITECTURE PREPARED, INDEPENDENT VERIFICATION REQUIRED (OPEN).",
+  "scenarios": {
+    "1_id_grounding_attacks": {
+      "status": "PARTIAL PASS - exact-id/action/postcondition grounding real; one P0 hole (D41)",
+      "evidence": "qa/verification/scratch/attack66.mjs, real block executed. Wrong UUID, wrong action, cross-type same-id, postconditionPassed=false, casing, whitespace and pipe-injected ids ALL fail closed. BUT a mutation_result with absent/null/non-string action is grounded by ANY evidence on that id."
+    },
+    "2_legacy_fallback_reachability": {
+      "status": "FAIL - P0 REGRESSION (D40)",
+      "evidence": "legacyProseFallback proven byte-equivalent to v92 gate plus !rawClaims. claims:null and claims:{} behave exactly as v92. claims:[] / [{}] / [null] / [string] / unrecognised type / any trivially-true claim ALL disable the gate. 11 laundering shapes measured."
+    },
+    "3_envelope_single_source_of_truth": {
+      "status": "FAIL (D45)",
+      "evidence": "grep -rn verifiedResponse web/ = 0 hits. UI renders result.summary (chat-client.tsx:758-760); reload renders output.summary (chat-history.ts). Envelope built BEFORE the deterministic-confirmation override, so envelope.summary retains the uncorrected Confirmed-permanently-delete text. On the laundering path the envelope is not persisted at all."
+    },
+    "4_current_state_contextpack_freshness": {
+      "status": "FAIL (D44)",
+      "evidence": "contextPack built at line ~2338, before the model call and all mutations; never re-read. Truthful post-archive state claim -> CONTRADICTED; now-false still-active -> SUPPORTED. Buckets truncated (companies limit 12 vs 18 real, live-verified) and filtered (approvals pending-only, tasks exclude archived) -> unknown -> uncorrected."
+    },
+    "5_backend_evidence_coverage": {
+      "status": "FAIL (D43); archive/restore gate itself CODE VERIFIED",
+      "evidence": "recordExecution called from 9 sites only. archive_task/restore_task/archive_goal/restore_goal/permanent fixture delete/employment/updates record nothing -> a TRUTHFUL claim is rejected and the reply replaced with I-couldn-t-confirm text. The changed+postcondition gate is real in source but has ZERO test coverage."
+    },
+    "6_real_corpus_false_positives": {
+      "status": "FAIL - 50/50 of v92 catches lost; 3 LIVE-VERIFIED fabrications escape",
+      "evidence": "433-row read-only differential. v92 corrects 50, branch with claims:[] corrects 0. Live DB cross-check: approval 358eddeb still pending (a031cb51), department QA-SWARM-DEPT-ARCHIVED-PARENT-TEST still exists (53181815), project still named IQParking & OpenSpot Hardware Operations (9dda919c)."
+    },
+    "7_mutation_testing_all_guards": {
+      "status": "FAIL - 11 guards with zero coverage (D42), SIXTH recurrence",
+      "evidence": "40 mutations; index.ts sha256-restored to 9d5b46ba... after every one. The 9 claimed guards are genuinely proven; 11 more are uncovered, including both archive/restore evidence gates and pendingAction-prompt preservation."
+    },
+    "8_superseded_suite_coverage_audit": {
+      "status": "FAIL - not honest bookkeeping (D47)",
+      "evidence": "~109 checks across 5 superseded suites vs 6 carried into Section G, for a still-live code path. Confirmed real loss: pendingAction prompt/option preservation. per_resource_grounding_contract.mjs superseded one campaign after being added."
+    },
+    "9_model_contract_quality": {
+      "status": "PARTIAL - fails closed, never crashes; but the contract is unenforced",
+      "evidence": "8 garbage claim shapes incl. [null], [[]], __proto__ predicate: no throw, no bless. No validation of claim type/uuid/resourceType; nothing requires a prose sentence to carry a claim; claims never drive execution. The model decides whether the gate is armed - the D40 root cause."
+    },
+    "10_issue5_no_regression": {
+      "status": "PASS - CODE VERIFIED",
+      "evidence": "resolveClarificationField() still returns undefined on absent entityType OR actionType; no live destructive default; sem_ai_command_source_invariants_drift_guard.mjs 13/13 against the real source. NOTE: issue5_confirmation_action_type_binding.mjs is a reimplementation and proves nothing about the shipped file."
+    },
+    "11_production_and_incident_readonly": {
+      "status": "PASS - LIVE VERIFIED, zero writes",
+      "evidence": "sem-ai-command v92 ACTIVE updated_at 1788239725518; work_orders with verifiedResponse/claims/claimAudit = 0 of 472; QA-SWARM-TEST-CO-VIA-CHAT active/2026-09-01 06:50:55.540698+00 unchanged; approval 358eddeb pending/decided_at NULL; global integrity unchanged."
+    },
+    "12_live_browser_acceptance": {
+      "status": "BLOCKED",
+      "evidence": "No ToolSearch tool and no mcp__claude-in-chrome__* tools exist in this session type. SEVENTH consecutive campaign. Not simulated."
+    },
+    "13_verdict": {
+      "status": "DO NOT DEPLOY 72dabe6 AS WRITTEN",
+      "evidence": "Better than the rejected prose builds on instance identity (#65/D24 genuinely closed), but a net regression vs deployed v92: the model can disable its own truth gate with a schema-valid empty claims array."
+    }
+  },
+  "defects_found": [
+    {
+      "id": "D40",
+      "severity": "P0 - REGRESSION vs deployed v92",
+      "title": "Any non-null claims array (including []) disables the legacy prose gate. 11 laundering shapes; 50/50 of v92 real-corpus catches lost; 3 live-verified fabrications escape.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D41",
+      "severity": "P0",
+      "title": "mutation_result with absent/null/non-string action is grounded by ANY evidence on that id. Fails open, contradicting the stated contract.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D42",
+      "severity": "P1 - SIXTH recurrence of the missing-coverage class",
+      "title": "11 guards with zero mutation coverage, including both company archive/restore evidence gates and pendingAction-prompt preservation.",
+      "status": "OPEN - partially closed by the new suite"
+    },
+    {
+      "id": "D43",
+      "severity": "P1",
+      "title": "Evidence recorded for 9 of ~35 mutation paths, so truthful task/goal/employment/permanent-delete mutations are denied to the founder as nothing-was-changed.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D44",
+      "severity": "P1",
+      "title": "contextPack is a pre-mutation, truncated, filtered snapshot; it contradicts truthful post-mutation claims and blesses now-false pre-mutation ones.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D45",
+      "severity": "P1",
+      "title": "verifiedResponse is not the single source of output truth: nothing in web/ reads it, it diverges on the deterministic-confirmation path, and it is not persisted on the laundering path.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D46",
+      "severity": "P2",
+      "title": "Corrected founder-facing prose leaks raw UUIDs and drops entity names; state-claim rejections are ungrammatical.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D47",
+      "severity": "P2",
+      "title": "Five superseded suites dropped ~103 of ~109 checks covering a still-live code path.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D48",
+      "severity": "P2",
+      "title": "structured_claim_verification.mjs duplicates Section G after its own process.exit(1); those assertions can never fail the suite.",
+      "status": "OPEN"
+    },
+    {
+      "id": "D49",
+      "severity": "P3",
+      "title": "PAST_COMPLETION_CLAIM_PATTERN is dead code (same shape as #65/D27).",
+      "status": "OPEN"
+    }
+  ],
+  "regressions_added": [
+    "qa/scenarios-runner/structured_claim_laundering_contract.mjs (NEW) - 27 cases executing the REAL block through a wider window than the implementer's suite. CONTRACT / LAUNDERING / FALSENEG classes, measured baselines, two-way drift detection, DEPLOY_GATE=1 exits non-zero while any laundering shape remains. Non-vacuity mutation-proven 10/10."
+  ],
+  "pending_db_pushes": [],
+  "prepared_fixes": [
+    {
+      "id": "72dabe6 structured-claim architecture",
+      "status": "FIX PREPARED - NOT RECOMMENDED FOR DEPLOY AS WRITTEN. See D40-D45."
+    }
+  ],
+  "live_verified_fixes": [],
+  "remaining_scenarios": [],
+  "production_state_established": {
+    "sem_ai_command": "version 92 ACTIVE verify_jwt=true updated_at 1788239725518 = 2026-09-01T05:15:25.518Z - UNCHANGED vs #64/#65",
+    "branch_index_ts_raw_sha256": "9d5b46ba9399683287cf64e916b4e73b24a4bbbc269fe69e25bf3204ecfea660",
+    "branch_deployed": false,
+    "note": "supabase functions download was NOT run in the working tree; comparison used git show c9dfab5:. index.ts sha256 re-verified after all 40 mutations."
+  },
+  "global_integrity": {
+    "tasks_orphan_company": 0,
+    "goals_orphan_company": 0,
+    "person_assignment_orphan_company": 0,
+    "person_assignment_orphan_person": 0,
+    "person_assignment_orphan_manager": 0,
+    "tasks_orphan_owner_person": 0,
+    "work_orders_orphan_channel": 0,
+    "duplicate_company_names_active": 0,
+    "companies_active": 8,
+    "companies_archived": 10,
+    "active_task_under_archived_company": 1,
+    "active_task_note": "pre-existing #61/D4 fixture, not created or altered by this campaign",
+    "work_orders_with_verifiedResponse": 0,
+    "BASELINE_approval_358eddeb": "pending",
+    "AI_vs_DB": "BLOCKED - no live AI path available this session type",
+    "UI_vs_DB": "BLOCKED - no browser tooling available this session type"
+  },
+  "synthetic_entities_created_by_this_campaign": {
+    "none": "ZERO. Every DB interaction was a read-only SELECT. No QA-VERIFY-* rows created, so nothing to clean up. Pre-existing QA fixtures and the incident fixture were left exactly as found."
+  },
+  "blocked_scenarios": [
+    "Live HTTP/browser acceptance",
+    "UI vs DB truth checks",
+    "fresh-channel AI vs DB checks",
+    "deploying 72dabe6 (by instruction AND by verdict)"
+  ],
+  "known_failure_modes_entries_created": [
+    66
+  ],
+  "completed_at": "2026-09-01T-run6-final"
+}

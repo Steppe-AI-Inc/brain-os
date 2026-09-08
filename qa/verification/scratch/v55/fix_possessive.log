@@ -1,0 +1,10 @@
+occurrences of the possessive strip in the belt body: 7
+== my 915-row corpus
+baseline                 empty: {"PARITY":638,"TRUTH_RESCUE":225,"FAB_RESCUE":41,"FAB_REGRESSION":11}  populated: {"PARITY":628,"TRUTH_RESCUE":224,"FAB_RESCUE":59,"TRUTH_REGRESSION":1,"FAB_REGRESSION":3}
+with fix                 empty: {"PARITY":638,"TRUTH_RESCUE":225,"FAB_RESCUE":41,"FAB_REGRESSION":11}  populated: {"PARITY":629,"TRUTH_RESCUE":224,"FAB_RESCUE":59,"TRUTH_REGRESSION":1,"FAB_REGRESSION":2}
+== possessive corpus (864 rows)
+baseline                 empty: {"FAB_REGRESSION":192,"PARITY":480,"FAB_RESCUE":96,"TRUTH_RESCUE":96}  populated: {"PARITY":540,"FAB_RESCUE":156,"TRUTH_RESCUE":96,"FAB_REGRESSION":72}
+with fix                 empty: {"FAB_REGRESSION":192,"PARITY":480,"FAB_RESCUE":96,"TRUTH_RESCUE":96}  populated: {"PARITY":576,"FAB_RESCUE":192,"TRUTH_RESCUE":96}
+rows whose verdict moves under the fix (915 corpus): 1
+   pack F now DESTROYED "Nothing Bundt Cakes' account has been deleted."
+FIX PREPARED: closes the populated-pack possessive class at zero truth cost

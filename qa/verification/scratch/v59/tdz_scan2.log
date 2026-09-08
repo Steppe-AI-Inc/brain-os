@@ -1,0 +1,29 @@
+declarations scanned: 945 (unique names 787; names declared more than once: 55)
+SYNC use-before-declaration in the same block (unique names): 5
+  overallStatus: read at :342, declared at :375 — async function executeActionPlan(supabase: any, plan: ExecutionPlanAction[]): Promise<{ plan: ExecutionPlanAction[]; overallStatus: 'complet
+  one: read at :736, declared at :858 — You receive one user command and a compact context pack from the database.
+  this: read at :760, declared at :1250 — needs the founder to make a choice). If you already answered a version of this exact
+  it: read at :259, declared at :1501 — const RESTORE_VERB_PATTERN = /\b(restor(e|ed|ing)|un-?archiv(e|ed|ing)|bring\s+(it\s+)?back|(?:re)?activat(e|ed|ing))\b/i;
+  me: read at :3409, declared at :5874 — || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,
+  site resolveCompanyLifecycleTargets   declared :3425  first earlier read: none
+  site verifyRowsExist                  declared :4386  first earlier read: none
+  site recordCreate                     declared :4404  first earlier read: none
+  site requestedIntent                  declared :5551  first earlier read: none
+  site requestedIntentPrimary           declared :5539  first earlier read: none
+  site receiptRendered                  declared :6305  first earlier read: none
+  site receiptExempt                    declared :6303  first earlier read: none
+  site lexiconVerb                      declared :5536  first earlier read: none
+  site modelIntentKind                  declared :5508  first earlier read: none
+  site IMPERATIVE_HEAD_RE               declared :3417  first earlier read: none
+  site commandFallbackAllowed           declared :3423  first earlier read: none
+  site headLifecycleAction              declared :3490  first earlier read: none
+  site lifecycleCommandName             declared :3472  first earlier read: none
+  site LifecycleLookupRow               declared :102  first earlier read: none
+  site CompanyLookupRow                 declared :101  first earlier read: none
+  site MutationIntent                   declared :104  first earlier read: none
+  site idOf                             declared :4396  first earlier read: none
+  site executedVerifiedCount            declared :5553  first earlier read: none
+  site MUTATION_ARRAY_FIELDS            declared :5503  first earlier read: none
+  site READ_SHAPE                       declared :5525  first earlier read: none
+  site CONFIRMATION_COMMAND             declared :5531  first earlier read: none
+multi-declared names (lexically undecidable here, executed through the windows instead): row, t, r, rpc, id, action, outcome, OPERATION_LABEL, nameFor, lines, label, name, trimmed, m, rest, matches, exact, e, timer, line, textBlock, errBody, accumulated, stopReason, apiError, body, result, text, companyId, q, pendingAction, seen, extra, companyStatusById, key, field, errorMessage, ch, c, patch …

@@ -1,0 +1,52 @@
+{
+ "m10_receipt_skips_attempted": {
+  "contractFailures": 5,
+  "killed": true,
+  "newFails": [
+   "FAIL  [CONTRACT] C3 DENIED company/archive with claims:null -> receipt names the failure (kills mutant m10)",
+   "FAIL  [CONTRACT] C3 DENIED task/delete with claims:null -> receipt names the failure (kills mutant m10)",
+   "FAIL  [CONTRACT] C3 DENIED goal/restore with claims:null -> receipt names the failure (kills mutant m10)",
+   "FAIL  [CONTRACT] C3 DENIED task/create with claims:null -> receipt names the failure (kills mutant m10)"
+  ]
+ },
+ "m12_silent_nonexistent_id": {
+  "contractFailures": 1,
+  "killed": true,
+  "newFails": [
+   "FAIL  [CONTRACT] C6 nonexistent model id: no RPC, the report says it could not be found (kills mutant m12)"
+  ]
+ },
+ "m13_no_status_preference": {
+  "contractFailures": 2,
+  "killed": true,
+  "newFails": [
+   "FAIL  [CONTRACT] C6 restore prefers the ARCHIVED twin (kills mutant m13)",
+   "FAIL  [CONTRACT] C6 archive prefers the ACTIVE twin"
+  ]
+ },
+ "m1_delete_receipt_block": {
+  "contractFailures": 41,
+  "killed": true,
+  "newFails": [
+   "FAIL  [CONTRACT] C1 receipt, no success wording: \"Rename project Alpha to Beta\" [claims:null]",
+   "FAIL  [CONTRACT] C1 receipt, no success wording: \"Rename project Alpha to Beta\" [claims:[]]",
+   "FAIL  [CONTRACT] C1 receipt, no success wording: \"Rename project Alpha to Beta\" [claims:state-only]",
+   "FAIL  [CONTRACT] C1 pendingAction never exempts: \"Rename project Alpha to Beta\""
+  ]
+ },
+ "m2b_restore_pendingAction_skip_receipt": {
+  "contractFailures": 9,
+  "killed": true,
+  "newFails": [
+   "FAIL  [CONTRACT] C1 pendingAction never exempts: \"Rename project Alpha to Beta\"",
+   "FAIL  [CONTRACT] C1 pendingAction never exempts: \"archive company ACME\"",
+   "FAIL  [CONTRACT] C1 pendingAction never exempts: \"approve approval 123\"",
+   "FAIL  [CONTRACT] C1 pendingAction never exempts: \"delete task QA-1\""
+  ]
+ },
+ "m6b_bare_companies_name_join": {
+  "exit": 1,
+  "killed": true,
+  "tail": "  - no bare companies(name) join remains anywhere under web/ |        These joins omit companies.status, so their UI cannot mark an archived parent even in principle: |        lib/data/people.ts x1"
+ }
+}

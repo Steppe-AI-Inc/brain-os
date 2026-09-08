@@ -1,0 +1,78 @@
+PROPOSED FOLLOW-UP PATCH — NOT APPLIED, NOT COMMITTED TO supabase/functions/**, NOT DEPLOYED.
+Produced 2026-09-01 by the independent verifier of branch
+pending/d3-past-completion-gate-pendingaction-shortcircuit @ e085cfc.
+See qa/KNOWN_FAILURE_MODES.md #62 (findings D3-FP, D6, D7).
+
+WHAT IT DOES, on top of e085cfc:
+  1. D6 (already live in production at c9dfab5 / v92, NOT introduced by D3):
+     `&& lifecycleMismatchCorrections.length === 0` — stop the PAST gate from overwriting
+     Brain OS's OWN truthful lifecycle-mismatch correction with a different, less accurate
+     one that additionally claims (falsely) that chat cannot do the action.
+  2. D3-FP (introduced by e085cfc): PAST_CLAIM_NEGATED — a truthful NEGATIVE
+     ("QA-LIFECYCLE-EMPLOYEE2 was not created.") is not a completion claim.
+  3. D3-FP: PAST_CLAIM_ATTRIBUTED_ELSEWHERE — a truthful report about a PRIOR turn
+     ("they were just restored in the prior turn") is not a claim about THIS turn.
+  4. D7: re-attach disambiguation option LABELS, not only pendingAction.question. The
+     system prompt puts the option names in `summary`, and matchDisambiguationOption()
+     only resolves a reply that CONTAINS a label — so destroying `summary` and restoring
+     only `question` leaves a live pendingAction the user cannot answer.
+
+EVIDENCE THIS CANDIDATE WAS ACTUALLY EXERCISED (not just written):
+  applied to a scratch copy of index.ts and run against
+  qa/scenarios-runner/past_completion_gate_behavior.mjs — Sections A, B and C all pass
+  (they do NOT both pass on either master or e085cfc), and Section D correctly flips to
+  "D6 appears FIXED". index.ts was then restored byte-identical
+  (sha256 8d76f13d0ef9ff97ec1248f13de06ff2fd028e4ae10685d4fc3fca58c16771a4, CRLF working
+  tree), `git status` clean for supabase/.
+
+KNOWN LIMITATIONS OF THIS CANDIDATE — read before shipping:
+  * PAST_CLAIM_NEGATED and PAST_CLAIM_ATTRIBUTED_ELSEWHERE are tested against the WHOLE
+    summary, so a mixed reply ("The approval was not rejected — it has been approved.")
+    would be exempted. Sentence-level evaluation, or per-claim grounding against
+    factLines, is the real fix; this is a narrowing, not a solution.
+  * It has had NO live HTTP acceptance test. Nobody has yet seen this behave in the real
+    Edge Function.
+  * It breaks one assertion in
+    qa/scenarios-runner/d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs
+    ("correction preserves a real pending prompt") purely because that assertion hardcodes
+    the variable name `pendingPrompt`; loosen that assertion if this ships.
+
+APPLY WITH:  git apply qa/verification/proposed/d3-followup-detector-tightening.patch
+(the working tree is CRLF for this file; use --whitespace=nowarn if git complains)
+
+--------------------------------------------------------------------------------
+diff --git a/supabase/functions/sem-ai-command/index.ts b/supabase/functions/sem-ai-command/index.ts
+index 45df94f..57c920d 100644
+--- a/supabase/functions/sem-ai-command/index.ts
++++ b/supabase/functions/sem-ai-command/index.ts
+@@ -4257,8 +4257,13 @@ serve(async (req) => {
+         // independently of whether a question is pending. Grounding is still required
+         // (!groundedOutcomeThisTurn) and every deterministic mode is still excluded, so
+         // no legitimately-executed turn is affected.
++        const PAST_CLAIM_NEGATED = /\b(was|were|has|have|had|is|are)\s+(not|never)\b|\bdid\s+not\b|\bno\s+(company|task|goal|employee|approval|project|department|person)\b|\bcould(n’t| not)\s+confirm\b/i;
++        const PAST_CLAIM_ATTRIBUTED_ELSEWHERE = /\b(prior turn|previous turn|earlier turn|last turn|conversation history|history shows)\b/i;
+         const claimsPastCompletionWithNoGrounding = model !== 'deterministic-confirmation' && model !== 'deterministic-plan-execution' && model !== 'deterministic-clarification' && model !== 'deterministic-disambiguation'
+           && !groundedOutcomeThisTurn && !claimsFutureActionWithNoPlan
++          && lifecycleMismatchCorrections.length === 0
++          && !PAST_CLAIM_NEGATED.test(String(result.summary || ''))
++          && !PAST_CLAIM_ATTRIBUTED_ELSEWHERE.test(String(result.summary || ''))
+           && PAST_COMPLETION_CLAIM_PATTERN.test(String(result.summary || ''));
+         if (claimsPastCompletionWithNoGrounding) {
+           const correction = 'I can’t actually do that from chat — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute.';
+@@ -4274,7 +4279,15 @@ serve(async (req) => {
+           const pendingPrompt = [pa?.question, pa?.summary]
+             .map((v) => (typeof v === 'string' ? v.trim() : ''))
+             .find((v) => v.length > 0) || '';
+-          result.summary = pendingPrompt ? `${correction}\n\n${pendingPrompt}` : correction;
++          const paOptions = Array.isArray((pa as { options?: unknown[] } | null | undefined)?.options)
++            ? ((pa as { options?: Array<{ label?: unknown }> }).options as Array<{ label?: unknown }>)
++                .map((o) => (o && typeof o.label === 'string' ? o.label.trim() : ''))
++                .filter((l) => l.length > 0)
++            : [];
++          const promptWithOptions = paOptions.length > 0
++            ? `${pendingPrompt}${pendingPrompt ? ' ' : ''}Options: ${paOptions.join(' | ')}.`
++            : pendingPrompt;
++          result.summary = promptWithOptions ? `${correction}\n\n${promptWithOptions}` : correction;
+         }
+ 
+         // Bug 1 (2026-08-30 "Confirmation Truth" campaign) safety net: "confirm" resolving

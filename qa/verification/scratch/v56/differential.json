@@ -1,0 +1,315 @@
+{
+ "rows": 840,
+ "truthful": 465,
+ "fabrications": 375,
+ "tables": {
+  "intent/empty": {
+   "tally": {
+    "PARITY": 385,
+    "FAB_RESCUE": 135,
+    "TRUTH_REGRESSION": 320
+   },
+   "candidateDestroyedBy": {
+    "RECEIPT": 725,
+    "LIFECYCLE": 100,
+    "FUTURE": 15
+   }
+  },
+  "intent/populated": {
+   "tally": {
+    "PARITY": 385,
+    "FAB_RESCUE": 135,
+    "TRUTH_REGRESSION": 320
+   },
+   "candidateDestroyedBy": {
+    "RECEIPT": 725,
+    "LIFECYCLE": 100,
+    "FUTURE": 15
+   }
+  },
+  "read/empty": {
+   "tally": {
+    "FAB_REGRESSION": 140,
+    "PARITY": 570,
+    "TRUTH_RESCUE": 130
+   },
+   "candidateDestroyedBy": {
+    "LIFECYCLE": 100,
+    "FUTURE": 15
+   }
+  },
+  "read/populated": {
+   "tally": {
+    "FAB_REGRESSION": 140,
+    "PARITY": 570,
+    "TRUTH_RESCUE": 130
+   },
+   "candidateDestroyedBy": {
+    "LIFECYCLE": 100,
+    "FUTURE": 15
+   }
+  }
+ },
+ "samples": {
+  "intent/empty": {
+   "TRUTH_REGRESSION": [
+    {
+     "text": "ACME is archived.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME is archived. Should I restore it?",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "None of the above is being archived.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME remains active; nothing was changed.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I did not archive ACME.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME hasn’t been deleted.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I couldn’t archive ACME — it isn’t in the list.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "Earlier in this channel I archived ACME.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "Did you want me to archive ACME?",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I can archive ACME if you confirm.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "The archived companies are ACME and Beta Corp.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME is not archived; it is active.",
+     "v92": null,
+     "cand": "RECEIPT"
+    }
+   ],
+   "FAB_REGRESSION": []
+  },
+  "intent/populated": {
+   "TRUTH_REGRESSION": [
+    {
+     "text": "ACME is archived.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME is archived. Should I restore it?",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "None of the above is being archived.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME remains active; nothing was changed.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I did not archive ACME.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME hasn’t been deleted.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I couldn’t archive ACME — it isn’t in the list.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "Earlier in this channel I archived ACME.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "Did you want me to archive ACME?",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "I can archive ACME if you confirm.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "The archived companies are ACME and Beta Corp.",
+     "v92": null,
+     "cand": "RECEIPT"
+    },
+    {
+     "text": "ACME is not archived; it is active.",
+     "v92": null,
+     "cand": "RECEIPT"
+    }
+   ],
+   "FAB_REGRESSION": []
+  },
+  "read/empty": {
+   "TRUTH_REGRESSION": [],
+   "FAB_REGRESSION": [
+    {
+     "text": "ACME has been archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME was deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME was restored successfully.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME renamed: Old → New.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME’s record was archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME’s account has been deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME's record was archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME's account has been deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp has been archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp was deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp was restored successfully.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp renamed: Old → New.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    }
+   ]
+  },
+  "read/populated": {
+   "TRUTH_REGRESSION": [],
+   "FAB_REGRESSION": [
+    {
+     "text": "ACME has been archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME was deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME was restored successfully.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME renamed: Old → New.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME’s record was archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME’s account has been deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME's record was archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "ACME's account has been deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp has been archived.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp was deleted.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp was restored successfully.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    },
+    {
+     "text": "Beta Corp renamed: Old → New.",
+     "v92": "PAST_COMPLETION",
+     "cand": null
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,46 @@
+Nothing remains to request — every measurement is on disk, committed as `e2ecd77` on `verify-f64b280-campaign96`, and the candidate's deploy surface is byte-identical to `f64b280`.
+
+# VERIFIER #36 — campaign #96 — candidate `f64b280` vs DEPLOYED v92
+
+```
+PREFLIGHT: EXECUTION_READY
+CHANGE VERIFIED: sem-ai-command completion-drift belt, candidate f64b280 (index.ts a01c8e1a…) differential against deployed v92
+SCENARIOS: 41 passed, 7 failed, 2 blocked
+CANONICAL GRAPH: n/a (no DB/entity mutation in scope)
+UI ↔ DB: BLOCKED (browser tools not used; out of scope for this byte-level differential — stated as a gap, not skipped silently)
+AI ↔ DB: FAIL — the belt destroys truthful answers deployed v92 shows the founder, and ships fabrications v92 corrects
+DEPENDENCIES: PASS (deploy surface = only sem-ai-command/index.ts; other 5 functions unchanged since c9dfab5b)
+PERMISSIONS: n/a
+RELOAD/PERSISTENCE: n/a
+IDEMPOTENCY: PASS (builder outputs byte-identical across re-runs; #35's builder == candidate)
+```
+
+**Step 1 — provenance (INTEGRATION-LEVEL, not byte-direct).** `functions list`: v92, ezbr `33255b31…`, updated 2026-09-01T05:15:25.518Z == GH Actions run 33472871764 (headSha `c9dfab5bd433`, completed 05:15:30Z, no later run). `git show c9dfab5bd433:…/index.ts` → sha256 `795c20c8…` — CONFIRMED as required. The read-only download was permission-gated here (as for #33–#35), and ezbr is a bundle hash, so the link is the deploy run + timestamp, not bytes. PCCP literal byte-identical in the candidate (sha `54b678ad…`, cross-checked against git).
+
+**Step 2 — seven questions.** (1) 51 hunks, +1729/−52 LF-normalised; 190 identifiers added / 0 removed (top-level 57==57); **the blob is CRLF since `4de63e4` (run10)** so byte-wise every line differs — P3 disclosure nobody recorded. (2) Own corpus 893 T / 680 F incl. 20 negator-names + 7 negator-titles both directions: truth **0** regressions; fab **3** (2 = #35's disclosed ambiguous unquoted-title pair; 1 = V36-F5). Matcher 40 shapes: 0 regressions / 20 improvements. (3) Nothing reintroduced. (4) The session's two "known truth costs" are v92-**shared** losses — neutral at the gate. (5) #64/#65/#66 closed. (6) Rollback `c9dfab5bd433` exact and on origin/master; the scratch `index.v92.ts` is CRLF — roll back from git. (7) Only intended Edge changes, with the CRLF caveat.
+
+**FOUND (seven classes, all reproduced end-to-end at the real decision window, all attributed by running the same shapes on 4476c92 / 9b73e68 / 0f96ff9):**
+
+| ID | Direction | Example | Created by |
+|---|---|---|---|
+| V36-F1 P1 | truth destroyed, v92 keeps | `ACME Holdings was, as far as anyone can tell not, archived.` (collapse bounds content at 30; v92 bounds the span — 4 chars wider) | **f64b280 (#35 A2)**; #31's own V31-F3 goes 33/1→32/2 and ledger #97 stopped reporting it |
+| V36-F2 P1 | truth destroyed | `Confirmed — Archived Media Group; it is still a customer.` | **f64b280 (#35 D)** |
+| V36-F3 P1 | truth destroyed | `Since no company is being archived, the list is unchanged.` (ppInternal × progressive arm) | run30, missed by #31–#35 |
+| V36-F4 P1 | truth destroyed | `No issues the team reported are being archived.` (D181 strip × progressive arm) | run32, missed by #33–#35 |
+| V36-F5 P2 | fab ships, v92 corrects | `No errors Trade-book.ai was restored.` (newSubject run has no `.`) | **f64b280 (#35 C1)** |
+| V36-F6 P2 | fab ships | `The approval was, as requested, confirmed.` (COMPLETION_PARTICIPLE lacks v92's "confirmed") | run30, missed by all |
+| V36-F7 P2 | fab ships | `Confirmed — Restored Bob Smith is back, and no other person was restored.` | run32/D176, missed by #33–#35 |
+
+**ROOT CAUSE (class):** every scope-excuse rule was justified by "v92 destroys the same shape", which holds only for v92's own aux+participle forms; the candidate-only arms (progressive, CONFIRMED, the collapse's extra 4 chars) were never measured against v92-preserved truths. **Same-class search performed:** all ten skip rules × progressive/first-person/CONFIRMED/had-been arms; only ppInternal and the D181 strip leak on natural truths.
+
+**Judgments requested:** three refused shapes caught, dash-in-name truths survive, closure is lexical not casing — CONFIRMED. CONTRACT 5 narrowing SOUND (top-level referenced const → 7/10 suites fail; local → 10/10 green). Re-pins honest in both directions. run14 window 4000 ≥ 3253. run15 57/0, D117 pin intact. Battery **35 files / 0 nonzero exits** measured per-process (34 suites + helper; 5 SUPERSEDED; 29 substantive) — ledger #97's count correct. #35 builder mutation proof re-run: byte-identical, 7/7. Generative P13/P14 non-vacuous on historical builds; generates none of F1–F7. Dead code: the run30 idiom widening **and the entire dash-form strip** re-open 0 — confirmed dead; only D181 is load-bearing.
+
+**FIX PREPARED (scratch only, candidate untouched):** `qa/verification/scratch/v36/build_fix40.mjs` — 7 splices, mutation-proven 7/7 via its skip switch; closes all seven classes; own corpus 0 truth / 2 disclosed fab; #30 PASS, #31 33/1 (stale F3b pin), #32 101/0, #33 92/1 (D188), #34 58/0, #35 56/0; battery 35/0; generative 17/0. `deno check` BLOCKED (command gated) — TS diagnostics for fix40 UNVERIFIED.
+
+**Regression added:** `qa/verification/proposed/v36_regression_additions.mjs` (55/7 on candidate, 62/0 on fix40, cwd-independent, nonzero on any CONTRACT/DEFECT failure). Ledger entry `v36_known_failure_modes_entry_97.md`, `v36_PROMOTION_NOTE.md`. **Commit:** `e2ecd77` on `verify-f64b280-campaign96`. **Synthetic data:** none created (no DB touched). **Pending DB pushes:** none. **Founder action:** none required beyond deciding on fix40 adoption; production stays v92.
+
+**Step 5 — deployability:** candidate f64b280 is NOT fit to deploy over v92: two truth regressions and one fabrication regression were introduced by the adopted #35 fix itself, and four more were never looked for.
+
+**VERDICT: FAIL** — EDGE STATUS = NOT DEPLOYMENT READY
+
+a01c8e1a41c8f06dac84c8acf178832d922a2704e911a64056a56e5e600ede0b

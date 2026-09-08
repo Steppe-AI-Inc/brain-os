@@ -1,0 +1,24 @@
+INDEPENDENT ADVERSARIAL VERIFICATION — campaign verify-fdb4564-final-sha (verifier #11, campaign #71).
+
+Repo: C:/Users/Dell/dev/brain-os, branch pending/d3-past-completion-gate-pendingaction-shortcircuit, commit fdb4564. index.ts sha256 must be 66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded — verify FIRST with sha256sum; any mismatch means the baseline moved and you STOP and record it. Production remains sem-ai-command v92 — no deploys, production access strictly read-only (`npx supabase functions list` only; you have no db-query access this round). You HAVE execution rights: Bash(node), Bash(sha256sum), read-only git — USE THEM; campaigns #68/#69 were static-only and #70 proved execution works.
+
+Archive qa/verification/CURRENT_CAMPAIGN.json (campaign #70 + run10 closure bookkeeping) to qa/verification/archive/campaign-65ade7c-run9-closure-and-run10.json, then start your own record; checkpoint scenario-by-scenario; if you hit a provider/session limit, checkpoint FIRST (verdict stays PENDING/BLOCKED) — attempt 2 will resume, as #10's did.
+
+THIS IS THE DEPLOY-GATE CAMPAIGN. Since #10's certified SHA, two commits landed (4de63e4, fdb4564) covering: run10 defect closure D77-D84 (+E-multi progressive fabrication vocabulary), and the off-by-one/continuity/durable-channel-state work. Treat every implementing-session claim as unverified.
+
+Scenarios:
+1. sha256 baseline check, then EXECUTE the full battery (all qa/scenarios-runner suites incl. run10_defect_closure_contract 43 cases and current_turn_and_continuity_contract 17 checks).
+2. MUTATION-TEST yourself: the run10 guards (abbreviation-guard direction, ASCII-? terminator, label completion refusal + Title-Case discriminator, quoted-name rendering + compound collapse, D81 structural arm, imperative summaries, head-clause test) and the new continuity/runtime guards (command-first regression, absolute turn numbers, prompt prohibition, untyped-bindable reader, untyped-storing writer, CAS overwrite). sha-verified byte-identical restores.
+3. ATTACK the new seams:
+   - the KNOWN_ABBREVIATION list (can an assertion hide behind "Inc."? "ACME Inc. deleted everything. ok?"); single-letter before period ("Plan B. ok?" — assertion in front?); '…' vs the cut; head scans crossing quoted text;
+   - Title-Case discriminator: "ACME Deleted" (capitalized participle) as an option label — does it pass, and is that acceptable-name or laundering? decide and record;
+   - quoted-name rendering: can a quoted label still read as a statement in any composed line ("Options: "ACME has been archived" | …" replayed as "Confirmed — "ACME has been archived".")? follow the replay path;
+   - continuity: turn math off-by-one at window boundaries (exactly 8 prior turns; 9; 0); currentTurn duplication anywhere; does any deterministic path still read a stale command source;
+   - durable runtime: with a STUBBED chat_channel_state row (the window is pure — feed durableChannelState shapes through the extracted reader logic if reachable, else source-level), can an expired/typed-less/foreign-source pending action bind? does the writer ever store an untyped pending action? CAS race semantics;
+   - EXECUTION_IN_PROGRESS vocabulary gaps (other progressive shapes: "processing the request", "working on archiving", Mongolian progressive).
+4. Production read-only: v92 ACTIVE unchanged; zero writes.
+5. Bookkeeping honesty: KNOWN_FAILURE_MODES #70 postscript, run10 suite's disclosed D79.taskTitle adaptation, the two QA-tooling fixes (regex-literal skipping in _gate_extract; the restored exit guard), SESSION_CHECKPOINT accuracy.
+
+Record defects D85+. Verdict: DEPLOY GATE OPEN (battery + mutations independently executed on the exact SHA, no new P0/P1, runs 7-10 lineage closed) or DO NOT DEPLOY with exact reasons. The founder-facing deploy question depends on YOUR verdict alone.
+
+Standing rules: no deploys, no production writes, scripts/safe-function-download.sh for deployed-copy needs, working-tree writes only under qa/verification/**.

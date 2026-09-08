@@ -1,0 +1,26 @@
+{
+  "pass": 44,
+  "fails": 4,
+  "failures": [
+    {
+      "name": "2D companies query is status<>archived ordered newest first with an exact count",
+      "ok": false,
+      "detail": "from('companies').select('id,name,status,organization_type,strategic_priority,risk_score')"
+    },
+    {
+      "name": "2D archived companies query is status=archived ordered newest first with an exact count",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "2G create family: recordCreate passes the re-read membership as the postcondition (seen.has(id)), never a literal true",
+      "ok": false,
+      "detail": "recordExecution(resourceType, 'create', id, ok, { postcondition: { exists: ok }, rowsAffected: ok ? 1 : 0 }); }"
+    },
+    {
+      "name": "2G the claim verifier admits a mutation claim only against evidence with postconditionPassed (evidenceIndex built from passing rows)",
+      "ok": false,
+      "detail": "const evidenceIndex = new Map();\n        for (const e of claimExecutionEvidence) {\n          if (!e.postconditionPassed) continue;\n          const key = e.resourceType + '|' + e.id;\n          if (!evidenceIndex.has(key)) evidenceIndex.set(key, new Set());\n          evidenceIndex.get(key).add(e.actio"
+    }
+  ]
+}

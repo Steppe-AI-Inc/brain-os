@@ -1,0 +1,20 @@
+{
+  "role": "brain-os-verifier",
+  "execution_mode": "isolated_process",
+  "execution_mode_enum": "TOP_LEVEL_ISOLATED_PROCESS",
+  "repo": "/c/Users/Dell/dev/brain-os",
+  "worktree": "/c/Users/Dell/dev/brain-os-verify-7914f2b",
+  "artifact_branch": "verify-7914f2b-campaign93",
+  "candidate_sha": "7914f2b521fc1b1a97442993676da279830967ee",
+  "pinned_file": "supabase/functions/sem-ai-command/index.ts",
+  "pinned_sha256": "dfdff8fd6f93888f2aeb08bfac76552bfbece439cef1e42cd8002194e98d1220",
+  "read_only_candidate": true,
+  "checkpoint": "qa/verification/CURRENT_CAMPAIGN.json",
+  "provider": "claude-code-cli",
+  "model": "inherit",
+  "campaign": 93,
+  "verifier": 33,
+  "prompt": "/c/Users/Dell/dev/brain-os/qa/verification/scratch/verifier33_prompt.txt",
+  "log": "/c/Users/Dell/dev/brain-os/qa/verification/scratch/verifier33_output.log",
+  "dispatched_at": "2026-09-05T18:11:21+08:00"
+}

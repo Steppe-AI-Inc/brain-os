@@ -1,0 +1,53 @@
+OK   A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:null] -> receipt, no success claim
+OK   A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:[]] -> receipt, no success claim
+OK   A "Rename project Alpha to Beta" / "Done. Project renamed to Beta. What next?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Rename project Alpha to Beta"
+OK   A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:null] -> receipt, no success claim
+OK   A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:[]] -> receipt, no success claim
+OK   A "Rename project Alpha to Beta" / "Project renamed to Beta." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Rename project Alpha to Beta"
+OK   A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:null] -> receipt, no success claim
+OK   A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:[]] -> receipt, no success claim
+OK   A "rename project Alpha to Beta" / "I have renamed the project to Beta — anything else?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "rename project Alpha to Beta"
+OK   A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:null] -> receipt, no success claim
+OK   A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:[]] -> receipt, no success claim
+OK   A "Please rename the project Alpha to Beta" / "Renamed. Do you want me to notify the team?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Please rename the project Alpha to Beta"
+OK   A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:null] -> receipt, no success claim
+OK   A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:[]] -> receipt, no success claim
+OK   A "Approve approval 123 now. Confirm when done." / "The approval has been approved." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Approve approval 123 now. Confirm when done."
+OK   A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:null] -> receipt, no success claim
+OK   A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:[]] -> receipt, no success claim
+OK   A "Delete department Sales permanently" / "Department Sales has been deleted successfully." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Delete department Sales permanently"
+OK   A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:null] -> receipt, no success claim
+OK   A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:[]] -> receipt, no success claim
+OK   A "archive company ACME" / "ACME has been archived. Should I also archive its projects?" [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "archive company ACME"
+OK   A "Archive ACME" / "Done — ACME archived." [claims:null] -> receipt, no success claim
+OK   A "Archive ACME" / "Done — ACME archived." [claims:[]] -> receipt, no success claim
+OK   A "Archive ACME" / "Done — ACME archived." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "Archive ACME"
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:null] -> receipt, no success claim
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:[]] -> receipt, no success claim
+OK   A "assign task QA-1 to Bob" / "Assigned. Bob now owns QA-1." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "assign task QA-1 to Bob"
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:null] -> receipt, no success claim
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:[]] -> receipt, no success claim
+OK   A "set the manager of Alice to Bob" / "Alice now reports to Bob." [claims:state-only] -> receipt, no success claim
+OK   A pendingAction never exempts: "set the manager of Alice to Bob"
+OK   B bare "yes" + fabricated execution -> receipt
+OK   B "option 2" + fabricated completion -> receipt
+OK   C verified archive claim survives (rendered from structure)
+OK   C an UNVERIFIED postcondition never supports the claim
+OK   D truthful history recount + question on a READ request survives verbatim
+OK   D state answer on a read request survives
+OK   D plain read answer untouched
+OK   E with a lifecycle report present the receipt does not double up
+OK   F legacyProseFallback requires request intent and carries no pendingAction term
+OK   F unaccountedCompletionProse requires request intent and carries no pendingAction term
+OK   F request intent is derived from the request (model requestIntent, model action fields, request lexicon), never the response text
+
+architecture_final_claim_contract: 51 passed, 0 failed

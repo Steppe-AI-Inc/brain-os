@@ -1,0 +1,50 @@
+OK   A1 correct id + correct action -> SUPPORTED
+OK   A2 WRONG UUID, same resource type -> REJECTED (CLAIM_WRONG_RESOURCE_ID_CANNOT_BE_GROUNDED)
+OK   A3 correct id, WRONG ACTION -> REJECTED
+OK   A4 CROSS-RESOURCE fact cannot support a mutation (CLAIM_CROSS_RESOURCE_FACT_CANNOT_SUPPORT_MUTATION)
+OK   A5 mutation claim with NO id -> REJECTED (fails closed)
+OK   A5b the rejection reason names the missing canonical id
+OK   A6 evidence WITHOUT a passing postcondition -> REJECTED
+OK   A7 entity resolved but nothing executed -> REJECTED
+OK   B1 current_state verified against the fresh canonical read
+OK   B2 current_state CONTRADICTED by the canonical read -> REJECTED
+OK   B3 approval_state verified against the canonical approval row
+OK   B4 CURRENT STATE does not prove a HISTORICAL event
+OK   B5 a state claim about a resource mutated this turn is UNKNOWN, not judged on a stale read
+OK   C1 a question survives a rejected claim
+OK   C2 the question is not itself treated as a claim
+OK   C3 a proposed action is not an execution claim
+OK   D1 supported approval state is retained (identified safely, no uuid)
+OK   D2 unsupported rename is rejected
+OK   D3 the rename is NOT rendered as success
+OK   D4 the question still survives
+OK   D5 same-type mixed ids: only the evidenced id is supported
+OK   D6 the rejected resource is named by label, not uuid
+OK   E1 envelope exists and carries both claim sets
+OK   E2 envelope.summary IS the rendered summary (live == persisted)
+OK   E3 the model's false prose is NOT what survives
+OK   E4 execution evidence is carried in the envelope
+OK   F1 a supported mutation claim IS stated after the structural re-render
+OK   F1b unverified fabrications in the same prose do NOT survive the re-render (run7/D52)
+OK   F2 legacy fallback still catches an unstructured fabrication
+OK   F3 legacy fallback does not fire on an ordinary answer
+OK   G legacy fallback catches unstructured fabrication - The approval has been approved.
+OK   G legacy fallback catches unstructured fabrication - The company was archived successfully.
+OK   G legacy fallback catches unstructured fabrication - The task has been completed.
+OK   G legacy fallback leaves a truthful reply alone - Here are your companies.
+OK   G legacy fallback leaves a truthful reply alone - I do not see that task - it may have b
+OK   G a mutation-claim turn is re-rendered; the fabricated sentence does not survive (run7/D52)
+OK   H1 FOUNDER_RESPONSE_NEVER_LEAKS_RAW_RESOURCE_UUID (entity absent from every label source)
+OK   H2 MISSING_ENTITY_LABEL_USES_SAFE_TYPED_FALLBACK
+OK   H3 HISTORICAL_ENTITY_CAN_USE_LAST_KNOWN_SAFE_LABEL (canonical read has it)
+OK   H4 UNKNOWN_RESOURCE_NAME_IS_NOT_INVENTED
+OK   H5 DEBUG_ONLY_UUID_OUTPUT_REQUIRES_EXPLICIT_AUTHORIZED_MODE
+OK   H6 a SUPPORTED claim is also rendered without a raw uuid
+
+structured_claim_verification: 42/42 passed
+OK   G legacy fallback catches unstructured fabrication - The approval has been approved.
+OK   G legacy fallback catches unstructured fabrication - The company was archived successfully.
+OK   G legacy fallback catches unstructured fabrication - The task has been completed.
+OK   G legacy fallback leaves a truthful reply alone - Here are your companies.
+OK   G legacy fallback leaves a truthful reply alone - I do not see that task - it may have b
+OK   G a mutation-claim turn is re-rendered; the fabricated sentence does not survive (run7/D52)

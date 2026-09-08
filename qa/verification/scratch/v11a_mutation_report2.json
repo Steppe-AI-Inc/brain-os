@@ -1,0 +1,209 @@
+{
+ "baseline_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "final_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "ran_at": "2026-09-03T02:22:20.966Z",
+ "results": [
+  {
+   "id": "M05 label completion refusal disabled",
+   "desc": "safeOptionLabel never inspects completion vocabulary (D78 / D72)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 4,
+     "failLines": [
+      "FAIL D78.simple past        [DEFECT] D78: sentence-shaped option label \"ACME deleted\" is not rendered/persisted as a label",
+      "FAIL D78.first person       [DEFECT] D78: sentence-shaped option label \"I archived ACME\" is not rendered/persisted as a label",
+      "FAIL D78.done-colon         [DEFECT] D78: sentence-shaped option label \"Done: ACME deleted\" is not rendered/persisted as a label",
+      "FAIL D78.present tense      [DEFECT] D78: sentence-shaped option label \"ACME is now archived\" is not rendered/persisted as a label"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    },
+    "structured_claim_verification": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M08 quoted-name rendering removed (erase instead)",
+   "desc": "safeDisplayLabel collapses assertion-shaped names instead of quoting them (D79)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 2,
+     "failLines": [
+      "FAIL D79.taskTitle          [DEFECT] D79: a legitimate task title containing \"was approved\" keeps its name in the evidence line",
+      "FAIL D79.twinOptions        [DEFECT] D79: two options whose real names are assertion-shaped do not collapse to IDENTICAL labels"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "failLines": [
+      "FAIL D74 an assertion-shaped runtime label renders QUOTED - identity kept, statement-reading removed (run10/D79 refinement)"
+     ]
+    },
+    "structured_claim_verification": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M08b quoted-name rendering unquoted",
+   "desc": "assertion-shaped name renders BARE (no quotes) — does anything notice the framing?",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "failLines": [
+      "FAIL D79.taskTitle          [DEFECT] D79: a legitimate task title containing \"was approved\" keeps its name in the evidence line"
+     ]
+    },
+    "run8_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "failLines": [
+      "FAIL D74 an assertion-shaped runtime label renders QUOTED - identity kept, statement-reading removed (run10/D79 refinement)"
+     ]
+    },
+    "structured_claim_verification": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    },
+    "structured_claim_laundering_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    },
+    "lifecycle_evidence_and_output_persistence_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M10 D81 structural arm removed",
+   "desc": "drift arm keys on bare unaccounted prose again (floors truthful history)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "failLines": [
+      "FAIL D81.history            [DEFECT] D81: a truthful historical read-only statement on a GROUNDED claims:null turn ships (6ed3834 shipped it; 65ade7c floors it)"
+     ]
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M11 D81 arm always off",
+   "desc": "structured prose drift never fires",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    },
+    "structured_claim_verification": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    },
+    "structured_claim_laundering_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    }
+   },
+   "restoreShaOk": true,
+   "killed": false
+  },
+  {
+   "id": "M15 EXECUTION_IN_PROGRESS dropped from the legacy (ungrounded) arm",
+   "desc": "progressive fabrication vocabulary removed from legacyProseFallback (E-multi)",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 1,
+     "fails": 1,
+     "failLines": [
+      "FAIL EMULTI.ungrounded      [DEFECT] the live E-multi shape — bare-yes reply fabricating plan execution, nothing structural — is corrected, not shipped"
+     ]
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M15b EXECUTION_IN_PROGRESS dropped from the structured arm",
+   "desc": "progressive vocabulary removed from unaccountedCompletionProse",
+   "anchorOccurrences": 1,
+   "suites": {
+    "run10_defect_closure_contract": {
+     "exit": 0,
+     "fails": 0,
+     "failLines": []
+    }
+   },
+   "restoreShaOk": true,
+   "killed": false
+  },
+  {
+   "id": "M16 command-first regression",
+   "desc": "reintroduce a bare top-level `command` key as the FIRST pack key",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 3,
+     "failLines": [
+      "FAIL pack leads with continuity and has NO top-level command key",
+      "FAIL currentTurn is the LAST key in the pack",
+      "FAIL continuity carries the honesty fields"
+     ]
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  },
+  {
+   "id": "M16b continuity key removed from the pack head",
+   "desc": "pack no longer leads with continuity",
+   "anchorOccurrences": 1,
+   "suites": {
+    "current_turn_and_continuity_contract": {
+     "exit": 1,
+     "fails": 3,
+     "failLines": [
+      "FAIL pack leads with continuity and has NO top-level command key",
+      "FAIL currentTurn is the LAST key in the pack",
+      "FAIL continuity carries the honesty fields"
+     ]
+    }
+   },
+   "restoreShaOk": true,
+   "killed": true
+  }
+ ]
+}

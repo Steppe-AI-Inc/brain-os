@@ -1,0 +1,6 @@
+TDZ SCAN supabase/functions/sem-ai-command/index.ts
+declarations (const/let/class): 1336  blocks: 1178  function-body blocks: 385
+SYNCHRONOUS use-before-declaration in an enclosing block (P0 class): 1
+  P0  pendingAction use :2333 decl :2344 declBlockOpens :2009
+DEFERRED (use inside a nested function declared before the binding; TDZ only if invoked early): 1
+  DEF UUID_IN_TEXT use :4875 decl :4910 declBlockOpens :2620

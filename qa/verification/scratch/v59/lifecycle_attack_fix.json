@@ -1,0 +1,23 @@
+{
+  "pass": 237,
+  "fails": 3,
+  "nonExec": 0,
+  "nonRows": [],
+  "failures": [
+    {
+      "name": "C1 imperative \"Alpha-г архивла\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":false}"
+    },
+    {
+      "name": "C1 imperative \"архивла Alpha\" -> archive_company(Alpha) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null,\"allowed\":false,\"imp\":false}"
+    },
+    {
+      "name": "C1 imperative \"Beta сэргээ\" -> restore_company(Beta) exactly once",
+      "ok": false,
+      "detail": "{\"calls\":[],\"report\":null}"
+    }
+  ]
+}

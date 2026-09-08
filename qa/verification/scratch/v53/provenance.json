@@ -1,0 +1,35 @@
+{
+ "live_meta": {
+  "created_at": 1787496757975,
+  "entrypoint_path": "file:///home/runner/work/brain-os/brain-os/supabase/functions/sem-ai-command/index.ts",
+  "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+  "id": "93ce68d4-bc3f-4b17-b7aa-3ec5e51df187",
+  "import_map": false,
+  "name": "sem-ai-command",
+  "slug": "sem-ai-command",
+  "status": "ACTIVE",
+  "updated_at": 1788239725518,
+  "verify_jwt": true,
+  "version": 92
+ },
+ "downloaded": {
+  "path": "qa/verification/scratch/v53/dl/supabase/functions/sem-ai-command/index.ts",
+  "bytes": 321370,
+  "sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
+  "crlf": 0,
+  "lf_total": 4312,
+  "sha256_lf_normalised": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc"
+ },
+ "git_c9dfab5bd433": {
+  "bytes": 321370,
+  "sha256": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc",
+  "crlf": 0,
+  "lf_total": 4312,
+  "sha256_lf_normalised": "795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc"
+ },
+ "byte_identical_download_vs_git": true,
+ "lf_identical_download_vs_git": true,
+ "working_tree_sha256_before": "bd21c2af8fa01cb396dfb07f113c69a71cefc214d3aeb5ffb202bb935255e95e",
+ "working_tree_sha256_after": "bd21c2af8fa01cb396dfb07f113c69a71cefc214d3aeb5ffb202bb935255e95e",
+ "checked_at": "2026-09-07T08:49:33.624Z"
+}

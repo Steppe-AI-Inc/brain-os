@@ -52,6 +52,6 @@ regression proving both an authorized and an unauthorized persona (SC-118/119 pa
 ## When you find a bug
 
 Do NOT patch only the one instance. Classify the failure class and search the whole
-codebase for it (CLAUDE.md §12/§13). Write the regression FIRST/alongside the fix. See
+codebase for it (CLAUDE.md §6). Write the regression FIRST/alongside the fix. See
 `REGRESSION_RULE.md`. Schema/RLS/SECURITY-DEFINER pushes need explicit live founder
 authorization before `supabase db push` — never push one unattended.

@@ -1,0 +1,39 @@
+**PREFLIGHT: EXECUTION_READY**
+
+---
+
+## Independent DB Review — Round 3
+
+`qa/verification/DB_REVIEW_ROUND3_VERDICT.md` written and committed to `verify-fbc5c79-campaign3` (`3215ddd`). Master untouched at `fbc5c79`; nothing outside `qa/verification/` changed; working tree clean.
+
+**No production authority used**: no `db push`, no `db query --linked`, no Supabase host, no `DBTEST_PG_URL`. PGlite in-process only; `gh` read-only. **Nothing I ran is SECURITY VERIFIED.**
+
+### The finding that decides this review
+
+The CI job that printed `SECURITY VERIFIED` connects as **`session_user = postgres`** (workflow `POSTGRES_USER: postgres`; log L262 `postgres|172.18.0.2|dbtest`; self-check JSON `"session_user":"postgres"`). Migration D's **both** authority gates bypass on `session_user in ('postgres','supabase_admin')`. `SET ROLE` changes `current_user`, not `session_user` — so on that exact connection D's guards refuse nobody.
+
+```
+D2 (session_user=postgres, the CI shape):     manager write SUCCEEDED, worktree now /attacker/worktree
+D3 (session_user=rev_authenticator, PostgREST shape):  refused, "…may modify Agent Run retry/checkpoint state"
+```
+
+The fix is correct; the evidence for it is not evidence. D's two persona tests pass at the **EXECUTE grant** before entering the body; the one R-D1 acceptance test is a **regex over `pg_get_functiondef`**. Probe D3 is the first behavioural proof anywhere that R-D1 blocks anyone. Both the workflow header (L40-43) and the response (L31) assert this difference "cannot flatter a result" — that claim is false.
+
+### Verdicts
+
+| A | B | C | D | Overall |
+|---|---|---|---|---|
+| **FAIL** | **FAIL** | **FAIL** | **FAIL** | **FAIL** |
+
+Other P1/P2: `claim_blocked_run_for_retry` is granted **only** to `service_role`, the one identity its own check refuses (D5) — the real caller works because it connects as `postgres` and needs no grant. `execution_mode`, added by this same migration as the reviewer-facing dispatch attestation, is **not in the guard's column list** and a manager rewrote it (D4). Migration A's `app.chat_channel_state_trusted_write` is a plain custom GUC any `authenticated` client can raise — I did, and planted a fabricated `last_successful_mutation` (A1); the same pattern is **already live in five pushed migrations**. `record_chat_channel_mutation` checks *who* writes, never *whether* it happened (A14). `set_person_assignment` guards `p_department_id` twice and `p_manager_person_id` **zero** times (B6, new). C's `enabled … post-review` is enforced by nobody (C2). Zero `governance/` registration for any new table, against §24.
+
+### What is genuinely good, re-derived not trusted
+
+R-B1 closure confirmed by auto-discovering the ancestor and diffing live `pg_get_functiondef` — exactly the 3 declared deltas, guards 3→4, one overload. All R-C closures survived, including UPDATE paths and the comparison branch upstream never reaches. **The self-check is not decoration**: 3/3 mutations forced a refusal. The archived CI log is a faithful copy of the live log (26 differing lines, all `##[command]` prefix artifacts). The CI ran at `7c955f3`, honestly disclosed — and `supabase/migrations/` + `qa/dbtest/` are byte-identical to the candidate, so it transfers.
+
+### Requires the real engine / a disposable Supabase project
+
+Everything about D's authority model (fix: connect CI as a non-superuser login role and assert `session_user not in ('postgres','supabase_admin')`); `FOR UPDATE SKIP LOCKED` under real concurrency — PGlite is single-connection and the upstream suite doesn't test it either; a **company-manager persona**, which `personas.mjs` has none of; and whether PostgREST actually refuses `SET` — the single unverified property standing between A1 and a live forgery primitive.
+
+**OVERALL VERDICT: FAIL**
+**Candidate commit reviewed: `fbc5c79db77c7e797b2006d677b75cd0aaa23b27`**

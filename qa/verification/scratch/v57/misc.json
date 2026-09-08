@@ -1,0 +1,192 @@
+{
+ "pass": 33,
+ "fails": [],
+ "notes": [
+  {
+   "id": "2D-counts-array-length-fallback",
+   "fallbacks": 11,
+   "promptUsesCounts": true,
+   "promptUsesCollections": true
+  },
+  {
+   "id": "2F-clear-manager-receipt",
+   "r1": "**Alice: assignment re-saved — company and manager unchanged.**"
+  },
+  {
+   "id": "2G-literal-true-sites",
+   "count": 34,
+   "sites": [
+    {
+     "line": 3101,
+     "code": "if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true);",
+     "gate": "if (detail.startsWith('already_')) continue; ⏎ const mapping = PLAN_EVIDENCE[a.operation];"
+    },
+    {
+     "line": 3126,
+     "code": "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);",
+     "gate": "const r = data as Record<string, unknown>;"
+    },
+    {
+     "line": 3140,
+     "code": "if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);",
+     "gate": ""
+    },
+    {
+     "line": 3213,
+     "code": "for (const ch of deletedChannels || []) recordExecution('channel', 'delete', ch.id, true);",
+     "gate": "} else { ⏎ deletedChannelCount = deletedChannels?.length || 0;"
+    },
+    {
+     "line": 3241,
+     "code": "for (const ap of deletedApprovals || []) recordExecution('approval', 'delete', ap.id, true);",
+     "gate": "} else { ⏎ deletedApprovalCount = deletedApprovals?.length || 0;"
+    },
+    {
+     "line": 3336,
+     "code": "if (data && data.length > 0) { updatedCompanyCount++; recordExecution('company', 'update', c.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('companies').update(patch).eq('id', c.id).select('id');"
+    },
+    {
+     "line": 3507,
+     "code": "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'archive', id, true, { backendResult: r, precondition: { status: ",
+     "gate": "}"
+    },
+    {
+     "line": 3524,
+     "code": "if (r.changed === true && r.postconditionPassed === true) recordExecution('company', 'restore', id, true, { backendResult: r, precondition: { status: ",
+     "gate": "}"
+    },
+    {
+     "line": 3596,
+     "code": "recordExecution('company', 'permanent_delete', id, true);",
+     "gate": "permanentDeleteLines.push(`**${name} permanently deleted.**${deletedPeople ? ` Also removed: ${deletedPeople}.` : ''}`); ⏎ deletedCompanyEntities.push({ id, name: String(name) });"
+    },
+    {
+     "line": 3597,
+     "code": "for (const p of peopleDeletedRaw) { deletedPersonEntities.push({ id: String(p.id), name: String(p.name) }); recordExecution('person', 'permanent_delet",
+     "gate": "deletedCompanyEntities.push({ id, name: String(name) }); ⏎ recordExecution('company', 'permanent_delete', id, true);"
+    },
+    {
+     "line": 3688,
+     "code": "if (r.reason === 'employment_ended') recordExecution('person', 'end_employment', id, true);",
+     "gate": "if (error || !data) { personLifecycleLines.push(`${name}: end-employment failed (${error?.message || 'no result'}).`); continue; } ⏎ const r = data as Record<string, unknown>;"
+    },
+    {
+     "line": 3696,
+     "code": "if (r.reason === 'restored') recordExecution('person', 'restore_employment', id, true);",
+     "gate": "if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; } ⏎ const r = data as Record<string, unknown>;"
+    },
+    {
+     "line": 3809,
+     "code": "if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);",
+     "gate": "const r = data as Record<string, unknown>;"
+    },
+    {
+     "line": 3820,
+     "code": "if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);",
+     "gate": "const r = data as Record<string, unknown>;"
+    },
+    {
+     "line": 4088,
+     "code": "if (evidenceType) for (const row of data || []) recordExecution(evidenceType, 'delete', row.id, true);",
+     "gate": "} ⏎ const evidenceType = DELETE_EVIDENCE_TYPE[table];"
+    },
+    {
+     "line": 4510,
+     "code": "if (!error && data) { createdFactoryWorkOrders.push({ id: data as string, title: w.title }); recordExecution('work_order', 'create', data as string, t",
+     "gate": "p_acceptance_criteria: w.acceptanceCriteria, ⏎ });"
+    },
+    {
+     "line": 4519,
+     "code": "if (!error && data) { createdDepartments.push(data); recordExecution('department', 'create', data.id, true); recordLabel('department', data.id, d.name",
+     "gate": "const slug = d.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); ⏎ const { data, error } = await supabase.from('departments').insert({ company_id: companyId, name: d.name, slug }).select('id'"
+    },
+    {
+     "line": 4529,
+     "code": "if (data && data.length > 0) { updatedDepartmentCount++; recordExecution('department', 'update', d.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('departments').update(patch).eq('id', d.id).select('id');"
+    },
+    {
+     "line": 4551,
+     "code": "if (!error && data) { createdLeads.push(data); recordExecution('lead', 'create', data.id, true); recordLabel('lead', data.id, l.clientName); }",
+     "gate": "stage: l.stage || 'lead', value_estimate: l.valueEstimate ?? 0, owner_person_id: callerPersonId, ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4563,
+     "code": "if (data && data.length > 0) { updatedLeadCount++; recordExecution('lead', 'update', l.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('sales_leads').update(patch).eq('id', l.id).select('id');"
+    },
+    {
+     "line": 4574,
+     "code": "if (!error && data) { createdDocuments.push(data); recordExecution('document', 'create', data.id, true); recordLabel('document', data.id, doc.title); ",
+     "gate": "uploaded_by_profile_id: profile.id, ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4590,
+     "code": "recordExecution('product_line', 'create', inserted.id, true);",
+     "gate": "await supabase.from('product_costs').insert({ product_line_id: inserted.id, unit_cost: 0 }); ⏎ createdProductLines.push(inserted);"
+    },
+    {
+     "line": 4602,
+     "code": "if (data && data.length > 0) { updatedProductLineCount++; recordExecution('product_line', 'update', p.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('product_lines').update(patch).eq('id', p.id).select('id');"
+    },
+    {
+     "line": 4620,
+     "code": "if (pricingApproval) { recordExecution('approval', 'create', pricingApproval.id, true); recordLabel('approval', pricingApproval.id, pricingApprovalTit",
+     "gate": "risk_level: 'high', domain: 'general', ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4631,
+     "code": "recordExecution('product_spec', 'create', spec.id, true);",
+     "gate": "if (error || !spec) continue; ⏎ createdProductSpecs.push(spec);"
+    },
+    {
+     "line": 4650,
+     "code": "if (ticket) { recordExecution('task', 'create', ticket.id, true); recordLabel('task', ticket.id, ticketTitle); }",
+     "gate": "priority: 'high', risk_level: 'medium', approval_required: i >= 2, source: 'software_factory', ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4657,
+     "code": "if (releaseApproval) { recordExecution('approval', 'create', releaseApproval.id, true); recordLabel('approval', releaseApproval.id, releaseApprovalTit",
+     "gate": "reason: 'Production-impacting software changes require release gate approval.', risk_level: 'high', domain: 'production', ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4667,
+     "code": "if (data && data.length > 0) { updatedProductSpecCount++; recordExecution('product_spec', 'update', s.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('product_specs').update(patch).eq('id', s.id).select('id');"
+    },
+    {
+     "line": 4688,
+     "code": "if (!error && inserted) { createdDrawings.push(inserted); recordExecution('drawing', 'create', inserted.id, true); recordLabel('drawing', inserted.id,",
+     "gate": "created_by_profile_id: profile.id, ⏎ }).select('id').single();"
+    },
+    {
+     "line": 4694,
+     "code": "if (!error && data) { createdAiProviders.push(data); recordExecution('ai_provider', 'create', data.id, true); recordLabel('ai_provider', data.id, p.la",
+     "gate": "for (const p of createAiProvidersReq) { ⏎ const { data, error } = await supabase.from('ai_providers').insert({ provider: p.provider, model: p.model, label: p.label }).select('id').single();"
+    },
+    {
+     "line": 4702,
+     "code": "for (const row of deactivated || []) recordExecution('ai_provider', 'deactivate', row.id, true);",
+     "gate": "const { data: deactivated } = await supabase.from('ai_providers').update({ is_active: false }).neq('id', activateAiProviderId).eq('is_active', true).select('id');"
+    },
+    {
+     "line": 4705,
+     "code": "if (activatedAiProvider) recordExecution('ai_provider', 'activate', activateAiProviderId, true);",
+     "gate": "const { data } = await supabase.from('ai_providers').update({ is_active: true }).eq('id', activateAiProviderId).select('id'); ⏎ activatedAiProvider = !!data && data.length > 0;"
+    },
+    {
+     "line": 4713,
+     "code": "if (!error && data) { createdProposals.push(data); recordExecution('proposal', 'create', data.id, true); recordLabel('proposal', data.id, p.title); }",
+     "gate": "if (!companyId) continue; ⏎ const { data, error } = await supabase.from('proposals').insert({ title: p.title, company_id: companyId, status: 'draft' }).select('id').single();"
+    },
+    {
+     "line": 4722,
+     "code": "if (data && data.length > 0) { updatedProposalCount++; recordExecution('proposal', 'update', p.id, true); }",
+     "gate": "if (Object.keys(patch).length === 0) continue; ⏎ const { data } = await supabase.from('proposals').update(patch).eq('id', p.id).select('id');"
+    }
+   ]
+  }
+ ]
+}

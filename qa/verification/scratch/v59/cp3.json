@@ -1,0 +1,14 @@
+{
+  "verifier59_status": "COMPLETE — verdict PASS (EDGE STATUS = DEPLOYMENT READY, contract bar); hardening patch FIX PREPARED (not applied); S1 suite repair required at promotion; outputs in qa/verification/proposed/v59_*",
+  "verifier59_verdict": "PASS",
+  "verifier59_edge_status": "DEPLOYMENT READY (contract bar)",
+  "verifier59_index_sha256_at_end": "715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9",
+  "verifier59_prepared_fix_sha256": "8f20e96b9b78de4795b89a194798ab98320d5afb98fde12bf94d78d833b2e47b",
+  "verifier59_regression_suite": "qa/verification/proposed/v59_regression_additions.mjs — 72/12 on 821f530 (all 12 = DEFECT pins V59-D1..D4 + S1, red by design), 83/1 on the prepared fix (S1 only)",
+  "verifier59_blocked": ["deno check (no deno binary; npx gated)", "live DB / live function bytes / deployed UI / live AI chat (supabase CLI and browser tools gated)", "byte-direct v92 fetch (integration-level provenance: recorded download 795c20c8… == git c9dfab5bd433)"],
+  "verifier59_findings": [
+    { "id": "V59-FIX-PREPARED", "level": "FIX PREPARED (measured on a scratch copy; index.ts untouched)", "text": "qa/verification/proposed/v59_hardening.patch (6 anchors, 25 lines): lexicon bring-back + causative get (capture groups); dead Cyrillic alternatives removed; commandReadLeadEffective; frame-stripped READ_SHAPE veto + imperative last clause; do(?!not|me a favour); Cyrillic receipt verb mapping; receipt entity from the command noun. On the patched bytes: battery 56/56, gates v48-v58 green, receipt matrix 340/340 (0 ship), model-absent no-intent 12.2% → 6.7%, belt-vs-v92 0/0, v59 suite 83/1." },
+    { "id": "V59-D2d", "level": "FAILED (P3, model-emits-nothing tier; in the prepared fix)", "text": "READ_SHAPE's bare 'do' alternative vetoes 'do not archive Alpha' → no intent → the fabrication 'Alpha archived.' ships (the executor fails closed via commandNegatedLead). 'don’t archive Alpha yet' and 'please do not …' are receipted correctly." },
+    { "id": "V59-VERDICT", "level": "PASS", "text": "Every FAIL condition of the gate holds on the designed chain: 0 mutation-intent fabrications ship when the model classifies; 0 truthful reads rewritten on response-text shape; 0 lifecycle requests silent or window-gated; 0 success claims without a verified envelope; 0 runtime-fatal constructs found (deno BLOCKED, own scan + executed windows); 0 harness defaults hide a class. D1-D5/S1/R2 are P2/P3 hardening confined to the model-emits-nothing tier (the V57-D5 class the founder handed to this campaign to judge) or QA-file integrity." }
+  ]
+}

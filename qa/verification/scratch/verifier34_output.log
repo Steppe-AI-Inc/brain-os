@@ -1,0 +1,59 @@
+PREFLIGHT: EXECUTION_READY (recorded at start: HEAD `567cbd2c19a317d26f6eaa62681cc1400c314af4`, scratch write probe OK, regex suite 13/0).
+
+# VERIFIER #34 — campaign #94 — final report
+
+**CHANGE VERIFIED:** candidate `567cbd2c19a317d26f6eaa62681cc1400c314af4` (index.ts sha256 `85e59eac…`) as a deploy over production sem-ai-command v92.
+**SCENARIOS:** 7 deploy questions answered; 4 adversarial steps executed; 9 defect classes confirmed, 1 suite-integrity defect; 3 blocked items (below).
+**CANONICAL GRAPH / UI↔DB / PERMISSIONS / RELOAD / IDEMPOTENCY:** not in scope of this differential (source-executed belt gate; no UI/AI-chat run — stated as a coverage gap, not silently skipped).
+**AI ↔ DB (fabrication gate vs production): FAIL.**
+
+## STEP 1 — production bytes
+`npx supabase functions list` (read-only): **v92, ezbr_sha256 `33255b31…`, updated_at 2026-09-01T05:15:25.518Z, ACTIVE.** `gh run view 33472871764`: "Deploy Supabase Edge Functions", headSha `c9dfab5bd433`, completed 05:15:30Z; **no later deploy run exists.** git `c9dfab5b` index.ts sha256 = `795c20c8…` (confirmed); the committed copy LF-normalises to the same. **`functions download` was BLOCKED (approval)** → provenance link is **INTEGRATION-LEVEL, not byte-direct**. The PCCP literal is byte-identical in the candidate (pinned `54b678ad…`), so every measurement is against the literal production gate regardless. No P0.
+
+## STEP 2 — the seven questions
+1. Deploy surface = only `sem-ai-command/index.ts`; `-w` diff 1727+/54−; 37 index.ts commits, 91 total, 0 merges, 836 files; **identifier delta re-derived: 196 added / 0 removed** (ledger #90's 176 was wrong).
+2. **NO.** Own corpus 673 truthful / 484 fabrications (+ ~1,900 generated): **29 truth gate regressions, 64 fabrication gate regressions.** Negator-name quadrants: C.fab.name 4/60 ship (possessives), C.truth.name 0/84 destroyed, C.fab.title 0 gate, C.truth.title 0/30. Matcher 34 shapes: 0 regressions, 13 improvements.
+3. Nothing reintroduced (0 identifiers removed; reverts were candidate-era).
+4. **Yes** — every "v92 destroys it too" argument in #91–#95 assumed v92's participle list (D192).
+5. #64 D16 / #65 D25 / #65 D27 (9dda919c) / #66 D40: still closed (own pins 12/12).
+6. Rollback `c9dfab5b` exact and available.
+7. Only intended Edge changes.
+
+## FOUND (the classes nobody had looked for)
+| ID | Dir | Created by | Shape | Family |
+|---|---|---|---|---|
+| D189 P1 | fab | run31 | `No errors. CLIX GPS was, as requested, archived.` — the R-AUXGAP 28-char guard window crosses a **sentence boundary** (D117 by a new mechanism) | 324/384 ship |
+| D190 P1 | fab | **run33/D183** | `As you can see, X was, as requested, archived.` — bare modals in the window shield fabrications | 324/384 |
+| D191 P1 | truth | run30/31 | `None of the records from the last quarter indicate the company had been, at any point, archived.` — "had been" is outside v92's gate; window blind to a same-sentence negator | 240/240 destroyed |
+| D192 P1 | truth | run30/32 × run12 | `No Notification was sent.` — EXEC arm's closed/cleared/sent/activated/deactivated × nameInternal/newSubject; v92 preserves these | 55/96 |
+| D193 P2 | truth | run32/D176 | `Confirmed — Archived Media Group is not archived.` | 18/24 |
+| D194 P1 | fab | long-standing (run33 fixed 2 tokens of an open class) | `The task "No smoking signs for the depot" was completed.` | 32/32 |
+| D195 P1 | fab | D112 lexicon | `The pending approval was approved.` — BUG-002 plus one adjective | 150/150 |
+| D196 P2 | fab | run22 | `A few tasks were completed.` | 64/64 |
+| D197 P2 | fab | long-standing | `The Never Ending Story project was archived.` / `Nobody's Perfect Studio was archived.` | 18/18, 9/12 |
+| D198 P3 | suite | run33 | generative suite imports `extract.mjs` from an **absolute path in another worktree** (untracked); **stays 8/0 under all 12 fix reverts** |
+
+**ROOT CAUSE:** bounded-context guards that ignore clause boundaries (D189/D190/D191); safety rules justified by "v92 destroys it too" without checking v92's participle list (D192); a negator lexicon with no part-of-speech reading for pending/awaiting/few and titles (D194–D197).
+**SYSTEMIC IMPACT:** same bug class as D117 and D175; searched the whole belt — all occurrences enumerated above.
+
+## STEP 3/3b/3d judgments
+- All three run31 refused shapes are now **caught**, paired real names survive; the disclosed minimal pair is **confirmed** as a residual (dropping -ed links also destroys `No task assigned the wrong owner was deleted.`, `No document titled the same way was archived.`).
+- "No North Depot was archived." is v92-shared **only inside v92's list**; with closed/sent/cleared it is a gate loss (D192) — the disclosure was incomplete.
+- Lexicon revert present and load-bearing (own lowercase family 60/60; mutation re-opens 3 at 0 truth cost). D184 is/are/being escape: shipped but v92-shared, not a gate item. Quoted Pending/Awaiting truths 30/30 preserved.
+- Mutation: **11/12 load-bearing** (objectName re-opens only v92-shared shapes). Generative suite non-vacuity re-derived (fails 4476c92/9b73e68/6774b52/f68f44a/7914f2b) but it **would not have caught D183–D188 or anything above** — 8/0 under every revert.
+
+## STEP 3c/4 — counts and suite integrity
+Battery, real exit codes: **34 executed / 0 failures, 5 SUPERSEDED, 1 helper excluded, 29 substantive** — ledger #95's count correct. run15 57/0 with D117 lines; run14 window now 4000 (statement 3337, spans). CONTRACT 5 narrowing **sound**: only `v92_open_regression_contract` catches an injected top-level const, run15–18 pass silently; #30's superseded flat pin trips on the prepared fix's new locals (25/1) — the exact false alarm the narrowing avoids. All four re-pins honest (fabrication caught, paired name survives on my harness). Prior gates on this candidate: #33 92/1, #32 101/0, #31 33/1 (stale F3b pin), generative 8/0.
+
+## FIX PREPARED (scratch only, NOT applied): `qa/verification/scratch/v34/fix37/index.ts`
+Six anchored edits → own corpus **0 truth / 6 fab** gate regressions (disclosed pair + 4 synthetic + 1), all families closed but F6 3/18, battery 34/1 (run28 `D165.control.was` — a candidate-era pin tripped by aligning the EXEC arm to v92's list), #33 92/1, #32 101/0, open-reg 28/0, parity 46/0. Variant B rejected by measurement. deno check BLOCKED.
+
+## Deliverables (committed `3e1aedb` on `verify-567cbd2-campaign94`)
+`qa/verification/proposed/v34_known_failure_modes_entry_95.md`, `v34_PROMOTION_NOTE.md`, `v34_regression_additions.mjs` (48/10 RED on candidate, 57/1 on fix37, non-vacuous on two mutants, 14 failures on 7914f2b/9b73e68), `qa/verification/CURRENT_CAMPAIGN.json`, full scratch under `qa/verification/scratch/v34/`.
+
+**BLOCKERS (founder action):** `git push` of the artifact branch requires an approval this session cannot grant (commit is local, as with #33); `supabase functions download` and `deno` likewise blocked.
+**PRODUCTION:** unchanged — v92; nothing deployed, no migration, candidate index.ts byte-identical throughout.
+
+**VERDICT: FAIL — EDGE STATUS = NOT DEPLOYMENT READY.**
+
+85e59eac0b34fd25aed5eb4e8f02a0265c458b4fcc232fd1b175bc7ae15a9847

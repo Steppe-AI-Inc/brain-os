@@ -1,0 +1,43 @@
+  0  belt_generative_adversarial_contract.mjs                       25/0
+  0  claim_segmentation_and_present_tense_fp.mjs                    SUPERSEDED
+  0  company_ref_no_bare_name_join.mjs                              no-count
+  0  current_turn_and_continuity_contract.mjs                       no-count
+  0  d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs SUPERSEDED
+  0  entity_signal_positive_contract.mjs                            5/0
+  1  factory_production_write_inventory.regression.test.mjs         2/1
+  0  issue5_confirmation_action_type_binding.mjs                    no-count
+  0  lifecycle_evidence_and_output_persistence_contract.mjs         no-count
+  0  mixed_claim_grounding.mjs                                      SUPERSEDED
+  0  org_selector_scoping_coverage.mjs                              no-count
+  0  past_completion_gate_behavior.mjs                              SUPERSEDED
+  0  per_resource_grounding_contract.mjs                            SUPERSEDED
+  1  production_write_authority.regression.test.mjs                 2/5
+  0  run10_defect_closure_contract.mjs                              no-count
+  0  run11_defect_closure_contract.mjs                              no-count
+  0  run12_defect_closure_contract.mjs                              no-count
+  0  run13_defect_closure_contract.mjs                              no-count
+  0  run14_defect_closure_contract.mjs                              no-count
+  0  run15_defect_closure_contract.mjs                              no-count
+  0  run16_defect_closure_contract.mjs                              no-count
+  0  run17_defect_closure_contract.mjs                              no-count
+  0  run18_defect_closure_contract.mjs                              no-count
+  0  run19_defect_closure_contract.mjs                              62/0
+  0  run28_defect_closure_contract.mjs                              117/0
+  0  run8_defect_closure_contract.mjs                               no-count
+  0  sem_ai_command_company_restore_truth.mjs                       no-count
+  0  sem_ai_command_confirmation_truth.mjs                          no-count
+  0  sem_ai_command_execution_plan_truth.mjs                        no-count
+  0  sem_ai_command_factory_verification_selection.mjs              no-count
+  0  sem_ai_command_named_person_lookup_truth.mjs                   no-count
+  0  sem_ai_command_past_completion_claim_regex.mjs                 13/0
+  0  sem_ai_command_source_invariants_drift_guard.mjs               13/0
+  0  standing_reds_classification_contract.mjs                      no-count
+  0  structured_claim_laundering_contract.mjs                       no-count
+  0  structured_claim_verification.mjs                              no-count
+  0  v92_open_regression_contract.mjs                               28/0
+  0  v92_parity_contract.mjs                                        46/0
+
+suites=38 exit0=36 nonzero=2
+  NONZERO factory_production_write_inventory.regression.test.mjs ::     operator: 'deepStrictEqual', |     diff: 'simple' |   }
+  NONZERO production_write_authority.regression.test.mjs ::   } | (node:9136) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)
+no pass/fail count printed (screen for vacuity): company_ref_no_bare_name_join.mjs, current_turn_and_continuity_contract.mjs, issue5_confirmation_action_type_binding.mjs, lifecycle_evidence_and_output_persistence_contract.mjs, org_selector_scoping_coverage.mjs, run10_defect_closure_contract.mjs, run11_defect_closure_contract.mjs, run12_defect_closure_contract.mjs, run13_defect_closure_contract.mjs, run14_defect_closure_contract.mjs, run15_defect_closure_contract.mjs, run16_defect_closure_contract.mjs, run17_defect_closure_contract.mjs, run18_defect_closure_contract.mjs, run8_defect_closure_contract.mjs, sem_ai_command_company_restore_truth.mjs, sem_ai_command_confirmation_truth.mjs, sem_ai_command_execution_plan_truth.mjs, sem_ai_command_factory_verification_selection.mjs, sem_ai_command_named_person_lookup_truth.mjs, standing_reds_classification_contract.mjs, structured_claim_laundering_contract.mjs, structured_claim_verification.mjs

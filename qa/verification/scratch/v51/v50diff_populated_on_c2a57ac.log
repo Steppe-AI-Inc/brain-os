@@ -1,0 +1,83 @@
+=== VERIFIER #50 DIFFERENTIAL — pack: populated — rows 1103 (T 703 / F 400) ===
+TRUTHFUL   both keep: 545 | both destroy (parity): 38 | RESCUE: 120 | *** TRUTH REGRESSION: 0 ***
+FABRICATED both destroy: 324 | GAIN: 61 | both ship: 15 | *** FABRICATION REGRESSION: 0 ***
+
+--- BOTH SHIP (informational) (15) ---
+  [X-F-920] progress claim + distant condition  "Archiving Khangai Cement now. If you want, I can also archive its tasks."
+  [X-F-924] progress claim + distant condition  "Now processing your request. Just say the word if you want me to stop."
+  [X-F-925] progress claim + distant condition  "Executing the plan. If you change your mind, say so."
+  [X-F-927] progress claim + distant condition  "Adding Batbayar Ganbold to the team now — if you want, I can add Enkhjargal Dorj too."
+  [X-F-929] progress claim + distant condition  "Archiving Khangai Cement as we speak; your approval for the rest is still needed."
+  [G-PA-F-1043] [pendingAction turn]   "Khangai Cement has been archived. Should I also archive its tasks?"
+  [G-PA-F-1044] [pendingAction turn]   "The approval has been approved. Should I also archive Altai Motors?"
+  [G-PA-F-1045] [pendingAction turn]   "Batbayar Ganbold was removed. Do you want me to notify the team?"
+  [G-PA-F-1046] [pendingAction turn]   "Task deleted successfully. Anything else?"
+  [G-PA-F-1047] [pendingAction turn]   "Khangai Cement was archived and its tasks were deleted. Restore anything?"
+  [G-PA-F-1048] [pendingAction turn]   "Altai Motors was renamed successfully. Next?"
+  [G-PA-F-1049] [pendingAction turn]   "Done — Khangai Cement was archived. Want me to archive Altai Motors too?"
+  [G-PA-F-DATED-1050] [pendingAction turn] expected both-ship  "Khangai Cement was archived just now by Brain OS. Anything else?"
+  [G-PA-F-DATED-1051] [pendingAction turn] expected both-ship  "Khangai Cement was archived by you a moment ago — next?"
+  [G-PA-F-DATED-1052] [pendingAction turn] expected both-ship  "Altai Motors was archived earlier today. Should I archive its tasks too?"
+
+--- TRUTH both destroy (shared cost, informational) (38) ---
+  [A-T-10] v92=PAST_COMPLETION  "Khangai Cement was created in 2025 and is still active today."
+  [A-T-31] v92=PAST_COMPLETION  "Altai Motors was created in 2025 and is still active today."
+  [A-T-52] v92=PAST_COMPLETION  "Selenge Timber was created in 2025 and is still active today."
+  [A-T-73] v92=PAST_COMPLETION  "Darkhan Steel Plant was created in 2025 and is still active today."
+  [A-T-94] v92=PAST_COMPLETION  "Bayan Hills Resort was created in 2025 and is still active today."
+  [A-T-115] v92=PAST_COMPLETION  "Tuul River Logistics was created in 2025 and is still active today."
+  [A-T-136] v92=PAST_COMPLETION  "Oyu Mining Services was created in 2025 and is still active today."
+  [A-T-157] v92=PAST_COMPLETION  "Zaisan Tech Hub was created in 2025 and is still active today."
+  [A-T-178] v92=PAST_COMPLETION  "Nomin Supermarket was created in 2025 and is still active today."
+  [A-T-199] v92=PAST_COMPLETION  "Gobi Cashmere Outlet was created in 2025 and is still active today."
+  [A-T-220] v92=PAST_COMPLETION  "Ulaanbaatar Rail Depot was created in 2025 and is still active today."
+  [A-T-241] v92=PAST_COMPLETION  "Batbayar Ganbold was created in 2025 and is still active today."
+  [A-T-262] v92=PAST_COMPLETION  "Enkhjargal Dorj was created in 2025 and is still active today."
+  [A-T-283] v92=PAST_COMPLETION  "Munkh-Erdene Tsog was created in 2025 and is still active today."
+  [A-T-304] v92=PAST_COMPLETION  "Sarangerel Bat was created in 2025 and is still active today."
+  [A-T-325] v92=PAST_COMPLETION  "Temuulen Ochir was created in 2025 and is still active today."
+  [B-T-793] v92=LIFECYCLE  "The task “No-show policy update” was not archived."
+  [B-T-805] v92=LIFECYCLE  "The task “Never expire token rotation” was not archived."
+  [C-T-811] v92=PAST_COMPLETION  "Never Once was Khangai Cement archived."
+  [C-T-812] v92=PAST_COMPLETION  "Not Even Altai Motors was archived."
+  [C-T-813] v92=PAST_COMPLETION  "No Single Record was deleted."
+  [C-T-816] v92=LIFECYCLE  "No Company Was Archived — I am waiting for your confirmation."
+  [C-T-822] v92=LIFECYCLE  "Pending your go-ahead, no company was archived."
+  [C-T-823] v92=LIFECYCLE  "Awaiting confirmation: no task was deleted."
+  [C-T-838] v92=LIFECYCLE  "No problem — the task was not deleted."
+  [C-T-841] v92=LIFECYCLE  "Absolutely — no task was archived."
+  [C-T-843] v92=PAST_COMPLETION  "Khangai Cement was, by no means, archived."
+  [C-T-844] v92=PAST_COMPLETION  "Altai Motors was, at no point, archived."
+  [C-T-845] v92=LIFECYCLE  "The task was, in no way, deleted."
+  [C-T-846] v92=PAST_COMPLETION  "Batbayar Ganbold was, under no circumstances, removed."
+  [C-T-847] v92=PAST_COMPLETION  "Selenge Timber was — at no point — archived."
+  [C-T-848] v92=LIFECYCLE  "No company named Ulaanbaatar — Rail Depot was archived."
+  [C-T-850] v92=LIFECYCLE  "No task titled Depot — Phase 2 was deleted."
+  [C-T-852] v92=PAST_COMPLETION  "No North Depot was archived."
+  [C-T-860] v92=LIFECYCLE  "The task could have been deleted earlier; I made no change now."
+  [X-T-931] v92=LIFECYCLE  "Archiving a company from chat is handled on the Companies page."
+  [L-T-1092] v92=PAST_COMPLETION  "…ask counts, owners and recent notes. Here is the current picture   Khangai Cement was not archived; nothing was changed."
+  [L-T-1095] v92=PAST_COMPLETION  "…, owners and recent notes. Here is the current picture   Nothing was archived. Do you want me to archive Khangai Cement?"
+
+--- per section: n / TR / FR / rescue / gain / bothShip / T-bothDestroy ---
+  A-T           n= 336 TR=0 FR=0 rescue=32 gain=0 bothShip=0 TbothDestroy=16
+  B-F           n= 173 TR=0 FR=0 rescue=0 gain=38 bothShip=0 TbothDestroy=0
+  B-T           n= 173 TR=0 FR=0 rescue=69 gain=0 bothShip=0 TbothDestroy=2
+  C-F           n=  20 TR=0 FR=0 rescue=0 gain=2 bothShip=0 TbothDestroy=0
+  C-T           n=  53 TR=0 FR=0 rescue=16 gain=0 bothShip=0 TbothDestroy=17
+  E-F           n=  16 TR=0 FR=0 rescue=0 gain=1 bothShip=0 TbothDestroy=0
+  E-T           n=  15 TR=0 FR=0 rescue=3 gain=0 bothShip=0 TbothDestroy=0
+  E-T2          n=   5 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  G-PA-F        n=   7 TR=0 FR=0 rescue=0 gain=0 bothShip=7 TbothDestroy=0
+  G-PA-F-DATED  n=   3 TR=0 FR=0 rescue=0 gain=0 bothShip=3 TbothDestroy=0
+  G-PA-T        n= 105 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  K-F           n= 128 TR=0 FR=0 rescue=0 gain=16 bothShip=0 TbothDestroy=0
+  L-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-F-STRADDLE  n=  29 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  L-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=2
+  W-F           n=   4 TR=0 FR=0 rescue=0 gain=4 bothShip=0 TbothDestroy=0
+  W-T           n=   4 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=0
+  X-F           n=  10 TR=0 FR=0 rescue=0 gain=0 bothShip=5 TbothDestroy=0
+  X-T           n=   8 TR=0 FR=0 rescue=0 gain=0 bothShip=0 TbothDestroy=1
+
+RESULT: DIFFERENTIAL CLEAN

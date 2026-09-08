@@ -1,0 +1,24 @@
+{
+ "campaign": 81,
+ "verifier": 21,
+ "candidate_sha": "0ba51a1cc858d565b1166e0909e93f54f92b17ce",
+ "index_sha256": "c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2",
+ "verdict": "FAIL",
+ "defects": [
+  "D148 (P1, D142 only narrowed — 10/11 phrasings still arm the opposite field)",
+  "D145 (P1, D144 active arm destroys truthful clarifying questions)",
+  "D146 (P1/P2, R-ZR2 linker set too broad)",
+  "D147 (P2, D141 new negators open fabrication vectors)",
+  "D149 (P2, D141 broke run15 57-assertion pin; mis-reported as stub)"
+ ],
+ "genuinely_closed_confirmed": [
+  "D139 headline 0/24 word-names destroyed",
+  "D142 five bare-verb shapes",
+  "D144 headline fabrication",
+  "PAST_COMPLETION_CLAIM_PATTERN untouched",
+  "question belt byte-identical x5 SHAs",
+  "D137 not reopened"
+ ],
+ "report": "qa/verification/scratch/verifier21_output.log",
+ "artifact_branch": "verify-0ba51a1-campaign81 (2f60fbc)"
+}

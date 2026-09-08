@@ -2,7 +2,7 @@ import { Gauge } from "lucide-react";
 import { getKpiRecords, getSalaryRules } from "@/lib/data/kpi";
 import { getPeople } from "@/lib/data/people";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -16,10 +16,7 @@ export const maxDuration = 30;
 
 export default async function KpiPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const [records, rules, people] = await Promise.all([
     getKpiRecords(scopeToActiveOrg),
     getSalaryRules(),

@@ -1,0 +1,74 @@
+word         name                          L        S      Q      SELECT            trueNeg  fabCaught  replay
+archived    Archived Media Group          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+deleted     Deleted Scenes Studio         BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+updated     Updated Systems Inc           BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+created     Created Spaces Co             BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+restored    Restored Furniture Co         kept     kept   DROP   NOT SELECTABLE(x)  SURVIVES  caught   neutral
+activated   Activated Carbon Mongolia     BLANK    kept   DROP   NOT SELECTABLE(x)  SURVIVES  caught   neutral
+deactivated Deactivated Devices Ltd       BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+assigned    Assigned Seating Ltd          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+reassigned  Reassigned Routes LLC         BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+approved    Approved Vendors Ltd          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+rejected    Rejected Goods Depot          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+declined    Declined Offers Ltd           BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+removed     Removed Barriers NGO          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+completed   Completed Works LLC           kept     kept   DROP   selectable        SURVIVES  caught   neutral
+renamed     Renamed Holdings              BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+ended       Ended Silence Media           BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+closed      Closed Loop Systems           kept     kept   DROP   selectable        SURVIVES  caught   neutral
+cleared     Cleared Path Consulting       BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+sent        Sent Mail Services            BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+moved       Moved Mountains Ltd           BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+granted     Granted Wishes Foundation     BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+added       Added Value Partners          BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+done        Done Deal Trading             BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+confirmed   Confirmed Freight Ltd         BLANK    kept   DROP   selectable        SURVIVES  caught   neutral
+
+findings (47):
+  * Archived Media Group: option label blanked (caller substitutes the derived canonical name)
+  * Archived Media Group: clarification question dropped
+  * Deleted Scenes Studio: option label blanked (caller substitutes the derived canonical name)
+  * Deleted Scenes Studio: clarification question dropped
+  * Updated Systems Inc: option label blanked (caller substitutes the derived canonical name)
+  * Updated Systems Inc: clarification question dropped
+  * Created Spaces Co: option label blanked (caller substitutes the derived canonical name)
+  * Created Spaces Co: clarification question dropped
+  * Restored Furniture Co: clarification question dropped
+  * Restored Furniture Co: NOT SELECTABLE by typing its own name — bind=x field=undefined
+  * Activated Carbon Mongolia: option label blanked (caller substitutes the derived canonical name)
+  * Activated Carbon Mongolia: clarification question dropped
+  * Activated Carbon Mongolia: NOT SELECTABLE by typing its own name — bind=x field=undefined
+  * Deactivated Devices Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Deactivated Devices Ltd: clarification question dropped
+  * Assigned Seating Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Assigned Seating Ltd: clarification question dropped
+  * Reassigned Routes LLC: option label blanked (caller substitutes the derived canonical name)
+  * Reassigned Routes LLC: clarification question dropped
+  * Approved Vendors Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Approved Vendors Ltd: clarification question dropped
+  * Rejected Goods Depot: option label blanked (caller substitutes the derived canonical name)
+  * Rejected Goods Depot: clarification question dropped
+  * Declined Offers Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Declined Offers Ltd: clarification question dropped
+  * Removed Barriers NGO: option label blanked (caller substitutes the derived canonical name)
+  * Removed Barriers NGO: clarification question dropped
+  * Completed Works LLC: clarification question dropped
+  * Renamed Holdings: option label blanked (caller substitutes the derived canonical name)
+  * Renamed Holdings: clarification question dropped
+  * Ended Silence Media: option label blanked (caller substitutes the derived canonical name)
+  * Ended Silence Media: clarification question dropped
+  * Closed Loop Systems: clarification question dropped
+  * Cleared Path Consulting: option label blanked (caller substitutes the derived canonical name)
+  * Cleared Path Consulting: clarification question dropped
+  * Sent Mail Services: option label blanked (caller substitutes the derived canonical name)
+  * Sent Mail Services: clarification question dropped
+  * Moved Mountains Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Moved Mountains Ltd: clarification question dropped
+  * Granted Wishes Foundation: option label blanked (caller substitutes the derived canonical name)
+  * Granted Wishes Foundation: clarification question dropped
+  * Added Value Partners: option label blanked (caller substitutes the derived canonical name)
+  * Added Value Partners: clarification question dropped
+  * Done Deal Trading: option label blanked (caller substitutes the derived canonical name)
+  * Done Deal Trading: clarification question dropped
+  * Confirmed Freight Ltd: option label blanked (caller substitutes the derived canonical name)
+  * Confirmed Freight Ltd: clarification question dropped

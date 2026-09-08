@@ -1,0 +1,20 @@
+{
+  "scenarios": {
+    "S3_attack_drift_belts": {
+      "status": "FAIL",
+      "evidence": "34 completion-shaped + 30 legitimate summaries, A/B ace9b6a vs f1722f2 (v14_drift_ab.mjs), plus a 16-case negation/status corpus (v14_negation_fp.mjs). FALSE NEGATIVES: candidate 14/34 vs ace9b6a 26/34 (12 closed, 0 NEW) - genuine improvement; residuals are the long-disclosed LEGACY lexical gaps (finished/wiped/converted/terminated/'ACME archived.'/'Task deleted.'). FALSE POSITIVES: 1 new in the general corpus, and 9 NEW of 16 in the targeted negation/status corpus, ALL attributable to CONFIRMED_COMPLETION alone.",
+      "defects_found": [
+        "D112 (P2, NEW): CONFIRMED_COMPLETION = /^\\s*confirmed\\s*[—–-]\\s*.*\\b(archived|deleted|...)\\b/i has NO negation handling and no predicate anchoring, so its `.*` matches a completion word used in a NEGATION ('Confirmed - the company is not archived.'), a NOUN ('Confirmed - the archived list is empty.', 'Confirmed - you have 3 archived companies.') or an explicit NON-completion ('Confirmed - the approval is still pending, not approved.'). All are truthful founder-facing answers; all are destroyed and replaced with 'I can't actually do that from chat - nothing was changed', which is itself false. 9/16 measured NEW on f1722f2 (0/16 of these fire on ace9b6a)."
+      ],
+      "notes": "The source comment at index.ts:5178 claims 'Genuine deterministic-* turns are excluded below, so a legitimate imperative confirmation summary is unaffected.' MEASURED FALSE: only arm 1 (legacyProseFallback) excludes deterministic-* models; arm 2 (structuredProseDrift) has no model exclusion and fires whenever rawClaims!==null || deterministicPrefix || evidence. Separately verified that on a real deterministic turn resultText carries no claims key, so rawClaims is null there - the comment is still wrong as written, but the specific deterministic-turn exposure is narrower than the comment's error suggests."
+    },
+    "S4_attack_d100_corroboration": {
+      "status": "FAIL",
+      "evidence": "12 probes (v14_d100_attack.mjs). HOLDS CORRECTLY: cross-id name match is replaced by the right canonical name (corroboration is properly id-bound); absent id -> 'the company'; empty canonical read -> 'the company'; entityType mismatch -> 'the company'; quoted fabrication -> replaced; trailing period repaired; a genuinely completion-shaped canonical name survives. LEAKS FOUND: (7) unicode confusables and (8) out-of-vocabulary completion verbs bypass corroboration entirely.",
+      "defects_found": [
+        "D113 (P2, NEW-in-kind): the D100 corroboration is GATED ON the lexical COMPLETION_WORD test it was written to replace. Its own comment says the grammar axis 'was always wrong' and that the real test is 'whether the DATABASE agrees the entity is called that' - but the database check only runs when the discredited grammar test fires. Labels using completion vocabulary outside the 24-word English list ('Terminated Bob Smith', 'Wiped All Data', 'Revoked Access') or spelled with a Cyrillic confusable ('Сlosed Loop Systems') are never corroborated and ship VERBATIM as selectable options whose ids resolve to entities with completely different canonical names - the founder can select 'Terminated Bob Smith' and archive 'ACME Holdings'."
+      ],
+      "notes": "Probe 9 (corroboration satisfied by the model-writable runtimeLabels map) is REACHABLE but low severity: runtimeLabels only holds labels for rows created THIS turn from the request's own fields, and such an id is absent from contextPack so the mutation field filter rejects it. Probe 9b (companyNameById) is NOT reachable in production - index.ts:3019 builds companyNameById from contextPack.companies, the same array canonicalById is built from, so my harness injected a divergence production cannot produce. Reported as harness-only, not counted as a defect."
+    }
+  }
+}

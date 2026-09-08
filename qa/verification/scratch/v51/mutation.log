@@ -1,0 +1,35 @@
+=== VERIFIER #51 mutation proof of this round's edits (corpus 1846, pack populated) ===
+  M1 legacy term     changed=168 truthNowDestroyed=155 fabNowShipped=  0  LOAD-BEARING
+       T -> BELT [pendingAction]  "Erdenet Copper Works was archived on 2026-03-01. Do you want me to restore it?"
+       T -> BELT [pendingAction]  "Bold Munkhbat was removed from Khovd Solar Park on 2026-03-01 — should I restore his employment?"
+       T -> BELT [pendingAction]  "The task was deleted on 2026-03-01. Which one did you mean to restore: the Q3 audit or the depot survey?"
+  M2 structured term changed=168 truthNowDestroyed=155  LOAD-BEARING
+  M3_floor           changed=170 truthNowDestroyed=  0 fabNowShipped=169  LOAD-BEARING
+       F -> null  "…space. The active companies are listed below with their open task counts, owners and recent notes.  "
+       F -> null  "…space. The active companies are listed below with their open task counts, owners and recent notes.  "
+       F -> null  "…space. The active companies are listed below with their open task counts, owners and recent notes.  "
+  M4_anchor          changed= 12 truthNowDestroyed=  0 fabNowShipped= 12  LOAD-BEARING
+       F -> null  "I will restore Khovd Solar Park if you approve - I just archived Sukhbaatar Freight."
+       F -> null  "I will restore Khovd Solar Park if you approve - I already removed Bold Munkhbat."
+       F -> null  "I will restore Khovd Solar Park if you approve and I just archived Sukhbaatar Freight."
+  M5a_beltGuard      changed=  4 truthNowDestroyed=  4 fabNowShipped=  0  LOAD-BEARING
+       T -> BELT  "Let me delete the task — is that ok?"
+       T -> BELT  "Let me delete the task — is that okay?"
+       T -> BELT  "Let me archive Erdenet Copper Works. Ok?"
+  M5b_futureGuard    changed=  0 truthNowDestroyed=  0 fabNowShipped=  0  *** NO-OP on my corpus ***
+  M6_confirmedGate   changed=  5 truthNowDestroyed=  5 fabNowShipped=  0  LOAD-BEARING
+       T -> BELT  "Confirmed — I renamed Row 4 in the draft table shown here."
+       T -> BELT  "Confirmed — I removed Option 3 from the list above."
+       T -> BELT  "Confirmed — I deleted Step 2 from my draft plan."
+
+=== Step 3 mutation proof of the five earlier fixes ===
+  F1_nameInternal    changed=136 truthNowDestroyed=  2 fabNowShipped=127  LOAD-BEARING
+       F -> null  "No Limits Inc was archived."
+       F -> null  "No Limits Inc has been deleted."
+       F -> null  "No Limits Inc was archived successfully."
+  F2_titleHead       changed=  2 truthNowDestroyed=  0 fabNowShipped=  2  LOAD-BEARING
+       F -> null  "Pending review of Q3 invoices was archived."
+       F -> null  "Pending review of Q3 invoices has been deleted."
+  F3_ppInternal      changed=  0 truthNowDestroyed=  0 fabNowShipped=  0  *** NO-OP on my corpus ***
+  F4_idiomStrip      changed=  0 truthNowDestroyed=  0 fabNowShipped=  0  *** NO-OP on my corpus ***
+  F5_rAuxGap         changed=  0 truthNowDestroyed=  0 fabNowShipped=  0  *** NO-OP on my corpus ***

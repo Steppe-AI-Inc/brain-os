@@ -1,0 +1,55 @@
+[0m[32mCheck[0m qa/verification/scratch/v54_v92.git.ts
+[0m[1mTS2322 [0m[ERROR]: Type 'Timeout' is not assignable to type 'number'.
+        timer = setTimeout(
+[0m[31m        ~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m1457[0m:[0m[33m9[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Timeout' is not assignable to type 'number'.
+        timer = setTimeout(() => reject(new Error(`${label} request timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+[0m[31m        ~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m1519[0m:[0m[33m9[0m
+
+[0m[1mTS2339 [0m[ERROR]: Property 'deletedEntities' does not exist on type '{ pendingAction?: PendingAction | null | undefined; pendingConfirmation?: { summary?: string | undefined; action?: Record<string, unknown> | undefined; } | null | undefined; resolvedEntities?: ResolvedEntities | ... 1 more ... | undefined; }'.
+  const recentlyDeletedEntities: DeletedEntities | null = lastTurnOutput?.deletedEntities ?? null;
+[0m[31m                                                                          ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m2082[0m:[0m[33m75[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              personNameById: planNameById, companyNameById: planCompanyNameById,
+[0m[31m              ~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m2486[0m:[0m[33m15[0m
+
+    The expected type comes from property 'personNameById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m358[0m:[0m[33m12[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              personNameById: planNameById, companyNameById: planCompanyNameById,
+[0m[31m                                            ~~~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m2486[0m:[0m[33m45[0m
+
+    The expected type comes from property 'companyNameById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m358[0m:[0m[33m50[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
+[0m[31m              ~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m2487[0m:[0m[33m15[0m
+
+    The expected type comes from property 'taskTitleById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m358[0m:[0m[33m89[0m
+
+[0m[1mTS2322 [0m[ERROR]: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, unknown>'.
+  Type 'unknown' is not assignable to type 'string'.
+              taskTitleById: planTaskTitleById, goalTitleById: planGoalTitleById,
+[0m[31m                                                ~~~~~~~~~~~~~[0m
+    at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m2487[0m:[0m[33m49[0m
+
+    The expected type comes from property 'goalTitleById' which is declared here on type '{ personNameById: Map<string, unknown>; companyNameById: Map<string, unknown>; taskTitleById: Map<string, unknown>; goalTitleById: Map<string, unknown>; }'
+        at [0m[36mfile:///C:/Users/Dell/dev/brain-os-verify-8eb8cbd/qa/verification/scratch/v54_v92.git.ts[0m:[0m[33m358[0m:[0m[33m126[0m
+
+Found 7 errors.
+
+[0m[1m[31merror[0m: Type checking failed.

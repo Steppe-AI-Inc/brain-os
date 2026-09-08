@@ -1,0 +1,12 @@
+shipped index.ts: C:/Users/Dell/dev/brain-os/supabase/functions/sem-ai-command/index.ts
+PROVEN      F1.nameInternal: reverting it re-opens 4/4; live ships 0/4
+PROVEN      F1.titleHead: reverting it re-opens 2/2; live ships 0/2
+NOT PROVEN  F1.ppInternal: reverting it re-opens 2/4; live ships 0/4
+NOT PROVEN  F2.idiomLexicon: reverting it re-opens 0/5; live ships 0/5
+NOT PROVEN  F3.auxGap: mutation did not change the source
+
+MUTATION PROOF: 2/5 fixes proven load-bearing
+NOT PROVEN:
+  F1.ppInternal (re-opened 2/4, live ships 0)
+  F2.idiomLexicon (re-opened 0/5, live ships 0)
+  F3.auxGap (mutation was a no-op)

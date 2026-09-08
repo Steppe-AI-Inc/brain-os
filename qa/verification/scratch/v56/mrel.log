@@ -1,0 +1,16 @@
+OK   manager-only change: receipt says manager set, names old and new, no company move
+OK   company-only change: receipt says reassigned to the new company, no manager line
+OK   both changed: both lines, in that order
+OK   nothing changed: the receipt says so instead of claiming a move
+OK   split legal/operating: both named
+OK   no current assignment known: manager line without "was", company line since no current row
+OK   a brand-new hire (no personId) renders no reassignment receipt
+OK   a partial batch failure renders no positional receipt (never guesses which entry succeeded)
+OK   company line for reason archived is "archived"
+OK   company line for reason restored is "restored"
+OK   company line for reason already_archived is "was already archived"
+OK   company line for reason already_active is "was already active"
+OK   company line for reason not_found is "could not be found"
+OK   company line for reason denied is "you do not have permission to archive/restore this company"
+
+mutation_receipt_equals_ledger: 14 passed, 0 failed

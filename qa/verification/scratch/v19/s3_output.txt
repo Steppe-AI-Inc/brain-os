@@ -1,0 +1,56 @@
+pristine sha: d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30
+baseline battery: ok=909 fail=0 nonzeroExits=0
+
+KILLED   M1 invert the participle-position test (n <= p  ->  n >= p)
+   battery: fail=61 nonzeroExits=5 by: run14_defect_closure_contract.mjs,run15_defect_closure_contract.mjs,run16_defect_closure_contract.mjs,run17_defect_closure_contract.mjs,run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * belt:"Closed Loop Systems was not archived.": false -> true
+     * belt:"The archived list was not updated.": false -> true
+     * belt:"ACME is archived but was not deleted.": false -> true
+     * belt:"ACME was archived and no errors occurred.": true -> false
+     * belt:"No company named Salt and Pepper Co was archived.": false -> true
+     * belt:"No company called Without Borders Ltd was archived.": false -> true
+KILLED   M2 drop the AUXILIARY requirement (COMPLETION_VERB becomes any participle = run17/D128)
+   battery: fail=19 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * belt:"Closed Loop Systems was not archived.": false -> true
+     * belt:"The archived list was not updated.": false -> true
+     * belt:"ACME is archived but was not deleted.": false -> true
+KILLED   M3 put PRESENT TENSE is/are back into COMPLETION_VERB
+   battery: fail=1 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * belt:"ACME is archived but was not deleted.": false -> true
+KILLED   M4 add and/but/dash clause boundaries back (the run17/D128 P1 shape)
+   battery: fail=16 nonzeroExits=2 by: run17_defect_closure_contract.mjs,run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * belt:"ACME is archived but was not deleted.": false -> true
+     * belt:"No company named Salt and Pepper Co was archived.": false -> true
+KILLED   M5 drop the colon-space boundary this candidate added
+   battery: fail=2 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * belt:"Nothing failed: ACME was archived.": true -> false
+KILLED   M6 put "without" back into the negator list
+   battery: fail=2 nonzeroExits=2 by: run15_defect_closure_contract.mjs,run18_defect_closure_contract.mjs
+   behavioural divergence: NONE (mutant is a no-op on these probes)
+KILLED   M7 remove the hasOwnProperty guard in the MATCHER (D132 half 1)
+   battery: fail=6 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * match:proto actionType: a -> THREW TypeError
+     * match:proto entityType: a -> THREW TypeError
+KILLED   M8 remove the hasOwnProperty guard in resolveClarificationField (D132 half 2)
+   battery: fail=3 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * resolve(company,constructor): undefined -> function Object() { [native code] }
+KILLED   M9 disable the ordinal path entirely (D133 revert)
+   battery: fail=3 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * match:"option 2": b -> null
+     * match:"2": b -> null
+KILLED   M10 drop the ordinal RANGE check (out-of-range ordinal binds)
+   battery: fail=1 nonzeroExits=1 by: run18_defect_closure_contract.mjs
+   behavioural divergence: 
+     * match:"option 9": null -> b
+
+SUMMARY: 10 killed, 0 SURVIVED, of 10
+
+restored sha: d050db20004e3ed33c6aac59774256053a6b8b549f109f7435bc305b9b3fec30

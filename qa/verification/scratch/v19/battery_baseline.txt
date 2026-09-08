@@ -1,0 +1,33 @@
+LIB  exit= 0 ok=   0 failTXT=  0 _gate_extract.mjs
+STUB exit= 0 ok=   0 failTXT=  0 claim_segmentation_and_present_tense_fp.mjs
+RUN  exit= 0 ok=   8 failTXT=  0 company_ref_no_bare_name_join.mjs
+RUN  exit= 0 ok=  17 failTXT=  0 current_turn_and_continuity_contract.mjs
+STUB exit= 0 ok=   0 failTXT=  0 d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs
+RUN  exit= 0 ok=  10 failTXT=  0 issue5_confirmation_action_type_binding.mjs
+RUN  exit= 0 ok= 103 failTXT=  0 lifecycle_evidence_and_output_persistence_contract.mjs
+STUB exit= 0 ok=   0 failTXT=  0 mixed_claim_grounding.mjs
+RUN  exit= 0 ok=   5 failTXT=  0 org_selector_scoping_coverage.mjs
+STUB exit= 0 ok=   0 failTXT=  0 past_completion_gate_behavior.mjs
+STUB exit= 0 ok=   0 failTXT=  0 per_resource_grounding_contract.mjs
+RUN  exit= 0 ok=  43 failTXT=  0 run10_defect_closure_contract.mjs
+RUN  exit= 0 ok=  46 failTXT=  0 run11_defect_closure_contract.mjs
+RUN  exit= 0 ok=  71 failTXT=  0 run12_defect_closure_contract.mjs
+RUN  exit= 0 ok=  60 failTXT=  0 run13_defect_closure_contract.mjs
+RUN  exit= 0 ok=  68 failTXT=  0 run14_defect_closure_contract.mjs
+RUN  exit= 0 ok=  57 failTXT=  0 run15_defect_closure_contract.mjs
+RUN  exit= 0 ok=  53 failTXT=  0 run16_defect_closure_contract.mjs
+RUN  exit= 0 ok=  43 failTXT=  0 run17_defect_closure_contract.mjs
+RUN  exit= 0 ok=  56 failTXT=  0 run18_defect_closure_contract.mjs
+RUN  exit= 0 ok=  40 failTXT=  0 run8_defect_closure_contract.mjs
+RUN  exit= 0 ok=  51 failTXT=  0 sem_ai_command_company_restore_truth.mjs
+RUN  exit= 0 ok=  38 failTXT=  0 sem_ai_command_confirmation_truth.mjs
+RUN  exit= 0 ok=  25 failTXT=  0 sem_ai_command_execution_plan_truth.mjs
+RUN  exit= 0 ok=   7 failTXT=  0 sem_ai_command_factory_verification_selection.mjs
+RUN  exit= 0 ok=  11 failTXT=  0 sem_ai_command_named_person_lookup_truth.mjs
+RUN  exit= 0 ok=  13 failTXT=  0 sem_ai_command_past_completion_claim_regex.mjs
+RUN  exit= 0 ok=  13 failTXT=  0 sem_ai_command_source_invariants_drift_guard.mjs
+RUN  exit= 0 ok=  29 failTXT=  0 structured_claim_laundering_contract.mjs
+RUN  exit= 0 ok=  42 failTXT=  0 structured_claim_verification.mjs
+
+FILES=30 LIBRARY=1 STUBS=5 ASSERTION-BEARING=24
+OK MARKS=909  FAILURES FROM OUTPUT TEXT=0  NONZERO EXITS=0

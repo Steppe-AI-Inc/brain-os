@@ -1,0 +1,25 @@
+OK   self.stripped                      [CONTRACT] comment-stripped SQL still contains all three tables
+OK   self.strippingWorks                [CONTRACT] stripping removed the header — otherwise every claim below is header-satisfiable
+OK   C1.bindingGuardExists              [DEFECT] R-C1: a guard ties the binding to the bound channel’s company, in code
+OK   C1.bindingGuardReadsChannel        [DEFECT] R-C1: it actually reads chat_channels.company_id rather than trusting the supplied value
+OK   C1.bindingGuardRaises              [DEFECT] R-C1: a mismatch is refused, not logged
+OK   C1.bindingGuardNullSafe            [CONTRACT] a channel with a NULL company cannot silently satisfy the check (NULL is distinct from nothing)
+OK   C1.bindingTriggerWired             [DEFECT] R-C1: the binding guard is attached, on INSERT and UPDATE — a guard nothing calls is decorative
+OK   C1.outboundGuardExists             [DEFECT] R-C1: a guard ties an outbound message to its binding’s own channel
+OK   C1.outboundGuardReadsBinding       [DEFECT] R-C1: it reads channel_transport_bindings.channel_id rather than trusting the row
+OK   C1.outboundGuardRaises             [DEFECT] R-C1: a message may not leave through another company’s transport
+OK   C1.outboundTriggerWired            [DEFECT] R-C1: the outbound guard is attached on INSERT and UPDATE
+OK   C2.enabledIsRead                   [DEFECT] R-C2: the guard LOADS the binding’s `enabled` from the table — it previously appeared only in its own column definition
+OK   C2.disabledRefused                 [DEFECT] R-C2: queueing against a disabled binding is refused
+OK   C2.insertOnly                      [CONTRACT] the enabled check is INSERT-only: disabling a binding mid-flight must never stop the sender RECORDING a message that already went out
+OK   C4.authorFnExists                  [DEFECT] R-C4: created_by_profile_id is set by the server
+OK   C4.author.channel_transport_bindings [DEFECT] R-C4: channel_transport_bindings sets its author server-side (a DEFAULT is not enough — a client can supply the column)
+OK   C4.author.external_identity_bindings [DEFECT] R-C4: external_identity_bindings sets its author server-side (a DEFAULT is not enough — a client can supply the column)
+OK   C4.author.outbound_messages        [DEFECT] R-C4: outbound_messages sets its author server-side (a DEFAULT is not enough — a client can supply the column)
+OK   C5.oneLiveMapping                  [DEFECT] R-C5: uniqueness applies to ACTIVE rows only, so a revoked tombstone does not permanently occupy the slot
+OK   C5.noTotalUnique                   [DEFECT] R-C5: the old total-uniqueness constraint is gone (it made revocation irreversible by accident)
+OK   C5.revocationComplete              [DEFECT] R-C5: status and revoked_at cannot disagree
+OK   C3.idempotency                     [DEFECT] R-C3: the queue has a dedupe key, unique per binding when present
+OK   C7.queueIndexes                    [DEFECT] R-C7: the queue’s own drain path and its FK to chat_channels are indexed
+
+messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures)

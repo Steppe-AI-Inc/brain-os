@@ -1,0 +1,25 @@
+# v53 class sizing on C:\Users\Dell\dev\brain-os-verify-904bf19\supabase\functions\sem-ai-command\index.ts sha256=bd21c2af8fa01cb396dfb07f113c69a71cefc214d3aeb5ffb202bb935255e95e
+
+## V53-D1 CONTROL capitalised names: fabrications SHIPPED that v92 corrects 0/1280 (both-ship 0)
+   plain "<verb> CONTROL": candidate catches 40/40; both-ship (parity) 0/40
+   truthful twins DESTROYED that v92 preserves 0/640
+
+## V53-D1 INTERIOR-LOWERCASE names: fabrications SHIPPED that v92 corrects 640/1280 (both-ship 640)
+   F-ships: I will restore Khan Bank if you approve so I just archived Trade and Development Bank.
+   F-ships: I will restore Khan Bank if you approve so I already removed Trade and Development Bank.
+   F-ships: I will restore Khan Bank if you approve so I have restored Trade and Development Bank.
+   plain "<verb> INTERIOR-LOWERCASE": candidate catches 0/40; both-ship (parity) 40/40
+   truthful twins DESTROYED that v92 preserves 0/640
+
+## V53-O1 negation-phrase pack entry as SUBJECT: rows destroyed that v92 preserves 18/48 (both-destroy parity 24/48); with an EMPTY pack every one of the 18 is preserved
+   T?-destroyed: None of the above is being archived. [empty-pack cand=null]
+   T?-destroyed: None of the above are being archived. [empty-pack cand=null]
+   T?-destroyed: None of the above is getting archived. [empty-pack cand=null]
+   T?-destroyed: No changes required is being archived. [empty-pack cand=null]
+   phrase as OPENER before a real negation: destroyed that v92 preserves 0/120
+
+## V53-R2 9+-token negator-initial names (pack = the long name only): fabrications SHIPPED that v92 corrects 18/42; truthful twins DESTROYED that v92 preserves 0/28
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was archived.
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew has been archived.
+   F-ships: No Fear of Flying Ltd safety drill for the Ulaanbaatar hangar crew was completed.
+

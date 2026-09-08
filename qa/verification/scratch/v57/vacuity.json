@@ -1,0 +1,165 @@
+[
+ {
+  "name": "m1_receipt_block_deleted",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "architecture_final_claim_contract.mjs",
+   "v56_intent_lifecycle_contract.mjs"
+  ],
+  "ms": 5050
+ },
+ {
+  "name": "m2_legacy_pendingAction_exempt_restored",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "architecture_final_claim_contract.mjs",
+   "run8_defect_closure_contract.mjs"
+  ],
+  "ms": 5179
+ },
+ {
+  "name": "m3_create_postcondition_no_reread",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "lifecycle_evidence_and_output_persistence_contract.mjs"
+  ],
+  "ms": 5223
+ },
+ {
+  "name": "m3b_create_family_literal_true",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "architecture_mutation_envelope_contract.mjs"
+  ],
+  "ms": 5117
+ },
+ {
+  "name": "m4_durable_read_last",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "grounding_precedence_canonical_over_history.mjs",
+   "run11_defect_closure_contract.mjs"
+  ],
+  "ms": 5351
+ },
+ {
+  "name": "m5_envelope_dropped",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": false,
+  "red": [],
+  "ms": 5290
+ },
+ {
+  "name": "m6_web_handwritten_companies_join",
+  "file": "web\\app\\(app)\\dashboard\\page.tsx",
+  "killed": false,
+  "red": [],
+  "ms": 5217
+ },
+ {
+  "name": "m7_web_handwritten_org_sentinel",
+  "file": "web\\app\\(app)\\approvals\\page.tsx",
+  "killed": true,
+  "red": [
+   "architecture_org_scope_helper_contract.mjs"
+  ],
+  "ms": 5218
+ },
+ {
+  "name": "m8_model_read_no_longer_vetoes",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": false,
+  "red": [],
+  "ms": 5205
+ },
+ {
+  "name": "m9_receipt_keyed_on_attempted",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "v56_intent_lifecycle_contract.mjs"
+  ],
+  "ms": 5221
+ },
+ {
+  "name": "m10_negated_lead_gate_dropped",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": false,
+  "red": [],
+  "ms": 5177
+ },
+ {
+  "name": "m11_history_verified_true_when_unknown",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "grounding_precedence_canonical_over_history.mjs"
+  ],
+  "ms": 5150
+ },
+ {
+  "name": "m12_persist_gated_again",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "architecture_mutation_envelope_contract.mjs",
+   "lifecycle_evidence_and_output_persistence_contract.mjs"
+  ],
+  "ms": 5109
+ },
+ {
+  "name": "m13_envelope_total_from_length",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "architecture_collection_envelope_contract.mjs"
+  ],
+  "ms": 5157
+ },
+ {
+  "name": "m14_fallback_ignores_model_kind",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "company_lifecycle_matrix.mjs"
+  ],
+  "ms": 5116
+ },
+ {
+  "name": "m15_turnVerdict_intent_null",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": false,
+  "red": [],
+  "ms": 5145
+ },
+ {
+  "name": "m16_stored_pendingAction_ttl_removed",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": false,
+  "red": [],
+  "ms": 5087
+ },
+ {
+  "name": "m17_fuzzy_command_executes",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "v56_intent_lifecycle_contract.mjs"
+  ],
+  "ms": 5116
+ },
+ {
+  "name": "m18_other_target_gate_dropped",
+  "file": "supabase\\functions\\sem-ai-command\\index.ts",
+  "killed": true,
+  "red": [
+   "company_lifecycle_matrix.mjs"
+  ],
+  "ms": 5153
+ }
+]

@@ -1,0 +1,15 @@
+chars     610 negators    16 ms 1.0
+chars    1194 negators    32 ms 1.9
+chars    2362 negators    64 ms 9.4
+chars    4698 negators   128 ms 0.3
+chars    9370 negators   256 ms 0.3
+chars   18714 negators   512 ms 0.4
+chars   37402 negators  1024 ms 0.5
+exponent between 610 and 1194 = 0.92
+exponent between 1194 and 2362 = 2.36
+exponent between 2362 and 4698 = -4.84
+exponent between 4698 and 9370 = -0.22
+exponent between 9370 and 18714 = 0.36
+exponent between 18714 and 37402 = 0.41
+control (early-break negator) chars 30626 ms 0.3
+punctuated prose chars 31071 ms 0.2

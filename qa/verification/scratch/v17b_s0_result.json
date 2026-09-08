@@ -1,0 +1,2578 @@
+[
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "yes acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme yes",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "yeah acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme yeah",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "yep acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme yep",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "yup acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme yup",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "ok acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme ok",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "okay acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme okay",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "sure acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme sure",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "please acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "pls acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme pls",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "thanks acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme thanks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "thank acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme thank",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "you acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme you",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "confirm acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme confirm",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "confirmed acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme confirmed",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "correct acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme correct",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "right acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme right",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "exactly acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme exactly",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "that acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme that",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "this acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme this",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "one acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "the acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme the",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "a acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme a",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "an acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme an",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "it acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme it",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "its acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme its",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "is acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme is",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "go acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme go",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "ahead acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme ahead",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "do acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme do",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "proceed acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme proceed",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "select acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme select",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "selected acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme selected",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "pick acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme pick",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "choose acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme choose",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "chose acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme chose",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "use acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme use",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "mean acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme mean",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "meant acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme meant",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "want acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme want",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "i acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme i",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "id acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme id",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "im acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme im",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "we acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme we",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "option acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme option",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "number acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme number",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "archive acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme archive",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "restore acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme restore",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "delete acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme delete",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "remove acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme remove",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "end acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme end",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "close acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme close",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "assign acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme assign",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "reassign acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme reassign",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "update acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme update",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "rename acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme rename",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "activate acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme activate",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "deactivate acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme deactivate",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "approve acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme approve",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "reject acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme reject",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "to acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme to",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "for acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme for",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "with acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme with",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "of acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme of",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "on acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme on",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "in acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme in",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "company acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme company",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "companies acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme companies",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "person acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme person",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "people acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme people",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "employee acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme employee",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "employees acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme employees",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "task acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme task",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "tasks acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme tasks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "goal acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme goal",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "goals acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme goals",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "project acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme project",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "department acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme department",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerPrefix",
+  "reply": "record acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a1.fillerSuffix",
+  "reply": "acme record",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "reject acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "reject acme please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "rename acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "update acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "assign acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "reassign acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "approve acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "deactivate acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "activate acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "restore acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "delete acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "remove acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "end acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "close acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "archive acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "acme reject",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "reject the acme one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a2.crossVerbRedirect",
+  "reply": "i reject acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "archive acme tasks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme tasks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme people",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme employees",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "archive acme employees",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "end acme people",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme goals",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme project",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme department",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "delete acme tasks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "the acme department",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a3.entityNounTargetFlip",
+  "reply": "acme person",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "the one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "that one",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "this one",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "yes the one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "ok",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a4.fillerLabel.TheOne",
+  "reply": "the one please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a4.fillerLabel.GoAhead",
+  "reply": "go ahead",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a4.fillerLabel.GoAhead",
+  "reply": "go ahead ltd",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a4.fillerLabel.GoAhead",
+  "reply": "yes go ahead",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a4.fillerLabel.GoAhead",
+  "reply": "go ahead please",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a5.variants",
+  "reply": "YES ACME",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "Yes, Archive ACME",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "ACME",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme option 1",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "option 1 acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme number 1",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme 1",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "1 acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme #1",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme (option 1)",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "yeѕ acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "ｙes acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme, thats the one",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme, that's the one",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "it's acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme — yes",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme…",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "acme!!!",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "  acme  ",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a5.variants",
+  "reply": "ACME yes",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "the one that is not acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "anything but acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "not acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "no acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "acme is not it",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "acme, no",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "acme? no",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "exclude acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "skip acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "leave acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "keep acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "spare acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "all but acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "everything except acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "other than acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "instead of acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "rather than acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "acme is wrong",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "wrong, acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "definitely not acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a6.exclusions",
+  "reply": "acme is the one i do not want",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": "c1"
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "acme? no, the holdings one",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "acme holdings not acme",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "acme not acme holdings",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "acme holdings",
+  "note": "",
+  "now": "c2",
+  "v52": "c2",
+  "d7": "c2"
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "the holdings one",
+  "note": "",
+  "now": null,
+  "v52": null,
+  "d7": null
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "acme holdings please",
+  "note": "",
+  "now": "c2",
+  "v52": "c2",
+  "d7": "c2"
+ },
+ {
+  "group": "a7.overlap",
+  "reply": "archive acme holdings",
+  "note": "",
+  "now": "c2",
+  "v52": "c2",
+  "d7": "c2"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "Acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "ACME",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme.",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme!",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "\"acme\"",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "the acme one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes, archive acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "archive acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "archive acme please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "ok acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "okay, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "sure, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "please archive acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme, that one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "that one, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme is the one",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "i mean acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "i meant acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "we mean acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "i want acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "select acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "pick acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "choose acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "use acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "go ahead with acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "proceed with acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "do acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "confirm acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "confirmed, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "correct, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "right, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "exactly, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "thanks, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yep acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yup, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme, thanks",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme thank you",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "the acme company",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "the company acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme company",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme, the company",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "archive the acme company",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes archive the acme company please",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme, that's it",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "it's acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme's the one",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme (the first one)",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme - yes",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme — the first",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "first one, acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "option 1, acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme #1",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "the 1st one, acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes please archive acme now",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme now",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme today",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme asap",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "just acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "only acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme for sure",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "definitely acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "obviously acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme obviously",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "lets do acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "let's do acme",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "go with acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme works",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme is fine",
+  "note": "",
+  "now": null,
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "yes to acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme yes",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme ok",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "acme, go ahead",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ },
+ {
+  "group": "b.legitimate",
+  "reply": "go ahead, acme",
+  "note": "",
+  "now": "c1",
+  "v52": "c1",
+  "d7": "c1"
+ }
+]

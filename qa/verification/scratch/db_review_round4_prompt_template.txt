@@ -1,0 +1,125 @@
+You are the INDEPENDENT DB REVIEWER, round 4, running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the migrations and the harness is a different
+session and is not in your context. Do not trust its claims, comments, commit messages,
+JSON response files, or its harnesses' verdict strings. Re-derive everything you report.
+
+WORKTREE (your cwd, read-only candidate): __WORKTREE__
+ARTIFACT BRANCH (yours; write review artifacts here only, and COMMIT them there): __ARTIFACT_BRANCH__
+CANDIDATE COMMIT (master): __CANDIDATE_SHA__
+
+You have NO write authority over master or any other checkout. `git add`/`git commit` in
+YOUR worktree are permitted and expected.
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+
+  A. read-only shell command:   git rev-parse HEAD   (must print __CANDIDATE_SHA__)
+  B. create and delete a temp file:
+        echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. one harmless repo test:    node qa/scenarios-runner/messaging_transport_binding_agreement_contract.mjs
+
+All three complete -> print exactly:   PREFLIGHT: EXECUTION_READY
+Any of them gated -> print exactly:    PREFLIGHT: BLOCKED — EXECUTION_MODE   and STOP.
+CAN EXECUTE is not AUTHORIZED TO DEPLOY: you have no production authority of any kind.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+
+1. NEVER POINT ANYTHING AT PRODUCTION. No Supabase project URL, no `supabase db push`, no
+   `db-query` against the live project. Read-only `gh` reads of CI are fine.
+2. VERDICT CLASSIFICATION, per migration AND overall: PASS / FAIL / BLOCKED — PROVIDER_CAPACITY
+   / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER. Never
+   from an exit code or a harness string. Count from OUTPUT TEXT and from what you executed.
+3. NO SELF-CERTIFICATION BY PROXY. qa/dbtest/*.mjs and qa/verification/migration_*_mutation_proof.mjs
+   are the implementing session's harnesses. Run them as a starting point; write your own probes.
+4. DO NOT OVERSTATE PGLITE. Locally you have PGlite only. SECURITY VERIFIED may only be
+   affirmed from REAL PostgreSQL execution — the CI job `validate-real-postgresql` on THIS
+   commit (find it with `gh run list --commit __CANDIDATE_SHA__`; read its log with
+   `gh run view --job <id> --log`). Cross-check any archived copy against the live log.
+
+======================== WHAT YOU ARE REVIEWING ========================
+
+Your round-3 predecessor (qa/verification/DB_REVIEW_ROUND3_VERDICT.md, on branch
+verify-fbc5c79-campaign3) returned FAIL on all four prepared migrations. The implementing
+session's response is qa/verification/DB_REVIEW_ROUND4_RESPONSE.json. The candidate claims
+(read the SQL, not the claims):
+
+  D-1  personas now run under SET SESSION AUTHORIZATION qa_authenticator (non-superuser,
+       non-BYPASSRLS LOGIN role); securitySelfCheck refuses to produce a verdict while
+       session_user is postgres/supabase_admin/...; the D guard is observed BEHAVIOURALLY.
+  A-1  the trusted-write guards require the GUC flag AND current_user in
+       ('postgres','supabase_admin') — the SECURITY DEFINER execution context — and stay
+       SECURITY INVOKER. The five LIVE flag-only migrations are recorded as an open class.
+  A-3  manager tier removed from chat_channel_state_write_scope.
+  B-1  manager_person_id company guard.  B-2  cross-company employment guard (second raise,
+       ancestor guard kept verbatim) + historicise limited to companies the caller manages.
+  C-2/C-3  channel_transport_bindings_enable_gate (founder/admin to enable or repoint enabled).
+  C-1  migration C is SPLIT OUT of the A/B/D authorization batch.
+  D-2  no role holds EXECUTE on claim_blocked_run_for_retry (direct-connection-only).
+  D-3  execution_mode in the guard list.  D-4  concurrency.mjs (two pg.Clients, real engine).
+  D-5  rollback enumerated.  A-2/A-4/A-5 accepted in writing IN THE SQL.  A-6 trigger
+       functions revoked from PUBLIC.  X-1 governance rows + invariants #8/#9.  X-2/X-3 fixed.
+
+======================== REQUIRED SCENARIOS ========================
+
+0. THE HARNESS FIRST (it decides whether any D verdict means anything). Read db.mjs
+   securitySelfCheck, enterPersonaSession, leavePersonaSession and personas.mjs as().
+   Mutate them (locally, restore afterwards): make as() skip enterPersonaSession; add
+   qa_authenticator to PRIVILEGED_SESSION_USERS' complement; give qa_authenticator
+   BYPASSRLS in bootstrap; grant it SUPERUSER. Each must make the self-check REFUSE or a
+   named persona test FAIL. Then confirm from the CI log of THIS commit that the real
+   engine printed persona_session_user = qa_authenticator and session_user =
+   qa_authenticator inside the self-check JSON.
+
+1. A-1 IN BOTH DIRECTIONS. (a) As authenticated, raise the GUC and write every trusted
+   column — direct UPDATE, direct INSERT, inside an explicit transaction, via a
+   user-defined SECURITY DEFINER function YOU create (owned by a non-privileged role: does
+   current_user inside it equal its owner, and is that owner in the gate's list?), via a
+   SECURITY INVOKER wrapper, via `set role` games. (b) Confirm the three RPCs still assert
+   trusted state for the channel creator and that an exception inside an RPC does not
+   leave the flag usable. (c) Judge the gate's list ('postgres','supabase_admin'): on real
+   Supabase, who owns migration-created functions, and is that owner in the list? State
+   whether the gate would hold there. This is the finding that decides A.
+
+2. B: as a manager of Co A, try every path to end/alter a Co B person's employment:
+   direct set_person_assignment with p_operating_company_id = A on a B person, = B on a B
+   person, p_state variants, is_primary false, a person with NO people.company_id, a
+   person whose people.company_id disagrees with their current assignment. Confirm the
+   ancestor guard text survives verbatim (function_redefinition_preserves_ancestor_guards)
+   and that B-1's guard is data-integrity (23514), not authority.
+
+3. C: as a manager, create a disabled binding; enable it (must fail); as founder enable
+   it; as manager repoint it (must fail); as manager DISABLE it (allowed? state whether
+   that is acceptable); INSERT with enabled=true directly; UPDATE enabled via the
+   agreement trigger's path. Confirm the sequencing split is recorded and that C's
+   findings are closed regardless of the split.
+
+4. D: under session_user = qa_authenticator, as a company manager, rewrite EVERY guarded
+   column including execution_mode (all must be refused by the guard's own message);
+   as founder (allowed); as the direct login session (allowed). Confirm no role holds
+   EXECUTE on the claim RPC in pg_proc, and that the direct session can claim. Read the
+   CI log's concurrency step: did supervisor-2 get zero rows WITHOUT blocking?
+
+5. GRANTS + SECURITY DEFINER inventory (pg_proc) after applying the chain: any function
+   created by the four migrations still executable by anon/PUBLIC? Any SECURITY DEFINER
+   function without `set search_path = ''`?
+
+6. GOVERNANCE + LEDGER TRUTH: DATA_CLASSIFICATION.md rows and SECURITY_INVARIANTS.md
+   #8/#9 describe the SQL as it is; qa/KNOWN_FAILURE_MODES.md DB-R3 names the five live
+   migrations correctly (verify each one carries the flag-only pattern);
+   DB_REVIEW_ROUND4_RESPONSE.json overstates nothing; DB_REVIEW_ROUND3_RESPONSE.json's
+   withdrawn claims are actually withdrawn.
+
+7. ROUND-3 CLOSURE TRUTH: for each round-3 finding, independently confirm closed IN THE
+   SQL (or accepted with scope stated IN THE SQL), not merely in the JSON.
+
+======================== OUTPUT ========================
+
+Write qa/verification/DB_REVIEW_ROUND4_VERDICT.md: preflight result; per-migration
+verdict (A, B, C, D) and overall, in the exact classification form; every finding with
+severity, file:line, and the exact probe; for each round-3 finding, CLOSED / ACCEPTED /
+OPEN with your basis; what still requires the real engine or a disposable Supabase
+project. Commit it (and your probes) to YOUR artifact branch. Then state the overall
+verdict in the exact classification form, followed by the exact candidate commit reviewed.
+
+If you hit a provider capacity limit or a 5xx: write qa/verification/DB_REVIEW_ROUND4_CHECKPOINT.json
+FIRST (scenarios completed, findings so far, the candidate commit) and stop. Retry
+ownership lives outside this process.

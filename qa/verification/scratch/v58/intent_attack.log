@@ -1,0 +1,23 @@
+FN-ship (generator 1175): model absent 143 (12.2%), model other 1175, model mutation 0
+FN-ship by wrapper (absent): #13:25/25 "Do me a favour and archive ACME"  #36:25/25 "When you get a moment, archive ACME"  #37:25/25 "archive ACME?"  #38:23/25 "get ACME archived"  #42:9/25 "archive all of ACME"  #43:8/25 "archive both ACME"  #44:9/25 "archive every one of ACME"  #45:8/25 "archive those: ACME"  #46:9/25 "archive the following: ACME"  #41:2/25 "I need ACME archived"
+FN-ship other languages (12): absent 5, mutation 0
+FN-ship slang (20): absent 17, mutation 0
+FP-replace (reads 51): model absent 13, model read 0, model other 0
+   FP(absent): remove the noise: just tell me the top 3 companies => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): archive list please => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+   FP(absent): the fire drill is at 3pm => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): I approve of this plan => No change was made — deciding an approval from chat is not available yet — use the Approvals page.
+   FP(absent): draft an email to Bob about the merge => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): write a memo on fire safety at ACME => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): brainstorm names for the new hire’s project => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): we’re planning a hire next quarter => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): the store will reopen Monday => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): the client may reject the proposal => No change was made — deciding an approval from chat is not available yet — use the Approvals page.
+   FP(absent): translate "delete" into Mongolian => No change was made — that request did not resolve to an operation I can execute from chat.
+   FP(absent): history of the ACME archive => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access).
+   FP(absent): the delete log for QA-1 => No change was made — that request did not resolve to an operation I can execute from chat.
+negations/hypotheticals (14): receipt 9, truthful reply kept 5; a fabricated completion on the same commands ships 5
+
+v58_intent_attack: 23 passed, 1 failed
+  FAIL B FP-replace with the model absent on my read corpus is 0
+       remove the noise: just tell me the top 3 companies => No change was made — that request did not resolve to an operation I can execute from chat. || archive list please => No change was made — I could not resolve which company you meant (searched the active and archived companies you can access). || 

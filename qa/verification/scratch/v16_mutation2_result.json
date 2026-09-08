@@ -1,0 +1,229 @@
+{
+  "finalSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+  "out": [
+    {
+      "id": "A4b-limit-drop-own-label-removal",
+      "kind": "LIMIT",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 1,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string | run15_defect_closure_contract: 47 pass, 1 fail (0 open #75 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+        }
+      ],
+      "realDetect": true,
+      "onlyDrift": false,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B1b-coverage-negated-clause-over-broad",
+      "kind": "COVERAGE",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": true,
+          "assertionFailure": false,
+          "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-0a03127/qa/scenarios-runner/run15_defect_closure_contract.mjs:121:9 | Node.js v24.19.0"
+        }
+      ],
+      "realDetect": false,
+      "onlyDrift": true,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B2b-limit-negated-clause-matches-nothing",
+      "kind": "LIMIT",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": true,
+          "assertionFailure": false,
+          "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-0a03127/qa/scenarios-runner/run15_defect_closure_contract.mjs:121:9 | Node.js v24.19.0"
+        }
+      ],
+      "realDetect": false,
+      "onlyDrift": true,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B4b-coverage-whole-summary-negation-returns",
+      "kind": "COVERAGE",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 6,
+          "failLines": 6,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string | run15_defect_closure_contract: 42 pass, 6 fail (6 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        }
+      ],
+      "realDetect": true,
+      "onlyDrift": false,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C4b-coverage-canonicalKnowsIt-always-true",
+      "kind": "COVERAGE",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "    at file:///C:/Users/Dell/dev/brain-os-verify-0a03127/qa/scenarios-runner/run15_defect_closure_contract.mjs:158:40 | Node.js v24.19.0"
+        },
+        {
+          "suite": "run12_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 1,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched | v12_regression_additions: 70 pass, 1 fail (1 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run13_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 1,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "FAIL D103.hold.numbered               [CONTRACT] the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names render distinguishably, and out-of-context ones are dropped | run13_defect_closure_contract: 59 pass, 1 fail (0 open #73 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run14_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 1,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) | run14_defect_closure_contract: 67 pass, 1 fail (0 open #74 defects reproduce; 1 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run8_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 2,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": true,
+          "tail": "FAILURES: |   - D72b RETIRED (run15/D119): an uncorroborated label is dropped, not repaired; the repair survives on a corroborated row"
+        }
+      ],
+      "realDetect": true,
+      "onlyDrift": false,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C5-coverage-drop-only-empty-list",
+      "kind": "COVERAGE",
+      "applied": true,
+      "extractable": {
+        "ok": true,
+        "msg": "EXTRACT_OK"
+      },
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string | run15_defect_closure_contract: 48 pass, 0 fail (0 open #75 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run14_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) | run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run8_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "OK   D74c an honest label still renders | run8_defect_closure_contract: 40/40 passed"
+        },
+        {
+          "suite": "run12_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched | v12_regression_additions: 71 pass, 0 fail (0 open #72 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        },
+        {
+          "suite": "run13_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "syntaxError": false,
+          "driftGuard": false,
+          "assertionFailure": false,
+          "tail": "OK   D103.hold.numbered               [CONTRACT] the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names render distinguishably, and out-of-context ones are dropped | run13_defect_closure_contract: 60 pass, 0 fail (0 open #73 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+        }
+      ],
+      "realDetect": false,
+      "onlyDrift": false,
+      "rsha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    }
+  ]
+}

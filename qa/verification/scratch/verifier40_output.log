@@ -1,0 +1,79 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #40 — CAMPAIGN #100 — v92 DEPLOYMENT GATE
+
+```
+CHANGE VERIFIED: sem-ai-command Edge completion-drift belt, candidate 4cf2a88 vs DEPLOYED v92
+SCENARIOS: 11 executed, 4 failed, 3 blocked
+CANONICAL GRAPH:      N/A (no DB mutation in this change)
+UI ↔ DB:              BLOCKED (no deployed build carries these bytes; production must stay v92)
+AI ↔ DB:              BLOCKED (same)
+DEPENDENCIES:         PASS (deploy surface = 1 file)
+PERMISSIONS:          N/A
+RELOAD/PERSISTENCE:   FAIL — the substituted false refusal is persisted to work_orders.output
+IDEMPOTENCY:          N/A
+```
+
+## STEP 1 — production bytes, stated at their real strength
+
+| | |
+|---|---|
+| deployed | `sem-ai-command` **v92**, ACTIVE, `ezbr_sha256 33255b31…4fe475`, `updated_at 1788239725518` — read myself via `supabase functions list --project-ref pvphxgrtdfrudejjhzjk` |
+| git `c9dfab5bd433` | index.ts sha256 `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` — **matches** |
+| prior download copy | CRLF, **normalises byte-for-byte to `795c20c8…`** (`v92.lf.ts` is byte-identical to it and is *also* CRLF — the name is still a lie) |
+
+**My provenance link is INTEGRATION-LEVEL, not byte-direct.** `supabase functions download` and `supabase link` are refused by this session's permission gate (`list` is not) and the sandbox blocks writes outside the worktree. What I established myself: **production has not moved** (same version + same `ezbr_sha256`), and the git blob hashes as expected. The deployed-bytes↔git link rests on a prior session's artifact. Not a P0 — but not byte-direct, and I won't dress it up.
+
+## VERDICT: **FAIL**
+
+Both regression counters must be zero on my own corpus (**758 rows: 483 truthful negatives with real names, 275 fabrications**, incl. the required negator-token-name section in both directions). Neither is.
+
+| quadrant | count |
+|---|---|
+| **Q1 TRUTH REGRESSION** (truthful, candidate corrects, v92 keeps) | **27** |
+| **Q2 FABRICATION REGRESSION** (fab, candidate keeps, v92 corrects) | **5** |
+| Q3 truth improvement | 269 |
+| Q4 fabrication improvement | 21 |
+
+**V40-D1 (P1, 20 rows)** — `EXECUTION_IN_PROGRESS`'s clause-initial gerund, *the arm v92 does not have*. #39 closed it with a **whitelist of finite main verbs**; English predicates are an open class. `Archiving a company triggers a notification.` → replaced with *"I can't actually do that from chat"* and **persisted** (index.ts:5919). Second recurrence of #100/V39-D1.
+**V40-D2 (P1, 2)** — CONFIRMED arm reads a function word heading an **adverbial** as a determiner.
+**V40-D3 (P1, 5)** — first-person arm matches an entity noun used **attributively** ("the company **filter**").
+**V40-D4 (P1, 5, FABRICATION REGRESSION)** — `No errors occurred the department was removed.` v92 **corrects**, candidate **ships**. **This has been RED in the repo's own `v33_regression_additions.mjs` (92/1) all campaign**, mis-filed as a "disclosed residual". Per #30/D170's own ruling that classification is wrong. **Mis-classification, not blindness, is how it survived four verifiers.**
+
+## REFUTED
+
+**`CORRECTED_BY_V39`: "R-AUXGAP is fully masked — delete it" is wrong.** Reverting it alone re-opens `ACME was, with no delay, archived.` and `Beta Corp has been, with no issues, deleted.` — both of which **v92 corrects**. Deleting it would have created a fresh fabrication regression. #39's deadness measurement was itself vacuous, and `v39_deadness_proof.mjs` does not parse.
+
+**The three "refused" shapes are actually CLOSED** (`No errors ACME was archived.` etc. all caught, all truthful twins survive). That disclosure is stale.
+
+## CONFIRMED (measured myself, not restated)
+
+Battery **34 files / 0 failing / 1,179 assertions** — retract-check confirmed, read from output text — **but 5 are `SUPERSEDED` no-op stubs**; honest headline is 29. `v39` gate **20/1**. **run15 57/0**. CONTRACT 5's narrowing **honest and non-vacuous** (4 mutations: new top-level→RED, reorder→RED, rename→RED, new local→GREEN, correctly). CONTRACT 6/D117 **intact and non-vacuous** (3 injections). **All 10 re-pins honest in both directions.** Ledger **#64 D16/D17, #65 D25, #65 D27 (row 9dda919c), #66 D40 → 28/28 closed.** Matcher **36 shapes, 16 deltas all safe, 0 crashes** — and the candidate *fixes* a v92 wrong-option destructive bind. Negator-token names **48/48 caught, 48/48 truths preserved**. Mutation proof **16/16 load-bearing** (my first pass had 12 no-ops; I treated that as *my corpus being vacuous*, added targeted rows, and all 16 became live). Identifier delta **186 added / 0 removed**, top-level **43→43**. run14/D107's character budget is **gone**, not 2600 — that premise is stale. Deploy surface = **1 file**. Rollback `c9dfab5bd433` **exact and available**.
+
+## FIX PREPARED (not applied — no write authority on the implementation branch)
+
+Four structural edits: **truthRegression 27 → 0, fabricationRegression 5 → 0**; all 34 committed suites byte-identical in result, 0 failures; 0 new gate failures; 3 disclosed residuals retire — exactly what those suites' own text asks for once the paired truths survive, and all five do. One trap recorded: my first FIX A used `/i`, which also case-folded the `[A-Z]` test and made the guard silently inert. *A flag is never a local change.*
+
+## COVERAGE GAPS — BLOCKED, not skipped
+
+- `functions download`/`link` blocked → provenance integration-level.
+- **`deno` not invokable → "deno 23 == baseline" is unverified by me.** Partly compensated: 119 regex literals scanned, 0 construction failures, 0 real inline modifier groups.
+- **No live UI / AI-chat evidence.** Browser tools were not available and, more fundamentally, no deployed build carries these bytes. Reachability + persistence are **CODE INSPECTED** at the exact statements — labelled as such, never E2E VERIFIED.
+
+## SYNTHETIC DATA
+
+**None created.** This is a pure source/Edge differential — no DB writes, no `QA-VERIFY-*` entities, no migrations, so nothing to clean up and nothing `BLOCKED — DB PUSH`. Production was never written to.
+
+## ARTIFACTS — committed `8e39916` on `verify-4cf2a88-campaign100`
+
+`qa/verification/proposed/v40_known_failure_modes_entry_101.md`, `v40_PROMOTION_NOTE.md`, `v40_regression_additions.mjs` (**45/32 on the candidate, 77/0 under the fix**, identical from any cwd — repo root, `os.tmpdir()`, `qa/scenarios-runner`), plus `qa/verification/scratch/v40/` (corpus, harness, differential, mutation proof, matcher differential, CONTRACT 5/6 probes, ledger-closure probe, prepared fix).
+
+---
+
+**FAIL — candidate `4cf2a88f720b90e5f8aeddaefa85cfbb6db2cdd4` is NOT fit to deploy over v92. EDGE STATUS = NOT DEPLOYMENT READY. Production stays v92.**
+
+The candidate is close and is a large net improvement (Q3=269, Q4=21, the matcher is unambiguously safer). It needs one more round — and that round must also **re-classify V40-D4 from "disclosed residual" to "deploy blocker."**
+
+`3798ad2f819749ff36daf6dd522a9e00cfe95a521ceb6bf92f810fa6de6f2901`

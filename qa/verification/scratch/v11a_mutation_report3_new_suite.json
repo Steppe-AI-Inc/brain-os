@@ -1,0 +1,75 @@
+{
+ "baseline_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "final_sha": "66fa821d7893248236e3d1626fa321c7ca9872957c0d50520b8067eec13ddded",
+ "ran_at": "2026-09-03T02:33:28.690Z",
+ "results": [
+  {
+   "id": "M04 ellipsis terminator removed",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.term.ellipsis          [CONTRACT] the '…' terminator is load-bearing: a NON-aux assertion before it is cut away"
+   ]
+  },
+  {
+   "id": "M19 historyWindowStart off-by-one",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.turn.boundary8         [CONTRACT] exactly 8 prior turns: window 1..8, complete, current 9, entries 1..8",
+    "FAIL V11.turn.boundary9         [CONTRACT] 9 prior turns / 8-row window: window 2..9, INCOMPLETE, current 10, entries 2..9",
+    "FAIL V11.turn.newestIsPrev      [CONTRACT] the newest history entry is ALWAYS exactly one turn before the current turn",
+    "FAIL V11.turn.countNull         [CONTRACT] a failed head-count query degrades to the window length and stays self-consistent"
+   ]
+  },
+  {
+   "id": "M21 historyIsComplete inverted",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.turn.boundary9         [CONTRACT] 9 prior turns / 8-row window: window 2..9, INCOMPLETE, current 10, entries 2..9"
+   ]
+  },
+  {
+   "id": "M26 source-work-order check removed",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.durable.foreignSource  [CONTRACT] a durable pending action with NO source work order id can never bind",
+    "FAIL V11.durable.emptySource    [CONTRACT] an EMPTY-STRING source work order id can never bind either"
+   ]
+  },
+  {
+   "id": "M30 buildContext call site renamed",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.order.failClosed       [CONTRACT] the buildContext/create_pending_work_order ordering check fails CLOSED when an anchor moves"
+   ]
+  },
+  {
+   "id": "M11 structuredProseDrift forced false",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.drift.factLinesOnly    [CONTRACT] the D68 shape — grounded only by a deterministic report + fabricated completion prose — is re-rendered",
+    "FAIL V11.drift.progressiveStructured [CONTRACT] the same shape with PROGRESSIVE wording is re-rendered too (structured arm carries the E-multi vocabulary)"
+   ]
+  },
+  {
+   "id": "M15b EXECUTION_IN_PROGRESS removed from the structured arm",
+   "proposedExit": 1,
+   "committedExit": 0,
+   "killed": true,
+   "evidence": [
+    "FAIL V11.drift.progressiveStructured [CONTRACT] the same shape with PROGRESSIVE wording is re-rendered too (structured arm carries the E-multi vocabulary)"
+   ]
+  }
+ ]
+}

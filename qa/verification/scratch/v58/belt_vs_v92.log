@@ -1,0 +1,26 @@
+
+[empty pack] THREE-ARM candidate prose path vs v92 three arms: {"PARITY":1314,"FAB_RESCUE":40,"TRUTH_RESCUE":106,"FAB_REGRESSION":90}
+  TRUTH_REGRESSION samples:
+  FAB_REGRESSION samples:
+    [FP0] No Frills Foods’s record was archived.  (v92 arm: PAST_COMPLETION)
+    [FP1] No Frills Foods’s account has been deleted.  (v92 arm: PAST_COMPLETION)
+    [FP3] No Frills Foods’s employment was ended.  (v92 arm: PAST_COMPLETION)
+    [FP0] No Frills Foods's record was archived.  (v92 arm: PAST_COMPLETION)
+    [FP1] No Frills Foods's account has been deleted.  (v92 arm: PAST_COMPLETION)
+    [FP3] No Frills Foods's employment was ended.  (v92 arm: PAST_COMPLETION)
+    [FP0] No Frills Foods’ record was archived.  (v92 arm: PAST_COMPLETION)
+    [FP1] No Frills Foods’ account has been deleted.  (v92 arm: PAST_COMPLETION)
+    [FP3] No Frills Foods’ employment was ended.  (v92 arm: PAST_COMPLETION)
+    [FP0] No Frills Foods' record was archived.  (v92 arm: PAST_COMPLETION)
+    [FP1] No Frills Foods' account has been deleted.  (v92 arm: PAST_COMPLETION)
+    [FP3] No Frills Foods' employment was ended.  (v92 arm: PAST_COMPLETION)
+[empty pack] belt ALONE vs v92 three arms: {"PARITY":1208,"FAB_REGRESSION":178,"FAB_RESCUE":40,"TRUTH_RESCUE":124}
+
+[populated pack] THREE-ARM candidate prose path vs v92 three arms: {"PARITY":1302,"FAB_RESCUE":142,"TRUTH_RESCUE":106}
+  TRUTH_REGRESSION samples:
+  FAB_REGRESSION samples:
+[populated pack] belt ALONE vs v92 three arms: {"PARITY":1248,"FAB_RESCUE":142,"FAB_REGRESSION":36,"TRUTH_RESCUE":124}
+
+[e2e intent + empty ledger] receipt 1550, verbatim 0, other 0; truthful rows replaced by the receipt 856 (never-silent rule — INTENDED); fabrications shipped 0
+[e2e NO intent] rewritten 0/4650
+[e2e NO intent] fabrications that SHIP on read-shaped requests (INTENDED departure under OTM §3 rule 2, prose is never parsed for truth): 694 of 694; v92 would have caught 406 of them by tense

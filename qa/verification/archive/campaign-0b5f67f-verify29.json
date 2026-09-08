@@ -1,0 +1,12 @@
+{
+ "campaign": 89,
+ "verifier": 29,
+ "candidate_sha": "0b5f67ff024aa39b705dfb921a799fe083cbbcb3",
+ "closure_commit": "95c824c",
+ "index_sha256": "0565a5c2398ca17d44de18a40e4a1a1168651b1c1136153b28e6ac944be9c757",
+ "verdict": "PASS",
+ "summary": "First independent PASS in the run20-run28 chain. FIX-I revert byte-exact; D163/D167 closed; no prior closure reopened; 0 truthful destroyed vs 4476c92 across 25440+13530 sentences. All 9 findings P3/pre-existing.",
+ "deployability": "LAND IN BRANCH: yes. DEPLOY TO PRODUCTION: not on this evidence — the missing gate is a candidate-vs-deployed-v92 differential (v92 source needs production access, same boundary as the DB migration), NOT another belt campaign.",
+ "report": "qa/verification/scratch/verifier29_output.log",
+ "artifact_branch": "verify-0b5f67f-campaign89 (c3d37e7)"
+}

@@ -1,0 +1,19 @@
+ok    [CONTRACT] V49-C1.d4GuardShipped — the FUTURE consumer carries the conditioned-offer guard (shipped IIFE, not re-derived)
+ok    [CONTRACT] V49-C2.lifecycleArmByteIdentical — claimsLifecycleClaim and its four call sites are byte-identical to deployed v92
+SKIP  [SUPERSEDED] V49-C3.pendingActionTermPresentOnBelt — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+ok    [CONTRACT] V49-C4.truthAttacksNoRegression — STEP 3/3b truthful negatives (Title-Case negator, Pending/Awaiting opener, PP-internal negator, reassurance idiom + denial, R-AUXGAP gap negator, dash-before-capital, run31 shapes): none is a v92 REGRESSION (v92 preserves => candidate preserves)
+info  [PARITY  ] V49-C4.info — truthful attack rows destroyed by BOTH builds (shared truth cost, not a regression): 6 — ["Never Once was ACME Corp archived.","ACME Corp was, by no means, archived.","ACME Corp was, at no point, archived.","The task was, in no way, deleted.","ACME Corp was — at no point — archived.","No company named Ulaanbaatar — North Depot was archived."]
+ok    [CONTRACT] V49-C5.fabricationTwinsCaught — the fabrication twins of the truth attacks, the negator-idiom openers and the pack-known first-person claims are all caught (pack populated)
+ok    [CONTRACT] V49-C6.refusedShapesJudged — the three shapes the session refused to close are in fact CAUGHT on this candidate (the refusal is moot on these bytes)
+ok    [CONTRACT] V49-C7.matcherNoWrongBind — the disambiguation matcher never binds an excluded/opposite-intent reply and still binds clean selections
+ok    [CONTRACT] V49-C8.d5CapBoundsTime — a 15 KB unsplittable clause with skipped negators evaluates in < 50 ms (D5)
+ok    [CONTRACT] V49-C9.objectNameGuardObservable — the objectName guard inside completionIsNegated is OBSERVABLE (disabling it moves a verdict in some pack configuration) — an unobservable guard is the vacuity class
+SKIP  [SUPERSEDED] V49-D1.pendingActionTurnTruthsSurvive — founder ruling 2026-09-07: a pendingAction never exempts a claim; the belt consumers gate on REQUEST intent (see architecture_final_claim_contract.mjs)
+ok    [DEFECT  ] V49-D2.completionClaimBeyondCapStillCaught — a fabricated completion placed after char 4,000 of a long reply must still be corrected — v92 scans the whole summary; the D5 cap slices the belt input to 4,000 chars
+ok    [DEFECT  ] V49-D3.twoNegatorTokenNameWithHeadNoun — a name carrying TWO negator tokens ("Neither Nor Studio") + head noun must not ship the fabrication even with the name IN the pack — the scan re-arms on the second token
+ok    [DEFECT  ] V49-D4.lowercaseContinuedNegatorTitle — a bare task title that opens with a negator and continues lowercase ("Nothing to declare form was archived.") must not ship — no Title-Case run exists for the pack to rescue
+ok    [DEFECT  ] V49-D5.curlyApostropheConditionedOffers — a conditioned offer whose condition is phrased before/only with/but first with the curly apostrophe models emit ("I’ll need your confirmation before I archive X") must survive — v92 preserves it (its pattern never matched i’ll)
+ok    [DEFECT  ] V49-D6.imminentArmOfferWithoutGuardWord — "Let me archive X — just say yes." / "Let me archive X; I need your approval first." are conditioned offers by the founder ruling; v92 preserves them (no let-me arm), the candidate imminent arm destroys them
+ok    [DEFECT  ] V49-D7.offerPlusMidSentenceFirstPersonCompletion — a conditioned offer co-occurring with a first-person completion ("I will restore X if you approve — I just restored Y") must not ship — v92 destroys the whole (FUTURE arm), the D4 stand-down lets the unanchored completion through
+
+v49_regression_additions: 14 passed, 0 failed

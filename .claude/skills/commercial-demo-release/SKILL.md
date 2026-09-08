@@ -7,8 +7,9 @@ description: The Release Operator's actual release-gate checklist, and the full 
 
 ## Release gate checklist (every Factory Work Order, before release-ready)
 
-Run every check for real, in the current release-operator run — never re-trust a prior
-report:
+The definition of done is `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` §7; this
+checklist is the release operator's execution of it. Run every check for real, in the
+current release-operator run — never re-trust a prior report:
 1. Build (`npm run build` from `web/`) — clean.
 2. Typecheck (`npx tsc --noEmit`) — clean.
 3. Lint (`npx eslint` on touched files) — clean.
@@ -27,6 +28,11 @@ report:
    byte-verified.
 10. Smoke test — the single most important real user path, run live post-deployment.
 11. Rollback readiness — a real, stated way to revert if something goes wrong.
+12. Truth contracts — `qa/scenarios-runner/architecture_*` pass; inverse actions and every
+    registry-listed surface verified; receipts truthful (`OPERATING_TRUTH_MODEL.md` §5).
+13. Independent acceptance — a Work-PC rerun is required before any bug is CLOSED or the
+    release is called PRODUCTION ACCEPTED; the Home PC may report at most READY FOR
+    INDEPENDENT QA.
 
 Output exactly one of `PASS`/`CONCERNS`/`FAIL`/`BLOCKED` — never softened language.
 

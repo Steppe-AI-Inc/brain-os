@@ -1,0 +1,100 @@
+[
+ {
+  "id": "M21",
+  "area": "drop",
+  "desc": "OVER-BROAD drop, literal preserved: the filter predicate always drops",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:1]"
+  ],
+  "behaviouralCatches": 2,
+  "survived": false
+ },
+ {
+  "id": "M22",
+  "area": "drop",
+  "desc": "NO-OP drop, literal preserved: the filter predicate never drops",
+  "applied": true,
+  "caughtBy": [
+   "run12_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run13_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run14_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run15_defect_closure_contract.mjs[BEHAVIOURAL:6]",
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:11]",
+   "run8_defect_closure_contract.mjs[BEHAVIOURAL:1]"
+  ],
+  "behaviouralCatches": 6,
+  "survived": false
+ },
+ {
+  "id": "M23",
+  "area": "drop",
+  "desc": "drop fires only for the FIRST unresolvable option (index 0)",
+  "applied": true,
+  "caughtBy": [
+   "run12_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run13_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run8_defect_closure_contract.mjs[BEHAVIOURAL:1]"
+  ],
+  "behaviouralCatches": 4,
+  "survived": false
+ },
+ {
+  "id": "M24",
+  "area": "numbering",
+  "desc": "D95 numbering removed (colliding fallbacks stay mutually unselectable)",
+  "applied": true,
+  "caughtBy": [
+   "run12_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run13_defect_closure_contract.mjs[BEHAVIOURAL:2]"
+  ],
+  "behaviouralCatches": 2,
+  "survived": false
+ },
+ {
+  "id": "M25",
+  "area": "gate",
+  "desc": "alias table emptied ENTIRELY (all 19 keys), braces preserved",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:1]"
+  ],
+  "behaviouralCatches": 2,
+  "survived": false
+ },
+ {
+  "id": "M26",
+  "area": "gate",
+  "desc": "alias applied to the READ but NOT to displayName (the two disagree again)",
+  "applied": true,
+  "caughtBy": [
+   "run15_defect_closure_contract.mjs[BEHAVIOURAL:1]",
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:1]"
+  ],
+  "behaviouralCatches": 2,
+  "survived": false
+ },
+ {
+  "id": "M27",
+  "area": "matcher",
+  "desc": "filler set gains only the single word \"no\"",
+  "applied": true,
+  "caughtBy": [
+   "run16_defect_closure_contract.mjs[BEHAVIOURAL:4]"
+  ],
+  "behaviouralCatches": 1,
+  "survived": false
+ },
+ {
+  "id": "M28",
+  "area": "belt",
+  "desc": "splitter also splits on \"or\" (a plausible next widening)",
+  "applied": true,
+  "caughtBy": [],
+  "behaviouralCatches": 0,
+  "survived": true
+ }
+]

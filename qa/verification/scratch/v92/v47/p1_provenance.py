@@ -1,0 +1,11 @@
+import hashlib
+b=open('qa/verification/scratch/v92/deployed/supabase/functions/sem-ai-command/index.ts','rb').read()
+print('downloaded raw len',len(b),'CR count',b.count(b'\r'))
+n=b.replace(b'\r\n',b'\n')
+print('downloaded LF-normalised sha256',hashlib.sha256(n).hexdigest(),'len',len(n))
+g=open('qa/verification/scratch/v47/v92_git.ts','rb').read()
+print('git c9dfab5bd433 sha256',hashlib.sha256(g).hexdigest(),'len',len(g),'CR count',g.count(b'\r'))
+print('MATCH' if n==g else 'DIFFER')
+c=open('supabase/functions/sem-ai-command/index.ts','rb').read()
+print('candidate raw len',len(c),'CR count',c.count(b'\r'))
+print('candidate sha256',hashlib.sha256(c).hexdigest())

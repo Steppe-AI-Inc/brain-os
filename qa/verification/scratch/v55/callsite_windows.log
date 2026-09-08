@@ -1,0 +1,27 @@
+== company state-claim + claimsCompanyDeleted | v92 windows 2 | cand windows 2
+    IDENTICAL(normalised, comments stripped) v92 :2945-2977 abb783794d5704ef | cand :3379-3411 abb783794d5704ef
+    IDENTICAL(normalised, comments stripped) v92 :3025-3060 a3e5dea0215326cf | cand :3472-3507 a3e5dea0215326cf
+== lifecycleMismatchCorrections block | v92 windows 1 | cand windows 1
+    IDENTICAL(normalised, comments stripped) v92 :4084-4099 103d231a73665e06 | cand :4579-4594 103d231a73665e06
+== stateClaimCorrections block | v92 windows 1 | cand windows 1
+    IDENTICAL(normalised, comments stripped) v92 :4098-4114 68a1df0d7a0fd626 | cand :4593-4609 68a1df0d7a0fd626
+== summary overwrite precedence | v92 windows 1 | cand windows 1
+    DIFFERS v92 :4158-4174 afedb4960edd742e | cand :4655-4671 d19591a2e93f66e5
+     v92-only lines:
+       - if (a.operation === 'assign_task') return String(planNames.taskTitleById.get(t.taskId) || t.taskId);
+       - if (t.personId) return String(planNames.personNameById.get(t.personId) || t.personId);
+       - result.summary = lifecycleReports.join(' ');
+       - result.summary = stateClaimCorrections.join(' ');
+       - result.summary = lifecycleMismatchCorrections.join(' ');
+     cand-only lines:
+       + result.summary = [factLines.join(' '), lifecycleReports.join(' ')].filter(Boolean).join(' ');
+       + result.summary = [factLines.join(' '), stateClaimCorrections.join(' ')].filter(Boolean).join(' ');
+       + result.summary = [factLines.join(' '), lifecycleMismatchCorrections.join(' ')].filter(Boolean).join(' ');
+== FUTURE arm correction | v92 windows 1 | cand windows 1
+    DIFFERS v92 :4187-4200 4342e3e041df2de3 | cand :4694-4707 2745861bc9e24a58
+     v92-only lines:
+       - const FUTURE_PROMISE_PATTERN = /\b(i'?ll|i will|i'?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))
+       - && FUTURE_PROMISE_PATTERN.test(String(result.summary || ''));
+     cand-only lines:
+       + const FUTURE_PROMISE_PATTERN = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e
+       + && ((__s) => FUTURE_PROMISE_PATTERN.test(__s) && !/\b(?:once|if|after|unless|when|provided|assuming|as soon as|subject to|pending|before|until|only with|but first|first)\b[^.]{0,40}?\byou(?:r|rs)?\b|\byou(?:r|rs)?\b[^.]{

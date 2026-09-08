@@ -1,0 +1,70 @@
+  0  suite qa\scenarios-runner\belt_generative_adversarial_contract.mjs                   25/0
+  0  suite qa\scenarios-runner\claim_segmentation_and_present_tense_fp.mjs                SUPERSEDED
+  0  suite qa\scenarios-runner\company_ref_no_bare_name_join.mjs                          no-count
+  0  suite qa\scenarios-runner\current_turn_and_continuity_contract.mjs                   no-count
+  0  suite qa\scenarios-runner\d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs SUPERSEDED
+  0  suite qa\scenarios-runner\entity_signal_positive_contract.mjs                        5/0
+  1  suite qa\scenarios-runner\factory_production_write_inventory.regression.test.mjs     2/1
+  0  suite qa\scenarios-runner\issue5_confirmation_action_type_binding.mjs                no-count
+  0  suite qa\scenarios-runner\lifecycle_evidence_and_output_persistence_contract.mjs     no-count
+  0  suite qa\scenarios-runner\mixed_claim_grounding.mjs                                  SUPERSEDED
+  0  suite qa\scenarios-runner\org_selector_scoping_coverage.mjs                          no-count
+  0  suite qa\scenarios-runner\past_completion_gate_behavior.mjs                          SUPERSEDED
+  0  suite qa\scenarios-runner\per_resource_grounding_contract.mjs                        SUPERSEDED
+  1  suite qa\scenarios-runner\production_write_authority.regression.test.mjs             2/5
+  0  suite qa\scenarios-runner\run10_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run11_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run12_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run13_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run14_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run15_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run16_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run17_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run18_defect_closure_contract.mjs                          no-count
+  0  suite qa\scenarios-runner\run19_defect_closure_contract.mjs                          62/0
+  0  suite qa\scenarios-runner\run28_defect_closure_contract.mjs                          117/0
+  0  suite qa\scenarios-runner\run8_defect_closure_contract.mjs                           no-count
+  0  suite qa\scenarios-runner\sem_ai_command_company_restore_truth.mjs                   no-count
+  0  suite qa\scenarios-runner\sem_ai_command_confirmation_truth.mjs                      no-count
+  0  suite qa\scenarios-runner\sem_ai_command_execution_plan_truth.mjs                    no-count
+  0  suite qa\scenarios-runner\sem_ai_command_factory_verification_selection.mjs          no-count
+  0  suite qa\scenarios-runner\sem_ai_command_named_person_lookup_truth.mjs               no-count
+  0  suite qa\scenarios-runner\sem_ai_command_past_completion_claim_regex.mjs             13/0
+  0  suite qa\scenarios-runner\sem_ai_command_source_invariants_drift_guard.mjs           13/0
+  0  suite qa\scenarios-runner\standing_reds_classification_contract.mjs                  no-count
+  0  suite qa\scenarios-runner\structured_claim_laundering_contract.mjs                   no-count
+  0  suite qa\scenarios-runner\structured_claim_verification.mjs                          no-count
+  0  suite qa\scenarios-runner\v92_open_regression_contract.mjs                           28/0
+  0  suite qa\scenarios-runner\v92_parity_contract.mjs                                    46/0
+  1  gate  qa/verification/scratch/v92/v30_regression_additions.mjs                       no-count
+  1  gate  qa/verification/scratch/v92/v31_regression_additions.mjs                       32/2
+        FAIL  [CONTRACT] negator-bearing NAMES: every fabrication caught (48) — "I archived No Limits Inc." | "I archived Nothing Bundt Cakes." | "I archived Never Summer Industries." | "I archived None The Wiser LLC."
+        FAIL  [DEFECT] V31-F3b the negator lexicon covers ordinary contracted negations — NEGATED_CLAUSE does not recognise couldn't, wouldn't, shouldn't, won't — the R-AUXGAP whole-summary guard is therefore blind to them
+  1  gate  qa/verification/scratch/v92/v42/v42_regression_additions.mjs                   11/2
+        FAIL  [DEFECT  ] V42-D2.participleInitialNamesSurvive — a truthful report about an entity whose NAME begins with a completion participle must survive (deployed v92 preserves all 48)
+        FAIL  [CONTRACT] V42-C4.participleNameFabricationsStayCaught — the fabrication twins about the SAME names stay caught — the referent is what separates them, not the surface string
+        FAILING: V42-D2.participleInitialNamesSurvive, V42-C4.participleNameFabricationsStayCaught
+  2  gate  qa/verification/scratch/v92/v46/v46_regression_additions.mjs                   no-count
+  1  gate  qa/verification/scratch/v92/v47/v47_regression_additions.mjs                   43/9
+        FAIL [DEFECT] V47-D2 a fabrication about a negator-token-named entity with a lowercase head noun must not ship when deployed v92 corrects it (320 rows)  -- 320 shipped, e.g. "No Limits Inc unit was archived."
+        FAIL [DEFECT] V47-D5 the product's own `Confirmed — you selected “<name>”.` (index.ts:2769) must not be belt-destroyed for a participle-initial entity name even with the name in the pack  -- 2 destroyed, e.g. "Confirmed 
+        FAIL [DEFECT] V47-D6 a local const inside readsAsCompletion's .map() callback breaks run15, and the narrowed CONTRACT 5 (top-level declarations only) does not flag it  -- run15 BROKE, CONTRACT 5 stayed GREEN — verifier #
+        FAIL [DEFECT] V47-D8 v92_parity_contract's corpus must contain the conditioned-offer class it is the named gate for  -- the gate reads 46/0 while a 49-row truth regression is open and disclosed elsewhere — the sixth inst
+        FAIL [DEFECT] V47-D8b v92_parity_contract's corpus must contain negator-token-name fabrications  -- zero present, and V47-D2 lives exactly there
+        FAIL [DEFECT] V47-D7b v47_guard_repro.mjs must be able to reach the CANDIDATE it claims to measure  -- its GUARD anchor is absent from the candidate, so it exits 2 ("STALE") after writing pre_guard.ts into a DIFFERENT ch
+        FAIL [CONTRACT] V47-C10 the conditioned-offer class is sized with ALL THREE v92 arms (7 parity of 56)  -- parity=7 destroyed=0 of 56
+        FAIL [CONTRACT] V47-C11 mutant applies — nameInternal  -- the mutation string is stale; re-anchor it, do not delete it
+  1  gate  qa/verification/proposed/v46_regression_additions.mjs                          33/3
+        FAIL [CONTRACT] C8a index.ts is pure CRLF (6003 CRLF, 0 bare LF)  -- crlf=6015 bareLF=0
+        FAIL [DEFECT] V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.73  (1.92 ms at 1 KB -> 85.17 ms at 4 KB)
+        FAIL [DEFECT] V46-D5 CONFIRMED_COMPLETION carries the same participles as its sibling lists  -- missing: closed, added — so "Confirmed — Closed ACME." escapes while "Confirmed — Archived ACME." is caught
+        FAILURES:
+  0  gate  qa/verification/proposed/v48_regression_additions.mjs                          58/0
+  0  gate  qa/verification/proposed/v49_regression_additions.mjs                          16/0
+
+SUITES=38 exit0=36 nonzero=2
+  NONZERO qa\scenarios-runner\factory_production_write_inventory.regression.test.mjs ::     operator: 'deepStrictEqual', |     diff: 'simple' |   }
+  NONZERO qa\scenarios-runner\production_write_authority.regression.test.mjs ::   } | (node:16560) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)
+suites printing no pass/fail count (vacuity screen): qa\scenarios-runner\company_ref_no_bare_name_join.mjs, qa\scenarios-runner\current_turn_and_continuity_contract.mjs, qa\scenarios-runner\issue5_confirmation_action_type_binding.mjs, qa\scenarios-runner\lifecycle_evidence_and_output_persistence_contract.mjs, qa\scenarios-runner\org_selector_scoping_coverage.mjs, qa\scenarios-runner\run10_defect_closure_contract.mjs, qa\scenarios-runner\run11_defect_closure_contract.mjs, qa\scenarios-runner\run12_defect_closure_contract.mjs, qa\scenarios-runner\run13_defect_closure_contract.mjs, qa\scenarios-runner\run14_defect_closure_contract.mjs, qa\scenarios-runner\run15_defect_closure_contract.mjs, qa\scenarios-runner\run16_defect_closure_contract.mjs, qa\scenarios-runner\run17_defect_closure_contract.mjs, qa\scenarios-runner\run18_defect_closure_contract.mjs, qa\scenarios-runner\run8_defect_closure_contract.mjs, qa\scenarios-runner\sem_ai_command_company_restore_truth.mjs, qa\scenarios-runner\sem_ai_command_confirmation_truth.mjs, qa\scenarios-runner\sem_ai_command_execution_plan_truth.mjs, qa\scenarios-runner\sem_ai_command_factory_verification_selection.mjs, qa\scenarios-runner\sem_ai_command_named_person_lookup_truth.mjs, qa\scenarios-runner\standing_reds_classification_contract.mjs, qa\scenarios-runner\structured_claim_laundering_contract.mjs, qa\scenarios-runner\structured_claim_verification.mjs
+suites declared SUPERSEDED: qa\scenarios-runner\claim_segmentation_and_present_tense_fp.mjs, qa\scenarios-runner\d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs, qa\scenarios-runner\mixed_claim_grounding.mjs, qa\scenarios-runner\past_completion_gate_behavior.mjs, qa\scenarios-runner\per_resource_grounding_contract.mjs
+GATES: v30_regression_additions.mjs=null/null(exit 1)  v31_regression_additions.mjs=32/2(exit 1)  v42_regression_additions.mjs=11/2(exit 1)  v46_regression_additions.mjs=null/null(exit 2)  v47_regression_additions.mjs=43/9(exit 1)  v46_regression_additions.mjs=33/3(exit 1)  v48_regression_additions.mjs=58/0(exit 0)  v49_regression_additions.mjs=16/0(exit 0)

@@ -1,0 +1,116 @@
+--- [CONTRACT] the deployed-v92 reference this file measures against
+ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN is byte-identical to deployed v92 (pinned sha256)
+ok    [CONTRACT] v92 belt sanity: it fires on BUG-002 and not on a greeting
+ok    [CONTRACT] candidate belt sanity: it fires on BUG-002 and not on a greeting
+
+--- [DEFECT] D175: widened negator lexicon ships v92-corrected fabrications
+ok    [DEFECT] D175.newLexiconDisarms.couldn't.but
+ok    [DEFECT] D175.newLexiconDisarms.couldn't.dash
+ok    [DEFECT] D175.newLexiconDisarms.wouldn't.dash
+ok    [DEFECT] D175.newLexiconDisarms.shouldn't.dash
+ok    [DEFECT] D175.newLexiconDisarms.won't.dash
+ok    [DEFECT] D175.newLexiconDisarms.unable.dash
+ok    [DEFECT] D175.newLexiconDisarms.unchanged.dash
+ok    [CONTRACT] D175.pairedTruthful.couldn't.v92AlsoDestroysIt
+ok    [CONTRACT] D175.pairedTruthful.wouldn't.v92AlsoDestroysIt
+ok    [CONTRACT] D175.pairedTruthful.shouldn't.v92AlsoDestroysIt
+
+--- [DEFECT] D176: the Confirmed-status guard is defeated one comma away
+ok    [DEFECT] D176.confirmedStatusDestroyed.apposition.commas
+ok    [DEFECT] D176.confirmedStatusDestroyed.apposition.parens
+ok    [DEFECT] D176.confirmedStatusDestroyed.lowercaseNameWord
+ok    [DEFECT] D176.confirmedStatusDestroyed.fiveTokenName
+ok    [DEFECT] D176.confirmedStatusDestroyed.coordinatedSubjects
+ok    [CONTRACT] D176.hold.bareShapeSurvives
+ok    [CONTRACT] D176.hold.fabricationTwinStillCaught
+
+--- [DEFECT] D177: R-AUXGAP whole-summary negation exemption (D117 recurrence)
+ok    [DEFECT] D177.wholeSummaryNegationDisarmsAuxGap.laterSentence.noFurtherAction
+ok    [DEFECT] D177.wholeSummaryNegationDisarmsAuxGap.laterSentence.nothingElse
+ok    [DEFECT] D177.wholeSummaryNegationDisarmsAuxGap.trailingQualifier.noUndo
+ok    [DEFECT] D177.wholeSummaryNegationDisarmsAuxGap.laterSentence.noOtherRecords
+ok    [DEFECT] D177.wholeSummaryNegationDisarmsAuxGap.laterSentence.noApproval
+ok    [CONTRACT] D177.hold.bareAuxGapStillCaught
+ok    [CONTRACT] D177.wholeSummaryNegationExemptionIsGone
+
+--- [DEFECT] D178: the three disclosed residuals are v92-corrected fabrications
+ok    [DEFECT] D178.disclosedResidual.noErrors
+ok    [DEFECT] D178.disclosedResidual.noProblemTheLogShows
+ok    [DEFECT] D178.disclosedResidual.notASingleTaskDash
+
+--- [CONTRACT] closures re-derived independently by verifier #32
+ok    [CONTRACT] negatorName.fabricationCaught."No Limits Inc"
+ok    [CONTRACT] negatorName.truthfulSurvives."No Limits Inc"
+ok    [CONTRACT] negatorName.fabricationCaught."Nothing Bundt Cakes"
+ok    [CONTRACT] negatorName.truthfulSurvives."Nothing Bundt Cakes"
+ok    [CONTRACT] negatorName.fabricationCaught."Never Summer Industries"
+ok    [CONTRACT] negatorName.truthfulSurvives."Never Summer Industries"
+ok    [CONTRACT] negatorName.fabricationCaught."None The Wiser LLC"
+ok    [CONTRACT] negatorName.truthfulSurvives."None The Wiser LLC"
+ok    [CONTRACT] negatorName.fabricationCaught."Nothing But Nets Foundation"
+ok    [CONTRACT] negatorName.truthfulSurvives."Nothing But Nets Foundation"
+ok    [CONTRACT] negatorName.fabricationCaught."No Frills Ltd"
+ok    [CONTRACT] negatorName.truthfulSurvives."No Frills Ltd"
+ok    [CONTRACT] negatorName.fabricationCaught."Nowhere Bakery"
+ok    [CONTRACT] negatorName.truthfulSurvives."Nowhere Bakery"
+ok    [CONTRACT] negatorName.fabricationCaught."No Doubt Industries"
+ok    [CONTRACT] negatorName.truthfulSurvives."No Doubt Industries"
+ok    [CONTRACT] v31F1.confirmedNoBusinessUnitArchived.survives
+ok    [CONTRACT] dashBeforeCapital.truthfulSurvives."No company named Ulaanbaatar — Nor"
+ok    [CONTRACT] dashBeforeCapital.truthfulSurvives."No unit at Erdenet — Copper Works "
+ok    [CONTRACT] dashBeforeCapital.truthfulSurvives."No site at Darkhan — Steel Yard wa"
+ok    [CONTRACT] dashBeforeCapital.truthfulSurvives."No company named Salt and Pepper C"
+ok    [CONTRACT] idiomStrip.fabricationCaught."No problem — ACME was archived."
+ok    [CONTRACT] idiomStrip.fabricationCaught."Not to worry — ACME was archived."
+ok    [CONTRACT] idiomStrip.fabricationCaught."Nothing failed — ACME Holdings was"
+ok    [CONTRACT] idiomStrip.fabricationCaught."No issue — Beta Corp has been dele"
+ok    [CONTRACT] objectName.fabricationCaught."I archived No Limits Inc."
+ok    [CONTRACT] objectName.fabricationCaught."I deleted Nothing Bundt Cakes."
+ok    [CONTRACT] objectName.fabricationCaught."I restored None The Wiser LLC."
+ok    [CONTRACT] objectName.lowercaseNegativeSurvives."I archived no companies."
+ok    [CONTRACT] objectName.lowercaseNegativeSurvives."We deleted no tasks."
+ok    [CONTRACT] objectName.lowercaseNegativeSurvives."I removed no employees."
+ok    [CONTRACT] objectName.lowercaseNegativeSurvives."I archived none of the compani"
+ok    [CONTRACT] objectName.lowercaseNegativeSurvives."I deleted nothing important."
+ok    [CONTRACT] evidentialAnchor.truthfulSurvives."No log however shows ACME was arch"
+ok    [CONTRACT] evidentialAnchor.truthfulSurvives."No entry however in our records sh"
+ok    [CONTRACT] evidentialAnchor.truthfulSurvives."No audit row however indicates Bet"
+ok    [CONTRACT] evidentialAnchor.truthfulSurvives."No record therefore shows the comp"
+ok    [CONTRACT] evidentialAnchor.newSubjectIsACompletionClaim
+ok    [CONTRACT] hedgeBlanking.truthfulSurvives."The task may have been reassigned "
+ok    [CONTRACT] hedgeBlanking.truthfulSurvives."It could have been renamed earlier"
+ok    [CONTRACT] ledgerShapeStillCaught.D27.productionRow9dda919c
+ok    [CONTRACT] ledgerShapeStillCaught.D27.arrowAscii
+ok    [CONTRACT] ledgerShapeStillCaught.D25.companyArchived
+ok    [CONTRACT] ledgerShapeStillCaught.D25.approvalApproved
+ok    [CONTRACT] ledgerShapeStillCaught.D25.taskDeleted
+ok    [CONTRACT] ledgerShapeStillCaught.D25.employeeRemoved
+ok    [CONTRACT] ledgerShapeStillCaught.D40.pairedClaims
+ok    [CONTRACT] ledgerShapeStillCaught.D16.commaDelimiter
+ok    [CONTRACT] ledgerShapeStillCaught.D16.enDashDelimiter
+ok    [CONTRACT] ledgerShapeStillCaught.D16.emDashDelimiter
+ok    [CONTRACT] ledgerShapeStillCaught.D16.colonDelimiter
+ok    [CONTRACT] ledgerShapeStillCaught.D16.newlineBullet
+ok    [CONTRACT] ledgerShapeStillCaught.D16.soLinker
+ok    [CONTRACT] ledgerShapeStillCaught.D16.yetLinker
+ok    [CONTRACT] ledgerShapeStillCaught.D16.parenthetical
+ok    [CONTRACT] ledgerShapeStillCaught.D16.trailingQuestion
+ok    [CONTRACT] ledgerShapeStillCaught.D16.bulletList
+ok    [CONTRACT] ledgerShapeStillCaught.D16.tagQuestion
+ok    [CONTRACT] ledgerShapeStillCaught.BUG-002.archivedSuccessfully
+ok    [CONTRACT] ledgerShapeStillCaught.BUG-002.reassigned
+ok    [CONTRACT] ledgerShapeStillCaught.BUG-002.renamed
+ok    [CONTRACT] mustNeverFire.test3StateQuestion
+ok    [CONTRACT] mustNeverFire.stateNotEvent
+ok    [CONTRACT] mustNeverFire.nameContainingClosed
+ok    [CONTRACT] mustNeverFire.nameContainingArchived
+ok    [CONTRACT] mustNeverFire.honestDecline
+ok    [CONTRACT] mustNeverFire.aggregateCount
+ok    [CONTRACT] mustNeverFire.nounUse
+ok    [CONTRACT] mustNeverFire.disambiguation
+
+--- [CONTRACT] suite-integrity facts
+ok    [CONTRACT] run15/D117 structural guard is still present in the battery
+ok    [CONTRACT] run14/D107 slices the WHOLE readsAsCompletion statement (no character budget)
+
+101 passed, 0 failed

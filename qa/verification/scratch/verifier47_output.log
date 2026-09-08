@@ -1,0 +1,73 @@
+Artifacts committed. Final report.
+
+---
+
+# VERIFIER #47 — CAMPAIGN #107 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (A `git rev-parse HEAD` = `bbc37ba0eaff…`; B scratch write probe OK; C `sem_ai_command_past_completion_claim_regex.mjs` 13 passed, 0 failed)
+
+## STEP 1 — production bytes, stated at their real strength
+
+| | |
+|---|---|
+| committed download artifact | 325 682 B, CRLF, `qa/verification/scratch/v92/deployed/…/index.ts` |
+| LF-normalised | **321 370 B, sha256 `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc`** |
+| `git show c9dfab5bd433:…/index.ts` | 321 370 B, **same sha256** — byte-identical |
+| `qa/verification/scratch/v92/index.v92.ts` | same bytes (its `eol=lf` attribute holds) |
+
+**CONFIRMED** that the committed v92 reference == git `c9dfab5bd433` == the required hash. **My provenance link this run is REPOSITORY-ARTIFACT-LEVEL, not byte-direct** — `supabase functions list`/`download` were refused by this session's command classifier, so the step from *a live download* to *these committed bytes* is inherited from ledger #108 and verifiers #45/#46, not re-measured by me. I am not overstating it. Provenance not re-opened, per instruction.
+
+## STEP 2 — the seven deploy questions
+
+1. **Bytes.** Deploy surface = **one file**, `supabase/functions/sem-ai-command/index.ts`. LF-normalised **+1743 / −52 lines**, 78 hunks, largest a 1093-line insert at 4776. Identifier delta re-derived, not restated: **499 → 708 declared, 209 added, 0 removed; top-level 46 → 46, none added, none removed.**
+2. **Preservation.** My own corpus: 707 rows (439 truthful / 268 fabrication), with the negator-token-name section in both directions. Quadrants (three-arm v92 model): v92-keep/cand-keep 284 · v92-keep/**cand-destroy 95** · v92-destroy/cand-keep 66 · both-destroy 262. **Truth regression 49** (all conditioned offer). **Fabrication regression 1 on the natural corpus — and 320 of 320 on the generated class it belongs to.** Matcher: 41 disambiguation shapes, v92 deviates from the safe answer 16 times, the candidate 3.
+3. **Reintroduction: none.** D3 `&& !result.pendingAction`, #66/D40 `!rawClaims`, Deno-unsupported inline modifier groups — all absent.
+4. **Yes** — campaign assumptions depended on v92 behaviour that differs. See V47-D1.
+5. **#64 D16 / #65 D25 / #65 D27 (row 9dda919c) / #66 D40: genuinely closed.** 26 pinned production shapes, **0 shipped**, re-derived with my own belt.
+6. **Rollback exact and available:** `c9dfab5bd43346bad501ab44d7bfbc5211e90ed5`, hash verified, `scripts/factory-runner/verify-deployed-bytes.sh` correct.
+7. **Yes** — the Edge change contains only the one intended file.
+
+## The two blockers — both new, both fix-prepared
+
+**V47-D2 (P1) — a fabrication v92 corrects and the candidate ships.** `nameInternal` needs an auxiliary *directly* governing the capitalised run. One lowercase head noun breaks it: `"No Limits Inc unit was archived."`, `"Erdenet's No Limits Inc depot was archived."` — **320/320** generated rows shipped. The discriminator is already computed and in scope (`knownEntityNames`) and `nameInternal` never reads it. **FIX PREPARED:** 224 of 264 closed, **0 of 448** truthful twins destroyed, battery 36/0.
+
+**V47-D3 (P1) — a wrong destructive bind where v92 dead-ends.** The ordinal path takes the first ordinal then strips them all, so `"option 1, option 2"` reads as ordinal-only and binds option 1 — arming `archiveCompanyIds` for the wrong company with no LLM in the loop (index.ts:2770). Five surface forms. #46 described the fix; it was never implemented. **I implemented it:** 5/5 closed, 0 of 36 other shapes changed, battery 36/0. (My first version used `new Set<number>()` and took **nine** suites to SyntaxError — the shipped form is inferred.)
+
+## STEP 3d — I attacked the correction, and it is still wrong
+
+**V47-D1:** `lib/v92_reference.mjs` models two arms. Deployed v92 has **three** — `claimsLifecycleClaim` (:441) → `claims{Task,Company,Person,Goal}Deleted` → `lifecycleMismatchCorrections` → `result.summary` at **:4174**, prose-driven, reachable on exactly the ungrounded turn every differential models. Witness: **`"Deleting the task now."`**. Truth regression **55 → 49**; six truthful rows were mis-counted as regressions that are parity. One-directional — *proved*, not assumed: arm 3 is byte-identical in both builds and 0 of 420 generated rows are arm-3-only misses. The deliberate non-modelling of turn-context conditions **is right**; omitting a prose-driven arm is not.
+
+## Other findings
+
+- **V47-D4** — 60 of 369 (16.3 %) belt truth-wins never reach the founder; the same arm overwrites first. Includes the campaign's own headline row. v92 parity, but every gate measures the belt and reads it as the product.
+- **V47-D5** — the product's own `Confirmed — you selected "Archived Media Group".` is belt-destroyed in both pack states; v92 preserves it. Reachability narrow (`CODE INSPECTED`).
+- **V47-D6** — reproduced V46-D4: a local const in `readsAsCompletion`'s `.map()` **broke run15 while CONTRACT 5 stayed green.** The narrowing is defensible for what it argued and blind to what actually breaks a suite.
+- **V47-D7** — 44 executable artifacts hard-code another checkout; several **write** there. **Running `v31_mutation_proof.mjs` wrote temp mutants into `C:/Users/Dell/dev/brain-os/…/mut31/` during this run and I could not clean it up** (outside my sandbox). This round's own `v47_guard_repro.mjs` reads its "candidate" from that other checkout and its anchor is absent here — **it is inert on the build it exists to measure.**
+- **V47-D8** — the sixth vacuity: `v92_parity_contract` reads 46/0 while its corpus contains **zero** conditioned offers and **zero** negator-token-name fabrications.
+- **V47-N1** — the three "refused" residuals are **all already caught**; the disclosure is stale.
+
+## Rulings requested
+
+- **Conditioned offer:** 49 real, 7 parity. Founder's call, not closed by regex. **Opinion:** ship the prepared option — the replacement text is a *false* claim about the system's own capability.
+- **"No North Depot"** argument: sound lexically, **moot** — `knownEntityNames` is the discriminator; and v92 destroys it too, so it is parity.
+- **Runtime:** e ≈ **1.83**, worst **62 ms at 16 KB**. Could not reproduce e = 2.97 / 3.9 s. Characteristic, **not blocking**.
+- **`CONFIRMED_COMPLETION` `closed|added`:** v92 misses all six too — **parity**, and the naive fix buys it with a new truth regression. Do not ship it.
+- **Counts:** battery **36 suites / 0 failures / 1052 assertions** (31 asserting, 5 SUPERSEDED stubs, **0 vacuous**), measured with `spawnSync`, no pipeline. Ledger #101's "34" is stale. run15 **57/0**, CONTRACT 6 green, run14/D107's budget is **gone** (statement-end scan). Gates: v34–v43 green; v42 12/1, v44 115/3, v45 53/1, v46 30/6 — all real. **v28/v29 no longer run at all** (`knownEntityNames is not defined`). Mutation proof: **12/12 load-bearing, 0 truthful answers destroyed by any revert.**
+
+## Coverage gaps, stated rather than skipped
+
+Browser/UI and live AI-chat tools were not available in this session — **UI and AI-chat truth checks are BLOCKED**, not silently passed. Live DB and `supabase functions list/download` were refused by the command classifier. `git push` of the artifact branch was refused; the commit exists locally.
+
+No synthetic `QA-VERIFY-*` data was created — this campaign is a source/behaviour differential with no database writes.
+
+## Artifacts (committed `b06e2d6` on `verify-bbc37ba-campaign107`)
+
+`qa/verification/proposed/v47_known_failure_modes_entry_114.md` · `v47_PROMOTION_NOTE.md` · `v47_regression_additions.mjs` (**42 CONTRACT pass / 10 DEFECT red, exits 1**) · `qa/verification/scratch/v47/` (instrument, corpus, 25 measurements, both prepared fixes) · `CURRENT_CAMPAIGN.json` checkpointed.
+
+---
+
+**FAIL**
+
+**EDGE STATUS = NOT DEPLOYMENT READY. Production stays v92.**
+
+`db0aa63588d8b3f67d5c4bbba0b4bd9d6df97c03ef03685bbe564afc8fd78e63`

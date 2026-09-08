@@ -1,0 +1,9 @@
+PASS BRAIN_CHAT_COMPLETED_WORK_ORDER_REPORTS_VERIFIED (allCommitsVerified)
+PASS BRAIN_CHAT_COMPLETED_WORK_ORDER_REPORTS_VERIFIED (lastRunVerificationStatus)
+PASS BRAIN_CHAT_VERIFICATION_SELECTS_CORRECT_AGENT_RUN
+PASS BRAIN_CHAT_MULTI_RUN_WORK_ORDER_REPORTS_VERIFICATION_TRUTH (partial -> false)
+PASS BRAIN_CHAT_MULTI_RUN_WORK_ORDER_REPORTS_VERIFICATION_TRUTH (both verified -> true)
+PASS Test B fixture: unverified commit correctly not reported as verified
+PASS Zero runs: correctly reports unverified/zero, never falsely true
+
+ALL REGRESSIONS PASSED

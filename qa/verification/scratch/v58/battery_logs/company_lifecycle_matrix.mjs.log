@@ -1,0 +1,33 @@
+OK   1 fresh channel: target outside the window is resolved by name and restored
+OK   1 evidence recorded only for the confirmed transition
+OK   1 the report names the outcome
+OK   2 model-emitted id outside the window is re-read and restored
+OK   3/4 reload / long conversation: a full unrelated window does not hide the target
+OK   5 restore after rename resolves the new name
+OK   6/7 archive with children/managers: one RPC, transition reported, nothing else touched
+OK   8 repeated archive/restore cycles are each truthful
+OK   9 a stale pending action alone executes nothing
+OK   10 already-active restore: truthful no-op, no evidence
+OK   11 already-archived archive: truthful no-op, no evidence
+OK   exact name match wins over a near-twin (no disambiguation needed)
+OK   ambiguous name: disambiguation armed, zero RPC calls, report says so
+OK   zero hits: no RPC, no evidence, the report says nothing was restored
+OK   zero hits via model-emitted name: same truthful line
+OK   rpc error: failed envelope, report says failed, no success evidence
+OK   postcondition not confirmed: executed but unverified envelope, treat as not restored
+OK   denied: no evidence, permission line
+OK   a task delete command produces no company line and no company RPC
+OK   D3 exact-named company is NOT archived when the model resolved the command to a task
+OK   D3b a negated lead never executes (exact name)
+OK   D3b a question never executes (exact name)
+OK   D3b a hypothetical lead never executes (exact name)
+OK   the imperative twin of the same command DOES execute (positive control)
+OK   the model classifying the request as a READ withholds the command fallback
+OK   D4 "restore Archived Assets Ltd": exactly one restore RPC, ends active, no stray archive question
+OK   D4 "archive Restored Furniture Co": exactly one archive RPC, ends archived
+OK   D4 exact name is found behind 60 rows sharing its longest word
+OK   D6a a polite lifecycle question executes (model emitted nothing)
+OK   D6a a genuine question still never executes
+OK   requestIntent.targetName resolves a restore in another language
+
+company_lifecycle_matrix: 31 passed, 0 failed

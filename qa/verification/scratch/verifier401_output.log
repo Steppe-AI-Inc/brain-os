@@ -1,0 +1,42 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+## FOUND
+
+Round 3's three load-bearing P1s **are** genuinely closed, and I proved each closure is pinned to the exact clause by mutating the SQL and watching the guard reopen:
+
+- **A‑1** — the trusted-write gate now requires the SECURITY DEFINER execution context, not just the client-settable GUC. 21 attack paths (GUC-raised UPDATE of all 10 trusted columns, INSERT, explicit transaction, invoker wrapper, `service_role` session, a forgery piggybacked in the same transaction as a legitimate RPC) all refused with the guard's own 42501. Adding `'authenticated'` to the gate list makes the forgery land again; reverting re-closes it.
+- **B‑2** — 7 cross-company paths refused, ancestor guard present verbatim in the live `pg_get_functiondef`, historicise scoped to managed companies.
+- **D‑1** — the harness itself. I chose 5 mutations independently of the implementing session's proof; every one forced a self-check refusal or a named persona failure, files restored byte-identical by sha256. The **live** CI log (downloaded, not the archive) prints `session_user = qa_authenticator`, `rolsuper=false`, `rolbypassrls=false`.
+
+21 of 22 round-3 findings CLOSED / ACCEPTED / RECORDED, re-derived from the SQL.
+
+**Two new P2s block it — both the same shape the last three rounds were about: a comment that reads as closed over SQL that is not.**
+
+**R4‑1 (D)** `guard_agent_run_retry_columns` omits `canonical_work_order_id`, `task_id`, `agent_id` — three columns the claim RPC **returns** to the supervisor that spawns an unattended session — while `:227` asserts *"Every column the claim RETURNS or SELECTS ON is now guarded."* Reproduced as a real persisted write by a company manager (`rowCount=1`, stored value changed), with the guarded control column refused on the same row. Structurally identical to D‑3, one round later.
+
+**R4‑3 (C)** C‑3's protected end state is reachable two ways: a manager can two-step (disable, then repoint) a founder-enabled binding onto the founder's channel, and can simply *create* a disabled binding pointing at it — nothing guards channel **ownership**. Once the founder enables it, the manager's external conversation routes into the founder's private channel. The response's *"C‑2 and C‑3 are closed regardless"* is wrong about C‑3.
+
+Also: **R4‑5** the persona session is a convention, not an engine boundary (`SET SESSION AUTHORIZATION postgres` succeeds — the harness login is a superuser; no PostgREST client can do it, so P2 not P1). **R4‑6** no CI run exists on this commit; the evidence is run 33845376254 on `27a807d`, delta = two non-executed artifact files (verified), archived log confirmed a faithful copy of the live one. **R4‑7** the "five live flag-only migrations" list is one file too broad. R4‑2/4/8/9/10 recorded.
+
+## PRODUCTION
+
+No production authority used — no `db push`, no `--linked` query, no Supabase host, no `DBTEST_PG_URL`. PGlite in-process only. Nothing under review was modified: `git diff 96e1309..HEAD -- supabase/ qa/dbtest/ qa/scenarios-runner/ .github/ web/` is **empty**.
+
+**Synthetic data:** none to clean up. Every probe ran in an in-memory PGlite database destroyed at process exit; no `QA-VERIFY-*` row was ever written to any real system.
+
+## BLOCKERS
+
+Two cheap changes make the batch authorizable — neither is a redesign:
+1. **D** — add the three columns to `202609030001…sql:229-251`, or correct the completeness claim at `:227` and accept the gap in the SQL. Then D is a PASS.
+2. **C** — add a channel-ownership condition to the enable gate; C is already out of the batch, but the response must stop calling C‑3 closed.
+
+Plus: re-run `validate-real-postgresql` on whatever commit is actually pushed.
+
+Verdict written to `qa/verification/DB_REVIEW_ROUND4_VERDICT.md`, committed with all 11 probe files to `verify-96e1309-campaign4` as `b13173c`.
+
+**A: PASS · B: PASS · C: FAIL · D: FAIL**
+
+**OVERALL VERDICT: FAIL**
+**Candidate commit reviewed: `96e1309a051cb969bb637b73298d0f8e4f682bd8`**

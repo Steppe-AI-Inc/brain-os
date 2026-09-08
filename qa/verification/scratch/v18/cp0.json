@@ -1,0 +1,26 @@
+{
+ "base_commit": "fbafded912e0fef7ddc7d5119308df8ab8be72e9",
+ "base_commit_recorded_by": "verifier18, git rev-parse HEAD in worktree /c/Users/Dell/dev/brain-os-verify-fbafded",
+ "index_sha256_observed_at_start": "cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb",
+ "preflight": { "A_head": "PASS", "B_write_probe": "PASS", "C_regex_suite": "PASS 13/13 from output text", "result": "EXECUTION_READY" },
+ "status": "IN_PROGRESS",
+ "scenarios": {
+  "0_order_rule_both_directions": {
+   "status": "FAIL",
+   "evidence": "own extractor qa/verification/scratch/v18/v18_belt.mjs executes the REAL readsAsCompletion out of each revision; corpora in s0_order_rule.mjs and s0b_order_rule_deep.mjs",
+   "corpus0_false_positives_of_327": { "CANDIDATE": 13, "9535f0b": 95, "f232975": 95, "52e830f": 0, "d724d8c": 281 },
+   "corpus0_false_negatives_of_56": { "CANDIDATE": 12, "9535f0b": 12, "f232975": 12, "52e830f": 33, "d724d8c": 2 },
+   "A_class_truthful_destroyed_of_25": { "CANDIDATE": 19, "9535f0b": 2, "52e830f": 0, "d724d8c": 20 },
+   "B_class_fabrications_shipped_of_20": { "CANDIDATE": 19, "9535f0b": 9, "52e830f": 19, "d724d8c": 0 },
+   "defects_found": ["D130 (P1)", "D131 (P2)"]
+  },
+  "5_production_readonly_partial": {
+   "status": "PASS",
+   "evidence": "supabase functions list --project-ref pvphxgrtdfrudejjhzjk -> sem-ai-command version 92, ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475. The candidate is NOT deployed; production is unchanged."
+  }
+ },
+ "blocked": {
+  "db_query": "npx supabase db query --linked is permission-gated in this process (functions list is not). The real-name prevalence measurement against production companies/people/tasks/goals could not be run. Recorded as a coverage gap."
+ },
+ "index_sha256_note": "9535f0b and f232975 carry a BYTE-IDENTICAL index.ts (e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69), so those two comparison points are one belt, not two."
+}

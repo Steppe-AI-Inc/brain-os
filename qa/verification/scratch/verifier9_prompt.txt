@@ -1,0 +1,24 @@
+INDEPENDENT ADVERSARIAL VERIFICATION — campaign verify-6ed3834-run8-defect-closure (verifier #9, campaign #69).
+
+Repo: C:/Users/Dell/dev/brain-os, branch pending/d3-past-completion-gate-pendingaction-shortcircuit, commit 6ed3834 ("Close run8 D58-D67"). Production remains sem-ai-command v92 — you must NOT deploy anything; production access STRICTLY READ-ONLY. Archive the current qa/verification/CURRENT_CAMPAIGN.json (campaign #68, verifier #8's record with the implementing session's fix bookkeeping) to qa/verification/archive/campaign-e8678ec-run7-defect-closure.json before starting your own record.
+
+History you must NOT re-derive but MUST NOT trust either: verifier #8 (static-only; its session could not execute scripts) found D58-D67 on e8678ec; the implementing session executed all 21 of its hand traces (21/21 exact), applied fixes, promoted the attack cases to qa/scenarios-runner/run8_defect_closure_contract.mjs with FIXED expectations, and mutation-proved the guards. Treat every one of those claims as unverified.
+
+Your scenarios:
+1. Re-execute the full battery yourself (structured_claim_verification, structured_claim_laundering_contract, lifecycle_evidence_and_output_persistence_contract, run8_defect_closure_contract, issue5_confirmation_action_type_binding, all sem_ai_command_* truth suites) on 6ed3834 exactly as committed.
+2. Attack the NEW mechanisms beyond the recorded cases:
+   - the evidence-driven rewrite trigger (hasConfirmedMutationEvidenceInWindow) and structuredProseDrift: find any remaining shape where fabricated completion prose ships (deterministic modes, proposedPlan turns, evidence with postconditionPassed=false, unicode/zero-width tricks in LEGACY_PAST_COMPLETION, non-English fabrications in plain prose);
+   - safeQuestionFragment's structural cut: sentence terminators it misses (…, ;, newline, ellipsis, CJK/Cyrillic punctuation, "?" INSIDE a quoted assertion), a completion assertion phrased AS a question ("Did you know ACME has been archived?"), length-bound edge cases;
+   - safeOptionLabel / safePendingSummary: completion vocabulary the COMPLETION_WORD list misses, non-English completions, structure smuggled via option ids;
+   - the in-place pendingAction gating: does anything downstream (persist at work_orders.update, the next-turn replay paths at the confirm/clarify/disambiguate sites, buildContext's read of output.pendingAction) read a COPY taken before the gating? Is 'Confirmed.' rendered when stored summary/question are null?
+   - runtime labels: can a model-controlled string reach runtimeLabels (labels come from result.* request fields — they are model-authored!) and carry a fabricated completion or a uuid into founder prose through displayName? THIS IS A REAL OPEN QUESTION: recordLabel ingests result.createX[].name/title etc., which the MODEL wrote. displayName renders them raw. Decide whether that is a laundering channel (a "task" titled "ACME has been archived" would render "ACME has been archived: created.") and record it as a defect if so.
+   - the D65 fold: can it hide a REAL failed create (claim for type+action where evidence exists for a DIFFERENT instance of same type+action)?
+   - factLines-in-lifecycle joins: duplication or ordering artifacts.
+3. Mutation-test the new guards YOURSELF (sha256 byte-identical restores).
+4. Verify the Section S rewrite cannot be satisfied vacuously (liveSrc filter correctness incl. CRLF, block comments /* */ spanning lines — the filter only strips lines STARTING with comment markers; a trailing same-line comment containing a literal could still satisfy it — check).
+5. Production read-only: v92 still ACTIVE, untouched; zero writes from your session.
+6. Test-bookkeeping honesty: X-section flips, run8 suite expectations, KNOWN_FAILURE_MODES #68 postscript accuracy.
+
+Record defects with ids D68+. Checkpoint scenario-by-scenario into qa/verification/CURRENT_CAMPAIGN.json. If you hit a provider/session limit, write the checkpoint FIRST; verdict stays PENDING/BLOCKED. End with an explicit verdict: DEPLOY GATE OPEN or DO NOT DEPLOY with exact reasons.
+
+Standing safety rules: no supabase db push, no functions deploy, no production writes, scripts/safe-function-download.sh for any deployed-copy need, working-tree writes only under qa/verification/** and qa/scenarios-runner/** (new suite files only).

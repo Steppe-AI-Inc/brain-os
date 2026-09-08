@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Overnight multi-org milestone: activeOrganizationId scopes KPIs to the currently
 // selected organization when set, same pattern as getPeople() in lib/data/people.ts —
@@ -23,7 +24,7 @@ export async function getSalaryRules() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("salary_rules")
-    .select("id, company_id, role_title, rule_name, formula, active, companies(name, status)")
+    .select(`id, company_id, role_title, rule_name, formula, active, ${COMPANY_REF}`)
     .eq("active", true)
     .order("role_title", { ascending: true, nullsFirst: true });
   if (error) throw error;

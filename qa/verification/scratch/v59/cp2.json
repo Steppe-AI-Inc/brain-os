@@ -1,0 +1,9 @@
+{
+  "verifier59_findings": [
+    {
+      "id": "V59-3-VACUITY",
+      "level": "UNIT VERIFIED (in-place byte swap, sha-restored)",
+      "text": "16/16 mutants killed by at least one baseline-green suite (56 suites, lifecycle_rpc_only via the byte-repaired copy): receipt block deleted (final_claim, v56, v57, v58); !result.pendingAction restored (final_claim, run8); create postcondition literal (lifecycle_evidence, v57); durable read last (grounding_precedence, run11, v57); envelope dropped (collection_envelope); hand-written companies(name,status) join in web (archived_parent_policy); hand-written org sentinel ternary in web (org_scope_helper); receipt ignores intent (8 suites); read veto dropped (v56/v57/v58); imperative allow-list dropped (v58); task ids window-gated (v58 + rpc_only); executedVerifiedCount ignores postcondition (final_claim, v56-58); receipt always company (v58); persist only when grounded (mutation_envelope, lifecycle_evidence, v57); UNVERIFIED history marker dropped (grounding_precedence, v57); ambiguous name executes first hit (v57). index.ts sha256 715246f3 restored; web/lib/data/people.ts restored."
+    }
+  ]
+}

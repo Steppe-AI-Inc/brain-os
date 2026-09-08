@@ -2,6 +2,12 @@
 
 # Brain OS — `/web` (the base foundation)
 
+> **Conventions only, not a rule source.** How work is defined, verified and released is
+> governed by the repo-root `CLAUDE.md` (Development Constitution),
+> `governance/OPERATING_TRUTH_MODEL.md`, `governance/CANONICAL_WORK_CONTRACT.md` and
+> `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. If a sentence here ever reads as a
+> rule that disagrees with those, those win and this file is the thing to fix.
+
 Product name as of 2026-08-24: **Brain OS** ("the company brain"), formerly "SEM Brain" —
 renamed at the founder's request. Same product, same codebase; only the user-facing name
 changed (UI copy, page titles, the AI's own system-prompt persona). Internal identifiers
@@ -54,34 +60,18 @@ One file per domain in `lib/data/<domain>.ts`, always `"use server"`:
 See `lib/data/goals.ts` for the fullest example (all three shapes in one file) and
 `lib/data/companies.ts` for the minimal case.
 
-## Canonical operations & execution truth
+## Canonical operations & execution truth (pointer)
 
-Three rules added 2026-08-29, after a real incident: AI chat claimed a company was
-deleted with zero mechanism behind it, and the real Delete button then hit a raw
-"too many dependencies" error from an earlier, overly defensive fix. Both were the same
-underlying design mistake. See `supabase/migrations/202608280013_frictionless_company_delete.sql`
-(`archive_company`/`restore_company`) for the reference implementation.
-
-1. **Security decides whether an operation is allowed. It should not make an allowed
-   ordinary operation difficult.** A permission check either passes or fails — it must
-   not degrade into a maze of dependency warnings for an operation the caller is
-   authorized to perform. (Archiving a company was redesigned to destroy nothing, so
-   there is nothing to check beyond authorization — no dependency traversal at all.)
-2. **The same business action from UI, AI, agent or API must converge on the same
-   canonical domain operation.** Never let a chat handler and a UI Server Action
-   independently implement "delete this thing" — they drift, silently, and stop
-   agreeing about what the action even means. One shared RPC/function is the only path;
-   where possible, make it a real DB-enforced invariant (a trigger checking a
-   session-local flag the canonical function sets), not just a convention every caller
-   is expected to follow.
-3. **The execution result — not generated language — is the source of truth for whether
-   an action happened.** An LLM's own summary text must never be trusted for outcome
-   claims. Ground every mutation-claiming response in the real return value of the
-   operation it ran, and replace (not merely prepend to) the model's prose when the real
-   result is the entire point of the turn — prepending was proven insufficient live: the
-   model can still contradict a correct prepended fact. When nothing was actually
-   attempted, detect language that claims an action happened anyway and correct it
-   explicitly, since there is no result to ground against in that case.
+The one-operation rule (UI, AI, agent and API converge on the same canonical RPC), the
+lifecycle semantics, and the archived-parent policy are defined in
+`governance/CANONICAL_WORK_CONTRACT.md`. What counts as truth for an execution claim
+(the receipt rule, never the model's prose) is defined in
+`governance/OPERATING_TRUTH_MODEL.md`. The reference implementation is
+`supabase/migrations/202608280013_frictionless_company_delete.sql`
+(`archive_company`/`restore_company`) and the web wrappers go through
+`lib/contracts/lifecycle.ts` (`callLifecycleRpc`). Child→company joins go through
+`lib/data/company-ref.ts` and consult `lib/policy/archived-parent.ts`; org scope goes
+through `lib/data/org-scope.ts`. Do not re-implement any of these per entity.
 
 ## Shared UI
 
@@ -200,24 +190,11 @@ Departments pages added 2026-08-24.
 
 ## Deploying
 
-**Git auto-deploy genuinely works** — `git push` to `master` is enough. This project
-(`brain-os`) was created fresh via Vercel's dashboard Git-import flow with Root Directory
-set to `web` from the start, unlike the original `web` project (deleted 2026-08-24) whose
-Root Directory was misconfigured with no CLI/API fix available.
-
-Manual deploy, if ever needed:
-
-```
-cd C:\Users\Dell\dev\brain-os        # repo ROOT, not /web — see why below
-vercel link --project brain-os --yes   # only needed once per machine
-vercel --prod --yes
-```
-
-**Must run from the repo root, not from inside `/web`.** `brain-os`'s Root Directory is
-set to `web`, so a CLI deploy needs to upload the whole repo and let Vercel descend into
-`web/` itself. Running the CLI already inside `/web` uploads that directory as the root
-and then Vercel tries to descend into `web/` again looking for a `web/web/` that doesn't
-exist — fails with `"Root Directory web does not exist"`.
+Production web deploys happen only by merging a pull request into the protected `master`
+branch; Vercel builds from that commit (project `brain-os`, Root Directory `web`). There
+is no manual `vercel --prod` path and no direct push to `master` (`CLAUDE.md` §8). After a
+merge, confirm the GitHub commit status "Vercel" is `success` and its deployment ID
+matches `vercel inspect brain.open-spot.ai` (`qa/LIVE_SYSTEM_MAP.md`).
 
 `brain.open-spot.ai` is bound to this project at the **project level**
 (`vercel domains add brain.open-spot.ai brain-os --force`) — it automatically follows

@@ -1,0 +1,112 @@
+---
+
+# VERIFIER #23 — CAMPAIGN #83 FINAL REPORT
+
+```
+PREFLIGHT: EXECUTION_READY
+```
+HEAD `82d4d7715e17b520b14165ba23a726d7cdf3b586` ✓ · write probe ✓ · `sem_ai_command_past_completion_claim_regex.mjs` 13/0 ✓
+
+**Note on the pinned bytes:** the dispatch describes `index.ts` as LF. It is in fact CRLF-dominant (5,887 CRLF, 40 bare LF, 457,861 bytes). Preserved verbatim; only the sha256 was ever treated as authoritative.
+
+## FOUNDER SUMMARY
+
+**FOUND** — The run22 closure genuinely fixes what verifier #22 asked for, but it introduces two *new* ways for Brain OS to destroy a **true** answer and replace it with a false one — the direction `index.ts`'s own comments call the worse one. Both are under-disclosed, not undisclosed, which is exactly the bookkeeping failure verifier #22 caught run21 doing.
+
+**ROOT CAUSE** — Both new arms were measured on corpora that did not contain the shapes they put at risk.
+
+**SYSTEMIC IMPACT** — This is the 12th consecutive change to this belt and the 10th to close one direction while opening another. The recurring class is *"collateral measured on a corpus that omits the at-risk shape."*
+
+**FIXED** — Nothing in the implementation tree (I have no write authority there, and the sha256 is byte-identical at the end). Two **measured** safe fixes are prepared in `v23_PROMOTION_NOTE.md`.
+
+**BLOCKERS** — One decision for you, in §"Founder approval" below.
+
+## FINAL REPORT (skill format)
+
+```
+CHANGE VERIFIED: sem-ai-command run22 closure — D150 label gate, D151 lexicon + free-pass
+                 deletion, D152 active-voice arm, D149 pin
+SCENARIOS: 5 passed, 1 failed, 2 blocked
+CANONICAL GRAPH: N/A (no DB entity was mutated this campaign)
+UI ↔ DB:         BLOCKED  (candidate not deployed; nothing carries these bytes)
+AI ↔ DB:         BLOCKED  (same)
+DEPENDENCIES:    PASS     (no prior closure reopened; question belt byte-identical ×5 SHAs)
+PERMISSIONS:     PASS     (fail-closed on absent/null/''/assign/__proto__ actionType; no `|| 'archive'`)
+RELOAD/PERSISTENCE: N/A
+IDEMPOTENCY:     N/A
+```
+
+### Scenarios executed
+
+| # | Scenario | Result |
+|---|---|---|
+| 0 | D150 end-to-end, both directions, through real `decide()` | **PASS** 140/140 |
+| 1 | D151 both directions + re-derived counts vs 4 baselines | **PASS on corpus, FINDING on hunt** |
+| 2 | SHA + full battery from the filesystem | **PASS** 32 suites, 0 non-zero exits, 0 FAIL lines |
+| 3 | Independent mutation test (own harness) | **PASS** 7/7 load-bearing |
+| 4 | No prior closure reopened + read-only prod | **PASS** 91/92 (the 1 was my own over-tight bound) |
+| 5 | Founder-directed lexical-branch scenario | **PASS** 241/241 |
+| 6 | Ledger + bookkeeping truth | **FAIL** — 3 claims refuted, 1 stale header, 1 gap |
+| — | UI / live-AI-chat truth | **BLOCKED** (see coverage gaps) |
+
+### Failures discovered
+
+| | D155 | D156 | D157 |
+|---|---|---|---|
+| **Severity** | P2 | P3 | P2-shaped |
+| **Kind** | REGRESSION vs `b32e0e4` **and** `0969852` | REGRESSION vs `b32e0e4`, `54ebecc` **and** `0969852` | **PRE-EXISTING**, undisclosed |
+| **Expected** | `I removed it from my draft, not from the database.` survives | `No log however shows ACME was archived.` survives | `Bring Back` ← `"bring back"` dead-ends |
+| **Actual** | replaced with *"I can't actually do that from chat — nothing was changed."* — **24/24** | belt fires on a truthful negative — **11/12** | **arms `archiveCompanyIds`** on a restore intent |
+| **Root cause** | the D152 arm's object test is `\s+\S` — *any non-space char*. `LEGACY_PAST_COMPLETION` carries `/i`, so a capitalisation test is inexpressible in place | deleting `!NEGATION_AUX.test(c.slice(0,n))` removed the only protection for a negator scoping through an **evidential complement** (`shows`/`proves`/`indicates`…) | two lexicons decide one thing: `RESTORE_VERB_PATTERN` has `bring back`/`un-archive`; the imperative test's inline copy does not |
+| **User impact** | the AI's honest *correction* that it did **not** touch the database is destroyed | a true "no such record" answer is destroyed | D148's exact shape (rated P1), on the opposite intent |
+| **Same-class search** | swept the whole first-person non-entity space (24 natural shapes); also swept contraction/bare misses (`I've deleted…`, `I archived.` — pre-existing) | swept evidential + coordinator + subordinator + aux-preceded families across 4 SHAs | swept both verb lexicons against each other; found D154's disclosed side too |
+| **Regression test** | `qa/verification/proposed/v23_regression_additions.mjs` | same | same |
+| **Status** | **flagged + fix prepared & measured** (FIX-B) | **flagged + fix prepared & measured** (FIX-A) | **flagged, direction only** |
+
+**Reachability is real, not hypothetical.** `structuredProseDrift` (line ~5666) needs only `rawClaims !== null` — any structured claims array, which the system prompt asks for — so ordinary read-only turns route into `rewriteFromStructure`. `legacyProseFallback` (~5614) covers the ungrounded case. Either path discards the true sentence.
+
+### Genuinely closed — re-derived independently, not taken on trust
+
+- **D150 CLOSED.** Cross-SHA proof that verifier #22 was right: the base-verb-name corpus is **13/13 correct at `b32e0e4`, 13/13 at `54ebecc`, 0/13 at `0969852`, 13/13 here.**
+- **D148 not traded away:** 62 phrasings dead-end. **0/6 at `b32e0e4`, 1/6 at `54ebecc`, 6/6 at `0969852`, 6/6 here — the candidate is the only SHA holding *both* D148 and D150.**
+- The `typeof label === 'string'` guard is **load-bearing**, not decoration: `matchDisambiguationOption`'s ordinal path (line ~457) validates only `.id`, so removing it is an uncaught `TypeError` (4/4).
+- **D151 lexicon half, D147b, D149** (run15 runs its full **57**) all closed and mutation-proven.
+- **No prior closure reopened:** D93 D102 D106 D112 D116 D118 D123 D125 D127 D128 D129 D130 D131 D132 D133 D134 D135 D136 D137 D138 D139 D142 D146 D148 re-derived. Question belt `2a7b9678…` byte-identical across all five SHAs. Diff surface = exactly the 4 declared hunks.
+- **Production, read-only:** `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…`, `updated_at 1788239725518` — unchanged since #75. **The candidate is not deployed. Nothing was written to production.**
+
+### Claims that need correcting
+
+1. *"D151 … measured **strictly better** on both axes"* — **refuted.** Better on that corpus; 11/12 worse on the evidential family.
+2. *"D152 idiom FP — **one** accepted first-person idiom FP"* — **materially under-disclosed.** Not an idiom, not one: 24/24.
+3. *"collateral 0/75 truthful destroyed"* — corpus-dependent; 35/122 on a corpus containing the at-risk shapes.
+4. `run22_defect_closure_contract.mjs`'s header is **stale** — still pinned at `be8d9ca`/`272de3a4…` and still says *"a green run means this file is not doing its job"*, after being promoted onto the candidate where it is green by design.
+5. *"deno check 23 == baseline"* — **NOT RE-DERIVED** (no `deno` on `PATH`).
+
+### Coverage gaps — disclosed, not skipped
+
+- **UI and live-AI-chat truth checks: `BLOCKED`.** Browser tools were not available in this session type, *and* there is no deployed build carrying these bytes (production is v92) to drive one against. These are a real gap, not a silent pass.
+- **`deno check`: `BLOCKED`.** No Deno. FIX-B's `(?-i:…)` modifier is **Node v24.19.0-verified only** — the promotion note carries the one-line Deno check to run first and three modifier-free fallbacks.
+- No DB/RLS work attempted; this change touches neither.
+- **Evidence level:** `UNIT VERIFIED` / `CODE INSPECTED` for the belt and matcher (real predicates extracted and executed in-process); `LIVE VERIFIED` only for the read-only production version check; **nothing here is `E2E VERIFIED`.**
+
+### Synthetic data
+
+**None created.** This campaign never wrote to the database — the only production contact was one read-only `supabase functions list`. There is no `QA-VERIFY-*` data to clean up. All transient files (historical `index.ts` baselines, mutation temp copies) were deleted; `qa/verification/scratch/v23/REGENERATE_BASELINES.sh` reproduces them from git in one command.
+
+### Commits
+
+| hash | summary |
+|---|---|
+| `a1e6e37` | Campaign #83 (verifier #23): FAIL on the run22 closure — D155/D156 regressions, D157 pre-existing — on `verify-82d4d77-campaign83` only |
+
+### FOUNDER APPROVAL SECTION
+
+**No database migration is pending. Nothing requires `supabase db push`.** One decision:
+
+> **Adopt FIX-A + FIX-B before this candidate is deployed?** Both are one-line, need no new `const` (so run15–18 stay intact), and are measured: **D155 24→0, D156 11→0, D144 15/15 still caught, D145 0 destroyed, corpus unchanged.** The whole 32-suite battery is clean on them except run22's `D152.residual.restoredOrderIdiomFP` pin, which correctly reports the FP disappearing — update that pin in the same commit (the D149 rule). **Before adopting FIX-B, run `deno eval "new RegExp('(?-i:[A-Z])','i')"` in the deploy runtime**; if it throws, take fallback 1 or 3 in `v23_PROMOTION_NOTE.md` §4.
+
+---
+
+**VERDICT: FAIL**
+
+index.ts sha256 at end: `e802227b2944585fa7ff6989030c4d96b84f61ea1e778405195af157d9e449f3`

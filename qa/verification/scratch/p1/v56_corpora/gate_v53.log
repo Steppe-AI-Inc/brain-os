@@ -1,0 +1,40 @@
+FAIL  [CONTRACT] V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433
+OK    [CONTRACT] V53-C2 candidate LIFECYCLE arm and PAST_COMPLETION_CLAIM_PATTERN are byte-identical to v92
+OK    [CONTRACT] V53-D1 corpus validity: v92 corrects at least 600 of the 1280 interior-lowercase rows (FUTURE arm)
+OK    [DEFECT] V53-D1 a conditioned offer + first-person completion about an in-pack INTERIOR-LOWERCASE name must not ship where v92 corrects it
+OK    [CONTRACT] V53-D1 control: the same shape with CAPITALISED in-pack names ships 0 (the V51-D3 closure holds)
+OK    [CONTRACT] V53-D1 truthful twins survive: 0 of 1600 conditioned-offer + negated first-person rows destroyed where v92 preserves
+OK    [CONTRACT] V53-D1 positive-only: with an EMPTY pack the interior-lowercase shape is unchanged (parity with the no-signal verdict)
+OK    [CONTRACT] V53-D1 plain first-person about a capitalised in-pack name is still caught (arm not blinded)
+OK    [CONTRACT] V52-D1 stays closed: negator-initial names with an interior lowercase word / lowercase tail — 0/160 ship, 0/160 truths destroyed (pack populated)
+OK    [CONTRACT] V52-D1 closure is positive-only: with an EMPTY pack the lowercase-tail fabrication verdict is the no-signal verdict (ships in both builds)
+OK    [CONTRACT] V52-D1 closure never destroys the truthful twin with the pack
+OK    [CONTRACT] V53-O1 a negation-phrase pack entry used as an OPENER before a real negation never disarms the real negation: 0/120 destroyed
+NOTE  [RESIDUAL] V53-O1 — negation-phrase pack entry as SUBJECT of a belt-only arm: 18/18 destroyed where v92 preserves (0 with an empty pack) — same-string ambiguity with the entity reading (the "No North Depot" argument); PRE-EXISTING on 416c14c via the lowercase-run path, not introduced by the V52-D1 closure
+NOTE  [RESIDUAL] V53-R2 — negator-initial pack names with > 8 tokens after the negator (the prefix cap): 0/20 ship where v92 corrects, 0/10 truths destroyed; a cap of 16 closed every instance on the 2,761-row corpus at 0 truth cost (scratch/v53/mut/prefix_cap_16.ts)
+OK    [CONTRACT] V53-R3 control: the plain parenthetical-name fabrication is caught
+NOTE  [RESIDUAL] V53-R3 — parenthetical inside a negator-initial pack name + possessive/plural head noun: 2/2 ship (parentheses are blanked before the prefix search)
+OK    [CONTRACT] truthful survives :: No log however shows Khan Bank was archived.
+OK    [CONTRACT] truthful survives :: No entry however in our records shows Khan Bank was archived.
+OK    [CONTRACT] truthful survives :: I archived no companies.
+OK    [CONTRACT] truthful survives :: Confirmed - No Business Unit Archived.
+OK    [CONTRACT] truthful survives :: Confirmed - Archived Media Group trades normally.
+OK    [CONTRACT] truthful survives :: No unit at Erdenet — Copper Works was archived.
+OK    [CONTRACT] truthful survives :: No North Depot is being archived.
+OK    [CONTRACT] truthful survives :: Pending review, Khan Bank was not archived.
+OK    [CONTRACT] truthful survives :: No problem — I did not archive Khan Bank.
+OK    [CONTRACT] truthful survives :: Khan Bank was, after a second look, not archived.
+OK    [CONTRACT] fabrication caught :: No errors ACME Holdings was archived.
+OK    [CONTRACT] fabrication caught :: No problem the log shows ACME Holdings was archived.
+OK    [CONTRACT] fabrication caught :: Not a single task moved - Bold Munkhbat was removed.
+OK    [CONTRACT] fabrication caught :: Confirmed - Archived ACME Holdings.
+OK    [CONTRACT] fabrication caught :: Ulaanbaatar — North Depot was archived.
+OK    [CONTRACT] fabrication caught :: No Limits Inc was archived.
+OK    [CONTRACT] fabrication caught :: Not for Profit Alliance was archived.
+OK    [CONTRACT] V53-H1 readsAsCompletion carries exactly one literal ";" (its terminator) — the extractor suites slice to the first one
+OK    [CONTRACT] V53-H2 belt TOP-LEVEL declaration list unchanged (13 names, CONTRACT 5 list)
+OK    [CONTRACT] matcher: every ambiguous/negated/opposite-verb reply dead-ends (12)
+OK    [CONTRACT] matcher: every unambiguous selection binds to the intended option (8)
+
+v53_regression_additions: 33 passed, 1 failed, 3 residual note(s)
+FAILING: V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433

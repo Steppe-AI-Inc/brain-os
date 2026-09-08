@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { approvalRisk, domainForRisk } from "@/lib/proposals/risk-score";
 import { renderPdf, type PdfLine } from "@/lib/pdf/simple-pdf";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // internal_margin lives in proposal_financials (manager+ RLS), fetched separately and
 // merged — mirrors getProductLines(). A non-manager's proposal_financials query comes
@@ -17,7 +18,7 @@ export async function getProposals(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let proposalsQuery = supabase
     .from("proposals")
-    .select("id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, companies(name, status)")
+    .select(`id, title, status, currency, subtotal, discount_pct, total, payment_terms, version, created_at, ${COMPANY_REF}`)
     .order("created_at", { ascending: false });
   if (activeOrganizationId) proposalsQuery = proposalsQuery.eq("company_id", activeOrganizationId);
   const [{ data, error }, { data: financials }] = await Promise.all([
@@ -198,7 +199,7 @@ async function generateQuotationPdfInner(proposalId: string): Promise<string | {
 
   const { data: proposal, error: proposalError } = await supabase
     .from("proposals")
-    .select("id, title, currency, subtotal, discount_pct, total, payment_terms, created_at, company_id, companies(name, status)")
+    .select(`id, title, currency, subtotal, discount_pct, total, payment_terms, created_at, company_id, ${COMPANY_REF}`)
     .eq("id", proposalId)
     .single();
   if (proposalError || !proposal) return proposalError?.message || "Proposal not found.";

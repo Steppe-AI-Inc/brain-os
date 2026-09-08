@@ -1,0 +1,230 @@
+{
+ "campaign": 77,
+ "verifier": 17,
+ "status": "COMPLETED",
+ "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+ "closure_commit": "f232975",
+ "closure_commit_note": "Close run16 D123-D126 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+ "index_sha256": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
+ "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+ "prior_campaign": {
+  "campaign": 76,
+  "verifier": 16,
+  "verdict": "FAIL",
+  "archive": "qa/verification/archive/campaign-0a03127-verify16.json",
+  "defects": [
+   "D123 (P1)",
+   "D124 (P1)",
+   "D125 (P2)",
+   "D126 (test gap)"
+  ]
+ },
+ "what_changed_since_76": [
+  "D123: NEGATED_MENTION word list REMOVED; matchDisambiguationOption binds only a CLEAN SELECTION (label + selection filler), on all three paths; \"acme, no rush\" now dead-ends (two holds inverted on the record)",
+  "D124: canonicalKnowsIt decided by the canonical read (canonicalById / lastKnownLabel); CANONICAL_TYPE_ALIAS resolves employee->person etc.; unlisted types dropped unless known",
+  "D125: clause splitter adds dashes (except the \"Confirmed —\" lead), colon, parentheses, newline, and/but/without",
+  "D126: run15 observes the drop through the real pipeline (7 new cases); run16 promoted (53 cases)",
+  "Factory: verifier allowlist gains git add/commit; dispatcher/watchdog take a pinned file; DB round-3 review dispatched as verifier #301"
+ ],
+ "implementing_session_evidence_not_to_be_trusted": {
+  "battery": "27 suites / 0 failures (21 assertion-bearing, 5 SUPERSEDED stubs, 1 library)",
+  "mutation_proof": "qa/verification/proposed/v16_mutation_proof.mjs 13/13 (coverage + limits); v15 10/10 with 4 superseded",
+  "deno_check": "23 errors, identical set to d724d8c (0 new)"
+ },
+ "verdict": "FAIL",
+ "attempts": [
+  {
+   "attempt": 1,
+   "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+   "outcome": "BLOCKED — PROVIDER_CAPACITY",
+   "classified_from": "OUTPUT TEXT (66-byte session-limit message, rc=1); watchdog honoured the provider-stated reset (2:20pm) and slept 11859s",
+   "scenarios_completed": []
+  },
+  {
+   "attempt": 2,
+   "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+   "preflight": "EXECUTION_READY",
+   "outcome": "FAIL (completed, fully executed)",
+   "log_bytes": 5731,
+   "artifact_branch": "verify-9535f0b-campaign77",
+   "artifact_commit": "361390a",
+   "defects": [
+    "D128 (P1)",
+    "D127 (P2)",
+    "D129 (P3)"
+   ],
+   "confirmed_closed": [
+    "D123",
+    "D124",
+    "D126"
+   ]
+  }
+ ],
+ "scenarios": {},
+ "opened_at": "2026-09-04T02:55:26.630Z",
+ "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes.",
+ "verifier_checkpoint": {
+  "campaign": 77,
+  "verifier": 17,
+  "status": "COMPLETE",
+  "execution_mode": "TOP_LEVEL_ISOLATED_PROCESS",
+  "closure_commit": "f232975",
+  "closure_commit_note": "Close run16 D123-D126 (index.ts changed here; the campaign rotation commit on top changes only qa/verification bookkeeping)",
+  "index_sha256": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
+  "branch": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "prior_campaign": {
+   "campaign": 76,
+   "verifier": 16,
+   "verdict": "FAIL",
+   "archive": "qa/verification/archive/campaign-0a03127-verify16.json",
+   "defects": [
+    "D123 (P1)",
+    "D124 (P1)",
+    "D125 (P2)",
+    "D126 (test gap)"
+   ]
+  },
+  "what_changed_since_76": [
+   "D123: NEGATED_MENTION word list REMOVED; matchDisambiguationOption binds only a CLEAN SELECTION (label + selection filler), on all three paths; \"acme, no rush\" now dead-ends (two holds inverted on the record)",
+   "D124: canonicalKnowsIt decided by the canonical read (canonicalById / lastKnownLabel); CANONICAL_TYPE_ALIAS resolves employee->person etc.; unlisted types dropped unless known",
+   "D125: clause splitter adds dashes (except the \"Confirmed —\" lead), colon, parentheses, newline, and/but/without",
+   "D126: run15 observes the drop through the real pipeline (7 new cases); run16 promoted (53 cases)",
+   "Factory: verifier allowlist gains git add/commit; dispatcher/watchdog take a pinned file; DB round-3 review dispatched as verifier #301"
+  ],
+  "implementing_session_evidence_not_to_be_trusted": {
+   "battery": "27 suites / 0 failures (21 assertion-bearing, 5 SUPERSEDED stubs, 1 library)",
+   "mutation_proof": "qa/verification/proposed/v16_mutation_proof.mjs 13/13 (coverage + limits); v15 10/10 with 4 superseded",
+   "deno_check": "23 errors, identical set to d724d8c (0 new)"
+  },
+  "verdict": "FAIL",
+  "attempts": [],
+  "scenarios": {
+   "S1_full_battery": {
+    "status": "PASS",
+    "evidence": "V17 INDEPENDENT re-derivation on 9535f0b (sha e5ccf63b...): 28 .mjs enumerated from filesystem = 1 library (_gate_extract, no output) + 5 SUPERSEDED short-circuit stubs (claim_segmentation_and_present_tense_fp, d3_past_completion_gate_not_shortcircuited_by_pending_action, mixed_claim_grounding, past_completion_gate_behavior, per_resource_grounding_contract - each prints one SUPERSEDED line and never reaches its assertions) + 22 assertion-bearing. Every suite exit 0; FAILURES COUNTED FROM OUTPUT TEXT = 0 (zero ^FAIL lines across 668 OK/PASS marks; six suites use PASS/ALL REGRESSIONS PASSED format). Implementing session claimed 21 assertion-bearing; independent count is 22 (bookkeeping discrepancy only). The 60 *.sql suites in qa/scenarios-runner were NOT run (no DB in this worktree scope).",
+    "note": "Implementing session reported 21 assertion-bearing; independent count is 22. Discrepancy is bookkeeping only, not a failure.",
+    "at": "2026-09-04T06:27:07.547Z"
+   },
+   "S0_clean_selection_both_directions": {
+    "status": "PASS (with disclosed residuals, 1 new defect)",
+    "evidence": "289-probe three-way A/B (candidate vs 52e830f vs d724d8c), harness qa/verification/scratch/v17b_s0.mjs + v17b_s0b.mjs. (a) MIS-BIND: ZERO replies bind under the candidate that dead-ended on either prior commit — the clean-selection rule is STRICTLY tighter (no negator word from the retired NEGATED_MENTION list is in SELECTION_FILLER, so every old dead-end survives). 30 residual mis-binds remain, ALL identical at 52e830f and d724d8c (pre-existing, not introduced): 18 cross-verb redirections + 12 entity-noun target flips. End-to-end through the REAL matcher+commandContradictsActionType+resolveClarificationField: 'reject bob smith' ARMS endEmploymentPersonIds, 'rename/assign/approve/reject/activate acme' ARM archiveCompanyIds. NEW DEFECT D127: 'activate' is in SELECTION_FILLER but absent from RESTORE_VERB_PATTERN (which has only 'reactivate'), so a make-active intent arms archive. Also: the code comment claims filler is 'the pending action's own verbs' but the set is a static union of ALL lifecycle verbs, independent of the pending action. (b) OVER-REFUSAL: 78-reply realistic corpus, candidate binds 57/78 vs 78/78 on BOTH priors; 21 legitimate naming replies newly dead-end (contractions/possessives, adverbs now/today/just/only/definitely, and ALL digit forms). Sharpest seam: D95 renders options as '(option 1)' but 'acme (option 1)', 'option 1, acme', 'acme #1' all dead-end because no digit is in the filler set while the words 'option' and 'number' are — dead weight in the allowlist. Dead-ends fall through to the LLM path so no founder is blocked; classified acceptable-but-notable (P3 usability).",
+    "at": "2026-09-04T06:31:20.578Z"
+   },
+   "S3_S7_completion_belt": {
+    "status": "FAIL — P1 REGRESSION (D128)",
+    "evidence": "Harnesses qa/verification/scratch/v17b_s3.mjs + v17b_s3b.mjs, three-way A/B. FALSE-NEGATIVE direction: candidate 0/30 false negatives vs 52e830f 15/30 and d724d8c 3/30 — D125 genuinely closes every fabrication shape #16 recorded, including all four disclosed ones. FALSE-POSITIVE direction: candidate 6/39 on the mixed corpus and 97/130 (75 percent) on a realistic corpus of truthful negatives about entities whose real names contain and/but/without/dash/parentheses, vs 0/130 on 52e830f. Boundary attribution: and 50/60, without 15/18, but 10/18, dash 10/12, paren 10/12, prose 2/10 (colon in a time '14:30', parenthetical 'No entity (including ACME) was archived'). Root cause: the new boundaries are not clause boundaries when they occur INSIDE A NOUN PHRASE, so the negator is severed from the completion verb it scopes over: 'No company named Salt and Pepper Co was archived' splits to ['No company named Salt','Pepper Co was archived'] and the second fragment matches LEGACY_PAST_COMPLETION with no negator. Downstream: readsAsCompletion feeds BOTH arms — legacyProseFallback (index.ts:5583 replaces the whole truthful answer with 'I can t actually do that from chat — nothing was changed') and structuredProseDrift -> rewriteFromStructure (index.ts:5466 discards the prose). This is the exact class index.ts:5362 itself records as WORSE than the fabrication the belt exists to catch (run14/D112, ledger #4905), recurring for the sixth consecutive drift-belt change. The candidate's own disclosed residual ('a negator inside one bare clause with no separator at all') does not mention this direction at all.",
+    "at": "2026-09-04T06:33:55.096Z"
+   },
+   "S4_alias_and_drop": {
+    "status": "PASS",
+    "evidence": "Harness qa/verification/scratch/v17b_s4.mjs, real pipeline (label loop + D119 drop + D95 numbering). D124 CLOSED: employee->person, organization->company, okr->goal, ticket->task all resolve the REAL canonical name (52e830f rendered the same case as 'the employee'). FAIL-CLOSED confirmed on every hostile probe: id known under the ORIGINAL type but not the alias ('employee' with a company| row, 'organization' with a person| row, a row keyed literally 'employee|'/'ticket|') -> DROPPED; 13 unlisted/hostile entityTypes including prototype keys __proto__/constructor/toString/valueOf/hasOwnProperty -> DROPPED (the bare-object alias lookup does return prototype members, but every one of them fails the canonicalById key test and the typed-fallback regex, so all fail closed); non-string entityType, absent entityType, absent id, empty id -> DROPPED. Runtime labels: 'person|' write-site key resolves; the alias key 'employee|' correctly does NOT. MIXED lists drop only the unresolvable member in all three orderings; ALL-unresolvable yields an EMPTY option list, pendingActionGatingChanged=true, and the next turn cannot bind anything ('acme holdings'/'terminated bob smith'/'yes' all -> null). FABRICATED LABEL REACHABILITY: across 8 fabrication shapes a model label reaches the founder ONLY when the canonical row's own name IS that exact string; with a different canonical name the canonical name wins, with no read at all the option is dropped. OBSERVATION (not a defect): 18 of the 19 alias keys resolve a display name but are absent from CLARIFICATION_ENTITY_ACTION_FIELD, so they render a real name for an option that cannot execute — the same dead-end as before D124, now better-labelled.",
+    "at": "2026-09-04T06:36:38.453Z"
+   },
+   "S2_independent_mutation": {
+    "status": "PASS (1 coverage gap, 1 uncovered direction)",
+    "evidence": "My own harnesses qa/verification/scratch/v17b_mutate.mjs (20 mutants) + v17b_mutate2.mjs (8 literal-preserving mutants) — NOT the implementing session's v15/v16 mutation proofs. Every mutant applied to the REAL index.ts in place; pristine bytes restored and sha256 re-asserted after EVERY mutant (finally block); utf8 round-trip proven byte-identical first; final sha e5ccf63b... MATCHES. ROUND 1: 20 applied, 19 caught, 1 survived (M4). ROUND 2 (all literals preserved so a catch must be behavioural): 8 applied, 7 caught BEHAVIOURALLY, 0 caught only by an extraction refusal, 1 survived (M28). LIMITS were mutated, not only coverage: over-broadened SELECTION_FILLER with negators (caught, 17 failures), .every->.some (caught, 23), emptied the filler set (caught), emptied the alias table both partially and entirely (caught), canonicalKnowsIt ignoring lastKnownLabel (caught by run16 only) and ignoring canonicalById (caught by 9 suites), the D124 typedFallback comparison restored (caught, 9), drop over-broad / no-op / first-index-only (all caught behaviourally), D95 numbering removed (caught), the confirmed lookbehind dropped (caught, 10), splitter reverted to 52e830f (caught), NEGATED_CLAUSE removed (caught), split-on-every-space (caught by 10 suites). SURVIVOR M4 — removing the second-option guard inside cleanSelection. Differential fuzz over 4,942,140 reply x option-set combinations: the guard changes the outcome in 264 of them, so it is NOT a thirteenth vacuous guard, but it is UNOBSERVED by all 22 committed suites. It is provably unreachable-as-true on the single-match path (matches.length===1) and exactly duplicated by the next statement on the specificity path; it only decides the D102 raw tie-break path when a third, shorter option whose whole label is SELECTION_FILLER survives in the residual. Regression case added. SURVIVOR M28 — adding 'or' to the clause splitter is observed by NO suite, which is the test-gap half of D128: the battery has zero false-positive coverage for splitter widening.",
+    "at": "2026-09-04T06:43:02.048Z"
+   },
+   "S5_D126_truth": {
+    "status": "PASS",
+    "evidence": "D126 claim independently confirmed by mutation, not by reading run15. run15_defect_closure_contract.mjs fails BEHAVIOURALLY (assertion failures, not extraction refusals) under every drop mutant that preserves the pinned literals: M12 drop-only-when-ALL-unresolvable (the exact mutant verifier #16 said passed the entire battery) = 1 behavioural failure in run15 AND 1 in run16; M21 over-broad drop = 1 in run15, 1 in run16; M22 no-op drop = 6 in run15, 11 in run16; M23 first-index-only drop = caught by 4 suites. So run15 now really does execute the label loop + drop + D95 numbering and observe the MIXED case. run16's cases likewise execute the product: they fail under M8/M9/M11/M12/M25/M26/M27 gate and matcher mutations. run16 is committed at qa/scenarios-runner/run16_defect_closure_contract.mjs with 53 assertions, all passing on the candidate (independently re-run).",
+    "at": "2026-09-04T06:43:06.738Z"
+   },
+   "S8_founder_lexical_branch": {
+    "status": "PASS",
+    "evidence": "Harness qa/verification/scratch/v17b_s8.mjs — 26 strings (7 model assertions + 19 real names carrying Archived/Deleted/Closed/Terminated/Completed/Assigned/Removed/Restored/Approved/Confirmed/Ended/Cleared/Granted/Moved/Renamed/Declined/Sent/Done), each through BOTH branches. LABEL BRANCH: with NO canonical row 19/19 real names are dropped and 0/7 assertions ship — the D119 rule as stated (an option the read cannot name cannot execute anyway). With the canonical row present 0/19 real names are destroyed (every one is shown, assertion-shaped ones quoted by safeDisplayLabel) and 7/7 assertions ship verbatim, which is CORRECT: the database itself says that is the entity's name. PROSE BRANCH: 0/19 truthful sentences about these names destroyed on the candidate AND on 52e830f — these names contain none of D125's new boundary tokens, which isolates D128's cause precisely to and/but/without/dash/colon/parenthesis, not to completion vocabulary. 5/7 assertions escape the belt as bare prose on BOTH the candidate and 52e830f (bare participles with no auxiliary and no 'Confirmed —' lead) — a pre-existing, disclosed limitation, not a regression; the label branch is what catches them. 'Confirmed — the company is not archived' is correctly NOT read as a completion on the candidate: the confirmed lookbehind keeps the dash from splitting, so NEGATED_CLAUSE still sees the 'not'.",
+    "at": "2026-09-04T06:44:01.469Z"
+   },
+   "S6_no_prior_closure_reopened": {
+    "status": "PASS",
+    "evidence": "Independently re-run: 20 D72/D78/D95/D103/D113 cases across run8/run10/run12/run13/run14, 0 FAILING (counted from OUTPUT TEXT). Every re-pin is explicit on the record: run8/D72b RETIRED (run15/D119), run12/D95 and run13/D103.hold.numbered re-pinned to 'out-of-context options are dropped', run14/D113.hold.absentId re-pinned from 'falls back to the typed reference' to 'is dropped'. The one contract this candidate changed, run15/D116.hold.negatorInAnotherClauseStillBinds, was not deleted but REPLACED BY ITS INVERSE (D116.hold.negatorInAnotherClauseDeadEnds) with the reason recorded inline, plus a new LIMIT case (D116.hold.selectionFillerStillBinds) so the rule cannot drift in the other direction either — reviewed the actual diff, not the claim. PRODUCTION READ-ONLY (self-run, npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk): sem-ai-command version 92, status ACTIVE, ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475, updated_at 1788239725518 — byte-identical to what campaign 76 recorded, so NOTHING has been deployed since and none of D58-D128 is live. The candidate is NOT in production.",
+    "at": "2026-09-04T06:45:14.169Z"
+   },
+   "S9_ledger_bookkeeping_truth": {
+    "status": "PASS (one stale count)",
+    "evidence": "Ledger #76 entry + CLOSURE POSTSCRIPT checked against the code, not accepted as narrative. TRUE as written: candidate commit and #76 index sha named; verdict FAIL stated plainly; production v92 / ezbr_sha256 33255b31... recorded (I re-derived it myself and it matches); the 60 *.sql suites explicitly marked NOT run; NEGATED_MENTION really is gone from index.ts; SELECTION_FILLER present; cleanSelection really is called on all THREE paths (3 call sites: single-match, D106 specificity, D102 raw tie-break); CANONICAL_TYPE_ALIAS present; canonicalKnowsIt really is decided by canonicalById/lastKnownLabel and the typedFallback string comparison is gone; the confirmed lookbehind is present; NO promotion preamble leaked into the ledger; the two inverted contracts are recorded. CURRENT_CAMPAIGN.json names closure_commit f232975 and index_sha256 e5ccf63b... correctly, and the rotation commit 9535f0b is bookkeeping-only — index.ts is byte-identical to f232975, verified by diff not by claim. ONE STALE COUNT: the postscript says 'Full battery: 27 suites (21 assertion-bearing, 5 stubs, 1 library) — the verifier's count, adopted'. That count was correct at 52e830f (27 .mjs) but the same commit ADDED run16, so the real battery at the candidate is 28 = 22 + 5 + 1. Adopting a pre-change count after making the change. Bookkeeping only, no failure hidden. TWO DISCLOSURE DEFECTS, both material: (1) the postscript's D125 residual is stated as 'a negator inside one bare clause with no separator at all' and says nothing about the FALSE-POSITIVE direction, which is where D128 lives; (2) the postscript's own closing lesson is 'When a guard has a limit, pin BOTH directions of it, or the destructive one is the one that goes unobserved' — and D125 pinned only the false-negative direction, which is exactly how D128 shipped. (3) both the postscript and the index.ts comment describe SELECTION_FILLER as containing 'the pending action's own verbs'; the implemented set is a static union of ALL lifecycle verbs, independent of the pending action (see D127).",
+    "at": "2026-09-04T06:46:40.305Z"
+   },
+   "S7_question_belt_untouched": {
+    "status": "PASS",
+    "evidence": "qa/verification/scratch/v17b_s7_question.mjs. Nine question-belt constructs (safeQuestionFragment, INTERROGATIVE_LEAD, FIRST_PERSON_MAIN_CLAUSE_COMPLETION, COMPLETION_WORD, safeProseFragment, safeOptionLabel, safeDisplayLabel, PAST_COMPLETION_CLAIM_PATTERN, safePendingSummary) are BYTE-IDENTICAL across d724d8c -> 52e830f -> the candidate (sha of each extracted slice compared), and 0/16 behavioural drift on a question corpus through the REAL safeQuestionFragment. The candidate touched the COMPLETION belt only.",
+    "at": "2026-09-04T06:51:56.914Z"
+   }
+  },
+  "opened_at": "2026-09-04T02:55:26.630Z",
+  "rules": "Verdict is one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, classified from OUTPUT TEXT never from exit code. Production stays v92. No deploy without ALLOW_FUNCTIONS_DEPLOY=1 asked exactly once, only after an independent PASS on the exact bytes.",
+  "verifier_17_actual_start": {
+   "base_commit": "9535f0b4d094570ac871c3ec85b78830324b03bc",
+   "index_sha256_observed_at_start": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
+   "sha_matches_required": true,
+   "preflight": "EXECUTION_READY (git rev-parse OK; temp write/delete OK; past_completion_claim_regex 13 passed 0 failed)",
+   "worktree": "/c/Users/Dell/dev/brain-os-verify-9535f0b",
+   "artifact_branch": "verify-9535f0b-campaign77",
+   "started_at": "2026-09-04T02:56:18.664Z"
+  },
+  "last_checkpoint_at": "2026-09-04T06:51:56.915Z",
+  "verdict_classification": "FAIL",
+  "index_sha256_observed_at_end": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69",
+  "index_sha256_matches_required": true,
+  "defects_found": [
+   {
+    "id": "D128",
+    "severity": "P1",
+    "title": "D125's widened clause splitter destroys truthful negatives about entities whose real names contain and/but/without/a dash/a parenthesis/a colon",
+    "regression_against": "52e830f",
+    "measured": "97/130 (75%) false positives vs 0/130 on 52e830f; 0/30 false negatives vs 15/30 on 52e830f",
+    "downstream": "index.ts:5583 legacyProseFallback replaces the whole truthful answer; index.ts:5466 rewriteFromStructure discards the prose",
+    "class": "run14/D112, ledger #4905 — recurrence",
+    "disclosure": "the candidate's disclosed residual mentions only the false-negative direction"
+   },
+   {
+    "id": "D127",
+    "severity": "P2",
+    "title": "SELECTION_FILLER is a static union of every lifecycle verb and entity noun, not 'the pending action's own verbs' as the comment and the #76 postscript both state",
+    "preexisting_at": [
+     "52e830f",
+     "d724d8c"
+    ],
+    "measured": "'activate acme' and 'reject bob smith' arm archiveCompanyIds / endEmploymentPersonIds; 'activate' is absent from RESTORE_VERB_PATTERN which knows only 'reactivate'; entity-type nouns flip the operation's target"
+   },
+   {
+    "id": "D129",
+    "severity": "P3",
+    "title": "the D95 seam — the product renders \"(option N)\" and then refuses the numbered reply, because no digit is selection filler while the words option/number are",
+    "measured": "candidate binds 57/78 legitimate naming replies vs 78/78 on both priors"
+   }
+  ],
+  "coverage_gaps": [
+   "cleanSelection's second-option guard survives all 22 assertion-bearing suites (264/4,942,140 fuzzed combinations decide on it — not vacuous, but unobserved)",
+   "adding 'or' to the clause splitter is caught by NO committed suite — the battery has zero false-positive coverage for splitter widening"
+  ],
+  "blocked_coverage": {
+   "ui_truth": "BLOCKED — no browser/MCP tooling in this process",
+   "live_ai_chat_truth": "BLOCKED — same, and nothing is deployed to test against",
+   "db_rls_lifecycle_truth": "OUT OF SCOPE — the 60 *.sql suites were NOT run"
+  },
+  "production_read_only": {
+   "checked_by": "verifier #17, self-run",
+   "command": "npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk",
+   "function": "sem-ai-command",
+   "version": 92,
+   "status": "ACTIVE",
+   "ezbr_sha256": "33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475",
+   "updated_at": 1788239725518,
+   "conclusion": "unchanged since #75/#76; none of D58-D129 is live; the candidate is NOT deployed"
+  },
+  "artifacts": [
+   "qa/verification/proposed/v17_known_failure_modes_entry_77.md",
+   "qa/verification/proposed/v17_regression_additions.mjs (39 cases: 19 pass / 20 fail, all 20 DEFECT-by-design, 0 CONTRACT failures)",
+   "qa/verification/proposed/v17_PROMOTION_NOTE.md",
+   "qa/verification/scratch/v17b_lib.mjs and v17b_{battery,s0,s0b,s3,s3b,s4,s6,s7_question,s8,s9,mutate,mutate2,m4}.mjs"
+  ],
+  "sha_discipline": {
+   "asserted_at_start": true,
+   "temporary_source_mutations": 28,
+   "restored_and_reasserted_after_each": true,
+   "final_observed": "e5ccf63b26b833f4cc5d9596e7417d7b5744bef6be919982740b1c4f165b6d69"
+  },
+  "remaining_scenarios": []
+ }
+}

@@ -34,7 +34,7 @@ For anything you test, work through all of these explicitly:
     SC-068)?
 12. **What evidence proves the result?** — a screenshot for UI, database output for a DB
     test, a network trace for integration. One kind of evidence cannot substitute for
-    another (CLAUDE.md §18). "It should work" is not evidence.
+    another (CLAUDE.md §6). "It should work" is not evidence.
 
 ## The four-path rule for every hidden feature (SC-105)
 

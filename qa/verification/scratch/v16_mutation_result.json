@@ -1,0 +1,292 @@
+{
+  "finalSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26",
+  "results": [
+    {
+      "id": "A1-coverage-remove-negation-deadend",
+      "kind": "COVERAGE",
+      "why": "Delete the D116 dead-end entirely. If no committed case fails, D116 is vacuous.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 6,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "A2-limit-negation-matches-everything",
+      "kind": "LIMIT",
+      "why": "Over-broaden NEGATED_MENTION to match any character. The D116 LIMIT holds (plain name still binds) must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 5,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "A3-limit-drop-clause-split",
+      "kind": "LIMIT",
+      "why": "Test the WHOLE command instead of the clause. The clause-scope LIMIT hold must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 1,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "A4-limit-drop-own-label-removal",
+      "kind": "LIMIT",
+      "why": "Do NOT strip the option's own label before the negator test. A real name containing \"no\" must then disarm itself; the LIMIT hold must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B1-coverage-negated-clause-matches-everything",
+      "kind": "COVERAGE",
+      "why": "NEGATED_CLAUSE matches every clause => nothing ever reads as a completion. Every fabrication case must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        },
+        {
+          "suite": "structured_claim_laundering_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B2-limit-negated-clause-matches-nothing",
+      "kind": "LIMIT",
+      "why": "NEGATED_CLAUSE matches nothing => truthful negatives are destroyed again (#4905). A truthful-negative hold must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B3-coverage-drop-clause-split-in-readsAsCompletion",
+      "kind": "COVERAGE",
+      "why": "Do not split into clauses => whole-summary negation returns (the D117 defect). The D117 cases must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 6,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "B4-coverage-restore-whole-summary-lookahead",
+      "kind": "COVERAGE",
+      "why": "Reinstate D112's whole-summary lookahead inside CONFIRMED_COMPLETION AND drop the per-clause negation. This is literally the d724d8c behaviour; the D117/D118 cases must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C1-coverage-remove-the-drop",
+      "kind": "COVERAGE",
+      "why": "Never drop unresolvable options. The D119/D120 cases must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": false
+        },
+        {
+          "suite": "run8_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 2,
+          "crashed": false
+        },
+        {
+          "suite": "run14_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 1,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C2-limit-drop-is-over-broad",
+      "kind": "LIMIT",
+      "why": "Drop EVERY option, resolvable or not. Suites pinning that in-context options survive must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 0,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": false
+        },
+        {
+          "suite": "run12_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 6,
+          "crashed": false
+        },
+        {
+          "suite": "run13_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 5,
+          "crashed": false
+        },
+        {
+          "suite": "lifecycle_evidence_and_output_persistence_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 2,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C3-coverage-restore-lexical-fallback",
+      "kind": "COVERAGE",
+      "why": "Restore the D113 lexical fallback (a benign uncorroborated label survives). The D119 cases must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 11,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "C4-coverage-canonicalKnowsIt-always-true",
+      "kind": "COVERAGE",
+      "why": "Make canonicalKnowsIt unconditionally true => nothing is ever dropped and no label is ever replaced by a typed fallback. D119/D120 cases must fail.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "run15_defect_closure_contract.mjs",
+          "exit": 1,
+          "failed": 0,
+          "failLines": 0,
+          "crashed": true
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "F1-coverage-destructive-default",
+      "kind": "COVERAGE",
+      "why": "Reinstate the issue-5 P1 (absent actionType coerced to archive). issue5 must fail IF it truly executes the real function.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "issue5_confirmation_action_type_binding.mjs",
+          "exit": 1,
+          "failed": 3,
+          "failLines": 3,
+          "crashed": false
+        },
+        {
+          "suite": "sem_ai_command_source_invariants_drift_guard.mjs",
+          "exit": 1,
+          "failed": 2,
+          "failLines": 2,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    },
+    {
+      "id": "F2-coverage-map-entry-removed",
+      "kind": "COVERAGE",
+      "why": "Remove company.archive from the map. issue5 must fail if it executes the real function+map.",
+      "applied": true,
+      "detected": true,
+      "per": [
+        {
+          "suite": "issue5_confirmation_action_type_binding.mjs",
+          "exit": 1,
+          "failed": 1,
+          "failLines": 1,
+          "crashed": false
+        }
+      ],
+      "restoredSha": "0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26"
+    }
+  ]
+}

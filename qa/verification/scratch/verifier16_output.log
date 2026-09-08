@@ -1,0 +1,60 @@
+PREFLIGHT: EXECUTION_READY
+
+---
+
+# VERIFIER #16 — CAMPAIGN #76 FINAL REPORT
+
+```
+CHANGE VERIFIED: run15 D116–D122 closure in supabase/functions/sem-ai-command/index.ts
+CANDIDATE:       0a03127 (closure 52e830f; rotation commit = bookkeeping only, diff-verified)
+index.ts sha256: 0c3616b4…12fc26  — asserted before, after each of 20 mutations, and at end
+BASELINE:        d724d8c (1b291f37…27ef64)
+SCENARIOS:       6 passed, 3 failed, 0 blocked-by-error (2 declared out of scope)
+```
+
+## Verdict rationale
+
+The candidate is a **genuine improvement on every axis I measured** — but D116 is reported CLOSED when it is only **NARROWED**, and the hole left behind is destructive.
+
+**What genuinely closed (verified, not read):** D117+D118 move **both** belt directions for the first time in the #72–#75 sequence (false negatives 16→11, false positives 8→1 on my own 67-item corpus). D119 is a **sound** product decision — in the honest case, a company really named "Archived Goods Ltd" is **kept 9/9**; it destroys no real name the database knows. D120 closed by that mechanism. D122 is real: mutating the product made `issue5` fail with 3 genuine assertion failures. The question belt was **not** touched — confirmed by diff *and* behaviourally on both SHAs.
+
+## Failures
+
+**D123 — P1. `"acme? no, the holdings one"` still archives the wrong company.**
+The D116 guard is a **word list tested per clause**. 24 of my 48 exclusion replies still bind the option the founder excluded: 15 via unlisted words (`exclude acme` — note `except|excepting|excluding` are listed but `exclude` is not), 9 via a negator in an adjacent clause. The tell is a punctuation inversion: **`acme - no` dead-ends, `acme, no` binds** — same reply, opposite destructive outcomes, decided by a comma. Traced end-to-end on candidate source to `archive_company`, no LLM in the loop. *Not a regression* (d724d8c did it too) — all six #75 ledger exemplars genuinely close. The failure is the **closure claim**: the clause-scope limit is disclosed only in its benign direction ("acme holdings, no rush" still binds), never in its destructive one.
+
+**D124 — P1. `entityType: 'employee'` is executable and unresolvable at the same time.**
+`canonicalKnowsIt` and `displayName` compute *different* typed fallbacks, so the D119 drop never fires for any word-shaped type outside the 22-key map. `employee` is in the executable action map (`endEmploymentPersonIds`) but `canonicalById` is keyed `person|`, so two **real, named, in-context** people render as `the employee (option 1)` / `(option 2)` — the founder ends someone's employment **with no name shown**, and it really executes. Pre-existing at d724d8c, but not covered by the guarantee D119 was written to make.
+
+**D125 — P2.** Four fabrications d724d8c caught now escape (en dash, parenthetical, "without incident", "and no errors occurred"). The disclosed residual is literally accurate but understates its scope — the splitter knows only `[.!?,;]`.
+
+**D126 — TEST GAP.** run15's D119/D120 cases never execute the drop (their helper is the per-option label loop). Removing it, over-broadening it, and weakening it all left run15 at **exit 0, 48 pass**. And **no** committed suite observes the MIXED drop case — mutant C5 survived the entire battery.
+
+## Discipline notes
+
+- **20 mutations, my own harness** (not `v15_mutation_proof.mjs` — that would be self-certification by proxy). SHA restored byte-identically after every one. Two apparent detections in pass 1 were **harness artifacts** (a `SyntaxError` and an extraction drift guard) and are reported as such, not counted.
+- **Battery: 27 `.mjs` enumerated from disk; 21 assertion-bearing, all pass.** 5 are self-labelled `SUPERSEDED` stubs asserting nothing; 1 is a library. The postscript's "26 suites" counts the stubs.
+- **Production re-checked by me, not carried forward:** `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31…fe475`. **None of D58–D126 is live.**
+
+## Coverage gaps — stated, not hidden
+
+- `*.sql` suites **not run**. DB/RLS/archive-restore-ownership lifecycle truth is **BLOCKED — out of scope** for this source-level campaign.
+- **No browser.** UI truth and live AI-chat truth are **BLOCKED**, not silently skipped. Every AI-behaviour finding is from the real shipped source driven directly — weaker evidence than a live turn.
+- Correct evidence level overall: **UNIT VERIFIED / CODE INSPECTED** against candidate bytes; **LIVE VERIFIED** only for the read-only production version check.
+- **No `QA-VERIFY-*` data was created** — no database writes were performed, so there is nothing to clean up. (Stated per instruction: cleanup was not needed rather than skipped.)
+
+## Blocker requiring founder action
+
+**`git add` / `git stage` is permission-gated in this session**, so I could not commit to `verify-0a03127-campaign76`. The artifacts are written and complete on that branch's worktree; `supabase/` is **unmodified** (`git status` clean). To land them:
+```
+git add qa/verification && git commit -m "Verifier #16 / campaign #76: FAIL on 0a03127 — D123-D126"
+```
+Files: `qa/verification/proposed/v16_known_failure_modes_entry_76.md` (ledger section, no preamble), `v16_PROMOTION_NOTE.md` (promotion + fix guidance, separate as required), `v16_regression_additions.mjs` (50 cases — 14 pass / 36 DEFECT-by-design / **0 CONTRACT failures**), plus `CURRENT_CAMPAIGN.json` and reproducible scratch harnesses.
+
+**No deploy. Production stays v92.** `ALLOW_FUNCTIONS_DEPLOY` was never requested and must not be — an independent PASS on these bytes was not reached.
+
+---
+
+**VERDICT: FAIL**
+
+**index.ts sha256 observed at end: `0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26`** (matches required)

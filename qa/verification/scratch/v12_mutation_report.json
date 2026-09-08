@@ -1,0 +1,99 @@
+{
+ "base_commit": "f4763ef",
+ "index_sha": "1db385790f42286497540187c7c18e5661d59742eec67dc61cc978e8c8b369ec",
+ "ran_at": "2026-09-03T02:51:37.356Z",
+ "survived": [
+  "M8.anchorExistenceGuard"
+ ],
+ "report": [
+  {
+   "id": "M1.D86.positionRule",
+   "why": "D86: completion participle after the first word must be refused",
+   "edits": [
+    [
+     "supabase/functions/sem-ai-command/index.ts",
+     "            if (completionIdx > 0) return null;\n",
+     ""
+    ]
+   ],
+   "status": "NOT_APPLIED"
+  },
+  {
+   "id": "M2.D86.leadingParticiple",
+   "why": "D86: leading participle + named ALL-CAPS object must be refused",
+   "edits": [
+    [
+     "supabase/functions/sem-ai-command/index.ts",
+     "            if (completionIdx === 0 && words.slice(1).some((w) => /^[\\p{Lu}0-9]{2,}$/u.test(w))) return null;\n",
+     ""
+    ]
+   ],
+   "status": "NOT_APPLIED"
+  },
+  {
+   "id": "M3.D87.sharedVocabulary",
+   "why": "D87: arm 3 must use the SHARED progress verb list, not a short subset",
+   "status": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract"
+   ],
+   "restore_sha_ok": true
+  },
+  {
+   "id": "M4.D88.commaClauseReduction",
+   "why": "D88: comma-joined assertion must be reduced to its last clause",
+   "status": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract"
+   ],
+   "restore_sha_ok": true
+  },
+  {
+   "id": "M5.D88.completionInQuestionBelt",
+   "why": "D88: a surviving question still carrying completion vocabulary must be dropped",
+   "edits": [
+    [
+     "supabase/functions/sem-ai-command/index.ts",
+     "          if (COMPLETION_WORD.test(q)) return null;\n",
+     ""
+    ]
+   ],
+   "status": "NOT_APPLIED"
+  },
+  {
+   "id": "M6.orderingAnchorMoved",
+   "why": "ordering guard must FAIL CLOSED when the buildContext anchor moves",
+   "status": "KILLED",
+   "killed_by": [
+    "current_turn_and_continuity_contract",
+    "run11_defect_closure_contract"
+   ],
+   "restore_sha_ok": true
+  },
+  {
+   "id": "M7.callbackArrowStrip",
+   "why": "shared callback-arrow strip must keep the continuity window EXECUTABLE",
+   "status": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract"
+   ],
+   "restore_sha_ok": true
+  },
+  {
+   "id": "M8.anchorExistenceGuard",
+   "why": "the implementing session classified THIS as an equivalent mutant — confirm or refute",
+   "status": "SURVIVED",
+   "killed_by": [],
+   "restore_sha_ok": true
+  },
+  {
+   "id": "M9.M6plusM8.combined",
+   "why": "anchor moved AND existence guard removed — the exact fail-open the guard exists for",
+   "status": "KILLED",
+   "killed_by": [
+    "run11_defect_closure_contract"
+   ],
+   "restore_sha_ok": true
+  }
+ ]
+}

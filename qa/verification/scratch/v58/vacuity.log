@@ -1,0 +1,27 @@
+suites honouring SEM_INDEX_SRC: 27; own suites: 3
+KILLED   m01_receipt_block_deleted  by ["architecture_final_claim_contract.mjs","v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m02_pendingAction_exempts_again  by ["architecture_final_claim_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m03_receipt_exempt_on_pendingAction  by ["architecture_final_claim_contract.mjs","v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m04_create_family_literal_true  by ["architecture_mutation_envelope_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+ANCHOR-ERROR m05_durable_read_last anchor not unique (0) for durable precedence
+SURVIVED m06_envelope_dropped_from_collections  by ["v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m07_envelope_total_from_length  by ["architecture_collection_envelope_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m08_persist_gated_again  by ["architecture_mutation_envelope_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m09_history_unverified_marker_dropped  by ["grounding_precedence_canonical_over_history.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m10_other_veto_removed  by ["v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m11_read_veto_removed  by ["v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m12_entity_type_gate_removed  by ["v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m13_fuzzy_command_executes  by ["v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m14_question_gate_removed  by ["company_lifecycle_matrix.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m15_other_target_gate_removed  by ["company_lifecycle_matrix.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m16_intent_from_summary  by ["architecture_final_claim_contract.mjs","run10_defect_closure_contract.mjs","v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m17_turnVerdict_intent_null  by ["v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m18_stored_pendingAction_ttl_removed  by ["v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m19_company_evidence_on_already_archived  by ["company_lifecycle_matrix.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m20_whole_name_query_dropped  by ["company_lifecycle_matrix.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m21_direction_by_last_verb  by ["company_lifecycle_matrix.mjs","v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m22_postcondition_false_supports_claim  by ["v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m23_receipt_keeps_model_prose  by ["architecture_final_claim_contract.mjs","v56_intent_lifecycle_contract.mjs","v57_intent_other_veto_contract.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+KILLED   m24_history_verified_true_when_unknown  by ["grounding_precedence_canonical_over_history.mjs","v58_receipt_matrix.mjs","v58_lifecycle_attack.mjs","v58_machinery.mjs"]
+
+v58_vacuity: 22/24 mutants killed; index.ts sha256 0fd05a92b3a088bca59b22ce41b74dcd826c7b1b46c3f9e229255aa390fe317b (unchanged)

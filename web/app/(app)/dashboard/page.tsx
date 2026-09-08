@@ -14,12 +14,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getAttentionItems } from "@/lib/data/attention";
 import { getActiveAgents } from "@/lib/data/agents";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GOAL_STATUS_DOT } from "@/lib/goals/classify";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Overnight multi-org milestone: activeOrganizationId scopes the goal/approval/work-order
 // counts and the live-goals list to the currently selected organization when set, same
@@ -36,7 +37,7 @@ async function getDashboardData(activeOrganizationId?: string | null) {
   let recentRunsQuery = supabase.from("work_orders").select("id", { count: "exact", head: true }).gte("created_at", since14d);
   let liveGoalsQuery = supabase
     .from("goals")
-    .select("id, title, status, kind, progress, companies(name, status)")
+    .select(`id, title, status, kind, progress, ${COMPANY_REF}`)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(6);
@@ -89,10 +90,7 @@ const ATTENTION_LABEL: Record<string, string> = {
 
 export default async function DashboardPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const stats = await getDashboardData(scopeToActiveOrg);
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";

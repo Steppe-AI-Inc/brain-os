@@ -1,0 +1,69 @@
+**PREFLIGHT: EXECUTION_READY** (A: `7914f2b521fc…` ✓, B: scratch write probe ✓, C: 13 passed / 0 failed ✓)
+
+---
+
+# VERIFIER #33 — CAMPAIGN #93 — FINAL REPORT
+
+## STEP 1 — Production bytes, obtained independently
+
+| fact | value | how |
+|---|---|---|
+| deployed version | **92** | `npx supabase functions list --project-ref pvphxgrtdfrudejjhzjk` |
+| `ezbr_sha256` | `33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475` | same |
+| `updated_at` | **2026‑09‑01T05:15:25.518Z** | same |
+| entrypoint | `/home/runner/work/brain-os/…` → CI-deployed | same |
+| CI deploy run | `33472871764`, headSha **c9dfab5bd433**, success **2026‑09‑01T05:15:30Z** | `gh run list --workflow=supabase-functions.yml` |
+| that commit's index.ts | **795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc** (LF) | `git show` + re-hash here |
+
+**CONFIRMED: deployed v92 == git `c9dfab5bd433`, index.ts `795c20c8…`.** Stated plainly: **the link is INTEGRATION-LEVEL, not byte-direct.** `supabase functions download` (and even `functions --help`) was **refused by this session's tool harness**, so no eszip was fetched in this run. It is self-checking anyway: `PAST_COMPLETION_CLAIM_PATTERN` is byte-identical in the candidate (sha256 `54b678ad…`), and v92's belt is a *bare test of that literal* (verified in v92's own source at line 4240), so v92's gate is reconstructed from the candidate's own bytes. A prior session's downloaded copy normalises byte-identically to the git blob — corroboration, not substitute. **Not a P0.**
+
+Also blocked in this session: `npx supabase db query` and `git push`. No DB-level or UI/AI-chat checks were possible; this campaign is a pure source differential and needed none, but I record it as real coverage scope, not a silent skip.
+
+## STEP 2 — The seven deploy questions
+
+1. **Delta.** Deploy surface = `supabase/functions/sem-ai-command/index.ts` **only**. LF-normalised: 51 hunks, 4312→5985 lines. **Identifier delta re-derived: 185 added, 0 removed.** Semantic: bare-PCCP belt → `readsAsCompletion` (clause splitting + negation scoping + 4 arms + structured-claim rewrite); D3 `!result.pendingAction` removed from the completion gate; matcher rewritten; `RESTORE_VERB_PATTERN` gains `activat(e|ed|ing)`.
+2. **Preserves v92's intentional behaviour? NO.** My own corpus: **421 truthful negatives / 283 fabrications** (with a labelled negator-token-name section in both directions) + generated families of 792 and 450. **Truth regression 13 (required 0). Fabrication regression 12 in the main corpus, 60/792 and 150/450 in the families (required 0).** Four quadrants per section are tabulated in the promotion note. **Matcher: 34/34 shapes correct, 19 differ from v92, every difference in the safe direction — 0 matcher regressions.**
+3. **Reintroductions?** None (0 identifiers removed; D3 short-circuit stays out).
+4. **4476c92 dependence?** Labels/commentary only; every assertion evaluates the current source.
+5. **#64 D16 / #65 D25 / #65 D27 (`9dda919c`) / #66 D40 — all genuinely closed**, re-derived (12/12, 3 identifiers + 6 shapes, both arrow forms, `claims: []` still arms the gate).
+6. **Rollback exact and available:** `c9dfab5bd433` → `795c20c8…`.
+7. **Only intended Edge changes** — yes; note the workflow deploys all six functions, the other five byte-identical.
+
+## STEP 3/3b/3c/3d — Adversarial results
+
+**FIVE P1 CLASSES, every one confirmed END-TO-END** (`claims: null` *and* `claims: []`), and **every one also reproduces on `f68f44a`** — i.e. inherited, not created by run32, and missed by three verifiers:
+
+| id | direction | measured | root cause |
+|---|---|---|---|
+| **D183** | truthful answer **destroyed** | 8 | R‑AUXGAP's 28-char guard knows `couldn't/wouldn't/…` but **not bare `may/might/could/can`** — the exact shape v92's PCCP lookbehinds exist for, which index.ts itself calls "load-bearing, not decoration" |
+| **D184** | truthful answer **destroyed** | 5 | `nameInternal`'s auxiliary set admits `is/are/being`, so a Title-Cased *entity type* reads as a name and the passive-progressive arm fires; v92 has no progressive arm |
+| **D185** | fabrication **shipped** | **60 of 792**; reverted build 0 | the D175 lexicon widening the session **refused** to revert |
+| **D186** | fabrication **shipped** | 6 | `titleHead` covers only the clause-initial `Pending`/`Awaiting`; a **quoted title mid-sentence** disarms the belt |
+| **D188** | fabrication **shipped** | **150 of 450** | the D153/D180 closure is **casing-dependent**, not lexical |
+
+Plus **D187 (P3, suite integrity)**: run18's `D134.coverage.newlineIsAClauseBoundary` **passes under its own mutant** — vacuous.
+
+**The refused recommendation — REFUTED, verifier #32 was right.** My own 792-shape family (6 tokens × 11 joiners × 4 subjects, capitalised *and* lowercase subject): v92 corrects **792/792**, candidate ships **60** (16 cap / **44 lowercase**), lexicon-reverted build ships **0** and destroys **0** truths. Mutation: reverting **closes 6, costs 0**. The session's premise generalised from capitalised subjects only. The "two truthful answers" it protects are ones **v92 itself destroys** — a bonus, not a gate requirement. **Revert the six tokens.**
+
+**Other judgments:** the dash-before-a-CAPITAL class is preserved (all three real names survive) — but the paired fabrications are handled **by casing, not lexically** (D188), so the ledger's "It is NOT a casing rule" is false as written. The disclosed `No North Depot was archived.` argument is **accepted and moot** (v92 destroys it too). The three "refused" residuals are in fact **closed**. Introducer-list attack: 7 of 10 destroyed — **but v92 destroys all 7, so 0 gate regressions** (P2 parity). Idiom-before-determiner: no truthful shape found that it wrongly strips; both strip forms mutation-proven load-bearing.
+
+**Mutation proof, my own anchors, 11 mutations:** load-bearing in the fabrication direction — `nameInternal` 41, `objectName` 14, `idiomStrip.dashForm` 4, `ppInternal` 3, `titleHead` 2, `newSubject` 2, `auxGapArm` 2, `idiomStrip.determinerForm` 1; load-bearing in the **truth** direction — `auxGapArm.leftContextWindow` 1, `confirmedGuard.d176span` 4; **NEGATIVE** — `negatorLexicon.d175wide`. Two fixes are net-negative vs v92: `auxGapArm` (+2 parity, −8 truths) and `nameInternal` (+41, −5 truths v92 preserves).
+
+**STEP 3c count check — ledger #94 is right, measured myself:** **33 executed / 0 failures / 5 SUPERSEDED stubs / 28 substantive / 1 helper** (`_gate_extract.mjs`). Measured one child process per suite with the exit status read per process — the pipeline-derived retraction was correct, and the number was correct. **No vacuous suite** (the six that print `PASS ` rather than `ok ` all carry real assertions; verified individually).
+
+## STEP 4 — Suite integrity
+
+CONTRACT 5's narrowing is **sound and hides nothing** (still pins top-level order; two live coverage mutations in both directions; both anchors present). All four re-pins are **honest**, every paired real name survives. run14/D107's window is **4000 vs a 3099-char statement** and throws rather than truncating silently. **run15 57/0** and the **D117 property holds semantically** (6 later-sentence-negator fabrications, all caught), not merely by the syntax pin. The whole battery is green **and cannot see any of the five P1 classes** — `v92_open_regression_contract`'s CONTRACT 2 ("truth regression == 0") is the right shape with a corpus that lacks all four families.
+
+## Housekeeping
+
+- **index.ts byte-identical** at start, mid-run and end: `dfdff8fd6f93888f2aeb08bfac76552bfbece439cef1e42cd8002194e98d1220`. No edit to any deploy-path file (mutants live only in `qa/verification/scratch/v93/mut/`, uncommitted).
+- **No `QA-VERIFY-*` synthetic data was created and none needs cleanup** — DB access was blocked and this campaign is a pure Edge-source differential; nothing was written anywhere outside `qa/`.
+- **No production write, no `functions deploy`, no `db push`, no migration.**
+- Artifacts committed to **`verify-7914f2b-campaign93` as `77e9f12`**: `qa/verification/proposed/v33_known_failure_modes_entry_94.md`, `v33_PROMOTION_NOTE.md`, `v33_regression_additions.mjs` (58 passed / 35 failed, RED by design, exits nonzero, resolves index.ts from any cwd), plus corpus/harness/mutation/battery evidence. **`git push` is not permitted in this session, so the branch is local to this worktree** — it needs pushing by a session that has that authority.
+
+---
+
+**VERDICT: FAIL** — candidate `7914f2b521fc1b1a97442993676da279830967ee` is **NOT fit to deploy over v92**. It destroys 13 truthful answers deployed v92 preserves and ships fabrications deployed v92 corrects. **EDGE STATUS = BLOCKED; production remains v92; rollback target `c9dfab5bd433` verified exact and available.**
+
+`dfdff8fd6f93888f2aeb08bfac76552bfbece439cef1e42cd8002194e98d1220`

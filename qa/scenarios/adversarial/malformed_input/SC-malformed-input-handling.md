@@ -47,6 +47,6 @@ CLEANUP: n/a.
 
 AUTOMATION STATUS: CODE-VERIFIED (the handlers are read directly in
 supabase/functions/sem-ai-command/index.ts); a live malformed-JSON injection is MANUAL
-VERIFICATION. Cross-ref SC-095 (partial execution), SC-101, SC-104, CLAUDE.md §11.
+VERIFICATION. Cross-ref SC-095 (partial execution), SC-101, SC-104, CLAUDE.md §5.
 
 LAST VERIFIED DATE: 2026-08-27 (handlers code-verified; live fault-injection MANUAL)

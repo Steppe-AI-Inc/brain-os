@@ -1,0 +1,27 @@
+PASS CRITICAL: the failing dependency (restore_employment) is itself reported failed
+PASS CRITICAL: the dependent action (reassign_person) is blocked, never executed, when its dependency failed
+PASS overall status is failed when nothing completed
+PASS independent action a1 fails on its own real outcome
+PASS CRITICAL: independent action a2 still completes despite unrelated a1 failing (partial execution is acceptable)
+PASS overall status is "partial" when some but not all actions completed
+PASS a successful dependency correctly unblocks and runs its dependent action
+PASS overall status is "completed" only when every action completed
+PASS a transitive dependency chain (A->B->C) blocks every downstream action when the root fails
+PASS CRITICAL: only the failing root action is ever actually executed - transitively-blocked actions never call the real executor at all
+PASS a circular dependency fails every unresolved action instead of looping forever
+PASS circular dependency plan reports overall failed, never partial/completed
+PASS a fully-completed plan report leads with an unambiguous "All steps completed" headline
+PASS the report names the real entities by their real names, not raw ids
+PASS CRITICAL: assign_task names the TASK, not the person, despite targetIds carrying both taskId and personId (real self-caught bug in this exact fix)
+PASS CRITICAL: a plan where nothing completed never claims success, leads with an unambiguous failure headline
+PASS a failed plan report never contains success-shaped language anywhere
+PASS a blocked downstream action is explicitly labeled "blocked" in the report, never silently omitted
+PASS CRITICAL: a partial plan is reported as "Partially completed", never as a full success
+PASS a partial plan never uses the full-success headline
+PASS CRITICAL: a real, valid plan proposal always produces an unambiguous confirmation question, never a completion-sounding sentence
+PASS the overridden proposal summary never contains completion-sounding language (the real incident text)
+PASS a plan with an already-executed (non-"planned") action is not treated as a fresh proposal, letting the real execution report stand instead
+PASS a bulk_confirmation pendingAction is completely unaffected by the multi_action_plan proposal override
+PASS no pendingAction at all is completely unaffected by this override
+
+ALL REGRESSIONS PASSED

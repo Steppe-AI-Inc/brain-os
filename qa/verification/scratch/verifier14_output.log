@@ -1,0 +1,37 @@
+Verification complete.
+
+## FOUND
+
+`f1722f2` closes real ground on the shapes it targeted — but it ships a **P1 wrong-entity binding**, **reopens the class it replaced**, and its two headline claims are **unobserved by any test**.
+
+**D106 (P1) — a founder's disambiguation reply can bind to the WRONG entity.** D102's raw fallback filters `options` (not `matches`) and tests *containment* (not equality), so a short option that is incidentally a raw substring of the reply wins over the one the founder named. Options `[Smith, Smith's Bakery]`, reply `"smiths bakery"` → binds **Smith**, and its `actionType` arms `archiveCompanyIds` with no LLM in the loop. `ace9b6a` returned null for all three of my cases; `f1722f2` mis-binds all three. Every prior defect in this family could only dead-end — this one archives the wrong company. It also fails its own stated goal: typing the exact name `"smith's bakery"` still dead-ends.
+
+**D114 (P2) — FIX-3b reopened run12's class.** Curated 20-case corpus of interrogative-led first-person assertions: `ace9b6a` **0/20** leak, `f1722f2` **13/20**, 0 newly closed. The commit's "strictly better on BOTH axes than any previous build" is corpus-dependent and false here. Third consecutive campaign closing one direction by reopening the other.
+
+**D112 (P2, new) — truthful answers destroyed.** `CONFIRMED_COMPLETION`'s bare `.*` has no negation handling: `"Confirmed — the company is not archived."` and `"Confirmed — you have 3 archived companies."` are replaced with *"I can't actually do that from chat"* — itself false. 9/16 new; 0/16 on `ace9b6a`.
+
+**D107/D108 (P2) — the eleventh vacuous-guard recurrence, on the commit's own headlines.** Reverting arm 2 to a private pattern copy leaves the battery green ("one predicate, both arms" unobserved). The replay-site rewrite has **zero** coverage — and it's the *only* protection on the deterministic path, because arm 1 excludes `deterministic-*` models. The committed `D100.replay` case tests `model='gpt'`, a path that cannot emit that string.
+
+Also: **D113** (D100's corroboration is gated on the lexical test it was written to replace — `"Terminated Bob Smith"` ships verbatim for an entity named `ACME Holdings`), **D109–D111** (unobserved guards), **D115** (D104's ledger corruption still live at lines 6931–6936).
+
+## NOT SOFTENED, BUT GENUINELY GOOD
+
+12 completion shapes closed with zero new false negatives; zero new clarification drops; corroboration correctly id-bound (7 of 12 attacks repelled); the three edits to prior campaigns' contracts are honest and add a new pinning CONTRACT rather than weakening. `CURRENT_CAMPAIGN.json`'s bookkeeping is accurate on all four checkable claims.
+
+## ONE THING TO FLAG
+
+A concurrent session wrote its own D106 fix into `proposed/` **during my run**. I verified it rather than accepting it: better than mine, but it *guesses* on multi-mention replies — `"archive acme, leave acme holdings alone"` → selects `Acme Holdings`, the one the reply excludes. `f1722f2` correctly dead-ends that today. **FIX-C2** (its rule + a residual-mention guard) is 13/13 correct, all suites green.
+
+## FIXES PREPARED, NONE APPLIED
+
+Rule 1 forbids touching `index.ts`. FIX-A2, FIX-B, FIX-C2 each validated against the real source and restored; together they take my suite from 34/29 to 59/4 with all 25 committed suites green. D113 needs a product decision, not a patch.
+
+**Synthetic data:** none created — no DB writes, no deploys. All work ran against extracted source slices, three git-extracted historical copies, and one read-only `functions list`. Production is `sem-ai-command` v92, `ezbr_sha256 33255b31…`, 28 commits behind this branch.
+
+**40 temporary source edits, every one restored byte-identically with a SHA assertion; `git status supabase/` is clean.**
+
+---
+
+**VERDICT: FAIL**
+
+`10db58385071d8f07fcd96ed65929be6b15bbeda3d197f4dae92327acba70d2a`

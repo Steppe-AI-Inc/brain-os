@@ -1,0 +1,116 @@
+{
+  "campaign_id": "verify-25af3b0-laundering-closure-and-f5",
+  "base_commit": "25af3b00e71cd6cd8d9f4398d4ac43359cb485d4",
+  "branch_under_test": "pending/d3-past-completion-gate-pendingaction-shortcircuit",
+  "started_at": "2026-09-01T-run7-start",
+  "last_checkpoint_at": "2026-09-01T-run7-final",
+  "verifier": "independent verifier #7 (fresh context, campaign #67)",
+  "prior_campaign": "verify-72dabe6-structured-claim-architecture archived to qa/verification/archive/campaign-72dabe6-structured-claim.json. DIFFERENT base_commit -> ALL prior evidence treated as UNVERIFIED and re-derived from the real source, the real RPC definitions and live DB state.",
+  "project_ref": "pvphxgrtdfrudejjhzjk",
+  "index_ts_sha256": "15c8e63c7bafc95cfaac6b52fa3f447a4fe0fc8e46532ce2d7865637e2b8bab3",
+  "index_ts_restored_after_all_28_mutations": true,
+  "verdict": "DO NOT DEPLOY 25af3b0 AS WRITTEN. All eleven #66 laundering shapes are genuinely closed and the model can no longer switch its own truth gate off with an empty claims array - a real, large improvement over 72dabe6 and over all three rejected prose builds. It is still not safe against deployed v92, for a DIFFERENT reason: the claim-rewrite path discards backend ground truth and tells the founder 'nothing was changed for it' about mutations that really happened (D50), and silently drops real mutations the model did not claim (D51). BUG-002 - STRUCTURED-CLAIM ARCHITECTURE PREPARED, INDEPENDENTLY VERIFIED, LIVE PLAYWRIGHT ACCEPTANCE STILL REQUIRED (OPEN).",
+  "scenarios": {
+    "1_laundering_shapes_reattacked": {
+      "status": "PASS - CODE VERIFIED",
+      "evidence": "All 11 #66 shapes now corrected. 29/29 in structured_claim_laundering_contract.mjs against the REAL block. Mutation M06 (revert to !rawClaims) is CAUGHT, so the additive check is load-bearing. NEW attack found on the additive logic itself: see D52."
+    },
+    "2_resource_identity": {
+      "status": "PASS - CODE VERIFIED",
+      "evidence": "Independent battery: wrong uuid+right action, right id+wrong action, action-less, action null/123/empty/UPPERCASE/trailing-space, cross-type evidence on an identical id, hex-case difference, leading whitespace, pipe-injected resourceId, postconditionPassed=false - ALL fail closed. Rejection reason for the action-less case now asserted (new suite R6)."
+    },
+    "3_stale_reads_both_directions": {
+      "status": "PASS - CODE VERIFIED",
+      "evidence": "A resource mutated this turn yields unknown for state claims in BOTH directions. Defensible: unknown claims are not rendered and a real lifecycle turn's summary is the deterministic report. Mutation M05 CAUGHT by two suites."
+    },
+    "4_lifecycle_evidence_recording": {
+      "status": "PARTIAL - the four new sites are correct; ~17 mutating paths still record nothing (D50, P0)",
+      "evidence": "LIVE VERIFIED against production pg_get_functiondef: all six archive/restore RPCs return changed:true only on a genuine transition, postconditionPassed from a real re-read, already_archived returns changed:false. New suite executes all six loops with stubbed RPC results: real change RECORDS evidence; already/denied/not_found/unconfirmed/rpc-error record NOTHING (36 checks)."
+    },
+    "5_envelope_order_and_persistence": {
+      "status": "PASS on equality - CODE VERIFIED; the single-source-of-output-truth claim is nominal (D57)",
+      "evidence": "Envelope built after every summary override; the SAME result object is sent in the SSE done event and written by work_orders.update({output: result}). Mutations M20/M27/M30 all CAUGHT. But grep -rn verifiedResponse web/ = 0 hits, so the envelope is inert payload."
+    },
+    "6_f5_uuid_leakage": {
+      "status": "FAIL - three bypasses (D54, P1)",
+      "evidence": "displayName() is correct across all four of its own branches. But resourceType, action and predicate+expectedValue are interpolated RAW into founder-facing prose; expectedValue leaks a REAL canonical id from the context pack with no smuggling required."
+    },
+    "7_readonly_and_historical_prose": {
+      "status": "PARITY with v92, not a regression (D56, P2)",
+      "evidence": "6 of 9 truthful read-only/historical answers blanket-replaced. Identical to deployed v92. historical_event is unverifiable by construction, so the architecture gives zero benefit here."
+    },
+    "8_mutation_test_quality": {
+      "status": "FAIL then CLOSED - SEVENTH recurrence (D55, P1)",
+      "evidence": "28 mutations, 10 undetected before this campaign. After adding the new suite: 1 undetected, provably an EQUIVALENT mutation. index.ts sha256 restored and verified after every mutation."
+    },
+    "9_test_bookkeeping_honesty": {
+      "status": "MOSTLY HONEST, two overstatements",
+      "evidence": "L2-L12, F3, F4, F6 flips are real and mutation-proven. F1/F2 were relabelled as testing the evidence-recording fix but feed synthetic evidence into a window that does not contain archive_task/archive_goal. F5's CONTRACT title claims an invariant three sibling branches violate."
+    },
+    "10_issue5_no_regression": {
+      "status": "PASS - CODE VERIFIED",
+      "evidence": "resolveClarificationField() still fail-closed on absent entityType OR actionType; no destructive default on any mutation path. drift guard 13/13, past-completion regex 13/13."
+    },
+    "11_production_and_incident_readonly": {
+      "status": "PASS - LIVE VERIFIED, zero writes",
+      "evidence": "sem-ai-command v92 ACTIVE updated_at 1788239725518 unchanged; work_orders with verifiedResponse/claims = 0; QA-SWARM-TEST-CO-VIA-CHAT active/2026-09-01 06:50:55.540698+00 untouched; approval 358eddeb pending/decided_at NULL; global_integrity_assertions.sql unchanged from baseline."
+    },
+    "12_new_defects_found": {
+      "status": "FAIL - two P0 and three P1",
+      "evidence": "D50, D51, D52, D53, D54 - see defects_found."
+    },
+    "13_live_browser_acceptance": {
+      "status": "BLOCKED",
+      "evidence": "No ToolSearch tool and no mcp__claude-in-chrome__* tools exist in this session type. EIGHTH consecutive campaign. Not simulated."
+    }
+  },
+  "defects_found": [
+    { "id": "D50", "severity": "P0", "title": "Truthful mutation denied as 'nothing was changed' - evidence recorded at 13 of ~30 mutating paths, and the rewrite replaces the correct deterministic report with a false denial.", "status": "OPEN" },
+    { "id": "D51", "severity": "P0", "title": "The claim rewrite discards the deterministic backend lifecycle report; real mutations the model did not claim vanish from the founder's reply.", "status": "OPEN" },
+    { "id": "D52", "severity": "P1 - narrow REGRESSION vs deployed v92", "title": "One supported mutation claim disarms the drift check for unrelated fabricated completion prose, in the ungrounded-execution window (successful task/approval/project creates).", "status": "OPEN" },
+    { "id": "D53", "severity": "P1", "title": "questions[] and the pendingAction prompt/options are an ungated model-authored prose channel spliced into the CORRECTED founder-facing summary.", "status": "OPEN" },
+    { "id": "D54", "severity": "P1", "title": "Three interpolations bypass the single F5 formatter (resourceType, action, predicate/expectedValue); the third leaks a real canonical uuid with no smuggling.", "status": "OPEN" },
+    { "id": "D55", "severity": "P1 - SEVENTH recurrence", "title": "10 of 28 guard mutations survived every suite; F1/F2 relabelled as testing a fix they structurally cannot reach.", "status": "CLOSED by qa/scenarios-runner/lifecycle_evidence_and_output_persistence_contract.mjs" },
+    { "id": "D56", "severity": "P2 - parity with v92, not a regression", "title": "6 of 9 truthful read-only/historical answers still blanket-replaced; historical_event is unverifiable by construction.", "status": "OPEN" },
+    { "id": "D57", "severity": "P2", "title": "#66/D45, #66/D47 and #66/D48 all still open and unchanged.", "status": "OPEN" }
+  ],
+  "regressions_added": [
+    "qa/scenarios-runner/lifecycle_evidence_and_output_persistence_contract.mjs (NEW) - 49 contract checks + 9 measured section-X defect baselines. Executes the REAL archive/restore loops (stubbed supabase.rpc with LIVE-VERIFIED production payload shapes), the REAL rewrite path and the REAL work_orders.output persist condition. Mutation-proven: takes the undetected count from 10/28 to 1/28.",
+    "qa/scenarios-runner/_gate_extract.mjs - stripTypeAssertions() is now string/template-literal aware; it previously ate everything after any ' as ' inside a product string literal. All pre-existing suites re-run unchanged (41/41, 29/29)."
+  ],
+  "pending_db_pushes": [],
+  "prepared_fixes": [
+    { "id": "25af3b0 laundering closure + F5", "status": "FIX PREPARED - NOT RECOMMENDED FOR DEPLOY AS WRITTEN. See D50-D54." }
+  ],
+  "live_verified_fixes": [],
+  "remaining_scenarios": [],
+  "global_integrity": {
+    "tasks_orphan_company": 0,
+    "goals_orphan_company": 0,
+    "person_assignment_orphan_company": 0,
+    "person_assignment_orphan_person": 0,
+    "person_assignment_orphan_manager": 0,
+    "tasks_orphan_owner_person": 0,
+    "work_orders_orphan_channel": 0,
+    "duplicate_company_names_active": 0,
+    "companies_active": 8,
+    "companies_archived": 10,
+    "active_task_under_archived_company": 1,
+    "active_task_note": "pre-existing #61/D4 fixture, not created or altered by this campaign",
+    "work_orders_with_verifiedResponse": 0,
+    "BASELINE_approval_358eddeb": "pending",
+    "AI_vs_DB": "BLOCKED - no live AI path available in this session type",
+    "UI_vs_DB": "BLOCKED - no browser tooling available in this session type"
+  },
+  "synthetic_entities_created_by_this_campaign": {
+    "none": "ZERO. Every DB interaction was a read-only SELECT / pg_get_functiondef read. No QA-VERIFY-* rows created. The pre-existing archived fixture QA-VERIFY-BU (d4d366e0, created 2026-08-29) and the incident fixture were left exactly as found."
+  },
+  "blocked_scenarios": [
+    "Live HTTP/browser acceptance",
+    "UI vs DB truth checks",
+    "fresh-channel AI vs DB checks",
+    "deploying 25af3b0 (by instruction AND by verdict)"
+  ],
+  "known_failure_modes_entries_created": [67],
+  "completed_at": "2026-09-01T-run7-final"
+}

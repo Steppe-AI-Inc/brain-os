@@ -1,0 +1,29 @@
+{
+ "campaign": 86,
+ "verifier": 26,
+ "candidate_sha": "415fed37bbc6b266e0dcae8b64ca68195ac88475",
+ "index_sha256": "3b5baa2c268ccb6c1ecb5e2eac0ac0f20ccfafc991af28af3b090416961f7602",
+ "verdict": "FAIL",
+ "defects": [
+  "D162a (P2, FIX-E unanchored bare-be drops a clause on copular modals)",
+  "D162b (P3, FIX-D name-blind split; and inside a name defeats the evidential test — D125->D128->D162b)",
+  "D162c (P4, run25 vacuous variable-length-lookbehind detector)"
+ ],
+ "confirmed_closed": [
+  "D160 15/15",
+  "D160b 8/8",
+  "D156 12/12",
+  "D161 hedges 9/9",
+  "28 prior belt closures",
+  "16 matcher closures",
+  "question belt byte-identical x5 SHAs",
+  "run15 57/0"
+ ],
+ "prepared_fixes": [
+  "FIX-G (adopted): delete the unanchored bare-be alternative",
+  "FIX-F (adopted): evidential split reuses the file name-vs-clause guard",
+  "D162c disclosure (adopted)"
+ ],
+ "report": "qa/verification/scratch/verifier26_output.log",
+ "artifact_branch": "verify-415fed3-campaign86 (781db38)"
+}

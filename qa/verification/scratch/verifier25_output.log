@@ -1,0 +1,71 @@
+Verification complete. Artifacts committed to `verify-164b3ee-campaign85` as `751bff9`. `index.ts` was never written.
+
+---
+
+# CHANGE VERIFIED: run24 D158/FIX-C closure on `164b3ee` (Edge function `sem-ai-command` prose-drift belt)
+
+```
+SCENARIOS: 5 passed, 1 failed, 2 blocked
+CANONICAL GRAPH: N/A (no DB entity was mutated this campaign)
+UI ↔ DB:  BLOCKED  (candidate is not deployed anywhere — nothing runs this code)
+AI ↔ DB:  BLOCKED  (same)
+DEPENDENCIES:      PASS  (belt const set, run15–run18 slicers, question belt all unaffected)
+PERMISSIONS:       N/A
+RELOAD/PERSISTENCE:N/A
+IDEMPOTENCY:       PASS  (every measurement re-run identical; sha256 asserted before/after each mutation)
+```
+
+## FOUND
+
+**D160 (P2, NEW — a regression vs `4476c92` this candidate carries).** FIX-C decides passive-vs-active with **fixed-length lookbehinds, which see exactly one token.** One adverb, one contraction, or one extra space walks through it and D158 is back:
+
+| founder-facing summary | `4476c92` | **candidate** |
+|---|---|---|
+| `No errors were ever reported and ACME Holdings was archived.` | CAUGHT | **MISSED** |
+| `No delay was previously recorded and ACME Holdings was archived.` | CAUGHT | **MISSED** |
+| `The incident wasn't reported and ACME Holdings was archived.` | CAUGHT | **MISSED** |
+| `No errors were  reported and …` (two spaces) | CAUGHT | **MISSED** |
+
+47/52 prose shapes missed here, 62/62 caught at `4476c92`. At the regex level: 132/132 aux×verb pairs blocked when adjacent, **121/132 unblocked with one adverb**.
+
+**D160b (P2, NEW).** An *active intransitive* evidential has no auxiliary to exclude, so the lookbehind can never fire: `No auditor reported and ACME Holdings was archived.` — **0/28 caught here, 28/28 at `4476c92`.**
+
+**D161 (P4, pre-existing at every SHA, undisclosed, same class).** `LEGACY_PAST_COMPLETION`'s `(?<!may )(?<!might )(?<!could )(?<!can )` fails identically in the opposite direction — `ACME may possibly have been archived.` is a hedge and the belt **destroys** it. This widens an assertion `sem_ai_command_past_completion_claim_regex.mjs` already makes.
+
+## ROOT CAUSE
+
+Verifier #24 correctly wrote that `completionIsNegated` "decides … from a bag of words, not from position" — then fixed the verb's **voice** instead of its **position**. Voice is the wrong axis. `run24` pinned D158 with **#24's eleven example sentences copied verbatim**, all of which happened to place the auxiliary directly against the verb, and measured "11 → 0" against them. The class stayed 5/62.
+
+## SYSTEMIC IMPACT
+
+Defect class: **a fixed-length lookbehind used to decide syntactic scope.** Swept the whole file — two confirmed instances (the FIX-C chain, and LEGACY's modal chain). Both reproduce.
+
+## FIXED — FIX PREPARED, not applied (no write authority on the implementation branch; `index.ts` preserved byte-for-byte)
+
+- **FIX-D** — one line: run the evidential test on the **last linker-delimited segment** of the negator→verb span. **Removes 11 lookbehinds, adds none**, no modifier group, no new const. D160 **62/62**, D160b **28/28**, D158 11/11, D156 17/17, truthful **0/50 destroyed**, lexical branch 450/450, battery **32/32 green**.
+- **FIX-E** (optional) — modal-hedge guard closes D161: 5 hedges recovered, 0 fabrications lost. With FIX-D: `v25_regression_additions.mjs` **440/0**, battery 32/32.
+
+## TESTED
+
+Own extractor + own matcher extractor + own mutation harness, nothing imported from `qa/scenarios-runner` or `v24_*`. Battery **32 suites / 0 non-zero exits / 0 output-text FAIL lines / 1031 OK**; run15 = 57, run23 gone, run24 present and **mutation-proven assertion-bearing (4/4 load-bearing)**. **No prior closure reopened**: belt 50/50, matcher 24/24, residuals 9/9 pinned, founder-directed lexical branch **450/450**, all at 0 regressions vs `4476c92`. No modifier group, no variable-length lookbehind, belt const set unchanged, question belt byte-identical across four SHAs.
+
+**Ledger corrections required:** "strictly better than `4476c92`" is false (better on truthful 0-vs-5, worse on fabrications 13-vs-0); D158d is pinned in `run24` but missing from the ledger's residual list; `run24`'s D158 case notes are stale on the candidate they were promoted onto; "the file already ships 12 lookbehinds" is belt-scope (file ships 17 → 28).
+
+## PRODUCTION
+
+Read-only only. `sem-ai-command` **v92 ACTIVE**, `ezbr_sha256 33255b31728932ea6c4b251194922a594604e603ba70cc601ae569fe3b4fe475`, `updated_at 1788239725518` — unchanged. **Nothing deployed, no `db push`, no migration, no production write.** No `QA-VERIFY-*` data was created — this campaign is entirely source-level plus one read-only `functions list`, so there is nothing to clean up.
+
+## BLOCKERS / COVERAGE GAPS
+
+- `deno check` **BLOCKED** — no `deno` binary, `npx deno` unavailable. Second campaign running; either provision it or stop citing the number as evidence.
+- **Browser / live AI-chat verification BLOCKED** — the candidate is not deployed, so no running system exhibits this code. All belt evidence is `UNIT VERIFIED`/`CODE INSPECTED` against the exact candidate bytes.
+
+**Commits:** `751bff9` on `verify-164b3ee-campaign85` (local; not pushed — no push was requested for this branch).
+
+---
+
+**VERDICT: FAIL**
+
+*(Basis, from OUTPUT TEXT: `qa/verification/proposed/v25_regression_additions.mjs` prints `402 passed, 38 failed` — 38 `[DEFECT]` reproductions, 0 `[CONTRACT]` failures, 0 `[RESIDUAL]` moves.)*
+
+index.ts sha256: `e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834`

@@ -1,0 +1,614 @@
+[
+  {
+    "file": "qa\\scenarios-runner\\belt_generative_adversarial_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 251,
+    "lines": 32,
+    "counts": "25 passed, 0 failed",
+    "last": "(0 of 85 flip, e.g. ) || 25 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\claim_segmentation_and_present_tense_fp.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 70,
+    "lines": 1,
+    "counts": null,
+    "last": "claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+  },
+  {
+    "file": "qa\\scenarios-runner\\company_ref_no_bare_name_join.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 155,
+    "lines": 9,
+    "counts": "8/8",
+    "last": "OK   every ArchivedCompanyBadge is fed a real .status expression, never a literal || company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)"
+  },
+  {
+    "file": "qa\\scenarios-runner\\current_turn_and_continuity_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 69,
+    "lines": 18,
+    "counts": "17/17",
+    "last": "OK   last_successful_mutation comes from backend evidence, never prose || current_turn_and_continuity_contract: 17/17 passed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 58,
+    "lines": 1,
+    "counts": null,
+    "last": "d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+  },
+  {
+    "file": "qa\\scenarios-runner\\entity_signal_positive_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 95,
+    "lines": 7,
+    "counts": "5 passed, 0 failed",
+    "last": "ok    [CONTRACT] V43-E4.v92PreservesTheWholeClass || 5 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\factory_production_write_inventory.regression.test.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 98,
+    "lines": 57,
+    "counts": null,
+    "last": "diff: 'simple' || }"
+  },
+  {
+    "file": "qa\\scenarios-runner\\issue5_confirmation_action_type_binding.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 67,
+    "lines": 7,
+    "counts": "10/10",
+    "last": "-> resolves to undefined  <-- refuses, falls through to the LLM path || issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with the fixed contract"
+  },
+  {
+    "file": "qa\\scenarios-runner\\lifecycle_evidence_and_output_persistence_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 119,
+    "lines": 105,
+    "counts": "92/92",
+    "last": "lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match the recorded baseline || DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source."
+  },
+  {
+    "file": "qa\\scenarios-runner\\mixed_claim_grounding.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 68,
+    "lines": 1,
+    "counts": null,
+    "last": "mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+  },
+  {
+    "file": "qa\\scenarios-runner\\org_selector_scoping_coverage.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 68,
+    "lines": 6,
+    "counts": "5/5",
+    "last": "OK   scoped readers exist in bulk (>= 15) || org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)"
+  },
+  {
+    "file": "qa\\scenarios-runner\\past_completion_gate_behavior.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 58,
+    "lines": 1,
+    "counts": null,
+    "last": "past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+  },
+  {
+    "file": "qa\\scenarios-runner\\per_resource_grounding_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 60,
+    "lines": 1,
+    "counts": null,
+    "last": "per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
+  },
+  {
+    "file": "qa\\scenarios-runner\\production_write_authority.regression.test.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 4330,
+    "lines": 112,
+    "counts": null,
+    "last": "(node:11116) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. || (Use `no"
+  },
+  {
+    "file": "qa\\scenarios-runner\\readsAsCompletion_no_literal_semicolon_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 65,
+    "lines": 5,
+    "counts": "4 passed, 0 failed",
+    "last": "ok    the check can see a literal `;` (non-vacuous) || readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run10_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 116,
+    "lines": 44,
+    "counts": null,
+    "last": "OK   EMULTI.legit-hold      [CONTRACT] ordinary prose containing the word executing in a non-claim shape is untouched || v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONT"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run11_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 118,
+    "lines": 50,
+    "counts": null,
+    "last": "OK   D88.preserves.longer       [CONTRACT] the same, with a longer trailing question || v11_regression_additions: 49 pass, 0 fail (0 open #71 defects reproduce; 0 CONTRACT failures = guards that do no"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run12_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 128,
+    "lines": 75,
+    "counts": null,
+    "last": "OK   D94.hold.legit.4               [CONTRACT] ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder) || v12_regression_additions: 74 pass, 0 fail (0 open #72"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run13_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 126,
+    "lines": 61,
+    "counts": null,
+    "last": "OK   D103.hold.numbered               [CONTRACT] the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names render distinguishably, and out-of-context o"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run14_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 134,
+    "lines": 69,
+    "counts": null,
+    "last": "OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) || run14_defect_closure_contract: 68 pass, 0 fail (0 "
+  },
+  {
+    "file": "qa\\scenarios-runner\\run15_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 143,
+    "lines": 58,
+    "counts": "0/6",
+    "last": "OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string || run15_defect_closure_contract: 57 pass, 0 fail (0 open "
+  },
+  {
+    "file": "qa\\scenarios-runner\\run16_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 124,
+    "lines": 54,
+    "counts": "1/2",
+    "last": "OK   D126.freshCreateLabelStillResolves                         [CONTRACT] run8/D67: a row created THIS turn resolves via runtimeLabels and is NOT dropped || run16_defect_closure_contract: 53 pass, 0 "
+  },
+  {
+    "file": "qa\\scenarios-runner\\run17_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 127,
+    "lines": 44,
+    "counts": null,
+    "last": "OK   D125.coverage.questionBeltUnchanged                            [CONTRACT] the question belt constructs are byte-identical to 52e830f/d724d8c — this candidate touched only the completion belt || r"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run18_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 115,
+    "lines": 53,
+    "counts": "24/26",
+    "last": "OK   D125.coverage.questionBeltUnchanged                                [CONTRACT] this candidate touched only the completion belt: the question belt still consults its own constructs and none of the "
+  },
+  {
+    "file": "qa\\scenarios-runner\\run19_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 128,
+    "lines": 63,
+    "counts": "62 passed, 0 failed",
+    "last": "OK   QuestionBelt.untouched                               [CONTRACT] the QUESTION belt is not collateral damage of any belt change: byte-identical across d724d8c..this candidate, and these outputs mus"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run28_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 181,
+    "lines": 130,
+    "counts": "117 passed, 0 failed",
+    "last": "ok    [CONTRACT] FIX-I lookahead is not quadratic (26KB clause < 50ms) || 117 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\run8_defect_closure_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 105,
+    "lines": 41,
+    "counts": "40/40",
+    "last": "OK   D74c an honest label still renders || run8_defect_closure_contract: 40/40 passed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_company_restore_truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 55,
+    "lines": 52,
+    "counts": null,
+    "last": "PASS an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design) || ALL REGRESSIONS PASSED"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_confirmation_truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 65,
+    "lines": 39,
+    "counts": null,
+    "last": "PASS an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix) || ALL REGRESSIONS PASSED"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_execution_plan_truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 52,
+    "lines": 26,
+    "counts": null,
+    "last": "PASS no pendingAction at all is completely unaffected by this override || ALL REGRESSIONS PASSED"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_factory_verification_selection.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 64,
+    "lines": 8,
+    "counts": null,
+    "last": "PASS Zero runs: correctly reports unverified/zero, never falsely true || ALL REGRESSIONS PASSED"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_named_person_lookup_truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 56,
+    "lines": 12,
+    "counts": null,
+    "last": "PASS a person-tagged memory with no entity_id at all is not given a fabricated status either || ALL REGRESSIONS PASSED"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_past_completion_claim_regex.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 62,
+    "lines": 14,
+    "counts": "13 passed, 0 failed",
+    "last": "OK   [no match] hedged \"could have been\" || 13 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\sem_ai_command_source_invariants_drift_guard.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 70,
+    "lines": 14,
+    "counts": "13 passed, 0 failed",
+    "last": "OK   company.archive still maps to archiveCompanyIds (the field the issue #5 repro wrongly reached) || 13 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\standing_reds_classification_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 109,
+    "lines": 28,
+    "counts": null,
+    "last": "rows 8  derived-BLOCKER 0  mislabelled-as-shared 0 || RESULT: PASS - every standing red re-derives as a genuine non-blocker"
+  },
+  {
+    "file": "qa\\scenarios-runner\\structured_claim_laundering_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 102,
+    "lines": 31,
+    "counts": "29/29",
+    "last": "structured_claim_laundering_contract: 29/29 match the recorded baseline || DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 truthful-reply corruptions still present."
+  },
+  {
+    "file": "qa\\scenarios-runner\\structured_claim_verification.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 110,
+    "lines": 43,
+    "counts": "42/42",
+    "last": "OK   H6 a SUPPORTED claim is also rendered without a raw uuid || structured_claim_verification: 42/42 passed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\tdz_forward_reference_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 137,
+    "lines": 10,
+    "counts": "9 passed, 0 failed",
+    "last": "ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN literal is unchanged from deployed v92 || v48_regression_additions: 9 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\v92_open_regression_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 113,
+    "lines": 30,
+    "counts": "28 passed, 0 failed",
+    "last": "ok    [CONTRACT] open regression shapes never ship on a mutation-claim turn (blast radius bounded) || 28 passed, 0 failed"
+  },
+  {
+    "file": "qa\\scenarios-runner\\v92_parity_contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 133,
+    "lines": 51,
+    "counts": "46 passed, 0 failed",
+    "last": "OK   matcher.noRegressionVsV92.issue#5 absent actionType || v92_parity_contract: 46 passed, 0 failed"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v10_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 98,
+    "lines": 41,
+    "counts": null,
+    "last": "FAIL D84.hold               [CONTRACT] D60 still holds: a bulk summary that ASSERTS a completion is refused THREW PAST_COMPLETION_CLAIM_PATTERN is not defined || v10_regression_additions: 3 pass, 37 f"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v11_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 115,
+    "lines": 45,
+    "counts": null,
+    "last": "OK   D87.hold.legit             [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched || v11_regression_additions: 26 pass, 18 fail (11 open #71 defects reproduce; 7 CONTRACT"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v12_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 122,
+    "lines": 69,
+    "counts": null,
+    "last": "OK   D94.hold.legit                 [CONTRACT] ordinary prose containing a gerund in a non-claim shape is untouched || v12_regression_additions: 16 pass, 52 fail (35 open #72 defects reproduce; 17 CON"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v13_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 110,
+    "lines": 61,
+    "counts": null,
+    "last": "FAIL D103.hold.numbered               [CONTRACT] the committed D95 case still holds: two out-of-context options render distinguishably THREW PAST_COMPLETION_CLAIM_PATTERN is not defined || v13_regress"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v14_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 118,
+    "lines": 67,
+    "counts": null,
+    "last": "FAIL D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) THREW PAST_COMPLETION_CLAIM_PATTERN is not defined ||"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v15_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 71,
+    "lines": 6,
+    "counts": null,
+    "last": "at file:///C:/Users/Dell/dev/brain-os-verify-1d72018/qa/verification/proposed/v15_regression_additions.mjs:99:9 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v16_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 65,
+    "lines": 9,
+    "counts": null,
+    "last": "at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v17_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 60,
+    "lines": 10,
+    "counts": null,
+    "last": "at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v18_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 63,
+    "lines": 9,
+    "counts": null,
+    "last": "at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v19_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 123,
+    "lines": 64,
+    "counts": "29 passed, 32 failed",
+    "last": "CONTRACT failures (something that was true is now broken): 11 || DEFECT failures (defects reproduced, expected until fixed): 21"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v20_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 83,
+    "lines": 16,
+    "counts": null,
+    "last": "at async node:internal/modules/esm/loader:643:26 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v21_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 90,
+    "lines": 28,
+    "counts": null,
+    "last": "at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v22_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 86,
+    "lines": 118,
+    "counts": null,
+    "last": "at async node:internal/modules/esm/loader:643:26 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v23_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 96,
+    "lines": 40,
+    "counts": null,
+    "last": "at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v24_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 86,
+    "lines": 14,
+    "counts": null,
+    "last": "at file:///C:/Users/Dell/dev/brain-os-verify-1d72018/qa/verification/proposed/v24_regression_additions.mjs:115:4 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v25_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 82,
+    "lines": 14,
+    "counts": null,
+    "last": "at file:///C:/Users/Dell/dev/brain-os-verify-1d72018/qa/verification/proposed/v25_regression_additions.mjs:147:4 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v26_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 79,
+    "lines": 22,
+    "counts": null,
+    "last": "at async node:internal/modules/esm/loader:643:26 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v27_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 90,
+    "lines": 18,
+    "counts": null,
+    "last": "at async node:internal/modules/esm/loader:643:26 || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v28_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 96,
+    "lines": 41,
+    "counts": null,
+    "last": "at ModuleJob.run (node:internal/modules/esm/module_job:439:25) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v29_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 85,
+    "lines": 18,
+    "counts": null,
+    "last": "at ModuleJob.run (node:internal/modules/esm/module_job:439:25) || Node.js v24.19.0"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v46_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 315,
+    "lines": 41,
+    "counts": "33 passed, 3 failed",
+    "last": "- DEFECT :: V46-D1 growth exponent on a single unsplittable clause must be <= 2.0  -- measured e=2.17  (3.63 ms at 1 KB -> 73.82 ms at 4 KB) || - DEFECT :: V46-D5 CONFIRMED_COMPLETION carries the same"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v48_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 126,
+    "lines": 59,
+    "counts": "58 passed, 0 failed",
+    "last": "PASS  V48-D7 readsAsCompletion declaration carries no literal `;` before its terminator || 58 passed, 0 failed"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v49_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 202,
+    "lines": 18,
+    "counts": "16 passed, 0 failed",
+    "last": "ok    [DEFECT  ] V49-D7.offerPlusMidSentenceFirstPersonCompletion — a conditioned offer co-occurring with a first-person completion (\"I will restore X if you approve — I just restored Y\") must not shi"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v50_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 154,
+    "lines": 17,
+    "counts": "16 passed, 0 failed",
+    "last": "ok    [DEFECT  ] V50-D5.confirmedFirstPersonNonEntity — (P3, low realism) \"Confirmed — I renamed Row 4 in the draft table shown here.\" — a first-person completion about a NON-entity after the Confirme"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v51_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 268,
+    "lines": 18,
+    "counts": "17 passed, 0 failed",
+    "last": "PASS  [DEFECT  ] V51-D4.confirmedFirstPersonObjectNegator — \"Confirmed — I archived nothing / none of them / no companies / nobody\" is a truthful negative v92 preserves; the CONFIRMED arm's negation s"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v52_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 392,
+    "lines": 17,
+    "counts": "16 passed, 0 failed",
+    "last": "PASS  [DEFECT  ] V52-D1.negatorInitialNameWithLowercaseTailOrInteriorWord — a fabrication about a KNOWN entity whose name begins with a negator token and whose pack entry extends past its capitalised "
+  },
+  {
+    "file": "qa\\verification\\proposed\\v53_regression_additions.mjs",
+    "exit": 1,
+    "signal": null,
+    "ms": 1046,
+    "lines": 39,
+    "counts": "33 passed, 1 failed",
+    "last": "v53_regression_additions: 33 passed, 1 failed, 3 residual note(s) || FAILING: V53-C1 my v92 download hashes to 795c20c8… and equals git c9dfab5bd433"
+  },
+  {
+    "file": "qa\\verification\\proposed\\v54_regression_additions.mjs",
+    "exit": 0,
+    "signal": null,
+    "ms": 141,
+    "lines": 10,
+    "counts": "9 passed, 0 failed",
+    "last": "ok    [CONTRACT] PAST_COMPLETION_CLAIM_PATTERN literal is unchanged from deployed v92 || v48_regression_additions: 9 passed, 0 failed"
+  }
+]

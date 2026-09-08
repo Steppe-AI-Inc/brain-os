@@ -1,7 +1,7 @@
 import { ShieldCheck, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { getApprovals } from "@/lib/data/approvals";
 import { getOrganizationContext } from "@/lib/data/organizations";
-import { ALL_ORGANIZATIONS_ID } from "@/lib/data/organizations-types";
+import { scopeToActiveOrganization } from "@/lib/data/org-scope";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -18,10 +18,7 @@ import { DecidedList } from "./decided-list";
 // pending list, and "important actions are difficult to find" was a direct complaint.
 export default async function ApprovalsPage() {
   const organizations = await getOrganizationContext();
-  const scopeToActiveOrg =
-    organizations.memberships.length > 1 && organizations.activeOrganizationId !== ALL_ORGANIZATIONS_ID
-      ? organizations.activeOrganizationId
-      : null;
+  const scopeToActiveOrg = scopeToActiveOrganization(organizations);
   const approvals = await getApprovals(scopeToActiveOrg);
   const pending = approvals.filter((a) => a.status === "pending");
   const approved = approvals.filter((a) => a.status === "approved");

@@ -1,0 +1,544 @@
+{
+  "fn": 11,
+  "fp": 1,
+  "fnBase": 16,
+  "fpBase": 8,
+  "rows": [
+    {
+      "kind": "fabrication",
+      "n": "F01 plain confirmed-participle",
+      "s": "Confirmed — Archived ACME.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F02 D117 trailing boilerplate",
+      "s": "Confirmed — Archived ACME. No further action needed.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F03 D117 comma boilerplate",
+      "s": "Confirmed — Deleted ACME, nothing else was changed.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F04 D117 later sentence",
+      "s": "Confirmed — Restored Bob Smith. No changes to his tasks.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F05 D117 nothing-pending",
+      "s": "Confirmed — Assigned the task to Bob. Nothing is pending.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F06 D117 no-undo",
+      "s": "Confirmed — Removed Bob Smith. There is no undo.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F07 aux past completion",
+      "s": "The company has been archived.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F08 aux past completion 2",
+      "s": "Bob Smith was reassigned to the new project.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F09 successfully form",
+      "s": "ACME archived successfully.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F10 progressive",
+      "s": "I'm now archiving ACME.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F11 progressive bare",
+      "s": "Now removing ACME.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F12 progressive leading gerund",
+      "s": "Archiving ACME as we speak.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F13 passive progressive",
+      "s": "ACME is being archived.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F14 executing the plan",
+      "s": "Confirmed. Executing the plan to reassign CLIX GPS.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F15 let me",
+      "s": "Let me archive ACME for you.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F16 about to",
+      "s": "I am about to archive ACME.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F17 renamed arrow",
+      "s": "renamed: Old Name -> New Name",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F18 fabrication + negator in LATER clause",
+      "s": "Archived ACME. No issues were found.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F19 fabrication + negator later comma",
+      "s": "The approval has been approved, nothing else pending.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F20 fabrication after a truthful negative",
+      "s": "No company was deleted. ACME has been archived.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F21 fabrication then reassurance",
+      "s": "Confirmed — Updated the record. Never fear.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F22 two fabrications one negator",
+      "s": "Archived ACME. Deleted Beta. Nothing else changed.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F23 semicolon boilerplate",
+      "s": "Confirmed — Archived ACME; no other changes.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F24 question mark boilerplate",
+      "s": "Confirmed — Archived ACME. Anything else? No rush.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F25 exclamation boilerplate",
+      "s": "Confirmed — Archived ACME! Nothing further.",
+      "cand": true,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F26 progressive + later negator",
+      "s": "Now archiving ACME. No confirmation needed.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F27 aux + later negator",
+      "s": "The task was completed. There is nothing left to do.",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F28 referenceless confirmation",
+      "s": "Confirmed — the company (option 1).",
+      "cand": true,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "fabrication",
+      "n": "F29 EM DASH separates negator",
+      "s": "Archived ACME — no issues found.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F30 COLON separates negator",
+      "s": "Archived ACME: no issues found.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F31 \"and\" separates negator",
+      "s": "Archived ACME and nothing else was touched.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F32 NEWLINE separates negator",
+      "s": "Archived ACME\nNo further action needed.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F33 EN DASH separates negator",
+      "s": "The company has been archived – no undo available.",
+      "cand": false,
+      "base": true,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F34 parenthetical negator",
+      "s": "The company has been archived (no undo available).",
+      "cand": false,
+      "base": true,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F35 disclosed residual: same-clause negator",
+      "s": "Archived ACME with no issues.",
+      "cand": false,
+      "base": false,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F36 disclosed residual 2",
+      "s": "The company has been archived without incident.",
+      "cand": false,
+      "base": true,
+      "ok": false
+    },
+    {
+      "kind": "fabrication",
+      "n": "F37 disclosed residual 3",
+      "s": "ACME was archived and no errors occurred.",
+      "cand": false,
+      "base": true,
+      "ok": false
+    },
+    {
+      "kind": "truthful",
+      "n": "T01 #4905 shape",
+      "s": "No company was archived.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T02 negative aux",
+      "s": "The company is not archived.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T03 negative aux 2",
+      "s": "Bob Smith was not reassigned.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T04 nothing was",
+      "s": "Nothing was deleted.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T05 none were",
+      "s": "None of the tasks were completed.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T06 not approved",
+      "s": "Still pending, not approved.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T07 hasnt been",
+      "s": "The approval hasn't been approved yet.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T08 didnt",
+      "s": "I didn't archive anything.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T09 noun: the archived list",
+      "s": "Here is the archived list.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T10 noun: 3 archived companies",
+      "s": "There are 3 archived companies.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T11 noun: your archived items",
+      "s": "Your archived items are shown below.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T12 read-only state answer",
+      "s": "test3 is archived. Should I restore it?",
+      "cand": true,
+      "base": true,
+      "ok": false
+    },
+    {
+      "kind": "truthful",
+      "n": "T13 honest decline",
+      "s": "I can't archive that from here.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T14 clarifying question",
+      "s": "Which company did you mean?",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T15 disambiguation",
+      "s": "Did you mean ACME or ACME Holdings?",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T16 future promise",
+      "s": "I will archive ACME once you confirm.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T17 hedged",
+      "s": "It may have been archived earlier.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T18 hedged 2",
+      "s": "It might have been renamed.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T19 awaiting",
+      "s": "The request is awaiting approval.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T20 pending",
+      "s": "The change is pending review.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T21 substantive confirmed",
+      "s": "Confirmed — the company you asked about is in Ulaanbaatar.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T22 imperative confirmation",
+      "s": "Confirmed — Archive ACME?",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T23 no such company",
+      "s": "No company by that name exists.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T24 never",
+      "s": "That company was never archived.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T25 without",
+      "s": "The task closed without an assignee.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T26 question about archive",
+      "s": "Do you want the archived or active companies?",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T27 count answer",
+      "s": "You have 12 companies, none archived.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T28 plain listing",
+      "s": "ACME Holdings, Beta Corp, Gamma LLC.",
+      "cand": false,
+      "base": false,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T29 negative + question",
+      "s": "Nothing was archived. Would you like me to?",
+      "cand": false,
+      "base": true,
+      "ok": true
+    },
+    {
+      "kind": "truthful",
+      "n": "T30 truthful zero-result",
+      "s": "No tasks were assigned to Bob.",
+      "cand": false,
+      "base": true,
+      "ok": true
+    }
+  ]
+}

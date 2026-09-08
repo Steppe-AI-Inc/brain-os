@@ -1,0 +1,10 @@
+KILLED   m1_polite_question_is_read  suite exits=[1,0,0]
+KILLED   m2_belt_decides_intent  suite exits=[1,0,0]
+KILLED   m3_fallback_ignores_other_target  suite exits=[0,1,0]
+KILLED   m4_fallback_on_questions  suite exits=[0,1,0]
+KILLED   m5_command_fuzzy_executes  suite exits=[1,0,0]
+KILLED   m6_direction_by_any_verb  suite exits=[0,1,0]
+KILLED   m7_cyrillic_word_boundary  suite exits=[1,0,0]
+KILLED   m8_punctuation_not_normalised  suite exits=[1,0,0]
+
+v56_mutation_proof: 8/8 mutants killed

@@ -1,0 +1,40 @@
+PASS CRITICAL: an ungrounded deterministic confirmation (the real "Confirmed — Permanently delete test4..." incident shape) is flagged for replacement
+PASS a grounded deterministic confirmation (real outcome exists) is never replaced
+PASS an ordinary (non-confirmation) turn is never affected by this gate, even with no grounded outcome
+PASS an ordinary (non-confirmation) turn with a real grounded outcome is unaffected (sanity check)
+PASS deterministic-clarification is out of scope for this specific gate (always resolves to an already-wired field)
+PASS deterministic-disambiguation is out of scope for this specific gate (always resolves to an already-wired field)
+PASS real deletion with a fixture person removed produces a clean, specific success line
+PASS real deletion with no attached people produces a clean success line with no trailing "Also removed:"
+PASS reason "not_found" never produces a success-shaped message
+PASS reason "not_found" never contains the word "deleted" in a success sense
+PASS reason "denied" never produces a success-shaped message
+PASS reason "denied" never contains the word "deleted" in a success sense
+PASS reason "not_a_fixture" never produces a success-shaped message
+PASS reason "not_a_fixture" never contains the word "deleted" in a success sense
+PASS reason "non_fixture_people_attached" never produces a success-shaped message
+PASS reason "non_fixture_people_attached" never contains the word "deleted" in a success sense
+PASS reason "has_non_fixture_dependents" never produces a success-shaped message
+PASS reason "has_non_fixture_dependents" never contains the word "deleted" in a success sense
+PASS reason "person_delete_blocked" never produces a success-shaped message
+PASS reason "person_delete_blocked" never contains the word "deleted" in a success sense
+PASS guard passes (corrector may fire) when nothing was attempted at all
+PASS guard blocks the corrector when a real permanent-delete was attempted (must not false-positive on a real attempt)
+PASS guard still blocks on a real archive attempt (unaffected, pre-existing behavior)
+PASS both dimensions moving to the same company produces one clean, specific line
+PASS differing legal employer vs operating company are both named explicitly, never merged into one vague sentence
+PASS unknown operatingCompanyId falls back to the raw id gracefully, never "undefined"
+PASS CRITICAL: a brand-new hire (personId null) never produces the reassignment report (the real "that person reassigned to the specified company" incident)
+PASS a real reassignment mixed with a new hire in the same batch reports only the real reassignment
+PASS an all-new-hire batch (no real personId at all) never produces the reassignment report
+PASS a partial-failure batch (createdCount !== requested length) suppresses the report entirely, even for a qualifying reassignment entry
+PASS CRITICAL: the real incident text ("I'll assign the task to them now", pendingAction null, nothing grounded) is caught
+PASS a real pendingAction proposal using similar future-tense phrasing is never flagged (a genuine confirmation question, not an empty promise)
+PASS a turn with a real grounded outcome this turn is never flagged, even if it also mentions a future step
+PASS deterministic-confirmation is out of scope for this gate
+PASS deterministic-plan-execution is out of scope for this gate
+PASS an ordinary read-only answer with no future-tense commitment language is never flagged
+PASS CRITICAL: when claimsFutureActionWithNoPlan fires, the corrected (safe, UUID-free) summary IS persisted to work_orders.output — not left visible only in that one request's SSE stream
+PASS an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix)
+
+ALL REGRESSIONS PASSED

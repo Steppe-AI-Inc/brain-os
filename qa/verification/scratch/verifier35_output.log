@@ -1,0 +1,66 @@
+Nothing further is needed: all measurements are taken, artifacts are committed (`235975e` on `verify-0f96ff9-campaign95`), the deploy surface is byte-identical to the candidate, and the sha is asserted. Final report follows.
+
+---
+
+# VERIFIER #35 — campaign #95 — final report
+
+```
+CHANGE VERIFIED: candidate 0f96ff93bc17c6277c00ef0fca2b82dffde42d70 (sem-ai-command/index.ts b1f54b07…)
+                 vs DEPLOYED sem-ai-command v92 (git c9dfab5bd433, index.ts LF 795c20c8…)
+SCENARIOS: STEP1 provenance, STEP2 seven questions, STEP3/3b/3d adversarial, STEP3c count, STEP4 suite integrity
+CANONICAL GRAPH: n/a (source differential — no entities created; no QA-VERIFY-* data to clean up)
+UI ↔ DB: BLOCKED (out of scope for this belt differential — stated, not skipped)
+AI ↔ DB: FAIL (belt ships fabrications v92 corrects and destroys truths v92 preserves — see below)
+DEPENDENCIES: PASS (deploy surface = index.ts only; 0 identifiers removed; linear ancestry)
+PERMISSIONS: n/a
+RELOAD/PERSISTENCE: n/a
+IDEMPOTENCY: n/a
+```
+
+## PREFLIGHT: EXECUTION_READY
+HEAD = candidate; scratch write OK; regex suite 13/0. The candidate index.ts was never edited — sha asserted at start, after every scratch build, and at the end.
+
+## STEP 1 — provenance (stated at its real level)
+- `functions list` this session: v92 ACTIVE, `ezbr_sha256 33255b31…`, `updated_at 1788239725518` (2026-09-01T05:15:25.518Z).
+- `gh run list` this session: deploy run 33472871764, headSha `c9dfab5bd433…`, completed 05:15:30Z, success; **no later deploy run**.
+- git `c9dfab5bd433` index.ts LF sha `795c20c8…`; scratch copy LF-normalises to the same.
+- **Provenance link is INTEGRATION-LEVEL, not byte-direct**: `supabase functions download` was permission-gated in this session (two attempts; the prior #35 attempt's empty `v35_download/` hit the same wall). Ledger #90 is *confirmed* at that level; nothing refutes it. No P0.
+
+## STEP 2 — seven questions (all re-derived)
+1. Real delta with `--ignore-cr-at-eol`: **+1729 / −52, 51 hunks** (the raw +5989/−4312 is a CRLF artefact). Identifiers: **top-level 57→57 (0/0); any-depth +199/−0** (ledger #90's "176" not reproducible). 95 linear commits, 863 files, deploy surface index.ts only.
+2. **Does NOT preserve v92 behaviour.** Own corpus 521 truthful (494 v92-preserved) / 253 fabrications, negator-name section both directions (97 truth / 59 fab rows). Truth regression **2**, fabrication regression **12** (all 12 in the negator-name section: `<NegatorName> <participle> successfully.`). Matcher 38 shapes: **0** wrong-SELECT regressions, 19 improvements.
+3. Reintroduces nothing removed. 4. Yes — the "v92 destroys it too" argument only holds for `was <participle>`; V35-F3/F4 live where v92 preserves. 5. #64 D16 / #65 D25 / #65 D27 / #66 D40 **still closed** (25/25). 6. Rollback `c9dfab5b` exact and available. 7. Only intended Edge changes.
+
+## FOUND (none previously disclosed)
+| id | sev | kind | class | measured |
+|---|---|---|---|---|
+| V35-F1 | P1 | FAB regression | R-AUXGAP guard is a bare negator-lexicon test on the sentence prefix; any scope-excused negator (PP, relative clause, quoted title, idiom, negator name, Pending title, adjective "pending") disarms it | 21/23 ship; v92 catches |
+| V35-F2 | P1 | FAB regression | `No Limits Inc archived successfully.` — nameInternal requires an auxiliary, BUG-002's own second form unguarded | 11/11 |
+| V35-F3 | P1 | TRUTH regression | period inside a token (`Trade-book.ai`, a real workspace name) is a sentence boundary → negator cut off | 4/4 destroyed |
+| V35-F4 | P2 | TRUTH regression | #34's 160-char cap on the AUXGAP window (on `had been`, which v92 never covers) | 2/2 |
+| V35-F5 | P2 | FAB regression | Confirmed-status guard accepts a pronoun-subject state verb / crosses `;` | 4/4 |
+| V35-F7 | P1 | FAB regression (pre-existing) | negator inside a relative clause of the subject: `The company that had no open tasks was archived.` | 6/6 |
+| V35-F6 | P3 | suite integrity | generative suite's truth frames are ~86% v92-shared (vacuous); stays green under 14/17 single-edit reverts incl. all six #34 edits | measured |
+| note | P3 | dead rule | run30 R-IDIOM lexicon widening no longer load-bearing (0/3 re-open) | measured |
+
+## STEP 3/3b/3d/3c/4 judgments
+- 15/16 fixes mutation-proven on my shapes (the 16th is the dead idiom rule). `No North Depot` = shared loss, argument correct. Three run31 refused shapes caught, pairs survive. Dash-before-capital refusal confirmed. D188 still ships (disclosed); its paired truths are all v92-destroyed — refusal reasonable; one zero-cost option noted (intransitive-verb list).
+- Battery **34/0 (29 substantive, 5 SUPERSEDED, 1 helper)** from a non-root cwd, exit codes read directly. #34 58/0, #33 92/1 (D188), #32 101/0, #30 PASS.
+- CONTRACT 5 narrowing sound against the *real* suites (top-level const → run15 exit 1, contract FAIL, generative ReferenceError; local → all green). Four re-pins honest. run14 window is 4000 (spans 3378; the "2600" in the launch prompt is stale). run15 57/0; D117 holds.
+
+## PREPARED FIX (scratch only, not applied): `qa/verification/scratch/v92/v35/build_fix39.mjs` → `fix39/index.ts`
+Collapse-before-split R-AUXGAP (separate arm removed), "successfully" subject run, token-internal period, status-guard pronoun tempering, relative-clause rule. On fix39: harness 0 truth / 1 ambiguous fab residual / D188; **battery 34/0 in an isolated fixture tree**; #34 58/0, #32 101/0, #30 PASS, generative 9/0, v92_open 28/0, parity 46/0; #33 90/2 (D188 + a splitter-anchor pin to re-derive). All five edit families load-bearing. **Not deno-checked** — required before adoption.
+
+## Coverage gaps (BLOCKED, not skipped)
+Byte-direct provenance (download gated); `deno check` (deno unavailable — "23 == baseline" not re-measured); UI/AI-chat probes out of scope.
+
+## Artifacts — commit `235975e` on `verify-0f96ff9-campaign95`
+`qa/verification/proposed/v35_known_failure_modes_entry_96.md`, `qa/verification/proposed/v35_PROMOTION_NOTE.md`, `qa/verification/scratch/v92/v35/v35_regression_additions.mjs` (RED on candidate 49/7; on fix39 55/1 = F6 suite item only), harness, battery runner, generative probe, identifier delta, fix39 + builders, mutation and CONTRACT-5 probes, `CURRENT_CAMPAIGN.json` checkpointed. No production writes; no migrations; no deploys.
+
+## STEP 5 — deployability call
+Candidate `0f96ff93` is **not fit to deploy over v92**: two truthful classes v92 preserves are destroyed and four fabrication classes v92 corrects are shipped, on a corpus sharing no row with any committed one. Production stays v92; rollback `c9dfab5b`.
+
+**VERDICT: FAIL**
+**EDGE STATUS = NOT DEPLOYMENT READY**
+
+b1f54b072cc41312d25248c2f2334545eafbb1aa09e0162564f86b9d9a720a23

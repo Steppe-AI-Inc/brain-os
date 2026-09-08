@@ -1,0 +1,43 @@
+0 agent_run_guard_covers_claim_returns.mjs :: 
+0 belt_generative_adversarial_contract.mjs :: 25 passed, 0 failed 
+0 chat_channel_state_trusted_columns_contract.mjs :: chat_channel_state_trusted_columns_contract: 51 pass, 0 fail (0 round-2 A findings still reproduce; 0 CONTRACT failures) 
+0 claim_segmentation_and_present_tense_fp.mjs :: claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs. 
+0 company_ref_no_bare_name_join.mjs :: company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30) 
+1 current_turn_and_continuity_contract.mjs :: current_turn_and_continuity_contract: 16/17 passed FAILURES: 
+0 d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs :: d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs. 
+0 entity_signal_positive_contract.mjs :: 5 passed, 0 failed 
+0 function_redefinition_preserves_ancestor_guards.mjs :: 
+0 issue5_confirmation_action_type_binding.mjs :: issue5_confirmation_action_type_binding: 10/10 passed 
+1 lifecycle_evidence_and_output_persistence_contract.mjs :: ReferenceError: lifecycleDisambiguation is not defined 
+0 manager_set_ui_canonical_write.mjs :: manager_set_ui_canonical_write: 6/6 passed 
+0 messaging_transport_binding_agreement_contract.mjs :: messaging_transport_binding_agreement_contract: 23 pass, 0 fail (0 round-2 C findings still reproduce; 0 CONTRACT failures) 
+0 mixed_claim_grounding.mjs :: mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs. 
+0 org_selector_scoping_coverage.mjs :: org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18) 
+0 past_completion_gate_behavior.mjs :: past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs. 
+0 per_resource_grounding_contract.mjs :: per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs. 
+0 readsAsCompletion_no_literal_semicolon_contract.mjs :: readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed 
+1 run10_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+1 run11_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+1 run12_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+1 run13_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+1 run14_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+0 run15_defect_closure_contract.mjs :: OK   D116.hold.negatorInAnotherClauseDeadEnds   [CONTRACT] run16/D123: "acme holdings, no rush" dead-ends (fail closed) — the LLM path resolves it, the deterministic path never guesses run15_defect_
+0 run16_defect_closure_contract.mjs :: OK   D123.hold.negatorInAnotherClauseDeadEnds                   [CONTRACT] run16/D123: an unrelated negator in another clause dead-ends (fail closed); the LLM path resolves it run16_defect_closure_con
+0 run17_defect_closure_contract.mjs :: OK   D124.coverage.nonStringEntityTypeDropped                       [CONTRACT] a non-string / absent entityType and an empty id all fail closed run17_defect_closure_contract: 43 pass, 0 fail (0 open #
+0 run18_defect_closure_contract.mjs :: OK   D132.prototypeKeyMustFailClosed.entityType "valueOf"               [DEFECT] D132 (P2): entityType "valueOf" must dead-end, not throw — all three prior SHAs fail closed on the identical input ru
+0 run19_defect_closure_contract.mjs :: OK   D132.hold.prototypeKeysFailClosedViaTheORDINALPath   [CONTRACT] D133 opened a SECOND way to reach a hostile option — an ordinal reply skips the label match entirely; it must fail closed too 62 
+0 run28_defect_closure_contract.mjs :: ok    [RESIDUAL] D164r.determinerLedEvidentialMissed.coordinatorName.1 :: Nothing failed however the log shows Acme and Sons was archived. 117 passed, 0 failed 
+1 run8_defect_closure_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+0 sem_ai_command_company_restore_truth.mjs :: 
+0 sem_ai_command_confirmation_truth.mjs :: PASS a partial-failure batch (createdCount !== requested length) suppresses the report entirely, even for a qualifying reassignment entry 
+0 sem_ai_command_execution_plan_truth.mjs :: PASS CRITICAL: a plan where nothing completed never claims success, leads with an unambiguous failure headline PASS a failed plan report never contains success-shaped language anywhere 
+0 sem_ai_command_factory_verification_selection.mjs :: 
+0 sem_ai_command_named_person_lookup_truth.mjs :: 
+0 sem_ai_command_past_completion_claim_regex.mjs :: 13 passed, 0 failed 
+0 sem_ai_command_source_invariants_drift_guard.mjs :: OK   resolveClarificationField() fails closed on absent entityType OR actionType 13 passed, 0 failed 
+0 standing_reds_classification_contract.mjs :: 
+1 structured_claim_laundering_contract.mjs :: SyntaxError: Missing initializer in const declaration 
+1 structured_claim_verification.mjs :: SyntaxError: Missing initializer in const declaration 
+0 tdz_forward_reference_contract.mjs :: v48_regression_additions: 9 passed, 0 failed 
+1 v92_open_regression_contract.mjs :: ReferenceError: requestedIntent is not defined 
+0 v92_parity_contract.mjs :: v92_parity_contract: 46 passed, 0 failed 

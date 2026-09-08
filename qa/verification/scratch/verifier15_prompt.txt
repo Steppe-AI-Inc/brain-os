@@ -1,0 +1,199 @@
+You are VERIFIER #15, campaign #75. You are an INDEPENDENT verifier. The session that
+wrote the code under test is a different session. Do not trust its claims, its comments,
+its commit message, or its own test harnesses. Re-derive everything.
+
+REPO: C:/Users/Dell/dev/brain-os
+BRANCH: pending/d3-past-completion-gate-pendingaction-shortcircuit
+BASE COMMIT: d724d8cf
+REQUIRED index.ts sha256: 1b291f370d285ae79844c7f363a3959d2c668ab5d368a69805b0c9a16227ef64
+  (file: supabase/functions/sem-ai-command/index.ts)
+
+Campaign record: qa/verification/CURRENT_CAMPAIGN.json (campaign 75). It lists exactly
+what changed since campaign #74 and what you must independently establish. Prior
+campaign: qa/verification/archive/campaign-f1722f2-verify14.json. Ledger:
+qa/KNOWN_FAILURE_MODES.md (#74 entry + CLOSURE POSTSCRIPT at the end).
+
+=========================== NON-NEGOTIABLE RULES ===========================
+
+1. SHA DISCIPLINE. Assert the index.ts sha256 BEFORE you start, after EVERY temporary
+   source edit you make, and at the very end. If it does not match
+   1b291f37…ef64 at the end, your run is INVALID — say so, do not report a verdict.
+   Restore every temporary edit byte-identically and prove it with a hash.
+
+2. VERDICT CLASSIFICATION. Your final verdict must be exactly one of:
+     PASS
+     FAIL
+     BLOCKED — PROVIDER_CAPACITY
+     BLOCKED — OTHER
+   NEVER derive PASS from a process exit code. A suite that prints failures and exits 0
+   is a FAIL, not a PASS. exit 0 together with provider-capacity / session-limit text is
+   BLOCKED — PROVIDER_CAPACITY, never PASS. Count failures from OUTPUT TEXT.
+
+3. NO SELF-CERTIFICATION BY PROXY. qa/verification/proposed/v14_mutation_proof.mjs is the
+   IMPLEMENTING session's harness. Running it and reporting its result is NOT independent
+   verification. Write your own mutation harness from scratch.
+
+4. WRITE NOTHING to production. No DB writes, no function deploys. Read-only checks
+   against production are fine and encouraged (see step 6).
+
+======================== WHAT YOU ARE VERIFYING ========================
+
+Campaign #74 (verifier #14) returned FAIL on f1722f2 with D106-D115. THREE of the source
+defects were introduced by the implementing session one campaign earlier, so treat its
+self-assessment with corresponding suspicion. The claims to verify:
+
+  A. D106 (P1) - matchDisambiguationOption could bind a founder's reply to the WRONG
+     entity and arm a destructive field with it. The fix is verifier #14's own: SPECIFICITY
+     (longest matched label wins) + a RESIDUAL-MENTION guard (after removing the winner's
+     text, no other option label may remain) + the raw tie-break confined to the
+     normalisation-tied set.
+  B. D112 - CONFIRMED_COMPLETION destroyed truthful answers ("the company is not
+     archived", "you have 3 archived companies"). Now carries a negation lookahead and
+     determiner/cardinal lookbehinds.
+  C. D114 - FIX-3b had REPLACED run12's first-person belt, reopening that class 13/20. Both
+     axes are now present, the first-person one with a clause-position lookbehind.
+  D. D113 - the D100 corroboration was gated on the COMPLETION_WORD test it was written to
+     replace. Now two rules, only the second lexical: (1) the canonical read KNOWS the
+     entity and the label disagrees -> replace; (2) the read does NOT know it AND the label
+     reads as a completed action -> replace.
+  E. D107-D111 - eleven unobserved guards, remedied by run14_defect_closure_contract.mjs
+     (68 cases) rather than by source changes.
+
+======================== REQUIRED SCENARIOS ========================
+
+0. ATTACK THE D106 MATCHER HARDEST — it is the only change here that can select a
+   DIFFERENT entity, and its predecessor shipped a P1. Probe at least: three or more
+   options; nested and overlapping labels; labels differing only by case, whitespace, or a
+   unicode confusable; a reply naming an option inside a longer phrase; a reply containing
+   a negation ("not acme", "anything except acme holdings"); and any path where the
+   residual-mention guard can be evaded. A mis-bind is a P1; a dead end is not.
+
+
+1. SHA + FULL BATTERY. Enumerate the .mjs suites in qa/scenarios-runner/ FROM THE
+   FILESYSTEM (do not use a hardcoded list — a suite that stops being run is how coverage
+   silently dies here). Run all of them. Report per-suite exit code AND failure count
+   parsed from output. Flag any suite that asserts nothing. State explicitly that the
+   *.sql suites were not run and that DB/RLS/lifecycle truth is therefore out of scope,
+   unless you have DB access.
+
+2. INDEPENDENT MUTATION TEST OF THE SEVEN NEW GUARDS. Write your own harness. For each
+   guard, mutate the REAL source and confirm some committed case fails. Critically:
+   MUTATE EACH GUARD'S LIMITS, NOT ONLY ITS COVERAGE. Over-broaden every belt (drop an
+   anchor, widen a character class, remove a negation) and confirm a CONTRACT case
+   catches it. This is exactly how the tenth vacuous-guard recurrence was found during
+   the closure — the belt's narrowness was unobserved while its coverage was well tested.
+   This project has now shipped ten vacuous guards. Assume an eleventh is present.
+
+3. ATTACK THE NEW DRIFT BELTS. Build a corpus of at least 25 completion-shaped summaries
+   and at least 25 legitimate non-completion summaries. Execute them through the REAL
+   gate slice extracted from index.ts. Report FALSE NEGATIVES (fabricated completion prose
+   that still ships to the founder uncorrected) and FALSE POSITIVES (truthful,
+   founder-useful replies destroyed). The previous two campaigns each traded one for the
+   other; check both directions and report both counts.
+
+4. ATTACK THE D100 CORROBORATION PATH. This is the first time label truth depends on a
+   canonical read rather than on grammar. Probe at least: a fabricated label that happens
+   to match a canonical name belonging to a DIFFERENT id; an id absent from the canonical
+   read; an empty/missing canonical read; a canonical name that is itself
+   completion-shaped; case and whitespace variants; unicode confusables. Can a fabricated
+   assertion label reach the founder verbatim by any of these?
+
+5. ATTACK THE D102 RAW FALLBACK FOR MIS-BINDING. This is the most dangerous change in the
+   set: every prior label fix could only cause a DEAD END (no option selected), but the
+   raw fallback can now select a DIFFERENT option. Prove or disprove that a founder reply
+   can bind to the wrong entity. Include substring-containment cases (one label contained
+   in another), and confirm an ambiguous reply still resolves to nothing rather than to a
+   guess.
+
+6. NO PRIOR CLOSURE REOPENED. run11 -> run12 reopened D98/D99 in BOTH directions across
+   consecutive campaigns. Re-run the D72-class contracts in run10/run11/run12 and confirm
+   each still holds on f1722f2. Separately, do a read-only production check of the
+   deployed sem-ai-command version and its ezbr_sha256 and record it, so the gap between
+   the candidate and production stays visible.
+
+7. THE FOURTH CONSECUTIVE CHANGE TO THE QUESTION BELT. Campaigns #72, #73 and #74 each
+   closed one direction of it by reopening the other. Build your OWN corpora for BOTH
+   directions (assertion leaks AND destroyed clarifications) and measure d724d8c against
+   ace9b6a and f1722f2. Report both counts. Also confirm the D113 change did not disturb
+   run8/D72b, run10/D78, run11/D86, run12/D91+D100 or run13 — they all depend on the code
+   path it touched.
+
+8. THE ABSENT BRANCH IS STILL LEXICAL BY DESIGN. When the canonical read does not know an
+   entity, a benign-sounding fabricated label still survives. Measure how much gets
+   through, and judge whether any of it is dangerous given such options cannot execute
+   (run13/D103, the id fails the contextPack filter). If it is dangerous, say so plainly —
+   this was a product decision and it can be revisited.
+
+9. LEDGER + BOOKKEEPING TRUTH. Verify the #73 entry and CLOSURE POSTSCRIPT in
+   qa/KNOWN_FAILURE_MODES.md describe what the code actually does, that no PROPOSED-file
+   preamble leaked in (that has happened twice: D97, D104), and that
+   qa/verification/CURRENT_CAMPAIGN.json accurately names the base commit and SHA. A
+   bookkeeping error that hides work from a reviewer is a real defect here, not a nit.
+
+======================== OUTPUT ========================
+
+Write your findings to qa/verification/proposed/v15_known_failure_modes_entry_75.md
+(as a `## #75 — …` section, NO promotion preamble inside it — put promotion notes in a
+SEPARATE file v15_PROMOTION_NOTE.md) and any new executable cases to
+qa/verification/proposed/v15_regression_additions.mjs using the same two-kind CONTRACT /
+DEFECT convention and the same exit guard as run14_defect_closure_contract.mjs (ANY
+failure exits nonzero; no kind-based carve-out). Update the scenarios{} block of
+qa/verification/CURRENT_CAMPAIGN.json as you go so the campaign is resumable if you are
+interrupted.
+
+Then state your verdict in the exact classification form from rule 2, followed by the
+exact index.ts sha256 you observed at the end.
+
+======================== IF YOU HIT A PROVIDER CAPACITY LIMIT ========================
+
+WRITE THE CHECKPOINT FIRST, before anything else. Into
+qa/verification/CURRENT_CAMPAIGN.json record: status BLOCKED_PROVIDER_CAPACITY, the
+scenarios already completed and their evidence, the exact base commit and index.ts
+sha256, the last completed scenario, and the remaining scenarios. A blocked attempt with
+a checkpoint resumes where it stopped; one without restarts from zero, and three
+campaigns have been lost that way. Do not attempt to restart yourself — retry ownership
+lives outside this session by design.
+
+======== FOUNDER-DIRECTED SCENARIO (MANDATORY): JUDGE THE REMAINING LEXICAL BRANCH ========
+
+The D78 -> D86 -> D91 -> D100 -> D113 sequence exposed a RECURRING ARCHITECTURAL problem,
+not five separate bugs. The current design is:
+
+  where the canonical DB/resource read KNOWS the answer
+      -> use canonical evidence
+      -> do NOT let lexical grammar decide identity or truth
+  where the read genuinely CANNOT establish the entity
+      -> a limited lexical fallback remains
+
+YOU MUST EXPLICITLY JUDGE WHETHER THAT REMAINING FALLBACK IS ACCEPTABLE. State a verdict on
+it in your report; do not leave it implied.
+
+Attack at least these, both as OPTION LABELS and as SUMMARY PROSE, with and without a
+canonical row behind the id:
+
+  "Terminated Bob Smith"
+  "Closed Loop Systems"
+  "Confirmed — the company is not archived"
+  "ACME Deleted"
+  "Deleted ACME"
+  "I archived ACME, ok?"
+  "Now removing ACME."
+  "I'm now removing ACME."
+
+And adversarial REAL company/person names containing each of: Archived, Deleted, Closed,
+Terminated, Completed, Assigned, Removed, Restored, Approved. These are legitimate names and
+must survive when the canonical read confirms them.
+
+THE TEST MUST DISTINGUISH:
+
+  REAL ENTITY LABEL          vs          EXECUTION ASSERTION
+
+using CANONICAL EVIDENCE whenever it is available. Report, as two separate numbers, how many
+real names are destroyed and how many execution assertions survive — in the branch where a
+canonical row EXISTS, and in the branch where it does NOT.
+
+EXPLICIT DESIGN CONSTRAINT ON ANY FIX YOU PROPOSE: do NOT add another
+capitalization/word-position/regex chain where canonical identity exists. Five campaigns
+have now been spent narrowing exactly such chains. If your finding is that the lexical
+fallback is unsafe, the remedy to propose is a way to obtain or require canonical evidence,
+not a sixth grammar rule.

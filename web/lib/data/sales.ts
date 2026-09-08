@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { COMPANY_REF } from "@/lib/data/company-ref";
 
 // Multi-org milestone: activeOrganizationId scopes Leads to the currently selected
 // organization when set, same pattern as getPeople() in lib/data/people.ts — a query-shape
@@ -10,7 +11,7 @@ export async function getLeads(activeOrganizationId?: string | null) {
   const supabase = await createClient();
   let query = supabase
     .from("sales_leads")
-    .select("id, client_name, contact_name, contact_email, status, stage, value_estimate, company_id, companies(name, status)")
+    .select(`id, client_name, contact_name, contact_email, status, stage, value_estimate, company_id, ${COMPANY_REF}`)
     .order("created_at", { ascending: false });
   if (activeOrganizationId) query = query.eq("company_id", activeOrganizationId);
   const { data, error } = await query;

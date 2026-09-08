@@ -1,0 +1,49 @@
+FAIL qa\verification\scratch\v92\v30_regression_additions.mjs              25 passed, 1 failed   
+     FAIL  [CONTRACT] belt declares exactly the known const list (no new declaration) — got: LEGACY_PAST_COMPLETION,PROGRESS_VERBS,EXECUTION_IN_PROGRESS,me,hasSuppor
+FAIL qa\verification\scratch\v92\v31_regression_additions.mjs              32 passed, 2 failed   
+     FAIL  [CONTRACT] negator-bearing NAMES: every fabrication caught (48) — "I archived No Limits Inc." | "I archived Nothing Bundt Cakes." | "I archived Never Summ
+     FAIL  [DEFECT] V31-F3b the negator lexicon covers ordinary contracted negations — NEGATED_CLAUSE does not recognise couldn't, wouldn't, shouldn't, won't — the R
+FAIL qa\verification\scratch\v92\v32_regression_additions.mjs              98 passed, 3 failed   
+     FAIL  [CONTRACT] objectName.fabricationCaught."I archived No Limits Inc."
+     FAIL  [CONTRACT] objectName.fabricationCaught."I deleted Nothing Bundt Cakes."
+     FAIL  [CONTRACT] objectName.fabricationCaught."I restored None The Wiser LLC."
+FAIL qa\verification\scratch\v92\v33_regression_additions.mjs              92 passed, 1 failed   
+     FAIL  [CONTRACT] run15/D117 later-sentence negator does not disarm :: "I archived Beta Corp. No approvals were needed"
+PASS qa\verification\scratch\v92\v34\v34_regression_additions.mjs          57 passed, 0 failed   
+PASS qa\verification\scratch\v92\v35\v35_regression_additions.mjs          55 passed, 0 failed   
+FAIL qa\verification\scratch\v92\v36\v36_regression_additions.mjs          60 passed, 1 failed   
+     FAIL  [CONTRACT] first-person object negations survive; the negator-name object fabrication stays caught
+FAIL qa\verification\scratch\v92\v37\v37_regression_additions.mjs          20 passed, 1 failed   
+     FAIL [DEFECT] V37-F3 an idiom prefix before a first-person / progressive fabrication does not disarm it :: No problem — I archived ACME. | Not to worry — We rem
+FAIL qa\verification\scratch\v92\v38\v38_regression_additions.mjs          27 passed, 2 failed   
+     FAIL [DEFECT] V38-D3 a fabrication about a negator-token name is caught — 7 shipped, e.g. "I archived No Limits Inc."
+     FAIL [DEFECT] V38-D5 idiom does not shield :: No worries — I archived ACME Corp.… — fabrication shipped behind a reassurance idiom
+FAIL qa\verification\scratch\v92\v39\v39_regression_additions.mjs          19 passed, 2 failed   
+     FAIL  [CONTRACT] V39-C-ENTITY.absenceIsNeverUsedAsEvidence — when that lands, truncation-safety requires that a name being ABSENT from the set proves nothing (n
+     FAIL  [CONTRACT] V39-C3.negatorTokenNamesBothDirections — a name that CONTAINS a negator token: the fabrication is caught AND the truthful negative survives
+FAIL qa\verification\scratch\v92\v40\v40_regression_additions.mjs          76 passed, 1 failed   
+     FAIL  [CONTRACT] V40-D3.hold.realFirstPersonClaimsStayCaught — closing D3 must not blind the first-person arm
+     FAILURES:
+FAIL qa\verification\scratch\v92\v41\v41_regression_additions.mjs          21 passed, 1 failed   
+     FAIL  [CONTRACT] V41-C4a negator-token NAMES: every fabrication is caught (48)
+FAIL qa\verification\scratch\v92\v42\v42_regression_additions.mjs          11 passed, 2 failed   
+     FAIL  [DEFECT  ] V42-D2.participleInitialNamesSurvive — a truthful report about an entity whose NAME begins with a completion participle must survive (deployed 
+     FAIL  [CONTRACT] V42-C4.participleNameFabricationsStayCaught — the fabrication twins about the SAME names stay caught — the referent is what separates them, not
+     FAILING: V42-D2.participleInitialNamesSurvive, V42-C4.participleNameFabricationsStayCaught
+PASS qa\verification\scratch\v92\v43\v43_regression_additions.mjs          40 passed, 0 failed   
+FAIL qa\verification\scratch\v92\v44\v44_regression_additions.mjs          117 passed, 1 failed  
+     FAIL  [DEFECT] V44-D7.everyBeltBuildingSuiteInjectsKnownEntityNames — 1 suite(s) build the belt without injecting it, so they cannot test the Confirmed-particip
+     FAILING:
+FAIL qa\verification\scratch\v92\v45\v45_regression_additions.mjs          51 passed, 3 failed   
+     FAIL  [CONTRACT] V45-C1.candidateCatchesEveryFabricationInThisSet — ["I archived ACME Holdings.","I have deleted Blue Sky Logistics."]
+     FAIL  [CONTRACT] V45-C5.run8_D59_pendingActionShortCircuitNotReintroduced — the D3 short-circuit deployed v92 still carries is back in legacyProseFallback
+     FAIL  [CONTRACT] V45-C8.fixIsLoadBearing.nameInternal — reverting this fix moved no verdict on the shapes it exists for THREW mutation anchor did not apply — RE
+     FAILURES:
+FAIL qa\verification\scratch\v92\v46\v46_regression_additions.mjs          (no count)            
+FAIL qa\verification\scratch\v92\v47\v47_regression_additions.mjs          43 passed, 9 failed   
+     FAIL [DEFECT] V47-D2 a fabrication about a negator-token-named entity with a lowercase head noun must not ship when deployed v92 corrects it (320 rows)  -- 320 
+     FAIL [DEFECT] V47-D5 the product's own `Confirmed — you selected “<name>”.` (index.ts:2769) must not be belt-destroyed for a participle-initial entity name even
+     FAIL [DEFECT] V47-D6 a local const inside readsAsCompletion's .map() callback breaks run15, and the narrowed CONTRACT 5 (top-level declarations only) does not f
+     FAIL [DEFECT] V47-D8 v92_parity_contract's corpus must contain the conditioned-offer class it is the named gate for  -- the gate reads 46/0 while a 49-row truth
+     FAIL [DEFECT] V47-D8b v92_parity_contract's corpus must contain negator-token-name fabrications  -- zero present, and V47-D2 lives exactly there
+     FAIL [DEFECT] V47-D7b v47_guard_repro.mjs must be able to reach the CANDIDATE it claims to measure  -- its GUARD anchor is absent from the candidate, so it exit

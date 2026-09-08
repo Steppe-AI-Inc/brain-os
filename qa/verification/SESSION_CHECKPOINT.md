@@ -1,0 +1,431 @@
+# DURABLE SESSION CHECKPOINT — Main-PC implementation session
+Updated: 2026-09-04 (campaign #75 CLOSED at 52e830f; verifier #16 dispatched as a
+TOP_LEVEL_ISOLATED_PROCESS; DB validation now has a real-PostgreSQL CI job). A completely
+fresh Claude Code session must be able to resume from this file without asking the founder.
+
+## Canonical truth order (pre-compact prose is NOT authority)
+git state / exact SHAs -> qa verification artifacts -> this file -> canonical Work Orders /
+Agent Runs -> migration files + DB test artifacts -> actual verifier logs.
+
+## EDGE (sem-ai-command) — INDEPENDENT VERIFICATION IN PROGRESS
+- Branch `pending/d3-past-completion-gate-pendingaction-shortcircuit` @ `C:/Users/Dell/dev/brain-os`
+  (main tree; hot file `supabase/functions/sem-ai-command/index.ts` — ONE writer only).
+- Closure commit **`52e830f`** (run15 D116–D122). `index.ts` sha256
+  **`0c3616b4e82b53f18e0b597aa0fe935b4c0bed1dcae86fbc9d4c59b91812fc26`** (CRLF, 87+/28-).
+- **VERIFIER #16 (campaign #76) IS RUNNING** as a separate top-level `claude -p` process in
+  an isolated worktree (`C:/Users/Dell/dev/brain-os-verify-<sha7>`, branch
+  `verify-<sha7>-campaign76`) under `scripts/factory-runner/verifier-watchdog.sh`.
+  Dispatch metadata: `qa/verification/scratch/verifier16_dispatch.json`; log
+  `qa/verification/scratch/verifier16_output.log` (buffers until exit); watchdog state
+  `qa/verification/scratch/watchdog-verifier16_output.state`.
+  **DO NOT MODIFY `index.ts` UNTIL IT RETURNS.** The watchdog aborts on SHA mismatch.
+- Verdict classification: PASS / FAIL / BLOCKED — PROVIDER_CAPACITY /
+  BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from
+  OUTPUT TEXT only. Watchdog: capacity -> wait for provider reset; transient 5xx ->
+  bounded backoff (60s..15min); EXECUTION_MODE -> stop (exit 5), never relaunch same mode.
+- On FAIL: reproduce -> root cause -> same-defect sweep -> structural fix -> regression ->
+  mutation proof (limits AND coverage) -> new SHA -> verifier #17 automatically.
+  On PASS: verify exact SHA, zero unresolved observations, freeze; then (and only then)
+  ask exactly once: `ALLOW_FUNCTIONS_DEPLOY=1?`.
+- Production is v92. Zero production writes all campaign.
+
+## DB — CODE/CI IMPLEMENTATION IN PROGRESS; REAL POSTGRES SECURITY VERIFICATION REQUIRED
+- `master` @ `C:/Users/Dell/dev/brain-os-bug006` — PULL FIRST. Four PREPARED, UNPUSHED
+  migrations: 202609020001, 202609020002, 202609020003, 202609030001 (the last now also
+  adds `agent_runs.execution_mode` with a CHECK).
+- `qa/dbtest/db.mjs`: engine adapter (PGlite default; `DBTEST_PG_URL` = real PostgreSQL)
+  + founder-mandated `securitySelfCheck` (current_user/session_user, non-superuser, no
+  BYPASSRLS, row_security on, grant present, policy filter observed, known-forbidden
+  INSERT fails with 42501). PGlite verdicts read "RLS ENFORCEMENT (PGlite emulation) — NOT
+  SECURITY VERIFIED"; only the real engine may print SECURITY VERIFIED.
+- `.github/workflows/migration-validation.yml`: job `validate` (PGlite) + job
+  `validate-real-postgresql` (pgvector/pgvector:pg15 service container). Runs on push to
+  master touching migrations/dbtest. Pushing master does NOT trigger the Edge deploy
+  workflow (its paths filter is supabase/functions/** only).
+- Evidence ladder per migration: SQL PARSED -> DDL EXECUTED -> INTEGRATION VERIFIED
+  (PGlite + real PG) -> RLS/GRANTS/SECURITY DEFINER VERIFIED -> SECURITY VERIFIED (real PG
+  job only). Each migration gets its own verdict. `Approve production DB migration?` is
+  asked exactly once, only after all four are SECURITY VERIFIED on the real engine and the
+  round-3 independent review is complete.
+
+## FACTORY / SUPERVISOR
+- `provider.mjs`: classifyProviderOutput -> EXECUTION_MODE_BLOCKED (first) /
+  PROVIDER_CAPACITY_BLOCKED / PROVIDER_TRANSIENT_ERROR; `transientBackoffSeconds` (bounded);
+  `EXECUTION_MODES`; `verifierDispatchArgv` (isolated: `-p`, acceptEdits, allowlisted
+  tools, `--agent brain-os-verifier`, never `--bg`).
+- `supervisor.mjs`: verifier resume spawns via `provider.verifierDispatchArgv(prompt, mode)`
+  with `TOP_LEVEL_ISOLATED_PROCESS`, records `execution_mode` on the row via sqlEscape.
+- Regressions: provider 15/15, supervisor 35/35 (incl.
+  BACKGROUND_AGENT_EXECUTION_MODE_MUST_NOT_INHERIT_UNACTIONABLE_PLAN_GATE,
+  VERIFIER_RESUME_USES_TOP_LEVEL_ISOLATED_PROCESS, EXECUTION_MODE_IS_RECORDED_AS_DATA),
+  injection suite green, injection mutation 5/5.
+
+## Stray-session control (2026-09-04 reconciliation)
+Only this session's claude.exe (plus its rg child) and the Playwright MCP node processes
+existed; no competing writer on index.ts. Record: `qa/verification/scratch/stray_sessions_2026-09-03.json`.
+
+## Authorization gates — NOT ready, do not ask yet
+Edge: awaiting verifier #16. DB: awaiting real-PostgreSQL CI + round-3 review.
+
+## UPDATE 2026-09-04 10:35 local — real-PostgreSQL CI green; DB round-3 independent review dispatched
+- CI run 33829327538 on master `3f77dd9`+`fbc5c79`: job `validate` (PGlite) success; job
+  `validate-real-postgresql` (PostgreSQL 15.19, pgvector service container) success —
+  apply 81/81 (four targets APPLIED), acceptance 36/36, personas 17/17, self-check
+  current_user=authenticated / session_user=postgres / superuser=false / bypassrls=false /
+  row_security=on / forbidden INSERT -> 42501. **Each of the four migrations: SECURITY
+  VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked).** Log archived
+  at `qa/verification/ci/migration-validation-run33829327538-real-postgresql.log`;
+  `DB_REVIEW_ROUND3_RESPONSE.json` updated. First run 33829043446 failed on a service-DB
+  state leak between steps (fixed: reset on connect; real vector extension issued outside
+  the neutralising transform).
+- **DB ROUND-3 INDEPENDENT REVIEW IS RUNNING** as verifier #301 (campaign 3), isolated
+  worktree `C:/Users/Dell/dev/brain-os-verify-fbc5c79` (branch `verify-fbc5c79-campaign3`)
+  at master `fbc5c79`, watchdog pid 3122, log `qa/verification/scratch/verifier301_output.log`.
+  Output: `qa/verification/DB_REVIEW_ROUND3_VERDICT.md` on its artifact branch.
+- `Approve production DB migration?` is asked ONLY after that review returns PASS on all
+  four (or after its findings are closed and re-reviewed). Not before.
+- Verifier #16 (Edge, campaign #76) still running (pid 4220), log empty until exit.
+
+## UPDATE 2026-09-04 ~11:20 local — campaign #76 CLOSED at f232975; verifier #17 dispatched
+- Verifier #16 (isolated process, preflight EXECUTION_READY) returned FAIL on 0a03127:
+  D123 (P1 exclusion outside the word list), D124 (P1 `employee` never dropped, nameless),
+  D125 (P2 splitter scope), D126 (run15 never exercised the drop). Its artifacts are on
+  `verify-0a03127-campaign76` @ a9d14ad (landed on its behalf: `git add` was not in its
+  allowlist — fixed).
+- Closure commit **`f232975`**: NEGATED_MENTION removed, clean-selection allowlist on all
+  three matcher paths; canonicalKnowsIt from the canonical read + CANONICAL_TYPE_ALIAS;
+  widened clause splitter with the "Confirmed —" lookbehind; run15 pipeline cases; run16
+  promoted (53). Battery 27/0 (21 assertion-bearing); v16 mutation proof 13/13; v15 10/10
+  (+4 superseded); deno 23/23 (0 new). Ledger #76 + postscript appended.
+- **VERIFIER #17 (campaign #77) IS RUNNING** as TOP_LEVEL_ISOLATED_PROCESS on the rotation
+  commit (index.ts sha in CURRENT_CAMPAIGN.json). DO NOT MODIFY index.ts until it returns.
+- DB round-3 reviewer #301 still running (worktree brain-os-verify-fbc5c79).
+
+## UPDATE 2026-09-04 ~15:00 local — DB round 3 FAIL closed by round 4; verifier #17 resumed after capacity block
+- DB round-3 independent review (verifier #301, verify-fbc5c79-campaign3 @ 3215ddd) returned
+  **FAIL on all four**. Load-bearing finding D-1 was the implementing session's: CI connected
+  as postgres and SET ROLE does not change session_user, so migration D's guards were never
+  exercised — the earlier SECURITY VERIFIED for D is WITHDRAWN. A-1: the trusted-write GUC
+  was forgeable by any role (same pattern LIVE in five pushed migrations — open class,
+  KNOWN_FAILURE_MODES DB-R3). Plus A-3, B-1, B-2 (R-B2 HIGH), C-2, C-3, D-2, D-3, A-6, X-1..X-3.
+- **Round 4 pushed as master `27a807d`**: qa_authenticator persona sessions (SET SESSION
+  AUTHORIZATION) with a self-check that refuses privileged session_user; two-part
+  trusted-write gate (flag AND definer context); manager tier removed from A's table policy;
+  B cross-company guards; C enable/repoint gate; D no EXECUTE grant, execution_mode guarded;
+  concurrency.mjs (SKIP LOCKED under two real connections, new CI step); governance rows +
+  invariants #8/#9; migration_round4_mutation_proof 10/10. Migration C is SPLIT OUT of the
+  A/B/D authorization batch (sequencing).
+- CI run 33845376254 on 27a807d in progress (watched). When green: dispatch the DB round-4
+  independent reviewer (template `qa/verification/scratch/db_review_round4_prompt_template.txt`,
+  pinned GIT_HEAD) and record its verdict; only then may `Approve production DB migration?`
+  (A/B/D) be asked, once.
+- Verifier #17 (Edge, campaign #77): attempt 1 BLOCKED — PROVIDER_CAPACITY (resets 2:20pm),
+  watchdog slept 11859s and re-dispatched attempt 2 at 14:22 on the unchanged SHA; running.
+  index.ts remains frozen at e5ccf63b… (closure f232975).
+
+## UPDATE 2026-09-04 ~15:11 local — campaign #77 CLOSED at a559f8f; verifier #18 dispatched; DB round-4 reviewer running
+- Verifier #17 (attempt 2 after a capacity block) returned FAIL on 9535f0b: D128 (P1: the
+  D125 splitter cut inside noun phrases, 97/130 truthful negatives destroyed), D127 (P2:
+  filler admitted every lifecycle verb/noun), D129 (P3: "(option N)" replies dead-ended);
+  D123/D124/D126 confirmed closed. Artifacts on verify-9535f0b-campaign77 @ 361390a.
+- Closure **`a559f8f`**: negation decided by ORDER against COMPLETION_VOCAB (splitter back to
+  [.!?,;\n]); filler scoped to ACTION_FAMILY_VERBS[actionType] + ENTITY_NOUNS[entityType];
+  RESTORE_VERB_PATTERN gains "activate"; winner's own option number is filler; run17 (43)
+  promoted. Battery 28/0; v17 proof 14/14; v16 11/11 (+2 superseded); v15 8/8 (+6);
+  deno 23/23 (0 new). Ledger #77 + postscript appended.
+- **VERIFIER #18 (campaign #78) IS RUNNING** on rotation commit `fbafded`, index.ts sha
+  **`cf4b6f4defe9b5ed72cee29b08c4e2731651fac0d080f3ba30e1ed601e056deb`**, worktree
+  brain-os-verify-fbafded, watchdog pid 6595. DO NOT MODIFY index.ts until it returns.
+- DB round-4 independent reviewer (#401) still running on master 96e1309 (brain-os-verify-96e1309).
+
+## UPDATE 2026-09-04 ~15:45 local — DB round 4: A PASS, B PASS, C FAIL, D FAIL; round 5 pushed
+- Round-4 reviewer (#401, verify-96e1309-campaign4 @ b13173c) confirmed the round-3 P1s
+  closed and mutation-pinned. New: R4-1 (D guard omitted canonical_work_order_id/task_id/
+  agent_id — returned by the claim), R4-3 (C had no channel-ownership guard: plant / two-step
+  repoint onto the founder channel), R4-5 (persona session was a convention: superuser login
+  could SET SESSION AUTHORIZATION back), R4-2/4/6/7/8/9/10 recorded.
+- **Round 5 pushed as master `647c808`**: guard list pinned to the claim's return list by
+  `qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs` (+ liveness columns, 42501);
+  channel ownership on every binding INSERT / channel_id change; engine-enforced persona
+  connection (openPersonaDb as qa_authenticator on the real engine); R4-7 count corrected;
+  apply harness engine-aware. PGlite: personas 45/45, round-5 proof 9/9, round-4 proof 10/10.
+- CI run 33848913777 on 647c808 in progress (watched). When green: dispatch the round-5
+  reviewer ON 647c808 (no bookkeeping commit in between — R4-6), template
+  `qa/verification/scratch/db_review_round5_prompt_template.txt`, pinned GIT_HEAD.
+- Migration C stays split out of the A/B/D authorization batch (sequencing, C-1).
+- Verifier #18 (Edge, campaign #78) running on fbafded / cf4b6f4d…; index.ts frozen.
+- 15:34 — CI 33848913777 on 647c808 GREEN (real engine: persona connection ENGINE-ENFORCED,
+  H.R4-5 OK, personas 45/45, all four SECURITY VERIFIED on the corrected harness,
+  concurrency verified). **DB round-5 reviewer #501 dispatched ON 647c808** (same commit as
+  CI, R4-6), worktree brain-os-verify-647c808, watchdog pid 7309. Awaiting its verdict.
+
+## UPDATE 2026-09-04 ~20:10 local — Edge #78 closed (verifier #19 running); DB round 5 FAIL closed by round 6
+- Edge: verifier #18 FAIL (D130 P1 + D131/D132/D133) closed at **`be9d94f`** (index.ts
+  `d050db20…`): negation vs the VERBAL completion (completionIsNegated); D131's 9-fabrication
+  residual documented + proven irreducible (each paired with a real name the same boundary
+  would destroy); prototype-key types fail closed; ordinal replies select by number. Battery
+  29/0; run18 promoted (56); v18 proof 12/12; deno 0 new. VERIFIER #19 running on rotation
+  commit `d34af15` (index.ts `d050db20…`), worktree brain-os-verify-d34af15.
+- DB: round-5 reviewer (verify-647c808-campaign5 @ 0843c3e) A PASS, B PASS, C FAIL, D FAIL.
+  **Round 6 pushed as master `4201a7e`**: new migration 202609040001 makes
+  chat_channels.created_by_profile_id immutable except founder/admin (R5-1 P1); C guards the
+  enabled-binding external-identity (R5-2) and DELETE (R5-3); D guards `id` (R5-4). personas
+  53/53; round6 proof 9/9. R5-7 recorded+deferred. A and B have passed TWO rounds. C stays
+  split out; 202609040001 authorized WITH C. CI run 33871917330 on 4201a7e (watched); when
+  green, dispatch the round-6 reviewer ON 4201a7e (R4-6),
+  template qa/verification/scratch/db_review_round6_prompt_template.txt, pinned GIT_HEAD.
+- Gates: still NOT ready. A/B/D authorization awaits the round-6 reviewer PASS on D (A/B
+  already 2x PASS). Edge deploy awaits verifier #19 PASS on the exact bytes.
+
+## UPDATE 2026-09-04 ~21:05 local — Edge #79 closed (verifier #20 running); DB A/B/D at the AUTHORIZATION BOUNDARY
+- Edge: verifier #19 FAIL (D134 P1 + D135/D136/D137/D138 + D131 R9b) closed at **`f27f6b7`**
+  (index.ts `6407d95c…`). Battery 30/0; run19 promoted (62); v19 proof 11/11; deno 0 new.
+  VERIFIER #20 running on rotation commit `b32e0e4` (index.ts `6407d95c…`),
+  worktree brain-os-verify-b32e0e4, watchdog pid 11570.
+- DB: round-6 reviewer (verify-4201a7e-campaign6 @ d67b147) returned **A PASS, B PASS, D PASS,
+  C FAIL** (R6-0 P1 repoint-onto-own-channel; R6-1 P2 disable-then-delete). Round 7 pushed as
+  master **`e7c943e`**: R6-0/R6-1 closed in C; the 3 ledger corrections landed; R6-8 deferred.
+  personas 57/57; migration_round7 4/4. **A/B/D have PASSED THREE independent rounds**
+  (202609020001, 202609020002, 202609030001), real-PostgreSQL CI SECURITY VERIFIED. C
+  (+202609040001) stays split out, awaiting its own round-7 review.
+- **AUTHORIZATION BOUNDARY REACHED for A/B/D.** Asking the founder, exactly once, to approve
+  the production DB migration of A, B and D. NOT asking about C. NOT asking ALLOW_FUNCTIONS_DEPLOY
+  (Edge is still verifying).
+
+## UPDATE 2026-09-05 ~01:45 local — Edge #80 FAIL closed → run20 (54ebecc); verifier #21 dispatched; DB at prod-cred boundary
+- Edge: verifier #20 (campaign #80) FAIL on b32e0e4 — D139 (P1 zero-relativizer truthful
+  negative destroyed by R9b's aux arm), D142 (P1 label strip arms opposite destructive
+  field), D141 (P2 negator-lexicon gap), D144 (P3 active-voice fabrication missed).
+  **Closed at `54ebecc`** (index.ts sha256 `c45593237dc1862f530e223b6399b47a4c5a0d536c77aa01a9ac3d4937377dc2`):
+  D139 R-ZR2 name-safe clause linker; D142 D136 dead-end on the label path (fail-closed, no
+  actionType||archive default); D141 lexicon +nobody/neither/nowhere/nor/few/hardly; D144
+  active-voice arm in LEGACY_PAST_COMPLETION only. Evidence: run20 102/0; collateral 0/75
+  truthful destroyed & 6/50 fabrications missed (was 18/75, 7/50); battery 32/0; deno 23 ==
+  baseline (0 new); **v20_mutation_proof 6/6** (coverage x4 + limits for both P1s). R-IDIOM
+  NOT adopted (extraction fragility); residual documented 6.
+  **VERIFIER #21 dispatched** on bookkeeping commit `0ba51a1` (index bytes identical to
+  54ebecc), worktree brain-os-verify-0ba51a1, branch verify-0ba51a1-campaign81, watchdog pid
+  13405, log verifier21_output.log; monitor task on watchdog-verifier21_output.state.
+- DB: **A/B/D authorized by the founder** (A=202609020001, B=202609020002, D=202609030001;
+  C 202609020003 + 202609040001 EXCLUDED; strict pre-write protocol). Round 7 pushed as
+  master `e7c943e`. **BLOCKED at the production-credentials boundary**: this environment has
+  NO supabase auth (no ~/.supabase/access-token, no DB password/URL) for the linked project
+  `pvphxgrtdfrudejjhzjk`, so `migration list` / `db push --dry-run` cannot run here. Founder
+  chose to run the two read-only commands themselves and paste output. Ordering fact: the
+  approved set is NON-CONTIGUOUS (C sits between B and D), so a naive push would include C +
+  040001 → the founder's STOP condition; a selective procedure is required and D is
+  object-independent of C (grep: D's only C mentions are comments). Awaiting the pending-set
+  output to finalize + locally verify the selective A/B/D-only apply.
+
+## UPDATE 2026-09-05 ~02:15 local — Edge #81 FAIL → run21 (0969852); verifier #22 dispatched
+- Verifier #21 (campaign #81) FAIL on 0ba51a1: D148 (P1, D142 only narrowed), D145 (P1, D144
+  active arm destroyed truthful questions), D146 (P1/P2, R-ZR2 linkers too broad), D147 (P2),
+  D149 (P2, D141 broke run15 — my "stub" claim was wrong).
+- **Closed at `0969852`** (index sha256 `272de3a43cbfa685e144376b52c07cb30fa63d72615390ce529dca0b841bfbd2`):
+  D148 (D142 rebuilt on imperative-form opposite-verb test, fail-closed, no actionType||archive
+  default), D146 (R-ZR2 linkers narrowed to and|but + although|though|however|therefore), D149
+  (D141 reverted → run15 57/0 again; false stub claim withdrawn). **REVERTED as documented
+  [RESIDUAL]s**: D141 (P2), D144 active-voice/D145 (P1), D146b (P2 comma-list) — each cannot be
+  closed safely without a corpus; not regressions vs b32e0e4. Net: the two P1s that matter
+  (D139 truthful-destruction, D142/D148 destructive-bind) are CLOSED.
+  Evidence: run21 136/0; collateral 0/75 truthful destroyed & 7/50 missed (== baseline);
+  battery 32/0 (run15 57/0, run20 retired, run21 added); deno 23 == baseline; v21_mutation_proof 6/6.
+- **VERIFIER #22 dispatched** on bookkeeping commit `be8d9ca` (index bytes identical),
+  worktree brain-os-verify-be8d9ca, watchdog pid 14474, monitor task on
+  watchdog-verifier22_output.state.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety proven (8/8,
+  brain-os-bug006 136a2c7); awaiting founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~03:00 local — Edge #82 FAIL → run22 (4476c92); verifier #23 dispatched
+- Verifier #22 (campaign #82) FAIL on be8d9ca: D150 (P2, run21's D148 fix over-broadened —
+  base-verb names dead-end), D153 (P3, run21's "no coverage regression" was false), and it
+  REFUTED run21's D141/D144 reverts with measured safe fixes.
+- **Closed at `4476c92`** (index sha256 `e802227b2944585fa7ff6989030c4d96b84f61ea1e778405195af157d9e449f3`),
+  adopting all three of verifier #22's prepared fixes: D150 (D148 imperative test LABEL-GATED),
+  D151 (re-add negator lexicon + delete completionIsNegated's clause-initial free pass — closes
+  D141+D147b, truthful destroyed 11→1 / fabrications missed 32→27), D152 (first-person
+  clause-anchored active-voice arm — 7/7 D144 caught, 0/12 D145 destroyed, 1 idiom FP), D149
+  (run15 pin updated, 57/0). Residuals pinned [RESIDUAL]: D153 (dropped-linker trade), D152
+  idiom FP, D146b (comma-list), D154 (out-of-lexicon opposite-verb name → D136 dead-end refactor).
+  Evidence: run22 242/0; collateral **0/75 truthful destroyed & 4/50 fabrications missed —
+  BETTER than the b32e0e4 baseline of 7**; battery 32/0 (run15 57/0, run21 retired, run22
+  added); deno 23 == baseline; v22_mutation_proof 6/6.
+- **VERIFIER #23 dispatched** on bookkeeping commit `82d4d77` (index bytes identical), worktree
+  brain-os-verify-82d4d77, watchdog pid 15095, monitor task on watchdog-verifier23_output.state.
+- Campaign trajectory: #80→run20, #81→run21, #82→run22 — residuals shrinking, collateral now
+  strictly better than baseline. Two P1s that matter (D139 truthful-destruction, D142/D148
+  destructive-bind) closed and held across three independent rounds' scrutiny.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~03:40 local — Edge #83 FAIL → run23 (e6a4d02); verifier #24 dispatched
+- Verifier #23 (campaign #83) FAIL on 82d4d77: D155 (P2, run22's active arm destroyed
+  first-person non-completions), D156 (P3, free-pass deletion destroyed evidential-complement
+  negatives), D157 (P2, pre-existing imperative-lexicon divergence). Confirmed D150 closed and
+  both P1s holding.
+- **Closed at `e6a4d02`** (index sha256 `bf5e757f4e813b20a11a074d894192685946e1ef469b8e59647cc67c54118066`):
+  D156 (FIX-A evidential verbs in relativizer), D155 (fallback 1 — active arm moved to an INLINE
+  CASE-SENSITIVE regex in readsAsCompletion, NOT FIX-B's `(?-i:)` which is Deno-unverified and
+  could brick module load), D157 (imperative test reuses ARCHIVE/RESTORE_VERB_PATTERN). Residuals
+  [RESIDUAL]: D156b (subject-NP), D153 (dropped-linker trade), D146b (comma-list), D154.
+  Evidence: run23 316/0; collateral **0/75 truthful destroyed & 4/50 fabrications missed —
+  BETTER than the b32e0e4 baseline of 7**; battery 32/0 (run15 57/0, run22 retired, run23 added);
+  deno 23 == baseline (npx deno@2); v23_mutation_proof 6/6. No regexp modifier shipped → no
+  Deno-modifier deploy risk.
+- **VERIFIER #24 dispatched** on bookkeeping commit `89a1ac9` (index bytes identical), watchdog
+  pid 15967, monitor task on watchdog-verifier24_output.state.
+- Trajectory: #80→run20, #81→run21, #82→run22, #83→run23. Four iterations; the two P1s
+  (D139 truthful-destruction, D142/D148/D150 destructive-bind) closed and held across all four
+  independent rounds. Residuals now niche (subject-NP parsing, comma-lists, out-of-lexicon
+  names). Collateral strictly better than baseline.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~04:20 local — Edge #84 FAIL → run24 (0e72ced); verifier #25 dispatched
+- Verifier #24 (campaign #84) FAIL on 89a1ac9: D158 (P2, FIX-A's evidential verbs disarmed the
+  belt when used PASSIVELY) + D158b/c/D159 (P3/P4). Confirmed D155/D156/D157 closed, both P1s hold.
+- **Closed at `0e72ced`** (index sha256 `e88370a92f5dc2e89d2014e3ec2f1267056ba0021732e423736b4065884f5834`):
+  D158 FIX-C (evidential verbs gated behind fixed-length lookbehinds excluding was/were/is/are/am/
+  be/been/being/has/have/had → active-complement only; the file already ships 12 such lookbehinds,
+  so Deno-safe, no (?-i:)). Corrected the stale D148 comment (D158c) and the collateral baseline
+  (vs 4476c92 not b32e0e4) and re-pointed run24's header (the #23/#24 papercut). Residuals
+  [RESIDUAL]: D158b, D154/D158c, D159, D156b, D153, D146b.
+  Evidence: run24 207/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  32/0 (run15 57/0, run23 retired, run24 added); deno 23 == baseline (npx deno@2); v24_mutation_proof 4/4.
+- **VERIFIER #25 dispatched** on bookkeeping commit `164b3ee` (index bytes identical), watchdog
+  pid 16542, monitor task on watchdog-verifier25_output.state.
+- Trajectory: #80→run20 … #84→run24 (FIVE iterations). The two P1s (D139 truthful-destruction,
+  D142/D148/D150 destructive-bind) have held across FIVE independent rounds. Severity is dropping
+  (last P2 was D158, now closed); remaining residuals are P3/P4 and disclosed. Belt is converging;
+  if #25 returns PASS or P4-only, `0e72ced` is the deploy-ready candidate pending ALLOW_FUNCTIONS_DEPLOY.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~05:00 local — Edge #85 FAIL → run25 (7c5e610); verifier #26 dispatched
+- Verifier #25 (campaign #85) FAIL on 164b3ee: D160/D160b (P2 — FIX-C's fixed-length lookbehind
+  sees one token, so an adverb/contraction/whitespace or an active-intransitive evidential
+  defeats it), D161 (P4, pre-existing, same class). Confirmed D158/D155/D156/D157 closed.
+- **Closed at `7c5e610`** (index sha256 `3b5baa2c268ccb6c1ecb5e2eac0ac0f20ccfafc991af28af3b090416961f7602`):
+  FIX-D (the ROOT-class fix — the evidential test runs on the LAST linker-delimited segment of
+  the negator→verb span; the 11 FIX-C lookbehinds DELETED; position, not voice) and FIX-E
+  (modal-hedge guard closes D161). Per the verifier's own measurement, run25 is now BETTER than
+  4476c92 on BOTH axes (truthful destroyed 0 vs 5; passive/intransitive fabrications caught
+  62/62 + 28/28; active-complement negatives survive 17). Residuals [RESIDUAL]: D158b, D154/
+  D158c, D156b, D153, D146b.
+  Evidence: run25 440/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  32/0 (run15 57/0, run24 retired, run25 added); deno 23 == baseline (npx deno@2); v25_mutation_proof 4/4.
+- **VERIFIER #26 dispatched** on bookkeeping commit `415fed3` (index bytes identical), watchdog
+  pid 17120, monitor task on watchdog-verifier26_output.state.
+- Trajectory: #80→run20 … #85→run25 (SIX iterations). FIX-D addressed the recurring root class
+  (a fixed-length lookbehind deciding syntactic scope) rather than another symptom — a strong
+  convergence signal. The two P1s (D139, D142/D148/D150) have held across SIX rounds. If #26
+  returns PASS or P4-only, `7c5e610` is the deploy-ready candidate → the ALLOW_FUNCTIONS_DEPLOY
+  authorization question is the next genuine boundary.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting the
+  founder's `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~05:35 local — Edge #86 FAIL → run26 (5db8603); verifier #27 dispatched
+- Verifier #26 (campaign #86) FAIL on 415fed3: D162a (P2, FIX-E's unanchored bare-`be` drops a
+  clause on copular modals), D162b (P3, FIX-D's name-blind split — an `and` in a name defeats it,
+  D125→D128→D162b), D162c (P4, run25 vacuous detector). Confirmed D160/D160b/D156/D161 closed.
+- **Closed at `70161e8d…`** (commit 5db8603 + deno null-safety): FIX-G (delete unanchored bare-be),
+  FIX-F (evidential split reuses the file name-vs-clause guard; leading pop null-safe for deno),
+  D162c disclosure (a variable-length lookbehind IS shipped, harmless, now disclosed). Landed ALL
+  7 bookkeeping corrections #26 required (axis claim two-directional, FIX-E collateral withdrawn,
+  D158d in residual list, header at this sha, honest suite count, vll retraction, deno provenance)
+  + 2 standing rules. Residuals [RESIDUAL]: D158b, D154/D158c, D158d, D156b, D153, D146b.
+  Evidence: run26 145/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed; battery
+  31 executable + helper / 0 failures (run15 57/0, run25 retired, run26 added); deno 23 ==
+  baseline (npx deno@2); v26_mutation_proof 5/5.
+- **VERIFIER #27 dispatched** on bookkeeping commit `a9bf518` (index bytes identical), watchdog
+  pid 17928, monitor task on watchdog-verifier27_output.state.
+- Trajectory: #80→run20 … #86→run26 (SEVEN iterations). Severity has dropped to P3/P4 residuals;
+  the last two P2s (D160/D162a) are closed. The two original P1s held across SEVEN rounds. If #27
+  returns PASS or only-documented-P4, `5db8603` is deploy-ready → ALLOW_FUNCTIONS_DEPLOY boundary.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~06:15 local — Edge #87 FAIL → run27 (b6cca5f); verifier #28 dispatched
+- Verifier #27 (campaign #87) FAIL on a9bf518: D163 (P2, FIX-G left the modal guard window
+  admitting an arbitrary subject — "I can confirm ACME has been archived." drops the clause),
+  D164 (P3, FIX-F's evidential rescue ignores whose subject), D165 (P3, pre-existing). Confirmed
+  D162a/D162b closed; also caught my #86 axis-claim self-contradiction.
+- **Closed at `291800b1…`** (commit b6cca5f): FIX-H (modal-hedge guard window anchored to a closed
+  HEDGING LEXICON, not [a-z]+) + FIX-I (negative lookahead: the evidential must belong to the
+  negated NP). Axis claim now stated PER-CORPUS (no self-contradiction). Residuals [RESIDUAL]:
+  D165, D158b, D154/D158c, D158d, D156b, D153, D146b.
+  Evidence: run27 161/0; collateral 0/75 truthful destroyed & 4/50 fabrications missed (#20 corpus);
+  battery 32 files (31 executable + helper) / 0 failures (run15 57/0, run26 retired, run27 added);
+  deno 23 == baseline (npx deno@2); v27_mutation_proof 3/3.
+- **VERIFIER #28 dispatched** on bookkeeping commit `45d05cc` (index bytes identical), watchdog
+  pid 18557, monitor task on watchdog-verifier28_output.state.
+- Trajectory: #80→run20 … #87→run27 (EIGHT iterations). The two original P1s held across EIGHT
+  rounds. Each round now finds a narrower P2/P3 prose shape (adversarial asymptote); bookkeeping
+  discipline is now clean (2 consecutive clean passes). Belt is deploy-candidate-quality; the
+  founder may at some point weigh "good enough to deploy" vs chasing every exotic shape.
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
+
+## UPDATE 2026-09-05 ~06:55 local — Edge #88 FAIL → run28 CONSOLIDATION (95c824c); verifier #29 dispatched
+- Verifier #28 (campaign #88) FAIL on 45d05cc: FIX-I regressed BOTH axes (D166 one-token-subject
+  lookahead; D167 matched nouns as evidentials, destroyed 8 truthful negatives). Its explicit
+  recommendation: REVERT FIX-I — a rescue that destroys 8 truthful negatives to catch 5 fabrications
+  is the trade index.ts refuses. D163/FIX-H confirmed closed.
+- **CONSOLIDATION at `0565a5c2…`** (commit 95c824c): FIX-I REVERTED; FIX-H (D163) KEPT/closed;
+  D167 closed by the revert; D164/D166 (determiner-led evidential fabrication) + D168/D169/D170
+  re-opened as DISCLOSED RESIDUALS pinned in run28. Honest bookkeeping: older residuals (D158b,
+  D154, D153, D146b) documented but NOT pinned (a cumulative-residuals suite is deferred, stated
+  not claimed). Evidence: run28 110/0; collateral 0/75 truthful destroyed & 4/50 missed; battery
+  32 files (26 executing + 5 stubs + 1 helper) / 0 failures (run15 57/0, run27 retired, run28
+  added); deno 23 == baseline; v28_mutation_proof 2/2.
+- **VERIFIER #29 dispatched** on bookkeeping commit `0b5f67f` (index bytes identical) — a
+  CONSOLIDATION-confirmation run (asked for a deployability judgment), watchdog pid 19166, monitor
+  task watchdog-verifier29_output.state.
+- INFLECTION POINT: NINE iterations (#80→run20 … #88→run28). The belt is at a stable
+  defense-in-depth state — 2 P1s closed & held across 9 rounds, 0 truthful destroyed, residuals
+  documented. Verifier #28 endorsed the revert as "the honest outcome". If #29 confirms clean +
+  deployable, the ALLOW_FUNCTIONS_DEPLOY authorization question is the next boundary (founder's call
+  on deploy vs continue polishing).
+- DB unchanged: A/B/D authorized; blocked on prod credentials; gap-safety 8/8; awaiting founder's
+  `migration list` + `db push --dry-run` output.
+
+
+## UPDATE 2026-09-05 ~11:45 local — v92 DIFFERENTIAL CAMPAIGN (#90) closed at `da5fa341…`; verifier #30 dispatched
+- Deployed v92 == git c9dfab5b (byte-exact, sha256 795c20c8), fetched read-only via
+  `supabase functions download`; copy committed at qa/verification/scratch/v92/index.v92.ts.
+- The differential found 12 fabrication regressions vs LIVE v92 (incl. D27 P1 — production row
+  9dda919c `Project renamed: "X" → "Y"`, sitting behind the `:\s` split) that the 4476c92-relative
+  campaign had classified as residuals → ALL 12 CLOSED, 0/272 truthful destroyed, 8/8 mutation-proven.
+  Permanent `v92_parity_contract` (46/0) now in the battery (33/0). run18/run19 D131 idiom pins
+  re-pinned closed. Founder's 7 questions answered in ledger #90. Rollback = c9dfab5b, exact+available.
+- **VERIFIER #30 = a V92-DIFFERENTIAL verifier** (re-derive the v92 bytes, own corpus, the 7 questions),
+  NOT a belt repeat. On PASS → EDGE STATUS = DEPLOYMENT READY → ask ALLOW_FUNCTIONS_DEPLOY=1 once.
+  #29 PASS (campaign) and #30 PASS (production) are BOTH required.
+- DB unchanged: A/B/D authorized; still blocked on the prod DB password (the functions-download read
+  access does NOT extend to `migration list` / `db push --dry-run`).
+
+## UPDATE 2026-09-05 ~12:05 local — DB non-production prep landed (brain-os-bug006 `f6fa26a`); verifier #30 in progress
+- EDGE: unchanged — candidate 9b73e68 / index sha256 da5fa341…; #29 PASS = campaign certification ONLY.
+  Verifier #30 (V92-DIFFERENTIAL, worktree brain-os-verify-9b73e68) is RUNNING (attempt 1 since 11:32;
+  it has independently pulled the v92 bytes into scratch/v30/). Both passes required before DEPLOYMENT READY.
+  Nothing deployed; production remains v92 (== c9dfab5b byte-exact; rollback target exact + available).
+- DB (brain-os-bug006 master `f6fa26a`, pushed): authorized batch remains ONLY A=202609020001,
+  B=202609020002, D=202609030001. C=202609020003, 202609040001 and every other migration EXCLUDED.
+  Landed, nothing applied:
+    qa/dbtest/live_preflight_abd.mjs   read-only live A/B/D verification (--pre | --post | --smoke);
+                                       per-migration LIVE VERIFIED / FAILED; C/040001 must be UNTOUCHED.
+                                       Smoke on PGlite: A/B/D all object checks PASS, C/040001 UNTOUCHED.
+    qa/dbtest/selective_apply_abd.sh   DRY-RUN by default; asserts bytes == reviewed e7c943e; curates a
+                                       temp workdir = (applied ∪ A/B/D); REFUSES to push unless the
+                                       `db push --dry-run` set is EXACTLY {A,B,D}; APPLY=1 pushes and
+                                       runs --post. db push exit status is never treated as evidence.
+- REMAINING BOUNDARY (founder): production DB credentials for pvphxgrtdfrudejjhzjk. The functions-download
+  read access on this machine does NOT extend to `migration list` / `db push`. Exact commands once supplied:
+    export SUPABASE_ACCESS_TOKEN=…  SUPABASE_DB_PASSWORD=…  DBTEST_PG_URL='postgresql://<read-only role>@…pooler…/postgres'
+    cd /c/Users/Dell/dev/brain-os-bug006
+    npx supabase migration list --linked --project-ref pvphxgrtdfrudejjhzjk          # evidence 1: history
+    node qa/dbtest/live_preflight_abd.mjs --pre                                       # evidence 2: pre-state
+    bash qa/dbtest/selective_apply_abd.sh                                             # evidence 3: dry-run == exactly {A,B,D}
+    APPLY=1 bash qa/dbtest/selective_apply_abd.sh                                     # write (already authorized, A/B/D only)
+    node qa/dbtest/live_preflight_abd.mjs --post                                      # evidence 4: LIVE VERIFIED verdicts
+  If the dry-run set is anything other than exactly {A,B,D} the script STOPs by design — do not push.

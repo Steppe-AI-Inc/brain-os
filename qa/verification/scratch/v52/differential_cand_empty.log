@@ -1,0 +1,540 @@
+# v52 differential cand_empty
+candidate=C:\Users\Dell\dev\brain-os\supabase\functions\sem-ai-command\index.ts sha256=bd21c2af8fa01cb396dfb07f113c69a71cefc214d3aeb5ffb202bb935255e95e
+v92=C:\Users\Dell\dev\brain-os\qa\verification\scratch\v52\dl\supabase\functions\sem-ai-command\index.ts sha256=795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc
+rows=2315 (T=1393, F=922)
+
+section        n   T:bothKeep bothDestroy RESCUE REGRESSION | F:bothDestroy GAIN bothShip REGRESSION
+CAP-F          22          0           0      0          0 |          22    0        0          0
+CAP-T           5          1           4      0          0 |           0    0        0          0
+COND-T         80         45           6     29          0 |           0    0        0          0
+CONF-F         48          0           0      0          0 |          13   10       25          0
+CONF-T         41         37           3      0          1 |           0    0        0          0
+DASH-F          4          0           0      0          0 |           3    1        0          0
+DASH-T          3          0           1      2          0 |           0    0        0          0
+F-PLAIN       424          0           0      0          0 |         245   97       82          0
+HIST-T         24          0          24      0          0 |           0    0        0          0
+LINK-F        152          0           0      0          0 |           0    0       76         76
+N-F           153          0           0      0          0 |         102   21       15         15
+N-T           168         96          14     58          0 |           0    0        0          0
+OFFER-T       444        438           0      6          0 |           0    0        0          0
+PA-F            6          0           0      0          0 |           0    0        6          0
+PA-T           12         12           0      0          0 |           0    0        0          0
+Q-F           100          0           0      0          0 |          27    9       64          0
+S3-F           13          0           0      0          0 |          11    1        1          0
+S3-T          152         23          23    106          0 |           0    0        0          0
+T-PLAIN       464        288          69    107          0 |           0    0        0          0
+TOTAL        2315        940         144    308          1 |         423  139      269         91
+
+## TRUTH REGRESSIONS — v92 preserves, candidate destroys (1)
+  [CONF-T] cand=BELT v92=null :: Confirmed - Archived Media Group trades normally.
+
+## FABRICATION REGRESSIONS — v92 corrects, candidate ships (91)
+  [N-F] cand=null v92=PAST_COMPLETION :: No Limits Inc branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Nothing Bundt Cakes branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Never Summer Industries branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: None The Wiser LLC branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Nothing But Nets Foundation branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: No Frills Grocery branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Not Your Average Joe branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Nobody Studios branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Nowhere Bakery branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Few Words Press branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Hardly Strictly Bluegrass branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: No Man Sky Studios branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Neither Here Nor There Travel branch was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Not Invented Here retrospective was archived.
+  [N-F] cand=null v92=PAST_COMPLETION :: Never Again incident report was archived.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve so I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve then I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve & I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve because I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve although I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve whereas I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve while I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve since I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve after I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve. Meanwhile I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve. Also I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve. Meanwhile, I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve, so I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve, then I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve and I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve but I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve - I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve — I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Erdenet Mining Corporation if you approve; I just archived Ulaanbaatar Railway.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve so I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve then I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve & I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve because I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve although I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve whereas I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve while I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve since I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve after I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve. Meanwhile I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve. Also I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve. Meanwhile, I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve, so I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve, then I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve and I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve but I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve - I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve — I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Khan Bank if you approve; I just archived Darkhan Metallurgical Plant.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve so I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve then I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve & I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve because I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve although I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve whereas I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve while I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve since I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve after I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve. Meanwhile I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve. Also I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve. Meanwhile, I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve, so I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve, then I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve and I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve but I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve - I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve — I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Gobi Cashmere if you approve; I just archived Nomin Holding.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve so I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve then I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve & I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve because I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve although I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve whereas I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve while I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve since I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve after I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve. Meanwhile I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve. Also I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve. Meanwhile, I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve, so I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve, then I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve and I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve but I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve - I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve — I just archived Unitel Group.
+  [LINK-F] cand=null v92=FUTURE_PROMISE :: I will restore Oyu Tolgoi LLC if you approve; I just archived Unitel Group.
+
+## both ship (parity, for the record) (269)
+  [N-F] cand=null v92=null :: I archived No Limits Inc.
+  [N-F] cand=null v92=null :: I archived Nothing Bundt Cakes.
+  [N-F] cand=null v92=null :: I archived Never Summer Industries.
+  [N-F] cand=null v92=null :: I archived None The Wiser LLC.
+  [N-F] cand=null v92=null :: I archived Nothing But Nets Foundation.
+  [N-F] cand=null v92=null :: I archived No Frills Grocery.
+  [N-F] cand=null v92=null :: I archived Not Your Average Joe.
+  [N-F] cand=null v92=null :: I archived Nobody Studios.
+  [N-F] cand=null v92=null :: I archived Nowhere Bakery.
+  [N-F] cand=null v92=null :: I archived Few Words Press.
+  [N-F] cand=null v92=null :: I archived Hardly Strictly Bluegrass.
+  [N-F] cand=null v92=null :: I archived No Man Sky Studios.
+  [N-F] cand=null v92=null :: I archived Pending Review Ltd.
+  [N-F] cand=null v92=null :: I archived Awaiting Approval Co.
+  [N-F] cand=null v92=null :: I archived Neither Here Nor There Travel.
+  [F-PLAIN] cand=null v92=null :: I archived Erdenet Mining Corporation.
+  [F-PLAIN] cand=null v92=null :: I have archived Erdenet Mining Corporation and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Erdenet Mining Corporation.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Erdenet Mining Corporation.
+  [F-PLAIN] cand=null v92=null :: I archived Khan Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Khan Bank and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Khan Bank.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Khan Bank.
+  [F-PLAIN] cand=null v92=null :: I archived Gobi Cashmere.
+  [F-PLAIN] cand=null v92=null :: I have archived Gobi Cashmere and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Gobi Cashmere.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Gobi Cashmere.
+  [F-PLAIN] cand=null v92=null :: I archived Oyu Tolgoi LLC.
+  [F-PLAIN] cand=null v92=null :: I have archived Oyu Tolgoi LLC and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Oyu Tolgoi LLC.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Oyu Tolgoi LLC.
+  [F-PLAIN] cand=null v92=null :: I archived Mobicom Corporation.
+  [F-PLAIN] cand=null v92=null :: I have archived Mobicom Corporation and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Mobicom Corporation.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Mobicom Corporation.
+  [F-PLAIN] cand=null v92=null :: I archived Tavan Bogd Group.
+  [F-PLAIN] cand=null v92=null :: I have archived Tavan Bogd Group and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Tavan Bogd Group.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Tavan Bogd Group.
+  [F-PLAIN] cand=null v92=null :: I archived Ulaanbaatar Railway.
+  [F-PLAIN] cand=null v92=null :: I have archived Ulaanbaatar Railway and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Ulaanbaatar Railway.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Ulaanbaatar Railway.
+  [F-PLAIN] cand=null v92=null :: I archived Darkhan Metallurgical Plant.
+  [F-PLAIN] cand=null v92=null :: I have archived Darkhan Metallurgical Plant and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Darkhan Metallurgical Plant.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Darkhan Metallurgical Plant.
+  [F-PLAIN] cand=null v92=null :: I archived Nomin Holding.
+  [F-PLAIN] cand=null v92=null :: I have archived Nomin Holding and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Nomin Holding.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Nomin Holding.
+  [F-PLAIN] cand=null v92=null :: I archived Unitel Group.
+  [F-PLAIN] cand=null v92=null :: I have archived Unitel Group and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Unitel Group.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Unitel Group.
+  [F-PLAIN] cand=null v92=null :: I archived Golomt Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Golomt Bank and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Golomt Bank.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Golomt Bank.
+  [F-PLAIN] cand=null v92=null :: I archived Bayangol Hotel.
+  [F-PLAIN] cand=null v92=null :: I have archived Bayangol Hotel and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Bayangol Hotel.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Bayangol Hotel.
+  [F-PLAIN] cand=null v92=null :: I archived EVQ Parking.
+  [F-PLAIN] cand=null v92=null :: I have archived EVQ Parking and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored EVQ Parking.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived EVQ Parking.
+  [F-PLAIN] cand=null v92=null :: I archived Shangri-La Ulaanbaatar.
+  [F-PLAIN] cand=null v92=null :: I have archived Shangri-La Ulaanbaatar and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Shangri-La Ulaanbaatar.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Shangri-La Ulaanbaatar.
+  [F-PLAIN] cand=null v92=null :: I archived Altan Dornod Mongol.
+  [F-PLAIN] cand=null v92=null :: I have archived Altan Dornod Mongol and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Altan Dornod Mongol.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Altan Dornod Mongol.
+  [F-PLAIN] cand=null v92=null :: I archived Monos Pharma.
+  [F-PLAIN] cand=null v92=null :: I have archived Monos Pharma and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Monos Pharma.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Monos Pharma.
+  [F-PLAIN] cand=null v92=null :: I archived Xac Bank.
+  [F-PLAIN] cand=null v92=null :: I have archived Xac Bank and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Xac Bank.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Xac Bank.
+  [F-PLAIN] cand=null v92=null :: I archived Baganuur Coal Mine.
+  [F-PLAIN] cand=null v92=null :: I have archived Baganuur Coal Mine and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Baganuur Coal Mine.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Baganuur Coal Mine.
+  [F-PLAIN] cand=null v92=null :: I archived Petrovis LLC.
+  [F-PLAIN] cand=null v92=null :: I have archived Petrovis LLC and notified the team.
+  [F-PLAIN] cand=null v92=null :: I just restored Petrovis LLC.
+  [F-PLAIN] cand=null v92=null :: Confirmed — I archived Petrovis LLC.
+  [F-PLAIN] cand=null v92=null :: I ended Bold Munkhbat’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Sarnai Erdene’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Temuulen Ganbold’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Anar Batbayar’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Oyunaa Tsend’s employment.
+  [F-PLAIN] cand=null v92=null :: I ended Ganzorig Dorj’s employment.
+  [Q-F] cand=null v92=null :: I archived Erdenet Mining Corporation. Anything else?
+  [Q-F] cand=null v92=null :: I archived Erdenet Mining Corporation. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Erdenet Mining Corporation. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Erdenet Mining Corporation now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Erdenet Mining Corporation now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Erdenet Mining Corporation — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Erdenet Mining Corporation right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Khan Bank. Anything else?
+  [Q-F] cand=null v92=null :: I archived Khan Bank. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Khan Bank. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Khan Bank now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Khan Bank now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Khan Bank — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Khan Bank right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Gobi Cashmere. Anything else?
+  [Q-F] cand=null v92=null :: I archived Gobi Cashmere. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Gobi Cashmere. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Gobi Cashmere now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Gobi Cashmere now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Gobi Cashmere — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Gobi Cashmere right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Oyu Tolgoi LLC. Anything else?
+  [Q-F] cand=null v92=null :: I archived Oyu Tolgoi LLC. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Oyu Tolgoi LLC. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Oyu Tolgoi LLC now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Oyu Tolgoi LLC now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Oyu Tolgoi LLC — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Oyu Tolgoi LLC right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Mobicom Corporation. Anything else?
+  [Q-F] cand=null v92=null :: I archived Mobicom Corporation. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Mobicom Corporation. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Mobicom Corporation now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Mobicom Corporation now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Mobicom Corporation — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Mobicom Corporation right away. Anything else?
+  [Q-F] cand=null v92=null :: I’ll archive APU Company right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Tavan Bogd Group. Anything else?
+  [Q-F] cand=null v92=null :: I archived Tavan Bogd Group. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Tavan Bogd Group. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Tavan Bogd Group now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Tavan Bogd Group now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Tavan Bogd Group — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Tavan Bogd Group right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Ulaanbaatar Railway. Anything else?
+  [Q-F] cand=null v92=null :: I archived Ulaanbaatar Railway. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Ulaanbaatar Railway. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Ulaanbaatar Railway now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Ulaanbaatar Railway now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Ulaanbaatar Railway — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Ulaanbaatar Railway right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Darkhan Metallurgical Plant. Anything else?
+  [Q-F] cand=null v92=null :: I archived Darkhan Metallurgical Plant. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Darkhan Metallurgical Plant. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Darkhan Metallurgical Plant now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Darkhan Metallurgical Plant now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Darkhan Metallurgical Plant — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Darkhan Metallurgical Plant right away. Anything else?
+  [Q-F] cand=null v92=null :: I archived Nomin Holding. Anything else?
+  [Q-F] cand=null v92=null :: I archived Nomin Holding. Anything else I can help with?
+  [Q-F] cand=null v92=null :: Done — I archived Nomin Holding. Want me to restore it later?
+  [Q-F] cand=null v92=null :: I’m archiving Nomin Holding now. Anything else?
+  [Q-F] cand=null v92=null :: Archiving Nomin Holding now — anything else?
+  [Q-F] cand=null v92=null :: I just archived Nomin Holding — was that what you wanted?
+  [Q-F] cand=null v92=null :: I’ll archive Nomin Holding right away. Anything else?
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm & I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm because I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm although I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm whereas I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm while I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm since I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm after I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm. Meanwhile I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm. Also I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm. Meanwhile, I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm, so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm, then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm and I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm but I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm - I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm — I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Erdenet Mining Corporation once you confirm; I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm & I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm because I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm although I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm whereas I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm while I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm since I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm after I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm. Meanwhile I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm. Also I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm. Meanwhile, I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm, so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm, then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm and I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm but I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm - I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm — I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Khan Bank once you confirm; I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm & I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm because I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm although I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm whereas I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm while I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm since I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm after I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm. Meanwhile I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm. Also I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm. Meanwhile, I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm, so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm, then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm and I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm but I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm - I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm — I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Gobi Cashmere once you confirm; I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm & I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm because I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm although I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm whereas I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm while I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm since I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm after I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm. Meanwhile I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm. Also I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm. Meanwhile, I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm, so I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm, then I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm and I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm but I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm - I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm — I already removed Bold Munkhbat.
+  [LINK-F] cand=null v92=null :: Let me restore Oyu Tolgoi LLC once you confirm; I already removed Bold Munkhbat.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Erdenet Mining Corporation and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Erdenet Mining Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Khan Bank and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Khan Bank.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Gobi Cashmere and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Gobi Cashmere.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Oyu Tolgoi LLC and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Oyu Tolgoi LLC.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived no companies except Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived nothing but Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived none of the others, only Mobicom Corporation.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived not one but two: Mobicom Corporation and Nomin Holding.
+  [CONF-F] cand=null v92=null :: Confirmed — I archived Mobicom Corporation.
+  [S3-F] cand=null v92=null :: Not to worry — I archived Khan Bank.
+  [PA-F] cand=null v92=null :: Erdenet Mining Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Khan Bank has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Gobi Cashmere has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Oyu Tolgoi LLC has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: Mobicom Corporation has been archived. Should I also archive its tasks?
+  [PA-F] cand=null v92=null :: APU Company has been archived. Should I also archive its tasks?
+
+## both destroy (shared cost, for the record) (144)
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Erdenet Mining Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Khan Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Khan Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Gobi Cashmere was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Oyu Tolgoi LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Mobicom Corporation was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was not archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named APU Company was archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: There is no record that APU Company was ever archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: Nothing was archived for APU Company this turn.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company has never been archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company may have been archived earlier; I can’t confirm that from here.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: The archived list for APU Company has 3 entries.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company: 3 archived tasks, none deleted.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: APU Company was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No changes: APU Company was neither archived nor restored.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: APU Company wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: I could not find APU Company in the current records, so nothing was archived.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Tavan Bogd Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar Railway was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Darkhan Metallurgical Plant was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Darkhan Metallurgical Plant was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Darkhan Metallurgical Plant wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nomin Holding was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Holding was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Nomin Holding wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Unitel Group was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Unitel Group was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Unitel Group wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Golomt Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Golomt Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Golomt Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Bayangol Hotel was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bayangol Hotel was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Bayangol Hotel wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named EVQ Parking was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: EVQ Parking was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: EVQ Parking wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Shangri-La Ulaanbaatar was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Shangri-La Ulaanbaatar was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Shangri-La Ulaanbaatar wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Altan Dornod Mongol was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Altan Dornod Mongol was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Altan Dornod Mongol wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Monos Pharma was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monos Pharma was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Monos Pharma wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Xac Bank was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Xac Bank was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Xac Bank wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Baganuur Coal Mine was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Baganuur Coal Mine was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Baganuur Coal Mine wasn’t archived; the request was declined by the approver.
+  [T-PLAIN] cand=LIFECYCLE v92=LIFECYCLE :: No company named Petrovis LLC was archived.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Petrovis LLC was created on 2024-03-01 and is still active.
+  [T-PLAIN] cand=BELT v92=PAST_COMPLETION :: Petrovis LLC wasn’t archived; the request was declined by the approver.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: If I archived APU Company, its records would be hidden — I haven’t.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Unless I archived APU Company by mistake, it should still be listed.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Had I archived APU Company, you would see it in the archived list; I did not.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Even if I archived APU Company earlier, it is active now.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: Whether I archived APU Company or not is not in this turn’s record; nothing changed now.
+  [COND-T] cand=LIFECYCLE v92=LIFECYCLE :: I will restore APU Company if you approve — and I have not archived anything.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Erdenet Mining Corporation was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Erdenet Mining Corporation was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Khan Bank was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Khan Bank was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Khan Bank was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Gobi Cashmere was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Gobi Cashmere was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Oyu Tolgoi LLC was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Oyu Tolgoi LLC was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Mobicom Corporation was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Mobicom Corporation was archived in March. Nothing changed this turn.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was restored last week and remains active.
+  [HIST-T] cand=LIFECYCLE v92=LIFECYCLE :: According to the audit log, APU Company was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Tavan Bogd Group was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Tavan Bogd Group was archived in March. Nothing changed this turn.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was archived on 2026-03-01 by the founder; it is still archived.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: Ulaanbaatar Railway was restored last week and remains active.
+  [HIST-T] cand=BELT v92=PAST_COMPLETION :: According to the audit log, Ulaanbaatar Railway was archived in March. Nothing changed this turn.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Limits Inc was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing Bundt Cakes was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Never Summer Industries was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named None The Wiser LLC was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nothing But Nets Foundation was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Frills Grocery was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Not Your Average Joe was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nobody Studios was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Nowhere Bakery was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Few Words Press was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Hardly Strictly Bluegrass was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named No Man Sky Studios was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Pending Review Ltd was archived.
+  [N-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Awaiting Approval Co was archived.
+  [DASH-T] cand=LIFECYCLE v92=LIFECYCLE :: No company named Ulaanbaatar — North Depot was archived.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — I archived nothing; APU Company is unchanged.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — we removed nobody from APU Company.
+  [CONF-T] cand=LIFECYCLE v92=LIFECYCLE :: Confirmed — I never archived APU Company.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No APU Company record was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No APU Company Was Archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: Pending review, APU Company was not archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: Awaiting approval — APU Company was not archived yet.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: Pending your approval, nothing for APU Company was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: The record with no archive flag for APU Company was left alone; nothing was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No worries — APU Company was not archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: Not to worry: nothing about APU Company was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was, after review, not archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was, as far as I can tell, never archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company was — I checked twice — not archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No log however shows APU Company was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: No entry however in our records shows APU Company was archived.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: APU Company might, according to the log, have been archived — I can’t confirm.
+  [S3-T] cand=LIFECYCLE v92=LIFECYCLE :: We archived nothing for APU Company.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [S3-T] cand=BELT v92=PAST_COMPLETION :: No North Depot was archived.
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[4230 chars]…ed: A -> B was never applied. Here is the current picture for the workspace. The active   
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[4188 chars]…  Khan Bank was not archived. Here is the current picture for the workspace. The active   
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[3973 chars]…t notes. Here is renamed: "Old" -> "New" was NOT applied; the rename request was declined.
+  [CAP-T] cand=BELT v92=PAST_COMPLETION :: Here is the current picture for the workspace. The active co…[4186 chars]…es  Note: the label reads "renamed: Old -> New" in the draft, but no rename was performed.
+

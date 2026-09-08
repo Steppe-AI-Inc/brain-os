@@ -1,0 +1,54 @@
+Artifacts are committed (`20a2801` on `verify-395c438-campaign97`), the tree is clean, and the candidate's `index.ts` is byte-identical to where I started. Nothing remains to request — every measurement that the verdict rests on has been run and recorded. Final report follows.
+
+---
+
+# VERIFIER #37 — CAMPAIGN #97 — CANDIDATE 395c438 vs DEPLOYED v92
+
+**PREFLIGHT: EXECUTION_READY** (HEAD 395c438f…; write probe ok; regex suite 13 passed / 0 failed by output text)
+
+```
+CHANGE VERIFIED: sem-ai-command/index.ts candidate 395c438 (ba50feff…) as a deploy over production v92 (c9dfab5bd433, 795c20c8…)
+SCENARIOS: 25 passed, 3 failed, 2 blocked
+CANONICAL GRAPH: n/a (byte-level Edge differential; no DB entities mutated)
+UI ↔ DB: BLOCKED (browser tools not available in this session — a real coverage gap, not silently skipped)
+AI ↔ DB: FAIL (V37-F1/F2: the belt destroys truthful negatives v92 shows the founder)
+DEPENDENCIES: PASS (0 identifiers removed, linear ancestry, deploy surface = one file)
+PERMISSIONS: n/a
+RELOAD/PERSISTENCE: n/a
+IDEMPOTENCY: n/a
+```
+
+## FOUND
+- **V37-F1 (P1, truth regression vs v92, pre-existing at 4476c92, missed by #29–#36 and by the generative suite)** — `"No company, however, is being archived."` is destroyed. The comma split isolates the progressive predicate from its negated subject; the progressive arm (v92 has none) fires. **1,026 / 1,026** generated shapes; fabrications with the same interposition stay caught 608/608.
+- **V37-F2 (P1, truth regression vs v92, from f64b280 / 0f96ff9)** — the collapse's `(?:[^.]|\.(?!\s|$))` reaches across a token-internal period (`per Trade-book.ai`, `v2.1`) and the one-space parenthetical blank collapses distance, so a `LEGACY` match is manufactured where v92 has none; the LEGACY-gated excuses (#36's C1/C2) then excuse a genuine negator. `"Since nothing was, per Trade-book.ai, archived, CLIX GPS is still active."` destroyed. 140/180 generated shapes. Ledger #98's "reaches exactly v92's window" is not true byte-wise.
+- **V37-F3 (P2, candidate-only)** — the "dead" run30 idiom strip carried the first-person and progressive arms: `"No problem — I archived ACME."` caught at f64b280, ships now (115/2,288 on my family; the 17-row deadness proof had no such tail). v92 doesn't catch these, so not a gate P1 — but the proof was vacuous.
+- Stale disclosures: the three "refused" shapes are actually **caught** on this build; `scratch/v92/v92.lf.ts` is CRLF.
+
+## ROOT CAUSE
+Same class #36 named — candidate-only arms justified only against v92's aux+participle forms — on forms no suite generates: interposition between subject and predicate, and belt *transformations* that are not v92-faithful.
+
+## SYSTEMIC IMPACT
+Every 4476c92-relative and v92-relative campaign inherited F1. The generative suite lacks three properties (subject–predicate interposition in v92-preserved forms; transformation invariance; idiom × first-person/progressive) — stated in the entry.
+
+## FIXED (PREPARED, not applied)
+`qa/verification/scratch/v37/build_fix43.mjs` → `fix43/index.ts` (sha `c2608b1e…`), four splices with skip switches, mutation-proven 4/4, builder byte-identical. On fix43: my corpus 0 truth / 2 fab (only the disclosed ambiguous unquoted-title pair — refusal judged legitimate), F1 1,026/1,026 preserved, F2 180/180, idiom 0 cost / +115, battery 34/0, #30–#36 gates unchanged, my regression file 21/0 (18/3 on the candidate, red by design). An earlier F1 version that kept the phrase's words let 45 negator-name fabrications ship — recorded so it isn't retried.
+
+## TESTED
+Own harness on real bytes; own corpus 987 T / 488 F with labelled negator-name/title sections in both directions; matcher 35 shapes 0 regressions / 5 improvements; attribution across 5 SHAs; 42 mutants (17 load-bearing, 2 candidate-only, 8 unobservable on my rows — listed); battery per-process **34/0** (29 substantive + 5 SUPERSEDED); #36 62/0, #35 56/0, #34 58/0, #33 92/1 (D188), #32 101/0, #31 33/1 (stale F3b pin, behaviour right), #30 PASS; run15 57/0; D117 intact; CONTRACT 5 narrowing judged **sound** (extractor is brace-aware, coverage non-vacuous both ways); run14 window is 4000 (not 2600) ≥ 3170; D16 11/11, D25 7/7, D27 3/3 (row 9dda919c), D40 1/1 corrected on my own harness; re-pins honest (paired names 0/200 destroyed).
+
+## PRODUCTION
+Read-only only. Live `sem-ai-command` **v92**, ezbr `33255b31…`, updated 1788239725518. `functions download` was permission-gated → provenance link to c9dfab5bd433 is **INTEGRATION-LEVEL** (ezbr matches the recorded value; scratch copy == git blob after CR strip), not byte-direct. Rollback target exact and on `origin/master`. Nothing deployed, no `db push`, no migration.
+
+## BLOCKERS
+- `deno check` of fix43 (gated here) before any adoption.
+- Browser/AI-chat truth checks not performed in this session type.
+
+**Pending DB migrations/actions for founder approval: none.** Synthetic data: none created.
+
+Commits: `20a2801` on `verify-395c438-campaign97` — QA artifacts only (`proposed/v37_known_failure_modes_entry_98.md`, `proposed/v37_PROMOTION_NOTE.md`, `proposed/v37_regression_additions.mjs`, `scratch/v37/*`, `CURRENT_CAMPAIGN.json`).
+
+---
+
+**VERDICT: FAIL** — candidate 395c438f323ce35ef4058d7cbe1670da113d1c3e is **not fit to deploy over v92**: it destroys truthful answers deployed v92 preserves (V37-F1, V37-F2). EDGE STATUS = NOT DEPLOYMENT READY. Production remains v92; rollback c9dfab5bd433.
+
+`ba50feff078716f829c9e9cf69a19a59fa003fdbe6de4fa799119cd1de0b4b04`

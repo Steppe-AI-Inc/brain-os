@@ -1,0 +1,162 @@
+[
+ {
+  "file": "qa/scenarios-runner/architecture_collection_envelope_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_collection_envelope_contract: 56 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/architecture_final_claim_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_final_claim_contract: 51 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/architecture_mutation_envelope_contract.mjs",
+  "exit": 0,
+  "tail": "architecture_mutation_envelope_contract: 35 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/belt_generative_adversarial_contract.mjs",
+  "exit": 0,
+  "tail": "25 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/company_lifecycle_matrix.mjs",
+  "exit": 0,
+  "tail": "OK   rpc error: failed envelope, report says failed, no success evidence | OK   the imperative twin of the same command DOES execute (positive control) | company_lifecycle_matrix: 28 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/entity_signal_positive_contract.mjs",
+  "exit": 0,
+  "tail": "5 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/grounding_precedence_canonical_over_history.mjs",
+  "exit": 0,
+  "tail": "OK   an UNTYPED durable row never binds (Class-B fail-closed) | grounding_precedence_canonical_over_history: 17 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/issue5_confirmation_action_type_binding.mjs",
+  "exit": 0,
+  "tail": "issue5_confirmation_action_type_binding: 10/10 passed"
+ },
+ {
+  "file": "qa/scenarios-runner/mutation_receipt_equals_ledger.mjs",
+  "exit": 0,
+  "tail": "OK   a partial batch failure renders no positional receipt (never guesses which entry succeeded) | mutation_receipt_equals_ledger: 14 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/readsAsCompletion_no_literal_semicolon_contract.mjs",
+  "exit": 0,
+  "tail": "readsAsCompletion_no_literal_semicolon_contract: 4 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/run10_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "v10_regression_additions: 43 pass, 0 fail (0 open #70 defects reproduce; 0 CONTRACT failures = guards/observations that do not hold as claimed)"
+ },
+ {
+  "file": "qa/scenarios-runner/run11_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D86.hold.d72               [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 changed this contract: an uncorroborated label carrying completion vocabulary now falls back to the deriv"
+ },
+ {
+  "file": "qa/scenarios-runner/run12_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D91.hold.d72                   [CONTRACT] D72 control: \"Closed Loop Systems\" survives when the canonical read CONFIRMS it (run13/D100 changed this contract: an uncorroborated label carrying completion vocabulary now falls back to the d"
+ },
+ {
+  "file": "qa/scenarios-runner/run13_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D99.adverbial.passive            [DEFECT] D99: assertion \"ACME now archived ok?\" must not reach the founder as a question | OK   D99.adverbial.passive2           [DEFECT] D99: assertion \"All tasks now deleted ok?\" must not reach the fo"
+ },
+ {
+  "file": "qa/scenarios-runner/run14_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "run14_defect_closure_contract: 68 pass, 0 fail (0 open #74 defects reproduce; 0 CONTRACT failures = guards that do not hold as claimed)"
+ },
+ {
+  "file": "qa/scenarios-runner/run15_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D116.hold.negatorInAnotherClauseDeadEnds   [CONTRACT] run16/D123: \"acme holdings, no rush\" dead-ends (fail closed) — the LLM path resolves it, the deterministic path never guesses | run15_defect_closure_contract: 57 pass, 0 fail (0 ope"
+ },
+ {
+  "file": "qa/scenarios-runner/run16_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D123.hold.negatorInAnotherClauseDeadEnds                   [CONTRACT] run16/D123: an unrelated negator in another clause dead-ends (fail closed); the LLM path resolves it | run16_defect_closure_contract: 53 pass, 0 fail (0 open #76 def"
+ },
+ {
+  "file": "qa/scenarios-runner/run17_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D124.coverage.prototypeKeysFailClosed                          [CONTRACT] CANONICAL_TYPE_ALIAS is a bare object literal, so a model-authored entityType can reach Object.prototype — every such type must still fail closed and be dropped "
+ },
+ {
+  "file": "qa/scenarios-runner/run18_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D132.prototypeKeyMustFailClosed.entityType \"toString\"              [DEFECT] D132 (P2): entityType \"toString\" must dead-end, not throw — all three prior SHAs fail closed on the identical input | OK   D132.prototypeKeyMustFailClosed.enti"
+ },
+ {
+  "file": "qa/scenarios-runner/run19_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "OK   D132.hold.prototypeKeysFailClosedViaTheORDINALPath   [CONTRACT] D133 opened a SECOND way to reach a hostile option — an ordinal reply skips the label match entirely; it must fail closed too | 62 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/run28_defect_closure_contract.mjs",
+  "exit": 0,
+  "tail": "ok    [RESIDUAL] D170.control.nonDigitName :: Confirmed — ACME archived. | ok    [RESIDUAL] D165.control.was :: Delta Ltd was archived. | 117 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/standing_reds_classification_contract.mjs",
+  "exit": 0,
+  "tail": ""
+ },
+ {
+  "file": "qa/scenarios-runner/tdz_forward_reference_contract.mjs",
+  "exit": 0,
+  "tail": "v48_regression_additions: 9 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/v56_intent_lifecycle_contract.mjs",
+  "exit": 0,
+  "tail": "ok    [CONTRACT] C3 DENIED task/create with claims:null -> receipt names the failure (kills mutant m10) | ok    [CONTRACT] C3 DENIED department/create with claims:null -> receipt names the failure (kills mutant m10) | v56_regression_additio"
+ },
+ {
+  "file": "qa/scenarios-runner/v92_open_regression_contract.mjs",
+  "exit": 0,
+  "tail": "28 passed, 0 failed"
+ },
+ {
+  "file": "qa/scenarios-runner/v92_parity_contract.mjs",
+  "exit": 0,
+  "tail": "v92_parity_contract: 46 passed, 0 failed"
+ },
+ {
+  "file": "qa/verification/scratch/p1/v56_corpora/intent_corpus.mjs",
+  "exit": 0,
+  "tail": "FN corpus: 11880 mutation requests; NO intent on 62 (0.5%); fabrication ships verbatim on 62 | FP corpus: 310 read requests; intent derived on 0 (0.0%); truthful answer REPLACED by the receipt on 0 | control (plain read heads): 0/100 derive"
+ },
+ {
+  "file": "qa/verification/scratch/p1/v56_corpora/question_probe.mjs",
+  "exit": 0,
+  "tail": "question_probe: 0/19 non-imperative sentences executed a lifecycle RPC through the command-name fallback"
+ },
+ {
+  "file": "qa/verification/scratch/p1/v56_corpora/contract_harness.mjs",
+  "exit": 0,
+  "tail": "A: 68 commands, 272 cases, 0 failed | v56 contract_harness: 474 passed, 12 failed"
+ },
+ {
+  "file": "qa/verification/scratch/p1/v56_corpora/lifecycle_harness.mjs",
+  "exit": 0,
+  "tail": "v56 lifecycle_harness: 56 passed, 1 failed"
+ },
+ {
+  "file": "qa/verification/scratch/v57/v57_precedence.mjs",
+  "exit": 0,
+  "tail": "OK   P5 durable row without an expiry yields (fail closed) | v57_precedence: 29 passed, 0 failed"
+ },
+ {
+  "file": "qa/verification/scratch/v57/v57_misc.mjs",
+  "exit": 0,
+  "tail": "        gate: if (error || !data) { personLifecycleLines.push(`${name}: restore failed (${error?.message || 'no result'}).`); continue; } ⏎ const r = data as Record<string, unknown>; | OK   2G executedOperationCount counts only postconditio"
+ }
+]

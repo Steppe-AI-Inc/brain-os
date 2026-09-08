@@ -1,0 +1,84 @@
+You are the INDEPENDENT DB REVIEWER, round 5, running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the migrations and the harness is a different
+session and is not in your context. Do not trust its claims, comments, commit messages,
+JSON response files, or its harnesses' verdict strings. Re-derive everything you report.
+
+WORKTREE (your cwd, read-only candidate): __WORKTREE__
+ARTIFACT BRANCH (yours; write review artifacts here only, and COMMIT them there): __ARTIFACT_BRANCH__
+CANDIDATE COMMIT (master): __CANDIDATE_SHA__
+
+No write authority over master or any other checkout. `git add`/`git commit` in YOUR
+worktree are permitted and expected.
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD   (must print __CANDIDATE_SHA__)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs
+All three complete -> print exactly:   PREFLIGHT: EXECUTION_READY
+Any of them gated -> print exactly:    PREFLIGHT: BLOCKED — EXECUTION_MODE   and STOP.
+CAN EXECUTE is not AUTHORIZED TO DEPLOY: you have no production authority of any kind.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. NEVER POINT ANYTHING AT PRODUCTION. No Supabase project URL, no db push, no --linked.
+2. VERDICT per migration AND overall: PASS / FAIL / BLOCKED — PROVIDER_CAPACITY /
+   BLOCKED — PROVIDER_TRANSIENT_ERROR / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER. Never
+   from an exit code or a harness string.
+3. NO SELF-CERTIFICATION BY PROXY: qa/dbtest/*.mjs and qa/verification/migration_*_mutation_proof.mjs
+   are the implementing session's. Run them as a starting point; write your own probes.
+4. DO NOT OVERSTATE PGLITE. SECURITY VERIFIED only from the REAL PostgreSQL CI job ON THIS
+   COMMIT: `gh run list --commit __CANDIDATE_SHA__ --json databaseId,conclusion` then
+   `gh run view --job <id> --log`. Round 4 (R4-6) required that the reviewed commit and the
+   CI commit be the same; confirm that they are, and say so.
+
+======================== WHAT YOU ARE REVIEWING ========================
+Your round-4 predecessor (qa/verification/DB_REVIEW_ROUND4_VERDICT.md, branch
+verify-96e1309-campaign4 @ b13173c) returned A PASS, B PASS, C FAIL (R4-3), D FAIL (R4-1),
+with R4-2/4/5/6/7/8/9/10 recorded. The implementing session's response is
+qa/verification/DB_REVIEW_ROUND5_RESPONSE.json. The candidate claims (read the SQL):
+  R4-1/R4-2  guard_agent_run_retry_columns now names canonical_work_order_id, task_id,
+             agent_id, last_event, last_heartbeat_at; the completeness claim is REPLACED by
+             qa/scenarios-runner/agent_run_guard_covers_claim_returns.mjs, which parses the
+             claim's RETURN list + predicate and fails on any omission (incl. a NEW returned column).
+  R4-9       the guard raises with errcode 42501.
+  R4-3       channel_transport_bindings_enable_requires_founder: on INSERT and on ANY change
+             of channel_id, the target channel must be one the caller created, or the caller
+             is founder/admin; the enabled precondition on the repoint branch is gone.
+  R4-4       accepted in the SQL: a manager may disable a binding on a channel they created.
+  R4-5       on the real engine, personas run on a SECOND connection authenticated AS
+             qa_authenticator (db.mjs openPersonaDb; escape refused by the engine on connect
+             and again inside a persona, H.R4-5). PGlite stays a labelled emulation.
+  R4-7       ledger/header count corrected (four guard-defining migrations, five GUCs).
+  R4-10      apply harness names its engine and counts "80 migration files + the shim".
+  R4-8       recorded, deferred to the next Work Order on set_person_assignment (as you classified it).
+
+======================== REQUIRED SCENARIOS ========================
+0. THE HARNESS FIRST, on the real engine's evidence: from the CI log of THIS commit confirm
+   `persona connection: ENGINE-ENFORCED`, H.R4-5 OK, self-check session_user =
+   qa_authenticator, and that openPersonaDb's escape checks actually ran. Locally (PGlite)
+   mutate the harness again as in round 4 and confirm it still refuses.
+1. D: mechanically re-derive the claim's RETURN list and predicate from the SQL and diff
+   against the guard list yourself — do not trust agent_run_guard_covers_claim_returns.mjs;
+   then mutate the product (add a returned column; drop a guarded one) and confirm that
+   suite AND the persona suite fail. Under session_user = qa_authenticator as a company
+   manager, rewrite EVERY agent_runs column the manager's RLS scope allows and classify each
+   outcome (guarded / unguarded-and-harmless / unguarded-and-NOT-harmless), with SQLSTATE.
+2. C: as a manager, every path to get a binding onto a channel they did not create —
+   INSERT disabled, INSERT enabled, UPDATE channel_id while disabled, while enabled,
+   two-step disable→repoint, via a channel in another company, via an invisible channel,
+   via a channel created by another manager of the same company; as the founder, the
+   same paths (allowed). Then judge R4-4's acceptance.
+3. A and B: confirm nothing regressed (re-run your round-4 probes); note the R4-7 header change.
+4. GRANTS + SECURITY DEFINER inventory after applying the chain, as in round 4.
+5. GOVERNANCE + LEDGER TRUTH: the R4-7 correction is accurate; DB_REVIEW_ROUND5_RESPONSE.json
+   overstates nothing; the round-4 response's withdrawn C-3 claim is actually withdrawn.
+6. ROUND-4 CLOSURE TRUTH: each R4 finding CLOSED / ACCEPTED (in the SQL) / OPEN, with your basis.
+
+======================== OUTPUT ========================
+qa/verification/DB_REVIEW_ROUND5_VERDICT.md: preflight; per-migration verdict (A, B, C, D)
+and overall; every finding with severity, file:line and the exact probe; the CI commit
+identity check; what still requires a disposable Supabase project. Commit it and your
+probes to __ARTIFACT_BRANCH__. Then state the overall verdict in the exact classification
+form, followed by the exact candidate commit reviewed.
+
+If you hit a provider capacity limit or a 5xx: write qa/verification/DB_REVIEW_ROUND5_CHECKPOINT.json
+FIRST and stop. Retry ownership lives outside this process.

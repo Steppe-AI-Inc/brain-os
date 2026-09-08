@@ -38,4 +38,4 @@ It proves the authorization/approval/isolation spine works across a realistic da
 NOT prove the messaging beats (they are NOT APPLICABLE) and it does NOT clear the two
 KNOWN GAPS (SoD, payload immutability) or the pending `decide_approval` deployment — those
 must be stated in the release notes, not glossed. A release is `PRODUCTION ACCEPTED` only
-per CLAUDE.md §16, never "everything works."
+per CLAUDE.md §7, never "everything works."

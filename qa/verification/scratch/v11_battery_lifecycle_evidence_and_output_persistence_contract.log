@@ -1,0 +1,106 @@
+OK   E task-archive: a REAL confirmed change RECORDS evidence
+OK   E task-archive: "already in that state" records NO evidence
+OK   E task-archive: "denied" records NO evidence
+OK   E task-archive: "not_found" records NO evidence
+OK   E task-archive: "changed but postcondition NOT confirmed" records NO evidence
+OK   E task-archive: "rpc error" records NO evidence
+OK   E task-restore: a REAL confirmed change RECORDS evidence
+OK   E task-restore: "already in that state" records NO evidence
+OK   E task-restore: "denied" records NO evidence
+OK   E task-restore: "not_found" records NO evidence
+OK   E task-restore: "changed but postcondition NOT confirmed" records NO evidence
+OK   E task-restore: "rpc error" records NO evidence
+OK   E goal-archive: a REAL confirmed change RECORDS evidence
+OK   E goal-archive: "already in that state" records NO evidence
+OK   E goal-archive: "denied" records NO evidence
+OK   E goal-archive: "not_found" records NO evidence
+OK   E goal-archive: "changed but postcondition NOT confirmed" records NO evidence
+OK   E goal-archive: "rpc error" records NO evidence
+OK   E goal-restore: a REAL confirmed change RECORDS evidence
+OK   E goal-restore: "already in that state" records NO evidence
+OK   E goal-restore: "denied" records NO evidence
+OK   E goal-restore: "not_found" records NO evidence
+OK   E goal-restore: "changed but postcondition NOT confirmed" records NO evidence
+OK   E goal-restore: "rpc error" records NO evidence
+OK   E company-archive: a REAL confirmed change RECORDS evidence
+OK   E company-archive: "already in that state" records NO evidence
+OK   E company-archive: "denied" records NO evidence
+OK   E company-archive: "not_found" records NO evidence
+OK   E company-archive: "changed but postcondition NOT confirmed" records NO evidence
+OK   E company-archive: "rpc error" records NO evidence
+OK   E company-restore: a REAL confirmed change RECORDS evidence
+OK   E company-restore: "already in that state" records NO evidence
+OK   E company-restore: "denied" records NO evidence
+OK   E company-restore: "not_found" records NO evidence
+OK   E company-restore: "changed but postcondition NOT confirmed" records NO evidence
+OK   E company-restore: "rpc error" records NO evidence
+OK   P8 a gated-pendingAction turn IS persisted (run9/D73)
+OK   P1 a CORRECTED past-completion turn is persisted
+OK   P2 a CORRECTED future-promise turn is persisted
+OK   P3 a grounded turn is persisted
+OK   P4 a lifecycle-mismatch correction is persisted
+OK   P5 a deterministic-confirmation turn is persisted
+OK   P6 an ordinary uncorrected turn is NOT re-persisted
+OK   P7 what is persisted is the whole result object, i.e. the SAME summary the founder saw
+OK   R1 the pendingAction PROMPT survives the claim rewrite
+OK   R2 the pendingAction OPTIONS survive the claim rewrite
+OK   R3 questions survive the claim rewrite
+OK   R4 the rejected claim is still stated, as a non-denial
+OK   R5 a rejected-claim turn is FLAGGED as needing persistence (claimsPastCompletionWithNoGrounding)
+OK   R6 an action-less mutation claim is rejected FOR CARRYING NO ACTION
+OK   S live guarded site: person end_employment (guarded)
+OK   S live guarded site: person restore_employment (guarded)
+OK   S live guarded site: company archive (guarded)
+OK   S live guarded site: company restore (guarded)
+OK   S live guarded site: task archive (guarded)
+OK   S live guarded site: task restore (guarded)
+OK   S live guarded site: goal archive (guarded)
+OK   S live guarded site: goal restore (guarded)
+OK   S live guarded site: ai_provider activate (row-gated)
+OK   S live guarded site: spec ticket task create (run8/D66)
+OK   S live guarded site: release approval create (run8/D66)
+OK   S live guarded site: pricing approval create (run8/D66)
+OK   S live guarded site: provider deactivate sweep (run8/D66)
+OK   S live guarded site: plan-outcome evidence fold (run8/D66)
+OK   S live guarded site: plan fold excludes already_* no-ops
+OK   S permanent_delete evidence is inside the deleted branch
+OK   S live evidence site: person end_employment
+OK   S live evidence site: person restore_employment
+OK   S live evidence site: company update
+OK   S live evidence site: company permanent_delete
+OK   S live evidence site: person permanent_delete
+OK   S live evidence site: channel delete
+OK   S live evidence site: approval delete
+OK   S live evidence site: generic deleteByIds evidence
+OK   S live evidence site: company_relationship create
+OK   S live evidence site: person_assignment create
+OK   S live evidence site: memory create
+OK   S live evidence site: department create
+OK   S live evidence site: department update
+OK   S live evidence site: lead create
+OK   S live evidence site: lead update
+OK   S live evidence site: document create
+OK   S live evidence site: product_line create
+OK   S live evidence site: product_line update
+OK   S live evidence site: product_spec create
+OK   S live evidence site: product_spec update
+OK   S live evidence site: drawing create
+OK   S live evidence site: ai_provider create
+OK   S live evidence site: ai_provider activate
+OK   S live evidence site: proposal create
+OK   S live evidence site: proposal update
+OK   S live evidence site: factory work_order create
+OK    X1   [CONTRACT] one supported task-create claim NO LONGER disarms the truth gate: the turn is re-rendered and the unrelated fabrication is dropped (run7/D52 FIXED)
+OK    X1b  [CONTRACT] the same prose with NO claims is still caught, exactly as deployed v92 does
+OK    X2   [CONTRACT] a TRUTHFUL end_employment claim IS supported once the person-lifecycle site records evidence (run7/D50 FIXED)
+OK    X2b  [CONTRACT] an unverifiable mutation claim is corrected WITHOUT the false denial "nothing was changed" (run7/D50 FIXED)
+OK    X3   [CONTRACT] the deterministic lifecycle report SURVIVES the claim rewrite; unclaimed real archives stay in the reply (run7/D51 FIXED)
+OK    X4   [CONTRACT] a fabricated completion routed through questions[] is DROPPED by the laundering gate (run7/D53 FIXED)
+OK    X4b  [CONTRACT] the same fabrication routed through pendingAction.summary is DROPPED (run7/D53 FIXED)
+OK    X4c  [CONTRACT] a UUID-FREE fabricated completion routed through questions[] is still DROPPED (run7/D53)
+OK    X5   [CONTRACT] a uuid smuggled through resourceType never reaches founder prose (run7/D54 FIXED)
+OK    X6   [CONTRACT] a uuid smuggled through action never reaches founder prose (run7/D54 FIXED)
+OK    X7   [CONTRACT] a real canonical uuid arriving via predicate/expectedValue never reaches founder prose (run7/D54 FIXED)
+
+lifecycle_evidence_and_output_persistence_contract: 92/92 contract checks passed, 11/11 section-X cases match the recorded baseline
+DEPLOY GATE: 0 open #67 defect(s) still reproduce on this source.
