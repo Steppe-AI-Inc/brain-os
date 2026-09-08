@@ -6128,7 +6128,7 @@ serve(async (req) => {
         // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
         // imperative position, behind a negation. The request carried intent — the executor must fail
         // closed and the receipt must say the founder asked for it NOT to happen (v59 D2d/C5d).
-        const NEGATED_IMPERATIVE_HEAD = /(?!)/;
+        const NEGATED_IMPERATIVE_HEAD = /^\s*(?:(?:do\s*n[o']?t|don[’']t|do not|never|no need to|no longer|please do not|please don[’']t)\s+)+/i;
         const commandForHead = commandForRead.replace(NEGATED_IMPERATIVE_HEAD, '');
         const lastClauseForHead = lastClauseForRead.replace(REQUEST_FRAME_PREFIX, '').replace(NEGATED_IMPERATIVE_HEAD, '');
         const alwaysHeadRe = alwaysEnglishBase
@@ -6574,7 +6574,7 @@ serve(async (req) => {
         // ("Doctors Without Borders", "Home Without Walls Co", "Without Borders Ltd") and a
         // qualifier ("archived without incident") far more often than a genuine negation, and
         // treating it as a negator both destroyed real names and disarmed real completions.
-        const NEGATED_CLAUSE = /(?<!-)\b(?:not|never|no|nobody|nothing|none|nowhere|neither|nor|few|hardly|pending|awaiting|isn['’]?t|aren['’]?t|wasn['’]?t|weren['’]?t|hasn['’]?t|haven['’]?t|didn['’]?t|don['’]?t|cannot|can['’]?t)\b(?!-)/i;
+        const NEGATED_CLAUSE = /(?!)/;
         // run13/D103c: the other half of the same shape carries no completion word at
         // all — "Confirmed — the company (option 1)." Its whole predicate is a bare
         // definite phrase naming a TYPE, never an instance, so it confirms nothing the

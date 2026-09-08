@@ -16693,3 +16693,51 @@ and two negative rows), because that behaviour turned out to have no assertion o
 **Reusable rule.** A tool that throws is fail-CLOSED and therefore feels safe, but it produces exactly as
 much evidence as a tool that returns a cheerful zero: none. Both must be caught, which is why the contract
 now checks the target floor and the exit shape rather than only the empty-list guard.
+
+## 144. Semantic memory has been silently dead in production for fifteen days — OPEN (2026-09-08)
+
+**Found while** answering the founder's provider-reliability question ("only Haiku appeared usable — determine
+exactly WHY each one works or fails"). Full audit: `qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md`.
+
+**The defect.** `embedTexts()` swallows every failure — missing key, non-2xx, thrown error — and returns
+`null` per input with no log, no `contextError`, no audit row and no user-visible signal. Degrading instead
+of hard-failing is the right call and is deliberate. **Doing it invisibly is not.**
+
+Production evidence, direct from the database:
+
+```
+memories WITH an embedding:     3   (2026-08-24 10:59 → 15:36)
+memories with NULL embedding:  63   (2026-08-24 16:27 → 2026-09-07 12:26)
+```
+
+Every memory written in the last fifteen days has no embedding, and the query side
+(`embedText(command, openaiKey)`) is getting nulls too — so memory RAG has been returning nothing. The call
+sites are present in the **deployed v92 source**, so this is a failing call, not removed code. It began
+within the same hour the OpenAI chat models were abandoned on 2026-08-24, which points at a shared
+OpenAI-side cause; the cause itself is **UNKNOWN** and needs one read-only `POST /v1/embeddings` with the
+Edge secret to settle (test T5 in the audit).
+
+**Why nobody noticed, which is the more important finding.** There is no surface that could have shown it.
+A provider failure writes `work_orders.output.error` and *nothing else* — no `audit_logs` event, no
+`model_usage` row. Both tables anyone would read for AI health are blind to failure by construction, and
+the eight failed `gpt-5.6-sol` turns are indistinguishable from "never attempted". A silent degradation
+under a blind observability layer is invisible indefinitely.
+
+**Related, same class, same audit.** A failed turn records no requested model anywhere, so
+`REQUESTED PROVIDER/MODEL + ACTUAL + FALLBACK REASON + FAILURE REASON` — the founder's stated invariant — is
+**not satisfied today**. The good news measured alongside it: there is NO cross-model fallback in
+`sem-ai-command`, so the feared "model A fails, Haiku serves, UI still says A worked" does not occur.
+
+**Status: OPEN, deliberately not fixed in this round.** All three fixes touch `index.ts`, which is a release
+candidate under independent verification; patching it would have invalidated the verification in flight. The
+required changes are named in the audit's §11 and belong in the next source window.
+
+**Search performed for the same class.** Every `catch {}` that returns a degraded value in `index.ts` was
+reviewed for the same shape: an empty catch that hides a whole capability. `embedTexts` is the worst
+instance because the capability it hides is silent by nature — nobody sees a memory that was not retrieved.
+The `fallback-no-api-key` planner is the second: with no key it fabricates a plan and persists it as a real
+work order. It is at least labelled in `model_usage`.
+
+**Reusable rule.** "Never hard-fail the user" and "never tell anyone it happened" are two different
+decisions, and the second one is almost never what was intended. A degradation path needs a signal on the
+same commit as the degradation.

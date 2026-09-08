@@ -95,8 +95,8 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 125,
-  "verifier": 65,
+  "campaign": 126,
+  "verifier": 66,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
   "status": "verifier #65 DISPATCHED — founder directive 2026-09-08: ONE CONCEPT -> ONE CANONICAL DEFINITION -> MULTIPLE CONSUMERS",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
@@ -823,5 +823,37 @@
     "trimming_semantics": "GREEN — v61 budget/language 25/0, collection envelope 84/0",
     "resolved": false,
     "why_not_resolved": "All three conditions the founder set are met, and none of them is a live request. CLAUDE.md §6 records that static/source verification cannot substitute for live request-shape acceptance — that rule exists because this exact incident passed 24 rounds of source verification and then 413d on the first real workspace. The incident closes when a deployed build answers an ordinary question on the founder own workspace and the measured contextBudget is recorded from production, not before."
+  },
+  "verifier65_verdict": "FAILED — EDGE STATUS = NOT DEPLOYMENT READY. 3 P1 (V65-D1 18/18 fabricated completions ship; V65-D2 one flat shared alternation cannot express an asymmetric concept; V65-D5 isShortAffirmative survives both directions). Artifact: verify-3b0bf64-campaign125 @ 8846706.",
+  "verifier65_base_commit": "3b0bf6452d4deb3d467500599ffdfebb5eaff0a0",
+  "verifier65_closure": {
+    "closure_commit": "099bc9a5bb3f32f742b2c3ee1898cb89c5a1091f",
+    "index_sha256": "e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed",
+    "what_changed": "ONE request-frame definition carrying PER-TIER APPLICABILITY (REQUEST_FRAME_ADDRESSED / _ALTERNATION / _DELIBERATIVE, union formed once as _ALTERNATION_INTENT) so EXECUTOR is a subset of INTENT by construction; question gate and read-lead list derive from it (4th and 5th re-spellings closed); three byte-identical twins become one body plus a reference; four sweeps brought under mutation_sweep_safety_contract.",
+    "evidence": "battery 70 green / 2 red by design (72 suites); v65_request_frame_tiers_contract 89/0 with all 46 of #65 defect assertions passing; v57 proof 4/4; v58 proof 6/6; v56 proof 6/8 with 2 survivors registered open; CRLF-pure, 0 bare LF.",
+    "not_re_derived": "deno check BLOCKED — no deno binary on the implementing machine. Diagnostic classes NOT re-derived this round.",
+    "registered_open": [
+      "v56 m5_command_fuzzy_executes — no suite asserts the fuzzy lifecycle-name guess asks instead of executing",
+      "v56 m7_cyrillic_word_boundary — measured redundant in the intent tier; receipt path unmeasured; source finding, not a test gap"
+    ],
+    "ledger": [
+      "#142",
+      "#143"
+    ]
+  },
+  "verifier66_base_commit": "52d958200522a9f5cbe38ecf973d43af0d6b1155",
+  "verifier66_index_sha256": "e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed",
+  "verifier66_status": "DISPATCHED as TOP_LEVEL_ISOLATED_PROCESS; worktree brain-os-verify-52d9582, branch verify-52d9582-campaign126, watchdog pid 94962, log qa/verification/scratch/verifier66_output.log",
+  "provider_reliability_audit_2026_09_08": {
+    "artifact": "qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md",
+    "scope": "read-only; no secret changed, no deploy, no Edge Function modified, active model never switched",
+    "headline": "Only three model identities have ever served production traffic: fallback-no-api-key (not an LLM), claude-sonnet-4-6 (32 calls) and claude-haiku-4-5 (471, still serving). ZERO OpenAI calls have ever succeeded.",
+    "new_P1": [
+      "EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT — OpenAI embeddings have failed silently since 2026-08-24 ~16:00; 63 of 66 memories carry a NULL embedding; nothing logs it",
+      "PROVIDER_FAILURE_MUST_BE_OBSERVABLE — a failed provider turn writes no audit event and no model_usage row",
+      "REQUESTED_MODEL_ALWAYS_RECORDED — a failed turn records no model name"
+    ],
+    "not_fixed_here": "All three touch index.ts, which is a release candidate under verification. Deliberately deferred to the next source window.",
+    "separate_from": "the v93 token-preflight incident — different date, layer and mechanism; no evidence links them"
   }
 }

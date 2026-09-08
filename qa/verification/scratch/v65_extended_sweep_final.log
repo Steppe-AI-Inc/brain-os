@@ -15,3 +15,81 @@ KILLED   REGEX COMPLETION_WORD always matches                            v63_int
 KILLED   REGEX isTypedFallbackOnly never matches                         run14_defect_closure_contract.mjs
 KILLED   REGEX isTypedFallbackOnly always matches                        run14_defect_closure_contract.mjs
 KILLED   REGEX LIFECYCLE_UUID_RE never matches                           v58_lifecycle_window_and_imperative_contract.mjs
+SURVIVED REGEX LIFECYCLE_UUID_RE always matches
+KILLED   REGEX COMPANY_UUID_RE never matches                             v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX COMPANY_UUID_RE always matches                            v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX commandMentionsCompany never matches                      company_lifecycle_matrix.mjs
+KILLED   REGEX commandMentionsCompany always matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX commandIsQuestion never matches                           v65_request_frame_tiers_contract.mjs
+KILLED   REGEX commandIsQuestion always matches                          v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX commandNegatedLead never matches
+KILLED   REGEX commandNegatedLead always matches                         v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX commandReadLead never matches
+SURVIVED REGEX commandReadLead always matches
+KILLED   REGEX commandConditionalLead never matches                      v58_lifecycle_window_and_imperative_contract.mjs
+KILLED   REGEX commandConditionalLead always matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX FUTURE_PROMISE_PATTERN never matches                      run10_defect_closure_contract.mjs
+KILLED   REGEX FUTURE_PROMISE_PATTERN always matches                     v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX UUID_IN_TEXT never matches
+KILLED   REGEX UUID_IN_TEXT always matches                               v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX KNOWN_ABBREVIATION never matches                          run10_defect_closure_contract.mjs
+KILLED   REGEX KNOWN_ABBREVIATION always matches                         run10_defect_closure_contract.mjs
+KILLED   REGEX decimal never matches                                     run10_defect_closure_contract.mjs
+SURVIVED REGEX decimal always matches
+SURVIVED REGEX abbreviation never matches
+KILLED   REGEX abbreviation always matches                               run10_defect_closure_contract.mjs
+KILLED   REGEX INTERROGATIVE_LEAD never matches                          v57_intent_other_veto_contract.mjs
+KILLED   REGEX INTERROGATIVE_LEAD always matches                         run13_defect_closure_contract.mjs
+KILLED   REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION never matches         run14_defect_closure_contract.mjs
+KILLED   REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION always matches        v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX NAME_CONNECTOR never matches
+KILLED   REGEX NAME_CONNECTOR always matches                             run14_defect_closure_contract.mjs
+KILLED   REGEX ADJECTIVAL_COMPLETION never matches                       run10_defect_closure_contract.mjs
+KILLED   REGEX ADJECTIVAL_COMPLETION always matches                      run13_defect_closure_contract.mjs
+KILLED   REGEX DETERMINER_OR_PRONOUN never matches                       run14_defect_closure_contract.mjs
+KILLED   REGEX DETERMINER_OR_PRONOUN always matches                      run10_defect_closure_contract.mjs
+KILLED   REGEX IMPERATIVE_LEAD never matches                             run10_defect_closure_contract.mjs
+KILLED   REGEX IMPERATIVE_LEAD always matches                            run10_defect_closure_contract.mjs
+KILLED   REGEX MUTATION_VERB_ALWAYS never matches                        v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_ALWAYS always matches                       v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_NEEDS_PARTICIPLE never matches                   v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX MUTATION_NEEDS_PARTICIPLE always matches                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_PASSIVE_REQUEST never matches                    v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_PASSIVE_REQUEST always matches                   v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_WITH_OBJECT never matches                   v61_budget_intent_language_contract.mjs
+KILLED   REGEX MUTATION_VERB_WITH_OBJECT always matches                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_PROPER_OBJECT never matches                 v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_PROPER_OBJECT always matches                v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX READ_SHAPE never matches                                  v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX READ_SHAPE always matches                                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX isQuestion never matches                                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX isQuestion always matches                                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX LEADING_ADVERB never matches                              v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX LEADING_ADVERB always matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX COMPOSITION_REQUEST never matches                         v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX COMPOSITION_REQUEST always matches                        v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX PHRASAL_READ never matches                                v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX PHRASAL_READ always matches                               v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX IMPERATIVE_OBJECT never matches                           v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX IMPERATIVE_OBJECT always matches                          v61_budget_intent_language_contract.mjs
+KILLED   REGEX STATEMENT_FINITE_VERB never matches                       v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX STATEMENT_FINITE_VERB always matches                      v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX STRONG_OBJECT never matches                               v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX STRONG_OBJECT always matches                              v56_intent_lifecycle_contract.mjs
+KILLED   REGEX MN_READ_SHAPE never matches                               v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MN_READ_SHAPE always matches                              v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_CASE_SUFFIX never matches                              v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MN_CASE_SUFFIX always matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_NOT_A_COMMAND never matches                            v61_budget_intent_language_contract.mjs
+KILLED   REGEX MN_NOT_A_COMMAND always matches                           v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_STEMS_GLOBAL never matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_STEMS_GLOBAL always matches                            v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_LOAN_VERB never matches                                v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX MN_LOAN_VERB always matches                               v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX NEGATED_IMPERATIVE_HEAD never matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX NEGATED_IMPERATIVE_HEAD always matches                    v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX TEMPORAL_PROPER_OBJECT never matches                      v57_intent_other_veto_contract.mjs
+KILLED   REGEX TEMPORAL_PROPER_OBJECT always matches                     v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX CONFIRMED_COMPLETION never matches                        belt_generative_adversarial_contract.mjs
+KILLED   REGEX CONFIRMED_COMPLETION always matches                       v92_parity_contract.mjs
+KILLED   REGEX NEGATED_CLAUSE never matches                              belt_generative_adversarial_contract.mjs
