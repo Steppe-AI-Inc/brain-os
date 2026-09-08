@@ -3241,7 +3241,7 @@ serve(async (req) => {
           // actually reported for this action (verifier #60, V60-D7).
           const planPostcondition = (a as Record<string, unknown>).postconditionPassed === true
             || ((a.result as Record<string, unknown> | null)?.postconditionPassed === true);
-          if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], planPostcondition);
+          if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true);
         }
 
         // Verifier #58 V58-D2 (CONTEXT_WINDOW_AS_UNIVERSE for tasks; governance/CANONICAL_WORK_CONTRACT.md §2): task

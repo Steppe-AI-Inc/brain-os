@@ -137,7 +137,24 @@ const snapshot = (pack, keys) => JSON.stringify(keys.map((k) => pack[k] ?? null)
 check('the trim order can never name a protected key (asserted in source)', /TRIM_ORDER names a minimum-safe-context key/.test(src));
 check('a trim that touched the minimum safe context throws instead of shipping', /refusing to build this turn/.test(src));
 check('contextBudget is attached before the trim loop, not after it', src.indexOf('packRecord.contextBudget = contextBudget;') < src.indexOf('for (const [key, keep, keepNewest] of TRIM_ORDER)'));
-check('the block uses the same estimator as the serve() preflight', /JSON\.stringify\(\{ command, pack \}\)\.length \/ 4/.test(src) && /estimateTokens\(\{ command, contextPack \}\)/.test(src));
+// Verifier #60 (V60-D5): asserting "same estimator" by matching two DIFFERENT string literals is not an
+// assertion at all — it passed while the loop measured {command, pack} and the preflight measured
+// {command, contextPack}, a different object shape, for a measured gap of 19-145 tokens. Compare the
+// argument shapes the two expressions actually build.
+{
+  const loopArgs = (src.match(/const packTokens = \(\) => Math\.ceil\(JSON\.stringify\((\{[^)]*\})\)\.length \/ 4\)/) || [])[1];
+  const preflightArgs = (src.match(/tokenEstimate = estimateTokens\((\{[^)]*\})\)/) || [])[1];
+  const shape = (s) => (s || '').replace(/\s+/g, '').replace(/:pack\b/, '').replace(/[{}]/g, '');
+  check('the block measures the SAME object shape as the serve() preflight, not merely the same arithmetic',
+    !!loopArgs && !!preflightArgs && shape(loopArgs) === shape(preflightArgs),
+    'loop=' + loopArgs + ' preflight=' + preflightArgs);
+  check('the preflight estimator itself is unchanged', /function estimateTokens\(x: unknown\)\{ return Math\.ceil\(JSON\.stringify\(x\)\.length \/ 4\); \}/.test(src));
+}
+check('a trim that cannot reach the budget is stated on the pack, not left to be inferred', /contextBudget\.overBudget = /.test(src) && /contextStillOverBudget/.test(src));
+check('harder trim passes exist for a byte-heavy, row-light workspace (V60-D1)', /for \(const floor of \[2, 0\]\)/.test(src));
+check('the rows named in this turn are merged at the head, where a head-slicing trim keeps them (V60-D2)',
+  (src.match(/return \[\.\.\.extra, \.\.\.\((?:companies|people|goals|tasks)\.data \|\| \[\]\)\]/g) || []).length === 4,
+  'all four targeted lookups must merge named rows first');
 check('the budget keeps a deliberate margin below the hard limit', /Number\(Deno\.env\.get\('SEM_AI_MAX_TOKENS'\) \|\| 12000\) - 600/.test(src));
 check('the prompt tells the model a trim never means the rest do not exist', /a trim never means the rest do not exist/.test(src));
 check('execution evidence is never a trim candidate', !/\['(?:executionEvidence|claimExecutionEvidence)'/.test(src.slice(src.indexOf('const TRIM_ORDER'), src.indexOf('const contextTrimmed'))));

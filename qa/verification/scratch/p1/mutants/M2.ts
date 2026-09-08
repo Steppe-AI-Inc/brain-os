@@ -2538,7 +2538,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     const extra = (namedCompanyLookup.data || []).filter((c: any) => !seen.has(c.id));
     // The rows the founder named THIS TURN go FIRST: the context budget trims by slicing the
     // head, so a tail merge made the named row the first casualty (verifier #60, V60-D2).
-    return [...extra, ...(companies.data || [])];
+    return [...(companies.data || []), ...extra];
   })();
   const companyStatusById = new Map(mergedCompaniesData.map((c: any) => [c.id, c.status]));
   const relationshipRows = companyRelationships.data || [];

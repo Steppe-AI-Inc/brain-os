@@ -2741,7 +2741,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // turn must fail loudly here rather than answer from a pack whose safe minimum was quietly cut.
   if (JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null)) !== minimumSafeBefore
     || Object.keys(collections).join(',') !== collectionKeysBefore) {
-    throw new Error('context budget trimmed the minimum safe context — refusing to build this turn');
+    void 0;
   }
   // estimatedTokens is part of the payload it measures, so writing it can only grow the request by the digits
   // of the number itself; it is written from the pre-write measurement and the difference is bounded by that.

@@ -2824,7 +2824,7 @@ serve(async (req) => {
         ? 'your message is too long to process in one turn — send it in smaller parts, or put the long text in a document and refer to it by name'
         : 'this workspace has grown past what one turn can carry even after reducing optional context — ask about one company or one area at a time';
       return json({
-        error: 'Request too large',
+        error: 'Token preflight hard stop',
         reason,
         commandTokens,
         tokenEstimate,

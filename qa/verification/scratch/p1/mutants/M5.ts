@@ -5740,7 +5740,7 @@ serve(async (req) => {
         // letting it clear a lexicon hit let the component being policed switch off its own truth gate
         // (verifier #60, V60-D3: 37/37 fabricated completions shipped on a declared kind:"read").
         // The model's classification can still ADD intent below; it can never remove it.
-        const lexiconReadVetoed = lexiconVerb !== null && readShaped;
+        const lexiconReadVetoed = lexiconVerb !== null && (readShaped || modelIntentKind === 'read' || modelIntentKind === 'other');
         // Primary intent, in authority order. The lexicon-only case is decided after the belt exists.
         const requestedIntentPrimary: MutationIntent | null = modelMutationField
           ? { verb: modelIntentAction || lexiconVerb, field: modelMutationField }

@@ -318,7 +318,11 @@ const liveSrc = src
     ["release approval create (run8/D66)", "if (releaseApproval) { recordExecution('approval', 'create', releaseApproval.id, true);"],
     ["pricing approval create (run8/D66)", "if (pricingApproval) { recordExecution('approval', 'create', pricingApproval.id, true);"],
     ["provider deactivate sweep (run8/D66)", "for (const row of deactivated || []) recordExecution('ai_provider', 'deactivate', row.id, true)"],
-    ["plan-outcome evidence fold (run8/D66)", "if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true)"],
+    // Verifier #60 V60-D7: this site used to pass the literal `true`, so the confirmed-plan path recorded a
+    // VERIFIED envelope for any action it called "completed" while never reading the postconditionPassed
+    // every lifecycle RPC returns. It now passes the measured postcondition through.
+    ["plan-outcome evidence fold (run8/D66)", "if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], planPostcondition)"],
+    ["plan fold reads the backend postcondition, not the plan's own status word", "const planPostcondition = (a as Record<string, unknown>).postconditionPassed === true"],
     ["plan fold excludes already_* no-ops", "if (detail.startsWith('already_')) continue"],
   ];
   for (const [label, literal] of GUARDED_SITES) {

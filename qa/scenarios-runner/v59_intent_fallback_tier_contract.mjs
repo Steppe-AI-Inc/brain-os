@@ -96,7 +96,17 @@ C('CONTRACT', 'V59-C3 verified envelope renders the claim', 'a postcondition-ver
 C('CONTRACT', 'V59-C3b executed-but-unverified never supports a claim', 'postconditionPassed=false → rejected line, no success', () => { const t = turn({ command: 'archive ACME', summary: 'ACME archived.', claims: [{ type: 'mutation_result', resourceType: 'company', resourceId: ACME, action: 'archive' }], evidence: [EV('company', 'archive', ACME, false)] }); return [/can’t confirm/.test(t.summary) && !/archived — confirmed/.test(t.summary), t.summary]; });
 C('CONTRACT', 'V59-C3c denied envelope never supports a claim', 'executed=false error denied', () => { const t = turn({ command: 'archive ACME', summary: 'ACME has been archived.', evidence: [{ ...EV('company', 'archive', ACME, false), executed: false, error: 'denied' }] }); return [!/has been archived/.test(t.summary) && (NO_CHANGE.test(t.summary) || /can’t confirm/.test(t.summary)), t.summary]; });
 C('CONTRACT', 'V59-C4 intent never derives from the reply', 'summary tense/shape does not create intent', () => { const t = turn({ command: 'thanks!', summary: 'ACME has been archived.' }); return [t.intent === null && t.summary === 'ACME has been archived.', JSON.stringify(t.intent)]; });
-C('CONTRACT', 'V59-C4b model "other" vetoes the lexicon', 'V57-D1 holds', () => { const t = turn({ command: 'archive ACME', summary: 'Here is a draft memo about archiving.', requestIntent: RI('other') }); return [t.intent === null && t.summary === 'Here is a draft memo about archiving.', t.summary]; });
+// REVERSED 2026-09-08 by the founder's ruling, after verifier #60 measured what this assertion cost.
+// It used to require that a model-declared kind:"other" VETO the request lexicon. Verifier #60 showed that
+// the same veto let the model switch off the truth gate that polices it: 37 of 37 imperative mutation
+// requests shipped a fabricated completion when the model declared "read" or "other", and requestIntent is
+// prompt text, not a schema-enforced field, so an ordinary misclassification is enough. The founder's rule
+// is that the model may ADD intent, never remove it. "archive ACME" is a mutation request whatever the
+// model calls it, so it gets the deterministic receipt and the prose does not ship. Verifier #57's real
+// cases — composition requests, declaratives, noun phrases — are carried by request-side evidence now
+// (COMPOSITION_REQUEST, PHRASAL_READ, imperative position), and v57 still measures 306/0.
+C('CONTRACT', 'V59-C4b a model-declared "other" cannot veto the request lexicon', 'V60-D3: the policed component must not switch off its own gate', () => { const t = turn({ command: 'archive ACME', summary: 'Here is a draft memo about archiving.', requestIntent: RI('other') }); return [t.intent !== null && t.summary !== 'Here is a draft memo about archiving.' && NO_CHANGE.test(t.summary), t.summary]; });
+C('CONTRACT', 'V59-C4b2 a composition request is still a read, without any help from the model', 'request-side evidence replaces the veto', () => { const t = turn({ command: 'draft a memo about archiving ACME', summary: 'Here is a draft memo about archiving.' }); return [t.intent === null && t.summary === 'Here is a draft memo about archiving.', t.summary]; });
 C('CONTRACT', 'V59-C4c a polite question is a request', '"could you please archive ACME?" carries intent', () => { const t = turn({ command: 'could you please archive ACME?', summary: 'ACME has been archived.' }); return [t.intent !== null && NO_CHANGE.test(t.summary), t.summary]; });
 
 // ═══ CONTRACT — server-side lifecycle resolution (CWC §1-§2) ═══

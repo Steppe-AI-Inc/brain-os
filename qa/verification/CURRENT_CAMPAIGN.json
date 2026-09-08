@@ -95,10 +95,10 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 120,
-  "verifier": 60,
+  "campaign": 121,
+  "verifier": 61,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "verifier #60 DISPATCHED on 1a1efbb — the context-budget fix, the whole-request gate inventory, and the #59 hardening patch, after the 2026-09-08 deploy and rollback",
+  "status": "DISPATCH PENDING — verifier #61 on the #60 closure",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -139,7 +139,7 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #60 has not run",
+    "verifier #61 has not run",
     "the previous authorization was scoped to bytes 715246f3 which breached the token budget in production; new bytes need a fresh founder ALLOW_FUNCTIONS_DEPLOY=1"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -700,11 +700,19 @@
     "mirror drift guard (AUTHORITY_NOT_ENFORCED)"
   ],
   "incident_2026_09_08": "v93 (821f530 / 715246f3) was deployed at 01:50Z and rolled back at 02:10Z: the enlarged context pack crossed the 12,000-token preflight and ordinary questions returned 413 with no answer. Production is v92 source (function v94, ezbr 22486cd751cac403), byte-verified against c9dfab5bd433. Evidence: qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md, ledger #133. Fix on this candidate: budget-aware pack assembly + archivedCompanies 12->6 + scope strings removed, pinned by architecture_context_budget_contract.mjs; verifier #59 hardening applied (v59 suite 84/0, promoted).",
-  "verifier60_base_commit": "1a1efbb",
-  "verifier60_index_sha256": "8e9f14e0897b0c56e67a41988b057913be1f4cc0b19f7cb3e71efa1f86b198b5",
+  "verifier60_base_commit": "9e39a47",
+  "verifier60_index_sha256": "5d4e853c6a7e9a9ed4dd2c9bda2e662590b736d2c6655a268dfafc96766e788b",
   "verifier60_started_at": null,
-  "verifier60_status": "DISPATCHED",
-  "verifier60_findings": [],
+  "verifier60_status": "COMPLETE — FAIL",
+  "verifier60_findings": [
+    "V60-D1 the trim loop cannot reach the budget on a byte-heavy row-light workspace; approvals not trimmable; a 755-token band where v92 answers and the candidate 413s",
+    "V60-D2 named-this-turn rows merged at the tail while the trim slices the head",
+    "V60-D3 model-emitted requestIntent kind read/other vetoes the request lexicon — 37/37 fabricated completions ship",
+    "V60-D4 33/37 ordinary business imperatives outside the request lexicon; 290/920 pairs where v92 corrects and the candidate ships",
+    "V60-D7 executeOneAction never reads postconditionPassed; the plan path records verified evidence from its own status word",
+    "V60-D8/D9 the collection-envelope guard derives keys from a value-shape regex and is blind to any array written as an expression",
+    "V60-D5/D6 the same-estimator assertion compared two different string literals"
+  ],
   "verifier60_index_sha256_at_start": "8e9f14e0897b0c56e67a41988b057913be1f4cc0b19f7cb3e71efa1f86b198b5",
   "verifier60_scope_from_founder": [
     "1. attack the token-budget fix and independently verify the ENTIRE request-budget path",
@@ -718,5 +726,11 @@
   "implementing_session_self_reported_defects_found_this_round": [
     "the trim loop measured the pack BEFORE attaching contextBudget and so certified a smaller pack than it shipped (50-turn channel: exited at the 11,400 budget, serialized 11,550) — fixed by attaching contextBudget before the loop",
     "the first headroom fixture left 20 of 24 pack collections empty, understating every estimate; rebuilt at the real .limit() caps, a saturated pack is 25,595 tokens pre-trim, so deployed v92 would also breach the preflight on a fully populated workspace"
-  ]
+  ],
+  "verifier60_verdict": "FAIL — NOT DEPLOYMENT READY. V60-D1/D2/D3/D4 (P1), V60-D7/D8/D9 (P2), V60-D5/D6 (P3). Artifacts: verify-9e39a47-campaign120 @ 26748fd.",
+  "verifier60_note": "Dispatched a second time on 1a1efbb by the implementing session before this report was noticed; that run was stopped without a verdict because its bytes carried the same open findings. The verdict above is against 9e39a47 only.",
+  "verifier60_closure": "All V60 findings closed on 3d1baeaa. v60 suite 22/0 (promoted). Mutation proof 9/9 killed. Intent corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0. v59 contract C4b REVERSED under the founder ruling that the model may add intent but never remove it; verifier #57 legitimate cases now carried by request-side evidence (composition requests, phrasal reads, imperative position) and v57 still measures 306/0. Ledger #135.",
+  "verifier61_base_commit": null,
+  "verifier61_index_sha256": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01",
+  "verifier61_status": "NOT DISPATCHED"
 }

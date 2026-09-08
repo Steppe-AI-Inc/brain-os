@@ -2671,7 +2671,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const packBudget = Math.max(2000, Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000) - 600);
   // The SAME shape the serve() preflight measures — estimateTokens({ command, contextPack }) —
   // not merely the same arithmetic (verifier #60, V60-D5).
-  const packTokens = () => Math.ceil(JSON.stringify({ command, contextPack: pack }).length / 4);
+  const packTokens = () => Math.ceil(JSON.stringify({ command, pack }).length / 4);
   const TRIM_ORDER: Array<[string, number, boolean]> = [
     ['memories', 4, false], ['archivedTasks', 4, false], ['archivedCompanies', 4, false],
     ['financialReports', 4, false], ['inventory', 5, false], ['products', 5, false], ['proposals', 5, false],

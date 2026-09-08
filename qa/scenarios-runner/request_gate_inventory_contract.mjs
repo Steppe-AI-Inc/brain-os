@@ -26,8 +26,9 @@ const check = (name, cond, detail) => { if (cond) { pass++; console.log('OK   ' 
 // ---------------------------------------------------------------- the inventory
 // Each row: [gate, where, classification, the evidence that keeps it out of UNSAFE HARD STOP]
 const GATES = [
-  ['input token estimate (pack + command)', /const hardMax = Number\(Deno\.env\.get\('SEM_AI_MAX_TOKENS'\) \|\| 12000\)/, 'SAFE DEGRADATION',
-    () => /const packBudget = Math\.max\(2000,/.test(src) && /contextTrimmed\.push/.test(src)],
+  ['input token estimate (pack + command)', /const hardMax = Number\(Deno\.env\.get\('SEM_AI_MAX_TOKENS'\) \|\| 12000\)/, 'SAFE DEGRADATION then DETERMINISTIC REFUSAL',
+    () => /const packBudget = Math\.max\(2000,/.test(src) && /contextTrimmed\.push/.test(src)
+      && /for \(const floor of \[2, 0\]\)/.test(src) && /error: 'Request too large'/.test(src)],
   ['output token cap (generation)', /max_tokens/, 'DETERMINISTIC REFUSAL',
     () => /max_tokens/.test(src)],
   ['per-collection row caps (.limit)', /\.limit\(\d+\)/, 'SAFE DEGRADATION',
@@ -50,10 +51,28 @@ for (const [gate, present, klass, safe] of GATES) {
 
 // A new numeric hard cap appearing in the request path must be classified, not silently added.
 {
-  const preflight = src.slice(src.indexOf('tokenEstimate = estimateTokens('), src.indexOf('tokenEstimate = estimateTokens(') + 600);
+  const at = src.indexOf('tokenEstimate = estimateTokens(');
+  const preflight = src.slice(at, at + 2200);
+  // Exactly one whole-request size refusal exists in the whole source, and it is this one. A second
+  // 413 anywhere means a new whole-request cap was added without a classification in this inventory.
+  const refusals = (src.match(/, 413\)/g) || []).length;
   check('the only whole-request size cap is the token preflight, and it is budget-guarded',
-    (preflight.match(/return json\(\{ error:/g) || []).length === 1 && /Token preflight hard stop/.test(preflight) && /const packBudget/.test(src),
-    'if a second whole-request cap is introduced, add it to this inventory with a classification');
+    refusals === 1 && /const packBudget/.test(src) && /hardMax/.test(preflight),
+    'found ' + refusals + ' whole-request refusals; add any new one to this inventory with a classification');
+  // The refusal itself must be actionable, not a bare number: the founder is told which input could not
+  // be reduced and what to do about it, and that nothing was changed (verifier #60, V60-D1 residual).
+  check('the whole-request refusal states a cause and an action, and is not an opaque hard stop',
+    /error: 'Request too large'/.test(preflight) && /reason/.test(preflight)
+      && /your message is too long to process in one turn/.test(preflight)
+      && /ask about one company or one area at a time/.test(preflight)
+      && /Nothing was changed\./.test(preflight),
+    'a refusal the founder cannot act on is not a deterministic refusal');
+  check('the refusal distinguishes an oversized command from an oversized workspace',
+    /const commandTokens = estimateTokens\(command\)/.test(preflight) && /commandTokens > Math\.floor\(hardMax \/ 2\)/.test(preflight),
+    'the two causes need different actions, so they must not share one message');
+  check('the refusal reports whether context trimming fell short, rather than leaving it to be inferred',
+    /contextStillOverBudget/.test(preflight) && /contextBudget\.overBudget = /.test(src),
+    'overBudget must be stated by the block that knows it');
 }
 
 // UNMEASURED, stated rather than assumed safe (the founder's §2 requires naming them).

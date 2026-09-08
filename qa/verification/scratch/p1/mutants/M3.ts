@@ -2724,7 +2724,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // (verifier #60, V60-D1). Two further passes with harder floors run only if the first cannot reach the
   // budget. Emptying an optional collection is still truthful: its envelope keeps the real total and
   // truncated: true, and any entity named in a command is resolved server-side, not from the window.
-  for (const floor of [2, 0]) {
+  for (const floor of []) {
     if (packTokens() <= packBudget) break;
     for (const [key, , keepNewest] of TRIM_ORDER) {
       if (packTokens() <= packBudget) break;
