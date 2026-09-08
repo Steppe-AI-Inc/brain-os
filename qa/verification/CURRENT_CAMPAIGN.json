@@ -98,7 +98,7 @@
   "campaign": 120,
   "verifier": 60,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "DISPATCH PENDING — verifier #60 on the context-budget fix + the #59 hardening patch, after the 2026-09-08 deploy and rollback",
+  "status": "verifier #60 DISPATCHED on 1a1efbb — the context-budget fix, the whole-request gate inventory, and the #59 hardening patch, after the 2026-09-08 deploy and rollback",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -207,11 +207,7 @@
     "#54: V53-R3 was refuted (caught with the pack) - my \"disclosed, not closed\" was wrong in the safe direction",
     "#54: V53-R2 (cap 8->16) shows no marginal effect on #54 corpus - kept (0 cost), not counted as a fix"
   ],
-  "deno_check_classes": {
-    "total": 19,
-    "decomposition": "TS7006 x10 (implicit any parameter), TS2322 x6 (type assignability), TS7034 x1, TS7005 x1, TS2339 x1 - none runtime-fatal",
-    "rule": "NEVER pin the count. Runtime-fatal classes (TS2448 used-before-declaration, TS2454 used-before-assigned, TS2304 cannot-find-name, TS2552/TS2551 misspelled identifier) must be ZERO. v92 itself has 7 (TS2322 x6 + TS2339)."
-  },
+  "deno_check_classes": "10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005, 1x TS2339 (deno 2.9.6); zero TS2448/2454/2304/2552/2551",
   "deploy_rule": "FOUNDER RULING 2026-09-07: PRODUCT CONTRACT OUTRANKS V92 PARITY. The deploy bar is conformance to governance/OPERATING_TRUTH_MODEL.md (final-claim rule, request intent, never-silent receipt, envelopes, precedence, persistence). Deployed v92 is a reference corpus for truth-regression measurement; a class that matches v92 but violates the contract is a defect; an intended departure from v92 that satisfies the contract is not a failure.",
   "verifier56_base_commit": "e79eb658db6b5298f02977a8ce77719da16d4218",
   "verifier56_base_commit_note": "git rev-parse HEAD at start of the run (the record's 1048b9ef is the closure commit; e79eb65 is the campaign-record commit on top of it, index.ts unchanged between them — re-derived below)",
@@ -704,9 +700,23 @@
     "mirror drift guard (AUTHORITY_NOT_ENFORCED)"
   ],
   "incident_2026_09_08": "v93 (821f530 / 715246f3) was deployed at 01:50Z and rolled back at 02:10Z: the enlarged context pack crossed the 12,000-token preflight and ordinary questions returned 413 with no answer. Production is v92 source (function v94, ezbr 22486cd751cac403), byte-verified against c9dfab5bd433. Evidence: qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md, ledger #133. Fix on this candidate: budget-aware pack assembly + archivedCompanies 12->6 + scope strings removed, pinned by architecture_context_budget_contract.mjs; verifier #59 hardening applied (v59 suite 84/0, promoted).",
-  "verifier60_base_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
-  "verifier60_index_sha256": "5d4e853c6a7e9a9ed4dd2c9bda2e662590b736d2c6655a268dfafc96766e788b",
+  "verifier60_base_commit": "1a1efbb",
+  "verifier60_index_sha256": "8e9f14e0897b0c56e67a41988b057913be1f4cc0b19f7cb3e71efa1f86b198b5",
   "verifier60_started_at": null,
-  "verifier60_status": "not started",
-  "verifier60_findings": []
+  "verifier60_status": "DISPATCHED",
+  "verifier60_findings": [],
+  "verifier60_index_sha256_at_start": "8e9f14e0897b0c56e67a41988b057913be1f4cc0b19f7cb3e71efa1f86b198b5",
+  "verifier60_scope_from_founder": [
+    "1. attack the token-budget fix and independently verify the ENTIRE request-budget path",
+    "2. hunt every other whole-request gate; classify SAFE DEGRADATION / DETERMINISTIC REFUSAL / UNSAFE HARD STOP / UNMEASURED",
+    "3. judge the promoted contract TOKEN_BUDGET_EXHAUSTION_MUST_DEGRADE_CONTEXT_NOT_PRODUCT_AVAILABILITY and its minimum safe context",
+    "4. enforce NOT INCLUDED IN THE PROMPT != DOES NOT EXIST",
+    "5. re-measure estimator accuracy across 11 realistic workspaces; a deliberate margin, never tuned to 11,999",
+    "6. independently verify the v59 hardening patch as part of these exact bytes",
+    "7. judge the pinned live incident regression witness on BOTH halves"
+  ],
+  "implementing_session_self_reported_defects_found_this_round": [
+    "the trim loop measured the pack BEFORE attaching contextBudget and so certified a smaller pack than it shipped (50-turn channel: exited at the 11,400 budget, serialized 11,550) — fixed by attaching contextBudget before the loop",
+    "the first headroom fixture left 20 of 24 pack collections empty, understating every estimate; rebuilt at the real .limit() caps, a saturated pack is 25,595 tokens pre-trim, so deployed v92 would also breach the preflight on a fully populated workspace"
+  ]
 }
