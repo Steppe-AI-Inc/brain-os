@@ -99,9 +99,14 @@ using `const LEGACY_PAST_COMPLETION =` as a MARKER, so removal silently changes 
 **V65-D4.** Ledger #143 — four sweeps brought under the safety contract; two of them had been throwing on
 stale anchors and measuring nothing while still being cited as evidence.
 
-**Evidence on the new candidate:** battery **70 green / 2 red by design** (72 suites);
-`v65_request_frame_tiers_contract` 89/0 (all 46 of #65's defect assertions now pass, 0 CONTRACT failures);
-v57 proof 4/4; v58 proof 6/6; v56 proof 6/8 with **two survivors registered open** (ledger #143).
+**Evidence on the frozen candidate `52d9582` / `e3134bc5…`:** battery **72 green / 2 red by design**
+(74 suites); `v65_request_frame_tiers_contract` **104/0**; v57 proof 4/4; v58 proof 6/6; v56 proof **7/8**
+(the one survivor is measured CONSTRUCT REDUNDANT, not a test gap).
+Clean extended vacuity sweep on these exact bytes: **141 killed, 28 SURVIVED, 0 did not apply, candidate
+byte-identical, exit 1**. All **six structural survivors are now closed** by two new mutation-proved suites
+(`provenance_survives_trim_contract` 10/0, `context_scoped_mutation_gates_contract` 11/0) — they included
+straight reverts of the V62-D1 and V63-D2 P1 fixes, each of which had been deletable with the battery green.
+The 22 remaining survivors are regex-level and registered (ledger #145).
 `index.ts` CRLF-pure, 0 bare LF, 1 pre-existing bare CR (unchanged P3 debt).
 **`deno check` BLOCKER LIFTED and the classes ARE re-derived this round.** No binary was installed on the
 machine — `npx --yes deno@latest check --no-lock` fetches one on demand (deno 2.9.6), which is the route to
