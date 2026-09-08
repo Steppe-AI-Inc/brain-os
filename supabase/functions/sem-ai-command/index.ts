@@ -1683,23 +1683,61 @@ Output schema:
 }`;
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
-// THE ONE DEFINITION OF A REQUEST FRAME. Two tiers consume it: the executor's command fallback
-// (IMPERATIVE_HEAD_RE) and the request-intent derivation (REQUEST_FRAME_PREFIX). They were separate lists of
-// the same concept and drifted apart in three consecutive rounds — most recently the v59 hardening, which
-// landed in the executor tier and was withheld from the intent tier the receipt rule depends on
-// (verifier #64, V64-D1b). A frame added here is added to both, by construction.
-const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one"
+// THE ONE DEFINITION OF A REQUEST FRAME — with the per-tier applicability the concept actually has.
+//
+// Verifier #64 collapsed three hand-maintained copies of this vocabulary into one flat string. Verifier #65
+// showed that FLAT is the wrong shape, with a case the founder asked for directly:
+//
+//   "should we archive ACME"  must ARM THE RECEIPT      — else a fabricated "Done — archived." ships verbatim
+//   "should we archive ACME"  must NOT REACH THE EXECUTOR — else a deliberative question archives a company
+//
+// One flat list can express one of those answers, never both, so the safe repair was inexpressible and
+// 18/18 fabrications shipped (V65-D1, V65-D2). The concept is therefore still defined ONCE, here, but in
+// declared groups, and each consumer derives the view it is entitled to. Nothing below re-spells the
+// vocabulary, so the drift that cost a P1 in four consecutive rounds cannot recur.
+//
+//   ADDRESSED    — "you, do this", second person, plus bare politeness. All three tiers. These are the
+//                  only frames for which a trailing "?" does not make the sentence a question:
+//                  "could you archive ACME?" is an instruction wearing a question mark, whereas
+//                  "can we archive ACME?" is a question about what we should do.
+//   DIRECTIVE    — ADDRESSED plus the impersonal/inclusive instructions ("let's", "shall we", "go ahead
+//                  and"). This is REQUEST_FRAME_ALTERNATION, the executor tier, unchanged in membership.
+//   DELIBERATIVE — first-person modals and desideratives ("should we", "can I", "I want to").
+//                  INTENT TIER ONLY. The founder is weighing an action, not ordering one.
+//
+// EXECUTOR ⊆ INTENT and QUESTION ⊆ INTENT are true BY CONSTRUCTION here — the founder's section-3 rule
+// (a request the executor detects is never invisible to the receipt) made structural, not merely tested.
+//
+// REGISTERED DELIBERATE DIFFERENCE (founder directive 2026-09-08 §6): "can we"/"could we"/"shall we" stay
+// DIRECTIVE while "can I"/"could I"/"should I" are DELIBERATIVE. The inclusive forms are what v92 ships and
+// every green corpus measures; narrowing them is a behaviour change that deserves its own round and its own
+// evidence rather than riding along inside a defect fix. They do leave the QUESTION tier here, which is the
+// fail-closed direction: "shall we archive ACME?" now reads as the question it plainly is.
+const REQUEST_FRAME_ADDRESSED = "would you be able to|would you(?: please| mind)?|any chance you could"
+  + "|could you(?: please)?|can you(?: please)?|will you|please";
+const REQUEST_FRAME_ALTERNATION = REQUEST_FRAME_ADDRESSED
+  + "|ok|okay|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one"
   + "|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to"
   + "|time to|it['’]?s time to|its time to|feel free to"
   + "|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)"
   + "|before (?:eod|end of day|you go|lunch|tomorrow)"
   + "|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|it would be (?:great|good|helpful) if you(?: could| would)?"
   // Longest-first within a family: regex alternation takes the FIRST match, so "would you" placed ahead
-  // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1).
-  + "|would you be able to|would you(?: please| mind)?|any chance you could|could you(?: please)?|can you(?: please)?"
-  + "|may i ask you to|mind|will you|can we|could we|shall we|shall i"
-  + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|i need you to|i want you to"
+  // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1). The
+  // second-person frames that used to sit here are now the ADDRESSED group at the head of this same string.
+  + "|may i ask you to|mind|can we|could we|shall we|shall i"
+  + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|we need you to|i need you to|i want you to"
   + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
+// DELIBERATIVE frames — the INTENT tier only, never the executor. Each of these is the founder weighing an
+// action rather than instructing one, so the receipt must see the request (a mutation-intent turn with no
+// verified execution owes a deterministic no-change receipt) while the raw-command lifecycle fallback must
+// not act. Longest-first within each family, same rule as above.
+const REQUEST_FRAME_DELIBERATIVE = "should we|should i|(?:i think )?i should|could i|can i|may we|may i"
+  + "|i want to|we want to|i need to|i(?:['’]d| would) like to|we(?:['’]d| would) like to"
+  + "|we have to|i have to|we ought to|i ought to|we must|i must";
+// The INTENT tier is the UNION, formed here and nowhere else. A frame added to either group above is
+// visible to the receipt automatically; there is no second list that can be forgotten.
+const REQUEST_FRAME_ALTERNATION_INTENT = REQUEST_FRAME_ALTERNATION + "|" + REQUEST_FRAME_DELIBERATIVE;
 // THE ONE DEFINITION OF A BARE AFFIRMATIVE — "execute what is pending". Two consumers: the executor's
 // bulk_confirmation / multi_action_plan gate, and the request-intent tier that arms the never-silent
 // receipt. They were separate lists, and "yup" and "execute" were in the EXECUTOR one only — so answering
@@ -1713,6 +1751,13 @@ const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|t
 // 2026-09-08 §1). At module level, above every consumer, so declaration order cannot become the constraint:
 // the same TDZ hazard has now bitten three times in one round.
 const MUTATION_VERB_ALTERNATION = "unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix";
+// A trailing "?" does not make a sentence a question when it is framed as a REQUEST — but "could you tell
+// me which companies are archived?" really is a read, so a frame followed by a read verb does not suppress
+// the gate. This used to be a fourth hand-maintained spelling of the request-frame vocabulary, which had
+// already drifted (verifier #65, V65-D3c); it now derives from the ADDRESSED group of the one definition.
+const REQUEST_FRAME_READ_VERB = "tell|explain|summari|describe|list|show|remind";
+const QUESTION_SUPPRESSING_FRAME = new RegExp(
+  '^\\s*(?:' + REQUEST_FRAME_ADDRESSED + ')\\s*(?!(?:' + REQUEST_FRAME_READ_VERB + '))\\b', 'i');
 const CONFIRMATION_ALTERNATION = "yes|yep|yeah|yup|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative"
   + "|go ahead|go for it|do it|execute|proceed|please do|approved";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
@@ -3820,11 +3865,11 @@ serve(async (req) => {
         // turn, no model lifecycle field, and the model's own classification (when present) is a mutation.
         const commandLower = String(command || '').toLowerCase();
         const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
-          && !/^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|please)\b/.test(commandLower);
+          && !QUESTION_SUPPRESSING_FRAME.test(commandLower);
         const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|not|no longer|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
           || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,2}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
           || /^\s*(?:i|we|they|he|she|someone|somebody|(?!(?:archive|archiving|restore|restoring|delete|deleting|remove|removing|unarchive|reactivate|bring|end|ending|please|pls|kindly|just|now|ok|okay|also|then|and)\b)[a-z]+)\s+(?:have |has |had |already |just |recently |also |accidentally |mistakenly )*(?:archived|deleted|removed|restored|ended|reactivated|unarchived)\b/.test(commandLower);
-        const commandReadLead = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|if|when|before|after|should i|shall i|should we|shall we|could we|can we|would it|what if|suppose|supposing|imagine|thinking|wondering|considering|not sure|unsure|maybe|perhaps)\b/.test(commandLower);
+        const commandReadLead = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|if|when|before|after|should i|should we|would it|what if|suppose|supposing|imagine|thinking|wondering|considering|not sure|unsure|maybe|perhaps)\b/.test(commandLower);
         // Verifier #58 V58-D1: a deny-list of leads cannot enumerate every declarative ("I nearly archived Alpha",
         // "we discussed archiving Alpha", "Bob will archive Alpha" all executed). The verb must sit in IMPERATIVE
         // POSITION: head of the command after optional politeness / adverb / connective / polite-frame words, or head
@@ -5692,7 +5737,10 @@ serve(async (req) => {
         // outright when the surviving question itself is a promise.
         // ['’] — the typographic apostrophe models actually emit ("I’ll") is NOT the
         // ASCII one; matching only ASCII was a real bypass (run8, future-promise case).
-        const FUTURE_PROMISE_IN_QUESTION = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+        // the same promise pattern, byte-identical; one pattern applied to a question and to a statement.
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const FUTURE_PROMISE_IN_QUESTION = FUTURE_PROMISE_PATTERN;
         const safeQuestionFragment = (s: unknown): string | null => {
           // run10 (R10.paQuestion): the base gate runs on the SURVIVING question, not
           // the raw input — pre-rejecting the whole string for an assertion in its
@@ -5948,7 +5996,7 @@ serve(async (req) => {
         // A polite request phrased as a question is still a request ("could you please archive ACME?").
         // Declared here, above isQuestion, which now consults it: a const read before its declaration is a
         // TDZ crash, not a fallback — the class this repo pins with tdz_forward_reference_contract.mjs.
-        const REQUEST_FRAME_PREFIX = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION + ')[\\s,:—–-]+)+', 'i');
+        const REQUEST_FRAME_PREFIX = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION_INTENT + ')[\\s,:—–-]+)+', 'i');
         // A command that BEGINS WITH A REQUEST FRAME is a request whatever punctuation ends it. This
         // replaced POLITE_REQUEST, which was a THIRD hand-maintained list of request frames and is now
         // deleted: measured against the corpora, neutralising it changed no case, and the vacuity sweep
@@ -6430,7 +6478,10 @@ serve(async (req) => {
         // mutation claim accounts for? If so the reply has drifted from the verified
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        // the same past-completion claim pattern, byte-identical; "legacy" named a tier, not a concept.
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const LEGACY_PAST_COMPLETION = PAST_COMPLETION_CLAIM_PATTERN;
 
         // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
         // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
@@ -6571,7 +6622,10 @@ serve(async (req) => {
         // not a verb, and is never the reference point. Present-tense "is/are archived" is a
         // STATE, not a completion event, so it is deliberately excluded from the verbal set
         // (that is what lets "ACME is archived but was not deleted." survive).
-        const COMPLETION_PARTICIPLE = /\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|confirmed)\b/i;
+        // the same completion vocabulary, drifted by exactly one word ("done" — the commonest fabricated completion of all, and it was missing from the participle copy).
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const COMPLETION_PARTICIPLE = COMPLETION_WORD;
         const COMPLETION_VERB = /\b(?:has|have|had|was|were)(?:\s+(?:not|been|being|already|just|recently|successfully|also|now))*\s+(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b|\b(?:archived|deleted|updated|created|restored|removed|completed|renamed|approved|rejected|assigned|reassigned|moved|sent|cleared|granted|declined|ended|activated|deactivated)\s+successfully\b/i;
         // A clause is a TRUTHFUL NEGATIVE (not a completion assertion) when it carries a
         // negator AND either there is no verbal completion in it at all (the completion words

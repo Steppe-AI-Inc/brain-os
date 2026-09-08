@@ -151,7 +151,16 @@ C('DEFECT', 'V59-D3 IMPERATIVE_HEAD_RE has no unreachable alternative', 'every v
   const decl = src.match(/const IMPERATIVE_HEAD_RE = (new RegExp\([^\n]*\));/);
   const alt = src.match(/const REQUEST_FRAME_ALTERNATION = ([\s\S]*?);\n/);
   if (!decl || !alt) throw new Error('IMPERATIVE_HEAD_RE or REQUEST_FRAME_ALTERNATION not found — update this row, never let it pass');
-  const re = new Function('REQUEST_FRAME_ALTERNATION', 'return ' + decl[1])(new Function('return ' + alt[1].trim())());
+  // Since the #65 closure the canonical definition is assembled from declared GROUPS (the concept carries
+  // per-tier applicability), so evaluating its right-hand side needs the groups it names. Resolved from the
+  // source, never re-spelled here — a harness that declares its own copy is the drift it exists to detect.
+  const family = ['REQUEST_FRAME_ADDRESSED'].filter((n) => alt[1].includes(n)).map((n) => {
+    const m = src.match(new RegExp('const ' + n + ' = ([\\s\\S]*?);\\n'));
+    if (!m) throw new Error(n + ' not found — update this row, never let it pass');
+    return 'const ' + n + ' = ' + m[1].trim() + ';';
+  }).join('\n');
+  const re = new Function('return ' + decl[1].replace('REQUEST_FRAME_ALTERNATION',
+    '(' + new Function(family + '\nreturn JSON.stringify(' + alt[1].trim() + ');')() + ')'))();
   const body = re.source;
   // the verb group is the LAST top-level group of the regex body (the prefix group precedes it)
   let depth = 0, inClass = false, lastOpen = -1, lastClose = -1; for (let i = 0; i < body.length; i++) { const ch = body[i]; if (ch === '\\') { i++; continue; } if (inClass) { if (ch === ']') inClass = false; continue; } if (ch === '[') { inClass = true; continue; } if (ch === '(') { if (depth === 0) lastOpen = i; depth++; } else if (ch === ')') { depth--; if (depth === 0) lastClose = i; } }

@@ -136,9 +136,9 @@ const matchOption = new Function(stripTS(balanced(src, 'function matchDisambigua
   + '\nreturn matchDisambiguationOption;')();
 
 const beltSlice = stripTS([
-  stmt(src, 'const LEGACY_PAST_COMPLETION ='), stmt(src, 'const PROGRESS_VERBS ='),
+  stmt(src, 'const PAST_COMPLETION_CLAIM_PATTERN ='), stmt(src, 'const LEGACY_PAST_COMPLETION ='), stmt(src, 'const PROGRESS_VERBS ='),
   balanced(src, 'const EXECUTION_IN_PROGRESS = new RegExp(', '(', ')') + ';',
-  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='), stmt(src, 'const COMPLETION_PARTICIPLE ='), stmt(src, 'const COMPLETION_VERB ='), stmt(src, 'const NEGATION_AUX ='), stmt(src, 'const completionIsNegated ='), // Closure edit (run18/D130)
+  stmt(src, 'const CONFIRMED_COMPLETION ='), stmt(src, 'const NEGATED_CLAUSE ='), stmt(src, 'const COMPLETION_WORD ='), stmt(src, 'const COMPLETION_PARTICIPLE ='), stmt(src, 'const COMPLETION_VERB ='), stmt(src, 'const NEGATION_AUX ='), stmt(src, 'const completionIsNegated ='), // Closure edit (run18/D130)
   stmt(src, 'const REFERENCELESS_CONFIRMATION ='), stmt(src, 'const readsAsCompletion ='),
   'return readsAsCompletion;'].join('\n'));
 if (!/completionIsNegated\(/.test(beltSlice.split('const readsAsCompletion =')[1] || '')) {

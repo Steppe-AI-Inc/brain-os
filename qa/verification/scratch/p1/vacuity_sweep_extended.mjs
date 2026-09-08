@@ -177,12 +177,25 @@ sub('STRUCT provenanceIds captured AFTER the trim',
   'const contextTrimmed: string[] = [];', 'for (const k of Object.keys(provenanceIds)) delete provenanceIds[k];\n  const contextTrimmed: string[] = [];');
 
 // ---------------------------------------------------------------- run
+//
+// MUTATION_SWEEP_ZERO_TARGETS_IS_FAILURE / VACUITY_SWEEP_CANNOT_PASS_EMPTY /
+// EXPECTED_MUTATION_TARGETS_FOUND (founder directive 2026-09-08 §4, verifier #65 V65-D4).
+// A sweep that built no mutants has measured NOTHING; reporting "0 killed, 0 survived" and exiting 0 is
+// the fail-open shape that let a broken extractor read as a clean result for a whole round. The floor is
+// deliberately near the real count rather than 1: losing most of the mutants to a refactor is the same
+// defect as losing all of them, and it is exactly what happened here (ten went missing silently).
+if (mutants.length < 120) {
+  console.log('FAIL TEST HARNESS: built ' + mutants.length + ' mutants, expected at least 120'
+    + ' — the extractor lost its targets. This is a harness failure, not a pass.');
+  process.exit(2);
+}
 console.log(`V64 extended sweep: ${namedRegex.length} named regexes (${namedRegex.length * 2} mutants) + ${mutants.length - namedRegex.length * 2} structural = ${mutants.length} mutants, across ${SUITES.length} suites\n`);
 const survived = [], noApply = [];
 let killed = 0;
 for (const { id, apply } of mutants) {
   const mutated = apply(text);
-  if (mutated === text) { noApply.push(id); console.log('NO-APPLY ' + id); continue; }
+  // EXTRACTOR_TARGET_COUNT_MUST_BE_POSITIVE: a MUTATION DID NOT APPLY is a lost measurement, never a kill.
+  if (mutated === text) { noApply.push(id); console.log('NO-APPLY [MUTATION DID NOT APPLY] ' + id); continue; }
   const file = DIR + '/' + id.replace(/[^A-Za-z0-9_]+/g, '_').slice(0, 120) + '.ts';
   writeFileSync(file, mutated);
   let killer = null;
@@ -198,4 +211,10 @@ console.log('\ncandidate index.ts unchanged: ' + (SHA1 === SHA0) + '  (' + SHA1 
 console.log(`V64 extended sweep: ${killed} killed, ${survived.length} SURVIVED, ${noApply.length} did not apply`);
 for (const s of survived) console.log('  SURVIVED: ' + s);
 for (const s of noApply) console.log('  NO-APPLY: ' + s);
+// A SURVIVOR is a mutant no suite caught: the construct it broke is not load-bearing anywhere in the
+// battery, which is precisely the vacuity this sweep exists to detect. Reporting it and exiting 0 made the
+// finding invisible for a whole round (verifier #65, V65-D4: 33 survivors, exit status 0). A mutant that
+// did not apply is the same class — a measurement that silently did not happen.
 if (SHA1 !== SHA0) process.exit(2);
+if (survived.length > 0 || noApply.length > 0) process.exit(1);
+console.log('every mutant was killed by at least one suite, and every mutant applied');

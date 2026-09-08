@@ -113,7 +113,16 @@ for (const r of ROWS) {
       .replace(/:\s*unknown\b/g, '').replace(/:\s*number\b/g, '');
     const slice = detype(src.slice(a, b).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n'))
       .replace(/const hasSupportedMutationClaim =[^;]*;/, '');
-    const seed = 'const knownEntityNames = new Set(' + JSON.stringify([NAME]) + ');\nconst verifiedClaims = [];\n';
+    // The #65 closure left the belt's completion names as references to one surviving body declared above
+    // this window (V65-D3a/D3b), so the slice has to be handed those survivors. Window content unchanged.
+    const survivors = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+      .filter((n) => !slice.includes('const ' + n + ' ='))
+      .map((n) => {
+        const at = src.indexOf('const ' + n + ' = ');
+        if (at < 0) throw new Error(n + ' not found in source — update this suite, do not let it pass');
+        return detype(src.slice(at, src.indexOf('\n', at)));
+      }).join('\n') + '\n';
+    const seed = survivors + 'const knownEntityNames = new Set(' + JSON.stringify([NAME]) + ');\nconst verifiedClaims = [];\n';
     const f = new Function(seed + slice + '\nreturn readsAsCompletion;')();
     knownFires = f(ROW) === true;
   } catch (e) { knownFires = null; }

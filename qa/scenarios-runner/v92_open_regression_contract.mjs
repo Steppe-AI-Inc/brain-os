@@ -98,10 +98,20 @@ const beltBlock = (src) => {
   if (a < 0 || b <= a) throw new Error('belt block not found');
   return src.slice(a, b);
 };
+// The #65 closure gave the completion vocabulary ONE body and left the belt's names as references to it
+// (V65-D3a/D3b), so a window starting at an alias needs the survivor declared first. Deliberately tolerant:
+// this suite builds the SAME windows from the v92 baseline too, which predates the convergence and simply
+// does not declare these names — a missing survivor there is correct, not a harness failure.
+const survivorDecls = (src, windowText) => ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+  .filter((n) => !windowText.includes('const ' + n + ' =') && src.includes('const ' + n + ' = '))
+  .map((n) => {
+    const at = src.indexOf('const ' + n + ' = ');
+    return detype(src.slice(at, src.indexOf('\n', at)));
+  }).join('\n') + '\n';
 function buildBelt(src) {
   const slice = detype(stripCommentLines(beltBlock(src))).replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('TS annotation survived in belt block');
-  const fn = new Function('const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  const fn = new Function(survivorDecls(src, slice) + 'const verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
   return (s) => fn(String(s)) === true;
 }
 // The full gate-decision window, so a belt miss can be shown to SHIP rather than merely to differ.
@@ -113,7 +123,7 @@ function buildDecision(src) {
   // P1: the consumers are gated on request intent (never on pendingAction); the harness
   // supplies a mutation-intent turn so the belt itself stays measurable.
   const fn = new Function('verifiedClaims', 'model', 'groundedOutcomeThisTurn', 'claimsFutureActionWithNoPlan', 'result', 'rawClaims', 'deterministicPrefix', 'claimExecutionEvidence', 'hasRejectedClaims', 'requestedIntent',
-    slice + '\nreturn { legacyProseFallback, rewriteFromStructure, claimsPastCompletionWithNoGrounding };');
+    survivorDecls(src, slice) + slice + '\nreturn { legacyProseFallback, rewriteFromStructure, claimsPastCompletionWithNoGrounding };');
   return (turn) => {
     const t = { verifiedClaims: [], model: 'gpt', groundedOutcomeThisTurn: false, claimsFutureActionWithNoPlan: false, rawClaims: null, deterministicPrefix: '', claimExecutionEvidence: [], hasRejectedClaims: false, ...turn };
     return fn(t.verifiedClaims, t.model, t.groundedOutcomeThisTurn, t.claimsFutureActionWithNoPlan,

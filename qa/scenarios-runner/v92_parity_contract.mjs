@@ -34,7 +34,16 @@ function buildBelt() {
   const slice = src.slice(a, b).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
     .replace(/\(c:\s*string\)\s*:\s*boolean\s*=>/g, '(c) =>').replace(/const hasSupportedMutationClaim =[^;]*;/, '');
   if (/:\s*(string|boolean|number|any)\b/.test(slice)) throw new Error('v92_parity: TS annotation survived — refusing');
-  return new Function('const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
+  // The #65 closure gave the completion vocabulary ONE body and left the belt's names as references to it
+  // (V65-D3a/D3b); the survivors are declared above this window, so the slice has to be handed them. Its
+  // own content — and therefore the parity this suite measures — is unchanged.
+  const survivors = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+    .filter((n) => !slice.includes('const ' + n + ' =') && src.includes('const ' + n + ' = '))
+    .map((n) => {
+      const at = src.indexOf('const ' + n + ' = ');
+      return src.slice(at, src.indexOf('\n', at));
+    }).join('\n') + '\n';
+  return new Function(survivors + 'const knownEntityNames = new Set();\nconst verifiedClaims = [];\n' + slice + '\nreturn readsAsCompletion;')();
 }
 const readsAsCompletion = buildBelt();
 const candFires = (s) => readsAsCompletion(String(s)) === true;

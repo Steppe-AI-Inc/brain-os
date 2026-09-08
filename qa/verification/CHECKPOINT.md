@@ -12,13 +12,13 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-Campaign #125, verifier #65 RUNNING on candidate `cbb4c1c` / index.ts sha256
-`77d6f0523bcbad0c01a99865c5171025d862665cbc77b9116303b609dfd9e7a0`.
-Worktree `brain-os-verify-3b0bf64`, branch `verify-3b0bf64-campaign125`, watchdog pid 92388,
-log `qa/verification/scratch/verifier65_output.log`.
+Campaign #125. **Verifier #65 returned FAILED** on candidate `3b0bf64` / index.ts sha256 `77d6f052…`
+(artifact `qa/verification/scratch/verifier65_output.log`, verifier commit `8846706`). Three P1 blockers.
+The #65 closure is COMPLETE and a new candidate is committed; verifier #66 is the next gate.
 
-Verifiers #60, #61, #62, #63 and #64 all FAILED their candidates. Every round found real defects, and three
-found defects introduced by the previous round's own fixes.
+Verifiers #60 through #65 all FAILED their candidates. Every round found real defects, and four found
+defects introduced by the previous round's own fixes — including this one: #64's convergence of the
+request-frame lists is exactly what made #65's fabrication inexpressible to repair.
 
 ## PRODUCTION (unchanged since the rollback)
 
@@ -68,7 +68,12 @@ three is a live request and that is precisely the rule the incident produced.
 
 ## OPEN WORK, BY PRIORITY
 
-**P1** — verifier #65's verdict, then its findings.
+**P1** — verifier #66's verdict on the new candidate.
+**P1 (new, from the provider audit)** — `EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT`: OpenAI embeddings have
+failed silently in production since 2026-08-24 ~16:00; 63 of 66 memories carry a NULL embedding and nothing
+anywhere surfaces it. Also `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` and `REQUESTED_MODEL_ALWAYS_RECORDED` —
+a failed provider turn records no model name and emits no audit event. See
+`qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md`.
 **P2** — 23 registered duplicated-concept pairs (ledger #141), the largest a seven-list family describing
 "words that claim something was done"; convergence is the first item of the next source window.
 V61-D5: `compactionCheckpoint.summary` is untrimmable unbounded narrative.
@@ -79,11 +84,33 @@ fix; model-specific token limits still UNMEASURED; the platform request-body lim
 **Registered deliberate gaps** (not part of any deployment claim): lifecycle controls on child surfaces
 beyond People; archive-instead-of-delete for projects, departments, documents, leads and approvals.
 
+## THE #65 CLOSURE (this round's work)
+
+**V65-D1 / V65-D2 (P1).** The request-frame concept is ASYMMETRIC and one flat string could not say so:
+the intent tier needs "should we" so the receipt arms, and the executor must not have it or a deliberative
+question archives a company. Now ONE definition in three declared groups — `REQUEST_FRAME_ADDRESSED`,
+`REQUEST_FRAME_ALTERNATION` (directive), `REQUEST_FRAME_DELIBERATIVE` — with the intent tier formed as the
+union in one place, so **EXECUTOR ⊆ INTENT holds by construction**. Ledger #142.
+**V65-D3c / D3d.** The question gate's private whitelist and the read-lead list were the fourth and fifth
+re-spellings of the vocabulary; both now derive from the one definition.
+**V65-D3a / D3b.** The byte-identical twins are ONE body with the second name a reference to it. Deleting
+the names outright was tried and reverted: twelve suites and the shared belt extractor slice their windows
+using `const LEGACY_PAST_COMPLETION =` as a MARKER, so removal silently changes what each measures.
+**V65-D4.** Ledger #143 — four sweeps brought under the safety contract; two of them had been throwing on
+stale anchors and measuring nothing while still being cited as evidence.
+
+**Evidence on the new candidate:** battery **70 green / 2 red by design** (72 suites);
+`v65_request_frame_tiers_contract` 89/0 (all 46 of #65's defect assertions now pass, 0 CONTRACT failures);
+v57 proof 4/4; v58 proof 6/6; v56 proof 6/8 with **two survivors registered open** (ledger #143).
+`index.ts` CRLF-pure, 0 bare LF, 1 pre-existing bare CR (unchanged P3 debt).
+**`deno check` is BLOCKED on this machine — no deno binary.** The diagnostic-class counts are therefore
+NOT re-derived this round; the TDZ class is covered structurally by `tdz_forward_reference_contract`.
+
 ## NEXT EXECUTABLE ACTION
 
-Wait for verifier #65. On FAIL: reproduce → root cause → same-defect sweep → structural fix → regression →
-mutation proof → full battery → new SHA → dispatch verifier #66, automatically. On PASS: freeze the exact
-candidate, assemble the deployment package from
+Dispatch verifier #66 against the new committed SHA. On FAIL: reproduce → root cause → same-defect sweep →
+structural fix → regression → mutation proof → full battery → new SHA → verifier #67, automatically.
+On PASS: freeze the exact candidate, assemble the deployment package from
 `qa/verification/DEPLOYMENT_PACKAGE_3d1baeaa_DRAFT.md`, and ask the founder once for
 `ALLOW_FUNCTIONS_DEPLOY=1`.
 

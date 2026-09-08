@@ -30,10 +30,18 @@ const check = (name, cond, detail) => {
 };
 
 // Every sweep / mutation-proof tool the deploy decision depends on.
+// EVERY sweep the deploy decision rests on, not a subset. The four added here sat outside the contract for
+// a whole round, and the cost was exactly what the contract exists to prevent: vacuity_sweep_extended
+// reported 33 survivors and exited 0, while v56 and v57 threw on their first stale anchor and measured
+// nothing at all — all three still cited as evidence (verifier #65, V65-D4).
 const TOOLS = [
   'qa/verification/scratch/p1/vacuity_sweep.mjs',
   'qa/verification/scratch/p1/vacuity_sweep2.mjs',
   'qa/verification/scratch/p1/mutation_proof_v60_v61.mjs',
+  'qa/verification/scratch/p1/vacuity_sweep_extended.mjs',
+  'qa/verification/scratch/p1/v56_mutation_proof.mjs',
+  'qa/verification/scratch/p1/v57_mutation_proof.mjs',
+  'qa/verification/scratch/p1/v58_mutation_proof.mjs',
 ];
 
 for (const rel of TOOLS) {

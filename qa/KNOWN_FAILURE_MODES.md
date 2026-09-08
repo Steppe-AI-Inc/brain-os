@@ -16613,3 +16613,83 @@ shape; slicing those paths properly is registered as the next QA-harness item.
 
 **Status.** Registered, not converged. Production remains v92 source (function v94), release FAILED, nothing
 CLOSED.
+
+## 142. One flat definition could not express a concept that is asymmetric, so 18/18 fabrications shipped — FIXED (2026-09-08)
+
+**Found by** verifier #65 on candidate `3b0bf64`, which returned FAIL with three P1 findings and answered
+the judgment question it had been asked to answer: *is one shared definition actually correct for both
+tiers?* It is not, and the counter-example is exact.
+
+**What shipped.** Eighteen out of eighteen ordinary mutation requests derived NO request intent, so the
+never-silent receipt never armed and the model's fabricated completion was the whole founder-facing answer.
+Two of the founder's own mandate cases were in the failing set: `"should we restore ACME?"` and
+`"I want to archive ACME"`. Over the wider matrix, 222 of 378 framed commands derived no intent.
+
+**Root cause — the shape, not the contents.** Verifier #64 converged three hand-maintained request-frame
+lists into ONE flat string, which was the right direction and fixed a real twin. But the concept is
+ASYMMETRIC, and a flat string cannot say so:
+
+```
+"should we archive ACME"  must ARM THE RECEIPT       — else a fabricated "Done — archived." ships
+"should we archive ACME"  must NOT REACH THE EXECUTOR — else a deliberative question archives a company
+```
+
+Adding the missing frames to the single list made the executor really archive a company on
+`"should we archive ACME"`. Leaving them out let the fabrication ship. One flat list expresses one of those
+answers, never both, so **the safe repair was inexpressible** — and the whole 66-suite battery was green
+throughout, because every committed corpus had been built from frames the list already contained.
+
+**Fix.** The concept stays defined ONCE and now carries per-tier applicability, in three declared groups:
+`REQUEST_FRAME_ADDRESSED` (second person — all tiers), `REQUEST_FRAME_ALTERNATION` (directive — executor +
+intent), `REQUEST_FRAME_DELIBERATIVE` (first-person modals and desideratives — intent only).
+`REQUEST_FRAME_ALTERNATION_INTENT` is formed as the union in one place, so **EXECUTOR ⊆ INTENT is now true
+by construction** rather than by test — the founder's §3 rule made structural. Consumers derive; none
+re-spells the vocabulary. The question gate (`QUESTION_SUPPRESSING_FRAME`) and the read-lead list were the
+fourth and fifth places the vocabulary had been re-spelled, and both now derive from the one definition.
+
+**Methodology trap worth keeping.** Convergence is not automatically safe, and "similar" is not "identical".
+Collapsing two tiers with OPPOSITE safety requirements onto one representation removed the ability to state
+the difference — the fix for duplication created a defect of its own, for the third time in this campaign.
+Before converging, ask what each consumer needs to be able to say, not how similar the two lists look.
+
+**Search performed for the same class.** All five consumers of request framing were audited; the two
+previously unknown ones (`commandIsQuestion`'s private whitelist, `commandReadLead`'s contradictory claim on
+`shall i / shall we / could we / can we`) are closed here. The completion-vocabulary family is #141.
+
+## 143. Three "evidence" tools were reporting nothing, and nobody re-ran them — FIXED (2026-09-08)
+
+**Found by** verifier #65 (V65-D4) and then by repairing the tools it named.
+
+Three sweeps the deploy decision rested on were outside `mutation_sweep_safety_contract`'s TOOLS list, and
+all three were broken in different ways:
+
+- `vacuity_sweep_extended.mjs` exited **0 with 33 survivors** and had no zero-target guard.
+- `v56_mutation_proof.mjs` and `v57_mutation_proof.mjs` **threw on their first stale anchor** — they had
+  been citing constructs (`POLITE_REQUEST`, `commandReadLead`, the model's `other` intent veto) that later
+  closures deliberately removed. They measured nothing at all, and were still listed as evidence.
+
+**Fix.** All four tools are now in the contract and satisfy it: a positive mutation-target floor (a sweep
+that lost most of its mutants is the same defect as one that lost all of them), non-zero exit on any
+survivor or non-applying mutant, `[MUTATION DID NOT APPLY]` surfaced rather than counted as a kill, and a
+sha256 assertion that the candidate is byte-identical afterwards. The stale anchors were re-pointed where
+the concept survived and **retired with a written reason where it did not** — v57's `m1_other_does_not_veto`
+mutates a construct a later closure deleted on purpose, and inventing a substitute would have been
+fabricating evidence for a property nobody is testing. The proofs' suite lists were widened: they had been
+pinned to the three suites of their own round, so later rounds covering the same constructs could not kill
+anything.
+
+**What repairing them immediately revealed** (this is the point of the exercise):
+
+| survivor | status |
+|---|---|
+| v57 `m3_declarative_lead_executes` | **killed** once the later suites were allowed to run |
+| v56 `m4_fallback_on_questions` | **killed** once the later suites were allowed to run |
+| v56 `m7_cyrillic_word_boundary` | **OPEN — and it is a source finding, not a test gap.** Reverting `(?<!\p{L})(архивл` to `\b(архивл` changes NOTHING in the intent tier: measured directly, all eight Mongolian cases derive identical intent, lexicon verb and read-shape on both. Group 4 of `MUTATION_VERB_ALWAYS` is redundant with the Mongolian lexicon for this path. Whether it still earns its place on the receipt path (`alwaysCyrillicRaw`) is unmeasured. **Not touched here** — it is P3, and the candidate is a release candidate. |
+| v56 `m5_command_fuzzy_executes` | **OPEN.** Disabling the fuzzy command-guess branch (`isCommandGuess && fuzzy && pick.length > 0`) leaves all seven suites green. Real coverage gap; no suite asserts that a fuzzy lifecycle-name guess asks instead of executing. |
+
+Mongolian imperative intent is now pinned directly in `v65_request_frame_tiers_contract.mjs` (four positive
+and two negative rows), because that behaviour turned out to have no assertion of its own anywhere.
+
+**Reusable rule.** A tool that throws is fail-CLOSED and therefore feels safe, but it produces exactly as
+much evidence as a tool that returns a cheerful zero: none. Both must be caught, which is why the contract
+now checks the target floor and the exit shape rather than only the empty-list guard.

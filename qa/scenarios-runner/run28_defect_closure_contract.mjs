@@ -70,7 +70,17 @@ function extractBelt(path) {
   const body = stmts.filter((s) => KEEP.includes(s.name))
     .map((s) => s.lines.filter((l) => !/^\s*\/\//.test(l)).join('\n')).join('\n')
     .replace(/\(c: string\): boolean =>/g, '(c) =>');   // the ONLY TS annotation stripped
-  return new Function(body + '\nreturn { readsAsCompletion, completionIsNegated, CONFIRMED_COMPLETION };')();
+  // The #65 closure gave the completion vocabulary ONE body and left the belt's names as references to it
+  // (V65-D3a/D3b). Those bodies are declared ABOVE this window, so the slice has to be handed them; the
+  // window's own content, and therefore what this suite measures, is unchanged.
+  const survivors = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+    .filter((n) => !body.includes('const ' + n + ' ='))
+    .map((n) => {
+      const at = raw.indexOf('const ' + n + ' = ');
+      if (at < 0) throw new Error(n + ' not found in source — update this extractor, do not let it pass');
+      return raw.slice(at, raw.indexOf('\n', at));
+    }).join('\n') + '\n';
+  return new Function(survivors + body + '\nreturn { readsAsCompletion, completionIsNegated, CONFIRMED_COMPLETION };')();
 }
 
 const belt = extractBelt(SRC);

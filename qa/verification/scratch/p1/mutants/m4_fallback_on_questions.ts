@@ -99,6 +99,7 @@ type ExecutionResultEnvelope = {
 };
 type ExecutionDetail = { requestedValues?: Record<string, unknown> | null; rowsAffected?: number | null; backendResult?: unknown; precondition?: unknown; postcondition?: unknown; error?: string | null; executed?: boolean };
 type CompanyLookupRow = { id: string; name: string; status: string };
+type LifecycleLookupRow = { id: string; title: string; status: string };
 type LifecycleDisambiguation = { action: string; name: string; options: CompanyLookupRow[] };
 type MutationIntent = { verb: string | null; field: string | null };
 
@@ -273,20 +274,26 @@ function commandContradictsActionType(command: string, actionType: string | unde
 // from the ad-hoc mutation-field loops elsewhere in this file (archiveCompanyIds etc.) -
 // deliberately so, to keep real cross-action dependency ordering simple and auditable
 // without threading blocking logic through every existing, already-proven loop.
-async function executeOneAction(supabase: any, action: ExecutionPlanAction): Promise<{ success: boolean; detail: string; raw: unknown }> {
+// Every branch reports postconditionPassed from BACKEND EVIDENCE: the RPC's own jsonb field where there is
+// one, and the returned row where the operation is a direct write. A branch that cannot establish it says
+// false — never true by default (verifier #60, V60-D7; OPERATING_TRUTH_MODEL.md §4.1).
+function rpcPostcondition(r: Record<string, unknown>): boolean {
+  return r.postconditionPassed === true;
+}
+async function executeOneAction(supabase: any, action: ExecutionPlanAction): Promise<{ success: boolean; detail: string; raw: unknown; postconditionPassed: boolean }> {
   const t = action.targetIds || {};
   switch (action.operation) {
     case 'restore_employment': {
       const { data, error } = await supabase.rpc('restore_person_employment', { p_person_id: t.personId });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
       const r = data as Record<string, unknown>;
-      return { success: r.changed === true || r.reason === 'already_active', detail: String(r.reason || ''), raw: r };
+      return { success: (r.changed === true || r.reason === 'already_active') && rpcPostcondition(r), detail: String(r.reason || ''), raw: r, postconditionPassed: rpcPostcondition(r) };
     }
     case 'end_employment': {
       const { data, error } = await supabase.rpc('end_person_employment', { p_person_id: t.personId });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
       const r = data as Record<string, unknown>;
-      return { success: r.changed === true || r.reason === 'already_inactive', detail: String(r.reason || ''), raw: r };
+      return { success: (r.changed === true || r.reason === 'already_inactive') && rpcPostcondition(r), detail: String(r.reason || ''), raw: r, postconditionPassed: rpcPostcondition(r) };
     }
     case 'reassign_person': {
       const { data, error } = await supabase.rpc('set_person_assignment', {
@@ -294,41 +301,55 @@ async function executeOneAction(supabase: any, action: ExecutionPlanAction): Pro
         p_operating_company_id: t.operatingCompanyId,
         p_legal_employer_company_id: t.legalEmployerCompanyId || null,
       });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
-      return { success: true, detail: 'reassigned', raw: { assignmentId: data } };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
+      // POSTCONDITION = state observed after executing, by FRESH RE-READ (OTM §4.1). A returned id proves a
+      // row was written, not that the assignment landed on the company that was asked for (verifier #61,
+      // V61-D9). Re-read the row and compare the field that was supposed to change.
+      const reread = await supabase.from('person_assignments')
+        .select('id,operating_company_id,legal_employer_company_id,state')
+        .eq('id', data).maybeSingle();
+      const landed = !!reread.data
+        && reread.data.operating_company_id === t.operatingCompanyId
+        && (t.legalEmployerCompanyId ? reread.data.legal_employer_company_id === t.legalEmployerCompanyId : true);
+      return { success: true, detail: landed ? 'reassigned' : 'reassign_postcondition_not_confirmed',
+        raw: { assignmentId: data, postcondition: reread.data || null }, postconditionPassed: landed };
     }
     case 'assign_task': {
       const { data, error } = await supabase.from('tasks')
         .update({ owner_type: 'human', owner_person_id: t.personId, owner_agent_id: null })
         .eq('id', t.taskId)
         .select('id');
-      if (error) return { success: false, detail: error.message, raw: null };
-      if (!data || data.length === 0) return { success: false, detail: 'no matching task or no access', raw: null };
-      return { success: true, detail: 'assigned', raw: { taskId: data[0].id } };
+      if (error) return { success: false, detail: error.message, raw: null, postconditionPassed: false };
+      if (!data || data.length === 0) return { success: false, detail: 'no matching task or no access', raw: null, postconditionPassed: false };
+      // Fresh re-read of the field that was supposed to change, not the write's own return (V61-D9).
+      const taskAfter = await supabase.from('tasks').select('id,owner_type,owner_person_id').eq('id', t.taskId).maybeSingle();
+      const assigned = !!taskAfter.data && taskAfter.data.owner_person_id === t.personId && taskAfter.data.owner_type === 'human';
+      return { success: true, detail: assigned ? 'assigned' : 'assign_postcondition_not_confirmed',
+        raw: { taskId: data[0].id, postcondition: taskAfter.data || null }, postconditionPassed: assigned };
     }
     case 'archive_company': case 'restore_company': {
       const rpc = action.operation === 'archive_company' ? 'archive_company' : 'restore_company';
       const { data, error } = await supabase.rpc(rpc, { p_company_id: t.companyId });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
       const r = data as Record<string, unknown>;
-      return { success: r.changed === true || String(r.reason || '').startsWith('already_'), detail: String(r.reason || ''), raw: r };
+      return { success: (r.changed === true || String(r.reason || '').startsWith('already_')) && rpcPostcondition(r), detail: String(r.reason || ''), raw: r, postconditionPassed: rpcPostcondition(r) };
     }
     case 'archive_task': case 'restore_task': {
       const rpc = action.operation === 'archive_task' ? 'archive_task' : 'restore_task';
       const { data, error } = await supabase.rpc(rpc, { p_task_id: t.taskId });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
       const r = data as Record<string, unknown>;
-      return { success: r.changed === true, detail: String(r.reason || ''), raw: r };
+      return { success: r.changed === true && rpcPostcondition(r), detail: String(r.reason || ''), raw: r, postconditionPassed: rpcPostcondition(r) };
     }
     case 'archive_goal': case 'restore_goal': {
       const rpc = action.operation === 'archive_goal' ? 'archive_goal' : 'restore_goal';
       const { data, error } = await supabase.rpc(rpc, { p_goal_id: t.goalId });
-      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data };
+      if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
       const r = data as Record<string, unknown>;
-      return { success: r.changed === true, detail: String(r.reason || ''), raw: r };
+      return { success: r.changed === true && rpcPostcondition(r), detail: String(r.reason || ''), raw: r, postconditionPassed: rpcPostcondition(r) };
     }
     default:
-      return { success: false, detail: 'unsupported operation', raw: null };
+      return { success: false, detail: 'unsupported operation', raw: null, postconditionPassed: false };
   }
 }
 
@@ -808,14 +829,16 @@ Rules:
 - Do not invent facts outside the context pack.
 - context.counts holds real database-computed totals (tasksTotal, approvalsTotal,
   companiesTotal, peopleTotal, projectsTotal, goalsTotal, salesLeadsTotal,
-  inventoryItemsTotal, channelsTotal) plus tasksShown/approvalsShown/channelsShown (how
+  inventoryItemsTotal, channelsTotal). How many rows you were actually given is in
+  context.collections.<name>.shown, with .total and .truncated beside it — that is the ONE
+  place to read it from (how
   many of the total made it into context.tasks/context.approvals/context.channels, which
   are capped and may not include everything).
   ALWAYS use context.counts for any question about how many tasks/approvals/companies/
   people/projects/goals/leads/inventory items/channels exist — NEVER derive a count by
   counting entries in context.tasks/context.approvals/context.channels yourself, those
-  arrays are truncated. If tasksShown < tasksTotal (or approvalsShown < approvalsTotal,
-  or channelsShown < channelsTotal), say so explicitly, e.g.
+  arrays are truncated. If context.collections.<name>.truncated is true (equivalently
+  .shown < .total), say so explicitly, e.g.
   "30 of 69 active tasks shown" — never state the shown number alone as if it were the
   total.
 - context.companies is normally capped to a top slice, but ALSO always includes any
@@ -1014,8 +1037,8 @@ Rules:
   approval, editing a person's email, anything not listed in this schema), say plainly in
   summary that you can't do that via chat and name the real place to do it if you know one
   — never narrate it as done. Same discipline for scale: context.tasks/context.channels/
-  context.approvals are all capped (see context.counts.tasksShown/tasksTotal,
-  approvalsShown/approvalsTotal etc. above) — if the founder says "delete all" and the
+  context.approvals are all capped (see context.collections.<name>.shown/total/truncated
+  above) — if the founder says "delete all" and the
   shown count is less than the total, you can only see and delete the ones actually in
   context; say exactly how many you deleted and that more exist beyond what you could see
   (and point at the relevant page's own "Clear all" button, which has no such limit, for
@@ -1414,6 +1437,10 @@ Rules:
   out-of-window turn said. "Your very first message was X" is only ever sayable when
   historyIsComplete is true AND turn 1 is in the window. No anti-guess clause from the
   founder is required for this — it applies to every question, every time.
+- context.contextBudget lists any collection trimmed to fit this turn's token budget
+  (e.g. "documents 30->8"). A trimmed collection's own entry in context.collections still carries the
+  REAL total and truncated=true, so keep answering counts from context.collections.<name>.total and say
+  "N of M shown" — a trim never means the rest do not exist.
 - GROUNDING PRECEDENCE (binding; governance/OPERATING_TRUTH_MODEL.md §2): (1) this turn's
   own execution results reported back to you, (2) the fresh context arrays and
   context.collections in THIS pack, (3) context.pendingAction / context.continuity,
@@ -1501,6 +1528,8 @@ Rules:
   as other entities when the fact is clearly about a specific company.
 
 REQUEST INTENT ("requestIntent") — ALWAYS classify the founder's request BEFORE you answer, in any
+language. This classification can only ADD to what the server already derives from the request itself:
+declaring a mutation request "read" does not exempt your answer from execution evidence, and never has.
 language: "mutation" when they asked you to change data (archive, restore, rename, assign, create,
 delete, approve, set a manager, end employment, …), "confirmation" when they answered a pending
 question ("yes", "option 2", "go ahead"), "read" when they asked a question or for a list/summary/
@@ -1654,7 +1683,113 @@ Output schema:
 }`;
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
+// THE ONE DEFINITION OF A REQUEST FRAME — with the per-tier applicability the concept actually has.
+//
+// Verifier #64 collapsed three hand-maintained copies of this vocabulary into one flat string. Verifier #65
+// showed that FLAT is the wrong shape, with a case the founder asked for directly:
+//
+//   "should we archive ACME"  must ARM THE RECEIPT      — else a fabricated "Done — archived." ships verbatim
+//   "should we archive ACME"  must NOT REACH THE EXECUTOR — else a deliberative question archives a company
+//
+// One flat list can express one of those answers, never both, so the safe repair was inexpressible and
+// 18/18 fabrications shipped (V65-D1, V65-D2). The concept is therefore still defined ONCE, here, but in
+// declared groups, and each consumer derives the view it is entitled to. Nothing below re-spells the
+// vocabulary, so the drift that cost a P1 in four consecutive rounds cannot recur.
+//
+//   ADDRESSED    — "you, do this", second person, plus bare politeness. All three tiers. These are the
+//                  only frames for which a trailing "?" does not make the sentence a question:
+//                  "could you archive ACME?" is an instruction wearing a question mark, whereas
+//                  "can we archive ACME?" is a question about what we should do.
+//   DIRECTIVE    — ADDRESSED plus the impersonal/inclusive instructions ("let's", "shall we", "go ahead
+//                  and"). This is REQUEST_FRAME_ALTERNATION, the executor tier, unchanged in membership.
+//   DELIBERATIVE — first-person modals and desideratives ("should we", "can I", "I want to").
+//                  INTENT TIER ONLY. The founder is weighing an action, not ordering one.
+//
+// EXECUTOR ⊆ INTENT and QUESTION ⊆ INTENT are true BY CONSTRUCTION here — the founder's section-3 rule
+// (a request the executor detects is never invisible to the receipt) made structural, not merely tested.
+//
+// REGISTERED DELIBERATE DIFFERENCE (founder directive 2026-09-08 §6): "can we"/"could we"/"shall we" stay
+// DIRECTIVE while "can I"/"could I"/"should I" are DELIBERATIVE. The inclusive forms are what v92 ships and
+// every green corpus measures; narrowing them is a behaviour change that deserves its own round and its own
+// evidence rather than riding along inside a defect fix. They do leave the QUESTION tier here, which is the
+// fail-closed direction: "shall we archive ACME?" now reads as the question it plainly is.
+const REQUEST_FRAME_ADDRESSED = "would you be able to|would you(?: please| mind)?|any chance you could"
+  + "|could you(?: please)?|can you(?: please)?|will you|please";
+const REQUEST_FRAME_ALTERNATION = REQUEST_FRAME_ADDRESSED
+  + "|ok|okay|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one"
+  + "|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to"
+  + "|time to|it['’]?s time to|its time to|feel free to"
+  + "|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)"
+  + "|before (?:eod|end of day|you go|lunch|tomorrow)"
+  + "|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|it would be (?:great|good|helpful) if you(?: could| would)?"
+  // Longest-first within a family: regex alternation takes the FIRST match, so "would you" placed ahead
+  // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1). The
+  // second-person frames that used to sit here are now the ADDRESSED group at the head of this same string.
+  + "|may i ask you to|mind|can we|could we|shall we|shall i"
+  + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|we need you to|i need you to|i want you to"
+  + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
+// DELIBERATIVE frames — the INTENT tier only, never the executor. Each of these is the founder weighing an
+// action rather than instructing one, so the receipt must see the request (a mutation-intent turn with no
+// verified execution owes a deterministic no-change receipt) while the raw-command lifecycle fallback must
+// not act. Longest-first within each family, same rule as above.
+const REQUEST_FRAME_DELIBERATIVE = "should we|should i|(?:i think )?i should|could i|can i|may we|may i"
+  + "|i want to|we want to|i need to|i(?:['’]d| would) like to|we(?:['’]d| would) like to"
+  + "|we have to|i have to|we ought to|i ought to|we must|i must";
+// The INTENT tier is the UNION, formed here and nowhere else. A frame added to either group above is
+// visible to the receipt automatically; there is no second list that can be forgotten.
+const REQUEST_FRAME_ALTERNATION_INTENT = REQUEST_FRAME_ALTERNATION + "|" + REQUEST_FRAME_DELIBERATIVE;
+// THE ONE DEFINITION OF A BARE AFFIRMATIVE — "execute what is pending". Two consumers: the executor's
+// bulk_confirmation / multi_action_plan gate, and the request-intent tier that arms the never-silent
+// receipt. They were separate lists, and "yup" and "execute" were in the EXECUTOR one only — so answering
+// "yup" to an armed plan executed real mutations that the receipt tier never saw (founder directive
+// 2026-09-08 §3: a request the executor detects must never be invisible to the receipt logic).
+// The intent tier additionally accepts "option 2" style choices; that is a deliberate difference, recorded
+// here, because choosing an option confirms a disambiguation rather than authorising a bulk plan.
+// THE ONE DEFINITION OF A MUTATION VERB IN IMPERATIVE POSITION. Consumers: the imperative-position tier and
+// the first-clause rule, which were two spellings of the same concept and had already drifted — the
+// first-clause list was missing about seventy verbs the imperative list carried (founder directive
+// 2026-09-08 §1). At module level, above every consumer, so declaration order cannot become the constraint:
+// the same TDZ hazard has now bitten three times in one round.
+const MUTATION_VERB_ALTERNATION = "unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix";
+// A trailing "?" does not make a sentence a question when it is framed as a REQUEST — but "could you tell
+// me which companies are archived?" really is a read, so a frame followed by a read verb does not suppress
+// the gate. This used to be a fourth hand-maintained spelling of the request-frame vocabulary, which had
+// already drifted (verifier #65, V65-D3c); it now derives from the ADDRESSED group of the one definition.
+const REQUEST_FRAME_READ_VERB = "tell|explain|summari|describe|list|show|remind";
+const QUESTION_SUPPRESSING_FRAME = new RegExp(
+  '^\\s*(?:' + REQUEST_FRAME_ADDRESSED + ')\\s*(?!(?:' + REQUEST_FRAME_READ_VERB + '))\\b', 'i');
+const CONFIRMATION_ALTERNATION = "yes|yep|yeah|yup|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative"
+  + "|go ahead|go for it|do it|execute|proceed|please do|approved";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+// A malformed env var parses to NaN, and every comparison with NaN is false — so a typo in
+// SEM_AI_MAX_TOKENS silently disabled the gate it configures and emptied the optional pack on every turn
+// (verifier #63, V63-D6). A cap must be a positive finite number or it is not a cap.
+function envPositiveInt(name: string, fallback: number): number {
+  const raw = Deno.env.get(name);
+  if (raw === undefined || raw === null || String(raw).trim() === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+// THE REQUEST AS ACTUALLY SERIALIZED (verifier #61, V61-D10). Both providers send the system prompt plus a
+// PRETTY-PRINTED {profile, command, contextPack}, and optionally a base64 image as a second content block.
+// Measuring the compact form without the prompt understated the real request by 2.9x-26x, which is exactly
+// the accounting error that produced the 2026-09-08 incident one level down. One definition, used by the
+// preflight and by the pack budget, so the two can never drift apart again.
+const SYSTEM_PROMPT_TOKENS = Math.ceil(SYSTEM_PROMPT.length / 4);
+function estimateRequestTokens(payload: unknown): number {
+  // null, 2 is what streamAnthropic and streamOpenAI both serialize with.
+  const body = JSON.stringify(payload, null, 2) || '';
+  return SYSTEM_PROMPT_TOKENS + Math.ceil(body.length / 4);
+}
+// An image's cost to a vision model is a function of its DIMENSIONS, which this function cannot know;
+// base64 length is not a token count and using it as one refused ordinary photos that v92 serves
+// (verifier #62, V62-D2). What IS knowable is the transported size, and that is what the provider itself
+// limits — 5 MB per image for Anthropic, which is also what the web client allows.
+const IMAGE_BYTES_MAX = envPositiveInt('SEM_AI_IMAGE_BYTES_MAX', 5 * 1024 * 1024);
+function imageBytes(base64: string): number {
+  // 4 base64 characters carry 3 bytes; padding makes this an over-estimate by at most 2 bytes.
+  return Math.ceil((base64.length * 3) / 4);
+}
 
 // Claude/GPT sometimes wrap "strict JSON only" replies in a markdown code fence anyway.
 // Strip one if present before parsing, rather than failing the whole command.
@@ -2078,7 +2213,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // (.limit(NAMED_LOOKUP_ROW_CAP)), bounding worst-case contribution to context size no
   // matter how many rows a broad/generic token set happens to match.
   const commandNameTokens = [...new Set(
-    (command.match(/[A-Za-z][A-Za-z0-9'&.-]{3,}/g) || [])
+    // Unicode letter classes, not [A-Za-z]: a Cyrillic company or person name produced ZERO tokens, so
+    // every targeted lookup silently did not run in the language this workspace is operated in
+    // (verifier #62, V62-D8; verifier #61, V61-D11). Mongolian case suffixes attach directly or after a
+    // hyphen (ХХК-г, Батбаярыг), and the ilike '%token%' match still finds the stem either way.
+    (command.match(/[\p{L}][\p{L}\p{N}'&.-]{3,}/gu) || [])
       .map((t) => t.toLowerCase())
       .filter((t) => !COMMON_COMMAND_STOPWORDS.has(t)),
   )].slice(0, 8);
@@ -2102,6 +2241,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // Bug 12 (2026-08-30 campaign, same root cause/fix shape as the two above): a goal
   // named directly in a multi-entity status question ("status of X, Y goal, and Z") could
   // also fall outside context.goals' own cap with zero real data to ground an answer.
+  // Same targeted-lookup pattern, for the two collections verifier #62 named: a project or department the
+  // founder names must be resolvable whatever the display window holds (V62-D3).
+  const namedProjectLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score')
+        .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
+    : Promise.resolve({ data: [] as any[] });
+  const namedDepartmentLookupQuery = commandNameTokens.length > 0
+    ? supabase.from('departments').select('id,name,company_id')
+        .or(commandNameTokens.map((t) => `name.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
+        .limit(NAMED_LOOKUP_ROW_CAP)
+    : Promise.resolve({ data: [] as any[] });
   const namedGoalLookupQuery = commandNameTokens.length > 0
     ? supabase.from('goals').select('id,company_id,title,status,kind')
         .or(commandNameTokens.map((t) => `title.ilike.%${t.replace(/[%,()]/g, ' ')}%`).join(','))
@@ -2134,7 +2285,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const wantsFactoryDetail = FACTORY_INTENT_PATTERN.test(command);
   const factoryWorkOrdersQuery = wantsFactoryDetail
     ? supabase.from('canonical_work_orders')
-        .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)')
+        .select('id,title,objective,status,work_type,company_id,goal_id,created_at,tasks(id,status),agent_runs(status,verification_status,summary,head_commit,created_at)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .limit(10)
     : supabase.from('canonical_work_orders')
@@ -2153,7 +2304,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // unavailable this request.
   const memoriesQuery = queryEmbedding
     ? supabase.rpc('match_memories', { query_embedding: `[${queryEmbedding.join(',')}]`, match_count: 8 })
-    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity').or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(8);
+    : supabase.from('memories').select('id,company_id,entity_type,entity_id,fact,confidence,sensitivity', { count: 'exact' }).or(`fact.ilike.%${q.slice(0,60).replace(/[%,()]/g,' ')}%,entity_type.ilike.%company%`).limit(8);
   // Short-term continuity: the last few turns in this same channel, chronological.
   // Separate from relevantMemories (long-term, cross-channel, semantic) by design.
   // Same ordering defect as web/lib/data/chat-history.ts (fixed alongside this one, see
@@ -2173,21 +2324,27 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // alongside the window query gives absolute turn numbers, window bounds and the
   // is-this-everything bit — without it, "your very first message was …" is a guess
   // dressed as a fact (confirmed live at T13 of the 50-turn run).
+  // The PRIMARY memories path is the match_memories RPC and the primary work-order path is the non-factory
+  // query; neither can carry { count: 'exact' }, and both envelope literals hardcoded total: null, so these
+  // two collections could not express their own trim (verifier #63, V63-D1). A separate exact head count is
+  // what every other collection already uses.
+  const memoriesCountQuery = supabase.from('memories').select('id', { count: 'exact', head: true });
+  const factoryWorkOrdersCountQuery = supabase.from('canonical_work_orders').select('id', { count: 'exact', head: true });
   const conversationCountQuery = channelId
     ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
     : Promise.resolve({ count: 0, error: null });
   const TASK_STATUSES = ['queued','in_progress','blocked','needs_approval'];
-  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
+  const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, namedProjectLookup, namedDepartmentLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
-    archivedTasks, conversationCount] = await Promise.all([
+    archivedTasks, conversationCount, memoriesCount, factoryWorkOrdersCount] = await Promise.all([
     // CollectionEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.3): active and archived
     // companies are two deterministic, newest-first windows, each with an exact count.
     // Every collection query below carries { count: 'exact' } so context.collections can
     // report shown/total/truncated from the query's own count, never from array length.
     supabase.from('companies').select('id,name,status,organization_type,strategic_priority,risk_score', { count: 'exact' }).neq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
     namedCompanyLookupQuery,
-    supabase.from('companies').select('id,name,status,organization_type,updated_at', { count: 'exact' }).eq('status', 'archived').order('updated_at', { ascending: false }).limit(12),
+    supabase.from('companies').select('id,name,status,organization_type,updated_at', { count: 'exact' }).eq('status', 'archived').order('updated_at', { ascending: false }).limit(6),
     supabase.from('projects').select('id,company_id,title,status,deadline,blockers,risk_score', { count: 'exact' }).limit(20),
     // owner_type/owner_person_id/owner_agent_id added 2026-08-30: real incident found live
     // - context.tasks never carried who (if anyone) owns a task at all, so a plain
@@ -2219,6 +2376,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     namedPersonLookupQuery,
     supabase.from('goals').select('id,company_id,title,status,kind', { count: 'exact' }).limit(20),
     namedGoalLookupQuery,
+    namedProjectLookupQuery,
+    namedDepartmentLookupQuery,
     // RLS-gated to founder/admin — a non-founder caller simply gets [] back, no special
     // casing needed here.
     supabase.from('company_relationships').select('id,company_id,related_company_id,owner_profile_id,relationship_type,ownership_pct,state', { count: 'exact' }).limit(20),
@@ -2303,6 +2462,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // need no equivalent: context.goals already carries no status filter.
     supabase.from('tasks').select('id,company_id,title', { count: 'exact' }).eq('status','archived').order('updated_at',{ascending:false}).limit(15),
     conversationCountQuery,
+    memoriesCountQuery,
+    factoryWorkOrdersCountQuery,
   ]);
   // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
   // fetch above deliberately went newest-first so LIMIT kept the right 8 rows.
@@ -2351,7 +2512,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       ? '[UNVERIFIED — no database change was executed on that turn]'
       : (r.output?.summary || null);
     const verified: boolean | null = executedOperationCount === null ? null : unverified ? false : (executedOperationCount > 0 ? true : null);
-    return { turn: historyWindowStart + idx, command: r.command, summary, verified, executedOperationCount, rejectedClaimCount };
+    // A history ROW is unbounded at the write path (a reply is capped only by max_tokens: 8192), and the
+    // context budget can only drop whole rows — so one long accepted turn used to make every later turn in
+    // the channel a hard stop (verifier #61, V61-D1). Bound the row here. This is truthful shortening, not
+    // deletion: the full command and summary stay in work_orders, and the marker says so.
+    const HISTORY_FIELD_CAP = 600;
+    const shorten = (v: unknown) => {
+      const t = typeof v === 'string' ? v : (v === null || v === undefined ? null : String(v));
+      if (t === null) return null;
+      return t.length <= HISTORY_FIELD_CAP ? t
+        : t.slice(0, HISTORY_FIELD_CAP) + ' … [shortened for this turn; the full text is stored on the work order]';
+    };
+    return { turn: historyWindowStart + idx, command: shorten(r.command), summary: shorten(summary), verified, executedOperationCount, rejectedClaimCount };
   });
   const continuity = {
     totalPriorTurns,
@@ -2366,17 +2538,20 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     channelStateVersion: durableChannelState ? (durableChannelState.version ?? null) : null,
   };
   const counts = {
-    tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
-    approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
+    // TOTALS ONLY. A '<x>Shown' here was a second envelope for the same collection, and a trim made the
+    // two disagree (verifier #61, V61-D3). shown/truncated live in context.collections, which the trim
+    // maintains; totals come from the query counts and no trim can change them.
+    tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
+    approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
     companiesTotal: companiesCount.count ?? (companies.data||[]).length,
     peopleTotal: peopleCount.count ?? (people.data||[]).length,
     projectsTotal: projectsCount.count ?? (projects.data||[]).length,
     goalsTotal: goalsCount.count ?? (goals.data||[]).length,
-    salesLeadsShown: (leads.data||[]).length, salesLeadsTotal: salesLeadsCount.count ?? (leads.data||[]).length,
+    salesLeadsTotal: salesLeadsCount.count ?? (leads.data||[]).length,
     inventoryItemsTotal: inventoryCount.count ?? (inventory.data||[]).length,
-    channelsShown: (channels.data||[]).length, channelsTotal: channelsCount.count ?? (channels.data||[]).length,
-    departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
-    documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
+    channelsTotal: channelsCount.count ?? (channels.data||[]).length,
+    departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
+    documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
   // Pending action state (Workstream 3 — generalizes the old bulk-confirmation-only
   // mechanism into 4 kinds: bulk_confirmation, single_entity_clarification,
@@ -2521,7 +2696,9 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const mergedCompaniesData = (() => {
     const seen = new Set((companies.data || []).map((c: any) => c.id));
     const extra = (namedCompanyLookup.data || []).filter((c: any) => !seen.has(c.id));
-    return [...(companies.data || []), ...extra];
+    // The rows the founder named THIS TURN go FIRST: the context budget trims by slicing the
+    // head, so a tail merge made the named row the first casualty (verifier #60, V60-D2).
+    return [...extra, ...(companies.data || [])];
   })();
   const companyStatusById = new Map(mergedCompaniesData.map((c: any) => [c.id, c.status]));
   const relationshipRows = companyRelationships.data || [];
@@ -2546,7 +2723,9 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const mergedPeopleData = (() => {
     const seen = new Set((people.data || []).map((p: any) => p.id));
     const extra = (namedPersonLookup.data || []).filter((p: any) => !seen.has(p.id));
-    return [...(people.data || []), ...extra];
+    // The rows the founder named THIS TURN go FIRST: the context budget trims by slicing the
+    // head, so a tail merge made the named row the first casualty (verifier #60, V60-D2).
+    return [...extra, ...(people.data || [])];
   })();
   const packPeople = mergedPeopleData.map((p: any) => ({ ...p, effectivelyActive: isCompanyEffectivelyActiveInMemory(p.company_id) }));
   // Bug 12: same merge, same reason, for goals - a goal named directly in a multi-entity
@@ -2555,13 +2734,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const mergedGoalsData = (() => {
     const seen = new Set((goals.data || []).map((g: any) => g.id));
     const extra = (namedGoalLookup.data || []).filter((g: any) => !seen.has(g.id));
-    return [...(goals.data || []), ...extra];
+    // The rows the founder named THIS TURN go FIRST: the context budget trims by slicing the
+    // head, so a tail merge made the named row the first casualty (verifier #60, V60-D2).
+    return [...extra, ...(goals.data || [])];
   })();
   // Same merge for tasks (cap reduced 30->15 above; this backstops it).
   const mergedTasksData = (() => {
     const seen = new Set((tasks.data || []).map((t: any) => t.id));
     const extra = (namedTaskLookup.data || []).filter((t: any) => !seen.has(t.id));
-    return [...(tasks.data || []), ...extra];
+    // The rows the founder named THIS TURN go FIRST: the context budget trims by slicing the
+    // head, so a tail merge made the named row the first casualty (verifier #60, V60-D2).
+    return [...extra, ...(tasks.data || [])];
   })();
 
   // Real incident (2026-08-30): right after a genuine, DB-confirmed PERMANENT company
@@ -2615,29 +2798,192 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // shown = what this pack carries, total = the query's own exact count, truncated =
   // total > shown. null total means the source has no authoritative count (semantic
   // top-K, nested factory summary) and is labelled as such — never presented as complete.
+  // The envelope carries shown / total / truncated only: the prose 'scope' strings cost ~130 tokens
+  // across 24 collections and say nothing the model cannot see (incident 2026-09-08).
   const envelope = (res: any, shownOverride: number | null = null, scope: string | null = null) => {
+    void scope;
     const shown = typeof shownOverride === 'number' ? shownOverride : (res?.data || []).length;
     const total = typeof res?.count === 'number' ? res.count : null;
-    return { shown, total, truncated: total === null ? null : total > shown, ...(scope ? { scope } : {}) };
+    return { shown, total, truncated: total === null ? null : total > shown };
   };
   const collections = {
     companies: envelope(companies, packCompanies.length, 'active (non-archived), newest first, plus any company named in this command'),
     archivedCompanies: envelope(archivedCompanies, undefined, 'archived, newest first'),
     projects: envelope(projects), tasks: envelope(tasks, mergedTasksData.length, 'in-flight statuses, plus any task named in this command'),
-    memories: { shown: packMemories.length, total: null, truncated: null, scope: 'top-8 semantic retrieval' },
+    memories: { shown: packMemories.length, total: memoriesCount.count ?? null, truncated: typeof memoriesCount.count === 'number' ? memoriesCount.count > packMemories.length : null },
     agents: envelope(agents, undefined, 'active'), products: envelope(products, undefined, 'active'), inventory: envelope(inventory), approvals: envelope(approvals, undefined, 'pending'),
     people: envelope(people, packPeople.length, 'plus any person named in this command'), goals: envelope(goals, mergedGoalsData.length, 'plus any goal named in this command'),
     companyRelationships: envelope(companyRelationships), personAssignments: envelope(personAssignments), financialReports: envelope(financialReports, undefined, 'newest first'),
     conversationHistory: { shown: (conversationRowsChronological || []).length, total: totalPriorTurns, truncated: totalPriorTurns > (conversationRowsChronological || []).length, scope: 'newest turns in this channel' },
-    factoryWorkOrders: { shown: factoryWorkOrders.length, total: null, truncated: null, scope: 'newest 10' },
+    factoryWorkOrders: { shown: factoryWorkOrders.length, total: factoryWorkOrdersCount.count ?? null, truncated: typeof factoryWorkOrdersCount.count === 'number' ? factoryWorkOrdersCount.count > factoryWorkOrders.length : null },
     channels: envelope(channels, undefined, 'not archived'), departments: envelope(departments), leads: envelope(leads), documents: envelope(documents), proposals: envelope(proposals),
     productSpecs: envelope(productSpecs), engineeringDrawings: envelope(engineeringDrawings), aiProviders: envelope(aiProviders), mcpConnectors: envelope(mcpConnectors),
     archivedTasks: envelope(archivedTasks, undefined, 'archived, newest first'),
   };
   // Backstop: every array in the pack literal below must have an envelope here
   // (qa/scenarios-runner/architecture_collection_envelope_contract.mjs pins this statically).
-  const pack = { continuity, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
-  return { pack, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
+  // MINIMUM SAFE CONTEXT, §4.4: "exact canonical entity and action state for the targets of this turn".
+  // These are the rows the targeted lookups resolved from the founder's own command. They also appear
+  // inside the ordinary collections, which are trimmable to zero; here they are not trimmable at all, so
+  // the entity named this turn is present however hard the budget has to squeeze (verifier #61, V61-D2).
+  const namedTargets = {
+    companies: (namedCompanyLookup.data || []),
+    people: (namedPersonLookup.data || []),
+    tasks: (namedTaskLookup.data || []),
+    goals: (namedGoalLookup.data || []),
+    projects: (namedProjectLookup.data || []),
+    departments: (namedDepartmentLookup.data || []),
+  };
+  // namedTargets is capped at NAMED_LOOKUP_ROW_CAP like every other window, so it reports shown/total/
+  // truncated like every other window (OTM §4.3; verifier #64, V64-D5). Without this it was the one
+  // collection in the pack that could be cut silently — and it is the one holding the entity the founder
+  // just named. The total is the cap when the cap was reached: PostgREST returns no count for these
+  // targeted lookups, and "at least this many" is stated as truncated: true rather than as a false exact.
+  const namedTargetsEnvelope: Record<string, { shown: number; total: number | null; truncated: boolean }> = {};
+  for (const [key, rows] of Object.entries(namedTargets)) {
+    namedTargetsEnvelope[key] = {
+      shown: (rows as unknown[]).length,
+      total: (rows as unknown[]).length < NAMED_LOOKUP_ROW_CAP ? (rows as unknown[]).length : null,
+      truncated: (rows as unknown[]).length >= NAMED_LOOKUP_ROW_CAP,
+    };
+  }
+  // Beside the rows, not inside context.collections: that map is Record<string, CollectionEnvelope>, and a
+  // map OF envelopes is not an envelope. Nesting it there type-errored and, worse, would have satisfied
+  // §4.3 by name while telling the model nothing it could use.
+  (namedTargets as Record<string, unknown>).collections = namedTargetsEnvelope;
+  const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
+  // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
+  // serve() refuses the whole request above SEM_AI_MAX_TOKENS using estimateTokens({command, contextPack}).
+  // A pack that outgrows the cap must DEGRADE, never turn an ordinary question into a 413 with no answer.
+  // Optional display collections are trimmed first, core ones last and never below a floor; each trim is
+  // written back into that collection's envelope so the model still sees the real total and truncated=true.
+  const packBudget = Math.max(2000, envPositiveInt('SEM_AI_MAX_TOKENS', 12000) - 600);
+  // The SAME shape the serve() preflight measures — estimateTokens({ command, contextPack }) —
+  // not merely the same arithmetic (verifier #60, V60-D5).
+  // PACK SIZE, not request size. SEM_AI_MAX_TOKENS is a policy cap on how much context this function will
+  // assemble, calibrated against this compact measure; the REQUEST also carries an 18.8k-token system
+  // prompt and is checked separately against the provider's context window in serve() (verifier #61,
+  // V61-D10). Conflating the two would refuse every turn in the product, since the prompt alone is larger
+  // than this cap. Measured on the same shape the preflight's pack check uses, so the two cannot drift.
+  const packTokens = () => Math.ceil(JSON.stringify({ command, contextPack: pack }).length / 4);
+  const TRIM_ORDER: Array<[string, number, boolean]> = [
+    ['memories', 4, false], ['archivedTasks', 4, false], ['archivedCompanies', 4, false],
+    ['financialReports', 4, false], ['inventory', 5, false], ['products', 5, false], ['proposals', 5, false],
+    ['productSpecs', 5, false], ['engineeringDrawings', 5, false], ['mcpConnectors', 4, false],
+    ['aiProviders', 4, false], ['documents', 8, false], ['leads', 8, false], ['departments', 8, false],
+    ['companyRelationships', 8, false], ['personAssignments', 10, false], ['factoryWorkOrders', 4, false],
+    ['channels', 6, false], ['agents', 5, false], ['conversationHistory', 4, true],
+    ['approvals', 6, false],
+    ['projects', 8, false], ['goals', 8, false], ['tasks', 8, false], ['people', 10, false], ['companies', 8, false],
+  ];
+  // MINIMUM SAFE CONTEXT (founder contract 2026-09-08 §3): the current command, the caller's identity and
+  // organization scope, the durable pending action, the canonical ids an operation needs, the execution
+  // evidence and the truth/continuity state are NEVER trimmed to fit a budget. Optional, reconstructible
+  // context is trimmed first; if the minimum itself does not fit, that is the one case where the request may
+  // legitimately be refused — and it is refused with the minimum intact, never with a silently gutted pack.
+  const MINIMUM_SAFE_CONTEXT = ['currentTurn', 'continuity', 'counts', 'collections', 'pendingAction',
+    'recentlyResolvedEntities', 'recentlyDeletedEntities', 'activeChannelId', 'namedTargets'];
+  // ID PROVENANCE, captured BEFORE any trimming and returned beside the pack rather than inside it
+  // (verifier #62, V62-D1). The executor needs to know which ids were real this turn; the model does not,
+  // and putting them in the pack spent the very budget the trim exists to protect.
+  const provenanceIds: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(pack as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue;
+    const ids = value
+      .map((r) => (r && typeof r === 'object' ? (r as Record<string, unknown>).id : null))
+      .filter((id) => typeof id === 'string' && id.length > 0) as string[];
+    if (ids.length > 0) provenanceIds[key] = ids;
+  }
+  const contextTrimmed: string[] = [];
+  const packRecord = pack as Record<string, unknown>;
+  // 'collections' is protected from being trimmed as a collection, but its envelopes are UPDATED by a trim
+  // by design (that is how a trimmed collection keeps reporting shown/total/truncated truthfully), so it is
+  // asserted by key set rather than by bytes; everything else in the minimum must come out byte-identical.
+  const BYTE_STABLE_CONTEXT = MINIMUM_SAFE_CONTEXT.filter((k) => k !== 'collections');
+  const minimumSafeBefore = JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null));
+  const collectionKeysBefore = Object.keys(collections).join(',');
+  const collectionsRecord = collections as Record<string, { shown: number; total: number | null; truncated: boolean | null }>;
+  // Attached BEFORE the loop so packTokens() measures the request as it will actually be serialized: this
+  // field grows by one line per trim, and measuring the pack without it understates the real request.
+  const contextBudget = {
+    estimatedTokens: 0, budget: packBudget, overBudget: false, trimmedCount: 0, trimmed: contextTrimmed,
+    protected: MINIMUM_SAFE_CONTEXT,
+    note: 'A trimmed collection is truncated, never absent: its envelope in context.collections keeps the real total and truncated=true, Companies, people, tasks, goals, projects and departments named in a command are additionally re-read server-side across every status and appear in context.namedTargets; for other collections a trimmed window is a window, so say what you can see and do not conclude that anything is absent from the database.',
+  };
+  packRecord.contextBudget = contextBudget;
+  for (const [key] of TRIM_ORDER) {
+    if (MINIMUM_SAFE_CONTEXT.includes(key)) throw new Error('TRIM_ORDER names a minimum-safe-context key: ' + key);
+  }
+  for (const [key, keep, keepNewest] of TRIM_ORDER) {
+    if (packTokens() <= packBudget) break;
+    const arr = packRecord[key];
+    if (!Array.isArray(arr) || arr.length <= keep) continue;
+    packRecord[key] = keepNewest ? arr.slice(arr.length - keep) : arr.slice(0, keep);
+    const env = collectionsRecord[key];
+    // A collection whose count was never exact (total: null) still must not read as "there are none":
+    // what we know for certain is that at least this many rows existed before the trim (V62-D4).
+    if (env) {
+      env.shown = keep;
+        // Two independent facts. That rows were dropped is CERTAIN — this loop just dropped them — so
+        // truncated is true whatever the total is. The total itself may be genuinely unknown, and it stays
+        // null rather than being invented from the surviving array length (verifier #63, V63-D1; that
+        // invented-total mistake was made and reverted in campaign #122).
+        env.truncated = env.total === null ? true : env.total > keep;
+    }
+    contextTrimmed.push(`${key} ${arr.length}->${keep}`);
+  }
+  // A floor is a ROW count, not a BYTE count: a workspace with few rows but long free text can still
+  // sit over budget with every array already at its floor, and serve() would then 413 the whole request
+  // with no answer — the incident this block exists to prevent, in a different workspace shape
+  // (verifier #60, V60-D1). Two further passes with harder floors run only if the first cannot reach the
+  // budget. Emptying an optional collection is still truthful: its envelope keeps the real total and
+  // truncated: true, and any entity named in a command is resolved server-side, not from the window.
+  for (const floor of [2, 0]) {
+    if (packTokens() <= packBudget) break;
+    for (const [key, , keepNewest] of TRIM_ORDER) {
+      if (packTokens() <= packBudget) break;
+      const arr = packRecord[key];
+      // conversationHistory used to be pinned at 1 here, which made it the one optional collection that
+      // could not degrade — and with an unbounded row that was the whole of V61-D1. It is tier-4 narrative
+      // (OPERATING_TRUTH_MODEL §2): the canonical state, the receipts and the durable channel state all
+      // outrank it, and continuity still reports honestly how many turns exist and that the window is
+      // incomplete. On the FIRST hard pass it keeps one turn; only the final pass empties it.
+      const thisFloor = key === 'conversationHistory' && floor > 0 ? Math.max(1, floor) : floor;
+      if (!Array.isArray(arr) || arr.length <= thisFloor) continue;
+      packRecord[key] = keepNewest ? arr.slice(arr.length - thisFloor) : arr.slice(0, thisFloor);
+      const envHard = collectionsRecord[key];
+      if (envHard) {
+        envHard.shown = thisFloor;
+        envHard.truncated = envHard.total === null ? true : envHard.total > thisFloor;
+      }
+      contextTrimmed.push(`${key} ${arr.length}->${thisFloor}`);
+    }
+  }
+  // The guarantee is asserted, not assumed: if any protected key changed, the turn fails loudly here rather
+  // than answering from a pack whose safe minimum was quietly cut.
+  // SCOPE, stated honestly (verifier #63, V63-D5): this cannot fire for the TRIM LOOP, because the guard
+  // above already throws if TRIM_ORDER names a protected key and the loop writes no other key. It is
+  // reachable — and is the only thing that would catch — a DIRECT mutation of a protected key from anywhere
+  // else in this block, which is the edit it defends against. Its reachability is demonstrated by test
+  // rather than assumed from its presence.
+  if (JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null)) !== minimumSafeBefore
+    || Object.keys(collections).join(',') !== collectionKeysBefore) {
+    throw new Error('context budget trimmed the minimum safe context — refusing to build this turn');
+  }
+  // estimatedTokens is part of the payload it measures, so writing it can only grow the request by the digits
+  // of the number itself; it is written from the pre-write measurement and the difference is bounded by that.
+  // The trim list is pack bytes too. Cap what is carried so a heavily trimmed turn cannot spend the
+  // reserve on the report of its own trimming; the count is always exact.
+  // The count is ALWAYS the real number of trims. It used to be written only when the list overflowed its
+  // cap, so it read 0 on every ordinary trimmed turn while contextBudget.trimmed listed real trims — a count
+  // that is present and wrong (verifier #64, V64-D2).
+  contextBudget.trimmedCount = contextTrimmed.length;
+  if (contextTrimmed.length > 12) contextTrimmed.splice(12, contextTrimmed.length - 12);
+  contextBudget.estimatedTokens = packTokens();
+  // Stated, never inferred: if even the hardest trim could not reach the budget, the pack says so and
+  // serve() turns it into a refusal the founder can act on rather than an opaque hard stop.
+  contextBudget.overBudget = contextBudget.estimatedTokens > packBudget;
+  return { pack, provenanceIds, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 
 serve(async (req) => {
@@ -2652,6 +2998,9 @@ serve(async (req) => {
   // same as before — nothing here is streamed, it all has to happen before the LLM
   // call regardless. ----
   let auth: string, command: string, supabase: any, profile: any, contextPack: any, contextErrors: string[], tokenEstimate: number;
+  // Server-side id provenance for this turn, captured before the context budget trims anything. It never
+  // travels in the pack: the model has no use for it and it would spend the budget the trim protects.
+  let contextProvenance: Record<string, string[]> = {};
   let channelId: string | null = null;
   let providerName: 'openai' | 'anthropic' = 'openai';
   let model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
@@ -2691,10 +3040,65 @@ serve(async (req) => {
 
     const ctx = await buildContext(supabase, command, channelId, openaiKey);
     contextPack = ctx.pack;
+    contextProvenance = ctx.provenanceIds || {};
     contextErrors = ctx.errors;
     tokenEstimate = estimateTokens({ command, contextPack });
-    const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
-    if(tokenEstimate > hardMax) return json({ error:'Token preflight hard stop', tokenEstimate, hardMax }, 413);
+    const hardMax = envPositiveInt('SEM_AI_MAX_TOKENS', 12000);
+    if (tokenEstimate > hardMax) {
+      // buildContext degrades optional context until the request fits (OTM §4.4), so reaching here means
+      // the irreducible part is too large. Say which part and what to do — a refusal the founder can act
+      // on, never a bare number (verifier #60, V60-D1 residual). The context pack is never the reason
+      // given unless it really is: contextBudget.overBudget records whether trimming fell short.
+      // The command is serialized TWICE — at the top level and inside contextPack.currentTurn — so its real
+      // contribution is double what a single copy measures. Comparing one copy blamed the workspace for a
+      // 22,000-character paste (verifier #62, V62-D5).
+      const commandTokens = estimateTokens(command) * 2;
+      const budgetInfo = (contextPack as Record<string, unknown> | null)?.contextBudget as
+        { estimatedTokens?: number; overBudget?: boolean; trimmedCount?: number } | undefined;
+      const reason = commandTokens > Math.floor(hardMax / 2)
+        ? 'your message is too long to process in one turn — send it in smaller parts, or put the long text in a document and refer to it by name'
+        : 'this workspace has grown past what one turn can carry even after reducing optional context — ask about one company or one area at a time';
+      return json({
+        error: 'Request too large',
+        limit: 'context pack',
+        reason,
+        commandTokens,
+        tokenEstimate,
+        hardMax,
+        contextReduced: budgetInfo?.trimmedCount ?? 0,
+        contextStillOverBudget: budgetInfo?.overBudget === true,
+        note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
+      }, 413);
+    }
+    // THE REAL REQUEST, against the real ceiling (verifier #61, V61-D10). The pack budget above governs how
+    // much context this function assembles; this governs what the provider is actually sent — the system
+    // prompt (18.8k tokens on its own), the pretty-printed body, and any attached image. An image bypasses
+    // the pack budget entirely, so without this gate it was an unnamed input with no limit at all. The two
+    // thresholds are far apart on purpose: they constrain different things.
+    const requestTokens = estimateRequestTokens({ profile: { id: profile.id, role: profile.role }, command, contextPack });
+    if (attachedImage && imageBytes(attachedImage.base64) > IMAGE_BYTES_MAX) {
+      return json({
+        error: 'Request too large',
+        limit: 'attached image size',
+        reason: 'that image is larger than the ' + Math.round(IMAGE_BYTES_MAX / (1024 * 1024)) + ' MB the model accepts — send a smaller or more compressed image, or ask without it',
+        imageBytes: imageBytes(attachedImage.base64),
+        imageBytesMax: IMAGE_BYTES_MAX,
+        note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
+      }, 413);
+    }
+    const modelContextMax = envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 180000);
+    if (requestTokens > modelContextMax) {
+      return json({
+        error: 'Request too large',
+        limit: 'model context window',
+        reason: 'this turn is too large for the model to read in one request — ask about one company or one area at a time',
+        requestTokens,
+        systemPromptTokens: SYSTEM_PROMPT_TOKENS,
+        imageAttached: !!attachedImage,
+        modelContextMax,
+        note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
+      }, 413);
+    }
 
     // No active ai_providers row = today's exact behavior (hardcoded OpenAI + env model).
     // A row only ever changes providerName/model; it never supplies the key itself —
@@ -2776,7 +3180,9 @@ serve(async (req) => {
         // nothing pending and falls through to the model as an ordinary message, which is
         // the idempotency guarantee, not a separate check here.
         const pendingAction = contextPack?.pendingAction as PendingAction | null;
-        const isShortAffirmative = /^(yes|yep|yeah|yup|confirm|confirmed|go ahead|go for it|do it|execute|proceed|sure|okay|ok)[.!]?$/i.test(command.trim());
+        // Built from the ONE definition (founder directive §1). This is the gate that turns a bare "yes"
+        // into real mutations, so it must never recognise an affirmative the receipt tier does not.
+        const isShortAffirmative = new RegExp('^(?:' + CONFIRMATION_ALTERNATION + ')[.!]?$', 'i').test(command.trim());
 
         let deterministic: { summary: string; fields: Record<string, unknown>; tag: string } | null = null;
         if (pendingAction && pendingAction.kind === 'bulk_confirmation' && pendingAction.action && typeof pendingAction.action === 'object' && isShortAffirmative) {
@@ -2913,10 +3319,24 @@ serve(async (req) => {
         // claimExecutionEvidence once recordExecution is declared below.
         let planExecutedActions: ExecutionPlanAction[] | null = null;
         if (pendingAction && pendingAction.kind === 'multi_action_plan' && isShortAffirmative && Array.isArray(pendingAction.executionPlan) && pendingAction.executionPlan.length > 0) {
-          const planCompanyIds = new Set((contextPack?.companies || []).map((c: any) => c.id));
-          const planPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
-          const planTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
-          const planGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+          // A DURABLE plan was stored with canonical ids. Validating it against a display window that the
+          // context budget may have emptied, and then telling the founder its targets "no longer resolve to
+          // a real record", is a false statement about canonical state (verifier #62, V62-D1b). The ids the
+          // trim dropped and the rows resolved from this turn count as present, exactly as they do for every
+          // other gate.
+          function planIdSet(...names: string[]): Set<string> {
+            const out: Set<string> = new Set();
+            for (const name of names) {
+              for (const row of ((contextPack as any)?.[name] || [])) if (row && typeof row.id === 'string') out.add(row.id);
+              for (const id of (contextProvenance?.[name] || [])) out.add(id);
+              for (const row of (((contextPack as any)?.namedTargets || {})[name] || [])) if (row && typeof row.id === 'string') out.add(row.id);
+            }
+            return out;
+          }
+          const planCompanyIds = planIdSet('companies', 'archivedCompanies');
+          const planPersonIds = planIdSet('people');
+          const planTaskIds = planIdSet('tasks', 'archivedTasks');
+          const planGoalIds = planIdSet('goals');
           const isRealId = (v: unknown, set: Set<unknown>): v is string => typeof v === 'string' && set.has(v);
           const validPlan = pendingAction.executionPlan.every((a) => {
             if (!a || typeof a !== 'object' || typeof a.id !== 'string' || typeof a.operation !== 'string' || !a.targetIds || typeof a.targetIds !== 'object') return false;
@@ -3031,7 +3451,24 @@ serve(async (req) => {
         // to keyword-scan the way task creation is) — cross-check against the real ids
         // this request's own context pack fetched, so the model can't smuggle in an
         // arbitrary uuid it merely guessed at.
-        const contextTaskIds = new Set((contextPack?.tasks || []).map((t: any) => t.id));
+        // ID PROVENANCE AFTER A TRIM (verifier #62, V62-D1). The rows may be gone; the ids are not. Every
+        // gate below is built from the surviving rows PLUS the ids the budget dropped PLUS the rows the
+        // targeted lookups resolved from this turn's command, so trimming can never turn the founder's own
+        // target into an id the executor refuses to act on.
+        function packIdSet(...names: string[]): Set<string> {
+          const out: Set<string> = new Set();
+          for (const name of names) {
+            for (const row of ((contextPack as any)?.[name] || [])) {
+              if (row && typeof row.id === 'string') out.add(row.id);
+            }
+            for (const id of (contextProvenance?.[name] || [])) out.add(id);
+            for (const row of (((contextPack as any)?.namedTargets || {})[name] || [])) {
+              if (row && typeof row.id === 'string') out.add(row.id);
+            }
+          }
+          return out;
+        }
+        const contextTaskIds = packIdSet('tasks');
         const requestedDeleteIds = Array.isArray(result.deleteTaskIds) ? result.deleteTaskIds as unknown[] : [];
         const deleteTaskIds = requestedDeleteIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id));
 
@@ -3050,7 +3487,7 @@ serve(async (req) => {
         // 'archived' (202608290001_task_goal_archive_restore.sql). restoreTaskIds
         // resolves against context.archivedTasks specifically, since context.tasks is
         // scoped to in-flight statuses only and never contains an archived task.
-        const contextArchivedTaskIds = new Set((contextPack?.archivedTasks || []).map((t: any) => t.id));
+        const contextArchivedTaskIds = packIdSet('archivedTasks');
         const requestedArchiveTaskIds = Array.isArray(result.archiveTaskIds) ? result.archiveTaskIds as unknown[] : [];
         // ExecutionResultEnvelope (type at module top; governance/OPERATING_TRUTH_MODEL.md
         // §4.1). One entry per executed (or attempted) operation, written at the real
@@ -3098,15 +3535,31 @@ serve(async (req) => {
           const detail = String((a.result as Record<string, unknown> | null)?.detail || '');
           if (detail.startsWith('already_')) continue;
           const mapping = PLAN_EVIDENCE[a.operation];
-          if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], true);
+          // NOT the literal true, and not the plan's own status word: the postcondition the backend
+          // actually reported for this action (verifier #60, V60-D7).
+          const planPostcondition = (a as Record<string, unknown>).postconditionPassed === true
+            || ((a.result as Record<string, unknown> | null)?.postconditionPassed === true);
+          if (mapping) recordExecution(mapping[0], mapping[1], (a.targetIds || {})[mapping[2]], planPostcondition);
         }
 
-        const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && contextTaskIds.has(id)))];
+        // Verifier #58 V58-D2 (CONTEXT_WINDOW_AS_UNIVERSE for tasks; governance/CANONICAL_WORK_CONTRACT.md §2): task
+        // lifecycle targets resolve SERVER-SIDE under the caller's RLS across every status — never by membership in
+        // the capped window. context.archivedTasks was queried and enveloped but never placed in the pack, so a chat
+        // restore could never execute; an archive of a task outside the 15-row window was silently dropped.
         const requestedRestoreTaskIds = Array.isArray(result.restoreTaskIds) ? result.restoreTaskIds as unknown[] : [];
-        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && contextArchivedTaskIds.has(id)))];
+        const LIFECYCLE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const requestedTaskLifecycleIds: string[] = [...new Set([...requestedArchiveTaskIds, ...requestedRestoreTaskIds].filter((id): id is string => typeof id === 'string' && LIFECYCLE_UUID_RE.test(id)))];
+        const taskLifecycleRows = requestedTaskLifecycleIds.length > 0
+          ? (((await supabase.from('tasks').select('id,title,status').in('id', requestedTaskLifecycleIds)).data || []) as LifecycleLookupRow[])
+          : ([] as LifecycleLookupRow[]);
+        const taskLifecycleById = new Map(taskLifecycleRows.map((t) => [t.id, t]));
+        const archiveTaskIds = [...new Set(requestedArchiveTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
+        const restoreTaskIds = [...new Set(requestedRestoreTaskIds.filter((id): id is string => typeof id === 'string' && taskLifecycleById.has(id)))];
+        void contextArchivedTaskIds;
         const taskTitleById = new Map([
           ...((contextPack?.tasks || []).map((t: any) => [t.id, t.title])),
           ...((contextPack?.archivedTasks || []).map((t: any) => [t.id, t.title])),
+          ...taskLifecycleRows.map((t) => [t.id, t.title]),
         ]);
         const lifecycleReasonText: Record<string, string> = {
           archived: 'archived', restored: 'restored',
@@ -3115,6 +3568,7 @@ serve(async (req) => {
           not_found: 'could not be found',
         };
         const taskArchiveRestoreLines: string[] = [];
+        for (const id of requestedTaskLifecycleIds) if (!taskLifecycleById.has(id)) taskArchiveRestoreLines.push(`Task "${taskTitleById.get(id) || 'that task'}": could not be found (searched the active and archived tasks you can access) — nothing was ${requestedRestoreTaskIds.includes(id) ? 'restored' : 'archived'}.`);
         for (const id of archiveTaskIds) {
           const { data, error } = await supabase.rpc('archive_task', { p_task_id: id });
           const name = taskTitleById.get(id) || id;
@@ -3123,7 +3577,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL task-archive claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('task', 'archive', id, true);
           taskArchiveRestoreLines.push(`Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreTaskIds) {
@@ -3137,7 +3591,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL task-restore claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('task', 'restore', id, true);
           taskArchiveRestoreLines.push(r.reason === 'restored'
             ? `Task "${name}": restored (back to "${r.newStatus}").`
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
@@ -3184,7 +3638,7 @@ serve(async (req) => {
         // its own existing RLS delete policy (the same one the manual "..." > Delete menu
         // in channel-sidebar.tsx already relies on), so a plain scoped delete here reuses
         // that real enforcement rather than adding a new RPC parameter/migration for it.
-        const contextChannelIds = new Set((contextPack?.channels || []).map((c: any) => c.id));
+        const contextChannelIds = packIdSet('channels');
         if (contextPack?.activeChannelId) contextChannelIds.add(contextPack.activeChannelId);
         const requestedDeleteChannelIds = Array.isArray(result.deleteChannelIds) ? result.deleteChannelIds as unknown[] : [];
         const deleteChannelIds = requestedDeleteChannelIds.filter((id): id is string => typeof id === 'string' && contextChannelIds.has(id));
@@ -3224,7 +3678,7 @@ serve(async (req) => {
         // qa/KNOWN_FAILURE_MODES.md #16 in KNOWN_FAILURE_MODES for the incident, and the
         // factual result-line built below for how the response is now grounded in what
         // actually happened instead of the model's own claim).
-        const contextApprovalIds = new Set((contextPack?.approvals || []).map((a: any) => a.id));
+        const contextApprovalIds = packIdSet('approvals');
         const requestedDeleteApprovalIds = Array.isArray(result.deleteApprovalIds) ? result.deleteApprovalIds as unknown[] : [];
         const deleteApprovalIds = requestedDeleteApprovalIds.filter((id): id is string => typeof id === 'string' && contextApprovalIds.has(id));
         let deletedApprovalCount = 0;
@@ -3247,12 +3701,22 @@ serve(async (req) => {
         // optional. A person's companyId is only trusted if it's a real id from
         // context.companies; companyIndex is bounds-checked by the RPC itself against
         // however many companies actually get created this request.
-        const contextCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].map((c: any) => c.id));
+        const contextCompanyIds = packIdSet('companies', 'archivedCompanies');
         // context.companies has no status filter (archived companies must stay resolvable
         // for "restore X" / historical questions), so new-work creation against an
         // archived company has to be blocked here explicitly rather than by omission from
         // context — see archiveCompanyIds/restoreCompanyIds handling below.
-        const archivedCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].filter((c: any) => c.status === 'archived').map((c: any) => c.id));
+        // Trim-proof, like contextCompanyIds. Every id in the archivedCompanies PROVENANCE is archived by
+        // construction (that is what the collection is), so a trimmed row cannot make an archived parent
+        // look active — which is what let a create land under one (verifier #63, V63-D2). The asymmetry
+        // mattered because this gate REFUSES: hardening only the gate that trusts moves risk, it does not
+        // reduce it.
+        const archivedCompanyIds = new Set([
+          ...[...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || []),
+            ...(((contextPack as any)?.namedTargets || {}).companies || [])]
+            .filter((c: any) => c && c.status === 'archived').map((c: any) => c.id),
+          ...(contextProvenance?.archivedCompanies || []),
+        ]);
         let archivedCompanyBlockedCount = 0;
         // Drops any create whose resolved companyId targets an archived company
         // (companyIndex is untouched — it always points at a company created this same
@@ -3267,7 +3731,7 @@ serve(async (req) => {
             }
             return true;
           });
-        const contextPersonIds = new Set((contextPack?.people || []).map((p: any) => p.id));
+        const contextPersonIds = packIdSet('people');
         const VALID_ORGANIZATION_TYPES = new Set(['legal_entity', 'holding_company', 'subsidiary', 'business_unit', 'brand', 'department', 'country_operation']);
         const requestedCompanies = Array.isArray(result.createCompanies) ? result.createCompanies as unknown[] : [];
         const createCompanies = requestedCompanies
@@ -3308,7 +3772,18 @@ serve(async (req) => {
         // archive_company()/restore_company() are the one, sole, authoritative lifecycle
         // path (Bug 3's own explicit requirement) - this table is never used for anything
         // BUT that decision, so a lookup that includes it doesn't cost anything extra.
-        const companyStatusById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.status]));
+        // The THIRD gate on the same data. contextCompanyIds (trusts) and archivedCompanyIds (refuses) were
+        // hardened against the trim in the last two rounds; this one, which answers "is that company
+        // archived?" for everything downstream, still read the raw trimmable array (verifier #64, V64-D3).
+        // Hardening the gates a finding names, one round at a time, is how the asymmetry keeps coming back.
+        const companyStatusById = new Map([
+          ...[...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || []),
+            ...(((contextPack as any)?.namedTargets || {}).companies || [])]
+            .filter((c: any) => c && typeof c.id === 'string')
+            .map((c: any) => [c.id, c.status] as [string, string]),
+          // A row the budget removed is still known-archived if it came from the archived collection.
+          ...(contextProvenance?.archivedCompanies || []).map((id: string) => [id, 'archived'] as [string, string]),
+        ]);
         let updatedCompanyCount = 0;
         let companyLifecycleEditsSkipped = 0;
         for (const c of updateCompaniesReq) {
@@ -3389,10 +3864,28 @@ serve(async (req) => {
         // question, not a negated / hypothetical lead, no other entity type resolved by the model this
         // turn, no model lifecycle field, and the model's own classification (when present) is a mutation.
         const commandLower = String(command || '').toLowerCase();
-        const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower);
-        const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower);
-        const commandReadLead = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|if|when|before|after|should i|shall i|could we|can we|would it|what if)\b/.test(commandLower);
-        const commandFallbackAllowed = !modelResolvedOtherTarget && !modelEmittedArchive && !modelEmittedRestore && (!modelRequestIntent || modelRequestIntent.kind === 'mutation');
+        const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
+          && !QUESTION_SUPPRESSING_FRAME.test(commandLower);
+        const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|not|no longer|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
+          || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,2}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
+          || /^\s*(?:i|we|they|he|she|someone|somebody|(?!(?:archive|archiving|restore|restoring|delete|deleting|remove|removing|unarchive|reactivate|bring|end|ending|please|pls|kindly|just|now|ok|okay|also|then|and)\b)[a-z]+)\s+(?:have |has |had |already |just |recently |also |accidentally |mistakenly )*(?:archived|deleted|removed|restored|ended|reactivated|unarchived)\b/.test(commandLower);
+        const commandReadLead = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|if|when|before|after|should i|should we|would it|what if|suppose|supposing|imagine|thinking|wondering|considering|not sure|unsure|maybe|perhaps)\b/.test(commandLower);
+        // Verifier #58 V58-D1: a deny-list of leads cannot enumerate every declarative ("I nearly archived Alpha",
+        // "we discussed archiving Alpha", "Bob will archive Alpha" all executed). The verb must sit in IMPERATIVE
+        // POSITION: head of the command after optional politeness / adverb / connective / polite-frame words, or head
+        // of the LAST clause after a non-conditional lead clause ("since Alpha is done, archive Alpha"). A conditional
+        // lead ("if / unless / once / when / only if …, archive X") is not an instruction to act now.
+        const IMPERATIVE_HEAD_RE = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION + ')[\\s,:—–-]+)*(?:archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|bring(?:ing)? back|end(?:ing)?)\\b', 'iu');
+        const commandClauses = commandLower.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then)\s+/);
+        const commandLastClause = commandClauses[commandClauses.length - 1] || commandLower;
+        const commandLeadClause = commandClauses.length > 1 ? commandClauses.slice(0, -1).join(' ') : '';
+        const commandConditionalLead = /^\s*(?:if|unless|once|when|whenever|after|before|as soon as|only if|provided|providing|assuming|in case|until|while|should)\b/.test(commandLeadClause);
+        const commandImperativePosition = IMPERATIVE_HEAD_RE.test(commandLower) || (commandLeadClause.length > 0 && !commandConditionalLead && IMPERATIVE_HEAD_RE.test(commandLastClause));
+        // Verifier #59 V59-D2: the read-lead veto is decided on the clause that carries the imperative, never on a lead
+        // clause the imperative test already discounted ("list the tasks, then archive Alpha") or on a frame word
+        // IMPERATIVE_HEAD_RE admits ("do me a favour and archive Alpha").
+        const commandReadLeadEffective = commandReadLead && !IMPERATIVE_HEAD_RE.test(commandLower) && !(commandLeadClause.length > 0 && !commandConditionalLead && IMPERATIVE_HEAD_RE.test(commandLastClause));
+        const commandFallbackAllowed = commandImperativePosition && !modelResolvedOtherTarget && !modelEmittedArchive && !modelEmittedRestore && (!modelRequestIntent || (modelRequestIntent.kind === 'mutation' && (modelRequestIntentEntity === null || modelRequestIntentEntity === 'company' || modelRequestIntentEntity === 'other')));
         function normaliseName(v: unknown): string { return String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
         async function resolveCompanyLifecycleTargets(action: string, rawIds: unknown, rawNames: unknown, commandName: string | null): Promise<string[]> {
           const ids: string[] = [...new Set((Array.isArray(rawIds) ? rawIds : []).filter((x) => typeof x === 'string' && COMPANY_UUID_RE.test(x)) as string[])];
@@ -3418,7 +3911,13 @@ serve(async (req) => {
             // (punctuation, case and spacing never decide — V56-D5).
             const anchorWord = target.split(' ').sort((a, b) => b.length - a.length)[0];
             const { data: candidates } = await supabase.from('companies').select('id,name,status').ilike('name', `%${anchorWord}%`).limit(50);
-            const rows = (candidates || []) as CompanyLookupRow[];
+            // V57-D4: the anchor-word window is capped; a second query on the whole name (any punctuation
+            // between the words) guarantees the exact row is a candidate whatever shares its longest word.
+            const wholePattern = '%' + target.split(' ').map((w) => w.replace(/[%_]/g, '')).join('%') + '%';
+            const { data: wholeRows } = await supabase.from('companies').select('id,name,status').ilike('name', wholePattern).limit(50);
+            const seenIds: Set<string> = new Set();
+            const rows: CompanyLookupRow[] = [];
+            for (const r of [...((candidates || []) as CompanyLookupRow[]), ...((wholeRows || []) as CompanyLookupRow[])]) { if (!seenIds.has(r.id)) { seenIds.add(r.id); rows.push(r); } }
             const exact = rows.filter((r) => normaliseName(r.name) === target);
             let pick: CompanyLookupRow[] = exact;
             let fuzzy = false;
@@ -3789,13 +4288,20 @@ serve(async (req) => {
         // Archive/restore for goals: context.goals carries no status filter (unlike
         // context.tasks), so both archive and restore ids resolve from the same set -
         // an already-archived goal is still resolvable there by name for "restore X".
-        const contextGoalIds = new Set((contextPack?.goals || []).map((g: any) => g.id));
+        const contextGoalIds = packIdSet('goals');
         const requestedArchiveGoalIds = Array.isArray(result.archiveGoalIds) ? result.archiveGoalIds as unknown[] : [];
-        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
+        // Verifier #58 V58-D2 (same class for goals): re-read model-emitted goal ids under RLS across every status.
         const requestedRestoreGoalIds = Array.isArray(result.restoreGoalIds) ? result.restoreGoalIds as unknown[] : [];
-        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && contextGoalIds.has(id)))];
-        const goalTitleById = new Map((contextPack?.goals || []).map((g: any) => [g.id, g.title]));
+        const requestedGoalLifecycleIds: string[] = [...new Set([...requestedArchiveGoalIds, ...requestedRestoreGoalIds].filter((id): id is string => typeof id === 'string' && LIFECYCLE_UUID_RE.test(id)))];
+        const goalLifecycleRows = requestedGoalLifecycleIds.length > 0
+          ? (((await supabase.from('goals').select('id,title,status').in('id', requestedGoalLifecycleIds)).data || []) as LifecycleLookupRow[])
+          : ([] as LifecycleLookupRow[]);
+        const goalLifecycleById = new Map(goalLifecycleRows.map((g) => [g.id, g]));
+        const archiveGoalIds = [...new Set(requestedArchiveGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
+        const restoreGoalIds = [...new Set(requestedRestoreGoalIds.filter((id): id is string => typeof id === 'string' && goalLifecycleById.has(id)))];
+        const goalTitleById = new Map([...((contextPack?.goals || []).map((g: any) => [g.id, g.title])), ...goalLifecycleRows.map((g) => [g.id, g.title])]);
         const goalArchiveRestoreLines: string[] = [];
+        for (const id of requestedGoalLifecycleIds) if (!goalLifecycleById.has(id)) goalArchiveRestoreLines.push(`Goal "${goalTitleById.get(id) || 'that goal'}": could not be found (searched the active and archived goals you can access) — nothing was ${requestedRestoreGoalIds.includes(id) ? 'restored' : 'archived'}.`);
         for (const id of archiveGoalIds) {
           const { data, error } = await supabase.rpc('archive_goal', { p_goal_id: id });
           const name = goalTitleById.get(id) || id;
@@ -3804,7 +4310,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL goal-archive claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('goal', 'archive', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreGoalIds) {
@@ -3815,7 +4321,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL goal-restore claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('goal', 'restore', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
@@ -3904,8 +4410,8 @@ serve(async (req) => {
         // way. Documents require title+text only (chat can never attach a real file);
         // company is optional for a text-content document, matching createDocument's own
         // manual "paste text" path in web/lib/data/documents.ts.
-        const contextDepartmentIds = new Set((contextPack?.departments || []).map((d: any) => d.id));
-        const contextLeadIds = new Set((contextPack?.leads || []).map((l: any) => l.id));
+        const contextDepartmentIds = packIdSet('departments');
+        const contextLeadIds = packIdSet('leads');
         const VALID_SENSITIVITY = new Set(['public', 'internal', 'confidential', 'restricted', 'founder_only']);
         const requestedDepartmentCreates = Array.isArray(result.createDepartments) ? result.createDepartments as unknown[] : [];
         const createDepartmentsReq = requestedDepartmentCreates
@@ -3969,12 +4475,12 @@ serve(async (req) => {
         // deliberately never accepted from the model — matches web/CLAUDE.md's existing
         // line that margin/cost data must not enter a caller's context beyond what
         // their own RLS already allows, extended here to the write path too.
-        const contextProductIds = new Set((contextPack?.products || []).map((p: any) => p.id));
-        const contextProductSpecIds = new Set((contextPack?.productSpecs || []).map((s: any) => s.id));
-        const contextDrawingIds = new Set((contextPack?.engineeringDrawings || []).map((d: any) => d.id));
-        const contextAiProviderIds = new Set((contextPack?.aiProviders || []).map((p: any) => p.id));
-        const contextMcpConnectorIds = new Set((contextPack?.mcpConnectors || []).map((c: any) => c.id));
-        const contextProposalIds = new Set((contextPack?.proposals || []).map((p: any) => p.id));
+        const contextProductIds = packIdSet('products');
+        const contextProductSpecIds = packIdSet('productSpecs');
+        const contextDrawingIds = packIdSet('engineeringDrawings');
+        const contextAiProviderIds = packIdSet('aiProviders');
+        const contextMcpConnectorIds = packIdSet('mcpConnectors');
+        const contextProposalIds = packIdSet('proposals');
 
         const requestedProductLineCreates = Array.isArray(result.createProductLines) ? result.createProductLines as unknown[] : [];
         const createProductLinesReq = requestedProductLineCreates
@@ -5231,7 +5737,10 @@ serve(async (req) => {
         // outright when the surviving question itself is a promise.
         // ['’] — the typographic apostrophe models actually emit ("I’ll") is NOT the
         // ASCII one; matching only ASCII was a real bypass (run8, future-promise case).
-        const FUTURE_PROMISE_IN_QUESTION = /\b(i['’]?ll|i will|i['’]?m going to|going to)\b[^.]{0,40}\b(assign|creat(e|ing)|archiv(e|ing)|restor(e|ing)|updat(e|ing)|delet(e|ing)|mov(e|ing)|reassign(ing)?|end(ing)?|set(ting)?|remov(e|ing))\b/i;
+        // the same promise pattern, byte-identical; one pattern applied to a question and to a statement.
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const FUTURE_PROMISE_IN_QUESTION = FUTURE_PROMISE_PATTERN;
         const safeQuestionFragment = (s: unknown): string | null => {
           // run10 (R10.paQuestion): the base gate runs on the SURVIVING question, not
           // the raw input — pre-rejecting the whole string for an assertion in its
@@ -5471,8 +5980,10 @@ serve(async (req) => {
         // Unconditional mutation verbs: base and gerund forms anywhere in the command (a participle alone
         // is an adjective — "a report of archived companies"); Mongolian stems with Unicode-letter
         // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
-        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*|нэрийг)(?!\p{L})/iu;
+        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
         // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
+        // "ACME needs archiving": a bare participle after needs/wants, with no "to" and no auxiliary.
+        const MUTATION_NEEDS_PARTICIPLE = /\b(?:needs?|wants?|requires?)\s+(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|activat|deactivat|invit|revok|enabl|disabl|promot|demot|onboard|merg|updat|clos|complet|cancel|assign|mov|transfer|end)ing\b/i;
         const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
         // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
         // a field, a relationship phrase). Case-insensitive; proper nouns are checked separately below.
@@ -5481,25 +5992,203 @@ serve(async (req) => {
         const MUTATION_VERB_PROPER_OBJECT = /(?:^|[\s,.;:—–-])(?:[Cc]reat(?:e|ing)|CREATE|[Mm]ak(?:e|ing)|MAKE|[Aa]dd(?:ing)?|ADD|[Rr]egister(?:ing)?|[Ss]et(?:ting)?|SET|[Uu]pdat(?:e|ing)|UPDATE|[Cc]hang(?:e|ing)|CHANGE|[Ee]dit(?:ing)?|EDIT|[Ff]ix(?:ing)?|FIX|[Mm]odif(?:y|ying)|MODIFY|[Cc]los(?:e|ing)|CLOSE|[Cc]omplet(?:e|ing)|COMPLETE|[Ff]inish(?:ing)?|FINISH|[Cc]ancel(?:ling|ing)?|CANCEL|[Rr]eopen(?:ing)?|REOPEN|[Mm]ark(?:ing)?|MARK|[Aa]ssign(?:ing)?|ASSIGN|[Mm]ov(?:e|ing)|MOVE|[Tt]ransfer(?:ring)?|TRANSFER|[Hh]ir(?:e|ing)|HIRE|[Oo]nboard(?:ing)?|ONBOARD|[Ee]nd(?:ing)?|END)\s+(?:the\s+|a\s+|an\s+|new\s+|THE\s+)?(?:[A-Z][A-Za-z0-9_-]+|[A-Z]{2,}|\S+-\d+|"[^"]+"|“[^”]+”|'[^']+')|(?:[A-Z]\S*|\S+-\d+|\S+(?:'s|’s) \w+)\s+(?:set|add|mark|move|edit|update|end|close|complete|cancel|finish|reopen|assign|create|make|fix|modify|change)\s*[.!]?\s*$/;
         // A read-shaped request: a question, a wh-opener, or an explicit read verb; a trailing "ok?/right?"
         // on an imperative is not a read. Plus the idioms that only LOOK like lifecycle verbs.
-        const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?\b|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
+        const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do(?!\s+not\b|n['’]t\b|\s+me\s+a\s+favou?r\b)|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?\b|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
         // A polite request phrased as a question is still a request ("could you please archive ACME?").
-        const POLITE_REQUEST = /^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|shall i|may i ask you to|please)\b/i;
-        const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText) && !POLITE_REQUEST.test(commandText);
-        const readShaped = isQuestion || READ_SHAPE.test(commandText);
+        // Declared here, above isQuestion, which now consults it: a const read before its declaration is a
+        // TDZ crash, not a fallback — the class this repo pins with tdz_forward_reference_contract.mjs.
+        const REQUEST_FRAME_PREFIX = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION_INTENT + ')[\\s,:—–-]+)+', 'i');
+        // A command that BEGINS WITH A REQUEST FRAME is a request whatever punctuation ends it. This
+        // replaced POLITE_REQUEST, which was a THIRD hand-maintained list of request frames and is now
+        // deleted: measured against the corpora, neutralising it changed no case, and the vacuity sweep
+        // reported it as a guard nothing tests. Its one unique entry ("shall i") moved into the shared
+        // definition — the frame list and the polite list each held what the other needed, which is the twin
+        // defect in miniature (verifier #64, V64-D1). Read-shaped commands are unaffected: the frame is
+        // stripped and READ_SHAPE still sees "tell me", "what", "list".
+        const startsWithRequestFrame = REQUEST_FRAME_PREFIX.test(commandText);
+        const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText)
+          && !startsWithRequestFrame;
+        // An ADVERB is not a politeness frame, but it sits in the same slot and hid the imperative behind it
+        // ("quickly archive ACME", "permanently delete the draft") — verifier #63, V63-D3(b).
+        const LEADING_ADVERB = /^\s*(?:(?:quickly|immediately|urgently|permanently|properly|finally|actually|really|simply|kindly|carefully|manually|temporarily|briefly|asap|right away|straight away|at once|for good|once and for all)[\s,]+)+/i;
+        const stripFrames = (t: string) => {
+          let out = t;
+          // Adverbs FIRST: REQUEST_FRAME_PREFIX has a bare "right", which ate the "right" of "right away"
+          // and stranded "away", making that LEADING_ADVERB alternative unreachable (verifier #64, V64-D1c).
+          for (let i = 0; i < 4; i++) {
+            const next = out.replace(LEADING_ADVERB, '').replace(REQUEST_FRAME_PREFIX, '').replace(LEADING_ADVERB, '');
+            if (next === out) break;
+            out = next;
+          }
+          return out;
+        };
+        const commandForRead = stripFrames(commandText);
+        // A request for TEXT about a thing is not a request to do the thing: "draft an email about the
+        // merge" never merges anything (verifier #57 C4, carried on request-side evidence now that the
+        // model's own classification can no longer veto the lexicon — verifier #60 V60-D3).
+        const COMPOSITION_REQUEST = /^\s*(?:draft|write|compose|brainstorm|translat(?:e|ing)|reword|rephrase|paraphrase|proofread|outline|sketch|suggest|recommend|propose|help me (?:word|write|draft|phrase|think)|word)\b/i;
+        // A particle can turn a mutation verb into a read: "set out the plan", "add up the hours".
+        const PHRASAL_READ = /^\s*(?:set out|sets out|add up|sum up|lay out|map out|figure out|point out|make up|round up|break down|walk through|go over|run through|think through|write up)\b/i;
+        const commandClausesForRead = commandText.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then|and)\s+/i);
+        const lastClauseForRead = (commandClausesForRead[commandClausesForRead.length - 1] || commandText).replace(REQUEST_FRAME_PREFIX, '');
+        const lastClauseIsMutation = commandClausesForRead.length > 1 && /^\s*(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|reject|declin|activat|deactivat|invit|revok|enabl|disabl|promot|demot|hir|fir|terminat|dismiss|onboard|merg|split|reopen|bring)/i.test(lastClauseForRead) && !/\?/.test(lastClauseForRead);
+        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this the head word only has to be
+        // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
+        // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
+        // both tiers that use it: a const read before its declaration is a TDZ crash, not a fallback.
+        const IMPERATIVE_OBJECT = /^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\s+\S|^(?:it|them|this|that|these|those)\b|^["'“”'']|^\d|^\S*[-_]?\d|^[A-Z][A-Za-z0-9_-]*|^(?:compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?)\b|^\S+@\S+\.\S+|^\S+\s*$/;
+        // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
+        // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
+        // the announcement" has "fell" (verifier #61, V61-D7).
+        // A finite verb never DIRECTLY FOLLOWS A DETERMINER: "create a work order" and "delete the cost
+        // model" are noun phrases whose head noun happens to be spelled like a verb, while "Share price
+        // fell" still has its finite verb (verifier #63, V63-D3(d)).
+        const STATEMENT_FINITE_VERB = /(?:^|\s)(?<!\b(?:a|an|the|my|our|your|its|their|his|her|this|that|these|those|new|another|each|every)\s)(?:is|are|was|were|am|be|been|being|has|have|had|will|would|shall|should|can|could|may|might|must|does|did|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|needs?|seems?|looks?|means?|includes?|requires?|remains?|appears?|shows?|starts?|ends?|applies|works?|happens?|belongs?|costs?|arrived|called|fell|flooded|blocked|created|agreed|started|ended|changed|moved|failed|passed|expired|dropped|rose|grew|went|came|said|told|broke|stopped|continued|returned|increased|decreased|remained|occurred|appeared)(?=\s|$|[.,;!?])/i;
+        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest) && !STATEMENT_FINITE_VERB.test(rest);
+        const lastClauseIsRead = commandClausesForRead.length > 1
+          && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
+        // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for
+        // the FIRST clause existed in the company command fallback and had never been carried here — the one
+        // tier the never-silent receipt actually depends on (verifier #63, V63-D3(a)).
+        const firstClauseForRead = stripFrames(commandClausesForRead[0] || commandText);
+        // The same concept as MUTATION_IMPERATIVE_VERB — "a mutation verb at the head of a clause" — in a
+        // second spelling, and already drifted: this list was missing ~70 verbs the other carries. Both are
+        // now built from MUTATION_VERB_ALTERNATION. This one omits the object requirement because the caller
+        // checks the object itself, with a stricter bar than the imperative tier uses.
+        const FIRST_CLAUSE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\w*', 'i');
+        // Starting with a mutation verb is not enough — "assign a number to each company and list them"
+        // does that and is a read. The first clause must clear the SAME object bar as every other tier;
+        // admitting it on the verb alone re-opened, one tier over, exactly what the object test rejects.
+        const firstClauseIsMutation = (() => {
+          if (commandClausesForRead.length <= 1 || /\?/.test(firstClauseForRead)) return false;
+          const fm = FIRST_CLAUSE_VERB.exec(firstClauseForRead);
+          if (!fm) return false;
+          const rest = firstClauseForRead.slice(fm[0].length).trim();
+          // A STRONGER bar than the ordinary object test, because this overrides a signal the founder gave:
+          // "and list them" asks for a report. The first clause wins only if it NAMES its target.
+          const STRONG_OBJECT = /^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\s*(?:[A-Z][A-Za-z0-9_-]*|\S+[-_]?\d|"[^"]+"|'[^']+'|[“][^”]+[”]|\S+@\S+\.\S+|it|them|compan(?:y|ies)|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|invoice|report|order|contract|assignment|employment)\b/;
+          return objectRefers(rest) && STRONG_OBJECT.test(rest);
+        })();
+        const readShaped = isQuestion
+          || COMPOSITION_REQUEST.test(commandForRead)
+          || PHRASAL_READ.test(commandForRead)
+          || (lastClauseIsRead && !firstClauseIsMutation)
+          || (READ_SHAPE.test(commandForRead) && !lastClauseIsMutation && !firstClauseIsMutation);
         // A bare confirmation or a choice is a request to execute what was pending.
-        const CONFIRMATION_COMMAND = /^\s*(?:yes|yep|yeah|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative|go ahead|do it|proceed|please do|go for it|approved)\b[\s,.!—–-]*(?:(?:go ahead|do it|proceed|please|now|thanks|then)[\s,.!—–-]*)*$|^\s*(?:option|choice|number|the)?\s*(?:\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\s+(?:one|option|choice))?\s*[.!]?\s*$/i;
+        // The SAME canonical set as the executor gate, plus the option-number branch — so the intent tier
+        // is a superset of the executor by construction and "the executor acted, the receipt never knew"
+        // is not expressible (founder directive §1 and §3).
+        const CONFIRMATION_COMMAND = new RegExp('^\\s*(?:' + CONFIRMATION_ALTERNATION + ')\\b[\\s,.!—–-]*(?:(?:go ahead|go|do it|proceed|please|now|thanks|then)[\\s,.!—–-]*)*$'
+          + '|^\\s*(?:option|choice|number|the)?\\s*(?:\\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\\s+(?:one|option|choice))?\\s*[.!]?\\s*$', 'i');
         const confirmationShaped = CONFIRMATION_COMMAND.test(commandText);
-        const lexiconAlways = (commandText.match(MUTATION_VERB_ALWAYS) || []).slice(1).find((g) => typeof g === 'string' && g.length > 0) || null;
-        const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
-        const lexiconObject = (MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) ? ((commandText.match(/\b(creat|make|add|register|set|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard)\w*/i) || [])[0] || 'update') : null;
-        const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject) ? String(lexiconAlways || lexiconPassive || lexiconObject).toLowerCase() : null;
-        const lexiconReadVetoed = lexiconVerb !== null && (readShaped || modelIntentKind === 'read');
+        // Group 1 of MUTATION_VERB_ALWAYS is a bare English verb matched ANYWHERE, which fires inside a
+        // noun phrase ("history of the ACME archive") and inside a statement about the world ("the store
+        // will reopen Monday"). Those were previously rescued by the model's own classification, which the
+        // model could equally use to switch the gate off (verifier #60 V60-D3). Position is request-side
+        // evidence and cannot be switched off by the component being policed, so group 1 must sit in
+        // IMPERATIVE POSITION. Groups 2-3 ("bring it back", "get ACME archived") already carry their own
+        // position, and group 4 is Mongolian, which is verb-final — a head rule would disable it entirely.
+        const alwaysMatch = commandText.match(MUTATION_VERB_ALWAYS);
+        const alwaysEnglishBase = alwaysMatch && typeof alwaysMatch[1] === 'string' && alwaysMatch[1].length > 0 ? alwaysMatch[1] : null;
+        // Group 4 is the Mongolian alternation and is handled on its own terms below; groups 2-3
+        // ("bring it back", "get ACME archived") already carry their own position.
+        const alwaysCyrillicRaw = alwaysMatch && typeof alwaysMatch[4] === 'string' && alwaysMatch[4].length > 0 ? alwaysMatch[4] : null;
+        const alwaysOther = alwaysMatch ? ([alwaysMatch[2], alwaysMatch[3]].find((g) => typeof g === 'string' && g.length > 0) || null) : null;
+        // A Mongolian READ or STATEMENT: a question word, a sentence-final question particle (Mongolian
+        // questions routinely carry no '?'), or the copular/negative endings that make a clause a statement
+        // about the world rather than a request (verifier #61, V61-D6).
+        const MN_READ_SHAPE = /(?:^|\P{L})(?:юу|юун|хэн|хэзээ|хаана|яагаад|ямар|хэд|хэдэн|аль|хэрхэн|яаж)(?!\p{L})|(?<!(?:на|нэ|но|нө|на |нэ |но |нө ))(?:^|\P{L})(?:уу|үү|вэ|бэ|вээ|бээ)\s*[?!.]?\s*$|(?:^|\P{L})(?:байна|байгаа\S*|мэдэхгүй|санахгүй|болно\s*уу|хэлээч|харуулна)(?!\p{L})/iu;
+        // A participle, a verbal noun or an infinitive is not a command: архивласан (archived, attributive),
+        // өөрчлөлт (a change), устгах (to delete). Only a finite/imperative form is.
+        // A token carrying a NOMINAL CASE SUFFIX is a noun, not an imperative: Устгалын (genitive of
+        // устгал, "deletion"), Томилгооны (genitive of томилгоо, "appointment"), нэрийг (accusative of
+        // нэр, "name"). A Mongolian imperative carries no case ending at all — архивла, сэргээ, устга,
+        // өөрчил, нэм (verifier #62, V62-D6). Kept separate from the participle/verbal-noun test so each
+        // rule stays readable and independently checkable.
+        const MN_CASE_SUFFIX = /(?:ын|ийн|ны|ний|ыг|ийг|аас|ээс|оос|өөс|аар|ээр|оор|өөр|тай|тэй|той|луу|рүү|д|т)$/u;
+        const MN_NOT_A_COMMAND = /(?:сан|сэн|сон|сөн|лт|лга|лгэ|даг|дэг|дог|дөг|маар|мээр|х)(?:ыг|ийг|ын|ий|ийн|ын|аас|ээс|оос|өөс|д|т|тай|тэй|той|нь)?$/u;
+        // Mongolian is VERB-FINAL — the reason group 4 is exempt from the English head rule. A stem that
+        // appears anywhere else in the clause is a noun, an attribute or a converb, not the command.
+        const mnTokens = commandText.trim().replace(/[?!.,;:]+$/u, '').split(/\s+/u).filter((w) => w.length > 0);
+        const mnFinalWindow = mnTokens.slice(-2).join(' ');
+        // Every Cyrillic stem occurrence, not just the first: a compound command carries converbs before
+        // the operative verb ("ACME компанийг архивлаад Beta-г сэргээ" — "having archived ACME, restore
+        // Beta"), and the command is the LAST verb, not the first token that matched.
+        const MN_STEMS_GLOBAL = /(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/giu;
+        // Mongolian carries a borrowed English verb with the light verb хийх ("to do"): "ACME-г archive
+        // хийнэ үү" is an ordinary polite request to archive (verifier #64, V64-D1). The Latin verb is the
+        // content; хийнэ/хий/хийж is the grammar. MN_READ_SHAPE must not veto it, so it is matched here
+        // rather than through the Cyrillic stem list.
+        const MN_LOAN_VERB = /(?:^|\P{L})(archive|unarchive|restore|reactivate|delete|remove|rename|reassign|unassign|approve|reject|activate|deactivate|invite|revoke|enable|disable|promote|demote|onboard|merge|update|close|complete|cancel|assign|move|transfer|end|create|add|set|import|export|publish|share|upload|send|schedule)\s+хий\S*/iu;
+        const mnLoanVerb = (commandText.match(MN_LOAN_VERB) || [])[1] || null;
+        const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
+        const mnIsCommandForm = (w: string) => !MN_NOT_A_COMMAND.test(w) && !MN_CASE_SUFFIX.test(w);
+        const alwaysCyrillic = (alwaysCyrillicRaw || mnCandidates.length > 0)
+          ? (mnCandidates.find((w) => mnIsCommandForm(w) && mnFinalWindow.includes(w)) || null)
+          : null;
+        // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
+        // imperative position, behind a negation. The request carried intent — the executor must fail
+        // closed and the receipt must say the founder asked for it NOT to happen (v59 D2d/C5d).
+        const NEGATED_IMPERATIVE_HEAD = /^\s*(?:(?:do\s*n[o']?t|don[’']t|do not|never|no need to|no longer|please do not|please don[’']t)\s+)+/i;
+        const commandForHead = commandForRead.replace(NEGATED_IMPERATIVE_HEAD, '');
+        const lastClauseForHead = lastClauseForRead.replace(REQUEST_FRAME_PREFIX, '').replace(NEGATED_IMPERATIVE_HEAD, '');
+        const alwaysHeadRe = alwaysEnglishBase
+          ? new RegExp('^\\s*' + alwaysEnglishBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')
+          : null;
+        // Position alone is not enough — the object test decides, the same one the imperative tier uses,
+        // so neither tier can admit what the other rejects (verifier #61, V61-D7).
+        function headHasObject(clause: string): boolean {
+          if (!alwaysHeadRe) return false;
+          const m = alwaysHeadRe.exec(clause);
+          if (!m) return false;
+          return objectRefers(clause.slice(m[0].length).trim());
+        }
+        // Each clause on its own terms: an imperative's object is in the imperative's clause, and a finite
+        // verb in a trailing report clause says nothing about it (verifier #63, V63-D3(a)).
+        const headClauses = commandClausesForRead.length > 1
+          ? [commandForHead, firstClauseForRead, lastClauseForHead]
+          : [commandForHead];
+        const alwaysInImperativePosition = !!alwaysHeadRe && headClauses.some((c) => headHasObject(c));
+        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || (mnLoanVerb ? mnLoanVerb.toLowerCase() : null) || null;
+        const lexiconPassive = (MUTATION_PASSIVE_REQUEST.test(commandText) || MUTATION_NEEDS_PARTICIPLE.test(commandText)) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
+        // A capitalised weekday or month is a TIME, not an entity: "the store will reopen Monday" is a
+        // statement about the world, and the proper-noun object tier used to read it as a lifecycle request.
+        const TEMPORAL_PROPER_OBJECT = /\b(?:reopen|open|clos(?:e|ing)|end(?:ing)?|start(?:ing)?|resum(?:e|ing)|paus(?:e|ing)|finish(?:ing)?)\s+(?:on\s+|next\s+|this\s+|last\s+)?(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day|\b(?:reopen|open|end(?:ing)?|start(?:ing)?|resum(?:e|ing))\s+(?:on\s+|in\s+|next\s+|this\s+|last\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/;
+        const properObjectIsTemporal = MUTATION_VERB_PROPER_OBJECT.test(commandText)
+          && !MUTATION_VERB_WITH_OBJECT.test(commandText)
+          && TEMPORAL_PROPER_OBJECT.test(commandText);
+        const lexiconObject = ((MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) && !properObjectIsTemporal) ? ((commandText.match(/\b(creat|make|add|register|set|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard)\w*/i) || [])[0] || 'update') : null;
+        // IMPERATIVE POSITION (verifier #60, V60-D4). The founder's command, with its ordinary request
+        // frames stripped, beginning with a mutation verb in base form and carrying an object. Position is
+        // request-side evidence: it is a property of what was ASKED, never of what the model replied.
+        // Read-shaped commands veto this exactly as they veto the other lexicon tiers.
+        const MUTATION_IMPERATIVE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\b\\s+\\S', 'i');
+        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this test the head word is only
+        // required to be spelled like a verb, and "Archive policy needs a review" or "Share price fell
+        // after the announcement" read as commands (verifier #61, V61-D7). A determiner phrase, a proper
+        // noun, an identifier, a quoted string, a pronoun, a bare number or an entity noun all refer; a
+        // bare common noun continuing a noun phrase does not.
+        const imperativeObjectOf = (clause: string) => {
+          const m = MUTATION_IMPERATIVE_VERB.exec(clause);
+          if (!m) return null;
+          const rest = clause.slice(m[0].length - 1).trim();
+          return objectRefers(rest) ? clause : null;
+        };
+        const imperativeSource = headClauses.map((c) => imperativeObjectOf(c)).find((x) => x !== null) || null;
+        const lexiconImperative: string | null = imperativeSource
+          ? String((imperativeSource.trim().match(/^[A-Za-z-]+/) || [''])[0]).toLowerCase() || null
+          : null;
+        const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject || lexiconImperative) ? String(lexiconAlways || lexiconPassive || lexiconObject || lexiconImperative).toLowerCase() : null;
+        // ONLY the request may veto the request lexicon. modelIntentKind is emitted by the model, and
+        // letting it clear a lexicon hit let the component being policed switch off its own truth gate
+        // (verifier #60, V60-D3: 37/37 fabricated completions shipped on a declared kind:"read").
+        // The model's classification can still ADD intent below; it can never remove it.
+        const lexiconReadVetoed = lexiconVerb !== null && readShaped;
         // Primary intent, in authority order. The lexicon-only case is decided after the belt exists.
         const requestedIntentPrimary: MutationIntent | null = modelMutationField
           ? { verb: modelIntentAction || lexiconVerb, field: modelMutationField }
           : (modelIntentKind === 'mutation' || modelIntentKind === 'confirmation')
             ? { verb: modelIntentAction || lexiconVerb || (modelIntentKind === 'confirmation' ? 'confirm' : null), field: null }
-            : (confirmationShaped && modelIntentKind !== 'read')
+            : confirmationShaped
               ? { verb: 'confirm', field: null }
               : (lexiconVerb !== null && !lexiconReadVetoed)
                 ? { verb: lexiconVerb, field: null }
@@ -5789,7 +6478,10 @@ serve(async (req) => {
         // mutation claim accounts for? If so the reply has drifted from the verified
         // structure and must not be shipped as-is. A turn whose mutation claims were
         // genuinely verified is unaffected.
-        const LEGACY_PAST_COMPLETION = /(?<!may )(?<!might )(?<!could )(?<!can )\b(has been|have been|was|were)\b[^.]{0,30}\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|reassigned|completed|archived|restored|moved|ended|added|granted|confirmed)\b|\b(approved|declined|rejected|deleted|removed|renamed|updated|created|assigned|completed|archived|restored)\s+successfully\b|\brenamed:\s*.+(→|->)/i;
+        // the same past-completion claim pattern, byte-identical; "legacy" named a tier, not a concept.
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const LEGACY_PAST_COMPLETION = PAST_COMPLETION_CLAIM_PATTERN;
 
         // run11/D87: arm 3 ("now <gerund>") carried a SHORTER verb list than arm 2
         // ("i'm now <gerund>"), so "Now removing ACME." shipped while "I'm now removing
@@ -5930,7 +6622,10 @@ serve(async (req) => {
         // not a verb, and is never the reference point. Present-tense "is/are archived" is a
         // STATE, not a completion event, so it is deliberately excluded from the verbal set
         // (that is what lets "ACME is archived but was not deleted." survive).
-        const COMPLETION_PARTICIPLE = /\b(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added|confirmed)\b/i;
+        // the same completion vocabulary, drifted by exactly one word ("done" — the commonest fabricated completion of all, and it was missing from the participle copy).
+        // ONE definition, referenced under the name this tier and its harness markers use — never a
+        // second body (verifier #65 V65-D3; founder directive 2026-09-08 §6).
+        const COMPLETION_PARTICIPLE = COMPLETION_WORD;
         const COMPLETION_VERB = /\b(?:has|have|had|was|were)(?:\s+(?:not|been|being|already|just|recently|successfully|also|now))*\s+(?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|declined|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|added)\b|\b(?:archived|deleted|updated|created|restored|removed|completed|renamed|approved|rejected|assigned|reassigned|moved|sent|cleared|granted|declined|ended|activated|deactivated)\s+successfully\b/i;
         // A clause is a TRUTHFUL NEGATIVE (not a completion assertion) when it carries a
         // negator AND either there is no verbal completion in it at all (the completion words
@@ -6270,18 +6965,26 @@ serve(async (req) => {
           const pendingQuestion = pa ? String(pa.question || pa.summary || '').trim() : '';
           const failed = claimExecutionEvidence.find((e) => e.error) || null;
           const attempted = claimExecutionEvidence.length > 0;
-          const verb = requestedIntent.verb;
+          const verb = /^архивл/i.test(String(requestedIntent.verb || '')) ? 'archive' : /^сэргээ/i.test(String(requestedIntent.verb || '')) ? 'restore' : /^устга/i.test(String(requestedIntent.verb || '')) ? 'delete' : /^bring/i.test(String(requestedIntent.verb || '')) ? 'restore' : requestedIntent.verb;
+          const commandEntityNoun = ((commandText.match(/\b(task|goal|person|people|employee|staff|project|department|compan(?:y|ies)|business unit)\b/i) || [])[1] || '').toLowerCase();
+          const commandEntity = /^task/.test(commandEntityNoun) ? 'task' : /^goal/.test(commandEntityNoun) ? 'goal' : /^(person|people|employee|staff)/.test(commandEntityNoun) ? 'person' : /^project/.test(commandEntityNoun) ? 'project' : /^department/.test(commandEntityNoun) ? 'department' : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
             approve: 'deciding an approval from chat is not available yet — use the Approvals page',
             reject: 'deciding an approval from chat is not available yet — use the Approvals page',
             decline: 'deciding an approval from chat is not available yet — use the Approvals page',
             invite: 'inviting someone from chat is not available yet — use the People page',
           };
+          const negatedRequest = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/i.test(commandText) || /\b(?:do not|don['’]t|never|not to|no longer|instead of|rather than|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|rename|assign|approve|reject|unarchive|reactivate|end|close|cancel)/i.test(commandText);
+          const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText) || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to|could we|should we|shall we)\b/i.test(commandText);
           const reason = pendingQuestion ? 'I need your answer first'
+            : negatedRequest ? 'you asked me not to, so nothing was executed'
+            : hypotheticalRequest ? 'that read as a hypothetical, not an instruction — say the word and I will do it'
             : failed ? `the operation did not succeed (${failed.error})`
             : attempted ? 'the operation did not confirm in the database'
             : (verb && UNSUPPORTED_FROM_CHAT[verb]) ? UNSUPPORTED_FROM_CHAT[verb]
-            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? 'I could not resolve which company you meant (searched the active and archived companies you can access)'
+            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which ${entity} you meant (searched the active and archived ${entity === 'company' ? 'companies' : entity + 's'} you can access)`)(
+                (modelIntent && typeof modelIntent.entityType === 'string' && ['company', 'task', 'goal', 'person', 'project', 'department'].includes(modelIntent.entityType)) ? String(modelIntent.entityType)
+                : /Task/.test(String(requestedIntent.field || '')) ? 'task' : /Goal/.test(String(requestedIntent.field || '')) ? 'goal' : (commandEntity || 'company'))
             : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'
             : 'that request did not resolve to an operation I can execute from chat';
           const receiptPrefix = typeof deterministicPrefix === 'string' && deterministicPrefix.trim().length > 0 ? deterministicPrefix.trim() : factLines.join(' ');

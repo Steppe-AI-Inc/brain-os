@@ -41,7 +41,11 @@ const slice = extractStructuredBlock(src);
 // V54-P0-TDZ: PAST_COMPLETION_CLAIM_PATTERN and COMPLETION_WORD are declared at the top of the try block,
 // ABOVE this window, in production. Inject them by name from the same source (never hoist declarations
 // from BELOW the window — that manufactured scope is how the TDZ hid for eighteen rounds).
-const PATTERNS_ABOVE_WINDOW_PREAMBLE = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].map((n) => {
+// Since the #65 closure stripTS also resolves these by name — they are the surviving bodies the belt's
+// aliases point at — so a name the window already carries must not be declared a second time. Two `const`
+// declarations of one name is a SyntaxError, not a silent problem.
+const PATTERNS_ABOVE_WINDOW_PREAMBLE = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD']
+  .filter((n) => !slice.includes('const ' + n + ' =')).map((n) => {
   const m = src.match(new RegExp('const ' + n + ' = (/(?:[^/\\\\\n]|\\\\.)+/[a-z]*);'));
   if (!m) throw new Error('V54 preamble: ' + n + ' not found in source');
   return 'const ' + n + ' = ' + m[1] + ';';

@@ -165,7 +165,17 @@ export function stripTS(source) {
 // them means every window that executes either tier needs the declaration, so the extractor resolves it from
 // the SOURCE UNDER TEST (SEM_INDEX_SRC when a mutation run sets it, else the repo copy). Never a
 // re-implementation: a harness that declares its own copy is the drift it is meant to detect.
-const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION'];
+// Verifier #65 made the concept's real shape explicit: request framing is ONE definition carrying PER-TIER
+// applicability, so the extractor resolves the whole family, and IN DEPENDENCY ORDER — a window that reads
+// the intent union also needs the groups the union is built from.
+const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNATION',
+  'REQUEST_FRAME_DELIBERATIVE', 'REQUEST_FRAME_ALTERNATION_INTENT', 'REQUEST_FRAME_READ_VERB',
+  'QUESTION_SUPPRESSING_FRAME', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION',
+  // Converged in the #65 closure (V65-D3a/D3b): each of these used to have a second, separately
+  // maintained declaration further down the file, and windows sliced from below picked up the copy. With
+  // one declaration left, a window below it must be given the survivor — the same service this list has
+  // always performed for the request-frame vocabulary.
+  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD'];
 let _sharedConstantCache = null;
 function resolveSharedConstants() {
   if (_sharedConstantCache) return _sharedConstantCache;
@@ -201,10 +211,22 @@ function resolveSharedConstants() {
   return _sharedConstantCache;
 }
 function prependSharedConstants(slice) {
+  // TRANSITIVE, and emitted in dependency order. REQUEST_FRAME_ALTERNATION_INTENT is built from the groups
+  // declared above it, so a window that names only the union still needs those declarations; walking to a
+  // fixpoint and then emitting in SHARED_CONSTANT_NAMES order guarantees each is declared before its reader.
+  // (The dead `'const\s+'` line that used to sit here was a normal string, so it read "consts+" and never
+  // matched anything — verifier #65, V65-D8.)
   let prefix = '';
+  const need = new Set(SHARED_CONSTANT_NAMES.filter((n) => slice.includes(n)));
+  for (let round = 0; round < SHARED_CONSTANT_NAMES.length; round++) {
+    for (const name of [...need]) {
+      const d = resolveSharedConstants()[name];
+      if (!d) continue;
+      for (const other of SHARED_CONSTANT_NAMES) if (d.includes(other)) need.add(other);
+    }
+  }
   for (const name of SHARED_CONSTANT_NAMES) {
-    if (!slice.includes(name)) continue;
-    if (new RegExp('const\s+' + name + '\s*=').test(slice)) continue;
+    if (!need.has(name)) continue;
     if (new RegExp('const\\s+' + name + '\\s*=').test(slice)) continue;   // the window declares it itself
     const decl = resolveSharedConstants()[name];
     if (!decl) throw new Error(name + ' is read by this window but was not found in the source under test');
@@ -262,7 +284,13 @@ export function withRequestSideDefaults(slice) {
   return REQUEST_SIDE_DEFAULTS + '\n' + slice;
 }
 export function withPatternsAboveWindow(source, slice) {
-  const decls = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].map((n) => {
+  // The guard the comment below has always asked for, and never had: these two names are now also resolved
+  // by stripTS's shared-constant list (they were converged onto in the #65 closure, V65-D3a/D3b), so
+  // prepending them unconditionally produced "Identifier has already been declared" — a SyntaxError that
+  // took out 20 suites at once. A name the slice already declares is skipped.
+  const decls = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD'].filter(
+    (n) => !new RegExp('const\\s+' + n + '\\s*=').test(slice),
+  ).map((n) => {
     const m = source.match(new RegExp('const ' + n + ' = (/(?:[^/\\\\\n]|\\\\.)+/[a-z]*);'));
     if (!m) throw new Error('withPatternsAboveWindow: ' + n + ' not found in source');
     return 'const ' + n + ' = ' + m[1] + ';';
@@ -283,14 +311,31 @@ export function withPatternsAboveWindow(source, slice) {
 // what a request frame is, shared by the executor's command fallback and the request-intent tier — the two
 // used to be separate hand-maintained lists and drifted apart in three consecutive rounds (verifier #64,
 // V64-D1b). Taken from the source under test, never re-declared here.
-const SHARED_CONSTANTS = ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION'];
+const SHARED_CONSTANTS = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNATION',
+  'REQUEST_FRAME_DELIBERATIVE', 'REQUEST_FRAME_ALTERNATION_INTENT', 'REQUEST_FRAME_READ_VERB',
+  'QUESTION_SUPPRESSING_FRAME', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION',
+  // Converged in the #65 closure (V65-D3a/D3b): each of these used to have a second, separately
+  // maintained declaration further down the file, and windows sliced from below picked up the copy. With
+  // one declaration left, a window below it must be given the survivor — the same service this list has
+  // always performed for the request-frame vocabulary.
+  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD'];
 export function withSharedConstants(source, slice) {
   // Idempotent: stripTS already prepends these, so a suite calling this directly must not get a duplicate
   // declaration (which is a SyntaxError, not a silent problem — but still a harness bug, not a product one).
   const lf = source.replace(/\r\n/g, '\n');
   let prefix = '';
+  // Transitive, same reason as prependSharedConstants: the intent union names the groups it is built from.
+  const need = new Set(SHARED_CONSTANTS.filter((n) => slice.includes(n)));
+  for (let round = 0; round < SHARED_CONSTANTS.length; round++) {
+    for (const name of [...need]) {
+      const at = lf.indexOf('const ' + name + ' = ');
+      if (at < 0) continue;
+      const head = lf.slice(at, lf.indexOf('\n', lf.indexOf(';', at)) + 1);
+      for (const other of SHARED_CONSTANTS) if (head.includes(other)) need.add(other);
+    }
+  }
   for (const name of SHARED_CONSTANTS) {
-    if (!slice.includes(name)) continue;
+    if (!need.has(name)) continue;
     // Already declared in the slice (stripTS prepends it): a second `const` of the same name is a
     // SyntaxError, so this has to be a no-op rather than an addition.
     if (new RegExp('const\\s+' + name + '\\s*=').test(slice)) continue;

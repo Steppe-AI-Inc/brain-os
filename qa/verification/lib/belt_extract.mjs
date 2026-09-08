@@ -105,6 +105,11 @@ export function readSource(p) {
 // these (the belt was restructured five times); each is optional, and what a given
 // baseline actually declares is reported by buildGate().
 const GATE_NAMES = [
+  // The #65 closure gave three concepts ONE body and left the belt's names as references to it
+  // (V65-D3a/D3b). The survivors are declared above the belt, so they have to be pulled in FIRST or the
+  // composed gate evaluates `const LEGACY_PAST_COMPLETION = PAST_COMPLETION_CLAIM_PATTERN;` with nothing to
+  // point at. Optional by design: a baseline that predates the convergence simply does not declare them.
+  'PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN',
   'LEGACY_PAST_COMPLETION', 'PROGRESS_VERBS', 'EXECUTION_IN_PROGRESS',
   'CONFIRMED_COMPLETION', 'NEGATED_CLAUSE', 'REFERENCELESS_CONFIRMATION',
   'COMPLETION_VOCAB', 'COMPLETION_PARTICIPLE', 'COMPLETION_VERB', 'NEGATION_AUX',

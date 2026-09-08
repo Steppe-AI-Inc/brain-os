@@ -132,14 +132,28 @@ function detype(s) {
 const beltStart = src.indexOf('const LEGACY_PAST_COMPLETION');
 const beltEnd = scan(src, src.indexOf('const readsAsCompletion', beltStart), true);
 if (beltStart === -1 || beltEnd <= beltStart) throw new Error('belt slice not found — update this harness');
-const readsAsCompletion = new Function('verifiedClaims', detype(src.slice(beltStart, beltEnd)) + '\nreturn readsAsCompletion;')([]);
+// The #65 closure gave the completion vocabulary ONE body and left the belt's names as references to it
+// (V65-D3a/D3b). Those bodies are declared ABOVE this window, so a slice that starts at the alias has to be
+// handed them. The window's own content is untouched — only a declaration is prepended.
+const survivorDecls = (windowText) => ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+  .filter((n) => !windowText.includes('const ' + n + ' ='))
+  .map((n) => {
+    const at = src.indexOf('const ' + n + ' = ');
+    if (at < 0) throw new Error(n + ' not found in source — update this harness, do not let it pass');
+    return detype(src.slice(at, src.indexOf('\n', at)));
+  }).join('\n') + '\n';
+const beltWindow = detype(src.slice(beltStart, beltEnd));
+const readsAsCompletion = new Function('verifiedClaims', survivorDecls(beltWindow) + beltWindow + '\nreturn readsAsCompletion;')([]);
 const M = new Function(detype([
   stmt('const CLARIFICATION_ENTITY_ACTION_FIELD'), stmt('function resolveClarificationField', true),
   stmt('const ARCHIVE_VERB_PATTERN'), stmt('const RESTORE_VERB_PATTERN'),
   stmt('function commandContradictsActionType', true), stmt('function matchDisambiguationOption', true),
 ].join('\n')) + '\nreturn { matchDisambiguationOption, resolveClarificationField, commandContradictsActionType };')();
+// FUTURE_PROMISE_IN_QUESTION is now a reference to FUTURE_PROMISE_PATTERN (V65-D3a), so the body has to be
+// pulled in alongside it — in declaration order, before the alias that names it.
 const QB = new Function(detype(['const UUID_IN_TEXT', 'const KNOWN_ABBREVIATION', 'const PAST_COMPLETION_CLAIM_PATTERN',
-  'const safeProseFragment', 'const FUTURE_PROMISE_IN_QUESTION', 'const safeQuestionFragment', 'const COMPLETION_WORD']
+  'const safeProseFragment', 'const FUTURE_PROMISE_PATTERN', 'const FUTURE_PROMISE_IN_QUESTION',
+  'const safeQuestionFragment', 'const COMPLETION_WORD']
   .map((m) => stmt(m)).join('\n')) + '\nreturn safeQuestionFragment;')();
 
 // ---------------------------------------------------------------- runner

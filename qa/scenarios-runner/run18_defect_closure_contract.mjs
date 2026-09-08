@@ -133,12 +133,12 @@ for (const lit of ['const SELECTION_FILLER =', 'const cleanSelection =', 'const 
 }
 
 const beltSlice = stripTS([
-  statementAt(src, 'const LEGACY_PAST_COMPLETION ='),
+  statementAt(src, 'const PAST_COMPLETION_CLAIM_PATTERN ='), statementAt(src, 'const LEGACY_PAST_COMPLETION ='),
   statementAt(src, 'const PROGRESS_VERBS ='),
   statementAt(src, 'const EXECUTION_IN_PROGRESS ='),
   statementAt(src, 'const CONFIRMED_COMPLETION ='),
   statementAt(src, 'const NEGATED_CLAUSE ='),
-  statementAt(src, 'const COMPLETION_PARTICIPLE ='),
+  statementAt(src, 'const COMPLETION_WORD ='), statementAt(src, 'const COMPLETION_PARTICIPLE ='),
   statementAt(src, 'const COMPLETION_VERB ='),
   statementAt(src, 'const NEGATION_AUX ='),
   statementAt(src, 'const completionIsNegated ='),

@@ -58,7 +58,18 @@ function beltWith(names) {
   const b = TEXT.indexOf('const legacyProseFallback');
   if (a < 0 || b <= a) throw new Error('belt block not found — update this suite, do not let it pass');
   const slice = detype(stripComments(TEXT.slice(a, b))).replace(/const hasSupportedMutationClaim =[^;]*;/, '');
-  const seed = 'const knownEntityNames = new Set(' + JSON.stringify(names.map((n) => n.toLowerCase())) + ');\n'
+  // The #65 closure gave the completion vocabulary ONE body and left LEGACY_PAST_COMPLETION /
+  // COMPLETION_PARTICIPLE as references to it (V65-D3a/D3b). The survivors are declared ABOVE this window,
+  // so a slice starting at the alias has to be handed them. The window's own content is unchanged.
+  const survivors = ['PAST_COMPLETION_CLAIM_PATTERN', 'COMPLETION_WORD', 'FUTURE_PROMISE_PATTERN']
+    .filter((n) => !slice.includes('const ' + n + ' ='))
+    .map((n) => {
+      const at = TEXT.indexOf('const ' + n + ' = ');
+      if (at < 0) throw new Error(n + ' not found in source — update this suite, do not let it pass');
+      return detype(TEXT.slice(at, TEXT.indexOf('\n', at)));
+    }).join('\n') + '\n';
+  const seed = survivors
+    + 'const knownEntityNames = new Set(' + JSON.stringify(names.map((n) => n.toLowerCase())) + ');\n'
     + 'const verifiedClaims = [];\n';
   const f = new Function(seed + slice + '\nreturn readsAsCompletion;')();
   return (s) => f(String(s)) === true;

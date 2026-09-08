@@ -1,0 +1,112 @@
+Committed on `verify-3b0bf64-campaign125`, index.ts byte-identical, nothing under `supabase/` touched.
+
+---
+
+# VERIFIER #65 — CAMPAIGN #125 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (HEAD `3b0bf64` matched · scratch writable · `architecture_final_claim_contract` 51/0)
+
+## VERDICT
+
+```
+FAILED
+```
+
+**Candidate `3b0bf6452d4deb3d467500599ffdfebb5eaff0a0` is NOT fit to deploy over v92 under the contract bar.**
+
+EDGE STATUS = **NOT DEPLOYMENT READY**. A mutation-intent fabrication ships. That is a FAIL by the stated criteria, independent of everything else.
+
+---
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND.** Eight defects; three P1.
+
+| id | sev | finding |
+|---|---|---|
+| **V65-D1** | **P1** | 18/18 fabricated completions ship **verbatim** on ordinary mutation requests. 222 of 378 over the wider matrix derive no intent. **Two of the founder's own §2 required cases are in the failing set**: `"should we restore ACME?"` and `"I want to archive ACME"`. |
+| **V65-D2** | **P1 (design)** | One **flat** shared alternation is the wrong shape. Adding the missing frames makes the **executor really archive a company** on `"should we archive ACME"`. |
+| **V65-D5** | **P1 (coverage)** | `isShortAffirmative` survives in **both** directions across all 66 suites. |
+| V65-D3 | P2 | Four semantic duplicates remain — incl. `PAST_COMPLETION_CLAIM_PATTERN` ≡ `LEGACY_PAST_COMPLETION` **byte-identical**, and a **fourth** private request-frame list at `commandIsQuestion`. |
+| V65-D4 | P2 | `vacuity_sweep_extended.mjs` exits **0 with 33 survivors**; no zero-target guard; lost 10 mutants to the closure's own refactor; not in the safety contract's TOOLS list. |
+| V65-D6 | P2 | Both `estimateRequestTokens` V61-D10 reverts survive the whole battery. |
+| V65-D7 / D8 | P3 | Five `sem_ai_command_*` suites re-implement index.ts; `_gate_extract.mjs:200` dead regex. |
+
+**ROOT CAUSE.** #139 removed the twin; #140 converged two more concepts. Neither made the one surviving list **complete**, and — the deeper issue — collapsing two tiers with *opposite safety requirements* onto one flat string made the correct repair inexpressible.
+
+**SYSTEMIC IMPACT.** The entire 66-suite battery is green while 18/18 fabrications ship: every committed corpus is built from frames that are already in the list.
+
+**FIXED.** Nothing — I am the verifier, and every defect is in the Edge Function, whose deployment is founder-only. No production write, no migration, no deploy.
+
+**TESTED.** `qa/verification/proposed/v65_regression_additions.mjs` — **37 passed, 46 failed (CONTRACT 0, DEFECT 46)**, exits 1, cwd-independent, honours `SEM_INDEX_SRC`.
+
+**PRODUCTION.** Untouched. index.ts byte-identical: `77d6f052…` before, during and after.
+
+**BLOCKERS.** V65-D1, V65-D2, V65-D5 block deployment.
+
+---
+
+## The founder's first judgment question, answered
+
+> *Is one shared definition actually correct for both tiers? Find a case where that is wrong, or confirm it is not.*
+
+**It is wrong. Here is the case** (scratch copy; shipped bytes untouched, sha asserted both sides):
+
+```
+--- SHIPPED BYTES ---
+  "should we archive ACME"   EXECUTOR_WOULD_ACT=false  INTENT=null    <- fabrication ships (V65-D1)
+--- frames added to the ONE shared alternation ---
+  "should we archive ACME"   EXECUTOR_WOULD_ACT=true   INTENT=archive <- now really archives a company
+```
+
+The intent tier needs `should we`; the executor must not have it. Under one flat string you can have the fabrication or the unwanted archive, not neither. **Required fix: one canonical definition carrying per-tier applicability.**
+
+> *POLITE_REQUEST is gone — find false positives and false negatives.*
+
+**Neither.** 0 regressions across 3,135 confirmation spellings and 1,798 framed commands; 60/60 truthful reads survive. Its deletion is clean.
+
+> *Are there other twins? Look for the fourth.*
+
+Found: `commandIsQuestion`'s private frame whitelist (3823) — same concept, fourth place, already drifted.
+
+---
+
+## Scenario results
+
+```
+CHANGE VERIFIED: sem-ai-command request-frame convergence, confirmation convergence,
+                 namedTargets envelope, context budget (candidate 3b0bf64)
+SCENARIOS: 9 passed, 8 failed, 3 blocked
+CANONICAL GRAPH: PASS (0 identifiers removed vs v92; deploy surface = index.ts alone)
+UI ↔ DB:         BLOCKED (no browser tools in this session)
+AI ↔ DB:         FAIL   (18/18 fabricated completions ship as the founder-facing answer)
+DEPENDENCIES:    PASS   (namedTargets survives the hardest trim byte-identically)
+PERMISSIONS:     BLOCKED (no DB access; not in scope of this Edge-Function gate)
+RELOAD/PERSISTENCE: PASS (durable channel row outranks stored output; 94/94)
+IDEMPOTENCY:     PASS
+```
+
+**Holds on these bytes:** token budget (34k–123k-token packs → ≤11,400 in all 12 scenarios, terminating, `truncated:true` preserved); estimator matches the actual serialized request; confirmation convergence genuine (0 exec-only / 3,135); executor ⊆ intent (0 exec-only / 1,420); receipt catches 480/480 fabrications and rewrites 0/60 reads; CRLF-pure, 0 bare LF; 0 runtime-fatal TDZ over 1,040 declarations.
+
+---
+
+## Coverage gaps — stated, not skipped
+
+- **Browser / UI / AI-chat truth: `BLOCKED`.** No `mcp__claude-in-chrome__*` tools in this session type.
+- **Deployed-byte link: INTEGRATION-LEVEL, not byte-direct.** `supabase functions list` / `download` unavailable; v92 taken from `git show c9dfab5bd433` (LF sha `795c20c8…`, matches the brief).
+- **`deno check`: BLOCKED** (no network). The error-class counts are the implementing session's claim — **not** independently re-derived.
+- **No live request possible.** Under the standing rule, every conclusion here — including the token-budget PASS — is source/harness-level and still needs live acceptance.
+
+**Synthetic data:** none created. This campaign was entirely source- and harness-level, so there are no `QA-VERIFY-*` entities to clean up. Bulky scratch mutant copies were deleted; one throwaway mutant file (`qa/verification/scratch/p1/mutants/V60-D8-probe.ts`) was rewritten by the sweep and left uncommitted.
+
+**Founder-approval section:** empty. No migration, no DB push, no function deploy, no secret touched.
+
+## Commits
+
+`8846706` — verifier 65 / campaign 125: FAIL 3b0bf64 — the twin is gone but the surviving list is asymmetric, and one flat definition makes the safe repair inexpressible *(branch `verify-3b0bf64-campaign125`)*
+
+---
+
+```
+77d6f0523bcbad0c01a99865c5171025d862665cbc77b9116303b609dfd9e7a0
+```
