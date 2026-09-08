@@ -18,7 +18,7 @@ const co = obl.company_lifecycle;
 for (const need of ['INVERSE_LIFECYCLE', 'MUTATION_TRUTH', 'RELOAD_TRUTH', 'FRESH_SESSION_TRUTH', 'CROSS_ORG_ISOLATION', 'PARENT_ARCHIVED_CHILD_BEHAVIOR', 'CROSS_SURFACE_TRUTH', 'AI_FRESH_GROUNDING']) {
   assert(co.obligations.includes(need), `company_lifecycle derives ${need}`);
 }
-assert(co.policy_blocked.includes('cascade_to_children_on_archive'), 'company_lifecycle marks cascade policy as UNDEFINED (not invented)');
+assert(!co.policy_blocked.includes('cascade_to_children_on_archive') && /CWC|CANONICAL_WORK_CONTRACT/.test(lib.contracts.contracts.company_lifecycle.policy_status.cascade_to_children_on_archive), 'company_lifecycle cascade policy is DEFINED and cites the governance oracle (was UNDEFINED before 2026-09-08)');
 assert(!obl.goal_lifecycle.obligations.includes('PENDING_ACTION_CONFIRMATION'), 'goal_lifecycle (no brain mutation) does NOT derive PENDING_ACTION_CONFIRMATION');
 assert(!obl.manager_assignment.obligations.includes('INVERSE_LIFECYCLE'), 'manager_assignment (inverse NOT AVAILABLE) does NOT derive INVERSE_LIFECYCLE');
 
@@ -48,7 +48,7 @@ assert(inferChangedPrimitives({ fix_description: 'nothing relevant' }, lib).leng
 const gen = generateScenarios(lib, { contractId: 'company_lifecycle', actors: ['founder', 'foreign_manager'] });
 assert(gen.length > 0 && gen.length < 200, `company_lifecycle generates a bounded set (${gen.length})`);
 assert(gen.every((s) => s.pattern && s.expected && s.verdict_policy), 'every generated scenario carries pattern, expected and verdict_policy');
-assert(gen.some((s) => s.verdict_policy === 'BLOCKED_POLICY_UNDEFINED' && s.pattern === 'PARENT_ARCHIVED_CHILD_BEHAVIOR'), 'cascade scenario is emitted as BLOCKED_POLICY_UNDEFINED');
+assert(gen.some((s) => s.verdict_policy === 'DEFINED' && s.pattern === 'PARENT_ARCHIVED_CHILD_BEHAVIOR'), 'cascade scenario is now emitted as DEFINED (governance oracle exists)');
 assert(gen.some((s) => s.actor === 'foreign_manager' && s.pattern === 'UNAUTHORIZED_ACTOR'), 'foreign actor scenarios expect denial');
 assert(gen.some((s) => s.history === 'prior_fabricated_claim' && s.pattern === 'CONVERSATION_HISTORY_CONFLICT'), 'fabricated-history scenario expects canonical state to win');
 const genProj = generateScenarios(lib, { contractId: 'project_lifecycle' });

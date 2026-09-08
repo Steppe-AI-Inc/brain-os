@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-08T14:10:00Z",
+  "last_updated": "2026-09-08T14:40:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 10,
-    "open_p2": 9,
-    "open_p3": 5,
-    "total_open": 24,
+    "open_p2": 11,
+    "open_p3": 6,
+    "total_open": 27,
     "total_closed": 5
   },
   "bugs": [
@@ -1217,6 +1217,59 @@
       ],
       "regression_requirement": "A read-only \"authority audit\" script run at every supervisor boot that records which of the routes above are live, so drift is visible in SUPERVISOR_STATE rather than discovered by incident.",
       "_qa_boundary": "Audit was read-only: env var names, file names, CLI help/list. No mutation attempted."
+    },
+    {
+      "bug_id": "BUG-026",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "The no-API-key fallback returns a plausible plan with created tasks; only the DB tag (model_usage=\"fallback-no-api-key\") and one sentence distinguish it from real LLM output",
+      "ai_truth_classification": "FALLBACK_DISCLOSURE (silent-substitution adjacent - NOT model-to-model fallback, which does not exist)",
+      "discovered_by": "work-pc-independent-qa (source + model_usage forensics, read-only)",
+      "discovered_at": "2026-09-08T14:40:00Z",
+      "campaign_id": "C002",
+      "environment": "production sem-ai-command v94 (v92 source)",
+      "evidence": "index.ts:2504-2507 - if the active provider has no key, fallbackPlan(command, contextPack) runs, resultText is a full plan (strategicGoal, summary, tasks, approvals), model is tagged \"fallback-no-api-key\", and the summary streams to the user. model_usage shows this actually happened 8 times, 2026-08-23 15:05 -> 08-24 02:54, before any LLM was configured. The tag IS persisted (good) and the summary does say \"because AI provider is not configured or failed\" (good), but the surface still creates real tasks and approvals that look like AI planning.",
+      "expected": "A turn served by the deterministic fallback is visually unmistakable in the chat surface (badge/banner), and the receipt states no model ran. Per OTM §5, a response the user reads as AI output when no AI ran is an execution-truth risk.",
+      "actual": "Distinguishable only by reading the summary sentence or querying model_usage.",
+      "blast_radius": "None today: ANTHROPIC_API_KEY is present (471 Haiku calls, latest 09-08 06:45), so this path is not currently reachable in production.",
+      "severity_reasoning": "P2 not P1: correctly tagged in the database and disclosed in prose, and unreachable while the key is present. It matters because it is the one substitution the product can still make silently-ish at the UI layer.",
+      "regression_requirement": "With no provider key configured (staging), assert the chat surface carries an explicit non-AI indicator and that any created tasks are attributed to the fallback planner.",
+      "_qa_boundary": "Source read + read-only SQL. No key was read, unset, or tested in production."
+    },
+    {
+      "bug_id": "OBS-COST-NEVER-RECONCILED",
+      "severity": "P3",
+      "status": "OPEN",
+      "title": "model_usage.actual_cost_usd is 0 on all 524 rows (never null, never positive) while estimated_cost_usd totals $17.37 - provider cost is never reconciled",
+      "discovered_by": "work-pc-independent-qa (read-only aggregate)",
+      "discovered_at": "2026-09-08T14:40:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "evidence": "select count(*) filter (where actual_cost_usd is null)=0, =0 -> 524, >0 -> 0; sum(estimated_cost_usd)=17.371266 over 524 rows.",
+      "expected": "Either actual_cost_usd is reconciled against provider billing, or the column is removed so no surface can present an unreconciled 0 as a real figure.",
+      "blast_radius": "None observed - the dashboard appears to render from estimated/token figures (it showed $14.12 for 30d).",
+      "severity_reasoning": "P3: no incorrect figure has been shown to the founder yet, but a zero-valued \"actual cost\" column is a fabricated-number hazard by CLAUDE.md §26 if any surface ever reads it.",
+      "regression_requirement": "Assert no UI surface renders actual_cost_usd while it is uniformly 0.",
+      "_qa_boundary": "Read-only."
+    },
+    {
+      "bug_id": "OBS-WEB-DEPLOYED-AHEAD-OF-EDGE",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "PROVENANCE: the WEB app is deployed from the P1 package (master 1048b9e) while the Edge function was rolled back to v92 source (v94). The two halves of production are at different commits, and the handoff describes only the Edge state",
+      "discovered_by": "work-pc-independent-qa (live UI vs git archaeology)",
+      "discovered_at": "2026-09-08T14:40:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "evidence": "Live /people Set-manager sheet at 2026-09-08 14:05Z renders \"Current manager: none.\" - a string that exists in origin/master web/app/(app)/people/people-table.tsx:293, was introduced by commit 1048b9e (\"P1 package: web primitives, archived-parent policy, manager picker\"), and is ABSENT at f6fa26a (the master SHA recorded as under test yesterday). qa/BUILD_UNDER_TEST.json still records deployed_product_sha 8521b0e from 2026-08-31.",
+      "why_it_matters": "The Home-PC handoff states \"production is back on the v92 SOURCE (function v94)\" and that all six fix reports stay ready_for_retest=false. That is true of the EDGE function. It is NOT true of the web app, which appears to carry P1-package web fixes (manager picker, archived-parent policy module). Work-PC acceptance must therefore not treat \"nothing is deployed\" as covering both halves: some BUG-011/BUG-013 web-layer behaviour may already be live while the Edge-side behaviour is not.",
+      "open_question": "The exact deployed web commit is UNVERIFIED: the app exposes no build id, version endpoint or commit marker (/api/health 404s; _next/static path is \"immutable\"). Identification was by rendered-copy archaeology only.",
+      "requested_from_home_pc": [
+        "State the deployed WEB commit alongside the Edge function version in every handoff.",
+        "Expose a version/commit marker (build id, /api/version, or a meta tag) so the Work PC can establish web provenance independently instead of inferring it from UI copy - CLAUDE.md §1 requires three-SHA discipline and the web SHA is currently unobtainable from this seat."
+      ],
+      "regression_requirement": "Every acceptance record must carry BOTH the Edge function version/sha AND the deployed web commit.",
+      "_qa_boundary": "Read-only observation; no retest of any fix report was performed or implied."
     }
   ]
 }
