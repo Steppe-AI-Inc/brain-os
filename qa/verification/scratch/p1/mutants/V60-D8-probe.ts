@@ -3041,7 +3041,7 @@ serve(async (req) => {
         note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
       }, 413);
     }
-    const modelContextMax = envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 18000000);
+    const modelContextMax = envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 180000);
     if (requestTokens > modelContextMax) {
       return json({
         error: 'Request too large',

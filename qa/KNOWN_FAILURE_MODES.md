@@ -16559,3 +16559,57 @@ putting structurally wrong data under a field name that looked right.
 
 **Status.** Fixed on the candidate; NOT deployed. Production remains v92 source (function v94), release
 FAILED, nothing CLOSED.
+
+## 141. A mechanical scan found twenty-three duplicated concepts where four rounds of hand-searching found four — REGISTERED (2026-09-08)
+
+**Found by** acting on the founder's directive §6 (*if two lists define the same concept: converge them or
+document why they intentionally differ*) with a scanner rather than by eye. Four twins had been found by
+hand, one per round, each costing a P1 — most recently a confirmation list that was executing mutations the
+receipt layer never saw (#140). Finding the fifth by hand is not a plan.
+
+`qa/verification/scratch/p1/concept_duplication_scan.mjs` reads every named alternation in the Edge function
+— regex constants, string arrays and multi-line concatenations — and measures vocabulary overlap between
+every pair. It found **46 alternations and 61 candidate pairs**, of which **23 overlap by 60% or more**:
+
+| overlap | pair |
+|---|---|
+| 100% | `FUTURE_PROMISE_IN_QUESTION` ↔ `FUTURE_PROMISE_PATTERN` |
+| 100% | `LEGACY_PAST_COMPLETION` ↔ `PAST_COMPLETION_CLAIM_PATTERN` |
+| 92% | `COMPLETION_PARTICIPLE` ↔ `COMPLETION_WORD` |
+| 91% | `MUTATION_ARRAY_FIELDS` ↔ `OTHER_MUTATION_FIELDS` |
+| 86% | `COMPLETION_PARTICIPLE` ↔ `CONFIRMED_COMPLETION` |
+| 60-79% | fifteen more, almost all inside one family |
+
+**The shape of it.** Seven separate lists describe the same concept — *words that claim something was done* —
+spread across the belt's tiers: `COMPLETION_WORD`, `COMPLETION_PARTICIPLE`, `COMPLETION_VERB`,
+`CONFIRMED_COMPLETION`, `LEGACY_PAST_COMPLETION`, `PAST_COMPLETION_CLAIM_PATTERN` and
+`FIRST_PERSON_MAIN_CLAUSE_COMPLETION`. Two of those pairs are 100% identical vocabulary. This is the same
+mechanism that produced four P1s in four rounds, and it is roughly six times larger than anything found by
+hand.
+
+**Not converged in this entry, deliberately.** Verifier #65 is running against these exact bytes, and the
+release-candidate rule is that any source change means a new SHA and fresh verification. Converging seven
+belt tiers is also not a mechanical edit: each list is consumed differently, and the belt is the
+defence-in-depth layer whose false positives destroy truthful answers. So the finding is REGISTERED as debt
+with the decision explicitly still owed, and the convergence is the first item of the next source window.
+
+**What is landed now is the ratchet.** `qa/scenarios-runner/concept_duplication_ratchet_contract.mjs` (6/6)
+re-runs the scan on every battery pass, lists the 23 known pairs as registered debt, and FAILS when a NEW
+pair crosses 60% that nobody has decided about. It also pins that the three canonical definitions produced
+by #139 and #140 are each declared exactly once and that all six consumers still derive from them — a second
+declaration is the twin growing back. Overlap is where a decision is required, never the decision itself,
+so the suite reports and blocks rather than judging.
+
+**Also landed.** The extractor's own line-ending defect (verifier #64, V64-D4): `stripTS` normalised only
+CRLF, so a full-line comment followed by a BARE CR swallowed the code after it and returned an empty string
+— silently, in the tool every behavioural harness in the repo runs through.
+`extractor_line_ending_contract.mjs` (7/7) executes the defect in both directions and records that
+`index.ts` already contains one bare CR (~offset 554,776, harmless today because it joins comment to
+comment) so the count cannot grow unnoticed; removing that byte waits for a source window.
+And `sem_ai_command_confirmation_truth.mjs`, whose own header admitted its bodies were "byte-for-byte copies
+kept in sync manually", now carries a drift guard pinned to seven markers of the real implementation —
+proven to bite by renaming the confirmation tag in a copy of the source. That is a stopgap with a stated
+shape; slicing those paths properly is registered as the next QA-harness item.
+
+**Status.** Registered, not converged. Production remains v92 source (function v94), release FAILED, nothing
+CLOSED.
