@@ -95,7 +95,14 @@ export function stripTypeAssertions(text) {
 export function stripTS(source) {
   // Normalize line endings FIRST. The working tree is CRLF; any line-anchored pattern
   // below would silently fail to match against \r\n and hand un-stripped TS to Function().
-  let s = source.replace(/\r\n/g, '\n');
+  //
+  // A BARE CR counts. It is a JavaScript line terminator, but normalising only CRLF left it in the text,
+  // so the full-line comment strip below treated the comment and the code after it as ONE line and dropped
+  // both — silently, with no error (verifier #64, V64-D4):
+  //     stripTS('// c\rconst x = 1;')  ->  ''
+  // Every behavioural harness in this repo runs through here, so the failure mode was "the window you meant
+  // to execute quietly is not in the window", which is the fail-open class this project keeps finding.
+  let s = source.replace(/\r\n?/g, '\n');
   // Drop whole-line `//` comments BEFORE any other processing.
   //
   // This is not cosmetic — it fixes a real latent bug that silently corrupted every
