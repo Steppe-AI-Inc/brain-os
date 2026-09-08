@@ -16501,3 +16501,61 @@ production-write-authority suites that are red by design. Vacuity sweep 44/44, s
 mutation proof 19/19. deno by class unchanged; CRLF-pure.
 
 **Status.** Fixed on the candidate; NOT deployed. Production remains v92 source (function v94).
+
+## 140. Two more duplicated concepts, one of them executing mutations the receipt never saw — FIXED (2026-09-08)
+
+**Found by** acting on the founder's directive of 2026-09-08 §1 and §6 — *one business/grammar concept → one
+canonical definition → multiple consumers; never the same concept as separately maintained copies* — rather
+than waiting for a verifier to find them. Auditing the paths the directive names (executor request
+detection, intent derivation, polite/request framing, confirmation paths, fallback paths) found the
+request-frame twin already removed in #139 and **two more**.
+
+**CONFIRMATION SEMANTICS — a live defect, not a tidiness problem.** Two lists decided what a bare affirmative
+means:
+
+| | list |
+|---|---|
+| `isShortAffirmative` (executor) | yes yep yeah **yup** confirm confirmed go-ahead go-for-it do-it **execute** proceed sure okay ok |
+| `CONFIRMATION_COMMAND` (intent) | yes yep yeah y ok okay sure confirm(ed) correct affirmative go-ahead do-it proceed please-do go-for-it approved + option N |
+
+**"yup" and "execute" were in the EXECUTOR list and not the intent list.** A founder answering "yup" to an
+armed plan therefore executed real mutations while the request-intent tier never saw a confirmation, so the
+never-silent receipt could not fire and the model's prose was the whole answer for a turn that DID mutate.
+That is precisely the founder's §3 prohibition: *a request the executor detects must never be invisible to
+the receipt logic*. Verifier #64 had flagged `isShortAffirmative` as the most dangerous guard in the file for
+a related reason and did not measure this asymmetry.
+
+Converged onto one `CONFIRMATION_ALTERNATION`, and the DIRECTION was chosen deliberately: the executor uses
+the canonical set, the intent tier uses the canonical set **plus** the option-number branch, so intent ⊇
+executor by construction and the dangerous gap is no longer expressible. The option branch is a documented
+difference — choosing "option 2" confirms a disambiguation, it does not authorise a bulk plan.
+
+**MUTATION VERB AT THE HEAD OF A CLAUSE.** `FIRST_CLAUSE_VERB` and `MUTATION_IMPERATIVE_VERB` were the same
+concept in two spellings (stems and whole words) and had already drifted: the first-clause list was missing
+about seventy verbs the imperative list carried. Both now derive from one `MUTATION_VERB_ALTERNATION`.
+
+**Two differences were DOCUMENTED rather than converged**, as the directive allows: `MUTATION_VERB_ALWAYS`
+group 1 is a narrower lifecycle subset matched anywhere rather than at a head; and `IMPERATIVE_LEAD` in the
+belt classifies a clause of the MODEL'S REPLY, not the founder's request — same words, opposite subject, and
+merging them would tie a request rule to a reply rule.
+
+**Declaration order became the real constraint, three times in one round.** Aliasing one verb list to the
+other crashed on a TDZ, because the consumer is declared before the definition. The pattern is now explicit:
+a concept shared by several consumers lives at MODULE level, above all of them, like the three alternations
+now do. Ordering hazards then cannot exist because there is nothing to order.
+
+**A coverage regression caused by the fix itself, caught immediately.** Converging the twins moved these
+concepts out of regex literals, so the first vacuity sweep — which finds named regex CONSTANTS — stopped
+seeing them and its mutant count silently fell from 44 to 38. **Coverage that shrinks when the code improves
+is the same failure class as a test that fails open.** The three canonical alternations are now swept by
+form-independent mutants: 25 killed, 0 survived.
+
+**Also landed from the same directive.** `qa/scenarios-runner/mutation_sweep_safety_contract.mjs` (11/11)
+pins MUTATION_SWEEP_ZERO_TARGETS_IS_FAILURE, VACUITY_SWEEP_CANNOT_PASS_EMPTY and
+EXTRACTOR_TARGET_COUNT_MUST_BE_POSITIVE across every sweep and proof the deploy decision rests on.
+`qa/scenarios-runner/named_targets_shape_contract.mjs` (8/8) pins FIELD_NAME_MATCH != SEMANTIC_CONTRACT_MATCH
+— type, declaration order, and meaning — after the #64 closure tried to satisfy an architecture contract by
+putting structurally wrong data under a field name that looked right.
+
+**Status.** Fixed on the candidate; NOT deployed. Production remains v92 source (function v94), release
+FAILED, nothing CLOSED.

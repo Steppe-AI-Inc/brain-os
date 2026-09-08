@@ -1700,6 +1700,21 @@ const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|t
   + "|may i ask you to|mind|will you|can we|could we|shall we|shall i"
   + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|i need you to|i want you to"
   + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
+// THE ONE DEFINITION OF A BARE AFFIRMATIVE — "execute what is pending". Two consumers: the executor's
+// bulk_confirmation / multi_action_plan gate, and the request-intent tier that arms the never-silent
+// receipt. They were separate lists, and "yup" and "execute" were in the EXECUTOR one only — so answering
+// "yup" to an armed plan executed real mutations that the receipt tier never saw (founder directive
+// 2026-09-08 §3: a request the executor detects must never be invisible to the receipt logic).
+// The intent tier additionally accepts "option 2" style choices; that is a deliberate difference, recorded
+// here, because choosing an option confirms a disambiguation rather than authorising a bulk plan.
+// THE ONE DEFINITION OF A MUTATION VERB IN IMPERATIVE POSITION. Consumers: the imperative-position tier and
+// the first-clause rule, which were two spellings of the same concept and had already drifted — the
+// first-clause list was missing about seventy verbs the imperative list carried (founder directive
+// 2026-09-08 §1). At module level, above every consumer, so declaration order cannot become the constraint:
+// the same TDZ hazard has now bitten three times in one round.
+const MUTATION_VERB_ALTERNATION = "unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix";
+const CONFIRMATION_ALTERNATION = "yes|yep|yeah|yup|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative"
+  + "|go ahead|go for it|do it|execute|proceed|please do|approved";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
 // A malformed env var parses to NaN, and every comparison with NaN is false — so a typo in
 // SEM_AI_MAX_TOKENS silently disabled the gate it configures and emptied the optional pack on every turn
@@ -3117,7 +3132,9 @@ serve(async (req) => {
         // nothing pending and falls through to the model as an ordinary message, which is
         // the idempotency guarantee, not a separate check here.
         const pendingAction = contextPack?.pendingAction as PendingAction | null;
-        const isShortAffirmative = /^(yes|yep|yeah|yup|confirm|confirmed|go ahead|go for it|do it|execute|proceed|sure|okay|ok)[.!]?$/i.test(command.trim());
+        // Built from the ONE definition (founder directive §1). This is the gate that turns a bare "yes"
+        // into real mutations, so it must never recognise an affirmative the receipt tier does not.
+        const isShortAffirmative = new RegExp('^(?:' + CONFIRMATION_ALTERNATION + ')[.!]?$', 'i').test(command.trim());
 
         let deterministic: { summary: string; fields: Record<string, unknown>; tag: string } | null = null;
         if (pendingAction && pendingAction.kind === 'bulk_confirmation' && pendingAction.action && typeof pendingAction.action === 'object' && isShortAffirmative) {
@@ -5982,7 +5999,11 @@ serve(async (req) => {
         // the FIRST clause existed in the company command fallback and had never been carried here — the one
         // tier the never-silent receipt actually depends on (verifier #63, V63-D3(a)).
         const firstClauseForRead = stripFrames(commandClausesForRead[0] || commandText);
-        const FIRST_CLAUSE_VERB = /^\s*(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|reject|declin|activat|deactivat|invit|revok|enabl|disabl|promot|demot|hir|fir|terminat|dismiss|onboard|merg|split|reopen|bring|creat|add|assign|set|updat|chang|edit|clos|complet|finish|cancel|mark|mov|transfer|end|send|schedul|publish|shar|upload|grant|notify|email|pay|import|export)\w*/i;
+        // The same concept as MUTATION_IMPERATIVE_VERB — "a mutation verb at the head of a clause" — in a
+        // second spelling, and already drifted: this list was missing ~70 verbs the other carries. Both are
+        // now built from MUTATION_VERB_ALTERNATION. This one omits the object requirement because the caller
+        // checks the object itself, with a stricter bar than the imperative tier uses.
+        const FIRST_CLAUSE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\w*', 'i');
         // Starting with a mutation verb is not enough — "assign a number to each company and list them"
         // does that and is a read. The first clause must clear the SAME object bar as every other tier;
         // admitting it on the verb alone re-opened, one tier over, exactly what the object test rejects.
@@ -6002,7 +6023,11 @@ serve(async (req) => {
           || (lastClauseIsRead && !firstClauseIsMutation)
           || (READ_SHAPE.test(commandForRead) && !lastClauseIsMutation && !firstClauseIsMutation);
         // A bare confirmation or a choice is a request to execute what was pending.
-        const CONFIRMATION_COMMAND = /^\s*(?:yes|yep|yeah|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative|go ahead|do it|proceed|please do|go for it|approved)\b[\s,.!—–-]*(?:(?:go ahead|go|do it|proceed|please|now|thanks|then)[\s,.!—–-]*)*$|^\s*(?:option|choice|number|the)?\s*(?:\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\s+(?:one|option|choice))?\s*[.!]?\s*$/i;
+        // The SAME canonical set as the executor gate, plus the option-number branch — so the intent tier
+        // is a superset of the executor by construction and "the executor acted, the receipt never knew"
+        // is not expressible (founder directive §1 and §3).
+        const CONFIRMATION_COMMAND = new RegExp('^\\s*(?:' + CONFIRMATION_ALTERNATION + ')\\b[\\s,.!—–-]*(?:(?:go ahead|go|do it|proceed|please|now|thanks|then)[\\s,.!—–-]*)*$'
+          + '|^\\s*(?:option|choice|number|the)?\\s*(?:\\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\\s+(?:one|option|choice))?\\s*[.!]?\\s*$', 'i');
         const confirmationShaped = CONFIRMATION_COMMAND.test(commandText);
         // Group 1 of MUTATION_VERB_ALWAYS is a bare English verb matched ANYWHERE, which fires inside a
         // noun phrase ("history of the ACME archive") and inside a statement about the world ("the store
@@ -6085,7 +6110,7 @@ serve(async (req) => {
         // frames stripped, beginning with a mutation verb in base form and carrying an object. Position is
         // request-side evidence: it is a property of what was ASKED, never of what the model replied.
         // Read-shaped commands veto this exactly as they veto the other lexicon tiers.
-        const MUTATION_IMPERATIVE_VERB = /^\s*(?:unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix)\b\s+\S/i;
+        const MUTATION_IMPERATIVE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\b\\s+\\S', 'i');
         // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this test the head word is only
         // required to be spelled like a verb, and "Archive policy needs a review" or "Share price fell
         // after the announcement" read as commands (verifier #61, V61-D7). A determiner phrase, a proper

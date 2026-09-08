@@ -78,6 +78,9 @@ const MUTANTS = [
     (s) => s.replace('    tasksTotal: tasksCount.count', '    tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count')],
 ];
 
+// MUTATION_SWEEP_ZERO_TARGETS_IS_FAILURE (founder directive 2026-09-08 §4). A proof that built no
+// mutants has measured nothing; it must abort rather than report a clean run.
+if (MUTANTS.length < 5) { console.error("FATAL: only " + MUTANTS.length + " mutants defined — fix the proof, never let it report green"); process.exit(2); }
 let killed = 0; const survived = [];
 for (const [name, suite, mutate] of MUTANTS) {
   const mutated = mutate(text);

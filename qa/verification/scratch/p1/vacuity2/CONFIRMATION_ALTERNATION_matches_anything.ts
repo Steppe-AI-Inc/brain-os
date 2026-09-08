@@ -1713,8 +1713,7 @@ const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|t
 // 2026-09-08 §1). At module level, above every consumer, so declaration order cannot become the constraint:
 // the same TDZ hazard has now bitten three times in one round.
 const MUTATION_VERB_ALTERNATION = "unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix";
-const CONFIRMATION_ALTERNATION = "yes|yep|yeah|yup|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative"
-  + "|go ahead|go for it|do it|execute|proceed|please do|approved";
+const CONFIRMATION_ALTERNATION = "[sS]*";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
 // A malformed env var parses to NaN, and every comparison with NaN is false — so a typo in
 // SEM_AI_MAX_TOKENS silently disabled the gate it configures and emptied the optional pack on every turn
@@ -5977,7 +5976,7 @@ serve(async (req) => {
         // A request for TEXT about a thing is not a request to do the thing: "draft an email about the
         // merge" never merges anything (verifier #57 C4, carried on request-side evidence now that the
         // model's own classification can no longer veto the lexicon — verifier #60 V60-D3).
-        const COMPOSITION_REQUEST = /(?!)/;
+        const COMPOSITION_REQUEST = /^\s*(?:draft|write|compose|brainstorm|translat(?:e|ing)|reword|rephrase|paraphrase|proofread|outline|sketch|suggest|recommend|propose|help me (?:word|write|draft|phrase|think)|word)\b/i;
         // A particle can turn a mutation verb into a read: "set out the plan", "add up the hours".
         const PHRASAL_READ = /^\s*(?:set out|sets out|add up|sum up|lay out|map out|figure out|point out|make up|round up|break down|walk through|go over|run through|think through|write up)\b/i;
         const commandClausesForRead = commandText.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then|and)\s+/i);

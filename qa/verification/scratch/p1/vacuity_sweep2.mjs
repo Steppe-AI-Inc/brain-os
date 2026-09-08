@@ -100,6 +100,28 @@ for (const [name, values] of CONSTANTS) {
     }]);
   }
 }
+// THE CANONICAL ALTERNATIONS (founder directive 2026-09-08 §1). Converging the twins moved these out of
+// regex literals, so sweep 1 — which finds named regex CONSTANTS — stopped seeing them and its mutant count
+// silently fell from 44 to 38. Coverage that shrinks when code improves is the same failure class as a test
+// that fails open, so the concepts are swept here instead, where their form does not matter.
+for (const name of ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION']) {
+  for (const [label, value] of [['emptied', '"(?!)"'], ['matches anything', '"[\s\S]*"']]) {
+    mutants.push([name + ' ' + label, (src) => {
+      const at = src.indexOf('const ' + name + ' = ');
+      if (at < 0) return src;
+      let depth = 0, end = -1;
+      for (let i = at; i < src.length; i++) {
+        const ch = src[i];
+        if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') depth--;
+        else if (ch === ';' && depth === 0) { end = i + 1; break; }
+      }
+      if (end < 0) return src;
+      return src.slice(0, at) + 'const ' + name + ' = ' + value + ';' + src.slice(end);
+    }]);
+  }
+}
+
 // the trim floors, which decide how far degradation goes
 mutants.push(['hard trim passes weakened to [2] only', (s) => s.replace('for (const floor of [2, 0]) {', 'for (const floor of [2]) {')]);
 mutants.push(['hard trim passes strengthened to [0] only', (s) => s.replace('for (const floor of [2, 0]) {', 'for (const floor of [0]) {')]);

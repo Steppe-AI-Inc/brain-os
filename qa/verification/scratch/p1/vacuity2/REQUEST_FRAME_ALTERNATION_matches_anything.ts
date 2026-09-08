@@ -1688,18 +1688,7 @@ function json(data: unknown, status=200){ return new Response(JSON.stringify(dat
 // the same concept and drifted apart in three consecutive rounds — most recently the v59 hardening, which
 // landed in the executor tier and was withheld from the intent tier the receipt rule depends on
 // (verifier #64, V64-D1b). A frame added here is added to both, by construction.
-const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one"
-  + "|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to"
-  + "|time to|it['’]?s time to|its time to|feel free to"
-  + "|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)"
-  + "|before (?:eod|end of day|you go|lunch|tomorrow)"
-  + "|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|it would be (?:great|good|helpful) if you(?: could| would)?"
-  // Longest-first within a family: regex alternation takes the FIRST match, so "would you" placed ahead
-  // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1).
-  + "|would you be able to|would you(?: please| mind)?|any chance you could|could you(?: please)?|can you(?: please)?"
-  + "|may i ask you to|mind|will you|can we|could we|shall we|shall i"
-  + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|i need you to|i want you to"
-  + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
+const REQUEST_FRAME_ALTERNATION = "[sS]*";
 // THE ONE DEFINITION OF A BARE AFFIRMATIVE — "execute what is pending". Two consumers: the executor's
 // bulk_confirmation / multi_action_plan gate, and the request-intent tier that arms the never-silent
 // receipt. They were separate lists, and "yup" and "execute" were in the EXECUTOR one only — so answering
@@ -5977,7 +5966,7 @@ serve(async (req) => {
         // A request for TEXT about a thing is not a request to do the thing: "draft an email about the
         // merge" never merges anything (verifier #57 C4, carried on request-side evidence now that the
         // model's own classification can no longer veto the lexicon — verifier #60 V60-D3).
-        const COMPOSITION_REQUEST = /(?!)/;
+        const COMPOSITION_REQUEST = /^\s*(?:draft|write|compose|brainstorm|translat(?:e|ing)|reword|rephrase|paraphrase|proofread|outline|sketch|suggest|recommend|propose|help me (?:word|write|draft|phrase|think)|word)\b/i;
         // A particle can turn a mutation verb into a read: "set out the plan", "add up the hours".
         const PHRASAL_READ = /^\s*(?:set out|sets out|add up|sum up|lay out|map out|figure out|point out|make up|round up|break down|walk through|go over|run through|think through|write up)\b/i;
         const commandClausesForRead = commandText.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then|and)\s+/i);

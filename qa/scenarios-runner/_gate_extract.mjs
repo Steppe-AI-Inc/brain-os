@@ -158,7 +158,7 @@ export function stripTS(source) {
 // them means every window that executes either tier needs the declaration, so the extractor resolves it from
 // the SOURCE UNDER TEST (SEM_INDEX_SRC when a mutation run sets it, else the repo copy). Never a
 // re-implementation: a harness that declares its own copy is the drift it is meant to detect.
-const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ALTERNATION'];
+const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION'];
 let _sharedConstantCache = null;
 function resolveSharedConstants() {
   if (_sharedConstantCache) return _sharedConstantCache;
@@ -276,7 +276,7 @@ export function withPatternsAboveWindow(source, slice) {
 // what a request frame is, shared by the executor's command fallback and the request-intent tier — the two
 // used to be separate hand-maintained lists and drifted apart in three consecutive rounds (verifier #64,
 // V64-D1b). Taken from the source under test, never re-declared here.
-const SHARED_CONSTANTS = ['REQUEST_FRAME_ALTERNATION'];
+const SHARED_CONSTANTS = ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION'];
 export function withSharedConstants(source, slice) {
   // Idempotent: stripTS already prepends these, so a suite calling this directly must not get a duplicate
   // declaration (which is a SyntaxError, not a silent problem — but still a harness bug, not a product one).
