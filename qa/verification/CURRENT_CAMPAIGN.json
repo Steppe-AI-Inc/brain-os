@@ -95,12 +95,12 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 119,
-  "verifier": 59,
+  "campaign": 120,
+  "verifier": 60,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "VERIFIER #59 PASS — EDGE STATUS = DEPLOYMENT READY (contract bar); candidate FROZEN at 821f530 / index.ts 715246f3…; awaiting the founder ALLOW_FUNCTIONS_DEPLOY=1 (asked once); no verifier #60 launched",
-  "closure_commit": "02220b9c862900ce3a1a2f54ebe774ab5b57adb4",
-  "index_sha256_prefix": "715246f3be9710b7",
+  "status": "DISPATCH PENDING — verifier #60 on the context-budget fix + the #59 hardening patch, after the 2026-09-08 deploy and rollback",
+  "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
+  "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
   "v92": {
     "deployed_version": 92,
@@ -119,7 +119,7 @@
   },
   "what_this_campaign_did": "P1 package for the Work-PC handover 2026-09-07 (BUG-010/014/002/012/013/011) implemented as the first feature under docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md: ExecutionResultEnvelope on every recordExecution site with fresh create-family postconditions; MutationIntent from the request (verb patterns, model action arrays, confirmation-shaped commands); never-silent receipt; server-side company lifecycle resolution across every status (restoreCompanyNames/archiveCompanyNames schema fields; contextCompanyIds no longer gates archive/restore); context.collections envelopes for every pack collection, companies split active/archived; narrative tier with verdict + UNVERIFIED marker; durable channel state first; work_orders.output persisted every turn with turnVerdict; person-assignment receipt from the executed diff; V55-D1 possessive fix carried. Web: callLifecycleRpc, archived-parent policy on People controls, manager picker semantics, Archived (N) affordance, COMPANY_REF in 22 files, scopeToActiveOrganization in 19 pages. Enforcement: 8 architecture_* contracts + company_lifecycle_matrix + grounding_precedence_canonical_over_history + mutation_receipt_equals_ledger + tenant_authorization_lifecycle.sql.",
   "implementing_session_evidence_not_to_be_trusted": "battery 53/53; gates v48-v55 green, v46 33/3 (recorded standing reds: C8a stale CRLF pin, D1 growth exponent, D5 withdrawn); deno 19 by class (TS7006 x10, TS2322 x6, TS7034, TS7005, TS2339; zero runtime-fatal); index.ts CRLF 0 bare LF; web tsc/eslint/next build clean. RE-DERIVE ALL OF IT.",
-  "verdict": "PASS",
+  "verdict": null,
   "rules": "FOUNDER RULING 2026-09-07 replaces the v92-differential certification rule (previous rule text retained in git history): a verifier PASS on the EXACT new SHA under the CONTRACT BAR (conformance to governance/OPERATING_TRUTH_MODEL.md; v92 parity is not deployability) is production-deployment certification. Ask ALLOW_FUNCTIONS_DEPLOY=1 exactly once, only after such a PASS on these exact bytes. Production stays v92 until then. qa/BUG_QUEUE.json, qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json are Work-PC single-writer files: read-only.",
   "DESIGN_NOTE_entity_positive_signal": {
     "observation": "canonicalById (index.ts ~4769) is a real per-turn RLS-scoped DB read of contextPack rows (companies, people, projects, tasks, goals, approvals), declared in the SAME scope as the belt and ~900 lines before it. A set of known entity NAMES is derivable there at zero extra cost.",
@@ -138,7 +138,10 @@
   "gates_on_committed_candidate": {
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
-  "open_deploy_blockers": [],
+  "open_deploy_blockers": [
+    "verifier #60 has not run",
+    "the previous authorization was scoped to bytes 715246f3 which breached the token budget in production; new bytes need a fresh founder ALLOW_FUNCTIONS_DEPLOY=1"
+  ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
   "closed_this_round": [
     "V46-D3: the V45-N2 short-circuit I adopted destroyed 8 truthful refusals; fixed, 8/8 restored",
@@ -184,9 +187,9 @@
   "instrument": "THREE arms (verifier #47 correction, #48 audit-confirmed complete): claimsLifecycleClaim (runs FIRST), FUTURE_PROMISE_PATTERN, PAST_COMPLETION_CLAIM_PATTERN. qa/verification/lib/v92_reference.mjs with a non-vacuous self-check.",
   "index_sha256_lf_prefix": "26972b1238c08d3e",
   "previous_campaign_pointer": {
-    "campaign": 118,
-    "verifier": 58,
-    "index_sha256_prefix": "0fd05a92b3a088bc"
+    "campaign": 119,
+    "verifier": 59,
+    "index_sha256_prefix": "715246f3be9710b7"
   },
   "record_corrections_applied": [
     "v31 32/2 (was 33/1)",
@@ -699,5 +702,11 @@
     "V59-R2 durable pending-action source-freshness",
     "V59-R3 idioms outside any lexicon",
     "mirror drift guard (AUTHORITY_NOT_ENFORCED)"
-  ]
+  ],
+  "incident_2026_09_08": "v93 (821f530 / 715246f3) was deployed at 01:50Z and rolled back at 02:10Z: the enlarged context pack crossed the 12,000-token preflight and ordinary questions returned 413 with no answer. Production is v92 source (function v94, ezbr 22486cd751cac403), byte-verified against c9dfab5bd433. Evidence: qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md, ledger #133. Fix on this candidate: budget-aware pack assembly + archivedCompanies 12->6 + scope strings removed, pinned by architecture_context_budget_contract.mjs; verifier #59 hardening applied (v59 suite 84/0, promoted).",
+  "verifier60_base_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
+  "verifier60_index_sha256": "5d4e853c6a7e9a9ed4dd2c9bda2e662590b736d2c6655a268dfafc96766e788b",
+  "verifier60_started_at": null,
+  "verifier60_status": "not started",
+  "verifier60_findings": []
 }
