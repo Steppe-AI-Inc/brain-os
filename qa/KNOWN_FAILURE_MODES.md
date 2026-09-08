@@ -16396,3 +16396,46 @@ Two assertions were also converted from substring to behaviour:
 **The standing rule this establishes.** A P1 fix is not pinned until a mutant that reverses it fails a
 committed suite. Substring presence is evidence that code exists, not that it works — and the three fixes
 this finding caught were all mine, from the two rounds immediately before it.
+
+### 138c. Addendum — the second-generation sweep, and how incomplete the V63-D4 closure was (2026-09-08)
+
+The first vacuity sweep covered named REGEX guards. Verifier #63's V63-D4 was not about regexes, so the
+closure claimed in #138b — three named instances fixed, sweep widened — established the property for regexes
+and not for anything else. A second-generation sweep was built the same day to test that claim, and it did
+not survive contact.
+
+`qa/verification/scratch/p1/vacuity_sweep2.mjs` stubs every named HELPER in the request path to a constant,
+in both directions, and moves every numeric CAP to a uselessly small and a uselessly large value. Nineteen
+mutants across seventeen suites. **First run: five real survivors, every one a guard nothing tested.**
+
+| Survivor | What could be neutered with the whole battery green |
+|---|---|
+| `rpcPostcondition` forced true | the plan path's evidence gate — the V60-D7 / V61-D8 fix |
+| `imageBytes` stubbed to 0 | the only bound on an attached image — the V62-D2 fix |
+| `HISTORY_FIELD_CAP` = 9,999,999 | the V61-D1 P1 fix: one long turn hard-stopping a channel |
+| `NAMED_LOOKUP_ROW_CAP` = 1 | a named entity becomes unresolvable; disambiguation cannot present a choice |
+| model-context ceiling × 100 | the provider gate stops firing at all |
+
+**Three of the five are P1 fixes from earlier rounds — the same fixes V63-D4 named.** They had been repaired
+where the finding pointed and were still pinned by the presence of a call rather than by its effect: keeping
+`shorten()` in the code while making its cap seven digits leaves every substring assertion green and the
+defect fully restored.
+
+All five are now pinned behaviourally, by executing the real code: `executeOneAction` is run with an RPC that
+changed a row but did not confirm the postcondition and must report failure; `imageBytes` is run and must
+measure the decoded size; the history mapper is run with a 20,000-character row and must return it shortened
+and marked; and the two caps are asserted inside the band where they are still caps, each with its reason.
+Second run: **19 mutants, 19 killed, 0 survived.**
+
+**Two things this establishes.** A fix is not pinned until a mutant that reverses it fails a committed suite —
+and "reverses it" includes leaving the code in place and making it do nothing, which is the cheaper and more
+likely regression. And a closure that fixes the instances a finding names, without establishing the property
+the finding is about, is not a closure: it is the same defect with a smaller surface.
+
+Two harness limitations were found and worked around while building this, both recorded so the next round can
+fix them properly in source: the detyper mangles a generic in parameter position
+(`Record<string, unknown>` becomes `r, unknown>`) and turns `: Promise<{...}>` into a stray `{...}>` before
+the body. The durable fix for the first is a module-level type alias in `index.ts`; that is a source change
+and was deliberately not made while verifier #64 is running against these exact bytes.
+
+`index.ts` was not modified by any of this — sha256 `885fd290…` before and after.
