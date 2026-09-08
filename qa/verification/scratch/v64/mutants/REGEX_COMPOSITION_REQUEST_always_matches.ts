@@ -6211,11 +6211,13 @@ serve(async (req) => {
             ? { verb: modelIntentAction || lexiconVerb || (modelIntentKind === 'confirmation' ? 'confirm' : null), field: null }
             : confirmationShaped
               ? { verb: 'confirm', field: null }
-              // A resolved lifecycle target is something that HAPPENED; the read veto is a heuristic about
-              // how the sentence LOOKS. Fact outranks shape — the founder's grounding precedence applied to
-              // the request side (verifier #66, V66-D6).
-              : (lexiconVerb !== null && (!lexiconReadVetoed || commandFallbackResolvedVerb !== null))
+              : (lexiconVerb !== null && !lexiconReadVetoed)
                 ? { verb: lexiconVerb, field: null }
+                // A resolved lifecycle target is something that HAPPENED; the read veto above is a heuristic
+                // about how the sentence LOOKS. Fact outranks shape — the founder's grounding precedence
+                // applied to the request side (verifier #66, V66-D6). One branch, not two: relaxing the veto
+                // AND adding this branch was measured redundant (the mutation proof could not kill the
+                // relaxation), and a redundant guard is a guard nobody can test.
                 : commandFallbackResolvedVerb !== null
                   ? { verb: commandFallbackResolvedVerb, field: null }
                   : null;

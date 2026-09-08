@@ -1,0 +1,75 @@
+---
+
+# VERIFIER #66 — CAMPAIGN 126 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** *(with one disclosed deviation, below)*
+
+## Preflight deviation, stated plainly
+
+`git rev-parse HEAD` printed **`e6fb00771e1f7b281fda8e266278a349274c9de2`**, not `52d9582`. This was **not** a wrong tree: HEAD is a descendant of the candidate on the designated artifact branch, `git diff --name-only 52d9582..HEAD` touches **only** `qa/verification/*`, and index.ts is byte-identical at 52d9582, at HEAD, and on disk. A **prior interrupted pass of this same campaign had already committed a FAIL**. I treated its every claim as a pointer only and re-derived everything from my own slicing of the real source.
+
+---
+
+# VERDICT: **FAIL**
+
+**EDGE STATUS = NOT DEPLOYMENT READY (contract bar).**
+
+Candidate `52d958200522a9f5cbe38ecf973d43af0d6b1155` is **not fit to deploy over v92**.
+
+---
+
+## What is genuinely clean — the #65 closure worked, for frames
+
+Request framing now has **one** definition with per-tier applicability, and **EXECUTOR ⊆ INTENT is true by construction**, not merely by test. Measured on the real windows with frames enumerated *out of the source declarations themselves*: 75 directive × 17 deliberative surface forms × 9 object shapes × 3 tails = **2,484 cells — 0 deliberative frames reached the executor, 0 failed to arm the receipt.** The founder's 11-case list and the 14-case deliberative set: **25/25 derive intent, 14/14 refuse to execute.** Battery **70/72**.
+
+## The blocker — V66-D6 (P1): the duplicated concept is the OBJECT, not the frame
+
+The founder's §1 invariant is violated. "A mutation verb heading a clause with a real object" is spelled twice:
+
+- **Executor** (`IMPERATIVE_HEAD_RE` + `lifecycleCommandName`): requires **no object at all**, and *strips* quotes and the nouns `company / business unit / entity / organization / org`.
+- **Intent** (`FIRST_CLAUSE_VERB` + `STRONG_OBJECT`): knows **neither**.
+
+Three root causes, each executed rather than argued:
+
+1. **`STRONG_OBJECT`'s three quoted alternatives are dead code.** Each is followed by the group's trailing `\b`; there is never a word boundary after a closing quote. `archive ACME` passes; `archive "ACME"` cannot, ever.
+2. **Its noun list omits the entity qualifiers the executor explicitly strips.**
+3. **The clause splitter is spelled twice** — intent splits on a bare `and`, the executor does not, so `go ahead and` / `do me a favour and` / `be a dear and` are cut in half and the imperative is orphaned out of clause[0].
+
+**Size (my own generators):** **1,260 / 2,160** and **898 / 2,484** executor-mutating turns with `requestedIntent === null`. **7 of 9** constructed turns end with the gate allowed, nothing resolved, **no line** (the `:3934` fallback is additionally gated on `commandMentionsCompany`), and no intent — so `:6963` and both belt arms are blind and **the model's fabricated completion is the entire founder-facing answer**. That is `OPERATING_TRUTH_MODEL.md` §3 rule 3 and founder directive §3, verbatim.
+
+**Why 70 green suites missed it:** every committed corpus varies the FRAME and holds the OBJECT constant. Nothing quotes a name; nothing says "business unit".
+
+## Also found
+
+- **V66-D9 (P2) — the SIXTH re-spelling you asked me to hunt for.** "A read-shaped command" is `commandReadLead` (inline, `:3872`) and `READ_SHAPE` (named, `:5995`): 22 drifted terms, **8/10** probe disagreements.
+- **V66-D10 (P2)** — the duplicated-concept ratchet enumerates **named `SCREAMING_CASE` constants only**. Every drift found this round lives in an *unnamed inline* regex, so it was structurally invisible. It reported 44 pairs and could not see the one that shipped the P1.
+- **V66-D3 (P2), confirmed** — `vacuity_sweep` and `vacuity_sweep2` exit non-zero **only on a sha mismatch**; no exit path references `survived.length`. `mutation_sweep_safety_contract` certifies them with `/process\.exit\((?:1|2)\)/` **over their source text**, which the sha line satisfies. Live proof it matters: that contract reports **23 passed / 0 failed** while `vacuity_sweep_extended` is actually failing with **26+ survivors** — because it never runs them. The `EXPECTED_MUTATION_TARGETS_FOUND` floor **value** is never pinned.
+- **V66-D8 (P2, pre-existing)** — `create a report of archived companies and email it to me` derives `{verb:'create'}`.
+
+## Rulings you asked for
+
+- **m7 — REDUNDANT, conclusion CORRECT**, including the receipt path: `alwaysCyrillicRaw`'s only use is a disjunct whose false branch already yields null. Delete it; don't whitelist a mutant forever.
+- **m5 — not a deploy blocker.** Killed by `v57_intent_other_veto_contract`; the guard is load-bearing.
+- **`can we` / `can I` — a real P2, and it should go the DELIBERATIVE way.** Without "?", `can we archive ACME` executes and `can I archive ACME` does not: same speech act, opposite outcome, decided by a pronoun. "v92 ships it" is unavailable under your 2026-09-07 ruling.
+- **The embeddings deferral was CORRECT** — patching `embedTexts` into a candidate under verification would have invalidated every measurement.
+- **The minimum-safe-context byte assertion is vacuous w.r.t. the trim loop** — and the source says so itself at `:2964-2968`. The load-bearing guard is the `:2915` disjointness throw, which is real.
+
+## Fix prepared and mutation-proven (NOT applied — index.ts preserved)
+
+`make_fix.mjs` (deterministic, asserts input sha, requires exactly one occurrence per anchor) → `d200123b3f1ab9de…`. **1,260 → 0; 898 → 0; 7/9 → 0/9;** frames still 25/25; **battery 70/72 on both candidate and fixed bytes.** Regression suite: **candidate 48 pass / 26 DEFECT-red; fixed bytes 69 / 5** (the 5 are the tooling findings the index.ts fix deliberately does not touch).
+
+## What I could NOT measure — these need live acceptance before being trusted
+
+- **`deno check` BLOCKED.** No binary, `npx` gated, no TypeScript on disk. Diagnostic classes were **not** re-derived, and I am **not** repeating the implementing session's numbers.
+- **No live request, no browser, no AI-chat turn.** **Every conclusion in this report is source- and harness-level.** Under the two permanent `CLAUDE.md` rules added this round, none of it substitutes for live request-shape acceptance — including all token-budget conclusions.
+- **Provenance is integration-level, not byte-direct.**
+
+## Synthetic data
+
+**None created.** This campaign was entirely source- and harness-level; no database, no Edge Function, no production surface was touched. There are no `QA-VERIFY-*` entities to clean up. No migration was written, applied, or needed; nothing is pending founder DB approval.
+
+**Commit:** `8731908` on `verify-52d9582-campaign126`.
+
+```
+e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed
+```

@@ -1,0 +1,305 @@
+You are VERIFIER #67, campaign #127 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your
+context. Do not trust its claims, its ledger entries (#146), its architecture contracts or its battery
+counts — re-derive from bytes you obtain yourself.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, THIRTY-FIRST ROUND, UNDER THE CONTRACT BAR. The founder ruled
+(2026-09-07): PRODUCT CONTRACT OUTRANKS V92 PARITY. V92 parity is NOT deployability. The deploy bar for
+this candidate is CONFORMANCE TO governance/OPERATING_TRUTH_MODEL.md (read it first, then
+governance/CANONICAL_WORK_CONTRACT.md and docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md). Deployed
+v92 is a REFERENCE CORPUS for measuring truth regressions, never the bar: a class that matches v92 but
+violates the contract is a DEFECT; a class where the candidate departs from v92 to satisfy the contract is
+INTENDED (say which is which).
+
+VERIFIER #66 (campaign #126) FAILED the previous candidate 52d9582 on one P1. Read its report first —
+branch verify-52d9582-campaign126 at e6fb007, and qa/verification/scratch/verifier66_output.log — then
+ledger #146. Its finding, and the reason this round exists:
+
+  "a mutation verb heading a clause with a real object" was spelled TWICE and the two had drifted.
+  archive "Nomin Holding" then tell me what is left   -> ARCHIVED THE ROW, requestedIntent = null
+  archive the business unit Beta then tell me…        -> ARCHIVED THE ROW, requestedIntent = null
+  9,128 of 52,800 at the gate. The executor strips "business unit" and tolerates a quoted name; the
+  intent tier's STRONG_OBJECT did neither, because a trailing \b cannot match after a closing quote.
+
+**HOW IT HID IS YOUR PRIMARY LESSON, AND YOUR PRIMARY INSTRUCTION.** Every committed corpus varies the
+request FRAME and holds the OBJECT constant (ACME, QA-1). Verifier #65 swept frames exhaustively and closed
+a real P1. The invariant was being tested exactly where it was already true, and the whole battery was
+green while 9,128 gate violations shipped. **A corpus that varies one axis proves nothing about the others,
+and a battery of such corpora reads as thorough.** So: DO NOT SWEEP FRAMES, AND DO NOT SWEEP OBJECTS —
+those two axes have now each had their round. FIND THE THIRD AXIS. Candidates nobody has swept: the VERB
+(the lexicon is ~120 entries; corpora use archive/restore/delete), the ENTITY TYPE (companies are swept;
+tasks, goals, people, projects, departments, documents, leads, approvals are not), CLAUSE COUNT AND ORDER,
+NEGATION AND CONDITIONALS in non-leading position, LANGUAGE (Mongolian is thinly covered), PUNCTUATION AND
+CASING, and the interaction of a model-emitted field with a raw command that disagrees with it.
+
+WHAT THE CLOSURE DID — JUDGE IT, IN BOTH DIRECTIONS:
+  * The intent tier now CONSUMES the executor's outcome instead of re-deriving its gate. One value,
+    `commandFallbackResolvedVerb`, is computed where the executor finishes and carries both the fact and
+    its direction; `requestedIntentPrimary` has a final branch that reads it.
+    - Verify EXECUTOR ⊆ INTENT structurally on YOUR axis, not on frames or objects.
+    - Verify the reverse: does consuming the outcome ever arm the receipt when nothing was requested?
+      A false positive here is a deterministic no-change receipt on a turn that deserved a plain answer.
+    - The value is computed ONCE and read ONCE. Check that nothing else re-derives it, and that the
+      declaration cannot be reached before it is assigned (TDZ) on any path.
+  * `STRONG_OBJECT`'s trailing `\b` became `(?![A-Za-z0-9_])`. It still gates `readShaped` for every
+    command the executor does NOT resolve. Measure whether that widening moved any read.
+  * A REDUNDANT half of the fix was REMOVED rather than registered: relaxing the read veto was measured
+    unkillable once the outcome branch existed, so it was deleted. Confirm that removal cost nothing.
+  * `AUTHORIZED IS NOT COMPLETED` now covers deterministic-clarification and -disambiguation as well as
+    -confirmation. Check the two newly covered modes really cannot ship an authorisation as an outcome.
+  * MODAL INTERROGATIVES MOVED TO DELIBERATIVE — `can we`, `could we`, `shall we`, `shall i` — on your
+    predecessor's ruling that `shall i` DIRECTIVE while `should i` is DELIBERATIVE is not defensible. The
+    stated rule is now: FIRST-PERSON MODAL INTERROGATIVES ARE DELIBERATIVE WHATEVER THEIR NUMBER;
+    HORTATIVES AND DECLARATIVES (`let's`, `let us`, `we should`, `we need to`) STAY DIRECTIVE. **Rule on
+    whether that line is right, including the cases it now costs a confirmation turn.**
+  * The dead `alwaysCyrillicRaw` disjunct was DELETED on #66's ruling. Confirm nothing depended on it.
+
+HARNESS TRUTH — THIS REPO'S TOOLS FAIL OPEN, AND EVERY ROUND FINDS MORE. This round: both vacuity sweeps
+exited 0 with survivors (their only non-zero exit was a sha mismatch) and the safety contract grepped for
+ANY `process.exit(1)` and stayed green; the V65-D3c guard was a literal search for the one spelling that
+had already happened, so a DIFFERENT private question-list passed all 70 suites; and the #66 mutation proof
+initially reported 3/5 because the suite INJECTED the tier-boundary value instead of computing it — a value
+a harness supplies is a value it cannot vouch for. All are fixed and each fix was proved non-vacuous by a
+mutation. ASSUME MORE TOOLS FAIL OPEN AND GO LOOKING; say what you find even if it is in your own tooling.
+
+STILL OPEN and registered: V61-D5 (compactionCheckpoint.summary is untrimmable unbounded narrative);
+model-specific token limits (UNMEASURED and named); the platform request-body limit; the completion
+vocabulary family (#141) — the LAST unconverged "two rules that must agree", deliberately not converged
+because the founder has ruled against unsafe mass consolidation; the remaining regex-level sweep survivors;
+one pre-existing bare CR in index.ts; and `sem_ai_command_confirmation_truth.mjs`, which keeps manual copies
+of shipped logic and therefore cannot see index.ts change at all.
+
+A SEPARATE P1 IS OPEN IN PRODUCTION AND IS NOT FIXED HERE — read
+qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md and qa/work-orders/AI_PROVIDER_RELIABILITY.md. OpenAI
+embeddings have failed SILENTLY since 2026-08-24: 63 of 66 memories carry a NULL embedding and nothing
+surfaces it. `embedTexts` is byte-identical to deployed v92, so this candidate neither creates nor worsens
+it. Verifier #66 ruled the deferral CORRECT **only because it stays named**, and required it to appear in
+the deployment authorisation. Confirm both halves of that: still byte-identical, and still named.
+
+FOUNDER MANDATE FOR THIS ROUND (2026-09-09). Answer each explicitly.
+
+ 1. PRIMARY MISSION — FIND THE AXIS NOBODY HAS SWEPT. Frames were #65, objects were #66. Pick a third and
+    sweep it properly, then say which axis you chose and why. Required invariant, on your axis:
+      ONE BUSINESS/GRAMMAR CONCEPT -> ONE CANONICAL DEFINITION -> MULTIPLE CONSUMERS
+    IF ANY SEMANTIC DUPLICATE REMAINS: FAIL. If the executor can act where the receipt tier is blind: FAIL.
+
+ 2. REQUEST CONSISTENCY across that axis. For every case verify BOTH: (A) request intent is derived
+    correctly, and (B) the execution tier interprets the same request consistently. No case may execute
+    without the receipt/intention layer seeing the same request.
+
+ 3. NEVER-SILENT RECEIPT, structurally: MUTATION-INTENT TURN + ZERO VERIFIED EXECUTION = DETERMINISTIC
+    NO-CHANGE RECEIPT. Never model prose only, never silent fall-through, never a request the executor
+    detects that the receipt logic cannot see. Attack the FALSE-POSITIVE direction too.
+
+ 4. VACUITY / MUTATION-SWEEP SAFETY. Re-run every sweep and proof yourself. A zero-target sweep is a
+    HARNESS FAILURE, not a pass; so is a survivor reported with exit 0. Confirm the floor VALUES have not
+    been lowered, and that no tool reports a cheerful nothing.
+
+ 5. NAMED TARGETS STRUCTURE — FIELD_NAME_MATCH != SEMANTIC_CONTRACT_MATCH. Type-safe, declared before use,
+    no TDZ, semantically meaningful, not smuggled into context.collections, schema/type tests pin the
+    actual shape.
+
+ 6. DUPLICATED-CONCEPT SWEEP. For each candidate classify IDENTICAL SEMANTICS / INTENTIONALLY DIFFERENT /
+    ACCIDENTAL OVERLAP / UNKNOWN. Similarity percentage alone is NOT proof that two concepts should become
+    one primitive, and the founder has ruled against unsafe mass consolidation — converge only IDENTICAL
+    SEMANTICS. Say explicitly whether the completion-vocabulary family is ready for a decision.
+
+ 7. OPEN TOKEN-BUDGET GAPS. Do NOT mark the token-budget incident resolved. Confirm the request-budget
+    contract is still green, the fresh-channel 413 witness remains covered, and trimming semantics remain
+    intact — and state plainly that none of it is live evidence.
+
+ 8. IF YOU FAIL THIS CANDIDATE, the implementing session will automatically reproduce, root-cause, run a
+    same-defect sweep, fix structurally, add regressions, prove by mutation, run the full battery and
+    dispatch a fresh verifier. Write your findings so that is possible without you.
+
+FOUNDER MANDATE (CARRIED FROM EARLIER ROUNDS) (2026-09-08), seven parts - answer each explicitly in your report:
+
+ 1. ATTACK THE TOKEN-BUDGET FIX. Do not merely confirm the new contract suite; independently verify the
+    ENTIRE request-budget path. Required invariant: A REQUEST FITS THE HARD LIMIT OR OPTIONAL CONTEXT
+    DEGRADES DETERMINISTICALLY. Never: VALID FOUNDER TURN -> HARD STOP because optional context inflated the
+    request. Verify: a fitting pack is unchanged; optional context trims before core; history trims oldest
+    first and preserves the newest turns; envelopes retain the EXACT total; truncated=true whenever rows are
+    omitted; truncation never becomes non-existence; archived entities remain canonically resolvable;
+    currentTurn is never trimmed; permissions and tenant scope are never trimmed; the durable pending action
+    and channel state are safe; execution evidence is never removed merely to fit a budget; canonical target
+    ids remain available; and THE ESTIMATOR MATCHES THE ACTUAL SERIALIZED REQUEST.
+ 2. HUNT EVERY OTHER WHOLE-REQUEST GATE and classify each: SAFE DEGRADATION / DETERMINISTIC REFUSAL /
+    UNSAFE HARD STOP / UNMEASURED. At minimum consider: input token estimate, output token cap, provider
+    context window, serialized JSON size, history length, collection count, tool-schema size, system-prompt
+    size, request timeout, stream initialisation, model-specific limits. An UNSAFE HARD STOP is a P1. An
+    UNMEASURED gate must be NAMED, never assumed safe. Judge whether the four the candidate declares
+    UNMEASURED are honestly scoped or a place to hide a fifth.
+ 3. JUDGE THE PROMOTED CONTRACT. governance/OPERATING_TRUTH_MODEL.md section 4.4 now carries
+    TOKEN_BUDGET_EXHAUSTION_MUST_DEGRADE_CONTEXT_NOT_PRODUCT_AVAILABILITY with a minimum safe context:
+    the current user command, authenticated identity, organization scope, permissions, the durable pending
+    action, exact canonical entity/action state for this turn's targets, execution-result requirements, and
+    the system safety/truth contract. Is the set in source (MINIMUM_SAFE_CONTEXT) actually that set? Is any
+    member protected only by omission from TRIM_ORDER rather than by assertion? Is the assertion vacuous?
+ 4. ENFORCE: NOT INCLUDED IN THE PROMPT != DOES NOT EXIST. Every trimmed collection must still tell the
+    model shown / total / truncated, and server-side canonical resolution must remain available for any
+    entity named in a command, across every status. Try to construct a turn where a trim causes the product
+    to answer that something does not exist, or to answer a count from a window.
+ 5. RE-MEASURE ESTIMATOR ACCURACY YOURSELF across at least: empty channel, short channel, long channel,
+    many companies, many archived companies, many tasks, many archived tasks, long names, and 50/100/200-turn
+    history. Build your own fixtures from the real .limit() caps in index.ts - do not reuse the candidate's.
+    Report headroom. DO NOT TUNE TO 11,999: a deliberate safety margin below the hard threshold is required,
+    and a margin that only holds because a fixture is unrealistically small is not a margin.
+ 6. INDEPENDENTLY VERIFY THE v59 HARDENING PATCH as part of THESE EXACT BYTES, not as a historical claim.
+ 7. JUDGE THE PINNED LIVE INCIDENT REGRESSION WITNESS on BOTH halves: the pre-fix pack must actually exceed
+    the cap and the post-fix pack must actually answer. A capacity regression test that only asserts "it
+    fits now" passes just as happily against a fixture too small to have ever failed. Also confirm the cases
+    that DID succeed live on v93 are still satisfied by these bytes.
+
+TWO PERMANENT RULES were added to CLAUDE.md this round; judge whether the candidate actually honours them:
+STATIC / SOURCE VERIFICATION CANNOT SUBSTITUTE FOR LIVE REQUEST-SHAPE ACCEPTANCE, and BYTE-IDENTICAL
+DEPLOYMENT IS NOT PRODUCT-SAFE DEPLOYMENT. You cannot make a live request yourself. Say plainly, in your
+verdict, which of your conclusions are source-level only and would still need live acceptance to be trusted.
+
+JUDGE THE BUDGET FIX HARDEST: can a trim ever let the pack claim completeness it does not have? can it drop a
+company or person the founder just named in this turn? does it always terminate? is its estimator identical to
+the preflight estimator? does the trim order sacrifice anything a contract depends on? Before that:
+verifier #58 (campaign #118) FAILED 5ebc695 on V58-D2 (P1, v92-parity but in the founder's scope: a chat TASK
+restore could never execute — archivedTasks was queried and enveloped but never placed in the pack; task/goal
+lifecycle ids were window-gated; the receipt for a task request said "company") and V58-D1 (P2: the imperative gate
+was a deny-list, so unlisted declaratives executed when the model emitted nothing). Its prepared fix F1/F2/F3 was
+applied AS WRITTEN — ledger #130 (finding) and #131 (closure, which also corrects #121 and #129): imperative-position
+allow-list; archivedTasks in the pack; task and goal ids re-read server-side across every status with truthful
+unresolved lines; entity-aware receipt. #58's suite is promoted to
+qa/scenarios-runner/v58_lifecycle_window_and_imperative_contract.mjs (48/0 claimed); mutation proof
+qa/verification/scratch/p1/v58_mutation_proof.mjs. Judge whether ANY remaining context-window gate on a lifecycle
+or mutation field (deleteTaskIds / pendingDeleteTaskIds stay gated by design: a permanent deletion must target a row
+the caller was shown; creation against an archived parent stays gated) violates the contract. Before that: verifier
+#57 (campaign #117) FAILED 712760d on V57-D1 (the request lexicon overrode the model's explicit
+'other' classification), V57-D2 (the company fallback ignored requestIntent.entityType) and V57-D3 (non-imperative
+leads executed when the model emitted nothing); its prepared fix F1/F2/F3 was applied AS WRITTEN plus its residuals
+D4 (whole-name candidate query), D6a (polite lifecycle question is a request) and D6b (honest receipt reason for a
+negated/hypothetical request) — ledger #128 (finding) and #129 (closure); #57's suite is promoted to
+qa/scenarios-runner/v57_intent_other_veto_contract.mjs (306/0 claimed); mutation proof
+qa/verification/scratch/p1/v57_mutation_proof.mjs claims 5/5. Residuals #57 named and NOT closed: V57-D5 lexicon-tier
+false negatives when the model gives no classification, compound commands with the model emitting nothing, opposite-
+direction model field, 1-char names, guard granularity, the _shared mirror drift guard — judge whether any is a
+deploy blocker under the contract bar. Before that: verifier #56 (campaign #116) FAILED e79eb65 on V56-D1..D5 (request-intent false negatives/positives, the
+command-name fallback executing on questions/negations/unrelated entities, restore-word-in-name, punctuated
+names) and its closure is what you are verifying (ledger #126 = the finding, #127 = the closure): structured
+requestIntent from the model schema validated server-side + a request LEXICON (Unicode-aware, object-guarded,
+read-shape vetoed, polite questions are requests; the belt NEVER decides intent), and an imperative-only
+exact-or-ask command fallback (direction = first lifecycle verb). #56's own suite was promoted to
+qa/scenarios-runner/v56_intent_lifecycle_contract.mjs (129/0 claimed); its generators live in-tree at
+qa/verification/scratch/p1/v56_corpora (intent_corpus.mjs FN 0.5% claimed = generator inflection artifacts,
+FP 0/310; question_probe 0/19). qa/verification/scratch/p1/v56_mutation_proof.mjs claims 8/8 mutants killed.
+Work-PC files (qa/BUG_QUEUE.json, COVERAGE_LEDGER, FIXTURE_REGISTRY, HANDOFF_STATE) are READ ONLY. Read
+git log -25 and qa/verification/CURRENT_CAMPAIGN.json (verifier65_*), then RE-DERIVE everything below.
+
+WORKTREE (cwd, read-only candidate): /c/Users/Dell/dev/brain-os-verify-8d157bf
+ARTIFACT BRANCH (commit QA artifacts here only): verify-8d157bf-campaign127
+CANDIDATE COMMIT: 8d157bf80bfee5931f042e537038eeba3152e6fb   REQUIRED index.ts sha256: 916da4e27b1c976ca806365d58605b22377d1b6b1540cb705a5e76fba36bb610 (preserve byte-for-byte)
+NO write authority on the implementation branch. Ledger: qa/KNOWN_FAILURE_MODES.md.
+
+======================= EXECUTION-MODE PREFLIGHT (MANDATORY, FIRST) =======================
+  A. git rev-parse HEAD (must print 8d157bf80bfee5931f042e537038eeba3152e6fb)
+  B. echo probe > qa/verification/scratch/preflight_probe.tmp && rm qa/verification/scratch/preflight_probe.tmp
+  C. node qa/scenarios-runner/architecture_final_claim_contract.mjs
+All pass -> print exactly PREFLIGHT: EXECUTION_READY ; any gated -> PREFLIGHT: BLOCKED — EXECUTION_MODE and STOP.
+
+=========================== NON-NEGOTIABLE RULES ===========================
+1. SHA DISCIPLINE: assert sha256 before/after every temporary edit and at end; restore byte-identically.
+2. VERDICT: exactly one of PASS / FAIL / BLOCKED — PROVIDER_CAPACITY / BLOCKED — PROVIDER_TRANSIENT_ERROR
+   / BLOCKED — EXECUTION_MODE / BLOCKED — OTHER, from OUTPUT TEXT never an exit code.
+3. WRITE NOTHING to production. `supabase functions list` / `functions download` are READ-ONLY and
+   permitted; `functions deploy`, `db push`, any migration, any write to qa/BUG_QUEUE.json,
+   qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/HANDOFF_STATE.json — FORBIDDEN.
+4. Do NOT overwrite the candidate's index.ts with a download: download into a SCRATCH directory, or
+   use `git show c9dfab5bd433:supabase/functions/sem-ai-command/index.ts`.
+5. BUDGET YOUR RUN: write each finding to an artifact file AS YOU GO and checkpoint into
+   qa/verification/CURRENT_CAMPAIGN.json (verifier65_* keys), so an interruption never loses work.
+6. deno is not on PATH; use npx --yes deno@2 check. Decompose by CLASS: TS2448/TS2454/TS2304/TS2552/
+   TS2551 must be ZERO; never pin a count.
+
+======================== STEP 1 — PROVENANCE AND DELTA ========================
+Confirm deployed v92 == git c9dfab5bd433 (index.ts LF sha256 795c20c8…) the way you can; state whether
+your link is byte-direct or integration-level. Then the delta v92 -> candidate: deploy surface,
+semantic delta, identifier delta (added / removed). The session claims 0 removed identifiers vs v92;
+re-derive it. Confirm supabase/functions/_shared/* are NOT imported by index.ts (deploy surface is
+exactly index.ts) and that they mirror web/lib/contracts + web/lib/policy.
+
+======================== STEP 2 — CONTRACT CONFORMANCE (THE BAR) ========================
+Execute the REAL code (windows sliced from index.ts, never re-implementations) and judge each against
+the Operating Truth Model:
+ A. NEVER-SILENT RECEIPT / FINAL-CLAIM RULE (§3 rules 1-3). Build YOUR OWN matrix of >= 60 fabricated
+    completions on mutation-intent requests (rename / approve / delete / archive / assign / set manager
+    / restore / bare "yes" / "option 2"), each × claims:null, claims:[], state-only claims, and a
+    trailing-question + pendingAction variant. Every one must end in the deterministic receipt with
+    zero success wording of the fabrication. Then >= 60 READ requests (history recounts + question,
+    state descriptions, plain lists, ordinary prose with gerunds) that must survive VERBATIM. Then
+    >= 20 turns with a VERIFIED envelope on the claimed id that must render the truthful claim, and
+    >= 20 with executed-but-unverified or denied envelopes that must NOT.
+ B. REQUEST INTENT DERIVATION (the #56 closure). Confirm requestedIntent is derived ONLY from the
+    model's requestIntent classification, the model action arrays, confirmation shapes and the request
+    lexicon — never from result.summary, tense, the belt, or pendingAction. Re-run #56's generators from
+    a corpus YOU extend (new wrappers, new verbs, other languages, read shapes headed by mutation verbs,
+    negations, hypotheticals) and size FN-ship and FP-replace yourself. Attack it: false positives on read commands ("make a list of…", "add up…",
+    "set out the plan…"), false negatives on real mutation requests (imperative buried mid-sentence,
+    lowercase, Mongolian/English mixed, "can you archive…"). Size each class you find; a false
+    negative on a mutation request that lets a fabrication ship is a P1; a false positive that rewrites
+    a truthful read answer is a P1.
+ C. SERVER-SIDE LIFECYCLE RESOLUTION (Canonical Work Contract §1-§2, BUG-014; #56 D3/D3b/D4/D5 closure).
+    Run qa/scenarios-runner/company_lifecycle_matrix.mjs (28/0 claimed) and v56_intent_lifecycle_contract,
+    then extend them — especially: exact-named companies under questions/negations/hypotheticals; a model
+    requestIntent of kind read/other; commands where the model resolved another entity; names with
+    punctuation via command, restoreCompanyNames and requestIntent.targetName; fuzzy command hits must ASK
+    and never execute; model-name fuzzy hits execute only when unique: near-twin names, names with
+    punctuation, names that contain lifecycle verbs, a name in the command that is NOT a company
+    (task / person / project) — no company line may be invented; a model-emitted id that does not
+    exist; a name matching one active and one archived row for restore (the archived one must be
+    preferred); disambiguation arms a pendingAction and executes nothing.
+ D. COLLECTION ENVELOPES (§4.3): every pack collection has shown/total/truncated from an exact count;
+    no total is derived from array length; companies split active/archived, newest first.
+ E. PERSISTENCE + NARRATIVE (§3 rule 6, BUG-010): work_orders.output persisted every turn with
+    turnVerdict; history marks UNVERIFIED turns; the durable channel row outranks stored output;
+    an expired or untyped durable row yields. Attack: can a stale durable row ever execute anything?
+ F. RECEIPT == LEDGER (§4.2, BUG-012): mutation_receipt_equals_ledger.mjs, then your own cases.
+ G. POSTCONDITIONS (§4.1): the create family re-reads ids; no recordExecution(..., true) literal is
+    ungated; a postconditionPassed=false envelope can never support a claim.
+ H. BELT AS DEFENCE-IN-DEPTH: with intent present, measure the belt against v92 on YOUR corpus
+    (>= 300 truthful negatives, >= 200 fabrications, negator-initial names both directions, possessive
+    forms incl. bare apostrophe) as a MEASUREMENT: report truth regressions vs v92 and say for each
+    whether it is a contract violation or an intended departure. With NO intent, the belt must not
+    rewrite anything.
+
+======================== STEP 3 — SUITE INTEGRITY ========================
+The session changed qa/scenarios-runner/_gate_extract.mjs to inject request-side globals (command '',
+factLines, lifecycleReports, organizationGraphCheck, workOrder, requestedIntent null,
+executedVerifiedCount 0, knownEntityNames) above every window, gave six run* suites a per-call
+command (default mutation intent; read cases pass ''), re-reversed run8/D59, inverted run11's
+livePrecedence, changed lifecycle_evidence section S literals and P6 (persist every turn), and marked
+v49-v53's pendingAction-term pins SUPERSEDED. Judge each: is the harness still faithful to production
+scope, or does a default hide a class? Run the full battery yourself from the filesystem (53 suites
+claimed 53/53) and the historical gates (v46-v55). Check every new architecture_* contract for
+vacuity: mutate the source (delete the receipt block, restore `!result.pendingAction`, revert the
+create-family postcondition, put the durable read last, drop an envelope from context.collections,
+hand-write a companies(name, status) join, hand-write the org sentinel ternary) and confirm each
+mutation is caught by at least one suite. Report any mutation that survives.
+
+======================== STEP 4 — TDZ / DENO / BYTES ========================
+Your own block-scope analysis over every const/let in index.ts (new declarations: the types at module
+top, resolveCompanyLifecycleTargets, verifyRowsExist, recordCreate, requestedIntent block, receipt
+block). Runtime-fatal deno classes must be ZERO. index.ts must be CRLF-pure (0 bare LF).
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+State plainly: is candidate 8d157bf80bfee5931f042e537038eeba3152e6fb fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is:
+any mutation-intent fabrication that ships; any truthful READ answer rewritten on text shape alone;
+any lifecycle request that ends silent or gated by the context window; any success claim without a
+verified envelope; any runtime-fatal construct; any harness default that hides a class. A truth
+regression vs v92 that is an intended departure under the contract is NOT a FAIL — say so explicitly
+with its size. If clean, say PASS and that EDGE STATUS = DEPLOYMENT READY (contract bar). **If you
+PASS it, your report goes straight to the founder as a deploy authorisation request** — state the
+exact SHA, the exact index.ts sha256, what you measured, what you could NOT measure, and every
+residual with its size.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v65_known_failure_modes_entry_140.md (## 140. …, no preamble),
+v65_PROMOTION_NOTE.md, v65_regression_additions.mjs (CONTRACT/DEFECT, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or a path correct from ANY cwd). Use v65_* names only (never v48_*, v56_* through v64_*).
+COMMIT to verify-8d157bf-campaign127. Then the verdict in the exact classification form, followed by the exact
+index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json
+and stop.

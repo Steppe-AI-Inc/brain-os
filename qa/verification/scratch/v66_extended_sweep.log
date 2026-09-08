@@ -20,3 +20,178 @@ KILLED   REGEX COMPANY_UUID_RE never matches                             v59_int
 KILLED   REGEX COMPANY_UUID_RE always matches                            v59_intent_fallback_tier_contract.mjs
 KILLED   REGEX commandMentionsCompany never matches                      company_lifecycle_matrix.mjs
 KILLED   REGEX commandMentionsCompany always matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX commandIsQuestion never matches                           v65_request_frame_tiers_contract.mjs
+KILLED   REGEX commandIsQuestion always matches                          v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX commandNegatedLead never matches
+KILLED   REGEX commandNegatedLead always matches                         v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX commandReadLead never matches
+SURVIVED REGEX commandReadLead always matches
+KILLED   REGEX commandConditionalLead never matches                      v58_lifecycle_window_and_imperative_contract.mjs
+KILLED   REGEX commandConditionalLead always matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX FUTURE_PROMISE_PATTERN never matches                      run10_defect_closure_contract.mjs
+KILLED   REGEX FUTURE_PROMISE_PATTERN always matches                     v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX UUID_IN_TEXT never matches
+KILLED   REGEX UUID_IN_TEXT always matches                               v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX KNOWN_ABBREVIATION never matches                          run10_defect_closure_contract.mjs
+KILLED   REGEX KNOWN_ABBREVIATION always matches                         run10_defect_closure_contract.mjs
+KILLED   REGEX decimal never matches                                     run10_defect_closure_contract.mjs
+SURVIVED REGEX decimal always matches
+SURVIVED REGEX abbreviation never matches
+KILLED   REGEX abbreviation always matches                               run10_defect_closure_contract.mjs
+KILLED   REGEX INTERROGATIVE_LEAD never matches                          v57_intent_other_veto_contract.mjs
+KILLED   REGEX INTERROGATIVE_LEAD always matches                         run13_defect_closure_contract.mjs
+KILLED   REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION never matches         run14_defect_closure_contract.mjs
+KILLED   REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION always matches        v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX NAME_CONNECTOR never matches
+KILLED   REGEX NAME_CONNECTOR always matches                             run14_defect_closure_contract.mjs
+KILLED   REGEX ADJECTIVAL_COMPLETION never matches                       run10_defect_closure_contract.mjs
+KILLED   REGEX ADJECTIVAL_COMPLETION always matches                      run13_defect_closure_contract.mjs
+KILLED   REGEX DETERMINER_OR_PRONOUN never matches                       run14_defect_closure_contract.mjs
+KILLED   REGEX DETERMINER_OR_PRONOUN always matches                      run10_defect_closure_contract.mjs
+KILLED   REGEX IMPERATIVE_LEAD never matches                             run10_defect_closure_contract.mjs
+KILLED   REGEX IMPERATIVE_LEAD always matches                            run10_defect_closure_contract.mjs
+KILLED   REGEX MUTATION_VERB_ALWAYS never matches                        v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_ALWAYS always matches                       v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_NEEDS_PARTICIPLE never matches                   v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX MUTATION_NEEDS_PARTICIPLE always matches                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_PASSIVE_REQUEST never matches                    v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_PASSIVE_REQUEST always matches                   v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_WITH_OBJECT never matches                   v61_budget_intent_language_contract.mjs
+KILLED   REGEX MUTATION_VERB_WITH_OBJECT always matches                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_PROPER_OBJECT never matches                 v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MUTATION_VERB_PROPER_OBJECT always matches                v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX READ_SHAPE never matches                                  v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX READ_SHAPE always matches                                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX isQuestion never matches                                  v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX isQuestion always matches                                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX LEADING_ADVERB never matches                              v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX LEADING_ADVERB always matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX COMPOSITION_REQUEST never matches                         v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX COMPOSITION_REQUEST always matches                        v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX PHRASAL_READ never matches                                v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX PHRASAL_READ always matches                               v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX IMPERATIVE_OBJECT never matches                           v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX IMPERATIVE_OBJECT always matches                          v61_budget_intent_language_contract.mjs
+KILLED   REGEX STATEMENT_FINITE_VERB never matches                       v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX STATEMENT_FINITE_VERB always matches                      v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX STRONG_OBJECT never matches                               v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX STRONG_OBJECT always matches                              v56_intent_lifecycle_contract.mjs
+KILLED   REGEX MN_READ_SHAPE never matches                               v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MN_READ_SHAPE always matches                              v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_CASE_SUFFIX never matches                              v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX MN_CASE_SUFFIX always matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_NOT_A_COMMAND never matches                            v61_budget_intent_language_contract.mjs
+KILLED   REGEX MN_NOT_A_COMMAND always matches                           v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_STEMS_GLOBAL never matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_STEMS_GLOBAL always matches                            v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX MN_LOAN_VERB never matches                                v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX MN_LOAN_VERB always matches                               v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   REGEX NEGATED_IMPERATIVE_HEAD never matches                     v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX NEGATED_IMPERATIVE_HEAD always matches                    v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX TEMPORAL_PROPER_OBJECT never matches                      v57_intent_other_veto_contract.mjs
+KILLED   REGEX TEMPORAL_PROPER_OBJECT always matches                     v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX CONFIRMED_COMPLETION never matches                        belt_generative_adversarial_contract.mjs
+KILLED   REGEX CONFIRMED_COMPLETION always matches                       v92_parity_contract.mjs
+KILLED   REGEX NEGATED_CLAUSE never matches                              belt_generative_adversarial_contract.mjs
+KILLED   REGEX NEGATED_CLAUSE always matches                             v62_provenance_language_and_limits_contract.mjs
+KILLED   REGEX REFERENCELESS_CONFIRMATION never matches                  run13_defect_closure_contract.mjs
+KILLED   REGEX REFERENCELESS_CONFIRMATION always matches                 v92_parity_contract.mjs
+KILLED   REGEX COMPLETION_VERB never matches                             v92_parity_contract.mjs
+KILLED   REGEX COMPLETION_VERB always matches                            v92_parity_contract.mjs
+SURVIVED REGEX NEGATION_AUX never matches
+SURVIVED REGEX NEGATION_AUX always matches
+KILLED   REGEX capLead never matches                                     v92_open_regression_contract.mjs
+SURVIVED REGEX capLead always matches
+SURVIVED REGEX __re never matches
+SURVIVED REGEX __re always matches
+SURVIVED REGEX titleHeadAfterPrep never matches
+KILLED   REGEX titleHeadAfterPrep always matches                         belt_generative_adversarial_contract.mjs
+KILLED   REGEX titleHead never matches                                   v92_open_regression_contract.mjs
+KILLED   REGEX titleHead always matches                                  belt_generative_adversarial_contract.mjs
+KILLED   REGEX endsFiniteVerb never matches                              standing_reds_classification_contract.mjs
+KILLED   REGEX endsFiniteVerb always matches                             run15_defect_closure_contract.mjs
+KILLED   REGEX ppInternal never matches                                  v92_open_regression_contract.mjs
+KILLED   REGEX ppInternal always matches                                 run15_defect_closure_contract.mjs
+KILLED   REGEX relInternal never matches                                 belt_generative_adversarial_contract.mjs
+KILLED   REGEX relInternal always matches                                belt_generative_adversarial_contract.mjs
+KILLED   REGEX quotedHead never matches                                  belt_generative_adversarial_contract.mjs
+KILLED   REGEX quotedHead always matches                                 belt_generative_adversarial_contract.mjs
+KILLED   REGEX adjective never matches                                   belt_generative_adversarial_contract.mjs
+SURVIVED REGEX adjective always matches
+KILLED   REGEX fewQuant never matches                                    belt_generative_adversarial_contract.mjs
+SURVIVED REGEX fewQuant always matches
+KILLED   REGEX detName never matches                                     belt_generative_adversarial_contract.mjs
+SURVIVED REGEX detName always matches
+KILLED   REGEX verb never matches                                        v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX verb always matches
+KILLED   REGEX commandEntity never matches                               v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX commandEntity always matches                              v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX negatedRequest never matches
+KILLED   REGEX negatedRequest always matches                             v59_intent_fallback_tier_contract.mjs
+SURVIVED REGEX hypotheticalRequest never matches
+KILLED   REGEX hypotheticalRequest always matches                        v59_intent_fallback_tier_contract.mjs
+KILLED   STRUCT receipt block disabled                                   v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT receipt exempted by a pendingAction again (BUG-002 revert)v61_budget_intent_language_contract.mjs
+KILLED   STRUCT receipt fires even without intent (FP direction)         v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT executedVerifiedCount ignores the postcondition          v61_budget_intent_language_contract.mjs
+KILLED   STRUCT requestedIntent falls back to the belt again             v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT the read veto is dropped (lexicon fires on questions)    v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT the model can veto the lexicon again (V60-D3 revert)     v61_budget_intent_language_contract.mjs
+KILLED   STRUCT budget reserve removed (packBudget == hardMax)           v62_provenance_language_and_limits_contract.mjs
+KILLED   STRUCT contextBudget attached AFTER the loop (V60-D5 revert)    v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT truncated forced false on a trimmed collection           v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT hard-pass truncated forced false                         v61_budget_intent_language_contract.mjs
+KILLED   STRUCT shown no longer follows the trim                         v61_budget_intent_language_contract.mjs
+KILLED   STRUCT unknown total invented from the surviving window (V63-D1 revert)v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT the hard floor passes are removed (V60-D1 revert)        v61_budget_intent_language_contract.mjs
+KILLED   STRUCT TRIM_ORDER protected-key guard removed                   v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT minimum-safe byte assertion removed                      v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT namedTargets dropped from the minimum safe context       v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT pendingAction dropped from the minimum safe context      v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT collections dropped from the minimum safe context        v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT history trims NEWEST first (oldest preserved)            v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT conversationHistory pinned at 1 on the hard pass (V61-D1 revert)v61_budget_intent_language_contract.mjs
+KILLED   STRUCT the trim list is never recorded                          architecture_context_budget_contract.mjs
+KILLED   STRUCT overBudget always reported false                         v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT packTokens measures the pack WITHOUT contextBudget       v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT NaN-safe cap parser reverted (V63-D6 revert)             v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT estimateRequestTokens forgets the system prompt          v65_request_frame_tiers_contract.mjs
+KILLED   STRUCT estimateRequestTokens measures the COMPACT form          v65_request_frame_tiers_contract.mjs
+KILLED   STRUCT the command is only counted once in the refusal (V62-D5 revert)v62_provenance_language_and_limits_contract.mjs
+KILLED   STRUCT the image size gate is removed                           request_gate_inventory_contract.mjs
+KILLED   STRUCT the model-context-window gate is removed                 v62_provenance_language_and_limits_contract.mjs
+KILLED   STRUCT the pack preflight refusal is removed                    v62_provenance_language_and_limits_contract.mjs
+KILLED   STRUCT packIdSet forgets the trim provenance (V62-D1 revert)    provenance_survives_trim_contract.mjs
+KILLED   STRUCT archivedCompanyIds forgets the trim provenance (V63-D2 revert)provenance_survives_trim_contract.mjs
+KILLED   STRUCT archivedCompanyIds ignores namedTargets                  provenance_survives_trim_contract.mjs
+KILLED   STRUCT the archived-parent create block is disabled             v63_intent_coverage_and_caps_contract.mjs
+KILLED   STRUCT deleteTaskIds no longer checked against context          context_scoped_mutation_gates_contract.mjs
+KILLED   STRUCT updateCompanies no longer checked against context        context_scoped_mutation_gates_contract.mjs
+KILLED   STRUCT the raw company lifecycle-edit block is bypassed         context_scoped_mutation_gates_contract.mjs
+KILLED   STRUCT provenanceIds captured AFTER the trim                    v63_intent_coverage_and_caps_contract.mjs
+
+candidate index.ts unchanged: true  (916da4e27b1c976ca806365d58605b22377d1b6b1540cb705a5e76fba36bb610)
+V64 extended sweep: 147 killed, 22 SURVIVED, 0 did not apply
+  SURVIVED: REGEX FACTORY_INTENT_PATTERN never matches
+  SURVIVED: REGEX FACTORY_INTENT_PATTERN always matches
+  SURVIVED: REGEX LIFECYCLE_UUID_RE always matches
+  SURVIVED: REGEX commandNegatedLead never matches
+  SURVIVED: REGEX commandReadLead never matches
+  SURVIVED: REGEX commandReadLead always matches
+  SURVIVED: REGEX UUID_IN_TEXT never matches
+  SURVIVED: REGEX decimal always matches
+  SURVIVED: REGEX abbreviation never matches
+  SURVIVED: REGEX NAME_CONNECTOR never matches
+  SURVIVED: REGEX NEGATION_AUX never matches
+  SURVIVED: REGEX NEGATION_AUX always matches
+  SURVIVED: REGEX capLead always matches
+  SURVIVED: REGEX __re never matches
+  SURVIVED: REGEX __re always matches
+  SURVIVED: REGEX titleHeadAfterPrep never matches
+  SURVIVED: REGEX adjective always matches
+  SURVIVED: REGEX fewQuant always matches
+  SURVIVED: REGEX detName always matches
+  SURVIVED: REGEX verb always matches
+  SURVIVED: REGEX negatedRequest never matches
+  SURVIVED: REGEX hypotheticalRequest never matches
+exit=1

@@ -3797,7 +3797,7 @@ serve(async (req) => {
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
           const currentStatus = companyStatusById.get(c.id);
-          const statusChangeIsLifecycleTransition = c.status && (c.status === 'archived' || currentStatus === 'archived');
+          const statusChangeIsLifecycleTransition = false;
           if (statusChangeIsLifecycleTransition) {
             // Never attempted, on purpose - archiveCompanyIds/restoreCompanyIds
             // (archive_company()/restore_company()) are the only path in/out of
@@ -5794,7 +5794,7 @@ serve(async (req) => {
               const beforeWordMatch = head.slice(0, k).match(/([A-Za-z0-9.]+)$/);
               const beforeWord = beforeWordMatch ? beforeWordMatch[1].replace(/\.+$/, '') : '';
               const next = head[k + 1] === ' ' ? head[k + 2] : head[k + 1];
-              const decimal = /(?:)/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
+              const decimal = /[0-9]$/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
               const abbreviation = /^[A-Za-z]$/.test(beforeWord) || KNOWN_ABBREVIATION.test(beforeWord);
               if (decimal || abbreviation) continue;
               cut = k; break;

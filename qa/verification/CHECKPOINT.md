@@ -109,8 +109,13 @@ three or more request frames outside the canonical groups — proved by re-intro
 **73 green / 2 red by design** (75 suites); `v66_object_shape_tiers_contract` **71/0** (all 13 of #66's
 defect assertions pass, 0 CONTRACT failures); `v65_request_frame_tiers_contract` **105/0**;
 `mutation_sweep_safety_contract` **42/0**; **`v66_mutation_proof` 5/5 mutants killed**, candidate
-byte-identical after each — every piece of the fix is load-bearing, and the two pieces that were NOT
-(a redundant veto relaxation) were removed rather than registered.
+byte-identical after each — every piece of the fix is load-bearing, and the one piece that was NOT
+(a redundant veto relaxation) was removed rather than registered.
+Clean extended vacuity sweep on these exact bytes: **147 killed, 22 SURVIVED, 0 did not apply,
+candidate byte-identical, exit 1** — down from 28, and **zero STRUCTURAL survivors remain** (all six,
+including the V62-D1 and V63-D2 reverts, are killed by `provenance_survives_trim_contract` and
+`context_scoped_mutation_gates_contract`). The 22 that remain are all regex-level and registered; #145's
+rule applies to each — establish CONSTRUCT REDUNDANT vs TEST VACUOUS before writing a test for it.
 **`deno check` re-derived** (via `npx --yes deno@latest`): 10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005,
 1x TS2339 = 19 diagnostics, **zero** TS2448/TS2454/TS2304/TS2552/TS2551 — unchanged from baseline.
 `index.ts` CRLF-pure, 0 bare LF, 1 pre-existing bare CR (unchanged P3 debt).

@@ -1708,11 +1708,15 @@ function json(data: unknown, status=200){ return new Response(JSON.stringify(dat
 // EXECUTOR ⊆ INTENT and QUESTION ⊆ INTENT are true BY CONSTRUCTION here — the founder's section-3 rule
 // (a request the executor detects is never invisible to the receipt) made structural, not merely tested.
 //
-// REGISTERED DELIBERATE DIFFERENCE (founder directive 2026-09-08 §6): "can we"/"could we"/"shall we" stay
-// DIRECTIVE while "can I"/"could I"/"should I" are DELIBERATIVE. The inclusive forms are what v92 ships and
-// every green corpus measures; narrowing them is a behaviour change that deserves its own round and its own
-// evidence rather than riding along inside a defect fix. They do leave the QUESTION tier here, which is the
-// fail-closed direction: "shall we archive ACME?" now reads as the question it plainly is.
+// WHERE THE LINE FALLS, and why it is about grammar rather than inertia (verifier #66's ruling on the
+// asymmetry #65 registered but never justified):
+//   FIRST-PERSON MODAL INTERROGATIVES ARE DELIBERATIVE, whatever their number — "can I", "could I",
+//     "should I", "may I", "can we", "could we", "shall we", "shall i". Each asks WHETHER to act.
+//   HORTATIVE AND DECLARATIVE INSTRUCTIONS STAY DIRECTIVE — "let's", "let us", "we should", "we need to".
+//     "let's archive ACME" is an instruction with a friendly face; "shall we archive ACME" is a question.
+// Both groups arm the receipt; this decides only whether the RAW COMMAND may execute without a
+// confirmation turn. The cost of the deliberative reading is one extra turn; the cost of the directive
+// reading was an unrequested archive.
 const REQUEST_FRAME_ADDRESSED = "would you be able to|would you(?: please| mind)?|any chance you could"
   + "|could you(?: please)?|can you(?: please)?|will you|please";
 const REQUEST_FRAME_ALTERNATION = REQUEST_FRAME_ADDRESSED
@@ -1725,7 +1729,7 @@ const REQUEST_FRAME_ALTERNATION = REQUEST_FRAME_ADDRESSED
   // Longest-first within a family: regex alternation takes the FIRST match, so "would you" placed ahead
   // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1). The
   // second-person frames that used to sit here are now the ADDRESSED group at the head of this same string.
-  + "|may i ask you to|mind|can we|could we|shall we|shall i"
+  + "|may i ask you to|mind"
   + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|we need you to|i need you to|i want you to"
   + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
 // DELIBERATIVE frames — the INTENT tier only, never the executor. Each of these is the founder weighing an
@@ -1733,6 +1737,7 @@ const REQUEST_FRAME_ALTERNATION = REQUEST_FRAME_ADDRESSED
 // verified execution owes a deterministic no-change receipt) while the raw-command lifecycle fallback must
 // not act. Longest-first within each family, same rule as above.
 const REQUEST_FRAME_DELIBERATIVE = "should we|should i|(?:i think )?i should|could i|can i|may we|may i"
+  + "|could we|can we|shall we|shall i"
   + "|i want to|we want to|i need to|i(?:['’]d| would) like to|we(?:['’]d| would) like to"
   + "|we have to|i have to|we ought to|i ought to|we must|i must";
 // The INTENT tier is the UNION, formed here and nowhere else. A frame added to either group above is
@@ -3958,6 +3963,19 @@ serve(async (req) => {
           commandFallbackAllowed && headLifecycleAction === 'archive' ? lifecycleCommandName(ARCHIVE_VERB_PATTERN) : null);
         const restoreCompanyIds = await resolveCompanyLifecycleTargets('restore', requestedRestoreIds, result.restoreCompanyNames,
           commandFallbackAllowed && headLifecycleAction === 'restore' ? lifecycleCommandName(RESTORE_VERB_PATTERN) : null);
+        // THE EXECUTOR'S OUTCOME IS THE ONE DEFINITION OF "the raw command asked for a lifecycle mutation".
+        // The intent tier used to re-derive this from a second spelling of the executor's gate, and the two
+        // drifted: the executor strips "business unit" and tolerates a quoted name, the intent tier's
+        // STRONG_OBJECT did neither, so a command could archive a real row while requestedIntent stayed null
+        // and the model's "Done — archived." shipped as the whole answer (verifier #66, V66-D6).
+        // Reading the RESULT instead of re-deriving the RULE makes "the executor acted and the receipt never
+        // knew" inexpressible rather than merely tested — the same repair shape as the frames in #65.
+        // ONE value crosses the tier boundary, carrying both the fact and its direction, so the intent
+        // tier needs nothing else from the executor and cannot start re-deriving pieces of it again.
+        const commandFallbackResolvedVerb: string | null =
+          (commandFallbackAllowed && !modelEmittedArchive && !modelEmittedRestore)
+            ? (archiveCompanyIds.length > 0 ? 'archive' : restoreCompanyIds.length > 0 ? 'restore' : null)
+            : null;
 
         // ==================================================================================
         // BACKEND-GENERATED EXECUTION EVIDENCE (2026-09-01, structured-claim architecture).
@@ -6066,7 +6084,7 @@ serve(async (req) => {
           const rest = firstClauseForRead.slice(fm[0].length).trim();
           // A STRONGER bar than the ordinary object test, because this overrides a signal the founder gave:
           // "and list them" asks for a report. The first clause wins only if it NAMES its target.
-          const STRONG_OBJECT = /^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\s*(?:[A-Z][A-Za-z0-9_-]*|\S+[-_]?\d|"[^"]+"|'[^']+'|[“][^”]+[”]|\S+@\S+\.\S+|it|them|compan(?:y|ies)|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|invoice|report|order|contract|assignment|employment)\b/;
+          const STRONG_OBJECT = /^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\s*(?:[A-Z][A-Za-z0-9_-]*|\S+[-_]?\d|"[^"]+"|'[^']+'|[“][^”]+[”]|\S+@\S+\.\S+|it|them|compan(?:y|ies)|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|invoice|report|order|contract|assignment|employment)(?![A-Za-z0-9_])/;
           return objectRefers(rest) && STRONG_OBJECT.test(rest);
         })();
         const readShaped = isQuestion
@@ -6092,7 +6110,6 @@ serve(async (req) => {
         const alwaysEnglishBase = alwaysMatch && typeof alwaysMatch[1] === 'string' && alwaysMatch[1].length > 0 ? alwaysMatch[1] : null;
         // Group 4 is the Mongolian alternation and is handled on its own terms below; groups 2-3
         // ("bring it back", "get ACME archived") already carry their own position.
-        const alwaysCyrillicRaw = alwaysMatch && typeof alwaysMatch[4] === 'string' && alwaysMatch[4].length > 0 ? alwaysMatch[4] : null;
         const alwaysOther = alwaysMatch ? ([alwaysMatch[2], alwaysMatch[3]].find((g) => typeof g === 'string' && g.length > 0) || null) : null;
         // A Mongolian READ or STATEMENT: a question word, a sentence-final question particle (Mongolian
         // questions routinely carry no '?'), or the copular/negative endings that make a clause a statement
@@ -6123,7 +6140,11 @@ serve(async (req) => {
         const mnLoanVerb = (commandText.match(MN_LOAN_VERB) || [])[1] || null;
         const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
         const mnIsCommandForm = (w: string) => !MN_NOT_A_COMMAND.test(w) && !MN_CASE_SUFFIX.test(w);
-        const alwaysCyrillic = (alwaysCyrillicRaw || mnCandidates.length > 0)
+        // alwaysCyrillicRaw was ORed in here, but the branch it guards resolves from mnCandidates alone:
+        // with no candidates the find() yields null either way, so the disjunct could never change an
+        // output. Verified in both tiers over 17 Mongolian cases (verifier #66, ruling on m7). Removed
+        // rather than whitelisted — a mutant that survives because the code is dead is dead code.
+        const alwaysCyrillic = (mnCandidates.length > 0)
           ? (mnCandidates.find((w) => mnIsCommandForm(w) && mnFinalWindow.includes(w)) || null)
           : null;
         // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
@@ -6193,7 +6214,14 @@ serve(async (req) => {
               ? { verb: 'confirm', field: null }
               : (lexiconVerb !== null && !lexiconReadVetoed)
                 ? { verb: lexiconVerb, field: null }
-                : null;
+                // A resolved lifecycle target is something that HAPPENED; the read veto above is a heuristic
+                // about how the sentence LOOKS. Fact outranks shape — the founder's grounding precedence
+                // applied to the request side (verifier #66, V66-D6). One branch, not two: relaxing the veto
+                // AND adding this branch was measured redundant (the mutation proof could not kill the
+                // relaxation), and a redundant guard is a guard nobody can test.
+                : commandFallbackResolvedVerb !== null
+                  ? { verb: commandFallbackResolvedVerb, field: null }
+                  : null;
         // Final request intent: the request-side derivation alone. The belt (a property of the REPLY) never
         // decides whether a request carried intent — a read-vetoed lexicon hit is null, full stop
         // (verifier #56 V56-D2: the defence-in-depth tier rewrote truthful dated history on read requests).
@@ -6940,7 +6968,11 @@ serve(async (req) => {
         // a not-yet-existing "permanent delete + cascade" capability). AUTHORIZED is not
         // COMPLETED — a confirmation this file cannot actually execute must say so, never
         // silently stand as if it succeeded.
-        if (model === 'deterministic-confirmation' && !groundedOutcomeThisTurn) {
+        // All three deterministic modes end a turn by AUTHORISING something. Only the confirmation mode
+        // was netted, so a clarification or a disambiguation shipped "Confirmed — Delete the ACME purchase
+        // approval." with zero execution evidence behind it (verifier #66, V66-D7).
+        if ((model === 'deterministic-confirmation' || model === 'deterministic-clarification'
+          || model === 'deterministic-disambiguation') && !groundedOutcomeThisTurn) {
           result.summary = 'I understood and you confirmed that, but I don’t have a way to actually carry it out yet — nothing was changed. Please use the relevant page in the app for this action, or rephrase using an action I can execute (archive/restore a company, end/restore someone’s employment, etc.).';
         }
 
