@@ -144,6 +144,26 @@ await A('DEFECT', 'V59-D1b "get Alpha archived" [model nothing]', 'causative pas
 await A('DEFECT', 'V59-D2 "do me a favour and archive Alpha" [model nothing]', 'a frame IMPERATIVE_HEAD_RE admits must not be vetoed by commandReadLead', async () => { const o = await chain('do me a favour and archive Alpha', 'Alpha has been archived.'); return [o.calls.length === 1 && o.final === 'Alpha: archived.', j(o)]; });
 await A('DEFECT', 'V59-D2b "list the tasks, then archive Alpha" [model nothing]', 'an imperative last clause after a non-conditional lead executes', async () => { const o = await chain('list the tasks, then archive Alpha', 'Alpha has been archived.'); return [o.calls.length === 1 && o.final === 'Alpha: archived.', j(o)]; });
 await A('DEFECT', 'V59-D2c "when you get a chance, archive Alpha" [model nothing]', 'a polite time frame is a request: intent present (receipt or execution), never the fabrication', async () => { const o = await chain('when you get a chance, archive Alpha', 'Alpha has been archived.'); return [o.intent !== null && (o.calls.length === 1 ? o.final === 'Alpha: archived.' : NO_CHANGE.test(o.final)), j(o)]; });
+// A FUZZY HIT FROM THE RAW COMMAND ASKS; IT NEVER EXECUTES. This is the V56-D3 property — "delete Alpha"
+// archived "Alpha Holdings" — and repairing v56_mutation_proof in the #65 closure showed that NO suite in
+// the battery asserted it: `m5_command_fuzzy_executes` disables the guard outright and every suite stayed
+// green (ledger #143). The rows live here because this suite already owns the lifecycle-executor window and
+// its stubbed client; a second copy of that harness would be the duplication this campaign exists to remove.
+// "Holdings" has no exact row and exactly ONE fuzzy hit, which is precisely the case the guard exists for:
+// a unique fuzzy match is the most tempting one to execute and the most dangerous to get wrong.
+await A('CONTRACT', 'V65-C1 "archive Holdings" [model nothing]', 'a UNIQUE fuzzy hit from the raw command must ask, never archive', async () => {
+  const o = await chain('archive Holdings', 'Holdings has been archived.');
+  return [o.calls.length === 0 && o.disamb.length === 1, j(o)];
+});
+await A('CONTRACT', 'V65-C2 "restore Holdings" [model nothing]', 'the same guard holds in the restore direction', async () => {
+  const o = await chain('restore Holdings', 'Holdings has been restored.');
+  return [o.calls.length === 0 && o.disamb.length === 1, j(o)];
+});
+await A('CONTRACT', 'V65-C3 "archive Alpha" still executes', 'an EXACT command match is not fuzzy and must still execute — the guard must not swallow the normal path', async () => {
+  const o = await chain('archive Alpha', 'Alpha has been archived.');
+  return [o.calls.length === 1 && o.disamb.length === 0, j(o)];
+});
+
 C('DEFECT', 'V59-D3 IMPERATIVE_HEAD_RE has no unreachable alternative', 'every verb alternative must match in head position (dead alternatives = vacuous-guard class)', () => {
   // IMPERATIVE_HEAD_RE is ASSEMBLED from the shared REQUEST_FRAME_ALTERNATION since the V64-D1b closure
   // removed the twin, so there is no regex literal left to parse. Build it exactly as the source does and
