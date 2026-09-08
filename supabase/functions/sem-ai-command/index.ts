@@ -2661,9 +2661,33 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     ['channels', 6, false], ['agents', 5, false], ['conversationHistory', 4, true],
     ['projects', 8, false], ['goals', 8, false], ['tasks', 8, false], ['people', 10, false], ['companies', 8, false],
   ];
+  // MINIMUM SAFE CONTEXT (founder contract 2026-09-08 §3): the current command, the caller's identity and
+  // organization scope, the durable pending action, the canonical ids an operation needs, the execution
+  // evidence and the truth/continuity state are NEVER trimmed to fit a budget. Optional, reconstructible
+  // context is trimmed first; if the minimum itself does not fit, that is the one case where the request may
+  // legitimately be refused — and it is refused with the minimum intact, never with a silently gutted pack.
+  const MINIMUM_SAFE_CONTEXT = ['currentTurn', 'continuity', 'counts', 'collections', 'pendingAction',
+    'recentlyResolvedEntities', 'recentlyDeletedEntities', 'activeChannelId'];
   const contextTrimmed: string[] = [];
   const packRecord = pack as Record<string, unknown>;
+  // 'collections' is protected from being trimmed as a collection, but its envelopes are UPDATED by a trim
+  // by design (that is how a trimmed collection keeps reporting shown/total/truncated truthfully), so it is
+  // asserted by key set rather than by bytes; everything else in the minimum must come out byte-identical.
+  const BYTE_STABLE_CONTEXT = MINIMUM_SAFE_CONTEXT.filter((k) => k !== 'collections');
+  const minimumSafeBefore = JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null));
+  const collectionKeysBefore = Object.keys(collections).join(',');
   const collectionsRecord = collections as Record<string, { shown: number; total: number | null; truncated: boolean | null }>;
+  // Attached BEFORE the loop so packTokens() measures the request as it will actually be serialized: this
+  // field grows by one line per trim, and measuring the pack without it understates the real request.
+  const contextBudget = {
+    estimatedTokens: 0, budget: packBudget, trimmed: contextTrimmed,
+    protected: MINIMUM_SAFE_CONTEXT,
+    note: 'A trimmed collection is truncated, never absent: its envelope in context.collections keeps the real total and truncated=true, and any entity named in a command is still resolved server-side across every status.',
+  };
+  packRecord.contextBudget = contextBudget;
+  for (const [key] of TRIM_ORDER) {
+    if (MINIMUM_SAFE_CONTEXT.includes(key)) throw new Error('TRIM_ORDER names a minimum-safe-context key: ' + key);
+  }
   for (const [key, keep, keepNewest] of TRIM_ORDER) {
     if (packTokens() <= packBudget) break;
     const arr = packRecord[key];
@@ -2673,7 +2697,15 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     if (env) { env.shown = keep; env.truncated = env.total === null ? null : env.total > keep; }
     contextTrimmed.push(`${key} ${arr.length}->${keep}`);
   }
-  packRecord.contextBudget = { estimatedTokens: packTokens(), budget: packBudget, trimmed: contextTrimmed };
+  // The guarantee is asserted, not assumed: if any protected key changed, the trim loop is wrong and the
+  // turn must fail loudly here rather than answer from a pack whose safe minimum was quietly cut.
+  if (JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null)) !== minimumSafeBefore
+    || Object.keys(collections).join(',') !== collectionKeysBefore) {
+    throw new Error('context budget trimmed the minimum safe context — refusing to build this turn');
+  }
+  // estimatedTokens is part of the payload it measures, so writing it can only grow the request by the digits
+  // of the number itself; it is written from the pre-write measurement and the difference is bounded by that.
+  contextBudget.estimatedTokens = packTokens();
   return { pack, errors:[companies.error,namedCompanyLookup.error,archivedCompanies.error,projects.error,tasks.error,namedTaskLookup.error,memories.error,agents.error,products.error,inventory.error,approvals.error,people.error,namedPersonLookup.error,goals.error,namedGoalLookup.error,companyRelationships.error,personAssignments.error,financialReports.error,conversationRows.error,factoryWorkOrdersRaw.error,channels.error,departments.error,leads.error,documents.error,proposals.error,productSpecs.error,engineeringDrawings.error,aiProviders.error,mcpConnectors.error,tasksCount.error,approvalsCount.error,companiesCount.error,peopleCount.error,projectsCount.error,goalsCount.error,salesLeadsCount.error,inventoryCount.error,channelsCount.error,departmentsCount.error,documentsCount.error].filter(Boolean).map((e:any)=>e.message) };
 }
 

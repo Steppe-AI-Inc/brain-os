@@ -15912,3 +15912,50 @@ hardening patch are on the next candidate; a fresh independent verifier and a fr
 are required before any redeploy. The live evidence gathered before the rollback stands: the BUG-014 fix
 worked in production (a fresh-channel restore of a company outside the context window executed and was
 receipted truthfully; a non-existent company produced the truthful not-found line).
+
+## 134. Context-budget estimator measured a smaller pack than it shipped; whole-request gates were never inventoried — FIXED (2026-09-08)
+
+**Found while** implementing the founder's seven-part contract on top of the #133 fix, before dispatching
+verifier #60. Two defects, both found by measurement rather than by reading the source.
+
+**Defect A — the estimator did not measure the request as serialized.** The trim loop measured
+`{command, pack}` and only afterwards attached `pack.contextBudget`, a field whose size grows by one line
+per trim plus the protected-key list and the truthfulness note. The loop therefore certified a pack smaller
+than the one it shipped. Measured on a production-shaped fixture, a 50-turn channel exited the loop
+"fitting" at the 11,400 budget and serialized 11,550 — inside the 12,000 hard cap only because the
+600-token reserve silently absorbed the gap. This is exactly the class of #133: an accounting boundary that
+looked safe in source and was wrong against real bytes. Fixed by attaching `contextBudget` BEFORE the loop
+and mutating it in place, so `packTokens()` always measures the exact bytes that will be sent.
+
+**Defect B — the headroom measurement was optimistic.** The first version of the gate-inventory fixture
+left twenty of the twenty-four pack collections empty, so the published headroom table understated every
+estimate by thousands of tokens. Rebuilt from the real caps in `index.ts` (one entry per collection with its
+real selected columns), a saturated production pack estimates **25,595 tokens** before trimming. That is
+more than twice the hard cap, and it means the deployed v92 pack would breach the preflight too on a fully
+populated workspace: #133 was not a v93-only regression, it was an unbounded-growth defect that v93 merely
+reached first. After the fix the same pack ships at 10,618 with 24 truthful trims.
+
+**Search performed for the same class.** Every whole-request gate in `index.ts` is now enumerated and
+classified in `qa/scenarios-runner/request_gate_inventory_contract.mjs`: input token estimate (SAFE
+DEGRADATION), output token cap, model-reply JSON parse, auth/identity and provider error (DETERMINISTIC
+REFUSAL), per-collection row caps, named-entity lookup cap and the history window (SAFE DEGRADATION). No
+UNSAFE HARD STOP remains. Four gates are recorded as UNMEASURED rather than assumed safe: the provider's own
+context window, per-request wall-clock timeouts, SSE stream initialisation after the preflight passes, and
+system-prompt size drift. The suite fails if a second whole-request size cap appears unclassified.
+
+**Regression.** `request_gate_inventory_contract.mjs` (25/25) carries the classification, the eleven-case
+headroom table (worst headroom 875 tokens, margin asserted at >= 400 so nobody tunes to 11,999), and the
+pinned production witness: the 2026-09-08 turn measured at 25,595 tokens pre-fix, over the cap, and 10,618
+post-fix with trims recorded — both halves asserted so the witness cannot rot into a test that passes for
+the wrong reason. `architecture_context_budget_contract.mjs` (26/26) adds the serialized-estimate assertion
+and pins in source that `contextBudget` is attached before the trim loop.
+
+**Permanent lessons, recorded in `CLAUDE.md` §3 and §6 and `governance/OPERATING_TRUTH_MODEL.md` §4.4.**
+STATIC / SOURCE VERIFICATION CANNOT SUBSTITUTE FOR LIVE REQUEST-SHAPE ACCEPTANCE. BYTE-IDENTICAL DEPLOYMENT
+IS NOT PRODUCT-SAFE DEPLOYMENT. The post-deploy live acceptance gate proved its value on 2026-09-08 and is
+mandatory on every deploy. `TOKEN_BUDGET_EXHAUSTION_MUST_DEGRADE_CONTEXT_NOT_PRODUCT_AVAILABILITY` is now a
+promoted contract with a named minimum safe context, and NOT INCLUDED IN THE PROMPT != DOES NOT EXIST is
+enforced by the envelope and by server-side canonical resolution.
+
+**Status.** Fixed on the candidate; not deployed. Production remains v92 source (function v94). A fresh
+independent verifier and a fresh founder authorization are required before any redeploy.

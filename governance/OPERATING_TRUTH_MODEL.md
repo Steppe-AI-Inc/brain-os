@@ -170,6 +170,53 @@ placed into a context pack without `shown/total/truncated` is a defect (drift gu
 The model states "N of M shown" when `truncated` is true. Counts, sums and totals shown to
 the founder come from aggregate queries, never from counting a window.
 
+### 4.4 Context budget — `TOKEN_BUDGET_EXHAUSTION_MUST_DEGRADE_CONTEXT_NOT_PRODUCT_AVAILABILITY`
+
+Permanent product contract, promoted after the 2026-09-08 production incident
+(`qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md`, ledger #133).
+
+**The invariant.** A request either FITS the hard limit, or OPTIONAL CONTEXT DEGRADES
+DETERMINISTICALLY. A valid founder turn is never converted into a hard stop because optional
+context inflated the request. `VALID FOUNDER TURN → HARD STOP because the pack grew` is a P1
+defect, not a capacity limit.
+
+**The minimum safe context.** These are never trimmed to fit a budget:
+
+| Kept | Why |
+|---|---|
+| the current user command | the turn is meaningless without it |
+| authenticated identity and organization scope | trimming it would answer as the wrong tenant |
+| the caller's permissions | trimming it would answer above the caller's authority |
+| the durable pending action | trimming it breaks a confirmation already in flight |
+| exact canonical entity and action state for the targets of this turn | trimming it invents or loses a target |
+| execution-result requirements (this turn's receipts and evidence) | trimming it lets prose self-certify |
+| the system safety and truth contract | trimming it removes the rules being enforced |
+
+If the minimum itself does not fit, that is the one case where a request may be refused — and
+it is refused with the minimum intact, with a stated reason, never with a silently gutted pack.
+The set is named in source (`MINIMUM_SAFE_CONTEXT`), the trim order is asserted against it, and a
+trim that touched it throws instead of shipping.
+
+**Degradation is truthful, not silent: NOT INCLUDED IN THE PROMPT != DOES NOT EXIST.** Every
+trimmed collection still reports `shown`, the exact `total`, and `truncated: true` through its
+`CollectionEnvelope`; the pack carries `contextBudget` listing every trim. Any entity named in a
+command is still resolved server-side across every status, so a trimmed window can never become
+an answer of non-existence, and archived entities stay canonically resolvable.
+
+**The estimator measures the request as serialized.** The budget check uses the same estimator as
+the request preflight, applied to the exact bytes that will be sent — including the
+`contextBudget` field itself, whose size grows with the number of trims. A loop that measures a
+smaller pack than it ships is a defect (found and fixed 2026-09-08: a 50-turn channel exited the
+loop "fitting" and shipped 150 tokens over its budget).
+
+**A deliberate margin is kept.** The pack budget sits below the hard cap and the suites measure
+headroom across realistic workspaces (`qa/scenarios-runner/request_gate_inventory_contract.mjs`).
+The margin is never tuned down to just-fits.
+
+**Every whole-request gate is classified.** Each point where a valid turn can be rejected is
+inventoried as SAFE DEGRADATION, DETERMINISTIC REFUSAL, UNSAFE HARD STOP (forbidden), or
+UNMEASURED. An UNMEASURED gate is named explicitly; it is never assumed safe.
+
 ## 5. Truthful-receipt FAIL conditions
 
 Any of these observed on any surface (UI, chat, notification, dashboard) is a product

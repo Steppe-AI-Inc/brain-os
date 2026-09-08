@@ -45,7 +45,8 @@ None of the following, alone, proves that a feature works: code in GitHub, a mig
 file, a successful query, a local test, a build, a deploy command's exit status, an API
 response, one browser click, one role working, one table having RLS, one Edge Function
 deploy, a component rendering, a row changing, an RPC returning success, a toast, a
-plausible sentence from Brain, Claude saying "implemented", green Home-PC tests.
+plausible sentence from Brain, Claude saying "implemented", green Home-PC tests, green
+source-level contract suites, a byte-identical deployed-bytes comparison.
 
 Verify the chain: browser → deployed frontend → authenticated user → Edge Function /
 API → expected Supabase project → schema → RLS → returned data → UI result. For AI
@@ -94,6 +95,18 @@ from a snapshot document (`qa/LIVE_SYSTEM_MAP.md` is the query procedure).
 - Every production defect becomes permanent knowledge: reproduce → root cause → same-
   class search → regression test for the class → fix → rerun the whole scenario → ledger
   entry in `qa/KNOWN_FAILURE_MODES.md` (the `incident-to-regression` skill).
+- **Static and source verification cannot substitute for live request-shape acceptance.**
+  Every gate that shapes an answer can be measured in a harness; the gates that refuse a whole
+  request — token preflight, payload size, timeouts, provider limits — are only observed on a
+  real request with a real workspace behind it. A candidate that passed 24 rounds of source
+  verification returned a hard stop on an ordinary question the first time a real workspace was
+  behind it (2026-09-08, ledger #133). Measure what gates the request, not only what shapes the
+  answer, and classify every whole-request gate
+  (`qa/scenarios-runner/request_gate_inventory_contract.mjs`).
+- **Byte-identical deployment is not product-safe deployment.** Verifying that production runs
+  exactly the certified bytes proves provenance, nothing more. The bytes were the certified ones
+  and the product was still broken. The post-deploy live acceptance gate is what caught it, and
+  it is mandatory on every deploy — never skipped because the byte comparison passed.
 - Review your own code from seven seats before approving it: developer, adversarial
   reviewer, security engineer, SRE, product QA, data engineer, cost engineer.
 - Evidence types are not interchangeable: screenshots for UI, database output for DB,

@@ -796,3 +796,16 @@ Harness convention introduced here: `qa/scenarios-runner/_gate_extract.mjs` `REQ
 puts the request-side names (`command`, `factLines`, `lifecycleReports`, …) above every executed
 window with **no mutation intent by default**; a suite that exercises fabrication correction sets
 `globalThis.command` to a mutation-intent command first.
+
+## Context budget and whole-request gates (2026-09-08) — incident #133 / #134
+
+Enforcement for `governance/OPERATING_TRUTH_MODEL.md` §4.4
+(`TOKEN_BUDGET_EXHAUSTION_MUST_DEGRADE_CONTEXT_NOT_PRODUCT_AVAILABILITY`).
+
+| Suite | Invariant |
+|---|---|
+| `architecture_context_budget_contract.mjs` | the real trim block executed: an oversized pack ends under budget with no hard stop; the estimate measures the request AS SERIALIZED (contextBudget attached before the loop); trims are deterministic; optional collections go before core and core keeps a floor; history keeps the newest turns; every trimmed collection keeps its exact total with truncated=true; the minimum safe context is named in source, never in the trim order, and a trim that touched it throws; archived entities stay server-side resolvable |
+| `request_gate_inventory_contract.mjs` | every whole-request gate is classified SAFE DEGRADATION / DETERMINISTIC REFUSAL / UNSAFE HARD STOP / UNMEASURED, and none is an UNSAFE HARD STOP; a second whole-request size cap cannot be added unclassified; UNMEASURED gates are named; estimator headroom measured across eleven realistic workspaces with a margin asserted at >= 400 tokens; the 2026-09-08 production witness pinned pre-fix (over the cap) and post-fix (fits, with trims) |
+
+The witness asserts BOTH halves on purpose. A regression test for a capacity incident that only checks
+"it fits now" passes just as happily against a fixture too small to have ever failed.
