@@ -164,3 +164,29 @@ restored." The fixture QA-SWARM-TEST-CO-VIA-CHAT was found ALREADY ACTIVE (not a
 recorded); the archive->restore cycle was exercised on it and it is active again — no net change.
 
 Nothing is deployed, nothing is closed, ready_for_retest stays false on all six reports.
+
+## 2026-09-08 addendum — the rolled-back build is not a safe build either
+
+Measured after the rollback, source-level only, against the exact production source downloaded for the
+byte comparison (sha256 `795c20c8…`): the deployed build has no budget-aware pack assembly, so nothing
+bounds the context pack's growth against its own 12,000-token preflight. Its own pack literal, saturated
+at its own per-collection `.limit(N)` caps, estimates **17,038** tokens with short names and no channel
+history, and **25,970** with long names — all of which the deployed build would answer with HTTP 413 and
+no answer at all.
+
+How close production is today is measurable from the incident rather than guessed: the live v93 failure
+measured 12,340 tokens on a brand-new empty channel, and the v93 pack was about 1,772 tokens larger than
+v92's, so the same workspace on the deployed build sits near **10,570 — roughly 1,430 below the hard
+stop**. Twenty more people, or one more populated company, or a handful of person assignments closes it.
+
+**What this means for a Work-PC acceptance sweep on the current production build.** If a Brain Chat turn
+returns `{"error":"Token preflight hard stop","tokenEstimate":…,"hardMax":12000}`, that is this defect and
+not the bug under test. Please record the `tokenEstimate` value and the workspace it happened on, and do
+not file it against BUG-002/010/011/012/013/014 — it is the class in ledger #133 and #134, and its fix is
+in the candidate awaiting independent verification and a fresh founder deploy authorization. Creating test
+data (extra people, companies, assignments, documents) makes it more likely, not less.
+
+Evidence: `qa/verification/incidents/ADDENDUM_2026-09-08_DEPLOYED_BUILD_ALSO_BREACHES.md` and
+`qa/verification/scratch/p1/measure_v92_pack.mjs` on the candidate branch. No live request was made to
+produce these figures; per the rule recorded this round, static verification does not substitute for live
+request-shape acceptance.
