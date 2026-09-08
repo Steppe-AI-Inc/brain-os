@@ -397,6 +397,42 @@
       "registered_at": "2026-09-07T12:56:40Z",
       "created_via": "Brain Chat (misbound confirmation)",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-CFWO-ADV-CO-A",
+      "kind": "company",
+      "resource_type": "company",
+      "name": "CFWO-Adv Co A (emp1=manager)",
+      "synthetic_display_name": "CFWO-Adv Co A (emp1=manager)",
+      "canonical_id": null,
+      "_canonical_id_note": "not captured; read it from a company picker hidden input before any id-targeted mutation",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "source_origin": "ADOPTED - created by the HOME PC for its cross-company work-order (CFWO) adversarial suite; discovered in the org selector 2026-09-08.",
+      "purpose": "Multi-org isolation testing. emp1 is a MANAGER here - the positive side of the cross-company work-order adversarial pair. Membership expectations are encoded in the names, which makes them the best available fixtures for tenant-boundary work from a founder-only seat.",
+      "cleanup": "DO NOT delete - Home-PC owned. Work PC uses them read-only unless the Home PC confirms otherwise.",
+      "registered_at": "2026-09-08T15:42:00Z",
+      "environment": "production"
+    },
+    {
+      "fixture_id": "FX-CFWO-ADV-CO-B",
+      "kind": "company",
+      "resource_type": "company",
+      "name": "CFWO-Adv Co B (emp1 NOT a member)",
+      "synthetic_display_name": "CFWO-Adv Co B (emp1 NOT a member)",
+      "canonical_id": null,
+      "_canonical_id_note": "not captured; read it from a company picker hidden input before any id-targeted mutation",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "source_origin": "ADOPTED - created by the HOME PC for its cross-company work-order (CFWO) adversarial suite; discovered in the org selector 2026-09-08.",
+      "purpose": "Multi-org isolation testing. emp1 is NOT a member - the negative side; the correct target for foreign-org denial tests. Membership expectations are encoded in the names, which makes them the best available fixtures for tenant-boundary work from a founder-only seat.",
+      "cleanup": "DO NOT delete - Home-PC owned. Work PC uses them read-only unless the Home PC confirms otherwise.",
+      "registered_at": "2026-09-08T15:42:00Z",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-02T09:25:21Z",
+  "last_updated": "2026-09-08T14:50:00Z",
   "updated_by": "fable-qa-director",
   "product_commit_tested": "8521b0e",
   "product_commit_tested_short": "8521b0e",
@@ -162,5 +162,13 @@
       "50/100/200-turn",
       "remaining NOT_TESTED"
     ]
+  },
+  "build_identity_2026_09_08": {
+    "status": "PARTIAL / SPLIT",
+    "edge_version": "v94",
+    "edge_source_equivalent": "v92",
+    "web_sha": "UNKNOWN",
+    "rule": "No FULL BUILD VERIFIED claim is permitted while WEB_SHA is UNKNOWN. All evidence from 2026-09-08 onward is labelled \"EDGE v94 (v92 source) / WEB SHA UNKNOWN\".",
+    "blocked_retests": "All six Home-PC fix reports (BUG-002/010/011/012/013/014) remain ready_for_retest=false; Edge-primitive fixes are not deployed."
   }
 }

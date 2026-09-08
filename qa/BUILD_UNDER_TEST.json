@@ -7,7 +7,7 @@
   "latest_implementation_sha_short": "8521b0e",
   "latest_implementation_ref": "origin/master",
   "latest_implementation_subject": "fix: skill injection must include definition_path - Skill tool alone silently fails (KNOWN_FAILURE_MODES #50)",
-  "deployed_product_sha": "8521b0e",
+  "deployed_product_sha": null,
   "deployed_product_sha_short": "8521b0e",
   "deployment_id": "dpl_FSJ9bV5jMCP4Q6wvVnwur67GM4N1",
   "deployment_url": null,
@@ -56,5 +56,31 @@
       "created": "2026-08-31T11:16:00Z",
       "note": "current build. BUG-001 and BUG-002 surfaces both byte-identical vs 266f86a (git diff empty on sem-ai-command/index.ts, departments.ts, people.ts), so both findings remain valid across 256f183..8521b0e."
     }
-  ]
+  ],
+  "build_identity_status": "PARTIAL / SPLIT",
+  "_build_identity_note": "The two halves of production are at DIFFERENT commits and only one is identifiable. Never record FULL BUILD VERIFIED while WEB_SHA is UNKNOWN.",
+  "edge_version": "v94",
+  "edge_source_equivalent": "v92",
+  "edge_function_version": 94,
+  "edge_function_sha": "22486cd751cac403d14b1ad429156b715d31dc3f03bf4b30575705524350343e",
+  "edge_function_status": "ACTIVE",
+  "edge_function_updated_at": "2026-09-08T02:10:04.759Z",
+  "_edge_note": "v93 (the P1 package) was deployed 2026-09-08 01:50Z and rolled back at 02:10Z after live acceptance found the context-pack token-preflight P1. v94 carries the v92 SOURCE. Edge-only fix reports must NOT be retested against it.",
+  "web_sha": "UNKNOWN",
+  "_web_sha_note": "The production web app is visibly AHEAD of the rolled-back Edge (live copy \"Current manager: none.\" exists only from master 1048b9e and is absent at f6fa26a), but the exact deployed commit is NOT observable from this seat: no build id, no /api/version (404), no commit meta tag, _next/static path is \"immutable\". Do NOT infer or invent a SHA. Tracked as OBS-WEB-DEPLOYED-AHEAD-OF-EDGE.",
+  "_deployed_product_sha_note": "Was \"8521b0e\" recorded 2026-08-31; that value is STALE and unverifiable now, so it is nulled rather than carried forward as if re-verified (CLAUDE.md §1 stale-provenance trap).",
+  "prior_record_2026_08_31": {
+    "deployed_product_sha": "8521b0e",
+    "recorded_at": null
+  },
+  "evidence_label_required": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+  "recorded_at": "2026-09-08T14:50:00Z",
+  "recorded_by": "work-pc-independent-qa (session 014TswfT)",
+  "retest_rules": {
+    "edge_only_fix_reports": "DO NOT retest while the deployed Edge source is v92-equivalent.",
+    "web_ui_fix_reports": "Browser exploration MAY proceed (the web changed), but a bug may NOT be CLOSED until the deployed web build is identified and tied to the implementation fix.",
+    "build_independent_defects": "Continue exploratory reproduction; label every piece of evidence with the split identity above.",
+    "on_new_edge_sha": "Start a new build-scoped retest campaign automatically.",
+    "on_web_sha_becoming_observable": "Update this file and schedule impacted fix reports via changed_primitives (qa/contracts/CAPABILITY_IMPACT_REGISTRY.json)."
+  }
 }

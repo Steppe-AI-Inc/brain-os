@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-08T14:40:00Z",
+  "last_updated": "2026-09-08T15:42:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 0,
     "open_p1": 10,
-    "open_p2": 11,
+    "open_p2": 12,
     "open_p3": 6,
-    "total_open": 27,
+    "total_open": 28,
     "total_closed": 5
   },
   "bugs": [
@@ -824,8 +824,31 @@
       "blast_radius": "None - read-only sweep.",
       "severity_reasoning": "P2: no data exposure for the founder; but a team member who reads the selector as \"I am inside CLIX GPS\" will get workspace-wide answers from Brain and the companies page. This is a truth-consistency defect across surfaces and a prerequisite for any team rollout.",
       "team_ready_gate": "Real tenant isolation must be proven with a NON-founder persona (RLS/membership), which remains BLOCKED from this seat (CAP-BROWSER-PERSONA-MULTIUSER). Do not treat this bug's fix as proof of isolation.",
-      "regression_requirement": "Select an org; assert /companies rows, both dashboard KPI cards, and a fresh-channel \"list people in the current organization\" all agree with /people for that org (or that chat explicitly states it is workspace-scoped).",
-      "_qa_boundary": "Work PC did not modify product code."
+      "regression_requirement": "Select an org with exactly one company and no children; assert /companies rows == 1 and the dashboard Active Companies KPI == 1, alongside the already-correct people/projects/tasks/goals/documents/approvals/departments surfaces; and assert a fresh Brain channel either names the selected org or states explicitly that its answer is workspace-wide.",
+      "_qa_boundary": "Work PC did not modify product code.",
+      "matrix_2026_09_08": {
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "selected_org": "CFWO-Adv Co A (emp1=manager)  [Home-PC adversarial fixture, paired with \"CFWO-Adv Co B (emp1 NOT a member)\"]",
+        "scoped_correctly": {
+          "/people": "0 rows",
+          "/projects": "0 rows",
+          "/departments": "\"No departments yet.\"",
+          "/tasks": "0 cards",
+          "/goals": "1 goal (CFWO-Adv Goal A) and the header names the org: \"Every outcome CFWO-Adv Co A ... is working toward\"",
+          "/documents": "empty, header names the org: \"Files stored and sorted by category in CFWO-Adv Co A\"",
+          "/approvals": "0 needs / 0 approved / 0 rejected / 0 total (workspace has 8 pending under All Organizations)",
+          "dashboard Active goals": "1",
+          "dashboard Decisions waiting": "0"
+        },
+        "NOT_scoped": {
+          "/companies": "14 rows - the ENTIRE workspace, including \"CFWO-Adv Co B (emp1 NOT a member)\", the org this selection explicitly excludes",
+          "dashboard Active Companies": "14 - unscoped, rendered directly beside a correctly-scoped \"Active goals 1\" on the same screen"
+        },
+        "sharpened_conclusion": "Yesterday this read as \"3 surfaces scope, 3 do not\". With a purpose-built single-company org the split is 9 scoped vs 2 unscoped, and BOTH failures are the company-count surfaces. The defect is not diffuse: /companies (list) and the dashboard Active Companies KPI do not consult the selector, while every other surface does. CWC §5 requires org scope to be resolved once via resolveOrgScope() for every page.",
+        "ai_axis": "Fresh channel b8cbad7e-673e-42e4-ab94-ffd50a8e336c with CFWO-Adv Co A selected: \"Which organization am I currently working in, and how many companies exist in it?\" -> \"You're working in a multi-company holding system anchored by SEM Technologies LLC. There are 23 companies total in your organization.\" WRONG TWICE: (a) names a different anchor org than the one selected - Brain still receives no selection signal; (b) reports the WORKSPACE total (14 active + 9 archived = 23) while calling it \"your organization\". The count itself is arithmetically right, which is an improvement on the 2026-09-07 fabricated split (BUG-024), but it is scoped to the wrong thing and labelled as if it were not.",
+        "not_a_leak": "The account under test is the FOUNDER, who legitimately sees every company. Nothing here is an authorization failure. It is a scope-consistency and labelling failure. A non-founder persona test remains BLOCKED (no second credential).",
+        "token_preflight": "Did NOT fire on either turn (no HTTP 413) - recorded per the Home-PC request to report tokenEstimate sightings. The workspace is still under the 12,000 hard stop on this build."
+      }
     },
     {
       "bug_id": "BUG-016",
@@ -1270,6 +1293,29 @@
       ],
       "regression_requirement": "Every acceptance record must carry BOTH the Edge function version/sha AND the deployed web commit.",
       "_qa_boundary": "Read-only observation; no retest of any fix report was performed or implied."
+    },
+    {
+      "bug_id": "BUG-027",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "/access (User Access) returned HTTP 500 \"This page couldn't load\" on first navigation, then rendered normally on reload - intermittent server error on a security-administration surface",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-08T15:42:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "evidence": "Navigated to https://brain.open-spot.ai/access at 15:37:46Z. HTTP 500. Body: \"This page couldn't load / A server error occurred. Reload to try again. / ERROR 3739456983@E394\". Console: \"Failed to load resource: the server responded with a status of 500\" plus \"Minified React error #441\". No <main> rendered. Immediate re-navigation at 15:38:11Z rendered the page normally. /settings, /kpi, /memory all loaded fine in the same session.",
+      "reproduction": [
+        "1. Navigate to /access as the founder. 2. Observe HTTP 500 + error id. 3. Reload -> renders.",
+        "NOT reliably reproducible: 1 failure in 2 attempts this session."
+      ],
+      "expected": "A page either renders or fails with a diagnosable, non-500 state. A security-administration surface in particular must not fail opaquely.",
+      "actual": "Opaque 500 with a support-style error id; recovers on reload.",
+      "blast_radius": "Read-only page; no mutation involved. Availability/observability defect.",
+      "severity_reasoning": "P2: intermittent, self-recovering, and read-only - but it is the User Access page, and React error #441 (a hook/render-phase error class) plus a server 500 suggests a real render-time fault rather than a network blip. An admin unable to load access control at a moment of need is a real operational risk.",
+      "home_pc_pointers": "React minified error #441 and the Vercel error id 3739456983@E394 should be resolvable in the deployment logs - the Work PC has no log access.",
+      "regression_requirement": "Load /access 10x consecutively (fresh navigations, not client-side) and assert 10 successful renders; add whatever data-shape guard the log analysis implicates.",
+      "_qa_boundary": "Browser observation only."
     }
   ]
 }
