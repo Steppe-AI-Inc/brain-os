@@ -22,7 +22,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');                 // qa/scenarios-runner -> repo root
 const SRC = process.env.SEM_INDEX_SRC || resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts');
 const GATE = resolve(ROOT, 'qa/scenarios-runner/_gate_extract.mjs');
-const { stripTS, withPatternsAboveWindow } = await import('file://' + GATE.replace(/\\/g, '/'));
+const { stripTS, withPatternsAboveWindow, withSourceHelpers } = await import('file://' + GATE.replace(/\\/g, '/'));
 const rawSrc = readFileSync(SRC, 'utf8');
 const src = rawSrc.replace(/\r\n/g, '\n');
 
@@ -45,7 +45,7 @@ function trimRunner() {
   const endMark = finalMark >= 0 ? finalMark : src.indexOf('packRecord.contextBudget = ', start);
   if (start < 0 || endMark < 0) return null;
   const end = src.indexOf('\n', endMark);
-  const block = stripTS(src.slice(start, end));
+  const block = withSourceHelpers(src, stripTS(src.slice(start, end)));
   const fn = new Function('command', 'pack', 'collections', 'Deno', `
     ${block}
     return { pack, collections, trimmed: contextTrimmed, budget: packBudget,

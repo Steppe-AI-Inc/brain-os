@@ -78,7 +78,11 @@ check('envelope helper returns shown/total/truncated', /shown/.test(envHelper) &
 check('total comes from the query count, never from array length', /res\?\.count/.test(envHelper) && !/total:\s*\(res\?\.data\s*\|\|\s*\[\]\)\.length/.test(envHelper));
 
 // 4. Every capped collection query carries { count: 'exact' } (the source of total).
-const promiseAll = src.slice(src.indexOf('] = await Promise.all(['), src.indexOf('conversationCountQuery,\n  ]);'));
+// End at the CLOSE of the Promise.all, located from the conversation count entry rather than pinned to
+// whichever query happens to be last. Pinning it meant that adding two count queries silently extended this
+// slice to the end of the file and pulled in the lifecycle candidate lookups, which are not pack collections
+// at all — a slice marker that fails OPEN, which is the shape this project keeps finding.
+const promiseAll = src.slice(src.indexOf('] = await Promise.all(['), src.indexOf('  ]);', src.indexOf('conversationCountQuery,')));
 const selects = [...promiseAll.matchAll(/supabase\.from\('(\w+)'\)\.select\(([^)]*)\)[^\n]*\.limit\(\d+\)/g)];
 check('capped collection queries found', selects.length >= 20, 'found ' + selects.length);
 for (const m of selects) {

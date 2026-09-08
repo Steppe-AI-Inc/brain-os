@@ -30,6 +30,7 @@ const SUITES = [
   'qa/scenarios-runner/v60_budget_intent_and_plan_evidence_contract.mjs',
   'qa/scenarios-runner/v61_budget_intent_language_contract.mjs',
   'qa/scenarios-runner/v62_provenance_language_and_limits_contract.mjs',
+  'qa/scenarios-runner/v63_intent_coverage_and_caps_contract.mjs',
   'qa/scenarios-runner/architecture_context_budget_contract.mjs',
   'qa/scenarios-runner/architecture_final_claim_contract.mjs',
   'qa/scenarios-runner/request_gate_inventory_contract.mjs',

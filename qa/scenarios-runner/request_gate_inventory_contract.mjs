@@ -15,7 +15,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withSourceHelpers } from './_gate_extract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
@@ -26,7 +26,7 @@ const check = (name, cond, detail) => { if (cond) { pass++; console.log('OK   ' 
 // ---------------------------------------------------------------- the inventory
 // Each row: [gate, where, classification, the evidence that keeps it out of UNSAFE HARD STOP]
 const GATES = [
-  ['input token estimate (pack + command)', /const hardMax = Number\(Deno\.env\.get\('SEM_AI_MAX_TOKENS'\) \|\| 12000\)/, 'SAFE DEGRADATION then DETERMINISTIC REFUSAL',
+  ['input token estimate (pack + command)', /const hardMax = envPositiveInt\('SEM_AI_MAX_TOKENS', 12000\)/, 'SAFE DEGRADATION then DETERMINISTIC REFUSAL',
     () => /const packBudget = Math\.max\(2000,/.test(src) && /contextTrimmed\.push/.test(src)
       && /for \(const floor of \[2, 0\]\)/.test(src) && /error: 'Request too large'/.test(src)],
   ['output token cap (generation)', /max_tokens/, 'DETERMINISTIC REFUSAL',
@@ -105,6 +105,10 @@ for (const [gate, present, klass, safe] of GATES) {
 // the system prompt's token cost is pinned below instead of drifting unwatched.
 const UNMEASURED = [
   'per-request wall-clock timeout at the edge runtime and at the provider',
+  // Verifier #63 V63-D7: an attached image is allowed up to 5 MB DECODED, which is ~6.7 MB of base64 inside a
+  // JSON body, and the edge runtime enforces its own request-body limit BEFORE any of this code runs. It is a
+  // real whole-request gate, it is not ours to configure, and it has never been measured against our own cap.
+  'edge runtime request-body size limit (enforced before the function runs; not measured against SEM_AI_IMAGE_BYTES_MAX)',
   'SSE stream initialisation failure after the preflight passes',
 ];
 check('unmeasured whole-request gates are named, not assumed safe', UNMEASURED.length > 0 && UNMEASURED.every((u) => typeof u === 'string' && u.length > 20));
@@ -126,7 +130,7 @@ for (const u of UNMEASURED) console.log('     UNMEASURED: ' + u);
 // across realistic workspaces and require a real margin below the hard limit, not 11,999.
 const START = '  const packBudget = Math.max(2000,';
 const END = '  return { pack, provenanceIds, errors:';
-const block = stripTS(src.slice(src.indexOf(START), src.indexOf(END, src.indexOf(START))));
+const block = withSourceHelpers(src, stripTS(src.slice(src.indexOf(START), src.indexOf(END, src.indexOf(START)))));
 const run = new Function('command', 'pack', 'collections', 'Deno', block + '\n; return { estimate: packTokens(), budget: packBudget, trimmed: contextTrimmed };');
 const DENO = { env: { get: () => undefined } };
 const HARD_MAX = 12000;
@@ -226,7 +230,11 @@ check('a real safety margin is kept below the hard limit (>= 400 tokens on every
 {
   const WITNESS_COMMAND = 'What is the exact current title of the project that belongs to QA-SWARM-TEST-CO-VIA-CHAT, as stored in the database right now?';
   // The v93 shape: 12 archived companies, 15 archived tasks, prose `scope` on every envelope, a pack that
-  // never measures itself. Sized to reproduce the observed 12,340-token estimate on this workspace.
+  // never measures itself. This is the SATURATED pack — every collection at its cap — and it measures about
+  // 25,595 tokens pre-fix, roughly twice what the incident recorded on the founder's own workspace. It is the
+  // worst realistic shape, NOT a calibration to that one turn, and saying so matters because a witness that
+  // claims a calibration it does not have invites the next reader to trust a number nobody measured
+  // (verifier #63, V63-D8).
   const { pack, collections } = workspace({ companies: 12, archivedCompanies: 12, tasks: 15, archivedTasks: 15, people: 30, history: 8, long: true });
   const SCOPES = ['active (non-archived), newest first, plus any company named in this command', 'archived, newest first', 'in-flight statuses, plus any task named in this command', 'top-8 semantic retrieval', 'plus any person named in this command', 'newest turns in this channel', 'not archived', 'pending', 'newest first', 'archived, newest first'];
   Object.keys(collections).forEach((k, i) => { collections[k].scope = SCOPES[i % SCOPES.length]; });

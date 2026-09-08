@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS } from './_gate_extract.mjs';
+import { stripTS, withSourceHelpers } from './_gate_extract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
@@ -33,7 +33,7 @@ const END = '  return { pack, provenanceIds, errors:';
 const s = src.indexOf(START); const e = src.indexOf(END, s);
 check('the budget block exists in index.ts', s > 0 && e > s, 'incident 2026-09-08 must not regress');
 if (s < 0 || e < 0) { console.log('\narchitecture_context_budget_contract: 0 passed, 1 failed'); process.exit(1); }
-const block = stripTS(src.slice(s, e));
+const block = withSourceHelpers(src, stripTS(src.slice(s, e)));
 const run = new Function('command', 'pack', 'collections', 'Deno',
   block + '\n; return { pack, collections, trimmed: contextTrimmed, estimate: packTokens(), budget: packBudget, protectedKeys: MINIMUM_SAFE_CONTEXT };');
 const DENO = { env: { get: () => undefined } };
@@ -192,7 +192,26 @@ check('harder trim passes exist for a byte-heavy, row-light workspace (V60-D1)',
 check('the rows named in this turn are merged at the head, where a head-slicing trim keeps them (V60-D2)',
   (src.match(/return \[\.\.\.extra, \.\.\.\((?:companies|people|goals|tasks)\.data \|\| \[\]\)\]/g) || []).length === 4,
   'all four targeted lookups must merge named rows first');
-check('the budget keeps a deliberate margin below the hard limit', /Number\(Deno\.env\.get\('SEM_AI_MAX_TOKENS'\) \|\| 12000\) - 600/.test(src));
+check('the budget keeps a deliberate margin below the hard limit', /envPositiveInt\('SEM_AI_MAX_TOKENS', 12000\) - 600/.test(src));
+// Verifier #63 V63-D6: a MALFORMED cap (not an absent one) parsed to NaN, and every comparison with NaN is
+// false — so a typo in the env var silently emptied the optional pack on every turn and reported
+// overBudget: false. A cap must be a positive finite number or it is not a cap.
+check('a malformed size cap falls back to its default instead of disabling the gate (V63-D6)',
+  /function envPositiveInt\(name: string, fallback: number\): number/.test(src)
+  && /Number\.isFinite\(parsed\) && parsed > 0 \? Math\.floor\(parsed\) : fallback/.test(src)
+  && !/Number\(Deno\.env\.get\('SEM_AI_(?:MAX_TOKENS|MODEL_CONTEXT_TOKENS|IMAGE_BYTES_MAX)'\)/.test(src),
+  'every numeric cap must go through the NaN-safe parser');
+// Behavioural, not a substring: run the real block with a malformed cap and require it to behave exactly as
+// it does with the cap absent (verifier #63 V63-D4 — three P1 fixes were pinned by substring alone).
+{
+  const good = fixture(40); const bad = fixture(40);
+  const rGood = run('how many documents are there?', good.pack, good.collections, DENO);
+  const rBad = run('how many documents are there?', bad.pack, bad.collections,
+    { env: { get: (k) => (k === 'SEM_AI_MAX_TOKENS' ? 'twelve thousand' : undefined) } });
+  check('a malformed cap produces the same budget and the same trims as no cap at all',
+    rBad.budget === rGood.budget && JSON.stringify(rBad.trimmed) === JSON.stringify(rGood.trimmed),
+    `malformed budget=${rBad.budget} trims=${rBad.trimmed.length}; default budget=${rGood.budget} trims=${rGood.trimmed.length}`);
+}
 check('the prompt tells the model a trim never means the rest do not exist', /a trim never means the rest do not exist/.test(src));
 check('execution evidence is never a trim candidate', !/\['(?:executionEvidence|claimExecutionEvidence)'/.test(src.slice(src.indexOf('const TRIM_ORDER'), src.indexOf('const contextTrimmed'))));
 

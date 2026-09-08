@@ -275,7 +275,10 @@ for (const [command, name, status, rpc, final] of [['archive Restored Furniture 
 {
   check('CONTRACT', 'C9 envelope total from the count, truncated = total > shown', JSON.stringify(envelope({ data: [1, 2, 3], count: 40 })) === JSON.stringify({ shown: 3, total: 40, truncated: true }));
   check('CONTRACT', 'C9 envelope without a count: total null, never array length', envelope({ data: [1, 2, 3], count: null }).total === null);
-  const capped = [...src.slice(src.indexOf('] = await Promise.all(['), src.indexOf('conversationCountQuery,\n  ]);')).matchAll(/supabase\.from\('(\w+)'\)\.select\(([^)]*)\)[^\n]*\.limit\(\d+\)/g)];
+  // End at the CLOSE of the Promise.all rather than at whichever query is currently last: pinning it meant
+  // that adding two count queries extended the slice to the end of the file and pulled in the lifecycle
+  // candidate lookups, which are not pack collections.
+  const capped = [...src.slice(src.indexOf('] = await Promise.all(['), src.indexOf('  ]);', src.indexOf('conversationCountQuery,'))).matchAll(/supabase\.from\('(\w+)'\)\.select\(([^)]*)\)[^\n]*\.limit\(\d+\)/g)];
   check('CONTRACT', 'C9 every capped collection query carries count exact (' + capped.length + ')', capped.length >= 20 && capped.every((m) => /count: 'exact'/.test(m[2])));
   const o = turn({ command: 'archive ACME', claims: null, summary: 'x', evidence: [EV('company', 'archive', ACME, false, { executed: true, error: 'postcondition_not_confirmed' }), EV('company', 'archive', ACME, false, { executed: false, error: 'denied' })] });
   check('CONTRACT', 'C9 executedOperationCount counts only postcondition-passed envelopes', o.verdict.executedOperationCount === 0 && o.verdict.attemptedOperationCount === 2 && NO_CHANGE.test(o.summary), JSON.stringify(o.verdict));

@@ -1684,6 +1684,15 @@ Output schema:
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+// A malformed env var parses to NaN, and every comparison with NaN is false — so a typo in
+// SEM_AI_MAX_TOKENS silently disabled the gate it configures and emptied the optional pack on every turn
+// (verifier #63, V63-D6). A cap must be a positive finite number or it is not a cap.
+function envPositiveInt(name: string, fallback: number): number {
+  const raw = Deno.env.get(name);
+  if (raw === undefined || raw === null || String(raw).trim() === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
 // THE REQUEST AS ACTUALLY SERIALIZED (verifier #61, V61-D10). Both providers send the system prompt plus a
 // PRETTY-PRINTED {profile, command, contextPack}, and optionally a base64 image as a second content block.
 // Measuring the compact form without the prompt understated the real request by 2.9x-26x, which is exactly
@@ -1699,7 +1708,7 @@ function estimateRequestTokens(payload: unknown): number {
 // base64 length is not a token count and using it as one refused ordinary photos that v92 serves
 // (verifier #62, V62-D2). What IS knowable is the transported size, and that is what the provider itself
 // limits — 5 MB per image for Anthropic, which is also what the web client allows.
-const IMAGE_BYTES_MAX = Number(Deno.env.get('SEM_AI_IMAGE_BYTES_MAX') || 5 * 1024 * 1024);
+const IMAGE_BYTES_MAX = envPositiveInt('SEM_AI_IMAGE_BYTES_MAX', 5 * 1024 * 1024);
 function imageBytes(base64: string): number {
   // 4 base64 characters carry 3 bytes; padding makes this an over-estimate by at most 2 bytes.
   return Math.ceil((base64.length * 3) / 4);
@@ -2238,6 +2247,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // alongside the window query gives absolute turn numbers, window bounds and the
   // is-this-everything bit — without it, "your very first message was …" is a guess
   // dressed as a fact (confirmed live at T13 of the 50-turn run).
+  // The PRIMARY memories path is the match_memories RPC and the primary work-order path is the non-factory
+  // query; neither can carry { count: 'exact' }, and both envelope literals hardcoded total: null, so these
+  // two collections could not express their own trim (verifier #63, V63-D1). A separate exact head count is
+  // what every other collection already uses.
+  const memoriesCountQuery = supabase.from('memories').select('id', { count: 'exact', head: true });
+  const factoryWorkOrdersCountQuery = supabase.from('canonical_work_orders').select('id', { count: 'exact', head: true });
   const conversationCountQuery = channelId
     ? supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('channel_id', channelId)
     : Promise.resolve({ count: 0, error: null });
@@ -2245,7 +2260,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const [companies, namedCompanyLookup, archivedCompanies, projects, tasks, namedTaskLookup, memories, agents, products, inventory, approvals, people, namedPersonLookup, goals, namedGoalLookup, namedProjectLookup, namedDepartmentLookup, companyRelationships, personAssignments, financialReports, conversationRows, factoryWorkOrdersRaw, channels,
     departments, leads, documents, proposals, productSpecs, engineeringDrawings, aiProviders, mcpConnectors,
     tasksCount, approvalsCount, companiesCount, peopleCount, projectsCount, goalsCount, salesLeadsCount, inventoryCount, channelsCount, departmentsCount, documentsCount,
-    archivedTasks, conversationCount] = await Promise.all([
+    archivedTasks, conversationCount, memoriesCount, factoryWorkOrdersCount] = await Promise.all([
     // CollectionEnvelope (governance/OPERATING_TRUTH_MODEL.md §4.3): active and archived
     // companies are two deterministic, newest-first windows, each with an exact count.
     // Every collection query below carries { count: 'exact' } so context.collections can
@@ -2370,6 +2385,8 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // need no equivalent: context.goals already carries no status filter.
     supabase.from('tasks').select('id,company_id,title', { count: 'exact' }).eq('status','archived').order('updated_at',{ascending:false}).limit(15),
     conversationCountQuery,
+    memoriesCountQuery,
+    factoryWorkOrdersCountQuery,
   ]);
   // Restore chronological order (oldest-of-the-kept-8 first) for consumption below — the
   // fetch above deliberately went newest-first so LIMIT kept the right 8 rows.
@@ -2716,12 +2733,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     companies: envelope(companies, packCompanies.length, 'active (non-archived), newest first, plus any company named in this command'),
     archivedCompanies: envelope(archivedCompanies, undefined, 'archived, newest first'),
     projects: envelope(projects), tasks: envelope(tasks, mergedTasksData.length, 'in-flight statuses, plus any task named in this command'),
-    memories: { shown: packMemories.length, total: null, truncated: null, scope: 'top-8 semantic retrieval' },
+    memories: { shown: packMemories.length, total: memoriesCount.count ?? null, truncated: typeof memoriesCount.count === 'number' ? memoriesCount.count > packMemories.length : null },
     agents: envelope(agents, undefined, 'active'), products: envelope(products, undefined, 'active'), inventory: envelope(inventory), approvals: envelope(approvals, undefined, 'pending'),
     people: envelope(people, packPeople.length, 'plus any person named in this command'), goals: envelope(goals, mergedGoalsData.length, 'plus any goal named in this command'),
     companyRelationships: envelope(companyRelationships), personAssignments: envelope(personAssignments), financialReports: envelope(financialReports, undefined, 'newest first'),
     conversationHistory: { shown: (conversationRowsChronological || []).length, total: totalPriorTurns, truncated: totalPriorTurns > (conversationRowsChronological || []).length, scope: 'newest turns in this channel' },
-    factoryWorkOrders: { shown: factoryWorkOrders.length, total: null, truncated: null, scope: 'newest 10' },
+    factoryWorkOrders: { shown: factoryWorkOrders.length, total: factoryWorkOrdersCount.count ?? null, truncated: typeof factoryWorkOrdersCount.count === 'number' ? factoryWorkOrdersCount.count > factoryWorkOrders.length : null },
     channels: envelope(channels, undefined, 'not archived'), departments: envelope(departments), leads: envelope(leads), documents: envelope(documents), proposals: envelope(proposals),
     productSpecs: envelope(productSpecs), engineeringDrawings: envelope(engineeringDrawings), aiProviders: envelope(aiProviders), mcpConnectors: envelope(mcpConnectors),
     archivedTasks: envelope(archivedTasks, undefined, 'archived, newest first'),
@@ -2746,7 +2763,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // A pack that outgrows the cap must DEGRADE, never turn an ordinary question into a 413 with no answer.
   // Optional display collections are trimmed first, core ones last and never below a floor; each trim is
   // written back into that collection's envelope so the model still sees the real total and truncated=true.
-  const packBudget = Math.max(2000, Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000) - 600);
+  const packBudget = Math.max(2000, envPositiveInt('SEM_AI_MAX_TOKENS', 12000) - 600);
   // The SAME shape the serve() preflight measures — estimateTokens({ command, contextPack }) —
   // not merely the same arithmetic (verifier #60, V60-D5).
   // PACK SIZE, not request size. SEM_AI_MAX_TOKENS is a policy cap on how much context this function will
@@ -2813,7 +2830,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     // what we know for certain is that at least this many rows existed before the trim (V62-D4).
     if (env) {
       env.shown = keep;
-        env.truncated = env.total === null ? null : env.total > keep;
+        // Two independent facts. That rows were dropped is CERTAIN — this loop just dropped them — so
+        // truncated is true whatever the total is. The total itself may be genuinely unknown, and it stays
+        // null rather than being invented from the surviving array length (verifier #63, V63-D1; that
+        // invented-total mistake was made and reverted in campaign #122).
+        env.truncated = env.total === null ? true : env.total > keep;
     }
     contextTrimmed.push(`${key} ${arr.length}->${keep}`);
   }
@@ -2839,13 +2860,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       const envHard = collectionsRecord[key];
       if (envHard) {
         envHard.shown = thisFloor;
-        envHard.truncated = envHard.total === null ? null : envHard.total > thisFloor;
+        envHard.truncated = envHard.total === null ? true : envHard.total > thisFloor;
       }
       contextTrimmed.push(`${key} ${arr.length}->${thisFloor}`);
     }
   }
-  // The guarantee is asserted, not assumed: if any protected key changed, the trim loop is wrong and the
-  // turn must fail loudly here rather than answer from a pack whose safe minimum was quietly cut.
+  // The guarantee is asserted, not assumed: if any protected key changed, the turn fails loudly here rather
+  // than answering from a pack whose safe minimum was quietly cut.
+  // SCOPE, stated honestly (verifier #63, V63-D5): this cannot fire for the TRIM LOOP, because the guard
+  // above already throws if TRIM_ORDER names a protected key and the loop writes no other key. It is
+  // reachable — and is the only thing that would catch — a DIRECT mutation of a protected key from anywhere
+  // else in this block, which is the edit it defends against. Its reachability is demonstrated by test
+  // rather than assumed from its presence.
   if (JSON.stringify(BYTE_STABLE_CONTEXT.map((k) => packRecord[k] ?? null)) !== minimumSafeBefore
     || Object.keys(collections).join(',') !== collectionKeysBefore) {
     throw new Error('context budget trimmed the minimum safe context — refusing to build this turn');
@@ -2922,7 +2948,7 @@ serve(async (req) => {
     contextProvenance = ctx.provenanceIds || {};
     contextErrors = ctx.errors;
     tokenEstimate = estimateTokens({ command, contextPack });
-    const hardMax = Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000);
+    const hardMax = envPositiveInt('SEM_AI_MAX_TOKENS', 12000);
     if (tokenEstimate > hardMax) {
       // buildContext degrades optional context until the request fits (OTM §4.4), so reaching here means
       // the irreducible part is too large. Say which part and what to do — a refusal the founder can act
@@ -2965,7 +2991,7 @@ serve(async (req) => {
         note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
       }, 413);
     }
-    const modelContextMax = Number(Deno.env.get('SEM_AI_MODEL_CONTEXT_TOKENS') || 180000);
+    const modelContextMax = envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 180000);
     if (requestTokens > modelContextMax) {
       return json({
         error: 'Request too large',
@@ -3583,7 +3609,17 @@ serve(async (req) => {
         // for "restore X" / historical questions), so new-work creation against an
         // archived company has to be blocked here explicitly rather than by omission from
         // context — see archiveCompanyIds/restoreCompanyIds handling below.
-        const archivedCompanyIds = new Set([...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || [])].filter((c: any) => c.status === 'archived').map((c: any) => c.id));
+        // Trim-proof, like contextCompanyIds. Every id in the archivedCompanies PROVENANCE is archived by
+        // construction (that is what the collection is), so a trimmed row cannot make an archived parent
+        // look active — which is what let a create land under one (verifier #63, V63-D2). The asymmetry
+        // mattered because this gate REFUSES: hardening only the gate that trusts moves risk, it does not
+        // reduce it.
+        const archivedCompanyIds = new Set([
+          ...[...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || []),
+            ...(((contextPack as any)?.namedTargets || {}).companies || [])]
+            .filter((c: any) => c && c.status === 'archived').map((c: any) => c.id),
+          ...(contextProvenance?.archivedCompanies || []),
+        ]);
         let archivedCompanyBlockedCount = 0;
         // Drops any create whose resolved companyId targets an archived company
         // (companyIndex is untouched — it always points at a company created this same
@@ -5848,7 +5884,19 @@ serve(async (req) => {
         const POLITE_REQUEST = /^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|shall i|may i ask you to|please)\b/i;
         const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText) && !POLITE_REQUEST.test(commandText);
         const REQUEST_FRAME_PREFIX = /^\s*(?:(?:ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to|time to|it['’]?s time to|its time to|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)|before (?:eod|end of day|you go|lunch|tomorrow)|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|could you(?: please)?|can you(?: please)?|would you(?: please| mind)?|will you|can we|could we|shall we|let['’]?s|we need to|i need you to|i want you to|i['’]?d like you to|you should|you need to|need you to|you can)[\s,:—–-]+)+/i;
-        const commandForRead = commandText.replace(REQUEST_FRAME_PREFIX, '');
+        // An ADVERB is not a politeness frame, but it sits in the same slot and hid the imperative behind it
+        // ("quickly archive ACME", "permanently delete the draft") — verifier #63, V63-D3(b).
+        const LEADING_ADVERB = /^\s*(?:(?:quickly|immediately|urgently|permanently|properly|finally|actually|really|simply|kindly|carefully|manually|temporarily|briefly|asap|right away|straight away|at once|for good|once and for all)[\s,]+)+/i;
+        const stripFrames = (t: string) => {
+          let out = t;
+          for (let i = 0; i < 4; i++) {
+            const next = out.replace(REQUEST_FRAME_PREFIX, '').replace(LEADING_ADVERB, '');
+            if (next === out) break;
+            out = next;
+          }
+          return out;
+        };
+        const commandForRead = stripFrames(commandText);
         // A request for TEXT about a thing is not a request to do the thing: "draft an email about the
         // merge" never merges anything (verifier #57 C4, carried on request-side evidence now that the
         // model's own classification can no longer veto the lexicon — verifier #60 V60-D3).
@@ -5858,15 +5906,46 @@ serve(async (req) => {
         const commandClausesForRead = commandText.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then|and)\s+/i);
         const lastClauseForRead = (commandClausesForRead[commandClausesForRead.length - 1] || commandText).replace(REQUEST_FRAME_PREFIX, '');
         const lastClauseIsMutation = commandClausesForRead.length > 1 && /^\s*(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|reject|declin|activat|deactivat|invit|revok|enabl|disabl|promot|demot|hir|fir|terminat|dismiss|onboard|merg|split|reopen|bring)/i.test(lastClauseForRead) && !/\?/.test(lastClauseForRead);
+        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this the head word only has to be
+        // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
+        // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
+        // both tiers that use it: a const read before its declaration is a TDZ crash, not a fallback.
+        const IMPERATIVE_OBJECT = /^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\s+\S|^(?:it|them|this|that|these|those)\b|^["'“”'']|^\d|^\S*[-_]?\d|^[A-Z][A-Za-z0-9_-]*|^(?:compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?)\b|^\S+@\S+\.\S+|^\S+\s*$/;
+        // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
+        // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
+        // the announcement" has "fell" (verifier #61, V61-D7).
+        // A finite verb never DIRECTLY FOLLOWS A DETERMINER: "create a work order" and "delete the cost
+        // model" are noun phrases whose head noun happens to be spelled like a verb, while "Share price
+        // fell" still has its finite verb (verifier #63, V63-D3(d)).
+        const STATEMENT_FINITE_VERB = /(?:^|\s)(?<!\b(?:a|an|the|my|our|your|its|their|his|her|this|that|these|those|new|another|each|every)\s)(?:is|are|was|were|am|be|been|being|has|have|had|will|would|shall|should|can|could|may|might|must|does|did|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|needs?|seems?|looks?|means?|includes?|requires?|remains?|appears?|shows?|starts?|ends?|applies|works?|happens?|belongs?|costs?|arrived|called|fell|flooded|blocked|created|agreed|started|ended|changed|moved|failed|passed|expired|dropped|rose|grew|went|came|said|told|broke|stopped|continued|returned|increased|decreased|remained|occurred|appeared)(?=\s|$|[.,;!?])/i;
+        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest);
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
+        // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for
+        // the FIRST clause existed in the company command fallback and had never been carried here — the one
+        // tier the never-silent receipt actually depends on (verifier #63, V63-D3(a)).
+        const firstClauseForRead = stripFrames(commandClausesForRead[0] || commandText);
+        const FIRST_CLAUSE_VERB = /^\s*(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|reject|declin|activat|deactivat|invit|revok|enabl|disabl|promot|demot|hir|fir|terminat|dismiss|onboard|merg|split|reopen|bring|creat|add|assign|set|updat|chang|edit|clos|complet|finish|cancel|mark|mov|transfer|end|send|schedul|publish|shar|upload|grant|notify|email|pay|import|export)\w*/i;
+        // Starting with a mutation verb is not enough — "assign a number to each company and list them"
+        // does that and is a read. The first clause must clear the SAME object bar as every other tier;
+        // admitting it on the verb alone re-opened, one tier over, exactly what the object test rejects.
+        const firstClauseIsMutation = (() => {
+          if (commandClausesForRead.length <= 1 || /\?/.test(firstClauseForRead)) return false;
+          const fm = FIRST_CLAUSE_VERB.exec(firstClauseForRead);
+          if (!fm) return false;
+          const rest = firstClauseForRead.slice(fm[0].length).trim();
+          // A STRONGER bar than the ordinary object test, because this overrides a signal the founder gave:
+          // "and list them" asks for a report. The first clause wins only if it NAMES its target.
+          const STRONG_OBJECT = /^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\s*(?:[A-Z][A-Za-z0-9_-]*|\S+[-_]?\d|"[^"]+"|'[^']+'|[“][^”]+[”]|\S+@\S+\.\S+|it|them|compan(?:y|ies)|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|invoice|report|order|contract|assignment|employment)\b/;
+          return objectRefers(rest) && STRONG_OBJECT.test(rest);
+        })();
         const readShaped = isQuestion
           || COMPOSITION_REQUEST.test(commandForRead)
           || PHRASAL_READ.test(commandForRead)
-          || lastClauseIsRead
-          || (READ_SHAPE.test(commandForRead) && !lastClauseIsMutation);
+          || (lastClauseIsRead && !firstClauseIsMutation)
+          || (READ_SHAPE.test(commandForRead) && !lastClauseIsMutation && !firstClauseIsMutation);
         // A bare confirmation or a choice is a request to execute what was pending.
-        const CONFIRMATION_COMMAND = /^\s*(?:yes|yep|yeah|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative|go ahead|do it|proceed|please do|go for it|approved)\b[\s,.!—–-]*(?:(?:go ahead|do it|proceed|please|now|thanks|then)[\s,.!—–-]*)*$|^\s*(?:option|choice|number|the)?\s*(?:\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\s+(?:one|option|choice))?\s*[.!]?\s*$/i;
+        const CONFIRMATION_COMMAND = /^\s*(?:yes|yep|yeah|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative|go ahead|do it|proceed|please do|go for it|approved)\b[\s,.!—–-]*(?:(?:go ahead|go|do it|proceed|please|now|thanks|then)[\s,.!—–-]*)*$|^\s*(?:option|choice|number|the)?\s*(?:\d+|one|two|three|four|five|[a-e]|first|second|third|fourth|last)(?:\s+(?:one|option|choice))?\s*[.!]?\s*$/i;
         const confirmationShaped = CONFIRMATION_COMMAND.test(commandText);
         // Group 1 of MUTATION_VERB_ALWAYS is a bare English verb matched ANYWHERE, which fires inside a
         // noun phrase ("history of the ACME archive") and inside a statement about the world ("the store
@@ -5875,16 +5954,6 @@ serve(async (req) => {
         // evidence and cannot be switched off by the component being policed, so group 1 must sit in
         // IMPERATIVE POSITION. Groups 2-3 ("bring it back", "get ACME archived") already carry their own
         // position, and group 4 is Mongolian, which is verb-final — a head rule would disable it entirely.
-        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this the head word only has to be
-        // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
-        // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
-        // both tiers that use it: a const read before its declaration is a TDZ crash, not a fallback.
-        const IMPERATIVE_OBJECT = /^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\s+\S|^(?:it|them|this|that|these|those)\b|^["'“”'']|^\d|^\S*[-_]?\d|^[A-Z][A-Za-z0-9_-]*|^(?:compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?)\b|^\S+\s*$/;
-        // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
-        // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
-        // the announcement" has "fell" (verifier #61, V61-D7).
-        const STATEMENT_FINITE_VERB = /(?:^|\s)(?:is|are|was|were|am|be|been|being|has|have|had|will|would|shall|should|can|could|may|might|must|does|did|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|needs?|seems?|looks?|means?|includes?|requires?|remains?|appears?|shows?|starts?|ends?|applies|works?|happens?|belongs?|costs?|arrived|called|fell|flooded|blocked|created|agreed|started|ended|changed|moved|failed|passed|expired|dropped|rose|grew|went|came|said|told|broke|stopped|continued|returned|increased|decreased|remained|occurred|appeared)(?=\s|$|[.,;!?])/i;
-        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest);
         const alwaysMatch = commandText.match(MUTATION_VERB_ALWAYS);
         const alwaysEnglishBase = alwaysMatch && typeof alwaysMatch[1] === 'string' && alwaysMatch[1].length > 0 ? alwaysMatch[1] : null;
         // Group 4 is the Mongolian alternation and is handled on its own terms below; groups 2-3
@@ -5894,7 +5963,7 @@ serve(async (req) => {
         // A Mongolian READ or STATEMENT: a question word, a sentence-final question particle (Mongolian
         // questions routinely carry no '?'), or the copular/negative endings that make a clause a statement
         // about the world rather than a request (verifier #61, V61-D6).
-        const MN_READ_SHAPE = /(?:^|\P{L})(?:юу|юун|хэн|хэзээ|хаана|яагаад|ямар|хэд|хэдэн|аль|хэрхэн|яаж)(?!\p{L})|(?:^|\P{L})(?:уу|үү|вэ|бэ|вээ|бээ)\s*[?!.]?\s*$|(?:^|\P{L})(?:байна|байгаа\S*|мэдэхгүй|санахгүй|болно\s*уу|хэлээч|харуулна)(?!\p{L})/iu;
+        const MN_READ_SHAPE = /(?:^|\P{L})(?:юу|юун|хэн|хэзээ|хаана|яагаад|ямар|хэд|хэдэн|аль|хэрхэн|яаж)(?!\p{L})|(?<!(?:на|нэ|но|нө|на |нэ |но |нө ))(?:^|\P{L})(?:уу|үү|вэ|бэ|вээ|бээ)\s*[?!.]?\s*$|(?:^|\P{L})(?:байна|байгаа\S*|мэдэхгүй|санахгүй|болно\s*уу|хэлээч|харуулна)(?!\p{L})/iu;
         // A participle, a verbal noun or an infinitive is not a command: архивласан (archived, attributive),
         // өөрчлөлт (a change), устгах (to delete). Only a finite/imperative form is.
         // A token carrying a NOMINAL CASE SUFFIX is a noun, not an imperative: Устгалын (genitive of
@@ -5934,9 +6003,12 @@ serve(async (req) => {
           if (!m) return false;
           return objectRefers(clause.slice(m[0].length).trim());
         }
-        const alwaysInImperativePosition = !!alwaysHeadRe
-          && (headHasObject(commandForHead)
-            || (commandClausesForRead.length > 1 && headHasObject(lastClauseForHead)));
+        // Each clause on its own terms: an imperative's object is in the imperative's clause, and a finite
+        // verb in a trailing report clause says nothing about it (verifier #63, V63-D3(a)).
+        const headClauses = commandClausesForRead.length > 1
+          ? [commandForHead, firstClauseForRead, lastClauseForHead]
+          : [commandForHead];
+        const alwaysInImperativePosition = !!alwaysHeadRe && headClauses.some((c) => headHasObject(c));
         const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || null;
         const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
         // A capitalised weekday or month is a TIME, not an entity: "the store will reopen Monday" is a
@@ -5962,8 +6034,7 @@ serve(async (req) => {
           const rest = clause.slice(m[0].length - 1).trim();
           return objectRefers(rest) ? clause : null;
         };
-        const imperativeSource = imperativeObjectOf(commandForHead)
-          || (commandClausesForRead.length > 1 ? imperativeObjectOf(lastClauseForHead) : null);
+        const imperativeSource = headClauses.map((c) => imperativeObjectOf(c)).find((x) => x !== null) || null;
         const lexiconImperative: string | null = imperativeSource
           ? String((imperativeSource.trim().match(/^[A-Za-z-]+/) || [''])[0]).toLowerCase() || null
           : null;

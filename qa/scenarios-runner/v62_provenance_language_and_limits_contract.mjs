@@ -13,7 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { stripTS, withPatternsAboveWindow } from './_gate_extract.mjs';
+import { stripTS, withPatternsAboveWindow, withSourceHelpers } from './_gate_extract.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC_PATH = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
@@ -39,7 +39,9 @@ if (bS < 0 || bE < 0) throw new Error('context-budget block not found — update
 const fS = src.indexOf('function estimateRequestTokens(');
 const EST = stripTS(src.slice(fS, src.indexOf('\n}', fS) + 2));
 const BUDGET = new Function('pack', 'collections', 'command', 'Deno',
-  `const SYSTEM_PROMPT_TOKENS = ${SYSTEM_PROMPT_TOKENS};\n${EST}\n${stripTS(src.slice(bS, bE + bEndMark.length))}\n` +
+  // withSourceHelpers brings along the module-level helpers the block calls (envPositiveInt), taken from the
+  // source under test so the harness cannot drift from production.
+  `const SYSTEM_PROMPT_TOKENS = ${SYSTEM_PROMPT_TOKENS};\n${EST}\n${withSourceHelpers(src, stripTS(src.slice(bS, bE + bEndMark.length)))}\n` +
   'return { pack, collections, contextBudget, contextTrimmed, packBudget, packTokens: packTokens() };');
 const runBudget = (pack, collections, command) => BUDGET(pack, collections, command, { env: { get: () => undefined } });
 const est = (command, contextPack) => Math.ceil(JSON.stringify({ command, contextPack }).length / 4);
@@ -254,7 +256,9 @@ function fixture({ command = 'archive company Northwind', commandPad = 0, compac
   // a function of dimensions this code cannot know — and is bounded by the one quantity that is knowable
   // and that the provider itself enforces: transported SIZE. Assert the real shape, not the old arithmetic.
   const estimatorTakesImage = /function estimateRequestTokens\(payload: unknown, imageBase64/.test(src);
-  const bytesGate = /const IMAGE_BYTES_MAX = Number\(Deno\.env\.get\('SEM_AI_IMAGE_BYTES_MAX'\) \|\| 5 \* 1024 \* 1024\)/.test(src)
+  // The cap goes through the NaN-safe parser since verifier #63 V63-D6: a malformed env var used to parse to
+  // NaN and silently disable the gate it configures.
+  const bytesGate = /const IMAGE_BYTES_MAX = envPositiveInt\('SEM_AI_IMAGE_BYTES_MAX', 5 \* 1024 \* 1024\)/.test(src)
     && /function imageBytes\(base64: string\): number/.test(src)
     && /limit: 'attached image size'/.test(src);
   const oneMbPasses = imageBytes <= 5 * 1024 * 1024;

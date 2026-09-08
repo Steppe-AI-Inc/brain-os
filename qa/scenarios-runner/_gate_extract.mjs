@@ -227,3 +227,27 @@ export function withRequestEstimator(source, slice) {
   const promptLen = lf.slice(pStart + 'const SYSTEM_PROMPT = `'.length, pEnd).length;
   return `const SYSTEM_PROMPT_TOKENS = Math.ceil(${promptLen} / 4);\n${fn}\n${slice}`;
 }
+
+// Module-level helpers that the sliced windows call but that live outside them. A suite that executes a
+// window has to bring these with it, or it fails with a ReferenceError that says nothing about the product.
+// Detected from the slice, extracted from the SOURCE UNDER TEST — never re-implemented here, because a
+// re-implementation would let the harness disagree with production silently.
+const HOISTABLE = ['envPositiveInt', 'estimateRequestTokens', 'imageBytes', 'estimateTokens'];
+export function withSourceHelpers(source, slice) {
+  const lf = source.replace(/\r\n/g, '\n');
+  let prefix = '';
+  if (/SYSTEM_PROMPT_TOKENS/.test(slice)) {
+    const a = lf.indexOf('const SYSTEM_PROMPT = `');
+    const b = lf.indexOf('`;', a);
+    if (a < 0 || b < 0) throw new Error('SYSTEM_PROMPT not found in the source under test');
+    prefix += `const SYSTEM_PROMPT_TOKENS = Math.ceil(${lf.slice(a + 'const SYSTEM_PROMPT = `'.length, b).length} / 4);\n`;
+  }
+  for (const name of HOISTABLE) {
+    if (!slice.includes(name + '(')) continue;
+    const start = lf.indexOf('function ' + name + '(');
+    if (start < 0) throw new Error(name + ' not found in the source under test');
+    const end = lf.indexOf('\n}', start) + 2;
+    prefix += stripTS(lf.slice(start, end)) + '\n';
+  }
+  return prefix + slice;
+}

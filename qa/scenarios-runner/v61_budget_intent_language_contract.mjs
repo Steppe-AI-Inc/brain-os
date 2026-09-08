@@ -22,7 +22,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../..');
 const SRC_PATH = process.env.SEM_INDEX_SRC || resolve(ROOT, 'supabase/functions/sem-ai-command/index.ts');
 const SRC = readFileSync(SRC_PATH, 'utf8');
-const { stripTS, withPatternsAboveWindow } = await import(resolve(ROOT, 'qa/scenarios-runner/_gate_extract.mjs').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+const { stripTS, withPatternsAboveWindow, withSourceHelpers } = await import(resolve(ROOT, 'qa/scenarios-runner/_gate_extract.mjs').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
 
 let pass = 0;
 const failures = [];
@@ -78,7 +78,9 @@ const budgetSlice = (() => {
   const s = SRC.indexOf('const packBudget = ');
   const e = SRC.indexOf('contextBudget.overBudget = ', s);
   if (s < 0 || e < 0) throw new Error('v61: budget window not found — update this suite');
-  return stripTS(SRC.slice(s, SRC.indexOf('\n', e)));
+  // The block calls module-level helpers (envPositiveInt) declared outside the window; the shared extractor
+  // brings their REAL definitions along rather than the suite re-implementing them.
+  return withSourceHelpers(SRC, stripTS(SRC.slice(s, SRC.indexOf('\n', e))));
 })();
 const estimatorSrc = (() => {
   const m = SRC.match(/function estimateTokens\([^)]*\)\s*\{[^}]*\}/);
