@@ -297,5 +297,46 @@ function shouldPersistCorrectedOutput(groundedOutcomeThisTurn, lifecycleMismatch
   assert(persisted === false, 'an ordinary turn where the gate never fired is still correctly NOT persisted by this condition (unaffected by the fix)');
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// DRIFT GUARD — added 2026-09-08 after verifier #64 pointed out that this file's header admits its
+// function bodies are "byte-for-byte copies of the shipped logic (kept in sync manually)".
+//
+// A harness that copies product logic cannot see index.ts change. That is the vacuous-regression class
+// this repo has logged repeatedly, and #64 was right to call this suite a lie by construction: every
+// assertion above could keep passing while the behaviour it names had been deleted from the product.
+//
+// The behaviours below are inline in index.ts rather than named functions, so they cannot simply be
+// sliced and executed the way the newer suites do. What CAN be done, and is done here, is to make the
+// copies FAIL LOUDLY when the source they mirror moves: each row pins a distinguishing marker of the real
+// implementation. If a marker disappears, this suite stops passing and someone rewrites it against the
+// real window — instead of it quietly certifying logic that no longer exists.
+//
+// This is a stopgap with a stated shape, not a fix. The real fix is to slice these paths like the v56-v64
+// suites do; that is registered as the next QA-harness item.
+{
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, resolve } = await import('node:path');
+  const HERE = dirname(fileURLToPath(import.meta.url));
+  const SRC = process.env.SEM_INDEX_SRC || resolve(HERE, '../../supabase/functions/sem-ai-command/index.ts');
+  const src = readFileSync(SRC, 'utf8');
+
+  const MARKERS = [
+    ["the deterministic-confirmation tag still exists", "tag: 'deterministic-confirmation'"],
+    ["AUTHORIZED-is-not-COMPLETED still gates on it", "model !== 'deterministic-confirmation'"],
+    ["the permanent-delete not_found line still reads as the copy asserts", "it no longer exists."],
+    ["the permanent-delete denied line still reads as the copy asserts", "you do not have permission for this action."],
+    ["the permanent-delete fixture refusal still reads as the copy asserts", "this only works for disposable test/QA fixtures."],
+    ["the person-assignment receipt is still rendered from the executed diff", "personAssignmentReport"],
+    ["the corrected-output persist path still exists", "await supabase.from('work_orders').update({ output: result })"],
+  ];
+  for (const [name, marker] of MARKERS) {
+    assert(src.includes(marker), 'DRIFT GUARD: ' + name,
+      'marker missing from index.ts: ' + JSON.stringify(marker)
+      + ' — the copy above no longer mirrors the product; rewrite this row against the real window');
+  }
+}
+
 console.log(failed ? '\nSOME REGRESSIONS FAILED' : '\nALL REGRESSIONS PASSED');
 process.exit(failed ? 1 : 0);
