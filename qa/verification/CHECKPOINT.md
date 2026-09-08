@@ -114,8 +114,12 @@ byte-identical after each — every piece of the fix is load-bearing, and the on
 Clean extended vacuity sweep on these exact bytes: **147 killed, 22 SURVIVED, 0 did not apply,
 candidate byte-identical, exit 1** — down from 28, and **zero STRUCTURAL survivors remain** (all six,
 including the V62-D1 and V63-D2 reverts, are killed by `provenance_survives_trim_contract` and
-`context_scoped_mutation_gates_contract`). The 22 that remain are all regex-level and registered; #145's
-rule applies to each — establish CONSTRUCT REDUNDANT vs TEST VACUOUS before writing a test for it.
+`context_scoped_mutation_gates_contract`). The 22 that remain are all regex-level, and #145's rule was applied to
+them BY MEASUREMENT rather than by hand (`survivor_classifier.mjs`, 130 mutants x a 2,597-command corpus
+through the real request tiers): **none of the 22 moves a decision**; all 24 mutants that do move one are
+killed by the battery. They are registered with evidence, not a coverage backlog. Ledger #147, which also
+records the two traps that nearly produced wrong work — the instrument counting intermediate state, and an
+all-zero first batch that needed positive controls to distinguish from a broken tool.
 **`deno check` re-derived** (via `npx --yes deno@latest`): 10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005,
 1x TS2339 = 19 diagnostics, **zero** TS2448/TS2454/TS2304/TS2552/TS2551 — unchanged from baseline.
 `index.ts` CRLF-pure, 0 bare LF, 1 pre-existing bare CR (unchanged P3 debt).
