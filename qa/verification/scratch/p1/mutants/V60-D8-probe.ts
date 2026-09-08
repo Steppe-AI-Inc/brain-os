@@ -3792,7 +3792,7 @@ serve(async (req) => {
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
           const currentStatus = companyStatusById.get(c.id);
-          const statusChangeIsLifecycleTransition = false;
+          const statusChangeIsLifecycleTransition = c.status && (c.status === 'archived' || currentStatus === 'archived');
           if (statusChangeIsLifecycleTransition) {
             // Never attempted, on purpose - archiveCompanyIds/restoreCompanyIds
             // (archive_company()/restore_company()) are the only path in/out of
