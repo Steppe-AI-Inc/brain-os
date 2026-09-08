@@ -831,7 +831,6 @@
     "index_sha256": "e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed",
     "what_changed": "ONE request-frame definition carrying PER-TIER APPLICABILITY (REQUEST_FRAME_ADDRESSED / _ALTERNATION / _DELIBERATIVE, union formed once as _ALTERNATION_INTENT) so EXECUTOR is a subset of INTENT by construction; question gate and read-lead list derive from it (4th and 5th re-spellings closed); three byte-identical twins become one body plus a reference; four sweeps brought under mutation_sweep_safety_contract.",
     "evidence": "battery 70 green / 2 red by design (72 suites); v65_request_frame_tiers_contract 89/0 with all 46 of #65 defect assertions passing; v57 proof 4/4; v58 proof 6/6; v56 proof 6/8 with 2 survivors registered open; CRLF-pure, 0 bare LF.",
-    "not_re_derived": "deno check BLOCKED — no deno binary on the implementing machine. Diagnostic classes NOT re-derived this round.",
     "registered_open": [
       "v56 m5_command_fuzzy_executes — no suite asserts the fuzzy lifecycle-name guess asks instead of executing",
       "v56 m7_cyrillic_word_boundary — measured redundant in the intent tier; receipt path unmeasured; source finding, not a test gap"
@@ -839,7 +838,9 @@
     "ledger": [
       "#142",
       "#143"
-    ]
+    ],
+    "deno_check": "RE-DERIVED 2026-09-08 on the frozen candidate via npx --yes deno@latest (2.9.6) — no local install needed. 10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005, 1x TS2339; ZERO TS2448/TS2454/TS2304/TS2552/TS2551. Matches the recorded baseline in class and count.",
+    "extended_sweep": "clean run on the frozen bytes: 141 killed, 28 SURVIVED, 0 did not apply, candidate byte-identical, exit 1. Six structural survivors including reverts of the V62-D1 and V63-D2 provenance fixes — registered for #66 to rule on."
   },
   "verifier66_base_commit": "52d958200522a9f5cbe38ecf973d43af0d6b1155",
   "verifier66_index_sha256": "e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed",

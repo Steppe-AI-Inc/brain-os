@@ -103,8 +103,11 @@ stale anchors and measuring nothing while still being cited as evidence.
 `v65_request_frame_tiers_contract` 89/0 (all 46 of #65's defect assertions now pass, 0 CONTRACT failures);
 v57 proof 4/4; v58 proof 6/6; v56 proof 6/8 with **two survivors registered open** (ledger #143).
 `index.ts` CRLF-pure, 0 bare LF, 1 pre-existing bare CR (unchanged P3 debt).
-**`deno check` is BLOCKED on this machine — no deno binary.** The diagnostic-class counts are therefore
-NOT re-derived this round; the TDZ class is covered structurally by `tdz_forward_reference_contract`.
+**`deno check` BLOCKER LIFTED and the classes ARE re-derived this round.** No binary was installed on the
+machine — `npx --yes deno@latest check --no-lock` fetches one on demand (deno 2.9.6), which is the route to
+use in future rounds. Result on the frozen candidate, matching the recorded baseline exactly:
+**10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005, 1x TS2339 — and ZERO of the runtime-fatal classes**
+(TS2448 / TS2454 / TS2304 / TS2552 / TS2551 all 0). 19 diagnostics total, unchanged in class and count.
 
 ## NEXT EXECUTABLE ACTION
 
