@@ -16259,3 +16259,38 @@ fix against the same fixtures that found the defect, before believing it.
 **Status.** Fixed on the candidate; NOT deployed. Production remains v92 source (function v94). Verifier
 #62's FAIL stands against `c30a0cc`. Still open: V61-D4 and V61-D5, and verifier #62's own V62-D9 (five
 mutants surviving in its proof), which this round's mutation work addresses in part but not in full.
+
+### 137b. Addendum — the vacuity sweep, and closing V62-D9 mechanically (2026-09-08)
+
+Verifier #62's V62-D9 reported five surviving mutants in its own proof and named the class: a rule nothing
+tests, or a test that would pass if the thing it names were deleted. Hand-written mutation proofs test the
+guards someone thought to test, so the class was closed mechanically instead.
+
+`qa/verification/scratch/p1/vacuity_sweep.mjs` finds every named regex constant in the request-intent and
+context-budget regions of `index.ts`, neutralises each in turn in BOTH directions — never-match and
+always-match — and runs the twelve suites that carry the intent, budget, receipt and language contracts
+against each mutant. A guard whose removal breaks nothing is either dead code or untested behaviour, and the
+difference is exactly what has to be established case by case. `index.ts` is never modified: every run points
+the suites at a mutated copy through `SEM_INDEX_SRC`, and the original's hash is verified at the end.
+
+**First run: 19 guards, 38 mutants, 33 killed, 5 survived.** Each survivor was then probed against the cases
+its rule exists for, and every one turned out to be real behaviour that no test exercised:
+
+| Survivor | The case only it catches |
+|---|---|
+| `MUTATION_VERB_PROPER_OBJECT` | `Alpha end.` — a trailing-verb imperative |
+| `MN_NOT_A_COMMAND` | `Цуцлагдсан гэрээ` — a participle in a bare noun phrase, no case suffix, no question particle |
+| `TEMPORAL_PROPER_OBJECT` | killed once `Alpha end.` was pinned; it guards the same tier from the other side |
+| `POLITE_REQUEST` | `archive ACME?` — a bare imperative with a question mark, which it keeps a QUESTION |
+| `COMPOSITION_REQUEST` | `propose a plan to end the Erdenet lease` — a request for a PLAN, not an instruction |
+
+Five cases were added to the promoted suites; the sweep now reports **38 mutants, 38 killed, 0 survived**.
+Every named guard in both regions is exercised in both directions by at least one committed suite.
+
+**Two things worth keeping from this.** First, the sweep found what three rounds of hand-written proofs did
+not, because it does not depend on anyone's model of what matters. Second, the `archive ACME?` row pins a
+boundary the team has already registered as a residual (verifier #59, R3): if that is ever changed
+deliberately, it now shows up in a test rather than in production.
+
+`index.ts` was not modified by any of this — sha256 `86620b36…` before and after — so verifier #63, which is
+running against these exact bytes, is unaffected.

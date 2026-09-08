@@ -189,7 +189,19 @@ function fixture({ command = 'archive company Northwind', commandPad = 0, compac
   const MUST_INTENT = ['archive company ACME', 'restore the Erdenet business unit', 'bring back the Erdenet unit',
     'could you please archive ACME?', 'do me a favour and archive ACME', 'ACME should be archived.',
     'list the tasks, then archive ACME', 'get ACME archived', 'yes', 'option 2',
-    'ACME компанийг архивла', 'QA-1 даалгаврыг устга', 'Батыг менежерээр томил'];
+    'ACME компанийг архивла', 'QA-1 даалгаврыг устга', 'Батыг менежерээр томил',
+    // A trailing-verb imperative: only the proper-noun object tier reads 'Alpha end.' as a request.
+    // Added 2026-09-08 from a mechanical vacuity sweep — neutralising MUTATION_VERB_PROPER_OBJECT broke
+    // no test anywhere, because every other case it covers is also matched by a later, more general tier.
+    'Alpha end.'];
+  // Two more from the 2026-09-08 vacuity sweep, both of which no test exercised:
+  //  * 'archive ACME?' — a bare imperative with a question mark. POLITE_REQUEST is what keeps this a
+  //    QUESTION rather than a request, and neutralising it turned all three of these into commands. This
+  //    pins the current boundary; verifier #59 registered R3 ('archive Alpha?') as a residual, so if that
+  //    is ever deliberately changed this row is where it shows up, rather than in production.
+  //  * 'propose a plan to end the Erdenet lease' — COMPOSITION_REQUEST is the only thing that keeps a
+  //    request for a PLAN from being read as an instruction to end the lease.
+  MUST_NULL.push('archive ACME?', 'restore Alpha?', 'propose a plan to end the Erdenet lease');
   const fp = MUST_NULL.filter((c) => intentOf(c) !== null);
   const fn = MUST_INTENT.filter((c) => intentOf(c) === null);
   check('CONTRACT', 'no read / statement / noun phrase in the pinned corpus is read as a mutation request', fp.length === 0, JSON.stringify(fp));

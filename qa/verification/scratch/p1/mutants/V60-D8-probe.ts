@@ -5967,7 +5967,7 @@ serve(async (req) => {
         const lexiconImperative: string | null = imperativeSource
           ? String((imperativeSource.trim().match(/^[A-Za-z-]+/) || [''])[0]).toLowerCase() || null
           : null;
-        const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject) ? String(lexiconAlways || lexiconPassive || lexiconObject).toLowerCase() : null;
+        const lexiconVerb: string | null = (lexiconAlways || lexiconPassive || lexiconObject || lexiconImperative) ? String(lexiconAlways || lexiconPassive || lexiconObject || lexiconImperative).toLowerCase() : null;
         // ONLY the request may veto the request lexicon. modelIntentKind is emitted by the model, and
         // letting it clear a lexicon hit let the component being policed switch off its own truth gate
         // (verifier #60, V60-D3: 37/37 fabricated completions shipped on a declared kind:"read").

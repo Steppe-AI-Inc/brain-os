@@ -416,6 +416,16 @@ console.log('\n=== v61 DEFECT rows (red by design on 4f44544) ===');
   check('CONTRACT', 'Mongolian reported speech is not a command (only verb-final position separates them)',
     quotedRewritten.length === 0,
     quotedRewritten.length + '/' + MN_QUOTED.length + ' destroyed: ' + JSON.stringify(quotedRewritten));
+  // A PARTICIPLE IN A BARE NOUN PHRASE. Added 2026-09-08 from a mechanical vacuity sweep: neutralising
+  // MN_NOT_A_COMMAND broke no test anywhere, because every participle in the corpora also carried a case
+  // suffix or a question particle, both of which are caught by other rules. "Цуцлагдсан гэрээ" (a cancelled
+  // contract) carries neither: it is a participle in verb-final position with no case ending, and only the
+  // morphology test tells it apart from an instruction to cancel something.
+  const MN_PARTICIPLE_NP = ['Цуцлагдсан гэрээ', 'Архивласан компани', 'Томилогдсон менежер'];
+  const participleRewritten = MN_PARTICIPLE_NP.filter((c) => turn({ command: c, summary: truthful }).summary !== truthful);
+  check('CONTRACT', 'a Mongolian participle in a bare noun phrase is not a command (morphology, not position)',
+    participleRewritten.length === 0,
+    participleRewritten.length + '/' + MN_PARTICIPLE_NP.length + ' destroyed: ' + JSON.stringify(participleRewritten));
 }
 
 // -------- V61-D7: an English statement whose FIRST WORD is an allow-listed verb.
