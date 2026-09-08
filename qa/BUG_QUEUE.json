@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-07T13:25:00Z",
+  "last_updated": "2026-09-08T14:10:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 9,
+    "open_p1": 10,
     "open_p2": 9,
     "open_p3": 5,
-    "total_open": 23,
+    "total_open": 24,
     "total_closed": 5
   },
   "bugs": [
@@ -1188,6 +1188,35 @@
       ],
       "regression_requirement": "Before any runner sweep: assert every executed statement set ends in ROLLBACK by construction (the wrapper), and after the sweep run the leftover-fixture scan (tasks/projects/documents/financial_reports/memories/sales_leads/agents/agent_runs/company_memberships by fixture id ranges and markers) and assert all zero.",
       "_qa_boundary": "Reported the moment it was confirmed; no attempt to repair production from this seat."
+    },
+    {
+      "bug_id": "SEC-WORKPC-CONTROL-PLANE-AUTHORITY",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "The Work-PC QA seat holds PRODUCTION WRITE authority: arbitrary SQL (incl. writes) and Edge Function deploy via the persisted Supabase CLI login. Desired state is \"normal QA session, cannot write production infrastructure\" - it is not the actual state",
+      "classification": "production-control-plane security finding (campaign P0). Read-only investigation; nothing mutated for this audit.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-08T14:10:00Z",
+      "environment": "work-pc seat + production project pvphxgrtdfrudejjhzjk",
+      "routes": {
+        "supabase db query --linked (arbitrary SQL, writes included)": "WRITE CAPABLE - PROVEN 2026-09-07 by INC-2026-09-07-UNWRAPPED-SQL (4 rows persisted). Credential: persisted CLI access token in the OS credential store; project linked:true.",
+        "supabase db push (migrations)": "WRITE CAPABLE (same credential; not executed).",
+        "supabase functions deploy (Edge)": "WRITE CAPABLE (linked CLI; CLAUDE.md §22 records that link-then-deploy passes the permission layer; not executed).",
+        "Supabase production access token": "PRESENT (OS credential store; projects list succeeds). Not readable as plaintext from this session; presence proven by use.",
+        "service-role credential": "NOT FOUND in process env or repo .env key names (web/.env.local holds only VERCEL_OIDC_TOKEN). Cannot prove absence from OS keychains: UNKNOWN-LEANING-NO.",
+        "Vercel production environment": "UNKNOWN. No vercel CLI, no VERCEL_TOKEN; web/.env.local contains a VERCEL_OIDC_TOKEN whose scope/expiry were not exercised.",
+        "GitHub production workflows/secrets": "API: NO AUTHORITY (no gh CLI, no token). Git push: WRITE CAPABLE to branches via the credential manager (used for qa/work-pc); protection of master/main not tested and must not be."
+      },
+      "standing_decision_context": "CLAUDE.md §22 records the founder's explicit 2026-08-28 decision to keep the Supabase CLI logged in (\"stop doing supabase login logout\"). This finding does not reverse that; it records that the consequence is a QA seat with production write authority, and that the consequence has already materialised once.",
+      "what_this_seat_will_do": "Not remediate (not assigned). Not run bare SQL. If SQL regressions are needed again: only through qa/runner/run-sql-regressions.mjs (force BEGIN/ROLLBACK, refuses COMMIT), and only after founder acknowledgement of the incident.",
+      "options_for_founder": [
+        "(a) `supabase logout` on this machine between QA sessions (documented tradeoff: interactive re-login for the founder's own deploys).",
+        "(b) A read-only Postgres role + separate connection string for QA SELECT/impersonation work; keep the linked CLI login off the QA seat.",
+        "(c) A dedicated non-production Supabase project mirrored from production for destructive QA.",
+        "(d) Technical barrier in the runner: the supervisor/director environment launched with no CLI credential (CLAUDE.md §22 lever)."
+      ],
+      "regression_requirement": "A read-only \"authority audit\" script run at every supervisor boot that records which of the routes above are live, so drift is visible in SUPERVISOR_STATE rather than discovered by incident.",
+      "_qa_boundary": "Audit was read-only: env var names, file names, CLI help/list. No mutation attempted."
     }
   ]
 }
