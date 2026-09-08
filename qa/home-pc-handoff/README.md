@@ -147,3 +147,20 @@ Architecture behind this batch: `governance/OPERATING_TRUTH_MODEL.md`,
 `governance/CANONICAL_WORK_CONTRACT.md`, `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`
 (the definition of done and the fix-report contract these files follow), enforced by
 `qa/scenarios-runner/architecture_*.mjs`.
+
+## 2026-09-08 — deployed and rolled back the same hour (read this before retesting)
+
+The P1 package was deployed as sem-ai-command v93 at 01:50Z and rolled back at 02:10Z. Post-deploy live
+acceptance found an unrelated P1: the enlarged context pack crossed the 12,000-token preflight, so a
+brand-new empty channel returned HTTP 413 with no answer while short commands still worked. Production is
+back on the v92 SOURCE (function v94, byte-verified). Ledger #133 and
+qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md carry the evidence.
+
+What the live run proved on v93 before the rollback, and what the Work PC should expect once a fixed build
+is deployed: a fresh-channel restore of a company outside the context window EXECUTED and was receipted
+truthfully ("QA-SWARM-TEST-CO-VIA-CHAT: restored."), and a non-existent company produced
+"no company by that name (searched the active and archived companies you can access) — nothing was
+restored." The fixture QA-SWARM-TEST-CO-VIA-CHAT was found ALREADY ACTIVE (not archived as the handover
+recorded); the archive->restore cycle was exercised on it and it is active again — no net change.
+
+Nothing is deployed, nothing is closed, ready_for_retest stays false on all six reports.
