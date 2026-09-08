@@ -1763,6 +1763,19 @@ const MUTATION_VERB_ALTERNATION = "unsubscribe|un-archive|reactivate|deactivate|
 const REQUEST_FRAME_READ_VERB = "tell|explain|summari|describe|list|show|remind";
 const QUESTION_SUPPRESSING_FRAME = new RegExp(
   '^\\s*(?:' + REQUEST_FRAME_ADDRESSED + ')\\s*(?!(?:' + REQUEST_FRAME_READ_VERB + '))\\b', 'i');
+// THE ONE DEFINITION OF AN ENTITY NOUN — the vocabulary of "a kind of thing this product stores".
+// It was spelled three times (IMPERATIVE_OBJECT's list, STRONG_OBJECT's list, commandEntityNoun's six)
+// and the three had already drifted, which is verifier #67's P1 and P2 in one sentence. Every consumer
+// below derives from this; none re-spells it. Multi-word nouns come FIRST so the alternation prefers the
+// longer reading ("work order" before "order"), the same longest-first rule the request frames use.
+const ENTITY_NOUN_ALTERNATION = "work order|purchase order|business unit|chat channel|software spec|product line"
+  + "|product spec|engineering drawing|technical drawing|onboarding plan|purchase approval|work item"
+  + "|compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project"
+  + "|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment"
+  + "|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account"
+  + "|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership"
+  + "|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?"
+  + "|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?";
 const CONFIRMATION_ALTERNATION = "yes|yep|yeah|yup|y|ok|okay|sure|confirm(?:ed)?|correct|affirmative"
   + "|go ahead|go for it|do it|execute|proceed|please do|approved";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
@@ -3797,7 +3810,7 @@ serve(async (req) => {
           if (c.country !== null) patch.country = c.country;
           if (c.legalEntityName !== null) patch.legal_entity_name = c.legalEntityName;
           const currentStatus = companyStatusById.get(c.id);
-          const statusChangeIsLifecycleTransition = false;
+          const statusChangeIsLifecycleTransition = c.status && (c.status === 'archived' || currentStatus === 'archived');
           if (statusChangeIsLifecycleTransition) {
             // Never attempted, on purpose - archiveCompanyIds/restoreCompanyIds
             // (archive_company()/restore_company()) are the only path in/out of
@@ -6010,7 +6023,7 @@ serve(async (req) => {
         const MUTATION_VERB_PROPER_OBJECT = /(?:^|[\s,.;:—–-])(?:[Cc]reat(?:e|ing)|CREATE|[Mm]ak(?:e|ing)|MAKE|[Aa]dd(?:ing)?|ADD|[Rr]egister(?:ing)?|[Ss]et(?:ting)?|SET|[Uu]pdat(?:e|ing)|UPDATE|[Cc]hang(?:e|ing)|CHANGE|[Ee]dit(?:ing)?|EDIT|[Ff]ix(?:ing)?|FIX|[Mm]odif(?:y|ying)|MODIFY|[Cc]los(?:e|ing)|CLOSE|[Cc]omplet(?:e|ing)|COMPLETE|[Ff]inish(?:ing)?|FINISH|[Cc]ancel(?:ling|ing)?|CANCEL|[Rr]eopen(?:ing)?|REOPEN|[Mm]ark(?:ing)?|MARK|[Aa]ssign(?:ing)?|ASSIGN|[Mm]ov(?:e|ing)|MOVE|[Tt]ransfer(?:ring)?|TRANSFER|[Hh]ir(?:e|ing)|HIRE|[Oo]nboard(?:ing)?|ONBOARD|[Ee]nd(?:ing)?|END)\s+(?:the\s+|a\s+|an\s+|new\s+|THE\s+)?(?:[A-Z][A-Za-z0-9_-]+|[A-Z]{2,}|\S+-\d+|"[^"]+"|“[^”]+”|'[^']+')|(?:[A-Z]\S*|\S+-\d+|\S+(?:'s|’s) \w+)\s+(?:set|add|mark|move|edit|update|end|close|complete|cancel|finish|reopen|assign|create|make|fix|modify|change)\s*[.!]?\s*$/;
         // A read-shaped request: a question, a wh-opener, or an explicit read verb; a trailing "ok?/right?"
         // on an imperative is not a read. Plus the idioms that only LOOK like lifecycle verbs.
-        const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do(?!\s+not\b|n['’]t\b|\s+me\s+a\s+favou?r\b)|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?\b|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
+        const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do(?!\s+not\b|n['’]t\b|\s+me\s+a\s+favou?r\b)|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?(?=\s*(?:[.,!?;:]|$)|\s+(?:please|now|thanks|already|for me)\b)|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
         // A polite request phrased as a question is still a request ("could you please archive ACME?").
         // Declared here, above isQuestion, which now consults it: a const read before its declaration is a
         // TDZ crash, not a fallback — the class this repo pins with tdz_forward_reference_contract.mjs.
@@ -6053,7 +6066,28 @@ serve(async (req) => {
         // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
         // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
         // both tiers that use it: a const read before its declaration is a TDZ crash, not a fallback.
-        const IMPERATIVE_OBJECT = /^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\s+\S|^(?:it|them|this|that|these|those)\b|^["'“”'']|^\d|^\S*[-_]?\d|^[A-Z][A-Za-z0-9_-]*|^(?:compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?)\b|^\S+@\S+\.\S+|^\S+\s*$/;
+        // "Does this object refer to something?" Every alternative used to be ^-anchored, so only TOKEN 0
+        // was ever inspected: "work order WO-1" saw "work", matched nothing, and the whole request became
+        // invisible to the receipt tier (verifier #67, V67-D1 — 480 of 480 fabrications shipped, while the
+        // same matrix using the head noun alone shipped 0). A compound noun phrase refers to a thing just
+        // as much as its head does, so the entity noun and the identifier are now recognised WHEREVER THEY
+        // SIT in the object. The leading-position alternatives are kept as they were: they are what makes a
+        // bare "it"/"them"/a quoted name/a determiner phrase count, and none of them is weakened here.
+        const IMPERATIVE_OBJECT = new RegExp(
+          '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
+          + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'
+          // ANYWHERE, not ^: an ENTITY NOUN at any position in the object. This one alternative is the
+          // whole of the V67-D1 repair — "work order WO-1" refers because "work order" is a thing this
+          // product stores, wherever it sits in the phrase.
+          //
+          // Two other position-free readings were tried here and are deliberately NOT present.
+          // A CAPITALISED WORD anywhere made "Close call on the Beta deal today" refer, destroying a
+          // truthful answer V61-D7 pins: capitalisation is evidence about TYPOGRAPHY, not about the domain.
+          // An IDENTIFIER-SHAPED token anywhere was measured redundant — the mutation proof could not kill
+          // it, because every case it would catch already carries an entity noun — and a guard nobody can
+          // test is a guard nobody can maintain.
+          + '|\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
+          + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
         // the announcement" has "fell" (verifier #61, V61-D7).
@@ -6061,7 +6095,14 @@ serve(async (req) => {
         // model" are noun phrases whose head noun happens to be spelled like a verb, while "Share price
         // fell" still has its finite verb (verifier #63, V63-D3(d)).
         const STATEMENT_FINITE_VERB = /(?:^|\s)(?<!\b(?:a|an|the|my|our|your|its|their|his|her|this|that|these|those|new|another|each|every)\s)(?:is|are|was|were|am|be|been|being|has|have|had|will|would|shall|should|can|could|may|might|must|does|did|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|needs?|seems?|looks?|means?|includes?|requires?|remains?|appears?|shows?|starts?|ends?|applies|works?|happens?|belongs?|costs?|arrived|called|fell|flooded|blocked|created|agreed|started|ended|changed|moved|failed|passed|expired|dropped|rose|grew|went|came|said|told|broke|stopped|continued|returned|increased|decreased|remained|occurred|appeared)(?=\s|$|[.,;!?])/i;
-        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest) && !STATEMENT_FINITE_VERB.test(rest);
+        // Words that are part of an ENTITY NAME are not verbs in that sentence. STATEMENT_FINITE_VERB
+        // lists `works?`, so "work order WO-1" was read as a statement and the whole object refused, which
+        // is the last piece of verifier #67's P1. The statement shape is judged on what is left AFTER the
+        // recognised entity nouns are removed, so "the company works fine" is still a statement (V61-D7)
+        // while "work order WO-1" is an object. One definition, one more consumer.
+        const ENTITY_NOUN_PHRASE = new RegExp('\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b', 'gi');
+        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest)
+          && !STATEMENT_FINITE_VERB.test(rest.replace(ENTITY_NOUN_PHRASE, ' '));
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
         // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for
@@ -6998,8 +7039,29 @@ serve(async (req) => {
           const failed = claimExecutionEvidence.find((e) => e.error) || null;
           const attempted = claimExecutionEvidence.length > 0;
           const verb = /^архивл/i.test(String(requestedIntent.verb || '')) ? 'archive' : /^сэргээ/i.test(String(requestedIntent.verb || '')) ? 'restore' : /^устга/i.test(String(requestedIntent.verb || '')) ? 'delete' : /^bring/i.test(String(requestedIntent.verb || '')) ? 'restore' : requestedIntent.verb;
-          const commandEntityNoun = ((commandText.match(/\b(task|goal|person|people|employee|staff|project|department|compan(?:y|ies)|business unit)\b/i) || [])[1] || '').toLowerCase();
-          const commandEntity = /^task/.test(commandEntityNoun) ? 'task' : /^goal/.test(commandEntityNoun) ? 'goal' : /^(person|people|employee|staff)/.test(commandEntityNoun) ? 'person' : /^project/.test(commandEntityNoun) ? 'project' : /^department/.test(commandEntityNoun) ? 'department' : null;
+          // Six nouns, so the receipt said "company" for 12 of 18 entity types — "archive approval A-1"
+          // answered "could not resolve which COMPANY you meant (searched the active and archived
+          // COMPANIES)", a false statement about what was searched (verifier #67, V67-D3). It now reads the
+          // one definition, so the receipt names the thing the founder actually named.
+          const commandEntityNoun = ((commandText.match(
+            new RegExp('\\b(' + ENTITY_NOUN_ALTERNATION + ')\\b', 'i')) || [])[1] || '').toLowerCase();
+          // A five-noun map returning null, with the reason line defaulting to the literal 'company',
+          // is why "archive approval A-1" said "I could not resolve which COMPANY you meant (searched the
+          // active and archived COMPANIES)" — false about what was searched, for 12 of 18 entity types
+          // (verifier #67, V67-D3). Normalise instead of enumerating: singularise what the one definition
+          // matched and carry it through. The five explicit arms stay because they map SYNONYMS onto a
+          // canonical name (people/employee/staff -> person), which singularising alone cannot do.
+          const commandEntity = /^task/.test(commandEntityNoun) ? 'task'
+            : /^goal/.test(commandEntityNoun) ? 'goal'
+            : /^(person|people|employee|staff|manager|owner|user)/.test(commandEntityNoun) ? 'person'
+            : /^project/.test(commandEntityNoun) ? 'project'
+            : /^department/.test(commandEntityNoun) ? 'department'
+            : /^(compan|business|organi)/.test(commandEntityNoun) ? 'company'
+            // There is no bare "order" entity in this product; "archive order WO-1" is about a work order,
+            // and the receipt should name the type that was actually searched.
+            : /^(work order|purchase order|order)$/.test(commandEntityNoun) ? 'work order'
+            : commandEntityNoun ? commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1')
+            : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
             approve: 'deciding an approval from chat is not available yet — use the Approvals page',
             reject: 'deciding an approval from chat is not available yet — use the Approvals page',
@@ -7007,7 +7069,14 @@ serve(async (req) => {
             invite: 'inviting someone from chat is not available yet — use the People page',
           };
           const negatedRequest = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/i.test(commandText) || /\b(?:do not|don['’]t|never|not to|no longer|instead of|rather than|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|rename|assign|approve|reject|unarchive|reactivate|end|close|cancel)/i.test(commandText);
-          const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText) || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to|could we|should we|shall we)\b/i.test(commandText);
+          // The receipt picks its REASON here, and this named three deliberative frames while
+          // REQUEST_FRAME_DELIBERATIVE names 22 — so the other 19 ("can I", "shall I", "I want to", …) were
+          // told "I could not resolve which company you meant" about a company that resolves perfectly well
+          // (verifier #67, V67-D4). Two spellings of "weighing, not instructing", drifted 19/22. The frame
+          // half now derives from the one definition; the conditional half stays its own idea.
+          const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText)
+            || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to)\b/i.test(commandText)
+            || new RegExp('^\\s*(?:' + REQUEST_FRAME_DELIBERATIVE + ')\\b', 'i').test(commandText);
           const reason = pendingQuestion ? 'I need your answer first'
             : negatedRequest ? 'you asked me not to, so nothing was executed'
             : hypotheticalRequest ? 'that read as a hypothetical, not an instruction — say the word and I will do it'

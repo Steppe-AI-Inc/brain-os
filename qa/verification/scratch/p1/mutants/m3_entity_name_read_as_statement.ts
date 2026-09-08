@@ -6102,7 +6102,7 @@ serve(async (req) => {
         // while "work order WO-1" is an object. One definition, one more consumer.
         const ENTITY_NOUN_PHRASE = new RegExp('\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b', 'gi');
         const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest)
-          && !STATEMENT_FINITE_VERB.test(rest.replace(ENTITY_NOUN_PHRASE, ' '));
+          && !STATEMENT_FINITE_VERB.test(rest);
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
         // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for

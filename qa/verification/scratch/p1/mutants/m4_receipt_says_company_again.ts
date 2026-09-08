@@ -7060,7 +7060,6 @@ serve(async (req) => {
             // There is no bare "order" entity in this product; "archive order WO-1" is about a work order,
             // and the receipt should name the type that was actually searched.
             : /^(work order|purchase order|order)$/.test(commandEntityNoun) ? 'work order'
-            : commandEntityNoun ? commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1')
             : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
             approve: 'deciding an approval from chat is not available yet — use the Approvals page',

@@ -7076,7 +7076,6 @@ serve(async (req) => {
           // half now derives from the one definition; the conditional half stays its own idea.
           const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText)
             || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to)\b/i.test(commandText)
-            || new RegExp('^\\s*(?:' + REQUEST_FRAME_DELIBERATIVE + ')\\b', 'i').test(commandText);
           const reason = pendingQuestion ? 'I need your answer first'
             : negatedRequest ? 'you asked me not to, so nothing was executed'
             : hypotheticalRequest ? 'that read as a hypothetical, not an instruction — say the word and I will do it'

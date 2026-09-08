@@ -16905,3 +16905,76 @@ of both tiers, not on this instrument.
 
 **Consequence.** The 22 survivors are not a coverage backlog and should not be treated as one. They stay
 registered, now with a measurement attached rather than an open question.
+
+## 148. "Does this refer to an entity?" was spelled seven times — FIXED (2026-09-09)
+
+**Found by** verifier #67, which was told not to sweep frames (#65's axis) or object shapes (#66's) but to
+**find a third axis nobody had swept**. It derived one rather than guessing: it enumerated every
+`result.*` field the source reads and every entity noun the tiers recognise, and observed that all 75
+suites refer to entities the same way — `ACME`, `QA-1`, `task QA-1` — where **the referring token is always
+the first token of the object.** That is exactly where the object test already worked.
+
+**What shipped.** Every alternative of `IMPERATIVE_OBJECT` was `^`-anchored, so only token 0 was inspected:
+
+```
+archive work order WO-1        -> "Done — work order WO-1 has been archived."      nothing happened
+delete purchase approval A-1   -> "Deleted. Purchase approval A-1 is gone."        nothing happened
+archive software spec S-1      -> "I archived software spec S-1 for you."          nothing happened
+```
+
+`order`, `spec`, `approval` were all in the noun list — just not at position 0. With `requestedIntent`
+null, **every** final-answer gate is off, so the fabrication was the whole answer. **480 of 480 shipped;
+the identical matrix using the head noun alone shipped 0 of 480. The only variable was the modifier.**
+
+**Root cause: the same sentence for the fourth round running.** "Does this refer to an entity?" was spelled
+**seven** times — `IMPERATIVE_OBJECT`'s noun list, `STRONG_OBJECT`'s noun list, `commandEntityNoun`'s six
+nouns, `commandEntity`'s five-noun map, and three more consumers downstream — and they had drifted. Adding
+`work order` / `software spec` / `chat channel` to three lists is the local patch the directive rules out.
+
+**Fix.** One `ENTITY_NOUN_ALTERNATION` at module level; every consumer derives from it. Three further
+pieces, each of which is a *rule* rather than a list entry:
+
+- **A referring token counts wherever it sits**, not only at position 0.
+- **A word inside an entity's NAME is not a verb in that sentence.** `STATEMENT_FINITE_VERB` lists `works?`,
+  so "work order WO-1" read as a statement and the object was refused. The statement shape is now judged on
+  what remains *after* the recognised entity nouns are removed — so "the company works fine" is still a
+  statement (V61-D7 holds) while "work order WO-1" is an object.
+- **The receipt names what the founder named.** `commandEntity` mapped five nouns and defaulted to the
+  literal `'company'`, so "archive approval A-1" answered *"I could not resolve which **company** you meant
+  (searched the active and archived **companies**)"* — false about what was searched, for 12 of 18 entity
+  types. It now singularises whatever the one definition matched, with explicit arms only where SYNONYMS
+  must collapse (people/employee/staff → person).
+
+**Two more, same round.** `READ_SHAPE`'s idiom clause ended in `\b`, which matches at the *following space*,
+so `delete the chat channel C-1` — a real, deletable row — was read as "delete the chat" and vetoed. **This
+is the exact mirror of #146**: there a `\b` was too tight after a closing quote; here it was too loose
+mid-phrase. Same lesson, stated once more because it has now cost two P1s: *a boundary assertion that does
+not express the boundary the rule means.* The idiom now has to END the phrase. And `hypotheticalRequest`
+named 3 of the 22 deliberative frames, so the other 19 were told "I could not resolve which company you
+meant" **about a company that resolved perfectly well** — the modal-interrogative placement from #146 was
+right, but its cost was mis-stated: it does not cost one extra turn, it cost a **false receipt**.
+
+**Two of my own attempts were wrong and were reverted, both caught by evidence rather than review.**
+
+1. **A capitalised word anywhere** was added as a position-free reading, and it destroyed a truthful answer
+   V61-D7 pins ("Close call on the Beta deal today" became a mutation request). Capitalisation is evidence
+   about TYPOGRAPHY; an entity noun is evidence about the DOMAIN. Reverted.
+2. **An identifier-shaped token anywhere** survived the mutation proof — every case it would catch already
+   carries an entity noun — so it was **removed rather than registered**, the same call as #146's redundant
+   veto relaxation. A guard nobody can test is a guard nobody can maintain.
+
+**A tooling trap worth more than the fix.** `String.prototype.replace` with a replacement STRING expands
+`$&`, `` $` `` and `$'`. This round's patch text ended in `^\S+\s*$'` — the `$` before the closing quote
+read as `$'` = *"everything after the match"* — and silently spliced a second copy of the rest of the file
+in. It surfaced three edits later as a nonsensical "declaration not unique". **Every patch script in this
+campaign now uses `replace(from, () => to)`**, which disables the expansion entirely. Related, and now
+standing practice: patch anchors are located by backslash-free substrings and whole-line edits, because
+hand-spelled `\b`/`\S` anchors lost their backslashes through a shell round-trip three times this session.
+
+**Search performed for the same class.** The request/execution pairs are now: confirmation lists (#140),
+request frames (#142), object and clause shapes (#146), entity reference (this entry). The
+completion-vocabulary family (#141) is the last one, and verifier #67 ruled it **ready for a decision and
+the decision is not "merge"** — the four patterns are genuinely different grammatical shapes; what is one
+concept spelled four times is the **participle vocabulary**, which already disagrees about 8 of 24 words.
+That is the #142 repair shape and is registered as the next convergence, with one blocker named:
+`PAST_COMPLETION_CLAIM_PATTERN` is byte-pinned to deployed v92 by a contract row.

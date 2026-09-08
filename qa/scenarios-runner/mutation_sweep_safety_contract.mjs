@@ -43,6 +43,7 @@ const TOOLS = [
   'qa/verification/scratch/p1/v57_mutation_proof.mjs',
   'qa/verification/scratch/p1/v58_mutation_proof.mjs',
   'qa/verification/scratch/p1/v66_mutation_proof.mjs',
+  'qa/verification/scratch/p1/v67_mutation_proof.mjs',
 ];
 
 for (const rel of TOOLS) {
@@ -82,6 +83,9 @@ for (const rel of TOOLS) {
     // v57 is 4 because m1_other_does_not_veto was RETIRED with a written reason: the construct it reverted
     // was deliberately deleted by a later closure, so there is nothing left to mutate (ledger #143).
     'v57_mutation_proof.mjs': 4, 'v58_mutation_proof.mjs': 5, 'v66_mutation_proof.mjs': 5,
+    // v67 is 5 because the identifier-anywhere reading was REMOVED from the fix rather than registered —
+    // the proof could not kill it, so there is nothing left to mutate (ledger #148).
+    'v67_mutation_proof.mjs': 5,
   };
   const floorMatch = src.match(/(?:mutants|MUTANTS)\.length\s*<\s*(\d+)/);
   const floor = floorMatch ? Number(floorMatch[1]) : 0;

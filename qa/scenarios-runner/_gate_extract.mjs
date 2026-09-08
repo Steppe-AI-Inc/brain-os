@@ -175,7 +175,11 @@ const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNA
   // maintained declaration further down the file, and windows sliced from below picked up the copy. With
   // one declaration left, a window below it must be given the survivor — the same service this list has
   // always performed for the request-frame vocabulary.
-  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD'];
+  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD',
+  // The one definition of an entity noun (verifier #67): it was spelled three times — IMPERATIVE_OBJECT,
+  // STRONG_OBJECT and commandEntityNoun — and the three had drifted, which cost a P1 and a P2. Every
+  // consumer now derives from it, so every window that executes one of them needs the declaration.
+  'ENTITY_NOUN_ALTERNATION'];
 let _sharedConstantCache = null;
 function resolveSharedConstants() {
   if (_sharedConstantCache) return _sharedConstantCache;
@@ -323,7 +327,11 @@ const SHARED_CONSTANTS = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNATION'
   // maintained declaration further down the file, and windows sliced from below picked up the copy. With
   // one declaration left, a window below it must be given the survivor — the same service this list has
   // always performed for the request-frame vocabulary.
-  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD'];
+  'PAST_COMPLETION_CLAIM_PATTERN', 'FUTURE_PROMISE_PATTERN', 'COMPLETION_WORD',
+  // The one definition of an entity noun (verifier #67): it was spelled three times — IMPERATIVE_OBJECT,
+  // STRONG_OBJECT and commandEntityNoun — and the three had drifted, which cost a P1 and a P2. Every
+  // consumer now derives from it, so every window that executes one of them needs the declaration.
+  'ENTITY_NOUN_ALTERNATION'];
 export function withSharedConstants(source, slice) {
   // Idempotent: stripTS already prepends these, so a suite calling this directly must not get a duplicate
   // declaration (which is a SyntaxError, not a silent problem — but still a harness bug, not a product one).

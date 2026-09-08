@@ -6076,17 +6076,12 @@ serve(async (req) => {
         const IMPERATIVE_OBJECT = new RegExp(
           '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
           + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'
-          // ANYWHERE, not ^: an ENTITY NOUN at any position in the object. This one alternative is the
-          // whole of the V67-D1 repair — "work order WO-1" refers because "work order" is a thing this
-          // product stores, wherever it sits in the phrase.
-          //
-          // Two other position-free readings were tried here and are deliberately NOT present.
-          // A CAPITALISED WORD anywhere made "Close call on the Beta deal today" refer, destroying a
-          // truthful answer V61-D7 pins: capitalisation is evidence about TYPOGRAPHY, not about the domain.
-          // An IDENTIFIER-SHAPED token anywhere was measured redundant — the mutation proof could not kill
-          // it, because every case it would catch already carries an entity noun — and a guard nobody can
-          // test is a guard nobody can maintain.
+          // ANYWHERE, not ^: an entity noun, or an identifier-shaped token, at any position in the object.
           + '|\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
+          // A CAPITALISED WORD anywhere was tried here and REVERTED: it made "Close call on the Beta deal
+          // today" refer, destroying a truthful answer V61-D7 pins. Capitalisation is evidence about
+          // TYPOGRAPHY; an entity noun and an identifier are evidence about the DOMAIN, and only those two
+          // earn a position-free reading.
           + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
