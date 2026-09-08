@@ -98,7 +98,7 @@
   "campaign": 121,
   "verifier": 61,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "verifier #61 DISPATCHED on 736d150 — the closure of every verifier #60 finding",
+  "status": "verifier #61 DISPATCHED on 4f44544 (index.ts 3d1baeaa) — the closure of every verifier #60 finding",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -730,7 +730,8 @@
   "verifier60_verdict": "FAIL — NOT DEPLOYMENT READY. V60-D1/D2/D3/D4 (P1), V60-D7/D8/D9 (P2), V60-D5/D6 (P3). Artifacts: verify-9e39a47-campaign120 @ 26748fd.",
   "verifier60_note": "Dispatched a second time on 1a1efbb by the implementing session before this report was noticed; that run was stopped without a verdict because its bytes carried the same open findings. The verdict above is against 9e39a47 only.",
   "verifier60_closure": "All V60 findings closed on 3d1baeaa. v60 suite 22/0 (promoted). Mutation proof 9/9 killed. Intent corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0. v59 contract C4b REVERSED under the founder ruling that the model may add intent but never remove it; verifier #57 legitimate cases now carried by request-side evidence (composition requests, phrasal reads, imperative position) and v57 still measures 306/0. Ledger #135.",
-  "verifier61_base_commit": "736d150",
+  "verifier61_base_commit": "4f44544",
   "verifier61_index_sha256": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01",
-  "verifier61_status": "DISPATCHED"
+  "verifier61_status": "DISPATCHED",
+  "verifier61_index_sha256_at_start": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01"
 }

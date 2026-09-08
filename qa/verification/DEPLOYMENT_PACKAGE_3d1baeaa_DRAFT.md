@@ -1,4 +1,4 @@
-# Production deployment package — Edge candidate `736d150` — DRAFT, NOT AUTHORIZED
+# Production deployment package — Edge candidate `4f44544` — DRAFT, NOT AUTHORIZED
 
 **Status: DRAFT pending verifier #61.** Nothing here is deployed and nothing may be deployed on the strength
 of this document. It exists so that a PASS needs only the verdict attached rather than an hour of assembly.
@@ -13,12 +13,12 @@ below needs a **fresh** founder authorization scoped to its own exact bytes.
 
 | Item | Value |
 |---|---|
-| Candidate commit | `736d150` (branch `p1/execution-truth-governance`) |
+| Candidate commit | `4f44544ede88aaeb974d92089a79c1793442d54a` (branch `p1/execution-truth-governance`) — the commit verifier #61 was dispatched on; `736d150` carries the identical deploy surface |
 | Deploy surface | exactly `supabase/functions/sem-ai-command/index.ts` |
 | Edge source sha256 | `3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01` (CRLF-pure, 0 bare LF) |
 | Migrations in this package | none |
 | Web changes in this package | none deployed; unchanged this round |
-| Independent verifier | **#61, campaign #121, RUNNING** on `736d150`. No verdict yet. |
+| Independent verifier | **#61, campaign #121, RUNNING** on `4f44544`. No verdict yet. |
 
 ## 2. Production today
 
