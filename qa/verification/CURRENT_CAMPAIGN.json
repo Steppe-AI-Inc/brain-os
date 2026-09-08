@@ -95,8 +95,8 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 126,
-  "verifier": 66,
+  "campaign": 127,
+  "verifier": 67,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
   "status": "verifier #65 DISPATCHED — founder directive 2026-09-08: ONE CONCEPT -> ONE CANONICAL DEFINITION -> MULTIPLE CONSUMERS",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
@@ -844,7 +844,6 @@
   },
   "verifier66_base_commit": "52d958200522a9f5cbe38ecf973d43af0d6b1155",
   "verifier66_index_sha256": "e3134bc5a31bbc1566c1fb842384418a1cd7081561e133b3e9ee33e17d403aed",
-  "verifier66_status": "DISPATCHED as TOP_LEVEL_ISOLATED_PROCESS; worktree brain-os-verify-52d9582, branch verify-52d9582-campaign126, watchdog pid 94962, log qa/verification/scratch/verifier66_output.log",
   "provider_reliability_audit_2026_09_08": {
     "artifact": "qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md",
     "scope": "read-only; no secret changed, no deploy, no Edge Function modified, active model never switched",
@@ -856,5 +855,19 @@
     ],
     "not_fixed_here": "All three touch index.ts, which is a release candidate under verification. Deliberately deferred to the next source window.",
     "separate_from": "the v93 token-preflight incident — different date, layer and mechanism; no evidence links them"
+  },
+  "verifier66_verdict": "FAILED — EDGE STATUS = NOT DEPLOYMENT READY. One P1 (V66-D6: the raw-command lifecycle fallback archives real rows while requestedIntent is null — 9,128 of 52,800 at the gate) plus V66-D7/D3/D4/D5/D1. Artifact: verify-52d9582-campaign126 @ e6fb007.",
+  "verifier66_closure": {
+    "what_changed": "The intent tier CONSUMES the executor outcome (commandFallbackResolvedVerb) instead of re-deriving its gate, so EXECUTOR is a subset of INTENT by construction on object and clause shapes as well as frames. STRONG_OBJECT trailing \b fixed. AUTHORIZED-IS-NOT-COMPLETED widened to all three deterministic modes. Both vacuity sweeps exit non-zero on survivors; the safety contract now gates on the survivor count and ratchets floor VALUES. The V65-D3c literal search became a structural re-spelling detector. Model-authored requestIntent.kind pinned as an input-validation boundary. Modal interrogatives (can we/could we/shall we/shall i) moved to DELIBERATIVE. Dead alwaysCyrillicRaw disjunct deleted.",
+    "evidence": "battery 73 green / 2 red by design (75 suites); v66_object_shape_tiers_contract 58/0 with all 13 defect assertions passing; v65_request_frame_tiers_contract 105/0; deno re-derived 10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005, 1x TS2339, zero runtime-fatal; CRLF-pure.",
+    "ledger": [
+      "#146"
+    ],
+    "verifier_rulings_adopted": [
+      "m7 REDUNDANT — dead code deleted rather than whitelisted",
+      "m5 registered claim was WRONG — it is killed by v57 across the full battery, and is now pinned executably",
+      "the can we / can I asymmetry should go the DELIBERATIVE way — done",
+      "the embeddings deferral was CORRECT, but only because it stays named — it must appear in the deploy authorisation"
+    ]
   }
 }

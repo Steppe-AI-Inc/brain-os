@@ -16790,3 +16790,75 @@ grows while its evidence shrinks. Measure which one it is before writing the tes
 construct on that evidence alone while the candidate is frozen.
 
 The 22 remaining survivors are regex-level and stay registered for verifier #66 to rule on.
+
+## 146. The frames converged, the object shapes did not — the executor archived rows the receipt could not see — FIXED (2026-09-09)
+
+**Found by** verifier #66 on candidate `52d9582`, which FAILED it on one P1. The same defect CLASS as #142,
+one axis over, and the way it hid is the more important half of this entry.
+
+**What shipped.** The raw-command lifecycle fallback **really archived a company row** while
+`requestedIntent` was `null`, so the never-silent receipt could not see the request and the model's
+*"Done — … archived."* shipped verbatim:
+
+```
+archive "Nomin Holding" then tell me what is left        -> ARCHIVES the row, requestedIntent = null
+archive 'Nomin Holding', then update me                  -> ARCHIVES the row, requestedIntent = null
+archive the business unit Beta then tell me what is left -> ARCHIVES the row, requestedIntent = null
+```
+
+448 of 720 on a focused generator; **9,128 of 52,800** at the gate.
+
+**Root cause.** *"A mutation verb heading a clause with a real object"* was spelled **twice**, and the two
+spellings had drifted apart in ways nobody would notice by reading either one:
+
+| tier | rule | knows about |
+|---|---|---|
+| EXECUTOR | `IMPERATIVE_HEAD_RE` → `lifecycleCommandName` | strips `the/this/that/our/my` **and** `company / business unit / entity / organization / org` |
+| INTENT | `FIRST_CLAUSE_VERB` + `STRONG_OBJECT` | a trailing `\b` that **cannot match after a closing quote**, and a noun list with **no `business unit`** |
+
+`\b` needs a word character on one side, so `"Nomin Holding"` failed the object test purely because it was
+quoted. The source comment above `STRONG_OBJECT` even claims it applies "the SAME object bar as every other
+tier" — it was a second spelling of that bar, and the comment was the only thing keeping them equal.
+
+**How it hid, and this is the reusable part.** Every committed corpus varies the **frame** and holds the
+**object** constant (`ACME`, `QA-1`). Verifier #65 swept frames exhaustively and found the frame defect.
+The invariant was being tested exactly where it was already true. *A corpus that varies one axis proves
+nothing about the others, and a battery of them reads as thorough.*
+
+**Fix — the intent tier now consumes the executor's OUTCOME instead of re-deriving its gate.** One value,
+`commandFallbackResolvedVerb`, is computed where the executor finishes and carries both the fact and its
+direction. `EXECUTOR ⊆ INTENT` stops being a property two rules must maintain and becomes one the shape of
+the code cannot express otherwise. **Adding `business unit` and fixing the `\b` would have been the local
+patch the founder's directive rules out by name** — the same class had already recurred three rounds
+running, each time repaired by making two spellings agree. **Two rules that must agree will eventually
+disagree.**
+
+The broken `\b` was still fixed (`(?![A-Za-z0-9_])`), because `STRONG_OBJECT` still gates `readShaped` for
+every command the executor does *not* resolve — that is repairing a wrong regex, not re-syncing a twin.
+
+**Also closed this round.** `AUTHORIZED IS NOT COMPLETED` covered only `deterministic-confirmation`, so
+`-clarification` and `-disambiguation` shipped *"Confirmed — Delete the ACME purchase approval."* with zero
+evidence (V66-D7). Both vacuity sweeps **exited 0 with survivors** — their only non-zero exit was a sha
+mismatch, and the safety contract grepped for *any* `process.exit(1)` and stayed green (V66-D3); the
+contract now requires the exit to be gated on the survivor count and pins each floor's **value** as a
+non-decreasing ratchet, both proved non-vacuous by mutation. The V65-D3c guard was a **literal search for
+the one spelling that already happened**, so a *different* private question-list passed all 70 suites
+(V66-D4) — it is now a structural detector for any regex listing three or more request frames outside the
+canonical groups, proved by re-introducing exactly that. Model-authored `requestIntent.kind` is pinned as
+an input-validation boundary (V66-D5). The dead `alwaysCyrillicRaw` disjunct is deleted rather than
+whitelisted — #145's residual 2 was correct, and verifier #66 confirmed it for the receipt path too.
+
+**The `can we` / `can I` asymmetry is resolved, not re-registered.** #145 recorded it with the reason
+"it is what v92 ships", which was never a reason about meaning. The rule now:
+**first-person modal interrogatives are DELIBERATIVE whatever their number** (`can I`, `could I`,
+`should I`, `may I`, `can we`, `could we`, `shall we`, `shall i`), while **hortative and declarative
+instructions stay DIRECTIVE** (`let's`, `let us`, `we should`, `we need to`). "let's archive ACME" is an
+instruction with a friendly face; "shall we archive ACME" is a question. Both still arm the receipt — this
+decides only whether a raw command executes without a confirmation turn. Cost of the deliberative reading:
+one extra turn. Cost of the directive reading: an unrequested archive.
+
+**Search performed for the same class.** The remaining request/execution pairs were re-examined for "two
+rules that must agree": the confirmation lists (converged, #140), the frames (converged, #142), the object
+and clause shapes (this entry). The completion-vocabulary family (#141) is the last one outstanding and is
+explicitly NOT converged — the founder has ruled against unsafe mass consolidation and it needs its own
+round.

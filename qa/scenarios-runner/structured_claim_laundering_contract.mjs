@@ -52,7 +52,10 @@ if (!STRUCTURED_BUILD) {
 // persisted envelope disagrees with the real rendered summary on that path.
 function extractWide(source) {
   const start = source.indexOf('// STRUCTURED-CLAIM VERIFICATION');
-  const anchor = source.indexOf("if (model === 'deterministic-confirmation' && !groundedOutcomeThisTurn) {", start);
+  // The V66-D7 fix widened this net from the confirmation mode alone to all three deterministic modes,
+  // so the anchor is the condition's OPENING rather than its full text — a marker that survives the next
+  // mode being added, instead of one that silently stops finding the block (verifier #66).
+  const anchor = source.indexOf("if ((model === 'deterministic-confirmation'", start);
   if (start === -1 || anchor === -1) throw new Error('structured-claim block or confirmation override not found — update this harness, do not let it pass');
   let depth = 0, end = -1;
   for (let k = source.indexOf('{', anchor); k < source.length; k++) {

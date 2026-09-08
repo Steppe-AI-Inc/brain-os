@@ -261,7 +261,11 @@ const declLine = (n) => {
   }
   return null;
 };
-if (!declLine('REQUEST_FRAME_ALTERNATION') || !declLine('REQUEST_FRAME_ALTERNATION').includes('shall we'))
+// A self-check that declLine really read the whole multi-line declaration. It probed for "shall we", which
+// moved to the DELIBERATIVE group when verifier #66 ruled the modal interrogatives deliberative — so the
+// probe now uses a frame whose group membership is not itself under review. A probe that tracks a frame
+// likely to move is a guard that fails for the wrong reason.
+if (!declLine('REQUEST_FRAME_ALTERNATION') || !declLine('REQUEST_FRAME_ALTERNATION').includes('kindly'))
   throw new Error('v65: declLine cannot read the canonical alternation — this suite would under-measure');
 {
   const a = declLine('PAST_COMPLETION_CLAIM_PATTERN'), b = declLine('LEGACY_PAST_COMPLETION');
@@ -287,10 +291,38 @@ if (!declLine('REQUEST_FRAME_ALTERNATION') || !declLine('REQUEST_FRAME_ALTERNATI
     participle === null || isAlias ? '' : 'they differ by: ' + JSON.stringify(diff));
 }
 {
-  // commandIsQuestion carries its OWN polite-frame whitelist instead of the canonical alternation.
-  const line = SRC.split('\n').find((l) => l.includes('!/^\\s*(?:would you mind|would you'));
-  check('DEFECT', 'V65-D3c the executor question gate uses the canonical request-frame definition, not a private list',
-    !line, 'a fourth hand-maintained request-frame list at the commandIsQuestion gate');
+  // STRUCTURAL, not a literal search for the one spelling that already happened. The original row looked
+  // for the exact old text, so a DIFFERENT private question-list at the same site passed every suite in the
+  // battery (verifier #66, V66-D4). What actually matters is that the request-frame VOCABULARY appears in
+  // exactly one place: any regex literal that lists three or more second-person frames is a re-spelling,
+  // wherever it lives and however it is worded.
+  const FRAME_MARKERS = ['would you', 'could you', 'can you', 'will you', 'shall we', 'can we', 'could we',
+    'any chance you', 'would you mind'];
+  const CANONICAL_DECLS = ['const REQUEST_FRAME_ADDRESSED', 'const REQUEST_FRAME_ALTERNATION',
+    'const REQUEST_FRAME_DELIBERATIVE', 'const QUESTION_SUPPRESSING_FRAME'];
+  // The canonical declarations are multi-line string concatenations, so exclude their whole RANGE — a
+  // first-line-only exclusion flags the declaration's own continuation lines and makes the guard useless
+  // in the opposite direction.
+  const lines = SRC.split('\n');
+  const canonical = new Set();
+  for (let i = 0; i < lines.length; i++) {
+    if (!CANONICAL_DECLS.some((d) => lines[i].includes(d))) continue;
+    for (let j = i; j < lines.length; j++) { canonical.add(j); if (lines[j].trimEnd().endsWith(';')) break; }
+  }
+  const respellings = lines.filter((l, i) => {
+    if (canonical.has(i)) return false;                                 // the one definition, in its groups
+    if (!/\|/.test(l)) return false;                                    // only lines carrying an alternation
+    return FRAME_MARKERS.filter((m) => l.toLowerCase().includes(m)).length >= 3;
+  });
+  check('DEFECT', 'V65-D3c the request-frame vocabulary is spelled in exactly one place',
+    respellings.length === 0,
+    'a private re-spelling of the request frames at: '
+    + JSON.stringify(respellings.map((l) => l.trim().slice(0, 90))));
+  // The guard must be able to SEE a re-spelling, or it is the literal search all over again.
+  check('CONTRACT', 'the re-spelling detector is non-vacuous',
+    ['const x = /^(would you|could you|can you)/;'].filter((l) =>
+      FRAME_MARKERS.filter((m) => l.toLowerCase().includes(m)).length >= 3).length === 1,
+    'a synthetic private list must trip the same rule');
 }
 {
   const rl = SRC.split('\n').find((l) => l.includes('const commandReadLead ='));

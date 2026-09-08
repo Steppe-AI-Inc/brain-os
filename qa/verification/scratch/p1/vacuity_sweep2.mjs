@@ -155,3 +155,8 @@ console.log('\ncandidate index.ts unchanged: ' + (afterSha === originalSha) + ' 
 console.log(`vacuity sweep 2: ${killed} killed, ${survived.length} survived`);
 for (const s of survived) console.log('  SURVIVED: ' + s);
 if (afterSha !== originalSha) process.exit(1);
+// A SURVIVOR is a mutant no suite caught: the construct it breaks is not load-bearing anywhere in
+// the battery. Reporting it and exiting 0 is the same fail-open shape as reporting nothing at all —
+// mutation_sweep_safety_contract greps for a non-zero exit and this one was gated ONLY on a sha
+// mismatch, so a sweep with survivors read as a clean run (verifier #66, V66-D3).
+if (survived.length > 0) { console.log(survived.length + " SURVIVED — a survivor is a vacuity finding, not a pass"); process.exit(1); }

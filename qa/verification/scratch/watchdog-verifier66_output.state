@@ -1,2 +1,6 @@
 [2026-09-08 23:31:20] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-52d9582 max_attempts=6 expect_sha=e3134bc5a31bbc15…
 [2026-09-08 23:31:20] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-52d9582)
+[2026-09-09 00:28:01] attempt 1: exited rc=0 log_bytes=21536
+[2026-09-09 00:28:01] attempt 1: BLOCKED — PROVIDER_CAPACITY ()
+[2026-09-09 00:28:01] attempt 1: sleeping 900s until retry eligibility
+[2026-09-09 00:43:01] attempt 2: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-52d9582)

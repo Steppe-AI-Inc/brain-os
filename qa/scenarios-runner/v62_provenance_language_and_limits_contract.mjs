@@ -76,9 +76,12 @@ const iS = src.indexOf('const MUTATION_ARRAY_FIELDS = [');
 const iEnd = 'const requestedIntent: MutationIntent | null = requestedIntentPrimary;';
 const iE = src.indexOf(iEnd, iS);
 if (iS < 0 || iE < 0) throw new Error('request-intent block not found — update this harness');
-const INTENT = new Function('command', 'result', 'claimExecutionEvidence',
+// The V66-D6 fix makes the intent tier consume the executor's outcome instead of re-deriving its gate, so
+// that one value crosses the tier boundary. These rows exercise the intent tier ALONE (no executor runs),
+// for which null is the honest value — the same default the shared extractor supplies (verifier #66).
+const INTENT = new Function('command', 'result', 'claimExecutionEvidence', 'commandFallbackResolvedVerb',
   stripTS(src.slice(iS, iE + iEnd.length)) + '\nreturn requestedIntent;');
-const intentOf = (c) => INTENT(c, {}, []);
+const intentOf = (c, resolvedVerb = null) => INTENT(c, {}, [], resolvedVerb);
 
 // the REAL structured-claim / receipt window
 const sS = RAW.indexOf('// STRUCTURED-CLAIM VERIFICATION');

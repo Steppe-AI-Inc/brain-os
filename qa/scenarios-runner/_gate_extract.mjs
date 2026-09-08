@@ -278,6 +278,11 @@ export const REQUEST_SIDE_DEFAULTS = [
   "if (typeof globalThis.requestedIntent === 'undefined') globalThis.requestedIntent = null;",
   "if (typeof globalThis.executedVerifiedCount === 'undefined') globalThis.executedVerifiedCount = 0;",
   "if (typeof globalThis.knownEntityNames === 'undefined') globalThis.knownEntityNames = new Set();",
+  // The V66-D6 fix makes the intent tier CONSUME the executor's outcome rather than re-derive its gate,
+  // so this one value crosses the tier boundary and every window sliced below the executor now reads it.
+  // null is the honest default for a harness turn: no lifecycle target was resolved, because no executor
+  // ran. A suite that means to exercise the linkage sets it explicitly (verifier #66, V66-D6).
+  "if (typeof globalThis.commandFallbackResolvedVerb === 'undefined') globalThis.commandFallbackResolvedVerb = null;",
 ].join('\n');
 /** Request-side defaults only — for a window that already declares the completion patterns itself. */
 export function withRequestSideDefaults(slice) {
