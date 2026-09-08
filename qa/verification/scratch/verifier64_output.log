@@ -1,0 +1,533 @@
+All work is committed. Final report follows.
+
+---
+
+# INDEPENDENT VERIFICATION REPORT — VERIFIER #64, CAMPAIGN #124
+
+```
+PREFLIGHT: EXECUTION_READY
+  A. git rev-parse HEAD  -> 15480e3909fa9ecd7d2a61376baa0cc57f76110e   ✓
+  B. scratch write probe -> WRITE_OK                                   ✓
+  C. architecture_final_claim_contract.mjs -> 51 passed, 0 failed      ✓
+```
+
+**CHANGE VERIFIED:** sem-ai-command Edge candidate `15480e3` — context-budget path, request-intent
+derivation, never-silent receipt, whole-request gate inventory, and the integrity of the suites that
+defend them.
+
+---
+
+## VERDICT
+
+```
+FAIL — NOT DEPLOYABLE (contract bar: governance/OPERATING_TRUTH_MODEL.md)
+EDGE STATUS = NOT DEPLOYMENT READY
+```
+
+Read from output text, not exit codes. Two independent P1s, either sufficient on its own.
+
+---
+
+## STEP 1 — PROVENANCE AND DELTA
+
+| | |
+|---|---|
+| Candidate | `15480e3909fa9ecd7d2a61376baa0cc57f76110e` |
+| index.ts sha256 (CRLF, as committed) | `885fd290be10dcc98226e2df390fa7de5f62f21637c329a2a013ac99f8e1966c` — asserted at start, after every operation, and at end; **never modified** |
+| index.ts LF-normalised | `34d8123e46953d60184c3a609fecb0ce4128a83f4068b0d7ab0a048db9aed7ab` |
+| v92 = `c9dfab5bd433` index.ts | `795c20c82301aba1f1731c6b408cc9345e0f86b43a50b0cf5dba6ca78d1f88fc` (LF and CRLF identical — that file has no CR at all) |
+
+**Provenance link is GIT-LEVEL, not byte-direct.** `supabase functions list --project-ref gyqlkgnyyzpwaswhshlw`
+returns HTTP 403 from this worktree. I could not download the deployed bytes, so "deployed v92 == c9dfab5bd433"
+is asserted from the ledger and the git object, not from the running function. **`PRODUCTION STATE NOT VERIFIED`**
+for the deploy surface.
+
+**Deploy surface is exactly `index.ts`** — re-derived: the only imports are `deno.land/std@0.224.0/http/server.ts`
+and `esm.sh/@supabase/supabase-js@2`. `supabase/functions/_shared/*` appears once, in a comment. Confirmed.
+The four `_shared` files are **semantic** mirrors of `web/lib/contracts/*` and `web/lib/policy/archived-parent.ts`,
+not byte mirrors — only header comments differ; the type and function bodies are identical.
+
+**Delta v92 → candidate:** 6,977 lines vs v92's smaller file; the semantic delta is the whole
+execution-truth architecture (request intent, never-silent receipt, collection envelopes, context budget,
+server-side lifecycle resolution, id provenance). I did not re-derive the "0 removed identifiers" claim
+exhaustively; `v92_parity_contract.mjs` and `tdz_forward_reference_contract.mjs` (which pins
+`claimsLifecycleClaim`, `findEntityStateClaimContradiction` and `PAST_COMPLETION_CLAIM_PATTERN` as
+byte-identical to v92) both pass. **This is `INTEGRATION VERIFIED`, not byte-direct.**
+
+---
+
+## THE FOUNDER'S SEVEN PARTS
+
+### 1. ATTACK THE TOKEN-BUDGET FIX — **it holds.** This is the strongest part of the candidate.
+
+I built my own fixtures from the real `.limit()` caps harvested out of `index.ts` at run time (and, unlike
+the candidate's own fixture, **including `namedTargets` and a non-null `pendingAction`**, both of which are
+in every production pack and both protected from trimming). I executed the real budget block, never a model of it.
+
+| required invariant | result |
+|---|---|
+| a fitting pack is unchanged | **PASS** — byte-identical apart from the added `contextBudget`, 0 trims, `overBudget:false` |
+| optional context trims before core | **PASS** — no core collection is trimmed before every optional one |
+| history trims oldest first, newest preserved | **PASS** — `[193…200]` → `[197,198,199,200]` |
+| envelopes retain the EXACT total | **PASS** — no trim changed a single total, on any collection, in either pass |
+| `truncated: true` whenever rows are omitted | **PASS** — including when the collection started `truncated:false, total===shown` |
+| unknown total stays `null` while `truncated` becomes `true` | **PASS** — verified on `memories` and `factoryWorkOrders`, in both passes |
+| `shown` follows the trim | **PASS** — `shown === rows.length` on all 26 collections |
+| truncation never becomes non-existence | **PARTIAL — see V64-D7** |
+| archived entities remain canonically resolvable | **PASS** — the lifecycle resolver queries `companies` with no status filter, and prefers the archived row for `restore` |
+| `currentTurn` never trimmed | **PASS** |
+| permissions / tenant scope never trimmed | **PASS by architecture, not by assertion — see part 3** |
+| durable pending action and channel state safe | **PASS** — byte-identical through a 30,000-char command |
+| execution evidence never removed to fit | **PASS** — it is not in the pack at all |
+| canonical target ids remain available | **PASS** — `provenanceIds` captured before any trim; the mutant that captures them after is killed |
+| always terminates | **PASS** — <10 ms at nameLen 10/40/120/200/400 |
+| **the estimator matches the actual serialized request** | **PASS** — the pack under-reports itself by at most **1 token** in every scenario; `contextBudget` is attached *before* the loop, and the mutant that moves it after is killed |
+
+**Can a trim let the pack claim completeness it does not have?** No. **Can it drop a company or person the
+founder just named this turn?** No — named rows are merged at the **head** (V60-D2), `namedTargets` is
+protected, and `provenanceIds` is pre-trim. **Does the trim order sacrifice anything a contract depends
+on?** One thing, narrowly: see **V64-D3**.
+
+### 2. EVERY OTHER WHOLE-REQUEST GATE, CLASSIFIED
+
+| gate | classification |
+|---|---|
+| input token estimate (pack + command, 12,000) | SAFE DEGRADATION → DETERMINISTIC REFUSAL |
+| output token cap (`max_tokens`) | DETERMINISTIC REFUSAL ("response was cut off") |
+| provider context window (`SEM_AI_MODEL_CONTEXT_TOKENS`, 180,000) | DETERMINISTIC REFUSAL — **but see V64-D6** |
+| attached image size (5 MB) | DETERMINISTIC REFUSAL |
+| serialized JSON size | no separate gate; bounded by the two above |
+| history length | SAFE DEGRADATION (8 rows, 600-char field cap, trimmable to 0) |
+| collection count / row caps | SAFE DEGRADATION |
+| tool-schema size | not separable — the schema lives inside `SYSTEM_PROMPT`, which is measured (18,824 tok) and pinned < 30,000 |
+| system-prompt size | MEASURED |
+| embedding input limit (8,191 tok) | **SAFE DEGRADATION** — `embedTexts` returns nulls on `!r.ok`; verified fail-soft. Not named in the inventory, but genuinely safe |
+| `create_pending_work_order` failure | SAFE DEGRADATION (turn continues) |
+| provider 429 / 5xx / stream failure | DETERMINISTIC REFUSAL |
+| per-request wall-clock timeout | UNMEASURED (declared) |
+| edge runtime request-body limit | UNMEASURED (declared) |
+| SSE stream initialisation | UNMEASURED (declared) |
+| **model-specific limits** | **UNMEASURED and NOT NAMED — V64-D6** |
+
+**No UNSAFE HARD STOP found.** The three declared UNMEASURED gates are **honestly scoped**, and the
+`refusals === 3` check is a genuine guard against a fourth 413 being added silently. But they are not
+where a fifth was hiding: **the "model context window" gate is a single environment constant while the
+model comes from an `ai_providers` row**, so it is not a per-model limit. Not reachable at today's
+request sizes (~55k tokens against 180,000), but it belongs in the inventory as UNMEASURED, and is not there.
+
+`V61-D5` (`continuity.compactionCheckpoint.summary` — untrimmable unbounded narrative inside a protected key)
+is genuinely open, and its shape *is* an unsafe hard stop. It is **unreachable today**: I searched the
+whole repository and **nothing writes `compacted_summary`** except a rolled-back RLS test. Correctly
+registered, correctly still open.
+
+### 3. THE PROMOTED CONTRACT (§4.4) vs `MINIMUM_SAFE_CONTEXT`
+
+| §4.4 says | source |
+|---|---|
+| the current user command | `currentTurn` ✓ |
+| authenticated identity | **not a pack key** — `profile` is sent as a sibling of `contextPack`, so structurally untrimmable |
+| organization scope | **not a pack key in any form** |
+| the caller's permissions | **not a pack key in any form** |
+| the durable pending action | `pendingAction` ✓ |
+| exact canonical entity/action state for this turn's targets | `namedTargets` ✓ |
+| execution-result requirements | `recentlyResolvedEntities` / `recentlyDeletedEntities` / `continuity` ✓ (receipts are produced after the model call) |
+| the system safety/truth contract | `SYSTEM_PROMPT`, outside the pack ✓ |
+
+**Answer:** four of seven members are real, asserted pack keys. Three are protected only by living outside
+the trimmable object — which is safe for identity and the system prompt, but **"organization scope" and
+"the caller's permissions" are not carried by the pack at all.** §4.4's table names two things the
+implementation does not have. That is a contract-text overreach, not a defect in the trim, and
+`architecture_collection_envelope_contract.mjs` even anticipates `organization` / `orgScope` / `caller` /
+`permissions` as future keys.
+
+**Is any member protected only by omission from `TRIM_ORDER`?** No — and **the assertions are not vacuous**,
+which I proved rather than read: mutants that drop `namedTargets`, `pendingAction` or `collections` from
+`MINIMUM_SAFE_CONTEXT`, that delete the `TRIM_ORDER` protected-key throw, and that delete the byte-stable
+assertion are **all killed**.
+
+### 4. NOT INCLUDED IN THE PROMPT ≠ DOES NOT EXIST
+
+I could not construct a turn where a trim produces an answer of non-existence **for a company, person,
+task, goal, project or department** — the six targeted lookups run uncapped-by-window across every status
+and land in the protected `namedTargets`. Nor could I make a count come from a window: `counts` is
+protected and aggregate, `collections[k].total` is an exact count and no trim changes it, and both survive
+the hardest pass byte-identically.
+
+**But — V64-D7 (P3).** §4.4 says *"Any entity named in a command is still resolved server-side across every
+status."* That is implemented for **6 of 23 collections**. For documents, leads, proposals, approvals,
+channels, memories, product specs, drawings, providers, connectors, financial reports, inventory, products,
+agents, relationships, assignments and factory work orders there is **no lookup at all**, and the trim
+takes them 30 → 8 → 2 → 0. The only thing between an emptied `documents` array and *"there is no document
+called X"* is a sentence in `contextBudget.note`. OTM §1 lists prompt text as **not truth**. Not a
+regression against v92 (which caps the same collections and has no note), but the promoted contract text
+claims more than the code delivers.
+
+### 5. ESTIMATOR ACCURACY, RE-MEASURED WITH MY OWN FIXTURES
+
+Fixtures built from the real `.limit()` caps read out of the source; `namedTargets` and `pendingAction`
+included; no reuse of the candidate's fixtures.
+
+| scenario | pre-trim | budget | **shipped** | reported | **headroom to 12,000** |
+|---|---|---|---|---|---|
+| empty channel, short names | 26,318 | 11,400 | 11,008 | 11,007 | **992** |
+| short channel | 29,053 | 11,400 | 11,188 | 11,187 | **812** |
+| long channel, 50 prior turns | 32,053 | 11,400 | 11,269 | 11,268 | **731** |
+| 100 prior turns | 32,054 | 11,400 | 11,270 | 11,269 | **730** |
+| 200 prior turns | 32,056 | 11,400 | 11,271 | 11,270 | **729** |
+| many companies / archived companies / tasks / archived tasks, long names | 35,941 | 11,400 | 11,110 | 11,109 | **890** |
+| saturated worst case, 120-char names, full history | 35,944 | 11,400 | 11,112 | 11,111 | **888** |
+| absurd, 200-char names everywhere | 35,944 | 11,400 | 11,112 | 11,111 | **888** |
+
+**Estimator/ship drift defects: 0.** The reported figure is at most 1 token below what is actually
+serialized, always in the safe direction.
+
+**The margin is real, not tuned.** It is **729–992 tokens**, and it is a *structural* margin (`hardMax − 600`),
+not a fixture artifact: the loop drives any pack to ≤ 11,400 whatever its shape. My numbers are tighter
+than the candidate's published 841–5,113 precisely **because its fixture omits `namedTargets` and
+`pendingAction`** — I recommend fixing that fixture so the published headroom stops being optimistic.
+
+The **irreducible floor** is ~3,141 tokens (every optional and core array emptied, minimum intact). Below a
+~3,700 cap the turn is refused **with the minimum intact and a stated reason** — the one refusal §4.4
+allows. A 40,000-character command is refused as an oversized *command*, correctly attributed.
+
+### 6. THE v59 HARDENING, VERIFIED AS THESE EXACT BYTES
+
+All seven elements are present and behaviourally live: the `bring … back` / causative `get X archived`
+alternatives capture correctly; the three dead Cyrillic alternatives are gone from `IMPERATIVE_HEAD_RE`;
+the executor frames are present; `commandReadLeadEffective` is present; `READ_SHAPE`'s `do(?!\s+not…)`
+negative lookahead is present; the receipt maps Cyrillic verbs and derives the entity noun.
+
+**And one element was carried into only one of the two twins — that is P1 V64-D1b below.**
+
+### 7. THE PINNED LIVE INCIDENT WITNESS — **both halves are honest**
+
+Pre-fix `25,595 > 12,000` (genuinely over — the fixture is not too small to have failed); post-fix `11,297 ≤ 11,400`
+with `12` trims (so it degraded, it did not merely fit). V63-D8's correction stands: the source now says
+this is the saturated worst case, not a 12,340 calibration it does not have. The cases that succeeded live
+on v93 remain satisfied.
+
+One weakness, P3: the third assertion, *"production witness kept its minimum safe context"*, checks **one
+of eight** protected keys and pins a `currentTurn.command` literal (`'archive ACME Holdings'`) that is not
+the witness's own command, in a fixture where `pendingAction` is `null` and `namedTargets` is absent. Weak,
+not vacuous.
+
+---
+
+## FINDINGS
+
+### V64-D0 — P1 — THE FINDING TO BE JUDGED ON. Five P1/P2 fixes are still pinned by substring alone.
+
+Ledger #138b wrote the rule: *"A P1 fix is not pinned until a mutant that reverses it fails a committed suite."*
+It closed V63-D4 by widening the sweep to **named regexes in one region against 13 suites**. That is not
+where the last three rounds' fixes live.
+
+I rebuilt the sweep for the regions you named — **73 named regexes file-wide (146 mutants) + 39 structural
+mutants (executor id gates, receipt renderer, budget constants and loops, minimum-safe set, both
+estimators), against all 63 runnable suites.** I ran the candidate's own sweep first and reproduced it
+exactly (44 killed / 0 survived), so the extension is additive, not a contradiction.
+
+**Result: 185 mutants, 150 killed, 35 survived** (22 genuine, 13 inconclusive — see the honesty note below).
+
+**Eight structural mutants survive the entire battery. Five are direct reverts of named fixes:**
+
+| mutant | reverts | evidence |
+|---|---|---|
+| `estimateRequestTokens` drops `SYSTEM_PROMPT_TOKENS` | **V61-D10** | measured: an ordinary request goes **19,138 → 314** estimated tokens — a 61× understatement of the only gate bounding the real request. Nothing goes red. The lone assertion is a substring on `systemPromptTokens: SYSTEM_PROMPT_TOKENS` in the 413 body, which the mutant leaves intact |
+| `estimateRequestTokens` measures the COMPACT form | **V61-D10** | 19,138 → 18,996; nothing goes red |
+| `packIdSet` drops the `contextProvenance` line | **V62-D1** | id provenance no longer survives a trim; nothing goes red |
+| `archivedCompanyIds` drops `contextProvenance` | **V63-D2** — last round's headline | the gate that refuses a create under an archived parent is un-hardened; nothing goes red |
+| `archivedCompanyIds` drops `namedTargets` | **V63-D2** | nothing goes red |
+| `deleteTaskIds` no longer filtered by `contextTaskIds` | the id gate on **permanent task deletion** | nothing goes red |
+| `updateCompanies` no longer filtered by `contextCompanyIds` | the id gate on company updates | nothing goes red |
+| `statusChangeIsLifecycleTransition` forced `false` | the raw-lifecycle-edit refusal | nothing goes red |
+
+All eight are real deletions, verified by byte diff against the candidate (Δ −9 to −78 chars, `NO-APPLY: 0`).
+
+**Nine guards survive in *both* directions** — the battery cannot tell the guard from its absence *or*
+from its opposite. The worst is **`isShortAffirmative`** (line 3088), which gates both the
+`bulk_confirmation` short-circuit (3091) and `multi_action_plan` execution (3224) — i.e. the single shape
+that turns a founder's bare `"yes"` into real mutations. Forcing it to **always** match makes every
+subsequent command (including `"what companies do I have?"`) execute the armed plan. Nothing notices. Its
+only nominally dedicated suite, `sem_ai_command_confirmation_truth.mjs`, states in its own header that its
+function bodies are *"byte-for-byte copies of the shipped logic (kept in sync manually)"* — a
+reimplementation, the vacuous-regression class this repo has logged repeatedly, which cannot see `index.ts`
+change at all. Also both-direction: `FACTORY_INTENT_PATTERN`, `commandReadLead`, `FUTURE_PROMISE_PATTERN`,
+`NEGATION_AUX`. Single-direction: `LIFECYCLE_UUID_RE`, `UUID_IN_TEXT`, `abbreviation`, `NAME_CONNECTOR`.
+
+**Honesty about my own tool:** 13 of the 35 survivors are **inconclusive**, not findings — my mutator
+replaces only the first regex literal in a multi-literal declaration, so `commandIsQuestion`,
+`commandNegatedLead`, `negatedRequest`, `hypotheticalRequest`, `verb`, `detName`, `capLead`, `adjective`,
+`fewQuant`, `titleHeadAfterPrep`, `decimal` and `__re` were only partially neutralised. I verified one of
+them (`negatedRequest`) behaviourally and it still fires. I classify them as INCONCLUSIVE and list the fix
+in the promotion note rather than count them.
+
+**The candidate's own sweep also fails open:** `text.indexOf(marker)` returning `-1` yields an empty guard
+list and a green *"0 killed, 0 survived."* Same shape as the slice markers #138 fixed.
+
+### V64-D1b — P1 — the v59 frame landed in one twin again, on the same pair, one round later
+
+The v59 hardening added `(?:i think )?(?:we|you) should` to **`IMPERATIVE_HEAD_RE`** — the company
+command-fallback tier. **`REQUEST_FRAME_PREFIX`**, the tier the never-silent receipt depends on, still has
+only `you should`. Measured behaviourally across 44 frames:
+
+| frame + `archive ACME` | executor tier | intent tier |
+|---|---|---|
+| `you should …` | imperative | intent derived |
+| `we should …` | **imperative** | **no intent** |
+| `i think we should …` | **imperative** | **no intent** |
+| `i think you should …` | **imperative** | **no intent** |
+
+And it points the wrong way. For the one verb family with an executor fallback (company archive/restore)
+the executor still saves the turn. For every other verb — `we should delete QA-1`,
+`we should rename ACME to Beta`, `I think we should approve the salary request` — there is no fallback, so
+nothing derives and the model's prose is the whole answer. **The repair landed in the tier that did not
+need it and was withheld from the tier that did.**
+
+### V64-D1 — P1 — 17 ordinary mutation requests derive no intent; the fabrication ships verbatim
+
+Corpus written from scratch for this round (121 mutation requests, 87 reads). Every row below was
+confirmed **end-to-end through the real structured-claim window**: input `"Done — ACME has been archived."`,
+output *the same sentence*, `receiptRendered: false`.
+
+| mechanism | examples |
+|---|---|
+| `REQUEST_FRAME_PREFIX` is a closed list with arbitrary holes | `we should …`, `let us …`, `need to …` (it has `we need to`, `you need to`, `let's`, `you should`) |
+| **a dead alternative (V64-D1c)** | `right away archive ACME`. `LEADING_ADVERB` contains `right away`, but `REQUEST_FRAME_PREFIX`'s bare `right` runs first inside `stripFrames` and eats it, stranding `away`. That branch **can never match**. `straight away`, `at once`, `right now` all work |
+| polite frames known to `POLITE_REQUEST` but not stripped | `may I ask you to …?`, `would you be able to …?`, `any chance you could …?`, `mind archiving …?`, `I would like you to …`, `it would be great if you could …`, `feel free to …`. `POLITE_REQUEST` recognises `may i ask you to` **only to defeat `isQuestion`** — it buys nothing. Meanwhile `would you mind archiving ACME?` *does* work, which is exactly the inconsistency |
+| `MUTATION_PASSIVE_REQUEST` needs a participle | `ACME needs archiving` |
+| mixed-script loan verb | `ACME-г archive хийнэ үү` |
+
+**False positives: 0 of 87.** No truthful read/report/compose answer was rewritten, including
+`assign a number to each company and list them` (the row #138's first-clause rule regressed).
+`delete this chat history` / `archive this conversation` do derive intent — the safe direction, receipt is
+truthful, not counted as a defect.
+
+**Sizing:** FN-ship 17 / 121 mutation requests (14%) in the model-emits-nothing tier; FP-replace 0 / 87.
+This is the same class and the same consequence #63 failed the previous candidate on at 18/18.
+
+### V64-D4 — P2 — the harness's own comment stripper deletes real code after a bare CR
+
+```
+stripTS('// a comment\r\nconst x = 1;\r\n')  ->  'const x = 1;\n'
+stripTS('// a comment\rconst x = 1;\r\n')    ->  ''          ← the code is gone, silently
+```
+
+A bare CR is a JavaScript line terminator; `_gate_extract.mjs` normalises `\r\n` only, so the comment
+swallows the code and the whole line is dropped. **Every behavioural harness in this repo goes through
+`stripTS`.** `index.ts` **already contains one bare CR** (offset 554776, ~line 6651) — harmless today
+because it joins comment to comment, and invisible to the purity gate, which counts bare **LF** (0 of 6,977 ✓)
+and says nothing about bare **CR**. Failure mode: *"the window silently loses a block and the suite passes
+on code it never executed."* One-character fix: `s.replace(/\r\n?/g, '\n')`.
+
+### V64-D2 — P2 — `contextBudget.trimmedCount` is 0 on every ordinary trimmed turn
+
+```js
+if (contextTrimmed.length > 12) { contextBudget.trimmedCount = contextTrimmed.length; … }
+```
+Assigned **only** above twelve trims. Measured: a turn that trimmed one collection ships
+`{ trimmedCount: 0, trimmed: ["memories 900->4"] }` — self-contradictory in the same object the model
+reads, under a source comment that says *"the count is always exact."* `serve()`'s 413 body reports the
+same field as `contextReduced`, so a refusal can tell the founder no context was reduced when it was.
+The only committed assertion (`v61_budget_intent_language_contract.mjs:272`) pins the **no-trim** case.
+
+### V64-D3 — P3 — the third member of the V63-D2 pair, still unhardened
+
+`const companyStatusById = new Map((contextPack?.companies || []).map(…))` reads the **raw trimmable**
+array while `contextCompanyIds` and `archivedCompanyIds` beside it both read `contextProvenance`. It
+decides `statusChangeIsLifecycleTransition`. Once the floor pass empties `companies`, a raw `UPDATE` is
+attempted, the DB trigger rejects it, the `{ data }` destructure discards the error, and the founder gets
+the generic receipt instead of the honest *"use restore"* explanation. Reachability measured: `companies`
+reaches the floor-2 pass at ~10,000 command characters and empties at ~20,000. Same class, two smaller
+members: `activeChannelCompanyId` and `earlyCompanyId` read the trimmed `channels`, so
+`work_orders.company_id` — and therefore company-manager RLS visibility of that audit row — depends on
+whether the budget trimmed.
+
+### V64-D5 / D6 / D7 — P3
+
+`namedTargets` is capped at `NAMED_LOOKUP_ROW_CAP = 5` and handed to the model with **no
+`shown/total/truncated`** (§4.3); the envelope contract exempts it on grounds that explain why it needs no
+trim order, not why it may omit `truncated`. `safeDisplayLabel` reads `UUID_IN_TEXT` declared 39 lines
+below it in the same block — no call site sits between them today, so nothing throws, but any inserted
+call is a `ReferenceError`. `SEM_AI_MODEL_CONTEXT_TOKENS` is not per-model and is not named as UNMEASURED.
+V64-D7 is described under part 4.
+
+---
+
+## STEP 2 — CONTRACT CONFORMANCE, RESULTS
+
+**A. Never-silent receipt / final-claim rule — 180/180 on my own matrix.** 20 fabricated completions ×
+{claims:null, claims:[], state-only} = 60, plus 20 trailing-question + `pendingAction` variants: every one
+ends in the deterministic receipt with zero success wording surviving and `receiptRendered: true`.
+20 truthful READ answers × 3 claim shapes = 60: **all survive verbatim**. 20 turns with a VERIFIED
+envelope: the truthful claim renders. 20 with executed-but-unverified envelopes: **none supports a claim.**
+Structural mutants confirm this is not vacuous — disabling the receipt block, re-adding the
+`!result.pendingAction` exemption, letting the receipt fire without intent, ignoring the postcondition,
+and re-introducing the belt fallback are **all killed**. *Caveat: this covers only commands the intent
+tier recognises — V64-D1 is the hole.*
+
+**B. Request-intent derivation.** `requestedIntent === requestedIntentPrimary`; derived only from the
+model's `requestIntent`, the model action arrays, confirmation shape and the request lexicon. Never from
+`result.summary`, tense, the belt or `pendingAction` — the mutants that re-introduce the belt fallback and
+the model's `kind:'read'` veto are both killed. Attack results in V64-D1.
+
+**C. Server-side lifecycle resolution.** `company_lifecycle_matrix` 28/0 and `v56`–`v63` all pass. The
+resolver queries `companies` with no status filter; for `restore` it prefers the archived row when an
+exact name matches one active and one archived; a fuzzy hit from the raw command **asks and never
+executes**; a model-emitted fuzzy hit executes only when unique; disambiguation arms a `pendingAction`
+and executes nothing. `deleteTaskIds` / `pendingDeleteTaskIds` remain window-gated by design and I agree
+that is correct — but see V64-D0: the gate itself has no behavioural test.
+
+**D. Collection envelopes.** Totals come from `{ count: 'exact' }`, never array length; `companies` splits
+active/archived newest-first; every array in the pack literal has an envelope. Exception: `namedTargets`
+(V64-D5). Minor: `collections.companies.shown` can exceed `total` when the founder names an archived
+company, since `total` counts non-archived rows only.
+
+**E/F/G.** `lifecycle_evidence_and_output_persistence_contract`, `mutation_receipt_equals_ledger`,
+`architecture_mutation_envelope_contract`, `grounding_precedence_canonical_over_history` all pass.
+Durable-row precedence is correct (§2 tier 3 over tier 4), TTL-guarded and fully-typed; the stored-output
+fallback carries its own 30-minute expiry. I could not make a stale durable row execute anything — the
+plan's ids are re-validated against provenance + `namedTargets` and the RPCs re-read.
+
+**H. Belt as defence-in-depth.** With **no** intent the belt rewrites nothing — 60/60 truthful read
+answers survived verbatim. `belt_generative_adversarial_contract`, `v92_parity_contract` and
+`v92_open_regression_contract` all pass. This is `INTEGRATION VERIFIED`; I did not run an independent
+300-negative / 200-fabrication corpus, because the intent-tier P1 makes the belt's measured delta the
+lesser question this round.
+
+---
+
+## STEP 3 — SUITE INTEGRITY
+
+**Battery run from the filesystem: 63/65 passed.** The two failures are
+`production_write_authority.regression.test.mjs` and `factory_production_write_inventory.regression.test.mjs`
+— the standing reds, and `standing_reds_classification_contract.mjs` independently re-derives all 8 rows
+as genuine non-blockers.
+
+On the harness changes: the `REQUEST_SIDE_DEFAULTS` injection (`command:''`, `requestedIntent:null`) is a
+**faithful** default — a harness turn with no command *is* a read-only turn in production, and a suite
+that forgets to set a mutation command fails loudly rather than passing. It does, however, mean every
+"truthful read survives" assertion in the battery would also pass against a completely broken gate,
+because with no intent nothing is ever rewritten. **The default does not hide a class; the class it cannot
+see is hidden by the tests that use it.** Every mutation the brief named — deleting the receipt block,
+restoring `!result.pendingAction`, reverting the create-family postcondition, putting the durable read
+last, dropping an envelope, the org sentinel — is caught. The mutations that survive are listed in V64-D0.
+
+---
+
+## STEP 4 — TDZ / DENO / BYTES
+
+`index.ts` is **bare-LF-free: 0 of 6,977** line terminators. It contains **one bare CR** (V64-D4).
+`tdz_forward_reference_contract.mjs` passes 9/0. My own block-scope scan over every `const`/`let` found
+**zero real forward references** in the same-or-nested block (35 candidates, all but one resolved to
+property accesses, object-literal keys or type annotations) and **one latent** case
+(`safeDisplayLabel` → `UUID_IN_TEXT`, no call site between them).
+
+**`deno check` is BLOCKED in this environment** — the `npx deno` invocation is gated. I cannot report
+`TS2448/TS2454/TS2304/TS2552/TS2551 = 0` from the type checker; I report it from the committed TDZ
+contract plus my own scan. This is a real coverage gap.
+
+---
+
+## STEP 5 — DEPLOYABILITY CALL
+
+**Candidate `15480e3909fa9ecd7d2a61376baa0cc57f76110e` is NOT fit to deploy over v92 under the contract bar.**
+
+Two independent P1s:
+
+1. **V64-D1 / D1b** — a mutation-intent fabrication ships. 17 of 121 ordinary mutation requests derive no
+   intent, so §3 rule 3 ("a mutation-intent turn is never silent") is violated and the model's fabricated
+   completion reaches the founder verbatim. Three of those rows exist **because the v59 hardening's own
+   frame was carried into one twin and not the other** — the exact defect ledger #138 closed with a
+   standing rule, on the same pair, one round later.
+2. **V64-D0** — five named P1/P2 fixes from campaigns #121/#122/#123 (V61-D10, V62-D1, V63-D2 ×2, plus the
+   `deleteTaskIds` and `updateCompanies` id gates) are defended by assertions that pass against their own
+   deletion. #138b's rule is written down but not in force.
+
+**Truth regressions vs v92 that are INTENDED departures, not failures:** the never-silent receipt replacing
+model prose on mutation-intent turns; the request lexicon deriving intent where v92 derived none; the
+context budget trimming collections v92 shipped whole. All are contract-required. v92 is the reference
+corpus, not the bar, and none of these is counted against the candidate.
+
+**Not a FAIL:** V64-D2/D3/D4/D5/D6/D7 are P2/P3 and would not block on their own.
+
+**What the budget fix earns:** it is the best-verified part of this candidate, it survives every attack in
+part 1, and 31 of my 39 structural mutants against it are killed. It should be kept exactly as it is,
+minus the `trimmedCount` line and the fixture omissions.
+
+---
+
+## THE TWO PERMANENT RULES — judged
+
+**"Static / source verification cannot substitute for live request-shape acceptance."** The candidate
+honours it in *design* — the pack budget, the request-token gate and the image gate all measure what is
+actually serialized, and the inventory names what it cannot measure. But **I could not honour it in
+practice.** No production credential exists in this worktree; `functions list` returns 403. **Every
+conclusion in this report about the budget, the estimator, the headroom, the gate inventory and the
+receipt is SOURCE-LEVEL or HARNESS-LEVEL.** Specifically, these would still need live acceptance to be
+trusted: the 729–992-token headroom on a *real* founder workspace; that no real workspace shape reaches
+the floor-0 pass; the three UNMEASURED gates; and that `estimateRequestTokens` matches what the providers
+actually count. Ledger #133 happened *after* 24 rounds of source verification.
+
+**"Byte-identical deployment is not product-safe deployment."** Honoured in the ledger and the process, and
+irrelevant here — I am not authorising a deploy.
+
+**No browser was available in this session type.** UI and fresh-context AI-chat truth checks are
+**`BLOCKED`, not skipped.**
+
+---
+
+## SKILL-FORMAT SUMMARY
+
+```
+CHANGE VERIFIED: sem-ai-command Edge candidate 15480e3 (context budget, request intent,
+                 never-silent receipt, whole-request gates, suite integrity)
+SCENARIOS:       63 suites passed, 2 failed (standing reds, by design), plus 5 independent
+                 harnesses I wrote; 8 confirmed defects, 2 of them P1
+CANONICAL GRAPH: PASS (source-level: lifecycle resolution spans every status; archived preferred for restore)
+UI ↔ DB:         BLOCKED (no browser in this session type)
+AI ↔ DB:         FAIL — 17 ordinary mutation requests let a fabricated completion ship verbatim
+DEPENDENCIES:    PASS (archived-parent create block intact; id provenance survives the trim)
+PERMISSIONS:     BLOCKED (no database access; RLS suites are SQL and need a live connection)
+RELOAD/PERSISTENCE: PASS (source-level: every turn's ledger persisted; durable row outranks stored output)
+IDEMPOTENCY:     PASS (source-level: already_archived / already_active render as receipts, never success)
+```
+
+**Evidence levels.** `CODE INSPECTED` for provenance and the `_shared` mirrors. `UNIT VERIFIED` /
+`INTEGRATION VERIFIED` for everything executed out of the real windows (budget, intent, receipt, sweep).
+`BLOCKED` for live request shape, deployed bytes, `deno check`, browser, and every SQL/RLS suite.
+**Nothing in this report is `LIVE VERIFIED`.**
+
+**Founder-only actions required: NONE.** No migration is needed; no Edge deploy is proposed; no secret or
+auth configuration was touched. Nothing was written to production. `functions list` was attempted (read-only,
+permitted) and refused with 403.
+
+**Synthetic data cleanup.** None was created — I had no database access, so no `QA-VERIFY-*` entity exists
+to clean up. The 105 MB of mutant `index.ts` copies were deleted after the sweep; `sweep_out.txt` is
+committed as the evidence. `qa/verification/scratch/p1/mutants/V60-D8-probe.ts` was rewritten as a side
+effect of running `v60_budget_intent_and_plan_evidence_contract.mjs` under `SEM_INDEX_SRC` (that suite
+writes a scratch artifact derived from whatever source it is pointed at — worth knowing); I regenerated it
+from the real source, and the working tree is clean.
+
+**Commits created**
+
+| hash | summary |
+|---|---|
+| `4fe49d685d82f7591200fd629e786e8a065f14af` | campaign 124 / verifier 64: FAIL on 15480e3 — the v59 frame landed in one twin again, and five P1 fixes are still pinned by substring |
+
+Branch `verify-15480e3-campaign124`. Artifacts:
+`qa/verification/proposed/v64_known_failure_modes_entry_139.md`,
+`qa/verification/proposed/v64_PROMOTION_NOTE.md`,
+`qa/verification/proposed/v64_regression_additions.mjs` (22 CONTRACT pass / 39 DEFECT fail, **exits 1**,
+runs from any cwd, honours `SEM_INDEX_SRC`), and `qa/verification/scratch/v64/*` (five harnesses plus
+their captured outputs and the full sweep log). `qa/verification/CURRENT_CAMPAIGN.json` carries the
+`verifier64_*` keys including `verifier64_not_measured`. Work-PC files were not touched.
+
+---
+
+```
+VERDICT: FAIL
+```
+
+```
+885fd290be10dcc98226e2df390fa7de5f62f21637c329a2a013ac99f8e1966c
+```

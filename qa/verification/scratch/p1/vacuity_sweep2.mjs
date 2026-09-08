@@ -31,6 +31,7 @@ const SUITES = [
   'qa/scenarios-runner/v61_budget_intent_language_contract.mjs',
   'qa/scenarios-runner/v62_provenance_language_and_limits_contract.mjs',
   'qa/scenarios-runner/v63_intent_coverage_and_caps_contract.mjs',
+  'qa/scenarios-runner/v64_shared_frames_and_gate_pairs_contract.mjs',
   'qa/scenarios-runner/architecture_context_budget_contract.mjs',
   'qa/scenarios-runner/architecture_collection_envelope_contract.mjs',
   'qa/scenarios-runner/architecture_mutation_envelope_contract.mjs',
@@ -105,6 +106,10 @@ mutants.push(['hard trim passes strengthened to [0] only', (s) => s.replace('for
 mutants.push(['pack budget reserve removed', (s) => s.replace("envPositiveInt('SEM_AI_MAX_TOKENS', 12000) - 600", "envPositiveInt('SEM_AI_MAX_TOKENS', 12000)")]);
 mutants.push(['model context window raised 100x', (s) => s.replace("envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 180000)", "envPositiveInt('SEM_AI_MODEL_CONTEXT_TOKENS', 18000000)")]);
 
+// SWEEP FAILS CLOSED (verifier #64, V64-D0). indexOf returning -1 used to yield an empty mutant list and
+// a green "0 killed, 0 survived" — a sweep that measures nothing, reporting success. Same shape as the slice
+// markers ledger #138 fixed.
+if (mutants.length < 10) { console.error("FATAL: only " + mutants.length + " mutants were built — the source markers no longer match; fix the sweep, never let it report green"); process.exit(2); }
 console.log(`sweeping ${mutants.length} function/constant mutants across ${SUITES.length} suites\n`);
 const survived = [];
 let killed = 0;

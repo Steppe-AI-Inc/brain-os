@@ -95,10 +95,10 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 124,
-  "verifier": 64,
+  "campaign": 125,
+  "verifier": 65,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "DISPATCH PENDING — verifier #64 on the #63 closure",
+  "status": "DISPATCH PENDING — verifier #65 on the #64 closure",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -139,8 +139,9 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #64 has not run",
+    "verifier #65 has not run",
     "V61-D5 (compactionCheckpoint.summary untrimmable) remains OPEN",
+    "V64-D0 residual: the candidate own sweep fails open when a marker is not found",
     "the previous authorization was scoped to bytes 715246f3 which breached the token budget in production; new bytes need a fresh founder ALLOW_FUNCTIONS_DEPLOY=1"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -783,5 +784,20 @@
   ],
   "verifier63_closure": "All eight closed on 885fd290. The first-clause rule caused one regression (\"assign a number to each company and list them\") which the v56 corpus caught immediately and which is fixed by requiring a STRONGER object for the override than for the tier it overrides. V63-D4 closed generally by widening the vacuity sweep to 22 guards / 44 mutants / 13 suites, all killed, and by converting two substring pins to behavioural ones. V61-D4 settled honestly: the assertion is unreachable from the loop, that is stated in source, and the case it does cover is demonstrated by injection. v63 suite 27/0 promoted. Ledger #138 and #138b.",
   "verifier64_index_sha256": "885fd290be10dcc98226e2df390fa7de5f62f21637c329a2a013ac99f8e1966c",
-  "verifier64_status": "NOT DISPATCHED"
+  "verifier64_status": "COMPLETE — FAIL",
+  "verifier64_base_commit": "15480e3",
+  "verifier64_verdict": "FAIL. V64-D0/D1/D1b/D1c (P1), V64-D2/D3/D4/D5/D6 (P2), V64-D7 (P3). Artifacts: verify-15480e3-campaign124 @ 4fe49d6.",
+  "verifier64_findings": [
+    "V64-D1b the v59 frame landed in one twin again — the third consecutive round of the same defect, and it landed in the tier that did not need it",
+    "V64-D1 17/121 ordinary mutation requests derive no intent and ship the fabrication verbatim",
+    "V64-D1c a DEAD alternative: LEADING_ADVERB has \"right away\" but the frame list bare \"right\" ran first and stranded \"away\"",
+    "V64-D0 185 mutants across all 63 suites: 8 structural survivors, 5 of them direct reverts of named P1 fixes",
+    "V64-D2 contextBudget.trimmedCount reads 0 on every ordinary trimmed turn",
+    "V64-D3 companyStatusById is the third member of the V63-D2 pair, still unhardened",
+    "V64-D5 namedTargets is capped and carried no CollectionEnvelope",
+    "V64-D4/D6/D7 the harness comment stripper, model-specific limits, the platform request-body limit"
+  ],
+  "verifier64_closure": "All closed on 44534729. The twin was REMOVED rather than synced: one REQUEST_FRAME_ALTERNATION now defines a request frame and both tiers are built from it. A THIRD copy (POLITE_REQUEST) was found during the closure and deleted after measuring that it carried nothing the shared frames did not — its unique entry \"shall i\" moved into the shared definition. The namedTargets envelope was placed inside context.collections first; deno rejected it in a minute (TS2352 + TS2448/TS2454) and the design was wrong for the same reason, so it sits beside the rows. v64 suite 74/74 promoted, with six cases added that the report named but the corpus did not carry. Vacuity sweep 44/44, sweep2 19/19, mutation proof 19/19. Ledger #139.",
+  "verifier65_index_sha256": "445347297cc0dd62513e82c34bc8b6ff5219249db3dabc98ff53af0921e81ebb",
+  "verifier65_status": "NOT DISPATCHED"
 }

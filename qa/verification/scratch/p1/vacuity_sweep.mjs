@@ -31,6 +31,7 @@ const SUITES = [
   'qa/scenarios-runner/v61_budget_intent_language_contract.mjs',
   'qa/scenarios-runner/v62_provenance_language_and_limits_contract.mjs',
   'qa/scenarios-runner/v63_intent_coverage_and_caps_contract.mjs',
+  'qa/scenarios-runner/v64_shared_frames_and_gate_pairs_contract.mjs',
   'qa/scenarios-runner/architecture_context_budget_contract.mjs',
   'qa/scenarios-runner/architecture_final_claim_contract.mjs',
   'qa/scenarios-runner/request_gate_inventory_contract.mjs',
@@ -61,6 +62,10 @@ for (const name of NAMES) {
   }
 }
 
+// SWEEP FAILS CLOSED (verifier #64, V64-D0). indexOf returning -1 used to yield an empty mutant list and
+// a green "0 killed, 0 survived" — a sweep that measures nothing, reporting success. Same shape as the slice
+// markers ledger #138 fixed.
+if (mutants.length < 10) { console.error("FATAL: only " + mutants.length + " mutants were built — the source markers no longer match; fix the sweep, never let it report green"); process.exit(2); }
 console.log(`sweeping ${NAMES.length} named guards (${mutants.length} mutants) across ${SUITES.length} suites\n`);
 const survived = [];
 let killed = 0;

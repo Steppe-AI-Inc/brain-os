@@ -144,7 +144,15 @@ await A('DEFECT', 'V59-D1b "get Alpha archived" [model nothing]', 'causative pas
 await A('DEFECT', 'V59-D2 "do me a favour and archive Alpha" [model nothing]', 'a frame IMPERATIVE_HEAD_RE admits must not be vetoed by commandReadLead', async () => { const o = await chain('do me a favour and archive Alpha', 'Alpha has been archived.'); return [o.calls.length === 1 && o.final === 'Alpha: archived.', j(o)]; });
 await A('DEFECT', 'V59-D2b "list the tasks, then archive Alpha" [model nothing]', 'an imperative last clause after a non-conditional lead executes', async () => { const o = await chain('list the tasks, then archive Alpha', 'Alpha has been archived.'); return [o.calls.length === 1 && o.final === 'Alpha: archived.', j(o)]; });
 await A('DEFECT', 'V59-D2c "when you get a chance, archive Alpha" [model nothing]', 'a polite time frame is a request: intent present (receipt or execution), never the fabrication', async () => { const o = await chain('when you get a chance, archive Alpha', 'Alpha has been archived.'); return [o.intent !== null && (o.calls.length === 1 ? o.final === 'Alpha: archived.' : NO_CHANGE.test(o.final)), j(o)]; });
-C('DEFECT', 'V59-D3 IMPERATIVE_HEAD_RE has no unreachable alternative', 'every verb alternative must match in head position (dead alternatives = vacuous-guard class)', () => { const m = src.match(/const IMPERATIVE_HEAD_RE = (\/[^\n]*\/u);/); const re = new Function('return ' + m[1])(); const body = m[1].slice(1, m[1].lastIndexOf('/'));
+C('DEFECT', 'V59-D3 IMPERATIVE_HEAD_RE has no unreachable alternative', 'every verb alternative must match in head position (dead alternatives = vacuous-guard class)', () => {
+  // IMPERATIVE_HEAD_RE is ASSEMBLED from the shared REQUEST_FRAME_ALTERNATION since the V64-D1b closure
+  // removed the twin, so there is no regex literal left to parse. Build it exactly as the source does and
+  // analyse the assembled pattern — the reachability property this row tests is unchanged.
+  const decl = src.match(/const IMPERATIVE_HEAD_RE = (new RegExp\([^\n]*\));/);
+  const alt = src.match(/const REQUEST_FRAME_ALTERNATION = ([\s\S]*?);\n/);
+  if (!decl || !alt) throw new Error('IMPERATIVE_HEAD_RE or REQUEST_FRAME_ALTERNATION not found — update this row, never let it pass');
+  const re = new Function('REQUEST_FRAME_ALTERNATION', 'return ' + decl[1])(new Function('return ' + alt[1].trim())());
+  const body = re.source;
   // the verb group is the LAST top-level group of the regex body (the prefix group precedes it)
   let depth = 0, inClass = false, lastOpen = -1, lastClose = -1; for (let i = 0; i < body.length; i++) { const ch = body[i]; if (ch === '\\') { i++; continue; } if (inClass) { if (ch === ']') inClass = false; continue; } if (ch === '[') { inClass = true; continue; } if (ch === '(') { if (depth === 0) lastOpen = i; depth++; } else if (ch === ')') { depth--; if (depth === 0) lastClose = i; } }
   const tail = body.slice(lastOpen + 3, lastClose);

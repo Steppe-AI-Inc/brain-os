@@ -1683,6 +1683,23 @@ Output schema:
 }`;
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
+// THE ONE DEFINITION OF A REQUEST FRAME. Two tiers consume it: the executor's command fallback
+// (IMPERATIVE_HEAD_RE) and the request-intent derivation (REQUEST_FRAME_PREFIX). They were separate lists of
+// the same concept and drifted apart in three consecutive rounds — most recently the v59 hardening, which
+// landed in the executor tier and was withheld from the intent tier the receipt rule depends on
+// (verifier #64, V64-D1b). A frame added here is added to both, by construction.
+const REQUEST_FRAME_ALTERNATION = "ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one"
+  + "|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to"
+  + "|time to|it['’]?s time to|its time to|feel free to"
+  + "|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)"
+  + "|before (?:eod|end of day|you go|lunch|tomorrow)"
+  + "|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|it would be (?:great|good|helpful) if you(?: could| would)?"
+  // Longest-first within a family: regex alternation takes the FIRST match, so "would you" placed ahead
+  // of "would you be able to" matched two words and stranded "be able to" (verifier #64, V64-D1).
+  + "|would you be able to|would you(?: please| mind)?|any chance you could|could you(?: please)?|can you(?: please)?"
+  + "|may i ask you to|mind|will you|can we|could we|shall we|shall i"
+  + "|let['’]?s|let us|(?:i think )?(?:we|you) should|we need to|i need you to|i want you to"
+  + "|i(?:['’]d| would) like you to|you need to|need you to|need to|you can";
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
 // A malformed env var parses to NaN, and every comparison with NaN is false — so a typo in
 // SEM_AI_MAX_TOKENS silently disabled the gate it configures and emptied the optional pack on every turn
@@ -2757,6 +2774,23 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     projects: (namedProjectLookup.data || []),
     departments: (namedDepartmentLookup.data || []),
   };
+  // namedTargets is capped at NAMED_LOOKUP_ROW_CAP like every other window, so it reports shown/total/
+  // truncated like every other window (OTM §4.3; verifier #64, V64-D5). Without this it was the one
+  // collection in the pack that could be cut silently — and it is the one holding the entity the founder
+  // just named. The total is the cap when the cap was reached: PostgREST returns no count for these
+  // targeted lookups, and "at least this many" is stated as truncated: true rather than as a false exact.
+  const namedTargetsEnvelope: Record<string, { shown: number; total: number | null; truncated: boolean }> = {};
+  for (const [key, rows] of Object.entries(namedTargets)) {
+    namedTargetsEnvelope[key] = {
+      shown: (rows as unknown[]).length,
+      total: (rows as unknown[]).length < NAMED_LOOKUP_ROW_CAP ? (rows as unknown[]).length : null,
+      truncated: (rows as unknown[]).length >= NAMED_LOOKUP_ROW_CAP,
+    };
+  }
+  // Beside the rows, not inside context.collections: that map is Record<string, CollectionEnvelope>, and a
+  // map OF envelopes is not an envelope. Nesting it there type-errored and, worse, would have satisfied
+  // §4.3 by name while telling the model nothing it could use.
+  (namedTargets as Record<string, unknown>).collections = namedTargetsEnvelope;
   const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
   // serve() refuses the whole request above SEM_AI_MAX_TOKENS using estimateTokens({command, contextPack}).
@@ -2880,10 +2914,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // of the number itself; it is written from the pre-write measurement and the difference is bounded by that.
   // The trim list is pack bytes too. Cap what is carried so a heavily trimmed turn cannot spend the
   // reserve on the report of its own trimming; the count is always exact.
-  if (contextTrimmed.length > 12) {
-    contextBudget.trimmedCount = contextTrimmed.length;
-    contextTrimmed.splice(12, contextTrimmed.length - 12);
-  }
+  // The count is ALWAYS the real number of trims. It used to be written only when the list overflowed its
+  // cap, so it read 0 on every ordinary trimmed turn while contextBudget.trimmed listed real trims — a count
+  // that is present and wrong (verifier #64, V64-D2).
+  contextBudget.trimmedCount = contextTrimmed.length;
+  if (contextTrimmed.length > 12) contextTrimmed.splice(12, contextTrimmed.length - 12);
   contextBudget.estimatedTokens = packTokens();
   // Stated, never inferred: if even the hardest trim could not reach the budget, the pack says so and
   // serve() turns it into a refusal the founder can act on rather than an opaque hard stop.
@@ -3675,7 +3710,18 @@ serve(async (req) => {
         // archive_company()/restore_company() are the one, sole, authoritative lifecycle
         // path (Bug 3's own explicit requirement) - this table is never used for anything
         // BUT that decision, so a lookup that includes it doesn't cost anything extra.
-        const companyStatusById = new Map((contextPack?.companies || []).map((c: any) => [c.id, c.status]));
+        // The THIRD gate on the same data. contextCompanyIds (trusts) and archivedCompanyIds (refuses) were
+        // hardened against the trim in the last two rounds; this one, which answers "is that company
+        // archived?" for everything downstream, still read the raw trimmable array (verifier #64, V64-D3).
+        // Hardening the gates a finding names, one round at a time, is how the asymmetry keeps coming back.
+        const companyStatusById = new Map([
+          ...[...(contextPack?.companies || []), ...(contextPack?.archivedCompanies || []),
+            ...(((contextPack as any)?.namedTargets || {}).companies || [])]
+            .filter((c: any) => c && typeof c.id === 'string')
+            .map((c: any) => [c.id, c.status] as [string, string]),
+          // A row the budget removed is still known-archived if it came from the archived collection.
+          ...(contextProvenance?.archivedCompanies || []).map((id: string) => [id, 'archived'] as [string, string]),
+        ]);
         let updatedCompanyCount = 0;
         let companyLifecycleEditsSkipped = 0;
         for (const c of updateCompaniesReq) {
@@ -3767,7 +3813,7 @@ serve(async (req) => {
         // POSITION: head of the command after optional politeness / adverb / connective / polite-frame words, or head
         // of the LAST clause after a non-conditional lead clause ("since Alpha is done, archive Alpha"). A conditional
         // lead ("if / unless / once / when / only if …, archive X") is not an instruction to act now.
-        const IMPERATIVE_HEAD_RE = /^\s*(?:(?:ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|go ahead(?: and)?|do me a favou?r and|hey brain|brain|quick one|time to|it['’]?s time to|make sure to|be sure to|remember to|don['’]?t forget to|be a dear and|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|let['’]?s|we need to|(?:i think )?(?:we|you) should|i need you to|i want you to|i['’]?d like you to|you should|you need to|need you to|you can|could you(?: please)?|can you(?: please)?|would you(?: please| mind)?|will you|can we|could we|shall we)[\s,:—–-]+)*(?:archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|bring(?:ing)? back|end(?:ing)?)\b/u;
+        const IMPERATIVE_HEAD_RE = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION + ')[\\s,:—–-]+)*(?:archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|bring(?:ing)? back|end(?:ing)?)\\b', 'iu');
         const commandClauses = commandLower.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then)\s+/);
         const commandLastClause = commandClauses[commandClauses.length - 1] || commandLower;
         const commandLeadClause = commandClauses.length > 1 ? commandClauses.slice(0, -1).join(' ') : '';
@@ -5871,6 +5917,8 @@ serve(async (req) => {
         // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
         const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
         // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
+        // "ACME needs archiving": a bare participle after needs/wants, with no "to" and no auxiliary.
+        const MUTATION_NEEDS_PARTICIPLE = /\b(?:needs?|wants?|requires?)\s+(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|activat|deactivat|invit|revok|enabl|disabl|promot|demot|onboard|merg|updat|clos|complet|cancel|assign|mov|transfer|end)ing\b/i;
         const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
         // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
         // a field, a relationship phrase). Case-insensitive; proper nouns are checked separately below.
@@ -5881,16 +5929,28 @@ serve(async (req) => {
         // on an imperative is not a read. Plus the idioms that only LOOK like lifecycle verbs.
         const READ_SHAPE = /^\s*(?:what|who|whom|whose|when|where|which|how|why|is|are|was|were|does|do(?!\s+not\b|n['’]t\b|\s+me\s+a\s+favou?r\b)|did|can you tell|could you tell|tell me|show|list|give me|summari[sz]e|describe|explain|report on|remind me|any news|status of|update me|brief me|walk me)\b|\b(?:what(?:'|’)?s|who(?:'|’)?s|how many|how much)\b|[:—–-]\s*(?:what|who|which|how|is|are|any|describe|list)\b|\b(?:restore|archive|delete|remove|clear|reset) (?:my |your |our |the )?(?:memory|context|conversation|history|chat|doubt|question|suggestion)s?\b|\b(?:make|create|build|prepare|draft) (?:me )?(?:a |an |the )?(?:list|report|summary|overview|table|chart|comparison|breakdown)\b/i;
         // A polite request phrased as a question is still a request ("could you please archive ACME?").
-        const POLITE_REQUEST = /^\s*(?:would you mind|would you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|could you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|can you (?:please )?(?!tell|explain|summari|describe|list|show|remind)|will you|can we|could we|shall we|shall i|may i ask you to|please)\b/i;
-        const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText) && !POLITE_REQUEST.test(commandText);
-        const REQUEST_FRAME_PREFIX = /^\s*(?:(?:ok|okay|please|pls|plz|kindly|just|now|also|then|and|so|right|well|next|first|finally|again|yes|sure|hey brain|brain|quick one|go ahead(?: and)?|do me a favou?r(?: and)?|be a dear and|don['’]?t forget to|remember to|make sure to|be sure to|time to|it['’]?s time to|its time to|when(?:ever)? you (?:get|have) (?:a chance|a moment|a minute|a sec|time)|if you (?:can|could|would|get a chance)|before (?:eod|end of day|you go|lunch|tomorrow)|i(?:['’]d| would) appreciate (?:it )?if you(?: could| would)?|could you(?: please)?|can you(?: please)?|would you(?: please| mind)?|will you|can we|could we|shall we|let['’]?s|we need to|i need you to|i want you to|i['’]?d like you to|you should|you need to|need you to|you can)[\s,:—–-]+)+/i;
+        // Declared here, above isQuestion, which now consults it: a const read before its declaration is a
+        // TDZ crash, not a fallback — the class this repo pins with tdz_forward_reference_contract.mjs.
+        const REQUEST_FRAME_PREFIX = new RegExp('^\\s*(?:(?:' + REQUEST_FRAME_ALTERNATION + ')[\\s,:—–-]+)+', 'i');
+        // A command that BEGINS WITH A REQUEST FRAME is a request whatever punctuation ends it. This
+        // replaced POLITE_REQUEST, which was a THIRD hand-maintained list of request frames and is now
+        // deleted: measured against the corpora, neutralising it changed no case, and the vacuity sweep
+        // reported it as a guard nothing tests. Its one unique entry ("shall i") moved into the shared
+        // definition — the frame list and the polite list each held what the other needed, which is the twin
+        // defect in miniature (verifier #64, V64-D1). Read-shaped commands are unaffected: the frame is
+        // stripped and READ_SHAPE still sees "tell me", "what", "list".
+        const startsWithRequestFrame = REQUEST_FRAME_PREFIX.test(commandText);
+        const isQuestion = /\?/.test(commandText) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/i.test(commandText)
+          && !startsWithRequestFrame;
         // An ADVERB is not a politeness frame, but it sits in the same slot and hid the imperative behind it
         // ("quickly archive ACME", "permanently delete the draft") — verifier #63, V63-D3(b).
         const LEADING_ADVERB = /^\s*(?:(?:quickly|immediately|urgently|permanently|properly|finally|actually|really|simply|kindly|carefully|manually|temporarily|briefly|asap|right away|straight away|at once|for good|once and for all)[\s,]+)+/i;
         const stripFrames = (t: string) => {
           let out = t;
+          // Adverbs FIRST: REQUEST_FRAME_PREFIX has a bare "right", which ate the "right" of "right away"
+          // and stranded "away", making that LEADING_ADVERB alternative unreachable (verifier #64, V64-D1c).
           for (let i = 0; i < 4; i++) {
-            const next = out.replace(REQUEST_FRAME_PREFIX, '').replace(LEADING_ADVERB, '');
+            const next = out.replace(LEADING_ADVERB, '').replace(REQUEST_FRAME_PREFIX, '').replace(LEADING_ADVERB, '');
             if (next === out) break;
             out = next;
           }
@@ -5981,6 +6041,12 @@ serve(async (req) => {
         // the operative verb ("ACME компанийг архивлаад Beta-г сэргээ" — "having archived ACME, restore
         // Beta"), and the command is the LAST verb, not the first token that matched.
         const MN_STEMS_GLOBAL = /(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/giu;
+        // Mongolian carries a borrowed English verb with the light verb хийх ("to do"): "ACME-г archive
+        // хийнэ үү" is an ordinary polite request to archive (verifier #64, V64-D1). The Latin verb is the
+        // content; хийнэ/хий/хийж is the grammar. MN_READ_SHAPE must not veto it, so it is matched here
+        // rather than through the Cyrillic stem list.
+        const MN_LOAN_VERB = /(?:^|\P{L})(archive|unarchive|restore|reactivate|delete|remove|rename|reassign|unassign|approve|reject|activate|deactivate|invite|revoke|enable|disable|promote|demote|onboard|merge|update|close|complete|cancel|assign|move|transfer|end|create|add|set|import|export|publish|share|upload|send|schedule)\s+хий\S*/iu;
+        const mnLoanVerb = (commandText.match(MN_LOAN_VERB) || [])[1] || null;
         const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
         const mnIsCommandForm = (w: string) => { void w; return true; };
         const alwaysCyrillic = (alwaysCyrillicRaw || mnCandidates.length > 0)
@@ -6009,8 +6075,8 @@ serve(async (req) => {
           ? [commandForHead, firstClauseForRead, lastClauseForHead]
           : [commandForHead];
         const alwaysInImperativePosition = !!alwaysHeadRe && headClauses.some((c) => headHasObject(c));
-        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || null;
-        const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
+        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || (mnLoanVerb ? mnLoanVerb.toLowerCase() : null) || null;
+        const lexiconPassive = (MUTATION_PASSIVE_REQUEST.test(commandText) || MUTATION_NEEDS_PARTICIPLE.test(commandText)) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
         // A capitalised weekday or month is a TIME, not an entity: "the store will reopen Monday" is a
         // statement about the world, and the proper-noun object tier used to read it as a lifecycle request.
         const TEMPORAL_PROPER_OBJECT = /\b(?:reopen|open|clos(?:e|ing)|end(?:ing)?|start(?:ing)?|resum(?:e|ing)|paus(?:e|ing)|finish(?:ing)?)\s+(?:on\s+|next\s+|this\s+|last\s+)?(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day|\b(?:reopen|open|end(?:ing)?|start(?:ing)?|resum(?:e|ing))\s+(?:on\s+|in\s+|next\s+|this\s+|last\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/;

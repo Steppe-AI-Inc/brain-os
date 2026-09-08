@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 // Shared TypeScript-stripping + gate-extraction helper for the truthfulness-gate
 // behavioral harnesses (mixed_claim_grounding, past_completion_gate_behavior,
 // claim_segmentation_and_present_tense_fp).
@@ -141,7 +142,68 @@ export function stripTS(source) {
   // Non-null assertions (`pa!.options`).
   s = s.replace(/(\w)!\./g, '$1.');
   s = stripTypeAssertions(s);
-  return s;
+  // A window may READ a module-level constant declared outside it. Bring the real declaration along, from
+  // the source under test — see resolveSharedConstant. Doing it here rather than in each suite means the two
+  // request-frame tiers could finally be built from ONE definition (verifier #64, V64-D1b) without ten
+  // harnesses needing to learn about it.
+  return prependSharedConstants(s);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// SHARED MODULE-LEVEL CONSTANTS that sliced windows read.
+//
+// REQUEST_FRAME_ALTERNATION is the single definition of what a request frame is. The executor's command
+// fallback and the request-intent tier were separate hand-maintained lists of it and drifted apart in three
+// consecutive rounds — each time, a repair landed in one and not the other (verifier #64, V64-D1b). Merging
+// them means every window that executes either tier needs the declaration, so the extractor resolves it from
+// the SOURCE UNDER TEST (SEM_INDEX_SRC when a mutation run sets it, else the repo copy). Never a
+// re-implementation: a harness that declares its own copy is the drift it is meant to detect.
+const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ALTERNATION'];
+let _sharedConstantCache = null;
+function resolveSharedConstants() {
+  if (_sharedConstantCache) return _sharedConstantCache;
+  _sharedConstantCache = {};
+  let text = '';
+  try {
+    const { readFileSync, existsSync } = createRequire(import.meta.url)('node:fs');
+    const { dirname, join, resolve } = createRequire(import.meta.url)('node:path');
+    const { fileURLToPath } = createRequire(import.meta.url)('node:url');
+    let p = process.env.SEM_INDEX_SRC ? resolve(process.env.SEM_INDEX_SRC) : null;
+    if (!p) {
+      let d = dirname(fileURLToPath(import.meta.url));
+      for (let i = 0; i < 12 && !p; i++) {
+        const c = join(d, 'supabase/functions/sem-ai-command/index.ts');
+        if (existsSync(c)) p = c;
+        const up = dirname(d); if (up === d) break; d = up;
+      }
+    }
+    if (p && existsSync(p)) text = readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
+  } catch { text = ''; }
+  for (const name of SHARED_CONSTANT_NAMES) {
+    const at = text.indexOf('const ' + name + ' = ');
+    if (at < 0) continue;
+    let depth = 0, end = -1;
+    for (let i = at; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(' || ch === '[' || ch === '{') depth++;
+      else if (ch === ')' || ch === ']' || ch === '}') depth--;
+      else if (ch === ';' && depth === 0) { end = i + 1; break; }
+    }
+    if (end > 0) _sharedConstantCache[name] = text.slice(at, end);
+  }
+  return _sharedConstantCache;
+}
+function prependSharedConstants(slice) {
+  let prefix = '';
+  for (const name of SHARED_CONSTANT_NAMES) {
+    if (!slice.includes(name)) continue;
+    if (new RegExp('const\s+' + name + '\s*=').test(slice)) continue;
+    if (new RegExp('const\\s+' + name + '\\s*=').test(slice)) continue;   // the window declares it itself
+    const decl = resolveSharedConstants()[name];
+    if (!decl) throw new Error(name + ' is read by this window but was not found in the source under test');
+    prefix += decl + '\n';
+  }
+  return prefix + slice;
 }
 
 // Assert the strip actually worked. Silence is not success: if TS syntax survives, the
@@ -205,7 +267,39 @@ export function withPatternsAboveWindow(source, slice) {
   // mutation-intent command first; the intent gate itself is pinned by
   // architecture_final_claim_contract.mjs. A window that declares one of these itself
   // simply shadows the global.
+  // stripTS already prepends any shared module-level constant the slice reads, so this must not add a
+  // second declaration — two `const` declarations of the same name is a SyntaxError, not a silent problem.
   return decls.join('\n') + '\n' + REQUEST_SIDE_DEFAULTS + '\n' + slice;
+}
+
+// Module-level CONSTANTS that sliced windows read. REQUEST_FRAME_ALTERNATION is the single definition of
+// what a request frame is, shared by the executor's command fallback and the request-intent tier — the two
+// used to be separate hand-maintained lists and drifted apart in three consecutive rounds (verifier #64,
+// V64-D1b). Taken from the source under test, never re-declared here.
+const SHARED_CONSTANTS = ['REQUEST_FRAME_ALTERNATION'];
+export function withSharedConstants(source, slice) {
+  // Idempotent: stripTS already prepends these, so a suite calling this directly must not get a duplicate
+  // declaration (which is a SyntaxError, not a silent problem — but still a harness bug, not a product one).
+  const lf = source.replace(/\r\n/g, '\n');
+  let prefix = '';
+  for (const name of SHARED_CONSTANTS) {
+    if (!slice.includes(name)) continue;
+    // Already declared in the slice (stripTS prepends it): a second `const` of the same name is a
+    // SyntaxError, so this has to be a no-op rather than an addition.
+    if (new RegExp('const\\s+' + name + '\\s*=').test(slice)) continue;
+    const at = lf.indexOf('const ' + name + ' = ');
+    if (at < 0) throw new Error(name + ' not found in the source under test');
+    let depth = 0, end = -1;
+    for (let i = at; i < lf.length; i++) {
+      const ch = lf[i];
+      if (ch === '(' || ch === '[' || ch === '{') depth++;
+      else if (ch === ')' || ch === ']' || ch === '}') depth--;
+      else if (ch === ';' && depth === 0) { end = i + 1; break; }
+    }
+    if (end < 0) throw new Error(name + ': declaration end not found');
+    prefix += stripTS(lf.slice(at, end)) + '\n';
+  }
+  return prefix + slice;
 }
 
 // The context-budget block calls estimateRequestTokens(), which is defined OUTSIDE the block — it is
