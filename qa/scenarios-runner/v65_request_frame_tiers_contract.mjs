@@ -161,6 +161,43 @@ for (const cmd of DELIBERATIVE) {
 }
 
 // ============================================================================================
+// 3b. CONTRACT — the two remaining executor VETOES, pinned behaviourally.
+//
+// The clean vacuity sweep on the frozen candidate showed that `commandNegatedLead` and `commandReadLead`
+// could each be made to never (or always) match with the whole battery still green. Both sit in
+// `commandFallbackAllowed`, so a dead negation veto means "do not archive ACME" ARCHIVES ACME, and a dead
+// read-lead veto means a question about archiving performs one. Neither had a row asserting the gate
+// itself — the receipt-side rows nearby assert what the founder is TOLD, not whether a write happens.
+// ============================================================================================
+// REGISTERED OPEN GAP, found by adding these rows: "stop archiving ACME" is correctly BLOCKED by the
+// executor but is NOT seen by the intent tier, so a fabricated "Done — I've stopped archiving ACME" would
+// ship with no receipt. The four spellings below are recognised; "stop" is missing from the negation
+// lexicon. Closing it is a SOURCE change and index.ts is a frozen release candidate, so it is recorded
+// here and in ledger #145 rather than asserted as a passing row — a row that fails is evidence, but a
+// battery that is red for a known deferred reason stops being evidence of anything.
+for (const cmd of ['do not archive ACME', "don't archive ACME", 'never delete QA-1',
+  'please do not restore ACME']) {
+  check('CONTRACT', 'a NEGATED request never reaches the executor: ' + JSON.stringify(cmd),
+    execGate(cmd).commandFallbackAllowed === false,
+    'the negation veto is what stands between "do not archive ACME" and archiving ACME');
+  check('CONTRACT', 'a negated request is still SEEN as a request: ' + JSON.stringify(cmd),
+    deriveIntent(cmd).requestedIntent !== null,
+    'it must reach the receipt so the founder is told "you asked me not to", never silently ignored');
+}
+for (const cmd of ['what is archived?', 'which companies did we archive last week?',
+  'tell me about the archived companies', 'show the archived companies']) {
+  check('CONTRACT', 'a READ never reaches the executor: ' + JSON.stringify(cmd),
+    execGate(cmd).commandFallbackAllowed === false,
+    'a question about archiving must never perform one');
+}
+// The negative half, so neither veto can be "fixed" by vetoing everything.
+for (const cmd of ['archive ACME', 'please restore ACME', 'go ahead and delete QA-1']) {
+  check('CONTRACT', 'a plain directive still reaches the executor: ' + JSON.stringify(cmd),
+    execGate(cmd).commandFallbackAllowed === true,
+    'a veto that blocks every command blocks the product, it does not secure it');
+}
+
+// ============================================================================================
 // 4. CONTRACT — the founder's section-3 invariant, structurally.
 //    A request the EXECUTOR detects is never invisible to the receipt/intent tier.
 // ============================================================================================

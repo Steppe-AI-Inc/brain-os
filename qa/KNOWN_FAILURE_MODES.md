@@ -16741,3 +16741,52 @@ work order. It is at least labelled in `model_usage`.
 **Reusable rule.** "Never hard-fail the user" and "never tell anyone it happened" are two different
 decisions, and the second one is almost never what was intended. A degradation path needs a signal on the
 same commit as the degradation.
+
+## 145. Six guards that decide whether a WRITE happens could all be deleted with the battery green — FIXED, with two residuals (2026-09-08)
+
+**Found by** running the repaired `vacuity_sweep_extended.mjs` cleanly against the frozen candidate. Result:
+**141 killed, 28 SURVIVED, 0 did not apply**, candidate byte-identical, exit 1. Six of the survivors were
+STRUCTURAL, and every one of them was a straight revert of a guard that decides whether a write happens:
+
+| survivor | what deleting it would do |
+|---|---|
+| `packIdSet` / `planIdSet` forget the trim provenance (V62-D1 revert) | a stored plan's targets "no longer resolve to a real record" because a display window was trimmed — a false statement about canonical state |
+| `archivedCompanyIds` forgets the trim provenance (V63-D2 revert) | the archived-parent gate stops refusing, so the write it exists to block silently succeeds |
+| `archivedCompanyIds` ignores `namedTargets` | a company resolved server-side loses its archived status |
+| `deleteTaskIds` no longer checked against context | a task id the model invented reaches a DELETE |
+| `updateCompanies` no longer checked against context | a company id the model invented reaches an UPDATE |
+| the raw company lifecycle-edit block is bypassed | a raw status UPDATE bypasses `archive_company()`/`restore_company()`, the DB trigger and the audit receipt |
+
+Two of these are reverts of fixes that were themselves named P1s. **Six suites mention provenance by name
+and none of them exercised it.** The whole battery stayed green in every case.
+
+**Fix.** Two new suites, both slicing the real expressions from source and both mutation-proved:
+`provenance_survives_trim_contract.mjs` (10 rows, 3/3 mutants killed) and
+`context_scoped_mutation_gates_contract.mjs` (11 rows, 3/3 killed). Every property carries its NEGATIVE
+half, because a guard that blocks everything is exactly as broken as one that blocks nothing and only the
+pair distinguishes them. Battery 72 green / 2 red by design (74 suites).
+
+### Residual 1 — "stop archiving ACME" gets no receipt (OPEN, source frozen)
+
+Found by writing the negation rows. The executor correctly refuses it, but the INTENT tier does not see it
+as a request, so a fabricated *"Done — I've stopped archiving ACME."* would ship with no receipt.
+`do not` / `don't` / `never` / `please do not` are all recognised; `stop` is missing from the negation
+lexicon. Closing it is a source change and `index.ts` is a frozen release candidate, so it is registered
+rather than asserted — a battery held red for a known deferred reason stops being evidence of anything.
+
+### Residual 2 — three guards look REDUNDANT rather than untested (OPEN, for a verifier to rule)
+
+`commandNegatedLead` and `commandReadLead` can each be neutered with the battery green, and so can the
+Cyrillic verb boundary (#143's `m7`). Measured directly, none of the three changes the outcome for the
+phrasings tested: **the imperative-position rule added in V58-D1 already blocks those commands on its own**,
+and the Mongolian lexicon already carries the Cyrillic verbs. So these survivors are most likely
+CONSTRUCT REDUNDANT, not TEST VACUOUS — a later structural fix subsumed an earlier text-shape guard and
+nobody removed the guard.
+
+**This distinction matters and is the reusable lesson.** A surviving mutant means one of two very different
+things: *no test covers this behaviour* (a coverage defect) or *this code no longer affects behaviour*
+(dead weight). Treating the second as the first produces tests that pin nothing, which is how a battery
+grows while its evidence shrinks. Measure which one it is before writing the test — and never delete the
+construct on that evidence alone while the candidate is frozen.
+
+The 22 remaining survivors are regex-level and stay registered for verifier #66 to rule on.
