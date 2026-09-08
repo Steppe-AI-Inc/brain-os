@@ -3869,7 +3869,7 @@ serve(async (req) => {
         // question, not a negated / hypothetical lead, no other entity type resolved by the model this
         // turn, no model lifecycle field, and the model's own classification (when present) is a mutation.
         const commandLower = String(command || '').toLowerCase();
-        const commandIsQuestion = /(?!)/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
+        const commandIsQuestion = /\?/.test(commandLower) && !/\b(?:ok|okay|right|alright|please|yes)\s*\?\s*$/.test(commandLower)
           && !QUESTION_SUPPRESSING_FRAME.test(commandLower);
         const commandNegatedLead = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/.test(commandLower) || /\b(?:do not|don['’]t|never|not|no longer|instead of|rather than|not going to|no need to|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
           || /\b(?:said|says|told|asked|wants?|wanted|suggested|suggests|proposed|recommends?|recommended)\s+(?:us |me |you |them )?to\s+(?:\w+\s+){0,2}(?:archive|restore|delete|remove|unarchive|reactivate)/.test(commandLower)
@@ -5794,7 +5794,7 @@ serve(async (req) => {
               const beforeWordMatch = head.slice(0, k).match(/([A-Za-z0-9.]+)$/);
               const beforeWord = beforeWordMatch ? beforeWordMatch[1].replace(/\.+$/, '') : '';
               const next = head[k + 1] === ' ' ? head[k + 2] : head[k + 1];
-              const decimal = /[0-9]$/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
+              const decimal = /(?:)/.test(beforeWord) && next !== undefined && /[0-9]/.test(next);
               const abbreviation = /^[A-Za-z]$/.test(beforeWord) || KNOWN_ABBREVIATION.test(beforeWord);
               if (decimal || abbreviation) continue;
               cut = k; break;

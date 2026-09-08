@@ -1,0 +1,22 @@
+V64 extended sweep: 65 named regexes (130 mutants) + 39 structural = 169 mutants, across 73 suites
+
+KILLED   REGEX ARCHIVE_VERB_PATTERN never matches                        v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX ARCHIVE_VERB_PATTERN always matches                       v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX RESTORE_VERB_PATTERN never matches                        v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX RESTORE_VERB_PATTERN always matches                       v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX stateDescriptionPattern never matches                     tdz_forward_reference_contract.mjs
+KILLED   REGEX stateDescriptionPattern always matches                    tdz_forward_reference_contract.mjs
+SURVIVED REGEX FACTORY_INTENT_PATTERN never matches
+SURVIVED REGEX FACTORY_INTENT_PATTERN always matches
+KILLED   REGEX PAST_COMPLETION_CLAIM_PATTERN never matches               v92_parity_contract.mjs
+KILLED   REGEX PAST_COMPLETION_CLAIM_PATTERN always matches              v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX COMPLETION_WORD never matches                             v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX COMPLETION_WORD always matches                            v63_intent_coverage_and_caps_contract.mjs
+KILLED   REGEX isTypedFallbackOnly never matches                         run14_defect_closure_contract.mjs
+KILLED   REGEX isTypedFallbackOnly always matches                        run14_defect_closure_contract.mjs
+KILLED   REGEX LIFECYCLE_UUID_RE never matches                           v58_lifecycle_window_and_imperative_contract.mjs
+SURVIVED REGEX LIFECYCLE_UUID_RE always matches
+KILLED   REGEX COMPANY_UUID_RE never matches                             v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX COMPANY_UUID_RE always matches                            v59_intent_fallback_tier_contract.mjs
+KILLED   REGEX commandMentionsCompany never matches                      company_lifecycle_matrix.mjs
+KILLED   REGEX commandMentionsCompany always matches                     v59_intent_fallback_tier_contract.mjs
