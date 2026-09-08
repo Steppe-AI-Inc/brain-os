@@ -1,0 +1,8 @@
+[2026-09-07 21:27:29] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-e79eb65 max_attempts=6 expect_sha=4f5c85a920b77aa4…
+[2026-09-07 21:27:29] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-e79eb65)
+[2026-09-07 21:47:32] attempt 1: exited rc=1 log_bytes=67
+[2026-09-07 21:47:32] attempt 1: BLOCKED — PROVIDER_CAPACITY (resets 11:20pm)
+[2026-09-07 21:47:32] attempt 1: sleeping 5668s until retry eligibility
+[2026-09-07 23:22:00] attempt 2: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-e79eb65)
+[2026-09-07 23:40:05] attempt 2: exited rc=0 log_bytes=9565
+[2026-09-07 23:40:05] attempt 2: verifier produced a real report (9565 bytes); watchdog done. The verdict is read from the report, not from rc.

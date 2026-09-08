@@ -63,6 +63,31 @@ for (const t of ['task', 'approval', 'company', 'person', 'project', 'goal', 'co
 check('no create-family literal true remains', !/recordExecution\('(?:task|approval|company|person|project|goal|company_relationship|person_assignment|memory)', 'create', \((?:t|a|c|pp|pr|g|cr|pa|m) \|\| \{\}\)\.id, true\)/.test(src));
 check('deleted tasks verify the row is gone', /const gone = typeof id === 'string' && !deletedTasksStillPresent\.has\(id\)/.test(src));
 
+// 4b. POSTCONDITION HONESTY on the plan path (verifier #60 V60-D7, verifier #61 V61-D8/D9).
+// Added because a mutation proof showed these guards had no coverage at all: reverting any of them left the
+// whole battery green. Evidence must fail CLOSED, and a postcondition is a FRESH RE-READ of the field that
+// was supposed to change, never the write's own return value (OPERATING_TRUTH_MODEL §4.1).
+check('the plan evidence fold passes the measured postcondition, not a literal true',
+  /const planPostcondition = \(a as Record<string, unknown>\)\.postconditionPassed === true/.test(src)
+  && /recordExecution\(mapping\[0\], mapping\[1\], \(a\.targetIds \|\| \{\}\)\[mapping\[2\]\], planPostcondition\)/.test(src)
+  && !/\(a\.targetIds \|\| \{\}\)\[mapping\[2\]\], true\)/.test(src),
+  'the plan path must not record verified evidence from its own status word');
+check('every postconditionPassed read fails CLOSED', !/postconditionPassed !== false/.test(src),
+  'a missing or null field must never record a VERIFIED envelope');
+check('reassign_person verifies by re-reading the assignment, not the returned id',
+  /from\('person_assignments'\)[\s\S]{0,240}\.eq\('id', data\)\.maybeSingle\(\)/.test(src)
+  && /reread\.data\.operating_company_id === t\.operatingCompanyId/.test(src),
+  'a returned id proves a row was written, not that the assignment landed');
+check('assign_task verifies by re-reading the owner, not the returned id',
+  /const taskAfter = await supabase\.from\('tasks'\)\.select\('id,owner_type,owner_person_id'\)/.test(src)
+  && /taskAfter\.data\.owner_person_id === t\.personId/.test(src)
+  // The re-read has to be what the branch REPORTS: a mutant that computed `assigned` and then returned the
+  // write's own id survived the first version of this check.
+  && /postconditionPassed: assigned \}/.test(src)
+  && /postconditionPassed: landed \}/.test(src)
+  && !/postconditionPassed: typeof data\[0\]\?\.id === /.test(src),
+  'select(id) proves a row was touched, not that owner_person_id landed');
+
 // 5. The turn's ledger is persisted every turn with a verdict.
 check('work_orders.output persisted unconditionally', /void groundedOutcomeThisTurn;[^\n]*\n\s*await supabase\.from\('work_orders'\)\.update\(\{ output: result \}\)/.test(src));
 check('turnVerdict carries executed / attempted / rejected counts and the request intent', /result\.turnVerdict = \{[\s\S]*executedOperationCount[\s\S]*attemptedOperationCount[\s\S]*rejectedClaimCount[\s\S]*mutationIntent[\s\S]*receiptRendered/.test(src));

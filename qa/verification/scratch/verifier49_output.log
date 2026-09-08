@@ -1,0 +1,52 @@
+Nothing further is needed — every item on my list is complete: preflight, provenance (to the extent this session permits), the seven deploy questions, the adversarial hunt, mutation proofs, battery/gate counts, suite-integrity judgments, artifacts written, checkpoint updated, and the commit landed with the candidate's `index.ts` byte-identical throughout. Final report follows.
+
+---
+
+# VERIFIER #49 / CAMPAIGN #109 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (A: HEAD `894c95834729a9079ddb11250726e96f4693adef` ✓ · B: scratch write ✓ · C: regex suite 13/0 ✓)
+
+## FOUND
+
+**Seven open v92 regressions**, measured on my own 691-row corpus (418 truthful / 273 fabricated) with my own harness, both pack configurations. Two of them are **introduced by this candidate's own five fixes**.
+
+| ID | Direction | New here? | Size |
+|---|---|---|---|
+| **V49-D1** pendingAction-turn truthful history+question destroyed (`"ACME Corp was archived on 2026-03-01. Do you want me to restore it?"`) — every v92 prose arm carries `!pendingAction`; the candidate belt has none | TRUTH | inherited — **unmeasured for 13 rounds** | 11/16 (8/8 history shape) |
+| **V49-D2** completion claim after char 4,000 ships — the D5 cap slices the *summary*; v92 scans all of it | FABRICATION | **NEW (D5)** | 2/3 |
+| **V49-D3** two-negator-token name + head noun (`"Neither Nor Studio unit was archived."`) ships *with* the pack | FABRICATION | inherited | 3/3 |
+| **V49-D4** lowercase-continued negator title (`"Nothing to declare form was archived."`) ships | FABRICATION | inherited | 2/2 |
+| **V49-D5** curly-apostrophe conditioned offer with before/only-with/but-first destroyed (v92 never matched `i’ll`) | TRUTH | inherited, widened by `['’]?` | 3/3 |
+| **V49-D6** `"Let me archive X — just say yes."` destroyed (imminent-arm guard word-list gap) | TRUTH | inherited | 2/2 |
+| **V49-D7** offer + mid-sentence first-person completion ships — D4 stands FUTURE down; belt arm anchored at `^` | FABRICATION | **NEW (D4)** | 1/8 |
+
+## ROOT CAUSE
+D1: `legacyProseFallback` (index.ts:5704) lacks the `!result.pendingAction` term v92 had; `hasResolvedEntities` counts only created/mutated ids so the turn never grounds. D2: `String(s).slice(0, 4000)` applied to the whole summary rather than per unsplittable clause. D3: the negator scan re-arms on the second token inside a recognised name. D4: no Title-Case run → entity signal cannot fire. D5/D6: guard list = once/if/after/unless/when/provided/assuming/as soon as/subject to/pending only. D7: first-person arm anchored only at `^`/`Confirmed —`.
+
+## SYSTEMIC IMPACT
+The campaign's three-arm instrument is complete for *prose* but models only `pendingAction = null` turns — D1 hid there for thirteen rounds. Also found: `objectName` guard is **dead code** after D3 (unobservable in every pack configuration); the R-AUXGAP gap-negator truths (`"was, by no means, archived"`) are destroyed by **both** builds (shared cost, 6 rows); `chat_channel_state` (202609020001) is recorded APPLIED in production, so the candidate's 30-minute durable-pendingAction path goes **live on deploy**, untested by any differential.
+
+## CONFIRMED / REFUTED
+- Five fixes: all **load-bearing** (D5 by timing 0.2 ms vs 173.5 ms *and* a verdict flip). Truth-side: 0 regressions on all 39 STEP-3 attack rows; dash-before-capital preserved by the belt, fabrication twins caught lexically. The three "refused" shapes are in fact caught.
+- Matcher 44/44; 8 v92 wrong-option destructive binds removed; 6 legitimate new binds.
+- Battery **38 suites / 36 exit-0** (2 DB machine tests red by design); no vacuous green; run15 57/0.
+- Record corrections: v31 **32/2** (not 33/1), v42 **11/2** (not 12/1), v47 **43/9** (not 44/8) — all three extras are D3/empty-pack v92-parity; #48's "17/1" mutation → **13/5** on both trees; implementing commit's "0/0 in both pack configurations" → **1 truth regression** in the empty pack.
+- CONTRACT 5 narrowing **sound**; run14/run18/run19/run28 re-pins **honest**; (c) no suite made green by a pack it should not have.
+
+## TESTED
+Own differential (both packs), own matcher, own five-fix mutation proof, #48 tooling re-run on candidate and 27bd9f0, battery from filesystem, six standing gates, ledger/suite reads.
+
+## PRODUCTION
+**Not touched.** Production remains v92. Provenance link deployed-v92 == git `c9dfab5bd433` (`795c20c8…`) is **integration-level + inherited download artifact** in my hands — live `functions list/download` and `deno check` are **BLOCKED — EXECUTION_MODE** in this session type. No browser tooling: UI/AI-chat checks **BLOCKED**, not skipped.
+
+## BLOCKERS (founder-facing)
+None require founder action for this verdict. Deploy authorisation is **not** requested.
+
+## ARTIFACTS — commit `8c75fd3` on `verify-894c958-campaign109`
+`qa/verification/proposed/v49_known_failure_modes_entry_118.md` · `v49_PROMOTION_NOTE.md` · `v49_regression_additions.mjs` (8/8 on candidate, 9/7 on 27bd9f0 — D2/D7 green there proves they're new) · `qa/verification/scratch/v49/*` · `CURRENT_CAMPAIGN.json` checkpointed. (Written as `v49_*`, not the prompt's `v48_*`, to avoid clobbering the implementing session's evidence.) No synthetic DB data was created — this campaign is pure source/differential; nothing to clean up.
+
+---
+
+**VERDICT: FAIL** — candidate `894c95834729a9079ddb11250726e96f4693adef` is not fit to deploy over v92. EDGE STATUS = NOT DEPLOYMENT READY.
+
+`b54c0d655933c8bd2445ed287e35d6f88aba5fc06b233e6dd18404d4ec354823`

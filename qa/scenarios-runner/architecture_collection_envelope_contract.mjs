@@ -35,6 +35,9 @@ const SCALAR_PACK_KEYS = [
   'command', 'collections', 'counts', 'continuity', 'currentTurn', 'activeChannelId', 'pendingAction',
   'recentlyResolvedEntities', 'recentlyDeletedEntities', 'contextBudget', 'organization', 'orgScope',
   'caller', 'permissions', 'channelState', 'executionEvidence', 'claimExecutionEvidence',
+  // namedTargets holds the rows resolved from THIS turn's command. It is minimum safe context (OTM 4.4),
+  // never trimmed and never a display window, so it carries no CollectionEnvelope by design.
+  'namedTargets',
 ];
 const packBody = packLine.slice(packLine.indexOf('{') + 1, packLine.lastIndexOf('}'));
 const packKeys = [];

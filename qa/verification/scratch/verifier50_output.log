@@ -1,0 +1,38 @@
+# VERIFIER #50 — campaign #110 — candidate `2f11ee1ac479fae07549e391723fa2a79b081262`
+
+PREFLIGHT: EXECUTION_READY (HEAD ok · scratch write ok · regex runner 13/0).
+
+## FOUND
+Every one of #49's seven **witness rows** is closed; the **classes** they belong to are not, and this round's tail floor opened a new deterministic hole.
+
+| id | sev | what | evidence |
+|---|---|---|---|
+| **V50-D1** | **P1 TRUTH** (V49-D1 class, partially closed) | pendingAction-turn history recounts beyond the strip's marker list: **64/105 destroyed**, v92 preserves all — `already`, `previously`, `recently`, `a month ago`, `two days ago`, `on Jan 3`, `by admin`, `(see the audit log)`, `last quarter`, `in Q3`… incl. `"Khangai Cement was already archived. Do you want me to restore it?"` | `scratch/v50/differential_populated.log` G-PA-T; 98→64 from 894c958 |
+| **V50-D2** | P2 FABRICATION (V49-D7 class) | `"… if you approve - I just restored X."` (ASCII hyphen) / `and I just restored` / `but I already archived` ship; v92 FUTURE destroys the whole | E-F 3/16 |
+| **V50-D3** | P2/P3 FABRICATION, **INTRODUCED this round** | claim straddling char 4,000 ships at **11/29 offsets** — head slice and tail floor don't overlap; v92 scans the whole | L-F-STRADDLE |
+| V50-D4 | P2 TRUTH (guard vocabulary) | `"Let me delete the task — is that ok?"` destroyed; v92 preserves | E-T |
+| V50-D5 | P3 TRUTH, contrived | `"Confirmed — I renamed Row 4 in the draft table shown here."` | E-T2 |
+
+## ROOT CAUSE
+Each fix was measured against the rows it was written for (8/8 markers all on the list; em/en dash + `;` only; a floor with no overlap). The instrument change (#49 suite evaluating the SHIPPED `legacyProseFallback`) is **honest** — both consumers carry a byte-identical strip, `result.pendingAction` is never reassigned before the belt — and is exactly why the fix looked complete.
+
+## WHAT I CONFIRMED (re-derived, not restated)
+- **Provenance BYTE-DIRECT**: `functions download` (isolated cwd) == `git c9dfab5bd433` == `795c20c8…`, 321,370 B, deployed 44 s after that commit. ezbr bundle hash not independently recomputed.
+- Deploy delta LF-normalised **1,756+/53−**, one file; all inherited prose arms (lifecycle, `findEntityStateClaimContradiction` + vocab + call sites, `LEGACY == v92 PAST`) byte-identical; **(e)** `nameInternal` at HEAD == 894c958 expression parenthesised + D4 disjunct, exactly.
+- **(a)** true but empty (v92 = "never destroy" on those turns; distance left 64/105). **(b)** v92-level both ways except the straddle. **(c)** parity confirmed — the 7 rows the whole-input guard stands down are ones v92 ships or catches via the shared LIFECYCLE arm. **(d)** dash/semicolon rows caught, out-of-pack truths preserved; hyphen/conjunction = D2. **(f)** exactly B-F 27 / D-T 1 / E-F 1, nothing else moved.
+- Negator-name section both directions **0 TR / 0 FR** (populated); 3b shapes preserved; refused shapes caught; matcher 40/40, 14 legitimate build differences; 7/7 components load-bearing (own anchors); 15 KB clause 2.4 ms with the right verdict; deno 23 == baseline; battery 38/36/2 (DB tests), no vacuous suite; run15 57/0; CONTRACT 5 narrowing sound.
+- **Record corrections**: v31 32/2, v42 11/2, v47 43/9 hold; **v30 crashes unpatched** (`knownEntityNames` never injected by its own builders; D3 cursor advance exposes it) and reads 25/1 with an empty Set injected; CRLF is 6,015/6,016 not 6017.
+- **Q4 measured (read-only SQL)**: `202609020001` applied, `chat_channel_state` exists, 0 rows — **LIVE on deploy**; the 30-minute bind itself is not differential-covered.
+
+## TESTED / NOT MEASURED
+Own corpus 1,103 rows (703 T / 400 F), populated TR 66 / FR 14, empty TR 67 / FR 60 (deltas = disclosed pack-conditional classes). NOT measured: UI/AI-chat truth (no browser tooling here — **BLOCKED**, not skipped); the live durable-pendingAction bind.
+
+## ARTIFACTS
+Committed locally on `verify-2f11ee1-campaign110` at `f8cb4cd`: `qa/verification/proposed/v50_known_failure_modes_entry_118.md`, `v50_PROMOTION_NOTE.md`, `v50_regression_additions.mjs` (**11/5** on candidate, 6/10 on 894c958, path-independent), `scratch/v50/*`, `CURRENT_CAMPAIGN.json` checkpointed. `v48_*` names were not overwritten (they are #48's live gate). **`git push` is gated in this session — BLOCKED — EXECUTION_MODE for the push step only.** Nothing written to production.
+
+## BLOCKERS (founder/implementer)
+Fix order: D1 (restore `!result.pendingAction` on both consumers — dominant under the per-class rule, or exempt question-terminated summaries and measure on a corpus not already green) → D3 (`slice(4000 - 64)`) → D2 (hyphen + `and|but` anchor) → D4.
+
+**VERDICT: FAIL — EDGE STATUS = NOT DEPLOYMENT READY.** Production remains v92; rollback c9dfab5b exact.
+
+`5394485e91a7c74f5189d77e3f4705608373f0e5facd68fc61ae9ea51356926a`

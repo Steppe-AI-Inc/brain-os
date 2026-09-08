@@ -302,8 +302,17 @@ async function executeOneAction(supabase: any, action: ExecutionPlanAction): Pro
         p_legal_employer_company_id: t.legalEmployerCompanyId || null,
       });
       if (error || !data) return { success: false, detail: error?.message || 'no result', raw: data, postconditionPassed: false };
-      // The RPC returns the assignment id it wrote: that returned id IS the postcondition evidence.
-      return { success: true, detail: 'reassigned', raw: { assignmentId: data }, postconditionPassed: typeof data === 'string' && data.length > 0 };
+      // POSTCONDITION = state observed after executing, by FRESH RE-READ (OTM §4.1). A returned id proves a
+      // row was written, not that the assignment landed on the company that was asked for (verifier #61,
+      // V61-D9). Re-read the row and compare the field that was supposed to change.
+      const reread = await supabase.from('person_assignments')
+        .select('id,operating_company_id,legal_employer_company_id,state')
+        .eq('id', data).maybeSingle();
+      const landed = !!reread.data
+        && reread.data.operating_company_id === t.operatingCompanyId
+        && (t.legalEmployerCompanyId ? reread.data.legal_employer_company_id === t.legalEmployerCompanyId : true);
+      return { success: true, detail: landed ? 'reassigned' : 'reassign_postcondition_not_confirmed',
+        raw: { assignmentId: data, postcondition: reread.data || null }, postconditionPassed: landed };
     }
     case 'assign_task': {
       const { data, error } = await supabase.from('tasks')
@@ -312,8 +321,11 @@ async function executeOneAction(supabase: any, action: ExecutionPlanAction): Pro
         .select('id');
       if (error) return { success: false, detail: error.message, raw: null, postconditionPassed: false };
       if (!data || data.length === 0) return { success: false, detail: 'no matching task or no access', raw: null, postconditionPassed: false };
-      // The UPDATE ... select('id') returned the affected row: that row IS the postcondition evidence.
-      return { success: true, detail: 'assigned', raw: { taskId: data[0].id }, postconditionPassed: typeof data[0]?.id === 'string' };
+      // Fresh re-read of the field that was supposed to change, not the write's own return (V61-D9).
+      const taskAfter = await supabase.from('tasks').select('id,owner_type,owner_person_id').eq('id', t.taskId).maybeSingle();
+      const assigned = !!taskAfter.data && taskAfter.data.owner_person_id === t.personId && taskAfter.data.owner_type === 'human';
+      return { success: true, detail: assigned ? 'assigned' : 'assign_postcondition_not_confirmed',
+        raw: { taskId: data[0].id, postcondition: taskAfter.data || null }, postconditionPassed: assigned };
     }
     case 'archive_company': case 'restore_company': {
       const rpc = action.operation === 'archive_company' ? 'archive_company' : 'restore_company';
@@ -817,14 +829,16 @@ Rules:
 - Do not invent facts outside the context pack.
 - context.counts holds real database-computed totals (tasksTotal, approvalsTotal,
   companiesTotal, peopleTotal, projectsTotal, goalsTotal, salesLeadsTotal,
-  inventoryItemsTotal, channelsTotal) plus tasksShown/approvalsShown/channelsShown (how
+  inventoryItemsTotal, channelsTotal). How many rows you were actually given is in
+  context.collections.<name>.shown, with .total and .truncated beside it — that is the ONE
+  place to read it from (how
   many of the total made it into context.tasks/context.approvals/context.channels, which
   are capped and may not include everything).
   ALWAYS use context.counts for any question about how many tasks/approvals/companies/
   people/projects/goals/leads/inventory items/channels exist — NEVER derive a count by
   counting entries in context.tasks/context.approvals/context.channels yourself, those
-  arrays are truncated. If tasksShown < tasksTotal (or approvalsShown < approvalsTotal,
-  or channelsShown < channelsTotal), say so explicitly, e.g.
+  arrays are truncated. If context.collections.<name>.truncated is true (equivalently
+  .shown < .total), say so explicitly, e.g.
   "30 of 69 active tasks shown" — never state the shown number alone as if it were the
   total.
 - context.companies is normally capped to a top slice, but ALSO always includes any
@@ -1023,8 +1037,8 @@ Rules:
   approval, editing a person's email, anything not listed in this schema), say plainly in
   summary that you can't do that via chat and name the real place to do it if you know one
   — never narrate it as done. Same discipline for scale: context.tasks/context.channels/
-  context.approvals are all capped (see context.counts.tasksShown/tasksTotal,
-  approvalsShown/approvalsTotal etc. above) — if the founder says "delete all" and the
+  context.approvals are all capped (see context.collections.<name>.shown/total/truncated
+  above) — if the founder says "delete all" and the
   shown count is less than the total, you can only see and delete the ones actually in
   context; say exactly how many you deleted and that more exist beyond what you could see
   (and point at the relevant page's own "Clear all" button, which has no such limit, for
@@ -1670,6 +1684,20 @@ Output schema:
 
 function json(data: unknown, status=200){ return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } }); }
 function estimateTokens(x: unknown){ return Math.ceil(JSON.stringify(x).length / 4); }
+// THE REQUEST AS ACTUALLY SERIALIZED (verifier #61, V61-D10). Both providers send the system prompt plus a
+// PRETTY-PRINTED {profile, command, contextPack}, and optionally a base64 image as a second content block.
+// Measuring the compact form without the prompt understated the real request by 2.9x-26x, which is exactly
+// the accounting error that produced the 2026-09-08 incident one level down. One definition, used by the
+// preflight and by the pack budget, so the two can never drift apart again.
+const SYSTEM_PROMPT_TOKENS = Math.ceil(SYSTEM_PROMPT.length / 4);
+function estimateRequestTokens(payload: unknown, imageBase64: string | null): number {
+  // null, 2 is what streamAnthropic and streamOpenAI both serialize with.
+  const body = JSON.stringify(payload, null, 2) || '';
+  // A base64 image is billed as image tokens, not characters; its transported size is what matters for the
+  // request, and it is counted here rather than left as an unnamed input.
+  const imageTokens = imageBase64 ? Math.ceil(imageBase64.length / 4) : 0;
+  return SYSTEM_PROMPT_TOKENS + Math.ceil(body.length / 4) + imageTokens;
+}
 
 // Claude/GPT sometimes wrap "strict JSON only" replies in a markdown code fence anyway.
 // Strip one if present before parsing, rather than failing the whole command.
@@ -2366,7 +2394,18 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
       ? '[UNVERIFIED — no database change was executed on that turn]'
       : (r.output?.summary || null);
     const verified: boolean | null = executedOperationCount === null ? null : unverified ? false : (executedOperationCount > 0 ? true : null);
-    return { turn: historyWindowStart + idx, command: r.command, summary, verified, executedOperationCount, rejectedClaimCount };
+    // A history ROW is unbounded at the write path (a reply is capped only by max_tokens: 8192), and the
+    // context budget can only drop whole rows — so one long accepted turn used to make every later turn in
+    // the channel a hard stop (verifier #61, V61-D1). Bound the row here. This is truthful shortening, not
+    // deletion: the full command and summary stay in work_orders, and the marker says so.
+    const HISTORY_FIELD_CAP = 600;
+    const shorten = (v: unknown) => {
+      const t = typeof v === 'string' ? v : (v === null || v === undefined ? null : String(v));
+      if (t === null) return null;
+      return t.length <= HISTORY_FIELD_CAP ? t
+        : t.slice(0, HISTORY_FIELD_CAP) + ' … [shortened for this turn; the full text is stored on the work order]';
+    };
+    return { turn: historyWindowStart + idx, command: shorten(r.command), summary: shorten(summary), verified, executedOperationCount, rejectedClaimCount };
   });
   const continuity = {
     totalPriorTurns,
@@ -2381,17 +2420,20 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     channelStateVersion: durableChannelState ? (durableChannelState.version ?? null) : null,
   };
   const counts = {
-    tasksShown: (tasks.data||[]).length, tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
-    approvalsShown: (approvals.data||[]).length, approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
+    // TOTALS ONLY. A '<x>Shown' here was a second envelope for the same collection, and a trim made the
+    // two disagree (verifier #61, V61-D3). shown/truncated live in context.collections, which the trim
+    // maintains; totals come from the query counts and no trim can change them.
+    tasksTotal: tasksCount.count ?? (tasks.data||[]).length,
+    approvalsTotal: approvalsCount.count ?? (approvals.data||[]).length,
     companiesTotal: companiesCount.count ?? (companies.data||[]).length,
     peopleTotal: peopleCount.count ?? (people.data||[]).length,
     projectsTotal: projectsCount.count ?? (projects.data||[]).length,
     goalsTotal: goalsCount.count ?? (goals.data||[]).length,
-    salesLeadsShown: (leads.data||[]).length, salesLeadsTotal: salesLeadsCount.count ?? (leads.data||[]).length,
+    salesLeadsTotal: salesLeadsCount.count ?? (leads.data||[]).length,
     inventoryItemsTotal: inventoryCount.count ?? (inventory.data||[]).length,
-    channelsShown: (channels.data||[]).length, channelsTotal: channelsCount.count ?? (channels.data||[]).length,
-    departmentsShown: (departments.data||[]).length, departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
-    documentsShown: (documents.data||[]).length, documentsTotal: documentsCount.count ?? (documents.data||[]).length,
+    channelsTotal: channelsCount.count ?? (channels.data||[]).length,
+    departmentsTotal: departmentsCount.count ?? (departments.data||[]).length,
+    documentsTotal: documentsCount.count ?? (documents.data||[]).length,
   };
   // Pending action state (Workstream 3 — generalizes the old bulk-confirmation-only
   // mechanism into 4 kinds: bulk_confirmation, single_entity_clarification,
@@ -2662,7 +2704,17 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   };
   // Backstop: every array in the pack literal below must have an envelope here
   // (qa/scenarios-runner/architecture_collection_envelope_contract.mjs pins this statically).
-  const pack = { continuity, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
+  // MINIMUM SAFE CONTEXT, §4.4: "exact canonical entity and action state for the targets of this turn".
+  // These are the rows the targeted lookups resolved from the founder's own command. They also appear
+  // inside the ordinary collections, which are trimmable to zero; here they are not trimmable at all, so
+  // the entity named this turn is present however hard the budget has to squeeze (verifier #61, V61-D2).
+  const namedTargets = {
+    companies: (namedCompanyLookup.data || []),
+    people: (namedPersonLookup.data || []),
+    tasks: (namedTaskLookup.data || []),
+    goals: (namedGoalLookup.data || []),
+  };
+  const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
   // serve() refuses the whole request above SEM_AI_MAX_TOKENS using estimateTokens({command, contextPack}).
   // A pack that outgrows the cap must DEGRADE, never turn an ordinary question into a 413 with no answer.
@@ -2671,6 +2723,11 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   const packBudget = Math.max(2000, Number(Deno.env.get('SEM_AI_MAX_TOKENS') || 12000) - 600);
   // The SAME shape the serve() preflight measures — estimateTokens({ command, contextPack }) —
   // not merely the same arithmetic (verifier #60, V60-D5).
+  // PACK SIZE, not request size. SEM_AI_MAX_TOKENS is a policy cap on how much context this function will
+  // assemble, calibrated against this compact measure; the REQUEST also carries an 18.8k-token system
+  // prompt and is checked separately against the provider's context window in serve() (verifier #61,
+  // V61-D10). Conflating the two would refuse every turn in the product, since the prompt alone is larger
+  // than this cap. Measured on the same shape the preflight's pack check uses, so the two cannot drift.
   const packTokens = () => Math.ceil(JSON.stringify({ command, contextPack: pack }).length / 4);
   const TRIM_ORDER: Array<[string, number, boolean]> = [
     ['memories', 4, false], ['archivedTasks', 4, false], ['archivedCompanies', 4, false],
@@ -2688,7 +2745,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // context is trimmed first; if the minimum itself does not fit, that is the one case where the request may
   // legitimately be refused — and it is refused with the minimum intact, never with a silently gutted pack.
   const MINIMUM_SAFE_CONTEXT = ['currentTurn', 'continuity', 'counts', 'collections', 'pendingAction',
-    'recentlyResolvedEntities', 'recentlyDeletedEntities', 'activeChannelId'];
+    'recentlyResolvedEntities', 'recentlyDeletedEntities', 'activeChannelId', 'namedTargets'];
   const contextTrimmed: string[] = [];
   const packRecord = pack as Record<string, unknown>;
   // 'collections' is protected from being trimmed as a collection, but its envelopes are UPDATED by a trim
@@ -2729,7 +2786,12 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
     for (const [key, , keepNewest] of TRIM_ORDER) {
       if (packTokens() <= packBudget) break;
       const arr = packRecord[key];
-      const thisFloor = key === 'conversationHistory' ? Math.max(1, floor) : floor;
+      // conversationHistory used to be pinned at 1 here, which made it the one optional collection that
+      // could not degrade — and with an unbounded row that was the whole of V61-D1. It is tier-4 narrative
+      // (OPERATING_TRUTH_MODEL §2): the canonical state, the receipts and the durable channel state all
+      // outrank it, and continuity still reports honestly how many turns exist and that the window is
+      // incomplete. On the FIRST hard pass it keeps one turn; only the final pass empties it.
+      const thisFloor = key === 'conversationHistory' && floor > 0 ? Math.max(1, floor) : floor;
       if (!Array.isArray(arr) || arr.length <= thisFloor) continue;
       packRecord[key] = keepNewest ? arr.slice(arr.length - thisFloor) : arr.slice(0, thisFloor);
       const envHard = collectionsRecord[key];
@@ -2825,12 +2887,36 @@ serve(async (req) => {
         : 'this workspace has grown past what one turn can carry even after reducing optional context — ask about one company or one area at a time';
       return json({
         error: 'Token preflight hard stop',
+        limit: 'context pack',
         reason,
         commandTokens,
         tokenEstimate,
         hardMax,
         contextReduced: budgetInfo?.trimmedCount ?? 0,
         contextStillOverBudget: budgetInfo?.overBudget === true,
+        note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
+      }, 413);
+    }
+    // THE REAL REQUEST, against the real ceiling (verifier #61, V61-D10). The pack budget above governs how
+    // much context this function assembles; this governs what the provider is actually sent — the system
+    // prompt (18.8k tokens on its own), the pretty-printed body, and any attached image. An image bypasses
+    // the pack budget entirely, so without this gate it was an unnamed input with no limit at all. The two
+    // thresholds are far apart on purpose: they constrain different things.
+    const requestTokens = estimateRequestTokens(
+      { profile: { id: profile.id, role: profile.role }, command, contextPack },
+      attachedImage ? attachedImage.base64 : null);
+    const modelContextMax = Number(Deno.env.get('SEM_AI_MODEL_CONTEXT_TOKENS') || 180000);
+    if (requestTokens > modelContextMax) {
+      return json({
+        error: 'Request too large',
+        limit: 'model context window',
+        reason: attachedImage
+          ? 'the attached image is too large to send with this turn — attach a smaller image, or ask without it'
+          : 'this turn is too large for the model to read in one request — ask about one company or one area at a time',
+        requestTokens,
+        systemPromptTokens: SYSTEM_PROMPT_TOKENS,
+        imageAttached: !!attachedImage,
+        modelContextMax,
         note: 'Nothing was changed. This is a refusal to run the turn, not a failure of an operation.',
       }, 413);
     }
@@ -3279,7 +3365,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL task-archive claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'archive', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('task', 'archive', id, true);
           taskArchiveRestoreLines.push(`Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreTaskIds) {
@@ -3293,7 +3379,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL task-restore claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('task', 'restore', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('task', 'restore', id, true);
           taskArchiveRestoreLines.push(r.reason === 'restored'
             ? `Task "${name}": restored (back to "${r.newStatus}").`
             : `Task "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
@@ -3991,7 +4077,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL goal-archive claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'archive', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('goal', 'archive', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         for (const id of restoreGoalIds) {
@@ -4002,7 +4088,7 @@ serve(async (req) => {
           // #66/D44 (F1/F2): this path really executes but recorded no evidence, so a
           // TRUTHFUL goal-restore claim was denied. Only a genuine state change counts:
           // 'already archived' is a CURRENT_STATE answer, not a mutation this turn.
-          if (r.changed === true && r.postconditionPassed !== false) recordExecution('goal', 'restore', id, true);
+          if (r.changed === true && r.postconditionPassed === true) recordExecution('goal', 'restore', id, true);
           goalArchiveRestoreLines.push(`Goal "${name}": ${lifecycleReasonText[String(r.reason)] || String(r.reason)}.`);
         }
         const goalArchiveRestoreReport = goalArchiveRestoreLines.length > 0 ? goalArchiveRestoreLines.join(' ') : null;
@@ -5658,7 +5744,7 @@ serve(async (req) => {
         // Unconditional mutation verbs: base and gerund forms anywhere in the command (a participle alone
         // is an adjective — "a report of archived companies"); Mongolian stems with Unicode-letter
         // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
-        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*|нэрийг)(?!\p{L})/iu;
+        const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
         // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
         const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
         // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
@@ -5700,9 +5786,41 @@ serve(async (req) => {
         // evidence and cannot be switched off by the component being policed, so group 1 must sit in
         // IMPERATIVE POSITION. Groups 2-3 ("bring it back", "get ACME archived") already carry their own
         // position, and group 4 is Mongolian, which is verb-final — a head rule would disable it entirely.
+        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this the head word only has to be
+        // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
+        // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
+        // both tiers that use it: a const read before its declaration is a TDZ crash, not a fallback.
+        const IMPERATIVE_OBJECT = /^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\s+\S|^(?:it|them|this|that|these|those)\b|^["'“”'']|^\d|^\S*[-_]?\d|^[A-Z][A-Za-z0-9_-]*|^(?:compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|role|employment|assignment|contract|ticket|invoice|report|order|memory|note|agent|connector|provider|user|account|workspace|record|entry|row|item|file|access|permissions?|invitations?|invites?|membership|subscriptions?|notifications?|reminders?|deadlines?|priority|status|titles?|names?|descriptions?|budgets?|prices?|stages?|values?|emails?|phones?|addresses?|labels?|tags?|categor(?:y|ies)|shifts?)\b|^\S+\s*$/;
+        // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
+        // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
+        // the announcement" has "fell" (verifier #61, V61-D7).
+        const STATEMENT_FINITE_VERB = /(?:^|\s)(?:is|are|was|were|am|be|been|being|has|have|had|will|would|shall|should|can|could|may|might|must|does|did|isn['’]t|aren['’]t|wasn['’]t|weren['’]t|needs?|seems?|looks?|means?|includes?|requires?|remains?|appears?|shows?|starts?|ends?|applies|works?|happens?|belongs?|costs?|arrived|called|fell|flooded|blocked|created|agreed|started|ended|changed|moved|failed|passed|expired|dropped|rose|grew|went|came|said|told|broke|stopped|continued|returned|increased|decreased|remained|occurred|appeared)(?=\s|$|[.,;!?])/i;
+        const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest) && !STATEMENT_FINITE_VERB.test(rest);
         const alwaysMatch = commandText.match(MUTATION_VERB_ALWAYS);
         const alwaysEnglishBase = alwaysMatch && typeof alwaysMatch[1] === 'string' && alwaysMatch[1].length > 0 ? alwaysMatch[1] : null;
-        const alwaysOther = alwaysMatch ? (alwaysMatch.slice(2).find((g) => typeof g === 'string' && g.length > 0) || null) : null;
+        // Group 4 is the Mongolian alternation and is handled on its own terms below; groups 2-3
+        // ("bring it back", "get ACME archived") already carry their own position.
+        const alwaysCyrillicRaw = alwaysMatch && typeof alwaysMatch[4] === 'string' && alwaysMatch[4].length > 0 ? alwaysMatch[4] : null;
+        const alwaysOther = alwaysMatch ? ([alwaysMatch[2], alwaysMatch[3]].find((g) => typeof g === 'string' && g.length > 0) || null) : null;
+        // A Mongolian READ or STATEMENT: a question word, a sentence-final question particle (Mongolian
+        // questions routinely carry no '?'), or the copular/negative endings that make a clause a statement
+        // about the world rather than a request (verifier #61, V61-D6).
+        const MN_READ_SHAPE = /(?:^|\P{L})(?:юу|юун|хэн|хэзээ|хаана|яагаад|ямар|хэд|хэдэн|аль|хэрхэн|яаж)(?!\p{L})|(?:^|\P{L})(?:уу|үү|вэ|бэ|вээ|бээ)\s*[?!.]?\s*$|(?:^|\P{L})(?:байна|байгаа\S*|мэдэхгүй|санахгүй|болно\s*уу|хэлээч|харуулна)(?!\p{L})/iu;
+        // A participle, a verbal noun or an infinitive is not a command: архивласан (archived, attributive),
+        // өөрчлөлт (a change), устгах (to delete). Only a finite/imperative form is.
+        const MN_NOT_A_COMMAND = /(?:сан|сэн|сон|сөн|лт|лга|лгэ|даг|дэг|дог|дөг|маар|мээр|х)(?:ыг|ийг|ын|ий|ийн|ын|аас|ээс|оос|өөс|д|т|тай|тэй|той|нь)?$/u;
+        // Mongolian is VERB-FINAL — the reason group 4 is exempt from the English head rule. A stem that
+        // appears anywhere else in the clause is a noun, an attribute or a converb, not the command.
+        const mnTokens = commandText.trim().replace(/[?!.,;:]+$/u, '').split(/\s+/u).filter((w) => w.length > 0);
+        const mnFinalWindow = mnTokens.slice(-2).join(' ');
+        // Every Cyrillic stem occurrence, not just the first: a compound command carries converbs before
+        // the operative verb ("ACME компанийг архивлаад Beta-г сэргээ" — "having archived ACME, restore
+        // Beta"), and the command is the LAST verb, not the first token that matched.
+        const MN_STEMS_GLOBAL = /(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрчл\S*|томил\S*|болго\S*|үүсгэ\S*|нэмэ\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/giu;
+        const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
+        const alwaysCyrillic = (alwaysCyrillicRaw || mnCandidates.length > 0)
+          ? (mnCandidates.find((w) => !MN_NOT_A_COMMAND.test(w) && mnFinalWindow.includes(w)) || null)
+          : null;
         // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
         // imperative position, behind a negation. The request carried intent — the executor must fail
         // closed and the receipt must say the founder asked for it NOT to happen (v59 D2d/C5d).
@@ -5712,10 +5830,18 @@ serve(async (req) => {
         const alwaysHeadRe = alwaysEnglishBase
           ? new RegExp('^\\s*' + alwaysEnglishBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')
           : null;
+        // Position alone is not enough — the object test decides, the same one the imperative tier uses,
+        // so neither tier can admit what the other rejects (verifier #61, V61-D7).
+        function headHasObject(clause: string): boolean {
+          if (!alwaysHeadRe) return false;
+          const m = alwaysHeadRe.exec(clause);
+          if (!m) return false;
+          return objectRefers(clause.slice(m[0].length).trim());
+        }
         const alwaysInImperativePosition = !!alwaysHeadRe
-          && (alwaysHeadRe.test(commandForHead)
-            || (commandClausesForRead.length > 1 && alwaysHeadRe.test(lastClauseForHead)));
-        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || null;
+          && (headHasObject(commandForHead)
+            || (commandClausesForRead.length > 1 && headHasObject(lastClauseForHead)));
+        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || null;
         const lexiconPassive = MUTATION_PASSIVE_REQUEST.test(commandText) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
         // A capitalised weekday or month is a TIME, not an entity: "the store will reopen Monday" is a
         // statement about the world, and the proper-noun object tier used to read it as a lifecycle request.
@@ -5728,10 +5854,20 @@ serve(async (req) => {
         // frames stripped, beginning with a mutation verb in base form and carrying an object. Position is
         // request-side evidence: it is a property of what was ASKED, never of what the model replied.
         // Read-shaped commands veto this exactly as they veto the other lexicon tiers.
-        const MUTATION_IMPERATIVE_HEAD = /^\s*(?:unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix)\b\s+\S/i;
-        const imperativeSource = MUTATION_IMPERATIVE_HEAD.test(commandForHead)
-          ? commandForHead
-          : (commandClausesForRead.length > 1 && MUTATION_IMPERATIVE_HEAD.test(lastClauseForHead) ? lastClauseForHead : null);
+        const MUTATION_IMPERATIVE_VERB = /^\s*(?:unsubscribe|un-archive|reactivate|deactivate|reschedule|unarchive|terminate|unpublish|duplicate|unreserve|uninstall|subscribe|unsuspend|reassign|unassign|activate|register|complete|transfer|schedule|withdraw|rollback|increase|decrease|separate|archive|restore|retitle|approve|decline|disable|promote|dismiss|onboard|correct|publish|unshare|message|reserve|install|unblock|suspend|shorten|convert|migrate|replace|combine|delete|remove|rename|reject|invite|revoke|enable|demote|reopen|create|update|change|modify|finish|cancel|assign|upload|resume|unlink|attach|detach|unflag|notify|refund|charge|import|export|submit|deploy|unmute|unlock|extend|merge|split|close|share|pause|untag|reset|clear|grant|email|order|issue|empty|apply|block|renew|raise|lower|hire|fire|edit|mark|move|send|copy|stop|link|flag|deny|post|sync|mute|lock|swap|make|add|tag|pay|set|end|fix)\b\s+\S/i;
+        // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this test the head word is only
+        // required to be spelled like a verb, and "Archive policy needs a review" or "Share price fell
+        // after the announcement" read as commands (verifier #61, V61-D7). A determiner phrase, a proper
+        // noun, an identifier, a quoted string, a pronoun, a bare number or an entity noun all refer; a
+        // bare common noun continuing a noun phrase does not.
+        const imperativeObjectOf = (clause: string) => {
+          const m = MUTATION_IMPERATIVE_VERB.exec(clause);
+          if (!m) return null;
+          const rest = clause.slice(m[0].length - 1).trim();
+          return objectRefers(rest) ? clause : null;
+        };
+        const imperativeSource = imperativeObjectOf(commandForHead)
+          || (commandClausesForRead.length > 1 ? imperativeObjectOf(lastClauseForHead) : null);
         const lexiconImperative: string | null = imperativeSource
           ? String((imperativeSource.trim().match(/^[A-Za-z-]+/) || [''])[0]).toLowerCase() || null
           : null;

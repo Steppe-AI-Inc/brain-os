@@ -1,0 +1,43 @@
+Everything is measured, checkpointed and committed (`9af200b` on `verify-904bf19-campaign113`; tree clean; index.ts sha asserted unchanged before and after every step). Nothing further depends on a pending result. Final report follows.
+
+---
+
+# VERIFIER #53 — campaign #113 — candidate `904bf19b196a795f7ca10126b91fd8a4d421e835` vs deployed v92
+
+**PREFLIGHT: EXECUTION_READY** (HEAD ok · scratch write ok · regex runner 13/0)
+
+## STEP 1 — production bytes (byte-direct on the source)
+`supabase functions list`: sem-ai-command **v92**, ACTIVE, `ezbr_sha256 33255b31…`, `updated_at 1788239725518` (2026-09-01T05:15:25Z). Live `functions download` into `scratch/v53/dl` (working tree sha asserted before/after): **321,370 bytes, sha256 `795c20c8…` == `git show c9dfab5bd433`**, `Buffer.compare` = 0. **CONFIRMED.** Not recomputed: the `ezbr_sha256` bundle hash (CLI's link — integration-level).
+
+## STEP 2 — seven deploy questions (all re-derived)
+| Q | Result |
+|---|---|
+| 1 bytes | LF-normalised **+1,756 / −53, 79 hunks** vs v92; this round **+1/−1** (the `namePrefixHit` local, ×3). Belt top-level list unchanged (13). LIFECYCLE + PAST byte-identical. |
+| 2 preserves v92 | **NO — one class.** My 2,761-row corpus, pack populated: T 952 keep / 114 shared / **431 rescued / 16 TR** (V53-O1, pre-existing on 416c14c); F 926 / **239 gain** / 64 parity / **19 FR** = **14 V53-D1** + 3 R2 + 2 R3. Structured consumer identical. #52's corpus through MY harness: **0 TR / 0 FR**; empty = LINK-F 76 / N-F 15 / CONF-T 1, nothing else moved (item d ✓). #52 sizing set: **0/200, 0/200** (item c ✓). Matcher 32 shapes: 0 destructive binds. |
+| 3 reintroduced | Only `!result.pendingAction` — v92's own arms (:4197, :4241) carry it. Parity. |
+| 4 / 4476c92 | Reference == download. `chat_channel_state`: **BLOCKED** (`db query` permission-gated). |
+| 5 D16/D25/D27/D40 | **0 shipped** on my own shapes, both consumers; command-derived gate absent. |
+| 6 rollback | `c9dfab5bd433` exact, available, byte-matches live. |
+| 7 surface | One file; `supabase/migrations` diff since v92 is EMPTY. |
+
+## STEP 3 — the closure under test, and what I found instead
+**V52-D1 closure: CONFIRMED** — load-bearing (`namePrefixHit`→0 re-opens FR 206, identical to `prev_416c14c`), positive-only (empty pack inert), 0 truth cost. Every attack from the brief is closed or parity: possessive/plural/punctuation-inside-name caught; V52-O1 and CONFIRMED object-negator parity confirmed; all Step-3/3b truth attacks 0 TR; the three refused shapes caught lexically; dash pairs preserved.
+
+**V53-D1 (P2 FABRICATION REGRESSION, pack populated) — the FAIL.** The first-person arm captures its object as a capital run; an in-pack name with an interior lowercase word (`Trade and Development Bank`, `State Bank of Mongolia`, `Munkh-Erdene van der Berg`) misses the pack. After a conditioned offer — where the founder ruling stands v92's FUTURE arm down — the whole reply ships while **v92 corrects it**: *"I will restore Khan Bank if you approve so I just archived Trade and Development Bank."* Sized: **640/1280 ship**, control capitalised names 0/1280, truthful twins 0/640. Present on 416c14c too — #48–#52's corpora used only capitalised names (vacuity). **Closure PREPARED and MEASURED** (`scratch/v53/mut/closure_V53D1.ts`, committed): 0/1280 ship, 0 truth cost, both corpora otherwise unchanged, **18/18 extractor suites incl. run15 57/0**, deno 23. My first draft used `let`/`for`/`;` and **broke run15 + V50-C10 while CONTRACT 5 stayed green** → **V53-H1**: CONTRACT 5's narrowing is sound only together with V50-C10, which lives outside `scenarios-runner/`.
+
+Disclosed residuals (sized, not blocking): **V53-O1** negation-phrase pack entry as subject of a belt-only arm, 18/48 destroyed, 0 with empty pack, 0/120 as an opener — pre-existing, same-string ambiguity (founder may overrule); **V53-R2** >8-token negator-initial names 18/42 ship, `cap 16` closes all at 0 cost; **V53-R3** parenthetical-in-name + head noun 2/160.
+
+## STEP 3c / 4 — counts and suite integrity
+Battery **38 suites / 36 exit-0 / 2 non-zero** (machine tests). deno **23 == baseline**. All 50 gates run: standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3 re-derive as recorded; **ledger #101's "v39 20/1" measures 19/2**; CURRENT_CAMPAIGN.json is **stale for nine gates** (v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 — all V48-D3 empty-pack parity, stale anchors, or the #50 decision). Re-pins honest; run14/D107 budget is gone; D117 green; run15 57/0.
+
+## Coverage gaps (BLOCKED, not skipped)
+No browser/AI-chat tooling → UI/AI-chat truth checks **BLOCKED**; `supabase db query` gated → `chat_channel_state` **BLOCKED**; durable pendingAction bind not exercised; ezbr hash not recomputed. No QA-VERIFY data was created (no DB writes of any kind). Artifacts are `v53_*` (the brief's `v48_*` names collide with #48's live gate).
+
+## STEP 5 — deployability
+**Not fit to deploy over v92.** One named class ships a fabrication v92 corrects, with the pack populated; its closure is zero-cost and harness-safe. Every other class I could construct is closed or parity — I say so plainly. Apply `closure_V53D1.ts` via its builder, then a fresh verifier on the new SHA.
+
+**VERDICT: FAIL**
+
+Artifacts: commit `9af200b` on `verify-904bf19-campaign113` (not pushed — commit was what was asked). Production remains v92; rollback `c9dfab5b`.
+
+index.ts sha256 at close: `bd21c2af8fa01cb396dfb07f113c69a71cefc214d3aeb5ffb202bb935255e95e`

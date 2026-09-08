@@ -53,12 +53,28 @@ for (const [gate, present, klass, safe] of GATES) {
 {
   const at = src.indexOf('tokenEstimate = estimateTokens(');
   const preflight = src.slice(at, at + 2200);
-  // Exactly one whole-request size refusal exists in the whole source, and it is this one. A second
-  // 413 anywhere means a new whole-request cap was added without a classification in this inventory.
+  // TWO size refusals exist, and they constrain different things (verifier #61, V61-D10). Conflating them
+  // was tried and would have refused every turn in the product: SYSTEM_PROMPT is ~18,824 tokens on its own,
+  // 57% larger than the 12,000 "hard max", so that cap was never a request-size limit at all.
+  //   1. PACK BUDGET (SEM_AI_MAX_TOKENS, 12,000) — how much context buildContext assembles, measured
+  //      compactly as {command, contextPack}, which is how it was calibrated. Degrades first, then refuses.
+  //   2. MODEL CONTEXT WINDOW (SEM_AI_MODEL_CONTEXT_TOKENS, 180,000) — the real request: system prompt +
+  //      pretty-printed body + any attached image. An image bypasses the pack budget entirely, so this is
+  //      the only gate that bounds it.
+  // A THIRD 413 means a new whole-request cap was added without a classification here.
   const refusals = (src.match(/, 413\)/g) || []).length;
-  check('the only whole-request size cap is the token preflight, and it is budget-guarded',
-    refusals === 1 && /const packBudget/.test(src) && /hardMax/.test(preflight),
+  check('every whole-request size cap is classified in this inventory',
+    refusals === 2 && /const packBudget/.test(src) && /hardMax/.test(preflight)
+      && /SEM_AI_MODEL_CONTEXT_TOKENS/.test(src),
     'found ' + refusals + ' whole-request refusals; add any new one to this inventory with a classification');
+  check('the two size caps are named, so neither is mistaken for the other',
+    /limit: 'context pack'/.test(src) && /limit: 'model context window'/.test(src),
+    'a refusal must say WHICH limit it hit, or the founder cannot act on it');
+  check('the real request is measured against the model context window, prompt and image included',
+    /const requestTokens = estimateRequestTokens\(/.test(src)
+      && /systemPromptTokens: SYSTEM_PROMPT_TOKENS/.test(src)
+      && /imageAttached: !!attachedImage/.test(src),
+    'the provider gate was UNMEASURED until verifier #61; an attached image bypasses the pack budget entirely');
   // The refusal itself must be actionable, not a bare number: the founder is told which input could not
   // be reduced and what to do about it, and that nothing was changed (verifier #60, V60-D1 residual).
   check('the whole-request refusal states a cause and an action, and is not an opaque hard stop',
@@ -76,13 +92,24 @@ for (const [gate, present, klass, safe] of GATES) {
 }
 
 // UNMEASURED, stated rather than assumed safe (the founder's §2 requires naming them).
+// Two of the four came off this list in campaign #122: the provider context window is now a real gate, and
+// the system prompt's token cost is pinned below instead of drifting unwatched.
 const UNMEASURED = [
-  'model/API context window at the provider (measured only indirectly through max_tokens and the preflight)',
   'per-request wall-clock timeout at the edge runtime and at the provider',
   'SSE stream initialisation failure after the preflight passes',
-  'system-prompt size drift (it is a constant template; no test pins its token cost)',
 ];
 check('unmeasured whole-request gates are named, not assumed safe', UNMEASURED.length > 0 && UNMEASURED.every((u) => typeof u === 'string' && u.length > 20));
+// The system prompt is the single largest input in every request and it was never counted. Pin its size so
+// a future edit that doubles it shows up here rather than in production (verifier #61, V61-D10).
+{
+  const a = src.indexOf('const SYSTEM_PROMPT = `');
+  const b = src.indexOf('`;', a);
+  const promptTokens = Math.ceil(src.slice(a + 'const SYSTEM_PROMPT = `'.length, b).length / 4);
+  console.log('     system prompt: ' + promptTokens + ' tokens (the pack budget is ' + (12000 - 600) + ')');
+  check('the system prompt is measured, and is not silently growing',
+    promptTokens > 0 && promptTokens < 30000,
+    'system prompt is ' + promptTokens + ' tokens; if this is intentional, raise the bound deliberately and say why');
+}
 for (const u of UNMEASURED) console.log('     UNMEASURED: ' + u);
 
 // ---------------------------------------------------------------- estimator headroom (founder §5)

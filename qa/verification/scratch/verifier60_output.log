@@ -1,0 +1,56 @@
+Working tree clean, `supabase/` and `web/` untouched, `index.ts` byte-identical.
+
+---
+
+# VERIFIER #60 — CAMPAIGN #120 — FINAL REPORT
+
+```
+CHANGE VERIFIED: sem-ai-command context-budget fix (incident #133 closure) + verifier #59 hardening,
+                 candidate 9e39a47 vs deployed v92 (git c9dfab5bd433)
+SCENARIOS: 41 executed — 27 passed, 12 failed, 2 blocked-with-substitute
+CANONICAL GRAPH: PASS (0 identifiers removed vs v92; deploy surface = index.ts alone)
+UI ↔ DB:         BLOCKED (no browser tooling in this session — not passed, not skipped)
+AI ↔ DB:         BLOCKED live; FAIL at integration level (V60-D3, V60-D4, V60-D7)
+DEPENDENCIES:    PASS (envelope truthfulness under trim; server-side lifecycle re-read)
+PERMISSIONS:     BLOCKED (no live DB)
+RELOAD/PERSISTENCE: PASS (durable channel row outranks stored output; mutant M4 killed)
+IDEMPOTENCY:     PASS (already_* never grounds a claim; mutant M12 killed)
+```
+
+## PREFLIGHT: EXECUTION_READY (recorded earlier; HEAD = 9e39a47…, write probe OK, final-claim contract 51/0)
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND — the budget fix does not close the class it was written for, and it opens a new one.**
+
+- **V60-D1 (P1).** The trim loop `continue`s past any collection already at or below its floor, and there is nothing after the loop. A floor is a **row** count, not a **byte** count. `approvals` is not a `TRIM_ORDER` key at all; nor are `counts`, `continuity`, `pendingAction`, `recentlyResolvedEntities`, `recentlyDeletedEntities`, `collections`, `currentTurn`, or the command. Measured with the real trim block sliced from `index.ts` and production's own estimator: 20 pending approvals × 600-char `reason` → **12,730 tokens post-trim → the incident's own `{"error":"Token preflight hard stop"}` with no answer**; `memories.fact` 3,000 chars → 12,912; a 20,000-char command → 14,963. And there is a **755-token band where v92 answers and the candidate 413s** — arrays at their floors, **0 trims possible**, candidate still paying its pack additions. That is a regression against deployed v92, not an intended departure.
+- **V60-D2 (P1).** The targeted named-entity lookups — added to stop the 2026-08-30 "test4" fabrication — are merged **at the tail** (`[...(companies.data||[]), ...extra]`) for companies/people/goals/tasks, and the trim slices the **head**. The first casualty of the budget fix is the row the founder named this turn. Named task + goal are already gone at the shipped 12,000 cap on a query-limit workspace; all four go in a floor-shaped one. The name also leaves `knownEntityNames`, removing the belt's entity-signal rescue.
+- **V60-D3 (P1).** `requestedIntent`'s primary tier is `result.requestIntent` — emitted by the model — and `kind:"read"`/`"other"` vetoes the lexicon outright. **37/37 imperative mutation requests ship a fabricated completion verbatim.** `requestIntent` is not schema-enforced (no `response_format: json_schema`); it is prompt text. `structured_claim_laundering_contract.mjs`, whose stated invariant is "a model must not be able to switch off its own truth gate", hardcodes one command and never varies that field.
+- **V60-D4 (P1, carried — byte-identical at 821f530, so not introduced this round).** Model-emits-nothing tier: **33/66** ordinary imperative mutation verbs ship a fabrication (send, schedule, publish, notify, email, grant, pay, import, …). End-to-end differential vs v92 **measured on the shipped summary**, 920 pairs: **290 (31.5%) where v92 corrects and the candidate ships**; truth axis **0 regressions, +108 improvements**; **0 regressions** once the model classifies.
+- **V60-D7 (P2).** `executeOneAction` sets `success` from `changed === true` and never reads the `postconditionPassed` every lifecycle RPC returns; `index.ts:3138` then writes a **verified** envelope for each completed plan action — so the "yes to a plan" path reports "done." for exactly the case the direct path refuses.
+- **V60-D8 / V60-D9 (P2, vacuous guards).** A new pack array written as an expression carries no envelope and no trim entry and the whole battery stays green. 14 vacuity mutants, full battery each, bytes restored and sha-verified after every run: **12 killed, 2 survived** — both create-family postcondition.
+- **V60-D5 / V60-D6 (P3).** The budget contract's "same estimator" check is a regex over two different string literals (measured gap 19–145 tokens); its oversized-pack fixture only covers the shape the fix handles. A negated compound read loses its truthful answer.
+
+**ROOT CAUSE — the same measurement error as ledger #133, one level up.** #133 happened because everyone measured what *shapes the answer* and nobody measured what *gates the request*. The fix repeats it: the trim was measured on a fixture where everything was trimmable, and the belt-vs-v92 differential has since campaign #90 compared the matcher (`readsAsCompletion` vs `PAST_COMPLETION_CLAIM_PATTERN`) rather than the shipped summary — which is why "0 fabrication regressions" was reported four times while 31.5% of the corpus was shipping.
+
+**SYSTEMIC IMPACT.** V60-D1/D2 sit on the founder's core chat surface. V60-D3/D4 mean the never-silent receipt is defence-in-depth only when the model cooperates.
+
+**FIXED.** Nothing on the candidate — `index.ts` is byte-identical (`5d4e853c…`). A prepared fix (`qa/verification/scratch/v60/apply_fix.mjs`) closes D1/D2/D5: named rows merged at the head, `approvals` trimmable plus harder second/third passes, the loop measuring the same object shape the preflight measures. Measured on the fixed bytes: every previously-413ing case fits, all four named rows survive the deepest trim, estimator gap 89, battery **57/58** (only `architecture_context_budget_contract`, whose END anchor is a byte-exact copy of the changed line), v60 regression **16 pass / 6 fail**.
+
+**TESTED.** 60 committed `.mjs` suites from the filesystem: 58 green, 2 self-declared factory-runner standing reds, **5 SUPERSEDED stubs that assert nothing** (effective coverage 55, not 60). My own receipt matrix 377/390. Harness-default sensitivity: flipping `_gate_extract`'s default command to a mutation intent changes **0** verdicts — the default hides nothing. Independent block-scope scan: 944 declarations, 4,957 references, **0 same-block forward references**. `index.ts` CRLF-pure (6,513 / 0 bare LF). 0 identifiers removed vs v92.
+
+**PRODUCTION.** Untouched. No write, no migration, no function deploy performed or prepared. Production remains on v92 source (function v94).
+
+**BLOCKERS / coverage I could not provide — stated as gaps, not skipped:** live database, browser UI, live AI chat, `deno check`/`tsc`, and byte-direct confirmation of the running function are all **BLOCKED** (no credentials, no network egress, no browser tooling). Notably, **the live pack size on the founder's own workspace — the one number whose absence caused #133 — was modelled, not measured.** Any future deploy authorisation should carry that number taken from production.
+
+**Synthetic data:** none created. Every `QA-VERIFY-*` name exists only inside in-memory fixtures; nothing reached a database, so there is nothing to clean up or leave archived.
+
+**Commit:** `26748fd` on `verify-9e39a47-campaign120` — artifacts, prepared fix, mutation/battery logs, ledger entry `qa/verification/proposed/v60_known_failure_modes_entry_134.md`, `v60_PROMOTION_NOTE.md`, `v60_regression_additions.mjs` (10 pass / 12 fail on the candidate, red by design).
+
+---
+
+VERDICT: **FAIL**
+
+EDGE STATUS = **NOT DEPLOYMENT READY** (contract bar). Candidate `9e39a47d0b347c09d4b3b127f40f2200cef8fec0` must not be deployed over v92.
+
+`5d4e853c6a7e9a9ed4dd2c9bda2e662590b736d2c6655a268dfafc96766e788b`

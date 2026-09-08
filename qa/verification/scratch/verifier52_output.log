@@ -1,0 +1,55 @@
+Committed as `d9153d97899b0826d801fc342c203ea5ff7b70ac` on `verify-416c14c-campaign112`. The four large source copies remain staged-but-uncommitted in the index (every unstaging verb was sandbox-gated); they are listed in `scratch/v52/.gitignore` and must not be committed — noted below for whoever touches this branch next. Nothing outside `qa/verification/` was modified; the candidate's `index.ts` is byte-identical to the start.
+
+---
+
+# VERIFIER #52 — CAMPAIGN #112 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (HEAD `416c14c7…` ✓ · scratch write ✓ · regex runner 13/0 ✓)
+
+## Provenance (Step 1) — BYTE-DIRECT on the source, confirmed
+`supabase functions list`: sem-ai-command **v92**, ACTIVE, `ezbr_sha256 33255b31…`, `updated_at 1788239725518`. Fresh `functions download` into an isolated scratch cwd → **321,370 bytes, sha256 `795c20c8…` == `git show c9dfab5bd433`**. My v92 model is built from the download, not the repo copy. Not recomputed: the `ezbr_sha256` bundle hash.
+
+## What I measured (all re-derived; nothing restated)
+| Item | Result |
+|---|---|
+| Deploy delta v92 → candidate | 1 file; LF-normalised **+1,756 / −53, 52 hunks**; this round vs c2a57ac **3+/3−**, zero new declarations |
+| Inherited prose arms | `claimsLifecycleClaim`+4 sites, `findEntityStateClaimContradiction`, `claims*Deleted`, `modelProposedPendingAction`, `PAST_COMPLETION_CLAIM_PATTERN` **byte-identical** |
+| Fourth overwrite path hunt | all 12 v92 `result.summary=` sites enumerated; only `stateClaimCorrections` is prose-driven outside the 3-arm model — byte-identical in both builds ⇒ parity by construction |
+| Differential, pack populated (2,315 rows, my corpus) | truths **941 keep / 144 shared / 308 RESCUE / 0 REGRESSION**; fabrications **512 / 348 GAIN / 60 parity / 2 REGRESSION** |
+| Structured consumer | identical table on all 2,315 rows |
+| Empty pack | TR 1 (disclosed `Archived Media Group`) / FR 91 (disclosed pack-conditional); **no other section moved** |
+| Negator-name quadrant | N-T 0 TR · N-F 2 FR (the two below) |
+| Matcher, 30 shapes | 0 destructive wrong binds; 13 deltas all legitimate binds or dead-ends |
+| V51-D1..D4 | closed; mutation: revert D1→264 TR, D3→46 FR, D2→8 FR, D4→22 TR |
+| Older fixes | all 5 load-bearing (ppInternal/R-AUXGAP via witness shapes) |
+| Q5 (#64 D16 ×11, #65 D25, #65 D27, #66 D40) | **0 shipped**, both consumers |
+| Battery | **38 suites / 36 exit-0 / 2 non-zero** (machine-posture tests) |
+| Gates | v30 25/1 · v31 32/2 · v42 11/2 · v47 **43/9** · v46 33/3 (e=2.39, 70.85 ms @4 KB) · v48–v51 all green · **v52 15/1** |
+| deno | **23 == baseline** (candidate and closure mutant) |
+
+## FOUND — the one open class: **V52-D1 (P2 fabrication regression, PACK POPULATED)**
+`Not Invented Here retrospective was archived.` / `Never Again incident report was archived.` / `Not for Profit Alliance was archived.` **ship with the name in the pack; v92 PAST corrects them.**
+**ROOT CAUSE:** the entity signal in `completionIsNegated` matches `negator + capitalised run` (or lowercase run up to an auxiliary) against `knownEntityNames`; a known name with a lowercase interior word or a lowercase tail — which is what task titles look like — is never recognised, so the negator reads as a genuine negation.
+**SIZE:** LOWER_TAIL titles **80/80**, LOWER_INTERIOR names **32/80**, control **0/40**; truthful twins destroyed **0/200**. This is the pack-populated sibling of V47-D2; the "production configuration populates the pack" argument does not reach it.
+**FIX PREPARED (scratch only, not applied — no write authority):** `scratch/v52/build_closure.mjs` — a `namePrefixHit` local tries every word-prefix of the run against the pack (positive-only). Measured: **0/200 ship, 0/200 truths lost, corpus TR 0 / FR 0, 16 extractor suites green, deno 23.**
+
+## Judgments the brief asked for
+- **(a)** `?\s*$` guards only imminent/FUTURE arms — `I archived X. Anything else?` **caught**. Cost: `I’m archiving X now. Anything else?` (28/30) ships — **v92 parity**, but c2a57ac caught it; structurally D117-class. Recorded as **V52-O1**, not a blocker.
+- **(b)** conditionals 0 TR; linkers 152/152 caught. **(c)** arrow past cap 22/22 caught; truthful arrow past cap = shared cost. **(d)** `Confirmed — I archived no companies except X` ships in **both** (parity). **(e)** confirmed.
+- Refused shapes (`No errors ACME…`, `No problem the log shows…`, `Not a single task moved - Bob Smith…`) are **caught lexically** — the refusal to add a casing rule costs nothing. `No North Depot was archived.` — destroyed by both (shared cost); the session's disclosure is correct.
+- CONTRACT 5 narrowing: **sound** (its COVERAGE checks are non-vacuous; my closure is exactly the permitted local and keeps run15 at 57/0). Re-pins (run18/19 D131, run28 D116): **honest** — each asserts fabrication caught AND paired truth preserved (capitalised spelling only). run14/D107: the "2000→2600 window" is stale — the budget is gone, fail-loud.
+- **Record corrections:** `v47 44/0`→43/9; `battery 36/0`→38/36/2; CRLF 6,015/6,016/1 bare CR; `open_deploy_blockers: []` is false on 416c14c.
+
+## BLOCKED (real gaps, not skipped)
+No browser tooling in this session → **UI/AI-chat truth checks BLOCKED**. `supabase db query` permission-gated → **`chat_channel_state` probe BLOCKED** (#50's read is prior evidence). `ezbr_sha256` not recomputed. 30-minute durable pendingAction bind not exercised.
+
+## Artifacts (commit `d9153d9` on `verify-416c14c-campaign112`)
+`qa/verification/proposed/v52_known_failure_modes_entry_118.md` · `v52_PROMOTION_NOTE.md` · `v52_regression_additions.mjs` (15/1 candidate, 16/0 closure, 14/2 and 11/5 on mutants — non-vacuous) · `qa/verification/scratch/v52/` (harness, 2,315-row corpus, differential, matcher, battery, mutation, witness, sizing, Q5 probe, closure builder, logs). Named `v52_*`, not the brief's `v48_*` — those names would overwrite verifier #48's live gate. Synthetic data: none created in production (no `QA-VERIFY-*` rows; all work was on bytes).
+
+## Deployability (Step 5)
+Candidate 416c14c is better than v92 on aggregate and destroys **no truthful answer v92 preserves** on 1,393 rows. It ships **one class** of fabrication v92 corrects, with the pack populated. Under the per-class rule that is a FAIL. **Every other class I could construct is closed or parity — I say so plainly.** Apply the prepared closure, re-measure on a corpus that was not already green, and hand the new exact SHA to a fresh verifier.
+
+**VERDICT: FAIL**
+**EDGE STATUS: NOT DEPLOYMENT READY** (production stays v92; rollback `c9dfab5bd433`)
+
+`4ee3a1f6fef2de87bb43e877d701e2245935711b0cb054683b2df89a44a21699`

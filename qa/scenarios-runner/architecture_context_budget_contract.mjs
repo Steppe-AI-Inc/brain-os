@@ -150,6 +150,27 @@ check('contextBudget is attached before the trim loop, not after it', src.indexO
     'loop=' + loopArgs + ' preflight=' + preflightArgs);
   check('the preflight estimator itself is unchanged', /function estimateTokens\(x: unknown\)\{ return Math\.ceil\(JSON\.stringify\(x\)\.length \/ 4\); \}/.test(src));
 }
+// Verifier #61 V61-D2: the head-first merge protected the named-this-turn rows from a head-slicing trim,
+// but not from the floor-0 pass, which empties companies/people/tasks/goals outright — and the turn still
+// shipped, so the founder got an answer built on a pack in which the entity they had just named was absent.
+// OPERATING_TRUTH_MODEL §4.4 lists "exact canonical entity and action state for the targets of this turn" as
+// minimum safe context, so the resolved rows are carried in their own protected key. A mutation proof showed
+// nothing asserted this: removing the key from the protected set left the whole battery green.
+check('the rows resolved from THIS turn are carried in their own protected key (V61-D2)',
+  src.includes('const namedTargets = {')
+  && src.includes('const pack = { continuity, namedTargets,')
+  && src.includes("'activeChannelId', 'namedTargets']"),
+  'namedTargets must exist, be placed in the pack, and be named in MINIMUM_SAFE_CONTEXT');
+check('namedTargets is never a trim candidate',
+  !src.slice(src.indexOf('const TRIM_ORDER'), src.indexOf('const contextTrimmed')).includes("['namedTargets',"));
+check('a history row cannot grow without bound (V61-D1)',
+  /const HISTORY_FIELD_CAP = \d+;/.test(src) && src.includes('the full text is stored on the work order')
+  // The cap has to be APPLIED, not merely defined: a mutation that left the constant in place and dropped
+  // the two call sites survived the first version of this check.
+  && src.includes('command: shorten(r.command), summary: shorten(summary)'),
+  'one long accepted turn must not be able to hard-stop every later turn in the channel');
+check('conversationHistory can reach zero in the final pass like any other tier-4 context (V61-D1b)',
+  src.includes("key === 'conversationHistory' && floor > 0 ? Math.max(1, floor) : floor"));
 check('a trim that cannot reach the budget is stated on the pack, not left to be inferred', /contextBudget\.overBudget = /.test(src) && /contextStillOverBudget/.test(src));
 check('harder trim passes exist for a byte-heavy, row-light workspace (V60-D1)', /for \(const floor of \[2, 0\]\)/.test(src));
 check('the rows named in this turn are merged at the head, where a head-slicing trim keeps them (V60-D2)',

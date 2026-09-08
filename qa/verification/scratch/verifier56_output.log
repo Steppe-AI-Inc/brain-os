@@ -1,0 +1,65 @@
+Commit `f3bc834a076ea5fa2cf773cc5485f3e3b67da602` on `verify-e79eb65-campaign116`; working tree clean; `index.ts` untouched. Nothing further needs to be requested — the campaign is complete. Final report follows.
+
+---
+
+# VERIFIER #56 — CAMPAIGN #116 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (HEAD `e79eb658…` ✓, scratch probe ✓, `architecture_final_claim_contract` 51/0 ✓).
+Starting commit recorded in `qa/verification/CURRENT_CAMPAIGN.json` (`verifier56_base_commit`). A prior interrupted pass of this verifier existed; its checkpoint was used only as a pointer — every number below was re-run in this process.
+
+```
+CHANGE VERIFIED: sem-ai-command P1 package (Operating Truth Model in the Edge runtime) — candidate e79eb658, deploy gate under the CONTRACT bar
+SCENARIOS: 24 passed, 6 failed, 3 blocked
+CANONICAL GRAPH: PASS (lifecycle RPCs, envelopes, postconditions, collection envelopes — all executed clean)
+UI ↔ DB: BLOCKED (no browser tools in this session type; web contracts 15/0, 7/0, join guard green — source level only)
+AI ↔ DB: FAIL (V56-D1: mutation-intent fabrications ship; V56-D3b: RPCs execute on "do not archive Alpha")
+DEPENDENCIES: PASS (archived-parent policy contract 15/0; no destructive cascade)
+PERMISSIONS: PASS at source level (denied envelope → truthful receipt, 5/5); live persona matrix BLOCKED (DB CLI gated)
+RELOAD/PERSISTENCE: PASS (work_orders.output persisted every turn with turnVerdict; durable row first; m14 killed)
+IDEMPOTENCY: PASS (already_active/already_archived truthful no-ops, no evidence; repeated cycles each truthful)
+```
+
+## STEP 1 — Provenance and delta
+- Deployed v92 == git `c9dfab5bd433`: index.ts sha256 `795c20c82301aba1…` (321,370 B) equals both in-tree reference copies. **Integration-level** link (Supabase CLI gated in this session; no live download by me).
+- Deploy surface is exactly `index.ts`: imports = deno std http + supabase-js only; **0** non-comment mentions of `_shared`. Delta: 108 hunks, +2,097/−99, 273 declared identifiers added, **0 removed** (session claim re-derived true).
+- `_shared/*` mirrors are NOT byte-identical to `web/lib/contracts` + `web/lib/policy` (93/33/98/51 differing lines); the drift guard both headers and OTM §4 cite does not exist (AUTHORITY_NOT_ENFORCED; not on the deploy surface).
+
+## STEP 2 — Contract conformance
+**FOUND**
+- **V56-D1 (P1)** — request-intent false negatives. `requestedIntent` (`:5387-5403`) is a head-verb regex behind a fixed prefix list. 9,712/11,880 generated mutation requests (81.8 %) and 68/71 hand-written phrasings derive no intent; with `claims:null` and no model action field the fabrication ships verbatim ("Could you please archive ACME", "Let’s archive ACME", "I need ACME archived", "can you please rename project Alpha to Beta", "Mark task QA-1 as done", "yes, archive it", "option two", "fire Bob", every Mongolian form). v92 corrected the same prose. Compounds BUG-010: the turn persists with `mutationIntent: null` and re-enters history as `verified: true`.
+- **V56-D2 (P1)** — request-intent false positives. 310/310 verb-headed read requests ("make a list of all companies", "update me on the project status", "create a report of archived companies", "set out the plan for…", "restore my memory: who is Bob?") derive intent and the truthful answer is replaced by "No change was made — …". Control (plain read heads) 0/100.
+- **V56-D3 (P1)** — the company command-name fallback runs whenever the model emitted no company ids/names, even when it resolved the command to a task/person/goal; fuzzy stage is all-tokens-substring. "delete Alpha" (+`deleteTaskIds`) archives **Alpha Holdings**; "remove Bob" archives **Bobcat Machinery**; "archive Q3 revenue" (goal) archives **Q3 Revenue Partners** — 5/5 with and 5/5 without the model field.
+- **V56-D3b (P1, worst shape, new this pass)** — non-imperative sentences execute lifecycle RPCs: 15/19 probes, including "**do not archive Alpha**", "**never delete Alpha**", "**I decided not to archive Alpha**", "did you archive Alpha?", "should I restore Beta?", "explain how to archive Alpha". The summary then reads "Alpha Holdings: archived."
+- **V56-D4 (P1 narrow)** — "archive Restored Furniture Co" archives then immediately restores (final state active); name-only attempts a restore instead.
+- **V56-D5 (P2)** — "Acme (Mongolia) LLC", "A_B Holdings", "100% Natural Foods" (command and `restoreCompanyNames`), "Acme, Inc." (`restoreCompanyNames`) refused as "no company by that name".
+
+**ROOT CAUSE** — one class: the contract's first two chain steps (structured intent, canonical resolution) are implemented as regexes over the raw command instead of structured output the model emits and the server validates. Head-verb regexes cannot see polite prefixes, subordinate clauses, questions, negation or another language; verb-anywhere regexes cannot tell a request from a mention.
+
+**SYSTEMIC IMPACT** — every unsupported-from-chat operation in ordinary phrasing (rename/approve/mark done/close…) ships a fabrication; every verb-headed question loses its answer; every company whose name shares a token with a task/person/goal named in an archive/delete/remove/end command — or in a *question* about one — can be archived without being asked. Company-only today (task/goal/person lifecycles still window-gated, no command fallback); the registered next lifecycle item would inherit the class if built the same way.
+
+**What is clean (re-derived):** receipt matrix on the shapes the regex covers 272/272 + 100 reads verbatim; verified envelopes render (22), unverified/denied never (66); 23 capped queries all `count:'exact'`, 23 pack arrays all enveloped, companies split active/archived newest-first; 34 literal-true `recordExecution` sites 0 ungated, create family via fresh RLS re-read; durable row first, expired/untyped rows do not bind (P3 residual: `lastTurnOutput.pendingAction` fallback is not TTL-guarded); `mutation_receipt_equals_ledger` 14/0; `company_lifecycle_matrix` 19/0; `grounding_precedence` 16/0.
+
+**Belt vs v92 (840-row own corpus, negator-initial names both directions, possessives incl. bare apostrophe):** with NO intent the belt rewrites nothing (LIFECYCLE 100 / FUTURE 15 only). Read-shape FAB_REGRESSION 140 = tense catches that no longer fire without intent — **intended departure**, conditional on D1 being fixed. Intent-shape TRUTH_REGRESSION 320 is the never-silent rule itself (receipt fires before the belt on every empty-ledger row) and largely a harness artefact of empty `lifecycleReports`.
+
+## STEP 3 — Suite integrity
+Battery from the filesystem: 55 suites (record said 53), 53 exit 0, 2 machine-posture reds; 5 self-declared SUPERSEDED stubs. Historical gates v48–v52/v54/v55 exit 0; v46 33/3, v53 33/1 = recorded standing reds. Mutation testing (16 mutants × whole battery, own run, sha asserted each time): 12 killed; **m10/m12/m13 survived** the committed battery (receipt keyed on attempted, silent nonexistent id, no status preference) and are killed by my suite's CONTRACT rows; original m6 was unfaithful, the faithful bare `companies(name)` join is killed. Harness judgement (V56-H1): the `'archive ACME Holdings'` default in run8/10–14 is faithful for belt-given-intent but no battery member exercised intent derivation on real phrasing — the coverage gap that let D1/D2 through. The 12 failures in my contract harness are harness-shape artefacts (production overwrites `result.summary` at `:4885`).
+
+## STEP 4 — TDZ / deno / bytes
+Own block-scope scanner: 1 "P0" at `:2388` = type-literal key (false positive); 1 deferred read safe (`UUID_IN_TEXT` `:5093`, decl `:5128`, earliest call `:5558`). CRLF 6,310 / 0 bare LF / 1 bare CR. **`deno check` BLOCKED** (npx gated; no TypeScript compiler on disk).
+
+**FIXED** — nothing (no write authority on `index.ts`; the fix is a design change). **FIX NOT PREPARED**; directions in `v56_PROMOTION_NOTE.md` (structured intent from the model schema validated server-side; command-name fallback gated on resolved intent + imperative shape or removed in favour of `archive/restoreCompanyNames`; escape `%_` and keep punctuation literal).
+
+**TESTED** — `qa/verification/proposed/v56_regression_additions.mjs`: 73 CONTRACT green / 56 DEFECT red by design (D1 22/22, D2 9/10, D3 5/5, D3b 10/10, D4 3/3, D5 7/8), exits non-zero, any-cwd, kills m1/m2b/m10/m12/m13. Ledger entry `v56_known_failure_modes_entry_126.md`. Commit `f3bc834a076ea5fa2cf773cc5485f3e3b67da602` on `verify-e79eb65-campaign116`.
+
+**PRODUCTION** — stays v92. No writes performed: no migration, no function deploy, no touch of `BUG_QUEUE`/`COVERAGE_LEDGER`/`FIXTURE_REGISTRY`/`HANDOFF_STATE`. No synthetic data created (no DB access this session).
+
+**BLOCKERS / could NOT measure** — `deno check` class decomposition; live CLI byte download; any browser/AI-chat turn (UI ↔ DB and AI ↔ DB verified at source-execution level only); live persona/RLS matrix.
+
+**Founder-approval section:** no pending DB migrations or actions from this campaign.
+
+## STEP 5 — Deployability call
+Candidate `e79eb658db6b5298f02977a8ce77719da16d4218` is **NOT fit to deploy over v92 under the contract bar**: mutation-intent fabrications ship on ordinary phrasing (D1); truthful read answers are rewritten on command shape (D2); lifecycle RPCs execute on requests nobody made, including explicit negatives (D3/D3b). The machinery behind those switches is sound.
+
+**VERDICT: FAIL**
+
+`4f5c85a920b77aa4d7ed9d04b19b16c00f0a78623eb937319f983e140994c01e`

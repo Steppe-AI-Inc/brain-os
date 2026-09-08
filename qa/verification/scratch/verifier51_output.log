@@ -1,0 +1,52 @@
+Nothing further is needed — every step is complete, the artifacts are committed (`be28d0514a6e` on `verify-c2a57ac-campaign111`), and the candidate bytes are byte-identical to the start. Final report follows.
+
+---
+
+# VERIFIER #51 — campaign #111 — candidate `c2a57ac5886be115f7eb0ad5c2c0e497567f3344`
+
+**PREFLIGHT: EXECUTION_READY** (HEAD = c2a57ac…; scratch write ok; regex runner 13/0). `deno check`: Found 23 == baseline.
+
+## STEP 1 — production bytes: **CONFIRMED, byte-direct on the source file**
+`functions list`: sem-ai-command **v92**, ACTIVE, `ezbr_sha256 33255b31…be4fe475`, `updated_at 1788239725518`. Read-only download into an isolated scratch cwd: 321,370 bytes, sha256 **795c20c8…1f88fc**, `Buffer.compare` with `git show c9dfab5bd433` → identical. Not recomputed: the eszip bundle hash (the CLI's link, not mine).
+
+## STEP 2 — my differential (own harness + own 1,846-row corpus: 899 T / 947 F; 18 ordinary, 20 negator names, 7 titles)
+
+| config | RESCUE | **TR** | GAIN | **FR** |
+|---|---|---|---|---|
+| populated / legacy / ungrounded | 164 | **22** | 96 | **20** |
+| empty pack | 163 | **23** | 26 | **79** (pack-conditional classes, disclosed) |
+| structured consumer | identical verdicts on all 1,846 rows | | | |
+
+- **(a) The option-(1) reversal is sound.** PA-T: 161 pendingAction-turn truthful recounts (46 markers incl. *none*/"already"/lowercase agents + 20 free forms): **0 destroyed**, both consumers, both packs. Cost = 14 PA-F rows both-ship = **v92 parity** (all four LIFECYCLE call sites carry `!modelProposedPendingAction`, byte-identical; `stateClaimCorrections` byte-identical; `result.pendingAction` never assigned before the consumers). Mutation: reverting the term re-destroys 155 truths.
+- **(f) confirmed** on #50's own instrument on these bytes: populated CLEAN; empty B-F 39 / C-T 1 / E-F 10.
+- Negator-name section both directions: **0 TR / 0 FR** with the pack. Dash-before-capital: preserved (one LIFECYCLE parity row), fabrications caught lexically. Matcher: 60 shapes, 22 differences vs v92, all legitimate.
+- Seven deploy questions: Q3 — YES, the belt's pendingAction short-circuit is deliberately reintroduced (disclosed, run8 D59 re-pinned). Q6 rollback exact. Q5 closures hold (46/0, 92/92, 29/29, 42/42).
+
+## STEP 3 — what is still open (each row: v92 preserves & candidate destroys, or v92 corrects & candidate ships)
+
+| id | class | size | sev |
+|---|---|---|---|
+| **V51-D1** | offer + trailing question **outside the guard list** — `Let me archive X — shall I go ahead? / do you want me to proceed? / should I? / would you like me to? / sound good? / confirm?`; belt imminent arm (81) + curly-apostrophe FUTURE arm (27) | **108 / 192** | **P1 truth** — the V50-D4 *class*; only its two witness rows were closed |
+| **V51-D3** | conditioned offer (`I will`) + ` so ` / ` then ` / ` & ` / `. Meanwhile ` / `. Also ` / linker + in-pack first-person completion | 36 / 44 | P2 fabrication — V50-D2 class |
+| **V51-D2** | `renamed: "<58+ char name>" -> …` straddling char 4,000 (v92's `.+` is unbounded; head lacks arrow, 4000−64 floor lacks `renamed:`) | 12 offsets | P3 fabrication — V50-D3 class for the unbounded arm |
+| **V51-D4** | `Confirmed — I archived nothing / none / no companies / nobody` (CONFIRMED arm's negation slice ends at the participle) | 8 / 10 | P3 truth |
+
+Closures measured (not applied — no write authority), each at **0 truths newly destroyed / 0 v92-corrected fabrications newly shipped** on 1,846 rows: D1 → guard stands down on `\?\s*$` / `reply yes` / `please confirm` at **both** sites (192/192 preserved; safe by construction since v92 has no imminent arm and its FUTURE arm needs an ASCII apostrophe); D3 → case-tolerant lead list on the anchor (44/44; conditionals preserved; a generic lead is unsafe); D2 → whole-summary renamed test when `length > 4000` (0/408 ship).
+
+Step 3/3b truth attacks (51 rows): **0 TR** with the pack; run31 shapes as the session disclosed; the three refused shapes are caught. Structured mode without pendingAction: verdict-identical to legacy on ungrounded turns; the grounded quadrant's 52 re-renders are the run8/D58 evidence re-render, not a belt defect (`hasResolvedEntities` derives from actual mutation ids, not from a name being mentioned).
+
+## STEP 3c / 4 — counts and suite integrity
+Battery: **38 suites / 36 exit-0 / 2 = DB machine tests**; no vacuous suite. Gates re-derived: v30 25/1, **v31 32/2, v42 11/2** (record says 33/1, 12/1), v47 43/9, v46 33/3 (e=2.56, bounded by the 4,000 cap), v48/v49/v50 green. Rewritten v49 C3 / v50 C4/C5 go **RED** on a term-dropped scratch copy (they observe the fix). CONTRACT 5 narrowed still catches a new top-level const; a `.map()`-local crashes run15 loudly. Mutation of this round's edits: 7/7 load-bearing (M5b by witness); earlier five: nameInternal 136, titleHead 2, ppInternal/R-AUXGAP/idiom-dash-strip by witness; the idiom strip's determiner form is a no-op on 11 witnesses (redundant, superseded by `newSubject`).
+
+## Could NOT measure
+Browser/AI-chat truth checks — **BLOCKED** (no browser tooling this session). `supabase db query` — **BLOCKED** (permission-gated; #50's read of `chat_channel_state` is prior evidence only). Live 30-minute durable bind; `ezbr_sha256` recompute.
+
+## Artifacts (committed `be28d0514a6ebe2e597366267c011a30dee87761` on `verify-c2a57ac-campaign111`)
+`qa/verification/proposed/v51_known_failure_modes_entry_118.md`, `v51_PROMOTION_NOTE.md`, `v51_regression_additions.mjs` (13/4 on candidate, D1–D4 red by design; 7/10 on 2f11ee1 — non-vacuous). Named `v51_*` deliberately: the template's `v48_*` names would have overwritten #48's live artifacts that the battery runs. Scratch: `qa/verification/scratch/v51/` (harness, corpus, all logs, download). No synthetic DB data was created; index.ts never edited.
+
+## STEP 5 — deployability
+Better than v92 on aggregate (164 truths rescued, 96 fabrications gained, 4 destructive mis-binds removed); worse on four named classes, one of them a P1 truth regression on the most natural offer phrasings an assistant produces. The rule is per-class.
+
+**VERDICT: FAIL**
+
+`4c52fc3e19baec60bf8ae7f68f3440e1f18ba00ed17792ea6fe2c99b1cd8fdd8`

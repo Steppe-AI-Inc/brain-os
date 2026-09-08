@@ -1,0 +1,4 @@
+[2026-09-07 13:44:47] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-894c958 max_attempts=6 expect_sha=b54c0d655933c8bd…
+[2026-09-07 13:44:47] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-894c958)
+[2026-09-07 14:30:11] attempt 1: exited rc=0 log_bytes=5528
+[2026-09-07 14:30:11] attempt 1: BLOCKED — EXECUTION_MODE (approval/plan-gate text in output). NOT retrying in the same mode; re-dispatch requires a mode decision by the Factory Director.

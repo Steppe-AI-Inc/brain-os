@@ -95,10 +95,10 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 121,
-  "verifier": 61,
+  "campaign": 122,
+  "verifier": 62,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "verifier #61 DISPATCHED on 4f44544 (index.ts 3d1baeaa) — the closure of every verifier #60 finding",
+  "status": "DISPATCH PENDING — verifier #62 on the #61 closure",
   "closure_commit": "7d462ec5ea980d55bf49fd8d7690def2c69f6d6d",
   "index_sha256_prefix": "5d4e853c6a7e9a9e",
   "branch": "p1/execution-truth-governance",
@@ -139,7 +139,8 @@
     "note": "per #53 gates_all.log: v48 58/0, v49 16/0, v50 16/0, v51 17/0, v52 16/0, v43 40/0, v44 118/0, v34 57/0, v35 55/0; standing reds v30 25/1, v31 32/2, v42 11/2, v47 43/9, v46 33/3; STALE-CORRECTED per #53: v32 98/3, v33 92/1, v36 60/1, v37 20/1, v38 27/2, v39 19/2, v40 76/1, v41 21/1, v45 51/3 - every red is the V48-D3 empty-pack first-person class (parity), a stale mutation anchor, or the deliberate #50 pendingAction decision"
   },
   "open_deploy_blockers": [
-    "verifier #61 has not run",
+    "verifier #62 has not run",
+    "V61-D11, V61-D4 and V61-D5 remain OPEN and are not closed by this candidate",
     "the previous authorization was scoped to bytes 715246f3 which breached the token budget in production; new bytes need a fresh founder ALLOW_FUNCTIONS_DEPLOY=1"
   ],
   "critical_path": "The structured-evidence work (canonicalById at index.ts:4769 as a POSITIVE-only name signal, pinned by verifier #39 as the deliberately-red V39-C-ENTITY test) is NO LONGER an agreed next improvement. It is ON THE CRITICAL PATH TO DEPLOY: blocker B is a truthful answer deployed v92 preserves and the candidate destroys, and it cannot be rescued by any pattern rule without re-opening fabrications v92 corrects.",
@@ -732,6 +733,23 @@
   "verifier60_closure": "All V60 findings closed on 3d1baeaa. v60 suite 22/0 (promoted). Mutation proof 9/9 killed. Intent corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0. v59 contract C4b REVERSED under the founder ruling that the model may add intent but never remove it; verifier #57 legitimate cases now carried by request-side evidence (composition requests, phrasal reads, imperative position) and v57 still measures 306/0. Ledger #135.",
   "verifier61_base_commit": "4f44544",
   "verifier61_index_sha256": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01",
-  "verifier61_status": "DISPATCHED",
-  "verifier61_index_sha256_at_start": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01"
+  "verifier61_status": "COMPLETE — FAIL",
+  "verifier61_index_sha256_at_start": "3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01",
+  "verifier61_verdict": "FAIL — NOT DEPLOYMENT READY. V61-D1/D2/D6/D7 (P1), V61-D3/D8/D9/D10/D11 (P2), V61-D4/D5 (P3). Artifacts: verify-4f44544-campaign121 @ a725c49.",
+  "verifier61_findings": [
+    "V61-D1 conversationHistory pinned above zero + unbounded history row: one long accepted turn permanently hard-stops the channel (measured 14,595 tokens on \"hi\")",
+    "V61-D2 the floor-0 pass empties companies/people/tasks/goals, discarding the entity named this turn while the turn still ships",
+    "V61-D6 22/22 ordinary Mongolian reads and statements read as mutation requests; truthful answers destroyed; v92 regression",
+    "V61-D7 29/29 English statements and noun phrases headed by an allow-listed verb read as commands",
+    "V61-D3 counts.<x>Shown goes stale against collections.<x>.shown after a trim",
+    "V61-D8 four postconditionPassed reads fail open",
+    "V61-D9 two plan branches report the postcondition from the write own return value",
+    "V61-D10 the preflight measures a compact serialization while the provider request is pretty-printed with the system prompt and an optional image (2.9-26x)",
+    "V61-D11 the named-entity lookups are ASCII-only, so Cyrillic names are invisible to them",
+    "V61-D4 the minimum-safe-context byte assertion is unreachable in practice",
+    "V61-D5 compactionCheckpoint.summary is untrimmable unbounded narrative (latent; no production writer yet)"
+  ],
+  "verifier61_closure": "V61-D1/D1b/D2/D3/D6/D7/D8/D9 closed on 118aeb41. v61 suite 23/0 (promoted). Mutation proof 19/19 killed, 0 survived — 4 initially survived and exposed three uncovered guards plus two assertions that checked machinery without checking its use. Corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0, v60 22/0, v92 parity 46/0. Ledger #136. V61-D10 also closed, but NOT as asked: measuring the real request against the 12,000 cap would have refused every turn, because SYSTEM_PROMPT alone is 18,824 tokens — 57% larger than that cap, which is therefore a pack-size policy cap and never was a request-size limit. Closed by naming two gates: pack budget (12,000, compact measure) and model context window (180,000, real request incl. system prompt and attached image, which previously bypassed every limit). Ledger 136b. STILL OPEN and carried to #62: V61-D11 (ASCII-only named lookups), V61-D4, V61-D5.",
+  "verifier62_index_sha256": "0af353b5267fafa6d4ed3b80c61d9a62838cbf3d43c0f3746eeed8d8b465648f",
+  "verifier62_status": "NOT DISPATCHED"
 }

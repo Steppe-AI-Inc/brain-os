@@ -207,3 +207,23 @@ export function withPatternsAboveWindow(source, slice) {
   // simply shadows the global.
   return decls.join('\n') + '\n' + REQUEST_SIDE_DEFAULTS + '\n' + slice;
 }
+
+// The context-budget block calls estimateRequestTokens(), which is defined OUTSIDE the block — it is
+// shared with the serve() preflight on purpose, so the two measurers cannot drift (verifier #61, V61-D10).
+// A suite that slices the block therefore has to bring the real definition with it. Both the function and
+// the system-prompt constant are taken from the source under test, never re-implemented here: the whole
+// point is that the harness measures what production measures.
+export function withRequestEstimator(source, slice) {
+  const lf = source.replace(/\r\n/g, '\n');
+  const fnStart = lf.indexOf('function estimateRequestTokens(');
+  if (fnStart < 0) throw new Error('estimateRequestTokens not found in the source under test');
+  const fnEnd = lf.indexOf('\n}', fnStart) + 2;
+  const fn = stripTS(lf.slice(fnStart, fnEnd));
+  // SYSTEM_PROMPT is a template literal thousands of characters long; its LENGTH is what the estimator
+  // uses, so measure the real one and inject the number rather than re-quoting the text.
+  const pStart = lf.indexOf('const SYSTEM_PROMPT = `');
+  const pEnd = lf.indexOf('`;', pStart);
+  if (pStart < 0 || pEnd < 0) throw new Error('SYSTEM_PROMPT not found in the source under test');
+  const promptLen = lf.slice(pStart + 'const SYSTEM_PROMPT = `'.length, pEnd).length;
+  return `const SYSTEM_PROMPT_TOKENS = Math.ceil(${promptLen} / 4);\n${fn}\n${slice}`;
+}

@@ -1,0 +1,53 @@
+All work is complete and committed (`85a0add` on `verify-712760d-campaign117`). Nothing further to request — the four `p1/v56_corpora/*.json` files still listed as modified are byte-identical to their HEAD blobs (restored via `git show`; `git diff --numstat` reports zero changed lines — an autocrlf stat artefact only), and `index.ts` re-hashes to the required sha. Final report follows.
+
+---
+
+# VERIFIER #57 — campaign #117 — candidate `712760dcb0d68b969b940d5175bbd76bf205ccb1`
+
+PREFLIGHT: EXECUTION_READY (HEAD `712760dc`; scratch probe ok; `architecture_final_claim_contract` 51/0).
+
+**Trust posture.** The implementing session's ledger (#119–#127), battery counts and mutation proof were treated as pointers only. Every number below is my own run against bytes I obtained myself; windows were sliced from the real `index.ts` through the repo's own detyper, never re-implemented. No production write of any kind; `index.ts` sha asserted before/after every in-place mutant and at the end.
+
+## FOUND
+
+| ID | Level | Finding |
+|---|---|---|
+| **V57-D1** | **FAILED (P1) — FIX PREPARED** | The request lexicon overrides the model's explicit `requestIntent.kind = 'other'` (the class the prompt itself assigns to drafting/conversational turns). Any lexicon verb *or verb-noun* anywhere in the command then derives intent and the truthful reply is replaced by "No change was made — …": drafting **20/20** ("draft an email to Bob about the merge", "write a memo on fire safety at ACME"), conversational **17/20** ("the fire drill is at 3pm", "I approve of this plan" → "…deciding an approval from chat is not available yet"), noun-phrase reads **7/15**, negations **8/12**. Only `kind = 'read'` vetoes (0/67 then). OTM §3 rule 2: text shape is the sole reason a truthful reply is rewritten, over the model's own structured classification. A truth regression vs v92 that is **not** an intended departure. |
+| **V57-D2** | FAILED (P2) — FIX PREPARED | The company command-fallback ignores `requestIntent.entityType`: "archive Alpha" with the model saying `{mutation, entityType: task\|person\|goal\|project, targetName: Alpha}` and no field archives the **company** Alpha (4/4), receipt "Alpha: archived." with no entity type. The gate comment claims this check; the code lacks it. Realistic via company/project name collisions. |
+| **V57-D3** | RESIDUAL (P2, conditional on the model omitting `requestIntent`) — FIX PREPARED | The "imperative-only" gate is a lead regex: with the model emitting nothing, **10/40** non-imperatives with an exact name execute ("I said not to archive Alpha", "suppose we restore Beta", "Someone removed Alpha", "Bob said to archive Alpha", "thinking about whether to archive Alpha"). With `kind read/other` it withholds 12/12. |
+| V57-D4 | RESIDUAL (P2, latent at scale) | Candidate lookup = `ilike` on the longest word, `limit(50)`: "restore AB Ltd" among 55 "… Ltd" rows is refused as unresolved. |
+| V57-D5 | RESIDUAL (P2, lexicon tier only) | With no model classification: own 4 680-row generator FN 1 574 (33.6 %) — "When you get a moment, please archive ACME" 180/180 (`when` lead read-shaped), "archive ACME?" 180/180, "get ACME archived" 180/180, typos, DE/RU; slang 31/50. With `kind = mutation`: **0/4 680, 0/50**. |
+| V57-D6 | RESIDUAL (P3) | Misleading receipt reason on negations; lifecycle `commandIsQuestion` lacks the polite exemption; compound command with the model emitting nothing drops the 2nd clause silently; opposite-direction model field executes the model's direction; 1-char names; receipt lines carry no entity type (§4.2); legacy `context.counts` array-length fallbacks still referenced by the prompt. |
+
+## ROOT CAUSE
+The closure made structured `requestIntent` tier 1 and the lexicon tier 2 but wired the veto asymmetrically (`read` outranks the lexicon, `other` does not) — on exactly the turns the prompt labels `other`, the lexicon is again the sole decider. The lifecycle gate checks lead words and model *fields*, not the model's *classification* or sentence mood. Same shape #56 named: a regex standing in for structured intent.
+
+## SYSTEMIC IMPACT
+Every non-mutation Brain Chat turn containing *hire/fire/merge/split/approve/reject/archive/remove/invite/enable/promote/reopen…* as noun or verb, when the model classifies it `other`, gets a non-sequitur receipt instead of its answer. Reversible-and-visible wrong-entity archive on bare-name collisions (D2). No fabrication ships through any shape I could construct when the model classifies the request; the lexicon-only tier ships 33.6 % of my generator when it does not.
+
+## FIXED
+Nothing applied (no write authority on `index.ts`). **FIX PREPARED**: `qa/verification/scratch/v57/v57_fix.mjs` → `index.fixed.ts` (sha256 `5d28ba3aea9b28bdfa0a9615243935167b00331f069b4b697e3aaf1d68070a03`): F1 `other` vetoes the lexicon like `read`; F2 fallback withheld unless `entityType ∈ {null, company, other}`; F3 tightened non-imperative leads (first draft withheld "archive Restored Furniture Co" — caught by my own C7 rows, narrowed). On the fixed bytes: FP on `other` 0/20, 0/20, 0/15, 0/12; FN with `mutation` 0; lifecycle attack 195/4 (only D4 + 1-char names remain); receipt matrix 691/0; 24 `SEM_INDEX_SRC` battery members + #56's 4 generators + my 2 suites **32/32**; `v57_regression_additions` **306/0**.
+
+## TESTED (own runs, this session)
+- **Provenance / delta:** git `c9dfab5bd433` index.ts sha `795c20c8…` == both in-tree v92 copies (INTEGRATION level; CLI gated). LF-normalised delta 111 hunks +2 208/−101; identifiers 511→847, **336 added, 0 removed**; imports identical; 0 `_shared` imports (surface = `index.ts`); raw 531 565 B, 6 419 CRLF, 0 bare LF, 1 bare CR (comment). Mirrors: names agree, bytes differ; OTM §4 drift guard still absent.
+- **Battery:** 56 suites: 54 exit 0, 2 machine-posture reds. Gates v48–v52/v54–v56 green; v46 33/3, v53 33/1 = recorded standing reds. #56 mutation proof **8/8**; #56 generators FN 62/11 880 (generator artefacts), FP 0/310, control 0/100, question probe 0/19.
+- **2A** receipt matrix **691/0** (544 mutation-intent cases incl. historical/contradicted/nonexistent-id claims + pendingAction + questions[]; 660 reads verbatim; 24 verified render; 96 unverified/denied/postcondition-false never claim; mixed verified+fabricated). **2C** lifecycle 185/199 (the 14 = D3/D4/1-char). **2D/2F/2G** 33/0 (envelope helper executed; 23 arrays enveloped; 23 `count:'exact'`; 34 literal-true sites all gated; RPC create family re-read). **2E** 29/0 (UNVERIFIED marking, `verified:null`, durable > stored, TTLs, persist unconditional). **2H** 1 000-row corpus: three-arm prose path **TRUTH_REGRESSION 0** both packs, FAB_REGRESSION 60 empty-pack only (disclosed possessive class); NO intent 0/1 000 rewritten; intent+empty ledger RECEIPT 1 000/1 000 (INTENDED); read shape FAB_REGRESSION 276/452 (INTENDED, 61 %).
+- **Step 3:** harness defaults faithful (belt suites assert the belt flag; their "preserved" rows are now no-intent invariants). Vacuity **15/21 killed**; genuine survivors: same-file hand-written join (guard granularity), model-`read` veto, negated-lead gate, `turnVerdict.mutationIntent`, stored-pendingAction TTL — the last four killed **4/4** by `v57_regression_additions` on mutant copies.
+- **Step 4:** block-scope scan: 0 synchronous TDZ (1 type-literal false positive at :2404, 1 safe deferred read); CRLF-pure. `deno check` **BLOCKED** (npx gated; no deno/tsc on disk).
+- Regression: `qa/verification/proposed/v57_regression_additions.mjs` 277 CONTRACT green / 29 DEFECT red by design / 8 RESIDUAL printed; runs from `qa/verification` and via `SEM_INDEX_SRC`.
+
+Skill-format summary: SCENARIOS 7 families executed (2A–2H, 3, 4) — 5 clean, 2 with defects (2B, 2C), 3 BLOCKED (deno, live provenance, browser/AI-chat) · CANONICAL GRAPH n/a (no DB writes this campaign) · UI↔DB BLOCKED (no browser) · AI↔DB: **FAIL** (D1) · DEPENDENCIES PASS · PERMISSIONS n/a · RELOAD/PERSISTENCE PASS · IDEMPOTENCY PASS.
+
+## PRODUCTION
+Untouched. Production stays v92 (`c9dfab5bd433`, sha `795c20c8…`). No function deploy, no db push, no migration, no Work-PC file written. Commit on the artifact branch: `85a0add` (verify-712760d-campaign117): ledger entry `v57_known_failure_modes_entry_128.md`, `v57_PROMOTION_NOTE.md`, `v57_regression_additions.mjs`, `scratch/v57/*`, `CURRENT_CAMPAIGN.json` (`verifier57_*`).
+
+## BLOCKERS
+- Deploy blocked on **V57-D1 (P1)**; D2/D3 fixes prepared alongside. Apply F1/F2/F3 (or any shape satisfying the DEFECT rows by outcome), promote the regression file, re-dispatch a fresh verifier on the new SHA.
+- Coverage gaps (not silently skipped): `deno check` BLOCKED; live CLI download BLOCKED; **no browser / AI-chat turn possible in this session type** — the model's `requestIntent` compliance rate, on which every P2 residual leans, is unmeasured live.
+- Synthetic data: none created (all harness runs were in-process against sliced windows and stub clients; no `QA-VERIFY-*` rows exist to clean up).
+
+**EDGE STATUS = NOT DEPLOYMENT READY.**
+
+**VERDICT: FAIL**
+
+index.ts sha256: `ccde932fa5b1aeca77cb91d730df89ea16c100432d83dd80782b4217b85fe871`

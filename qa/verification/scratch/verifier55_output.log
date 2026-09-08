@@ -1,0 +1,39 @@
+## VERIFIER #55 — campaign #115 — final report
+
+**PREFLIGHT: EXECUTION_READY** (A: `1d720188fd1290f0855d58c8ad83c4910ea68900`; B: scratch probe ok; C: regex suite 13/0). Starting commit recorded at the top of `qa/verification/CURRENT_CAMPAIGN.json`; checkpointed after every phase (18 findings).
+
+### Verdict
+
+**FAIL**
+
+Sole blocker — **V55-D1 (P1, narrow, fix prepared):** a fabrication deployed v92 corrects ships from the candidate *with the entity pack populated*: the bare-apostrophe possessive of a negator-initial name that ends in **s** — `Nothing Bundt Cakes' account has been deleted.`, `No Frills Foods’ record was archived.` Every possessive strip in the belt is `/['’]s$/` (7 sites), which does not remove a bare trailing apostrophe, so the pack lookup misses, `nameInternal` is false, and the leading `Nothing`/`No` disarms the clause. Sized on an 864-row generator: `'s`/`’s` forms 0/180 shipped with the pack; `s'`/`s’` forms **72/180** shipped. v92's PAST arm catches 24/24 of the pinned rows. The record's basis for accepting the possessive residual ("pack-conditional") is false for this sub-form. Prepared fix `/['’]s$|(?<=s)['’]$/` at all 7 sites: measured in memory, 72 → 0, **zero** truthful rows destroyed on both corpora, exactly one verdict moves on the 915-row corpus. Not applied (no write authority on `index.ts`).
+
+### What I measured (re-derived, all from bytes I obtained)
+
+| item | result | level |
+|---|---|---|
+| V54-P0-TDZ | own block-scope scanner: candidate **0** synchronous use-before-declaration; `8eb8cbd` reproduces the 2 at `:2779`; v92 0. One deferred closure read (`UUID_IN_TEXT` :4875, decl :4910, first invocation :5317) — safe | UNIT VERIFIED |
+| deno class decomposition | **BLOCKED** — `npx`/`deno`/`supabase` CLI all gated in this session | BLOCKED |
+| Provenance | git `c9dfab5bd433` = `795c20c8…` (321,370 B) = LF-normalised bytes of both prior in-tree downloads (325,682 B CRLF). Integration-level; I could not download live | INTEGRATION VERIFIED |
+| Delta | 79 hunks, +1,761/−54 lines LF-normalised; 211 declared identifiers added, **0 removed**; imports identical; deploy surface = one file; nothing reintroduced | CODE INSPECTED |
+| Shared arms | `PAST_COMPLETION_CLAIM_PATTERN`, `claimsLifecycleClaim`, `findEntityStateClaimContradiction`, all `claims*Deleted`, both state-claim call-site windows byte-identical. `FUTURE_PROMISE_PATTERN` differs (curly-apostrophe widening = rescue; conditioned-offer stand-down = founder ruling) | CODE INSPECTED |
+| Fourth path (#54) | byte-identical function **and** call sites; it can only make v92 preserve more, so every quadrant was also computed with LIFECYCLE cancelled on both sides — truth-regression count unchanged | UNIT VERIFIED |
+| Prose differential, own 915-row corpus | empty pack: **TR 0**, FR 11 (disclosed possessive), TRUTH_RESCUE 225–287, FAB_RESCUE 41. Populated: **TR 1** (V53-O1, disclosed), **FR 3** (1 = V55-D1, 2 = empty-pack rows by construction). Negator-name section: 0 regression in either direction | UNIT VERIFIED |
+| Matcher, 38 shapes | 25 same / 13 differ, all intended and in the candidate's favour, incl. `not ACME Corp` which **v92 arms**; replay branch executes on every shape | UNIT VERIFIED |
+| Mutation proofs, 18 mutants | `nameInternal` 42/57 re-open, `titleHead` 6/0, `newSubject` 2/2 (it catches the three "refused" shapes — moot, parity), idiom strip 2/2, conditioned-offer stand-down 1 truth, `ppInternal` load-bearing on the "with no active tasks" fab; R-AUXGAP no marginal effect on my shapes (parity residual) | UNIT VERIFIED |
+| Battery | 38 files, one child each: 36 exit 0, 2 machine-posture by design; run15 57/0, D117 invariant enforced by a throw; standing reds v30 25/1 … v47 43/9 all re-derive to the known classes and match the record exactly | UNIT VERIFIED |
+| Runtime | "no length cap" is **wrong**: 4,000-char slice + 64-char tail; worst path 17.7 ms at 3.9k chars | UNIT VERIFIED |
+| CONTRACT 5 narrowing | honest, non-vacuous; dual hazard covered by the TDZ contract + nine suites injecting patterns above the window (= production's scope) | CODE INSPECTED |
+| Re-pins (D116, D131×2, D107) | honest; both directions pinned; D107 has no width budget (the "2600" in the prompt is stale) | UNIT VERIFIED |
+
+### Residuals accepted, with size
+V53-O1 (1 row, pack-conditional, founder-level); empty-pack possessive 192/360 (production populates the pack); V55-R1 `I've/I’ve archived X` ships in **both** builds (parity); third-person history parity; structured-mode re-render (candidate-only design, CODE INSPECTED only); no live chat turn observable.
+
+### Artifacts
+Committed **locally** on `verify-1d72018-campaign115` as `2602a3f`: `qa/verification/proposed/v55_known_failure_modes_entry_118.md`, `v55_PROMOTION_NOTE.md`, `v55_regression_additions.mjs` (18 CONTRACT green + 1 DEFECT red by design, exit 1; 19/0 expected on the fixed bytes), `scratch/v55/*`, `CURRENT_CAMPAIGN.json`. The prompt's `v48_*` names collide with verifier #48's files, so mine are `v55_*`; #48's file byte-restored from HEAD. **`git push` is gated in this session — the branch is not pushed.** Nothing was deployed; no migration touched; no write to production.
+
+**Deployability call:** not fit to deploy over v92 as-is by the gate's own categorical rule; after the one-regex fix and a re-run of `v55_regression_additions.mjs` (expect 19/0) plus a real `deno check` class decomposition, nothing else in this round's evidence stands between the belt and DEPLOYMENT READY.
+
+**VERDICT: FAIL**
+
+index.ts sha256: `2bad0df120fef86c34e544081e30bc0c492947a7ddbe93b6b5c0bd29f8dad84a`

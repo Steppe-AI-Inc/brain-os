@@ -1,0 +1,39 @@
+Nothing further is needed — every step of the campaign is complete and committed (`277abeb` on `verify-821f530-campaign119`, parent `821f5308`), the working tree is clean, and the deploy surface is byte-identical to the candidate. Final report follows.
+
+# VERIFIER #59 — CAMPAIGN #119 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (HEAD `821f5308…`, scratch probe ok, `architecture_final_claim_contract` 51/0).
+
+```
+FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+```
+
+**FOUND.** No defect on the designed chain. Six findings, all in the tier where the model emits *nothing* structured (no `requestIntent`, no action array) and still writes completion prose, plus one broken QA suite:
+
+| ID | Sev | What (INTEGRATION/UNIT VERIFIED through the real windows) |
+|---|---|---|
+| V59-D1 | P2 | `bring back` is in `RESTORE_VERB_PATTERN` (:259) and `IMPERATIVE_HEAD_RE` (:3417) but not in the request lexicon (:5515). `bring back Gamma` (no company noun, no such row) → `requestedIntent === null` → "Gamma is back — restored." ships. Same for causative `get Alpha archived`. |
+| V59-D2 | P3 | VACUOUS_GUARD: `IMPERATIVE_HEAD_RE` admits `do me a favour and …` and an imperative last clause (`list the tasks, then archive Alpha`), but `commandReadLead` (:3411) vetoes any `do`/`list`-headed command — both allowances dead (fails closed). `READ_SHAPE` (:5525) kills the intent at the same head, so the fabrication ships; bare `do not archive Alpha` loses its "you asked me not to" receipt the same way. |
+| V59-D3 | P3 | VACUOUS_GUARD: Cyrillic alternatives in `IMPERATIVE_HEAD_RE` are followed by ASCII-only `\b` under `/u` and Mongolian is verb-final — all three unreachable. Founder gets a receipt (not silent) with the wrong reason. With the model's classification all execute once. |
+| V59-D4 | P3 | Receipt entity defaults to "company" for `restore task QA-7` / `archive the goal Growth` / `restore the person Bob` when the model gave no entityType/field. |
+| V59-D5 | P3 residual | Lexicon FP with no model classification: 8/64 ordinary reads, 111/800 verb-headed reads replaced; 0 when the model classifies. |
+| V59-S1 | P2 suite | `architecture_lifecycle_rpc_only_contract.mjs` cannot load (real CR/LF bytes inside `/\r\n/g`). Ledger #131's "31/31" was never observed on committed bytes. Byte-repaired copy: 31/0. |
+| V59-R2 | residual | Durable pendingAction reader has no source-freshness check; a row orphaned by a swallowed write error (:6448)/lost CAS race binds a later "yes" ≤30 min. Contract mandates the tier order; fix shape noted. |
+
+**ROOT CAUSE.** The last of three request-side intent tiers (the lexicon) and the English command fallback are text heuristics with unmeasured alternatives — the ledger's recurring vacuous-guard class. The primary tier (structured `requestIntent` + action arrays) is clean: 0 FN on 18,720 generated + 40 hand + 27 chain commands, Mongolian included.
+
+**SYSTEMIC IMPACT.** None on the designed chain. Measured: receipt matrix 340 fabrications → 335 receipts, 0 structural, 4 shipped (all D1); 128 reads → 0 rewritten with model classification; 22/22 verified envelopes render, 88/88 unverified/denied never; lifecycle attack 234/240 (6 = D2/D3 dead alternatives + D4); belt-vs-v92 on my 576-sentence corpus: **0 truth regressions, 0 fab regressions**, 74/49 improvements; end-to-end with intent 0 fabrications ship; no intent 0 rewrites (intended departure: v92 would have text-corrected 126/244 — sized). Collections all enveloped; persist-every-turn; precedence tier 3>4; create family re-read; 34 `true` literals all gated. Harness judgement: no `_gate_extract` default hides a class (every consumer window shadows the globals; run8/10–14 mutation-intent default faithful; SUPERSEDED pins and run11/run8/P6/E inversions follow OTM literally). **Vacuity: 16/16 mutants killed** (the seven named + nine mine; in-place swap, sha-restored). No context-window gate remains on any lifecycle field (`deleteTaskIds`/`pendingDeleteTaskIds` gated by design — conformant).
+
+**FIXED.** Nothing applied to the candidate. **FIX PREPARED** `qa/verification/proposed/v59_hardening.patch` (6 anchors, 25 lines) closing D1–D4; measured on patched bytes: battery 56/56, gates v48–v58 green, receipt matrix 340/340, model-absent no-intent 12.2 % → 6.7 %, belt 0/0, my suite 83/1. (My first draft's capture-group omission was caught only by measuring — recorded.)
+
+**TESTED.** Battery 58 suites: 55 exit 0, 2 recorded machine-posture reds, 1 crash (S1). Gates v48–v58 green; v46/v53 standing reds unchanged. `v59_regression_additions.mjs` 72/12 on the candidate (12 = DEFECT pins, red by design), 83/1 on the patch. TDZ: shadow-aware scan over 945 declarations, 0 same-block hazards, all 21 new sites clean; windows execute in V8. CRLF-pure, 0 bare LF, 539,535 B. `_shared/*` not imported (deploy surface = index.ts); 355 identifiers added / 0 removed vs v92.
+
+**PRODUCTION.** Not touched. v92 provenance: recorded download 795c20c8… == git `c9dfab5bd433` (integration-level).
+
+**BLOCKERS / NOT MEASURED.** `deno check` (no binary, `npx` gated) — BLOCKED; live DB / live function bytes / deployed UI / live AI chat (CLI + browser tools gated) — BLOCKED, disclosed as coverage gaps. Synthetic data: none created (all evidence from stubbed windows; no `QA-VERIFY-*` rows exist to clean).
+
+**Outputs** (committed `277abeb`): `v59_known_failure_modes_entry_132.md`, `v59_PROMOTION_NOTE.md`, `v59_regression_additions.mjs`, `v59_hardening.patch`, `v59_lifecycle_rpc_only_contract_repaired.mjs`, `scratch/v59/*`, checkpoint in `CURRENT_CAMPAIGN.json`. Work-PC files untouched.
+
+**VERDICT: PASS — EDGE STATUS = DEPLOYMENT READY (contract bar).** Deploy authorisation requested for exactly `821f5308a0ce9c9d624c6139ee65e25b37c4b35f`. Residuals D1–D5/R2/R3 sized above are hardening (model-emits-nothing tier / QA file), not blockers; the patch is optional-next and yields a new SHA for verifier #60.
+
+index.ts sha256: **715246f3be9710b74193529ce9c07d44a6f3ad3739f132b6216ac04e8f519aa9**
