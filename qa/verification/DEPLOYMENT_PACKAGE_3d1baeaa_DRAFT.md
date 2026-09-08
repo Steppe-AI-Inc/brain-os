@@ -1,8 +1,8 @@
-# Production deployment package — Edge candidate `4f44544` — DRAFT, NOT AUTHORIZED
+# Production deployment package — Edge candidate `c30a0cc` — DRAFT, NOT AUTHORIZED
 
-**Status: DRAFT pending verifier #61.** Nothing here is deployed and nothing may be deployed on the strength
+**Status: DRAFT pending verifier #62.** Nothing here is deployed and nothing may be deployed on the strength
 of this document. It exists so that a PASS needs only the verdict attached rather than an hour of assembly.
-If verifier #61 returns FAIL, this draft is void and is replaced, exactly as the previous package was.
+If verifier #62 returns FAIL, this draft is void and is replaced, exactly as the previous package was.
 
 **The previous authorization is void and its bytes are known bad.** `ALLOW_FUNCTIONS_DEPLOY=1` of 2026-09-08
 was scoped to commit `821f5308…` / index.ts `715246f3…`. Those bytes were deployed as v93, breached the token
@@ -13,12 +13,12 @@ below needs a **fresh** founder authorization scoped to its own exact bytes.
 
 | Item | Value |
 |---|---|
-| Candidate commit | `4f44544ede88aaeb974d92089a79c1793442d54a` (branch `p1/execution-truth-governance`) — the commit verifier #61 was dispatched on; `736d150` carries the identical deploy surface |
+| Candidate commit | `c30a0cc09d37d985fa50ff14fc0335a48e342f6f` (branch `p1/execution-truth-governance`) — the commit verifier #62 was dispatched on; `736d150` carries the identical deploy surface |
 | Deploy surface | exactly `supabase/functions/sem-ai-command/index.ts` |
-| Edge source sha256 | `3d1baeaae994fdd767ada797a20476556458731047f6e5061bec057f72ca6d01` (CRLF-pure, 0 bare LF) |
+| Edge source sha256 | `0af353b5267fafa6d4ed3b80c61d9a62838cbf3d43c0f3746eeed8d8b465648f` (CRLF-pure, 0 bare LF) |
 | Migrations in this package | none |
 | Web changes in this package | none deployed; unchanged this round |
-| Independent verifier | **#61, campaign #121, RUNNING** on `4f44544`. No verdict yet. |
+| Independent verifier | **#62, campaign #122, RUNNING** on `c30a0cc`. No verdict yet. Verifiers #60 and #61 both FAILED their candidates; #62 is the third attempt at this gate. |
 
 ## 2. Production today
 
@@ -50,6 +50,22 @@ the plan executor and passed to the evidence ledger, instead of the literal `tru
 
 **The vacuous-guard class (verifier #60, P2).** The collection-envelope contract enumerates every key in the
 pack literal instead of pattern-matching value shapes, so a key nobody classified fails loudly.
+
+## 3b. What two more verifier rounds changed
+
+Verifier #60 and verifier #61 both FAILED, and between them they found eight defects the previous rounds had
+not: the trim floor counted rows rather than bytes, the budget discarded the entity the founder had just
+named, the model could veto the truth gate that policed it, 33 of 37 ordinary business imperatives were
+outside the request lexicon, one long answer could permanently hard-stop a channel, and 22 Mongolian and 29
+English statements were read as commands. Two of those were caused by the previous round own fixes. All are
+closed and pinned by 19 mutants.
+
+The most consequential correction was not a defect at all. Verifier #61 asked for the preflight to measure
+the request as actually serialized; measuring it showed that doing so would refuse every turn in the product,
+because SYSTEM_PROMPT is 18,824 tokens — 57% larger than the 12,000 cap that three campaigns had reasoned
+about as though it were the model limit. It is a pack-size policy cap. The candidate now names two gates:
+the pack budget (12,000, compact measure) and the model context window (180,000, the real request including
+the system prompt and any attached image, which until now bypassed every limit in the function).
 
 ## 4. Known deliberate gaps (registered, not part of this deployment claim)
 
