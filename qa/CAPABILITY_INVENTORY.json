@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-08T15:42:00Z",
+  "generated_at": "2026-09-08T15:47:00Z",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
   "status_values": [
@@ -2280,11 +2280,22 @@
         "dashboard_decisions": "PASS (0)",
         "companies": "FAIL (14 = whole workspace)",
         "dashboard_active_companies": "FAIL (14)",
-        "brain_chat": "FAIL (names a different anchor org; reports the workspace total as \"your organization\")"
+        "brain_chat": "FAIL (names a different anchor org; reports the workspace total as \"your organization\")",
+        "companies/archived": "FAIL (9 = all archived workspace-wide)",
+        "tasks/archived": "FAIL (5 foreign tasks while /tasks scopes)",
+        "ai-assistants": "FAIL (18 = all people while /people scopes)",
+        "memory": "PASS",
+        "finance": "PASS",
+        "sales": "PASS",
+        "products": "PASS",
+        "inventory": "PASS",
+        "engineering": "PASS",
+        "billing": "AMBIGUOUS - workspace-level by design?"
       },
       "evidence": "Selected CLIX GPS in the sidebar \"Current organization\" control, then visited /people, /projects, /companies, /goals, /dashboard and a fresh chat channel (e6a9225c-4834-4e0b-a88a-b0a5993bbd77). The selector persisted on every page.",
       "security_note": "No cross-org LEAK observed for the founder (who legitimately sees everything). The finding is that the selector is a UI view filter, not a tenant boundary, and the AI layer never receives it. Persona-level (non-founder) isolation is the real TEAM-READY gate and is still BLOCKED (CAP-BROWSER-PERSONA-MULTIUSER).",
-      "evidence_2026_09_08": "Re-run on the Home-PC adversarial fixture pair CFWO-Adv Co A / Co B under EDGE v94 (v92 source) / WEB SHA UNKNOWN. 9 surfaces scope correctly, 2 do not, both company-count surfaces. See BUG-015.matrix_2026_09_08."
+      "evidence_2026_09_08": "Re-run on the Home-PC adversarial fixture pair CFWO-Adv Co A / Co B under EDGE v94 (v92 source) / WEB SHA UNKNOWN. 9 surfaces scope correctly, 2 do not, both company-count surfaces. See BUG-015.matrix_2026_09_08.",
+      "class_sweep_2026_09_08": "13 surfaces scope correctly; 5 do not (/companies, /companies/archived, dashboard Active Companies, /tasks/archived, /ai-assistants); /billing ambiguous by design. See BUG-015.class_sweep_2026_09_08."
     },
     {
       "capability_id": "CAP-PERSON-RESTORE-EMPLOYMENT-UI",
@@ -2492,6 +2503,24 @@
       "added_by": "work-pc-independent-qa 2026-09-07",
       "evidence": "Setup (registered fixtures): assign employee to partial \"QA-MULTI\" -> Brain offers substitute QA-C002-RENAMED-X (BUG-020). Safety assertion held at 12:56:40Z: all QA companies active. \"confirm\" (channel be235058): re-asked honestly, even citing the candidate id (8fdad6e2-...); no binding, no mutation.",
       "caveat": "PASS on safety and non-binding; the assign flow still cannot complete."
+    },
+    {
+      "capability_id": "CAP-DEVELOPER-MODE-AUTHORIZATION",
+      "domain": "security",
+      "resource": "developer_mode",
+      "operation": "authorization_boundary",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "PERMISSION"
+      ],
+      "scenario_ids": [],
+      "status": "BLOCKED",
+      "tested_against_sha": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "blocked_reason": "FEATURE ABSENT. \"Developer Mode\" was requested as a priority-7 authorization-boundary test, but it does not exist in the product: a full-tree search of origin/master for developer.mode / devMode / isDeveloper / developer_mode across web/ and supabase/ returns zero matches, and no such control appears on /settings (which offers only Providers, MCP Connectors, Usage). Recorded BLOCKED-feature-absent rather than invented as a test or silently skipped. If Developer Mode exists under another name, the Home PC should name it and this capability will be executed.",
+      "added_by": "work-pc-independent-qa 2026-09-08"
     }
   ]
 }

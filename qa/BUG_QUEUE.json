@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-08T15:42:00Z",
+  "last_updated": "2026-09-08T15:47:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -824,7 +824,7 @@
       "blast_radius": "None - read-only sweep.",
       "severity_reasoning": "P2: no data exposure for the founder; but a team member who reads the selector as \"I am inside CLIX GPS\" will get workspace-wide answers from Brain and the companies page. This is a truth-consistency defect across surfaces and a prerequisite for any team rollout.",
       "team_ready_gate": "Real tenant isolation must be proven with a NON-founder persona (RLS/membership), which remains BLOCKED from this seat (CAP-BROWSER-PERSONA-MULTIUSER). Do not treat this bug's fix as proof of isolation.",
-      "regression_requirement": "Select an org with exactly one company and no children; assert /companies rows == 1 and the dashboard Active Companies KPI == 1, alongside the already-correct people/projects/tasks/goals/documents/approvals/departments surfaces; and assert a fresh Brain channel either names the selected org or states explicitly that its answer is workspace-wide.",
+      "regression_requirement": "Select an org with exactly one company, no people, no tasks. Assert ALL of: /companies rows == 1; /companies/archived rows == 0; dashboard Active Companies == 1; /tasks/archived rows == 0; /ai-assistants rows == 0 - alongside the 13 surfaces that already pass. Decide and encode whether /billing is workspace-level by design.",
       "_qa_boundary": "Work PC did not modify product code.",
       "matrix_2026_09_08": {
         "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
@@ -848,7 +848,41 @@
         "ai_axis": "Fresh channel b8cbad7e-673e-42e4-ab94-ffd50a8e336c with CFWO-Adv Co A selected: \"Which organization am I currently working in, and how many companies exist in it?\" -> \"You're working in a multi-company holding system anchored by SEM Technologies LLC. There are 23 companies total in your organization.\" WRONG TWICE: (a) names a different anchor org than the one selected - Brain still receives no selection signal; (b) reports the WORKSPACE total (14 active + 9 archived = 23) while calling it \"your organization\". The count itself is arithmetically right, which is an improvement on the 2026-09-07 fabricated split (BUG-024), but it is scoped to the wrong thing and labelled as if it were not.",
         "not_a_leak": "The account under test is the FOUNDER, who legitimately sees every company. Nothing here is an authorization failure. It is a scope-consistency and labelling failure. A non-founder persona test remains BLOCKED (no second credential).",
         "token_preflight": "Did NOT fire on either turn (no HTTP 413) - recorded per the Home-PC request to report tokenEstimate sightings. The workspace is still under the 12,000 hard stop on this build."
-      }
+      },
+      "class_sweep_2026_09_08": {
+        "method": "CLAUDE.md §13 root-cause expansion: with CFWO-Adv Co A (a single-company org with one goal and nothing else) selected, every reachable surface was loaded and inspected for workspace-wide data. Founder seat, so nothing here is an authorization leak - it is scope consistency under CWC §5 (\"org scope resolved once through resolveOrgScope(); pages do not hand-write the sentinel\").",
+        "scoped_correctly_13": [
+          "/people (0)",
+          "/projects (0)",
+          "/departments (empty)",
+          "/tasks (0 cards)",
+          "/goals (1, header names org)",
+          "/documents (empty, header names org)",
+          "/approvals (0/0/0/0)",
+          "/memory (0, header names org)",
+          "/finance (0)",
+          "/sales (0)",
+          "/products (0)",
+          "/inventory (0)",
+          "/engineering (0)",
+          "dashboard Active goals (1) + Decisions waiting (0)"
+        ],
+        "NOT_scoped_5": {
+          "/companies": "14 rows = entire workspace, including the paired \"CFWO-Adv Co B (emp1 NOT a member)\"",
+          "/companies/archived": "9 rows = every archived company workspace-wide (QA-VERIFY-BU, QA-LIFECYCLE-BU, test3/5/7/8/9, test, test unit) - none belong to the selected org",
+          "dashboard \"Active Companies\" KPI": "14, rendered beside a correctly-scoped \"Active goals 1\" on the same screen",
+          "/tasks/archived": "5 foreign tasks (Steppe AI Inc. / OpenSpot; SEM Technologies LLC x4) while /tasks correctly shows 0 for this org",
+          "/ai-assistants": "18 rows = every person workspace-wide (SEM Global Robotics, CLIX GPS, QA-C002-RENAMED-X ...) while /people correctly shows 0"
+        },
+        "ambiguous_1": {
+          "/billing": "30 rows, a per-company cost breakdown of all companies including CFWO-Adv Co B. Billing is plausibly a WORKSPACE-level concern by design (founder prepaid AI credit, \"Total deposits / Available service balance / Gross AI margin\"). NOT asserted as a defect - flagged for founder/Home-PC policy confirmation. If billing is meant to be per-org, it belongs in the list above."
+        },
+        "the_pattern": "This is not diffuse. Two families miss the org scope: (a) ARCHIVED views - /companies/archived and /tasks/archived ignore the selector while /companies... (list) and /tasks (board) differ, and critically /tasks IS scoped while /tasks/archived is NOT, so the same entity type behaves differently either side of the archive boundary; (b) DERIVED views - /ai-assistants is generated from people, and while /people scopes, its derivative does not. Every primary business surface (finance, sales, products, inventory, engineering, memory, documents, approvals, goals, projects, departments) scopes correctly.",
+        "actionable_for_home_pc": "The five surfaces above appear not to call resolveOrgScope(). The archived views and /ai-assistants are the concrete list; /companies and the dashboard KPI were already known. A grep for pages that query companies/tasks/people without the org-scope helper should find exactly these.",
+        "negative_result_that_matters": "13 surfaces scope correctly. The earlier framing (\"the selector is a view filter, not a boundary\") was too pessimistic: most of the product does honour it. The defect is specific and enumerable, which makes it cheap to fix and cheap to regress.",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
+      },
+      "severity_note_2026_09_08": "Severity held at P2. It is a truth/consistency defect on a founder seat, not an authorization failure; a non-founder persona test (the one that could turn this into a leak finding) remains BLOCKED for want of a second credential."
     },
     {
       "bug_id": "BUG-016",
@@ -1257,7 +1291,8 @@
       "blast_radius": "None today: ANTHROPIC_API_KEY is present (471 Haiku calls, latest 09-08 06:45), so this path is not currently reachable in production.",
       "severity_reasoning": "P2 not P1: correctly tagged in the database and disclosed in prose, and unreachable while the key is present. It matters because it is the one substitution the product can still make silently-ish at the UI layer.",
       "regression_requirement": "With no provider key configured (staging), assert the chat surface carries an explicit non-AI indicator and that any created tasks are attributed to the fallback planner.",
-      "_qa_boundary": "Source read + read-only SQL. No key was read, unset, or tested in production."
+      "_qa_boundary": "Source read + read-only SQL. No key was read, unset, or tested in production.",
+      "mitigating_evidence_2026_09_08": "CORRECTION IN THE PRODUCT'S FAVOUR: /settings states the behaviour explicitly - \"Speak with Brain OS calls whichever provider is marked Active. The real API key never lives here - it's a Supabase Edge Function secret (OPENAI_API_KEY / ANTHROPIC_API_KEY), set once outside this app. If the active provider's key isn't set, chat falls back to a deterministic planner rather than failing.\" So the fallback is DOCUMENTED, not hidden. The residual defect is narrower than first written: the disclosure lives on Settings, not at the point of use (the chat turn that produced the plan). Severity stays P2 but the \"silent\" framing is withdrawn."
     },
     {
       "bug_id": "OBS-COST-NEVER-RECONCILED",

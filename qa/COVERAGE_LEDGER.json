@@ -1,12 +1,12 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-08T15:43:22Z",
+  "generated_at": "2026-09-08T15:47:41Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": "8521b0e",
   "environment": "production",
-  "required_capabilities": 110,
+  "required_capabilities": 111,
   "executed_capabilities": 102,
-  "coverage_percentage": 92.7,
+  "coverage_percentage": 91.9,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 0,
@@ -14,7 +14,7 @@
     "RUNNING": 0,
     "PASS": 64,
     "FAIL": 37,
-    "BLOCKED": 8,
+    "BLOCKED": 9,
     "FLAKY": 1
   },
   "by_domain": {
@@ -161,6 +161,15 @@
       "FAIL": 1,
       "BLOCKED": 0,
       "FLAKY": 0
+    },
+    "security": {
+      "NOT_TESTED": 0,
+      "QUEUED": 0,
+      "RUNNING": 0,
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 1,
+      "FLAKY": 0
     }
   },
   "by_surface": {
@@ -170,7 +179,7 @@
       "RUNNING": 0,
       "PASS": 30,
       "FAIL": 5,
-      "BLOCKED": 7,
+      "BLOCKED": 8,
       "FLAKY": 0
     },
     "BRAIN_CHAT": {
@@ -241,6 +250,11 @@
       "capability_id": "CAP-BROWSER-PERSONA-MULTIUSER",
       "domain": "permissions",
       "reason": "No SUPABASE_SERVICE_ROLE_KEY in this environment, so synthetic logins cannot be minted directly. Per the charter this must NOT be accepted as final without first investigating product-supported paths (public signup, workspace-admin user creation, invitePerson() + a safe email sink). That investigation is itself QUEUED - see qa/QA_COVERAGE_GAPS.md. Backend SQL impersonation covers the authorization half but is NOT equivalent to browser persona coverage and will never be reported as such."
+    },
+    {
+      "capability_id": "CAP-DEVELOPER-MODE-AUTHORIZATION",
+      "domain": "security",
+      "reason": "FEATURE ABSENT. \"Developer Mode\" was requested as a priority-7 authorization-boundary test, but it does not exist in the product: a full-tree search of origin/master for developer.mode / devMode / isDeveloper / developer_mode across web/ and supabase/ returns zero matches, and no such control appears on /settings (which offers only Providers, MCP Connectors, Usage). Recorded BLOCKED-feature-absent rather than invented as a test or silently skipped. If Developer Mode exists under another name, the Home PC should name it and this capability will be executed."
     }
   ],
   "failing_capabilities": [
@@ -439,10 +453,10 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 110 | PASS: 64 | FAIL: 37 | FLAKY: 1 | BLOCKED: 8 | NOT TESTED: 0 -> FAILED",
+  "headline": "Required capabilities: 111 | PASS: 64 | FAIL: 37 | FLAKY: 1 | BLOCKED: 9 | NOT TESTED: 0 -> FAILED",
   "dimensions": {
     "_doc": "ADDITIVE dimensions (2026-09-07). The headline capability coverage above is unchanged and remains the comparable historical metric. Coverage here is evidence-name matching over inventory + bug queue, deliberately conservative.",
-    "capability_coverage_pct_unchanged": 92.7,
+    "capability_coverage_pct_unchanged": 91.9,
     "state_coverage": {
       "covered": 23,
       "total": 28,
