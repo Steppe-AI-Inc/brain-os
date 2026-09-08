@@ -479,8 +479,17 @@ check('CONTRACT', 'index.ts imports nothing from _shared (the deploy surface is 
 {
   const at = SRC.indexOf('const STRONG_OBJECT = ');
   if (at < 0) throw new Error('v66: STRONG_OBJECT not found — update this suite, do not let it pass');
-  const SO = new Function('return ' + SRC.slice(at + 'const STRONG_OBJECT = '.length,
-    SRC.indexOf(';', at)))();
+  // STRONG_OBJECT was a self-contained regex literal and is now built from ENTITY_NOUN_ALTERNATION
+  // (verifier #68, V68-D1 — it was the LAST re-spelling of the entity vocabulary). That this slice used to
+  // work without the shared constant is itself the evidence: the object bar carried its own private copy.
+  // The declaration is taken from source, never re-spelled here, and the slice runs to the statement's
+  // terminating semicolon rather than the first one inside it.
+  const entAt = SRC.indexOf('const ENTITY_NOUN_ALTERNATION = ');
+  if (entAt < 0) throw new Error('v66: ENTITY_NOUN_ALTERNATION not found — the one definition is gone');
+  const entDecl = SRC.slice(entAt, SRC.indexOf(';\n', entAt) + 1);
+  const soEnd = SRC.indexOf("'u');", at) >= 0 && SRC.indexOf("'u');", at) < SRC.indexOf('\n\n', at)
+    ? SRC.indexOf("'u');", at) + 4 : SRC.indexOf(';', at);
+  const SO = new Function(entDecl + '\nreturn ' + SRC.slice(at + 'const STRONG_OBJECT = '.length, soEnd))();
   for (const obj of ['"Nomin Holding"', "'Nomin Holding'", '“Nomin Holding”', 'ACME', 'the company ACME']) {
     check('CONTRACT', 'STRONG_OBJECT accepts a real named object: ' + JSON.stringify(obj), SO.test(obj),
       'a quoted name is still a named target; \b cannot see one');

@@ -7074,7 +7074,7 @@ serve(async (req) => {
             // There is no bare "order" entity in this product, so "archive order WO-1" is about a work
             // order. A PURCHASE order is its own thing and must keep its own name — reporting it as a work
             // order is the same false statement about what was searched, one noun over (verifier #68).
-            : commandEntityNoun === 'order' ? 'work order'
+            : /^(work order|purchase order|order)$/.test(commandEntityNoun) ? 'work order'
             : commandEntityNoun ? commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1')
             : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {

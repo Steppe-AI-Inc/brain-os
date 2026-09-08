@@ -104,7 +104,12 @@ check('no NEW pair of alternations duplicates a concept without a decision',
   + ' — converge them, or add them to REGISTERED with the reason they intentionally differ');
 
 // The three canonical definitions that convergence has already produced must stay single.
-for (const name of ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION']) {
+// Each canonical definition this campaign has converged onto. A concept that gets converged and is NOT
+// added here is unguarded, which is exactly what happened to ENTITY_NOUN_ALTERNATION: #67 converged seven
+// spellings onto it, nobody registered it, and #68 found an EIGHTH surviving in STRONG_OBJECT while all 76
+// suites stayed green (V68-D3). Adding a name here is part of converging a concept, not a follow-up.
+for (const name of ['REQUEST_FRAME_ALTERNATION', 'CONFIRMATION_ALTERNATION', 'MUTATION_VERB_ALTERNATION',
+  'ENTITY_NOUN_ALTERNATION', 'REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_DELIBERATIVE']) {
   check('the canonical ' + name + ' is declared exactly once',
     (src.match(new RegExp('const ' + name + '\\s*=', 'g')) || []).length === 1,
     'a second declaration is the twin growing back');

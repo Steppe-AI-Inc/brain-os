@@ -1,0 +1,106 @@
+All work committed; candidate bytes untouched. Here is my report.
+
+---
+
+# VERIFIER #68 — CAMPAIGN #128 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (HEAD `223bd24…` ✓, scratch write ✓, `architecture_final_claim_contract` 51/0 ✓)
+
+## VERDICT: **FAIL**
+
+Candidate `223bd24b670d8fe03dc49d2fe2d3a5449d6126b6` is **NOT fit to deploy over v92** under the contract bar. Two P1s, both against `governance/OPERATING_TRUTH_MODEL.md` §3.
+
+---
+
+## 1. PRIMARY MISSION — THE FOURTH AXIS (derived, not guessed)
+
+**Axis: CLAUSE COUNT AND ORDER, crossed with the entity-noun vocabulary.**
+
+How I derived it: I enumerated every consumer of the concept *"a kind of thing this product stores"* and asked which one does **not** derive from the canonical `ENTITY_NOUN_ALTERNATION` that #67 introduced. Exactly one does not — **`STRONG_OBJECT` (index.ts:6127)**, carrying 25 hand-written nouns against the canonical ~80. Then I asked which request shapes reach it. Exactly one does: `commandClausesForRead.length > 1`.
+
+That is *why* it was unswept: #67's corpora are all **single-clause** (so `STRONG_OBJECT` is never reached), and every clause-count case in the battery uses `task`/`company` (so the drift never shows). I did not replay #65, #66 or #67.
+
+**The invariant is violated. A semantic duplicate remains → FAIL.**
+
+### V65-D1 (P1) — the executor's blind spot
+
+| | measured |
+|---|---|
+| Fabrications shipped, `archive the <noun> and list them` | **198 / 207** |
+| Requests reaching the gate with `requestedIntent === null` | 384 / 400 |
+| **Control — identical shape, noun on the list** | **0 / 72** |
+
+The only variable is the noun. `firstClauseIsMutation` is false for every noun `STRONG_OBJECT` omits → `readShaped` → the genuine lexicon hit is read-vetoed → `requestedIntent` null → the never-silent receipt (§3 rule 3) never runs.
+
+## 2. REQUEST CONSISTENCY, BOTH DIRECTIONS — the false-positive half is also broken
+
+### V65-D2 (P1) — **introduced by this candidate**
+
+#148's repair "a referring token counts wherever it sits" was implemented **position-free**. An English noun-phrase headline whose head word is one of the ~120 lexicon verbs almost always contains an entity noun, so it becomes "an imperative with a referring object" — and the receipt then **deletes the truthful answer**:
+
+> `"Transfer pricing for the business unit"` → *"No change was made — that request did not resolve to an operation I can execute from chat."*
+
+| vs the #67 parent `916da4e2` | parent | candidate |
+|---|---|---|
+| Truthful reads acquiring mutation intent | 2/40 | **31/40** |
+| Truthful answers destroyed | 1/8 | **8/8** |
+
+The implementing session found and reverted *one* member of this class (capitalised-word-anywhere) and kept the other, which has the same disease. **This is a truth regression vs v92, and it is not an intended departure** — §3 rule 2 forbids text shape being the sole reason a response is rewritten.
+
+The two P1s are one defect wearing two faces: the vocabulary was shared in the tier that needed a position rule, and the position rule was dropped in the tier that needed the vocabulary.
+
+## 3. NEVER-SILENT RECEIPT — structurally broken in both directions
+
+Fails false-negative (198/207 fabrications ship) and false-positive (8/8 truthful reads destroyed).
+
+## 4. WHY THE BATTERY WAS GREEN — V65-D3 (P2, harness)
+
+I ran all 76 `.mjs` suites myself: **74 exit 0** while both P1s ship. `concept_duplication_ratchet_contract` — the guard that exists to prevent exactly this — is blind for two independent reasons: it compares only **named alternations** (a vocabulary inside an inline regex is invisible), and **`ENTITY_NOUN_ALTERNATION` was never added to its canonical list when #67 converged it.**
+
+Sweeps re-run: `mutation_sweep_safety_contract` 47/0, floors not lowered, zero-target-is-failure asserted. No survivor reported with exit 0. Suite-integrity mutation checks all held.
+
+## 5–7. NAMED TARGETS · DUPLICATED CONCEPTS · TOKEN BUDGET
+
+- **Named targets** 8/8 — typed, declared before use, envelope beside its rows, **not** smuggled into `context.collections`. PASS.
+- **Duplicated concepts** — classified. `STRONG_OBJECT` vs `ENTITY_NOUN_ALTERNATION` = **IDENTICAL SEMANTICS** (converge). `ENTITY_NOUNS`(562) vs the canonical = **INTENTIONALLY DIFFERENT** (per-type filler scoping, fails closed).
+- **Token budget** — sound *at source level*. `MINIMUM_SAFE_CONTEXT` is enforced by a real `throw` (2933), **not by omission**; `contextBudget` attached before measuring; `truncated` set whenever rows drop; total never invented from array length. `packTokens` vs `estimateRequestTokens` are **intentionally different gates** (pack policy cap vs provider window), documented — not a drift. The pinned witness has **both halves** (pre-fix 25,595 > 12,000; post-fix 11,297), so it is not a fixture too small to fail. Margin ≥ 400 on every case, not tuned to 11,999. **Incident NOT marked resolved. None of this is live evidence.**
+
+## The separate production P1 — both halves confirmed
+
+`embedTexts` is **byte-identical to v92** (`64b2a2a1343226ee`), and #144 is **still named** in `qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md` (63 of 66 memories NULL). The deferral remains correct only because it stays named.
+
+## Residual CLOSED
+
+The two mutants #67 left open (`hypotheticalRequest never matches`, `negatedRequest never matches`) **are observable** through the receipt's reason line — 12/12 correct — and are now pinned by **V65-C4**.
+
+## Prepared fix (validated; index.ts never touched)
+
+Fabrications **198/207 → 0/207**; destroyed answers **8/8 → 1/8** (the residual is pre-existing on the parent); **0 battery regressions of 76**; **#148's own repair still holds** (V65-C3). One expected harness follow-on: `v66_object_shape_tiers_contract` must hoist the shared constant — *that it worked before is itself proof of the defect.*
+
+## What I could NOT measure — real gaps, not skipped
+
+- **`deno check` — BLOCKED** (`npx deno@2` requires approval). Runtime-fatal classes **not re-derived by me**; my own module-level scan found **0 TDZ hazards** — that is `CODE INSPECTED`, not a compiler result.
+- **No live request possible.** Every conclusion above is source-/harness-level. Per the two new CLAUDE.md rules, none of it substitutes for live request-shape acceptance.
+- **Deployed-v92 link is integration-level**, not byte-direct (v92 == git `c9dfab5bd433`, `795c20c8…`, verified from git; `functions list/download` unavailable).
+
+## Self-reported instrument defect
+
+My first identifier extractor lacked regex-literal awareness and **falsely reported `archiveCompanyIds`/`restoreCompanyIds` as removed** (both are declared at 3974/3976). Corrected before use; two independent methods then agreed on **0 removed identifiers**. `_gate_extract.mjs` had already learned this lesson; my tooling had not.
+
+## Environment finding (not a candidate defect)
+
+`production_write_authority` fails 5/7: a scrubbed-environment `supabase projects list` still returns the production project. **This machine holds a working production credential every agent session inherits** (CLAUDE.md §8). Founder-only remedy: `supabase logout` **and** revoke in the dashboard.
+
+## Synthetic data cleanup
+
+**None was created.** This campaign never opened a database connection — it is entirely source- and harness-level, so there is no `QA-VERIFY-*` data to clean up. The one file a battery run modified (`V60-D8-probe.ts`) was restored to committed state.
+
+## Artifacts — commit `298d4da` on `verify-223bd24-campaign128`
+
+`v65_known_failure_modes_entry_140.md` · `v65_PROMOTION_NOTE.md` · `v65_regression_additions.mjs` (6 pass/7 fail on candidate; 10/3 with the fix) · 11 probes + battery JSON.
+
+> **Two flags for you.** (1) The prompt asked for ledger `## 140`, but **140 has been taken since 2026-09-08** — I numbered it **149** rather than overwrite a committed entry. (2) The prescribed name `v65_regression_additions.mjs` overwrote verifier #65's staging copy; that one was already promoted to `qa/scenarios-runner/v65_request_frame_tiers_contract.mjs`, so nothing was lost.
+
+**EDGE STATUS = NOT DEPLOYMENT READY.**
+
+**index.ts sha256: `fc48aa7053b5da5ebb535917f82f19188e853330998701abcba080fa7890cac8`**

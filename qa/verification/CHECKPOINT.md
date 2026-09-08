@@ -12,16 +12,18 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-Campaign #127. **Verifier #67 returned FAILED** on candidate `8d157bf` / index.ts sha256 `916da4e2…`
-(artifact `qa/verification/scratch/verifier67_output.log`, verifier commit `0dc0df2`). Two P1 blockers plus
-two P2. The #67 closure is COMPLETE; verifier #68 is the next gate.
+Campaign #128. **Verifier #68 returned FAILED** on candidate `223bd24` / index.ts sha256 `fc48aa70…`
+(artifact `qa/verification/scratch/verifier68_output.log`, verifier commit `298d4da`). Two P1 blockers,
+**one of them introduced by the #67 closure**. The #68 closure is COMPLETE; verifier #69 is the next gate.
 
-Verifiers #60 through #67 all FAILED their candidates. **Three consecutive rounds found the same defect
-class on a different AXIS:** #65 the request FRAMES, #66 the OBJECT and CLAUSE shapes, #67 the ENTITY
-REFERENCE. Each time the whole battery was green, because every committed corpus varies one axis and holds
-the others constant — the invariant was being tested exactly where it already held. **A corpus that varies
-one axis proves nothing about the others, and a battery of them reads as thorough.** Verifier #68 is
-therefore told to find a fourth axis rather than replay these.
+Verifiers #60 through #68 all FAILED their candidates. **FOUR consecutive rounds found the same defect
+class on a different AXIS:** #65 request FRAMES, #66 OBJECT and CLAUSE shapes, #67 ENTITY REFERENCE,
+#68 CLAUSE COUNT crossed with the entity vocabulary. The battery was green every time, because every
+corpus varies one axis and holds the others constant.
+
+**The counter-measure is not more corpora.** #68 found its axis by asking: *which consumer of this concept
+does not derive from its definition, and what request shape reaches it?* Exactly one consumer
+(`STRONG_OBJECT`) and exactly one shape (multi-clause). That question is the standing method now.
 
 ## PRODUCTION (unchanged since the rollback)
 
@@ -71,7 +73,7 @@ three is a live request and that is precisely the rule the incident produced.
 
 ## OPEN WORK, BY PRIORITY
 
-**P1** — verifier #68's verdict on the new candidate.
+**P1** — verifier #69's verdict on the new candidate.
 **P1 (new, from the provider audit)** — `EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT`: OpenAI embeddings have
 failed silently in production since 2026-08-24 ~16:00; 63 of 66 memories carry a NULL embedding and nothing
 anywhere surfaces it. Also `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` and `REQUESTED_MODEL_ALWAYS_RECORDED` —
@@ -87,31 +89,28 @@ fix; model-specific token limits still UNMEASURED; the platform request-body lim
 **Registered deliberate gaps** (not part of any deployment claim): lifecycle controls on child surfaces
 beyond People; archive-instead-of-delete for projects, departments, documents, leads and approvals.
 
-## THE #67 CLOSURE (this round's work)
+## THE #68 CLOSURE (this round's work)
 
-**V67-D1 (P1).** Every alternative of `IMPERATIVE_OBJECT` was `^`-anchored, so only token 0 of the object
-was inspected: `archive work order WO-1` derived NO intent, every final-answer gate was off, and the
-model's fabrication was the whole answer. **480 of 480 shipped; the same matrix using the head noun alone
-shipped 0 of 480.** Root cause: *"does this refer to an entity?"* was spelled **seven** times and had
-drifted. **Fixed structurally** — one `ENTITY_NOUN_ALTERNATION`, every consumer derives from it; a
-referring token counts wherever it sits; and a word inside an entity's NAME is no longer read as a verb
-(the statement test runs on what remains after the entity nouns are removed, so V61-D7 still holds).
-**V67-D2 (P1).** `READ_SHAPE`'s idiom clause ended in ``, matching at the FOLLOWING SPACE, so
-`delete the chat channel C-1` was read as "delete the chat" and vetoed. The exact mirror of #146's ``.
-The idiom must now END the phrase.
-**V67-D3 (P2).** The receipt named `company` for 12 of 18 entity types. It now names what was named.
-**V67-D4 (P2).** `hypotheticalRequest` knew 3 of 22 deliberative frames, so 19 got a FALSE
-"could not resolve which company" receipt. It now derives from `REQUEST_FRAME_DELIBERATIVE`.
-**Two of the fix's own pieces were reverted on evidence:** a capitalised-word-anywhere reading destroyed a
-truthful answer V61-D7 pins, and an identifier-anywhere reading could not be killed by the mutation proof
-and was removed rather than registered. Ledger #148.
+**V68-D1 (P1).** `STRONG_OBJECT` was the EIGHTH re-spelling of the entity vocabulary — 25 hand-written
+nouns against the canonical ~80 — and only a MULTI-CLAUSE command reaches it, so #67's corpora never
+executed it. 198 of 207 fabrications shipped; the control with a listed noun shipped 0 of 72.
+**V68-D2 (P1) — INTRODUCED BY THE #67 CLOSURE.** Its "a referring token counts wherever it sits" was
+implemented POSITION-FREE, so "Transfer pricing for the business unit" became a mutation request and the
+receipt DELETED the truthful answer: truthful reads acquiring intent 2/40 -> 31/40, answers destroyed
+1/8 -> 8/8. The #67 session reverted one member of this class and kept another with the same disease.
+**Fix, in the verifier's own words:** the vocabulary went to the tier that needed a POSITION rule and the
+position rule to the tier that needed the VOCABULARY. `STRONG_OBJECT` now derives from the one definition;
+`IMPERATIVE_OBJECT` matches an entity noun in the HEAD REGION (head, or behind at most one modifier).
+**V68-D4a/b (P2).** A purchase order was reported as a work order; the receipt said "persons".
+**V68-D3 (P2, harness).** `concept_duplication_ratchet_contract` never learned `ENTITY_NOUN_ALTERNATION`
+when #67 converged onto it, so an eighth spelling was undetectable. It now carries every canonical
+definition - **registering the name is part of converging a concept, not a follow-up.** Ledger #149.
 
-**Evidence on the new candidate** (index.ts sha256 `fc48aa70…`, 605,546 bytes): battery
-**74 green / 2 red by design** (76 suites); `v67_entity_reference_contract` **23/0** (all 5 of #67's defect
-assertions pass, 0 CONTRACT failures); `mutation_sweep_safety_contract` **47/0**;
-**`v67_mutation_proof` 5/5 killed**, candidate byte-identical after each.
-**`deno check` re-derived**: 10x TS7006, 6x TS2322, 1x TS7034, 1x TS7005, 1x TS2339 = 19 diagnostics,
-**zero** runtime-fatal. CRLF-pure, 0 bare LF, 1 pre-existing bare CR.
+**Evidence on the new candidate** (index.ts sha256 `006a0c3f...`, 607,490 bytes): battery
+**74 green / 2 red by design** (76 suites); `v68_clause_and_vocabulary_contract` **13/0** (all 7 defect
+assertions pass); `v67` 23/0; `v66` 71/0; `mutation_sweep_safety_contract` **52/0**;
+**`v68_mutation_proof` 4/4 killed**, candidate byte-identical after each.
+**`deno check` re-derived**: 19 diagnostics, **zero** runtime-fatal. CRLF-pure, 1 pre-existing bare CR.
 
 ## NEXT EXECUTABLE ACTION
 

@@ -6076,9 +6076,15 @@ serve(async (req) => {
         const IMPERATIVE_OBJECT = new RegExp(
           '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
           + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'
-          // ANYWHERE, not ^: an ENTITY NOUN at any position in the object. This one alternative is the
-          // whole of the V67-D1 repair — "work order WO-1" refers because "work order" is a thing this
-          // product stores, wherever it sits in the phrase.
+          // THE HEAD REGION of the object phrase: an ENTITY NOUN as the head, or behind at most one
+          // modifier — "work order WO-1", "engineering task T-1". That is what makes a compound reference
+          // refer (verifier #67, V67-D1).
+          //
+          // POSITION-FREE WAS WRONG AND SHIPPED A P1 (verifier #68, V68-D2). An English noun-phrase
+          // headline whose head word is a lexicon verb almost always contains an entity noun SOMEWHERE, so
+          // "Transfer pricing for the business unit" became an imperative with a referring object and the
+          // receipt deleted the truthful answer — 8 of 8 destroyed. An entity noun in the head region
+          // IDENTIFIES the object; one further in belongs to a prepositional phrase and does not.
           //
           // Two other position-free readings were tried here and are deliberately NOT present.
           // A CAPITALISED WORD anywhere made "Close call on the Beta deal today" refer, destroying a
@@ -6086,7 +6092,7 @@ serve(async (req) => {
           // An IDENTIFIER-SHAPED token anywhere was measured redundant — the mutation proof could not kill
           // it, because every case it would catch already carries an entity noun — and a guard nobody can
           // test is a guard nobody can maintain.
-          + '|\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
+          + '|^(?:\\S+\\s+){0,1}(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
           + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
@@ -6124,7 +6130,15 @@ serve(async (req) => {
           const rest = firstClauseForRead.slice(fm[0].length).trim();
           // A STRONGER bar than the ordinary object test, because this overrides a signal the founder gave:
           // "and list them" asks for a report. The first clause wins only if it NAMES its target.
-          const STRONG_OBJECT = /^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\s*(?:[A-Z][A-Za-z0-9_-]*|\S+[-_]?\d|"[^"]+"|'[^']+'|[“][^”]+[”]|\S+@\S+\.\S+|it|them|compan(?:y|ies)|person|people|employee|manager|task|goal|project|department|lead|document|proposal|product|spec|drawing|approval|channel|team|invoice|report|order|contract|assignment|employment)(?![A-Za-z0-9_])/;
+          // The LAST re-spelling of the entity vocabulary: 25 hand-written nouns against the canonical
+          // ~80. Only a MULTI-CLAUSE command reaches this line, and every multi-clause case in the battery
+          // used "task" or "company", so the drift was invisible while 198 of 207 fabrications shipped
+          // (verifier #68, V68-D1). Same stricter bar as before — the object must NAME its target — but the
+          // vocabulary is now the one definition rather than a copy of part of it.
+          const STRONG_OBJECT = new RegExp(
+            '^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\\s*'
+            + '(?:[A-Z][A-Za-z0-9_-]*|\\S+[-_]?\\d|"[^"]+"|\'[^\']+\'|[\u201C][^\u201D]+[\u201D]'
+            + '|\\S+@\\S+\\.\\S+|it|them|' + ENTITY_NOUN_ALTERNATION + ')(?![A-Za-z0-9_])', 'u');
           return objectRefers(rest) && STRONG_OBJECT.test(rest);
         })();
         const readShaped = isQuestion
@@ -7057,9 +7071,10 @@ serve(async (req) => {
             : /^project/.test(commandEntityNoun) ? 'project'
             : /^department/.test(commandEntityNoun) ? 'department'
             : /^(compan|business|organi)/.test(commandEntityNoun) ? 'company'
-            // There is no bare "order" entity in this product; "archive order WO-1" is about a work order,
-            // and the receipt should name the type that was actually searched.
-            : /^(work order|purchase order|order)$/.test(commandEntityNoun) ? 'work order'
+            // There is no bare "order" entity in this product, so "archive order WO-1" is about a work
+            // order. A PURCHASE order is its own thing and must keep its own name — reporting it as a work
+            // order is the same false statement about what was searched, one noun over (verifier #68).
+            : commandEntityNoun === 'order' ? 'work order'
             : commandEntityNoun ? commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1')
             : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
@@ -7077,13 +7092,26 @@ serve(async (req) => {
           const hypotheticalRequest = /^\s*(?:if|suppose|supposing|what if|imagine|say|assuming|in case)\b/i.test(commandText)
             || /\b(?:thinking about|wondering (?:if|whether)|considering|might|may want to)\b/i.test(commandText)
             || new RegExp('^\\s*(?:' + REQUEST_FRAME_DELIBERATIVE + ')\\b', 'i').test(commandText);
+          // "searched the active and archived persons" is not English, and a founder-facing sentence that
+          // reads as machine output is a real defect rather than a cosmetic one (verifier #68, V68-D4a).
+          // Irregulars first, then the ordinary -y/-s/-x/-ch rules; anything unlisted just takes an "s".
+          const pluraliseEntity = (e: string): string => {
+            const irregular: Record<string, string> = {
+              person: 'people', company: 'companies', memory: 'memories', category: 'category'.slice(0, 0) + 'categories',
+              status: 'statuses', access: 'access', staff: 'staff', people: 'people',
+            };
+            if (irregular[e]) return irregular[e];
+            if (/(?:s|x|z|ch|sh)$/.test(e)) return e + 'es';
+            if (/[^aeiou]y$/.test(e)) return e.slice(0, -1) + 'ies';
+            return e + 's';
+          };
           const reason = pendingQuestion ? 'I need your answer first'
             : negatedRequest ? 'you asked me not to, so nothing was executed'
             : hypotheticalRequest ? 'that read as a hypothetical, not an instruction — say the word and I will do it'
             : failed ? `the operation did not succeed (${failed.error})`
             : attempted ? 'the operation did not confirm in the database'
             : (verb && UNSUPPORTED_FROM_CHAT[verb]) ? UNSUPPORTED_FROM_CHAT[verb]
-            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which ${entity} you meant (searched the active and archived ${entity === 'company' ? 'companies' : entity + 's'} you can access)`)(
+            : (verb === 'restore' || verb === 'unarchive' || verb === 'un-archive' || verb === 'archive') ? ((entity: string) => `I could not resolve which ${entity} you meant (searched the active and archived ${pluraliseEntity(entity)} you can access)`)(
                 (modelIntent && typeof modelIntent.entityType === 'string' && ['company', 'task', 'goal', 'person', 'project', 'department'].includes(modelIntent.entityType)) ? String(modelIntent.entityType)
                 : /Task/.test(String(requestedIntent.field || '')) ? 'task' : /Goal/.test(String(requestedIntent.field || '')) ? 'goal' : (commandEntity || 'company'))
             : (verb === 'rename' || verb === 'retitle') ? 'I could not execute that rename from here — nothing was renamed'

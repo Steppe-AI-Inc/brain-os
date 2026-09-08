@@ -44,6 +44,7 @@ const TOOLS = [
   'qa/verification/scratch/p1/v58_mutation_proof.mjs',
   'qa/verification/scratch/p1/v66_mutation_proof.mjs',
   'qa/verification/scratch/p1/v67_mutation_proof.mjs',
+  'qa/verification/scratch/p1/v68_mutation_proof.mjs',
 ];
 
 for (const rel of TOOLS) {
@@ -85,7 +86,7 @@ for (const rel of TOOLS) {
     'v57_mutation_proof.mjs': 4, 'v58_mutation_proof.mjs': 5, 'v66_mutation_proof.mjs': 5,
     // v67 is 5 because the identifier-anywhere reading was REMOVED from the fix rather than registered —
     // the proof could not kill it, so there is nothing left to mutate (ledger #148).
-    'v67_mutation_proof.mjs': 5,
+    'v67_mutation_proof.mjs': 5, 'v68_mutation_proof.mjs': 4,
   };
   const floorMatch = src.match(/(?:mutants|MUTANTS)\.length\s*<\s*(\d+)/);
   const floor = floorMatch ? Number(floorMatch[1]) : 0;

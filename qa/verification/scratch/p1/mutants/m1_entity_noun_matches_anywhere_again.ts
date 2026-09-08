@@ -6092,7 +6092,7 @@ serve(async (req) => {
           // An IDENTIFIER-SHAPED token anywhere was measured redundant — the mutation proof could not kill
           // it, because every case it would catch already carries an entity noun — and a guard nobody can
           // test is a guard nobody can maintain.
-          + '|^(?:\\S+\\s+){0,1}(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
+          + '|\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
           + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after

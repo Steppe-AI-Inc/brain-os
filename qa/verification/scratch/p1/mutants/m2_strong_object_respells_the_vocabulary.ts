@@ -6138,7 +6138,7 @@ serve(async (req) => {
           const STRONG_OBJECT = new RegExp(
             '^(?:the|a|an|this|that|my|our|your|its|their|his|her)?\\s*'
             + '(?:[A-Z][A-Za-z0-9_-]*|\\S+[-_]?\\d|"[^"]+"|\'[^\']+\'|[\u201C][^\u201D]+[\u201D]'
-            + '|\\S+@\\S+\\.\\S+|it|them|' + ENTITY_NOUN_ALTERNATION + ')(?![A-Za-z0-9_])', 'u');
+            + '|\\S+@\\S+\\.\\S+|it|them|compan(?:y|ies)|person|task|goal|project|department)(?![A-Za-z0-9_])', 'u');
           return objectRefers(rest) && STRONG_OBJECT.test(rest);
         })();
         const readShaped = isQuestion

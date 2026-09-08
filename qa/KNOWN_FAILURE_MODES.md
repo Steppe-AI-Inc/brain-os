@@ -16978,3 +16978,70 @@ the decision is not "merge"** — the four patterns are genuinely different gram
 concept spelled four times is the **participle vocabulary**, which already disagrees about 8 of 24 words.
 That is the #142 repair shape and is registered as the next convergence, with one blocker named:
 `PAST_COMPLETION_CLAIM_PATTERN` is byte-pinned to deployed v92 by a contract row.
+
+## 149. The vocabulary went to the tier that needed a position rule, and the position rule to the tier that needed the vocabulary — FIXED (2026-09-09)
+
+**Found by** verifier #68, and one of the two P1s **was introduced by the #148 fix**. That is the most
+useful thing in this entry, so it goes first.
+
+**How #68 derived its axis** (it was told to derive one, not guess): it enumerated every consumer of *"a
+kind of thing this product stores"* and asked which does NOT derive from the canonical
+`ENTITY_NOUN_ALTERNATION` that #148 introduced. Exactly one — `STRONG_OBJECT`, carrying 25 hand-written
+nouns against the canonical ~80. Then it asked which request shapes reach that line. Exactly one:
+**a command with more than one clause.** #148's corpora are all single-clause, so the surviving spelling
+was never executed; and every multi-clause case in the battery uses `task` or `company`, so the drift
+never showed.
+
+**V68-D1 (P1).** `archive the <noun> and list them` — **198 of 207 fabrications ship**. The control with a
+noun that IS on `STRONG_OBJECT`'s list ships **0 of 72**. The only variable is the noun.
+
+**V68-D2 (P1) — a regression this campaign introduced.** #148's repair, *"a referring token counts wherever
+it sits"*, was implemented POSITION-FREE. An English noun-phrase headline whose head word is one of the
+~120 lexicon verbs almost always contains an entity noun somewhere, so it became "an imperative with a
+referring object" and the receipt **deleted the truthful answer**:
+
+```
+"Transfer pricing for the business unit"
+  -> "No change was made — that request did not resolve to an operation I can execute from chat."
+```
+
+| vs the parent candidate | parent | #148 candidate |
+|---|---|---|
+| truthful reads acquiring mutation intent | 2/40 | **31/40** |
+| truthful answers destroyed | 1/8 | **8/8** |
+
+The #148 session found and reverted ONE member of this class — a capitalised-word-anywhere reading that
+destroyed "Close call on the Beta deal today" — and kept the other, **which has the same disease**. Seeing
+the shape once and not generalising it is the whole failure.
+
+**The verifier's sentence is the fix.** *The vocabulary was shared in the tier that needed a POSITION rule,
+and the position rule was dropped in the tier that needed the VOCABULARY.* So:
+
+- `STRONG_OBJECT` now derives from `ENTITY_NOUN_ALTERNATION` — the eighth and last re-spelling, gone.
+- `IMPERATIVE_OBJECT` matches an entity noun in the **HEAD REGION** of the object (the head, or behind at
+  most one modifier), not anywhere. `work order WO-1` and `engineering task T-1` refer;
+  `pricing for the business unit` and `of quarter report for the business unit` do not. An entity noun in
+  the head region IDENTIFIES the object; one further in belongs to a prepositional phrase.
+
+**Also fixed, both mine.** A purchase order was reported as a **work order** — the same false statement
+about what was searched that #148 closed, one noun over. And the receipt said *"searched the active and
+archived **persons**"*: `entity + 's'` is not English, and a founder-facing sentence that reads as machine
+output is a real defect, not a cosmetic one.
+
+**V68-D3 (P2, harness) — why the battery was green through all of it.** 74 of 76 suites exit 0 while both
+P1s ship. `concept_duplication_ratchet_contract` — the guard that exists to prevent exactly this — was
+blind for two independent reasons: it compares only **named** alternations, so a vocabulary inside an
+inline regex is invisible to it; and **`ENTITY_NOUN_ALTERNATION` was never added to its canonical list when
+#148 converged onto it.** The list now carries every canonical definition this campaign has produced, and
+**registering the name is part of converging a concept, not a follow-up.**
+
+**A TDZ I wrote and the postcondition caught.** The pluraliser was first declared just above
+`receiptPrefix`, which is BELOW the `reason` expression that reads it — a `const` arrow read before its
+declaration is a crash, not a fallback. The fix script now asserts declaration-before-use for it, the same
+way #146's did for `commandFallbackResolvedVerb`.
+
+**Standing lesson, now four rounds old and worth stating plainly.** Every one of #65, #66, #67 and #68
+found the same class on an axis whose corpora held the other axes constant, and the battery was green each
+time. The counter-measure is not more corpora — it is asking, before writing any of them, *which consumer
+of this concept does not derive from its definition, and what request shape reaches it?* That question is
+what #68 used, and it is the one that found this.
