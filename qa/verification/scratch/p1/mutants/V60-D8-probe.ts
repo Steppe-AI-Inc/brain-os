@@ -3547,7 +3547,7 @@ serve(async (req) => {
         // the capped window. context.archivedTasks was queried and enveloped but never placed in the pack, so a chat
         // restore could never execute; an archive of a task outside the 15-row window was silently dropped.
         const requestedRestoreTaskIds = Array.isArray(result.restoreTaskIds) ? result.restoreTaskIds as unknown[] : [];
-        const LIFECYCLE_UUID_RE = /(?!)/;
+        const LIFECYCLE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const requestedTaskLifecycleIds: string[] = [...new Set([...requestedArchiveTaskIds, ...requestedRestoreTaskIds].filter((id): id is string => typeof id === 'string' && LIFECYCLE_UUID_RE.test(id)))];
         const taskLifecycleRows = requestedTaskLifecycleIds.length > 0
           ? (((await supabase.from('tasks').select('id,title,status').in('id', requestedTaskLifecycleIds)).data || []) as LifecycleLookupRow[])
@@ -6128,7 +6128,7 @@ serve(async (req) => {
         // "do not archive Alpha" / "don't archive Alpha" / "never archive Alpha": the verb still sits in
         // imperative position, behind a negation. The request carried intent — the executor must fail
         // closed and the receipt must say the founder asked for it NOT to happen (v59 D2d/C5d).
-        const NEGATED_IMPERATIVE_HEAD = /^\s*(?:(?:do\s*n[o']?t|don[’']t|do not|never|no need to|no longer|please do not|please don[’']t)\s+)+/i;
+        const NEGATED_IMPERATIVE_HEAD = /(?!)/;
         const commandForHead = commandForRead.replace(NEGATED_IMPERATIVE_HEAD, '');
         const lastClauseForHead = lastClauseForRead.replace(REQUEST_FRAME_PREFIX, '').replace(NEGATED_IMPERATIVE_HEAD, '');
         const alwaysHeadRe = alwaysEnglishBase
