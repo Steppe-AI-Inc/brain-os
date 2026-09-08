@@ -16862,3 +16862,46 @@ rules that must agree": the confirmation lists (converged, #140), the frames (co
 and clause shapes (this entry). The completion-vocabulary family (#141) is the last one outstanding and is
 explicitly NOT converged — the founder has ruled against unsafe mass consolidation and it needs its own
 round.
+
+## 147. The 22 sweep survivors, decided by measurement instead of left open — CLOSED WITH EVIDENCE (2026-09-09)
+
+**Found while** applying #145's own rule to the 22 survivors the clean sweep left on the #66 candidate.
+That rule says a surviving mutant means one of two very different things — *no test covers this behaviour*
+(a coverage defect) or *this code no longer affects behaviour* (dead weight) — and that the difference must
+be **established before** a test is written, because a test for the second kind pins nothing and grows the
+battery while shrinking its evidence.
+
+Deciding that by hand, 22 times, is exactly the judgement that goes wrong at scale. So it was measured:
+`qa/verification/scratch/p1/survivor_classifier.mjs` builds both mutants for every named regex in the Edge
+function (130 mutants), runs a **2,597-command corpus** through the REAL request tiers sliced from source,
+and diffs against the unmutated baseline. It asserts nothing about what *should* happen — only whether the
+construct can move an outcome at all.
+
+**Result: none of the 22 survivors moves a decision.** 106 of 130 mutants move nothing; the 24 that do move
+one are all killed by the battery. So the battery kills every mutant capable of changing a request-tier
+decision, and the survivors are constructs that cannot.
+
+**Two methodology traps this exercise walked into, both worth keeping.**
+
+1. **The instrument measured intermediate state first.** The initial version returned `readShaped`,
+   `lexiconVerb` and `commandReadLeadEffective` alongside the decisions, and reported `commandReadLead` as
+   moving 1,464 outputs — which read as a serious coverage gap and would have sent me writing tests for it.
+   Narrowed to the two things that decide what the founder experiences (does a request intent exist, does
+   the raw command reach the executor), `commandReadLead` moves **zero**. Its effect dies one line later,
+   because the imperative-position rule from V58-D1 already dominates. **Churn in an intermediate variable
+   is not behaviour**, and an instrument that counts it manufactures work.
+2. **A positive control was necessary and nearly skipped.** The first batch returned all zeros, which is
+   precisely what a broken instrument returns. `READ_SHAPE` (2,546 / 10) and `ARCHIVE_VERB_PATTERN` (0,
+   because it acts *outside* the sliced tiers) were run deliberately to prove the thing was sensitive and to
+   discover its scope. Without them the all-zero result would have been indistinguishable from a fail-open
+   harness — the defect class this campaign keeps finding, this time in the tool built to investigate it.
+
+**Scope, recorded so nobody over-reads this.** The classifier covers the request-intent tier and the
+executor gate. A construct acting in the receipt/belt tier, the disambiguation matcher or the name parser
+reads as "no movement" here and can still be load-bearing. "NO MOVEMENT (scoped)" is therefore **evidence
+toward** construct-redundant, never the verdict — which is why nothing was deleted on its strength. The one
+construct this campaign *did* delete (`alwaysCyrillicRaw`) was removed on a verifier's independent reading
+of both tiers, not on this instrument.
+
+**Consequence.** The 22 survivors are not a coverage backlog and should not be treated as one. They stay
+registered, now with a measurement attached rather than an open question.

@@ -1,0 +1,143 @@
+classifying 65 named regexes over 2597 commands
+
+ 2596  MOVES OUTPUT         MN_STEMS_GLOBAL never                     e.g. "archive ACME"
+ 2596  MOVES OUTPUT         MN_STEMS_GLOBAL always                    e.g. "archive ACME"
+ 2570  MOVES OUTPUT         COMPOSITION_REQUEST always                e.g. "archive ACME"
+ 2570  MOVES OUTPUT         PHRASAL_READ always                       e.g. "archive ACME"
+ 2546  MOVES OUTPUT         READ_SHAPE always                         e.g. "archive ACME"
+ 1854  MOVES OUTPUT         IMPERATIVE_OBJECT never                   e.g. "archive ACME"
+ 1854  MOVES OUTPUT         STATEMENT_FINITE_VERB always              e.g. "archive ACME"
+  812  MOVES OUTPUT         commandNegatedLead always                 e.g. "archive ACME"
+  630  MOVES OUTPUT         commandIsQuestion always                  e.g. "archive ACME"
+  626  MOVES OUTPUT         MUTATION_NEEDS_PARTICIPLE always          e.g. "assign ACME"
+  626  MOVES OUTPUT         MUTATION_PASSIVE_REQUEST always           e.g. "assign ACME"
+  589  MOVES OUTPUT         isQuestion always                         e.g. "archive ACME"
+  280  MOVES OUTPUT         NEGATED_IMPERATIVE_HEAD never             e.g. "do not archive ACME"
+  280  MOVES OUTPUT         NEGATED_IMPERATIVE_HEAD always            e.g. "do not archive ACME"
+   24  MOVES OUTPUT         STRONG_OBJECT never                       e.g. "archive ACME then tell me what is left"
+   10  MOVES OUTPUT         READ_SHAPE never                          e.g. "go ahead and archive ACME and list the rest"
+    7  MOVES OUTPUT         commandIsQuestion never                   e.g. "archive ACME?"
+    3  MOVES OUTPUT         isQuestion never                          e.g. "archive ACME?"
+    2  MOVES OUTPUT         MUTATION_VERB_WITH_OBJECT always          e.g. "архивласан компаниуд"
+    2  MOVES OUTPUT         MUTATION_VERB_PROPER_OBJECT always        e.g. "архивласан компаниуд"
+    1  MOVES OUTPUT         MN_READ_SHAPE always                      e.g. "ACME-г архивла"
+    1  MOVES OUTPUT         MN_CASE_SUFFIX always                     e.g. "ACME-г архивла"
+    1  MOVES OUTPUT         MN_NOT_A_COMMAND never                    e.g. "архивласан компаниуд"
+    1  MOVES OUTPUT         MN_NOT_A_COMMAND always                   e.g. "ACME-г архивла"
+    0  NO MOVEMENT (scoped) ARCHIVE_VERB_PATTERN never              
+    0  NO MOVEMENT (scoped) ARCHIVE_VERB_PATTERN always             
+    0  NO MOVEMENT (scoped) RESTORE_VERB_PATTERN never              
+    0  NO MOVEMENT (scoped) RESTORE_VERB_PATTERN always             
+    0  NO MOVEMENT (scoped) stateDescriptionPattern never           
+    0  NO MOVEMENT (scoped) stateDescriptionPattern always          
+    0  NO MOVEMENT (scoped) FACTORY_INTENT_PATTERN never            
+    0  NO MOVEMENT (scoped) FACTORY_INTENT_PATTERN always           
+    0  NO MOVEMENT (scoped) PAST_COMPLETION_CLAIM_PATTERN never     
+    0  NO MOVEMENT (scoped) PAST_COMPLETION_CLAIM_PATTERN always    
+    0  NO MOVEMENT (scoped) COMPLETION_WORD never                   
+    0  NO MOVEMENT (scoped) COMPLETION_WORD always                  
+    0  NO MOVEMENT (scoped) isTypedFallbackOnly never               
+    0  NO MOVEMENT (scoped) isTypedFallbackOnly always              
+    0  NO MOVEMENT (scoped) LIFECYCLE_UUID_RE never                 
+    0  NO MOVEMENT (scoped) LIFECYCLE_UUID_RE always                
+    0  NO MOVEMENT (scoped) COMPANY_UUID_RE never                   
+    0  NO MOVEMENT (scoped) COMPANY_UUID_RE always                  
+    0  NO MOVEMENT (scoped) commandMentionsCompany never            
+    0  NO MOVEMENT (scoped) commandMentionsCompany always           
+    0  NO MOVEMENT (scoped) commandNegatedLead never                
+    0  NO MOVEMENT (scoped) commandReadLead never                   
+    0  NO MOVEMENT (scoped) commandReadLead always                  
+    0  NO MOVEMENT (scoped) commandConditionalLead never            
+    0  NO MOVEMENT (scoped) commandConditionalLead always           
+    0  NO MOVEMENT (scoped) FUTURE_PROMISE_PATTERN never            
+    0  NO MOVEMENT (scoped) FUTURE_PROMISE_PATTERN always           
+    0  NO MOVEMENT (scoped) UUID_IN_TEXT never                      
+    0  NO MOVEMENT (scoped) UUID_IN_TEXT always                     
+    0  NO MOVEMENT (scoped) KNOWN_ABBREVIATION never                
+    0  NO MOVEMENT (scoped) KNOWN_ABBREVIATION always               
+    0  NO MOVEMENT (scoped) decimal never                           
+    0  NO MOVEMENT (scoped) decimal always                          
+    0  NO MOVEMENT (scoped) abbreviation never                      
+    0  NO MOVEMENT (scoped) abbreviation always                     
+    0  NO MOVEMENT (scoped) INTERROGATIVE_LEAD never                
+    0  NO MOVEMENT (scoped) INTERROGATIVE_LEAD always               
+    0  NO MOVEMENT (scoped) FIRST_PERSON_MAIN_CLAUSE_COMPLETION never
+    0  NO MOVEMENT (scoped) FIRST_PERSON_MAIN_CLAUSE_COMPLETION always
+    0  NO MOVEMENT (scoped) NAME_CONNECTOR never                    
+    0  NO MOVEMENT (scoped) NAME_CONNECTOR always                   
+    0  NO MOVEMENT (scoped) ADJECTIVAL_COMPLETION never             
+    0  NO MOVEMENT (scoped) ADJECTIVAL_COMPLETION always            
+    0  NO MOVEMENT (scoped) DETERMINER_OR_PRONOUN never             
+    0  NO MOVEMENT (scoped) DETERMINER_OR_PRONOUN always            
+    0  NO MOVEMENT (scoped) IMPERATIVE_LEAD never                   
+    0  NO MOVEMENT (scoped) IMPERATIVE_LEAD always                  
+    0  NO MOVEMENT (scoped) MUTATION_VERB_ALWAYS never              
+    0  NO MOVEMENT (scoped) MUTATION_VERB_ALWAYS always             
+    0  NO MOVEMENT (scoped) MUTATION_NEEDS_PARTICIPLE never         
+    0  NO MOVEMENT (scoped) MUTATION_PASSIVE_REQUEST never          
+    0  NO MOVEMENT (scoped) MUTATION_VERB_WITH_OBJECT never         
+    0  NO MOVEMENT (scoped) MUTATION_VERB_PROPER_OBJECT never       
+    0  NO MOVEMENT (scoped) LEADING_ADVERB never                    
+    0  NO MOVEMENT (scoped) LEADING_ADVERB always                   
+    0  NO MOVEMENT (scoped) COMPOSITION_REQUEST never               
+    0  NO MOVEMENT (scoped) PHRASAL_READ never                      
+    0  NO MOVEMENT (scoped) IMPERATIVE_OBJECT always                
+    0  NO MOVEMENT (scoped) STATEMENT_FINITE_VERB never             
+    0  NO MOVEMENT (scoped) STRONG_OBJECT always                    
+    0  NO MOVEMENT (scoped) MN_READ_SHAPE never                     
+    0  NO MOVEMENT (scoped) MN_CASE_SUFFIX never                    
+    0  NO MOVEMENT (scoped) MN_LOAN_VERB never                      
+    0  NO MOVEMENT (scoped) MN_LOAN_VERB always                     
+    0  NO MOVEMENT (scoped) TEMPORAL_PROPER_OBJECT never            
+    0  NO MOVEMENT (scoped) TEMPORAL_PROPER_OBJECT always           
+    0  NO MOVEMENT (scoped) CONFIRMED_COMPLETION never              
+    0  NO MOVEMENT (scoped) CONFIRMED_COMPLETION always             
+    0  NO MOVEMENT (scoped) NEGATED_CLAUSE never                    
+    0  NO MOVEMENT (scoped) NEGATED_CLAUSE always                   
+    0  NO MOVEMENT (scoped) REFERENCELESS_CONFIRMATION never        
+    0  NO MOVEMENT (scoped) REFERENCELESS_CONFIRMATION always       
+    0  NO MOVEMENT (scoped) COMPLETION_VERB never                   
+    0  NO MOVEMENT (scoped) COMPLETION_VERB always                  
+    0  NO MOVEMENT (scoped) NEGATION_AUX never                      
+    0  NO MOVEMENT (scoped) NEGATION_AUX always                     
+    0  NO MOVEMENT (scoped) capLead never                           
+    0  NO MOVEMENT (scoped) capLead always                          
+    0  NO MOVEMENT (scoped) __re never                              
+    0  NO MOVEMENT (scoped) __re always                             
+    0  NO MOVEMENT (scoped) titleHeadAfterPrep never                
+    0  NO MOVEMENT (scoped) titleHeadAfterPrep always               
+    0  NO MOVEMENT (scoped) titleHead never                         
+    0  NO MOVEMENT (scoped) titleHead always                        
+    0  NO MOVEMENT (scoped) endsFiniteVerb never                    
+    0  NO MOVEMENT (scoped) endsFiniteVerb always                   
+    0  NO MOVEMENT (scoped) ppInternal never                        
+    0  NO MOVEMENT (scoped) ppInternal always                       
+    0  NO MOVEMENT (scoped) relInternal never                       
+    0  NO MOVEMENT (scoped) relInternal always                      
+    0  NO MOVEMENT (scoped) quotedHead never                        
+    0  NO MOVEMENT (scoped) quotedHead always                       
+    0  NO MOVEMENT (scoped) adjective never                         
+    0  NO MOVEMENT (scoped) adjective always                        
+    0  NO MOVEMENT (scoped) fewQuant never                          
+    0  NO MOVEMENT (scoped) fewQuant always                         
+    0  NO MOVEMENT (scoped) detName never                           
+    0  NO MOVEMENT (scoped) detName always                          
+    0  NO MOVEMENT (scoped) verb never                              
+    0  NO MOVEMENT (scoped) verb always                             
+    0  NO MOVEMENT (scoped) commandEntity never                     
+    0  NO MOVEMENT (scoped) commandEntity always                    
+    0  NO MOVEMENT (scoped) negatedRequest never                    
+    0  NO MOVEMENT (scoped) negatedRequest always                   
+    0  NO MOVEMENT (scoped) hypotheticalRequest never               
+    0  NO MOVEMENT (scoped) hypotheticalRequest always              
+
+106 of 130 mutants move NOTHING in the two tiers measured here;
+the rest MOVE OUTPUT, and a survivor among those is a real coverage gap.
+
+SCOPE, AND IT IS NOT A FORMALITY. This measures the REQUEST-INTENT tier and the EXECUTOR
+GATE only. A construct acting in the receipt/belt tier, the disambiguation matcher or the name
+parser reads as "no movement" here and can still be load-bearing — ARCHIVE_VERB_PATTERN does
+exactly that. "NO MOVEMENT (scoped)" is EVIDENCE TOWARD "construct redundant", never the
+verdict. Positive control: READ_SHAPE moves 2,548 / 18 outputs, so the instrument is
+sensitive and a zero here is a real zero for these tiers.
+candidate index.ts unchanged: true
