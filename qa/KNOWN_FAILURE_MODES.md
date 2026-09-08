@@ -15868,3 +15868,47 @@ not run.
 **Status.** Candidate PASS at the contract bar; deploy authorisation requested for the exact SHA. Hardening patch
 FIX PREPARED (measured, not applied — applying it yields a new candidate for verifier #60). Suite repair required
 at promotion: replace the crashed suite with the byte-repaired copy. Entry #131's "31/31" corrected by this entry.
+
+
+## 133. The context pack outgrew the token preflight cap and turned ordinary questions into a 413 (CONTEXT_BUDGET) — found in post-deploy live acceptance, rolled back, closed structurally
+
+**Found while** running post-deploy live acceptance of `sem-ai-command` v93 (candidate 821f530) on
+production as the founder, 2026-09-08. A brand-new empty channel asked "What is the exact current title of
+the project that belongs to QA-SWARM-TEST-CO-VIA-CHAT…" and got
+`{"error":"Token preflight hard stop","tokenEstimate":12340,"hardMax":12000}` with no answer at all, while
+short commands in the same workspace still succeeded. Full evidence, channel ids and the rollback record:
+`qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md`.
+
+**Root cause.** `serve()` refuses any request whose `estimateTokens({command, contextPack})` exceeds
+`SEM_AI_MAX_TOKENS` (12,000). The cap and the estimator are byte-identical to v92; the PACK grew. The P1
+package added `archivedCompanies` (577 tokens), `archivedTasks` (601), the `collections` envelope map (460,
+including ~130 of prose `scope` strings) and three fields per history entry (134) — **1,772 tokens** against
+an observed overage of 340. A 2026-08-30 context-budget pass had already tuned v92 to sit just under the
+cap, so the workspace had no headroom to give.
+
+**Why it was not caught before deploy.** Every verifier measured behaviour by executing sliced windows with
+synthetic packs; nothing measured the SIZE of the assembled pack against the preflight that gates the whole
+request. The suites could not see it and the deploy gate did not ask for it.
+
+**Fix (structural, not a byte shave).** Budget-aware assembly: the pack measures itself with the same
+estimator and trims optional display collections in a fixed order until it fits — core collections last and
+never below a floor — writing every trim back into that collection's envelope, so a trimmed collection is
+still reported with its real total and `truncated: true` rather than silently shortened.
+`context.contextBudget` carries the estimate, the budget and the trim list, and the prompt states that a
+trim never means the rest do not exist. The archived-companies window is 12→6 and the prose `scope` strings
+are removed.
+
+**Search performed for the same class.** Every other hard refusal in the request path: the 8,192 max_tokens
+generation cap (model side, unchanged), the `NAMED_LOOKUP_ROW_CAP` (5, bounded by design) and the per-query
+`.limit()`s (now all enveloped). The pack was the only unbounded growth path; it is now self-limiting.
+
+**Regression.** `qa/scenarios-runner/architecture_context_budget_contract.mjs` (12/12) executes the real
+trim block: an oversized pack ends under budget; every trimmed collection reports shown/total/truncated
+truthfully; optional before core; core keeps a floor; a fitting pack is untouched; trimmed history keeps the
+newest turns; the estimator matches the preflight; the budget keeps headroom.
+
+**Status.** Production rolled back to v92 source (function v94, byte-verified). The fix and verifier #59's
+hardening patch are on the next candidate; a fresh independent verifier and a fresh founder authorization
+are required before any redeploy. The live evidence gathered before the rollback stands: the BUG-014 fix
+worked in production (a fresh-channel restore of a company outside the context window executed and was
+receipted truthfully; a non-existent company produced the truthful not-found line).

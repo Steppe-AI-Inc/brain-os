@@ -46,3 +46,46 @@ Reverting the Edge surface reinstates the six Work-PC defects in production (BUG
 chat surface; BUG-013/011 are web-side and stay fixed). The live evidence gathered before the rollback shows
 the BUG-014 fix working in production: a fresh-channel restore of a company outside the context window
 executed and was receipted truthfully, and a non-existent company produced the truthful not-found line.
+
+---
+
+## Resolution (same session)
+
+**Decisive experiment (condition: establish regression vs pre-existing).** After the rollback, the identical
+question was asked in a fresh channel on the rolled-back build: **it succeeded** —
+"QA-SWARM-TEST-CO-VIA-CHAT has one project: "QA-C002-PROJ-EDITED-01"." (channel 27d56a86-a8ed-434b-a46f-44d60baf0731).
+The same request 413s on v93 and answers on v92: **regression confirmed**, rollback correct.
+
+**Measurement** (`qa/verification/scratch/p1/pack_budget_measure.mjs`, production's own estimator
+`JSON.stringify(x).length / 4`, live row shapes): v93 added **1,772 tokens** over v92 —
+archivedCompanies 577, archivedTasks 601, the collections map 460 (of which ~130 is prose `scope`),
+history fields 134. The observed overage was 340 tokens, so the additions are the cause with room to spare.
+
+**Rollback record.** master 55a1591 (PR #10) redeployed the v92 Edge source; workflow run 34179095353
+success; `verify-deployed-bytes.sh c9dfab5bd433` → BYTE-IDENTICAL, live sha256 `795c20c8…`, 321,370 bytes;
+production `sem-ai-command` **v94 ACTIVE, ezbr 22486cd751cac403, 2026-09-08T02:10:04Z** (v94 carries v92's
+source). Web, shared primitives, governance documents and QA suites were not reverted.
+
+**Structural fix (not a byte shave).** The pack now measures itself with the SAME estimator and DEGRADES
+instead of letting the request 413: optional display collections are trimmed in a fixed order, core ones
+last and never below a floor, and every trim is written back into that collection's envelope so the model
+still sees the real total with `truncated: true` (OPERATING_TRUTH_MODEL §4.3). `context.contextBudget`
+reports the estimate, the budget and exactly what was trimmed, and the prompt states that a trim never
+means the rest do not exist. The two cheap wins are taken as well: the archived-companies window is 12→6
+and the prose `scope` strings are gone from the envelope map. Pinned by
+`qa/scenarios-runner/architecture_context_budget_contract.mjs` (12/12): an oversized pack ends under
+budget; every trimmed collection reports shown/total/truncated truthfully; optional before core; core keeps
+a floor; a pack under budget is untouched; trimmed history keeps the NEWEST turns; the estimator matches
+the preflight; the budget leaves headroom.
+
+**Also folded into the next candidate.** Verifier #59's prepared hardening patch (V59-D1..D4: the
+`bring back` idiom, dead Cyrillic alternatives, the read-lead veto killing an established imperative, the
+receipt entity from the command noun) — deliberately withheld from the authorized deploy, now applied.
+`v59_regression_additions` 72/12 → **84/0** and promoted to
+`qa/scenarios-runner/v59_intent_fallback_tier_contract.mjs`.
+
+**State after resolution.** Production: v92 source (function v94). New candidate: battery 57/57, gates
+v48–v59 green (v46 at its recorded standing reds), deno by class unchanged with zero runtime-fatal, CRLF
+pure. **Not deployed.** The previous authorization was scoped to the exact bytes `715246f3…`, which are now
+known to breach the token budget; the new bytes need a fresh independent verifier PASS and a fresh
+`ALLOW_FUNCTIONS_DEPLOY=1`.
