@@ -414,3 +414,154 @@ Bug closure authority remains exclusively Work-PC's. Main-PC has not set any sta
 - **Manager set-UI** — does not exist.
 
 Both Edge Function fixes (BUG-002 + Issue #5 Class B) are queued behind a single `ALLOW_FUNCTIONS_DEPLOY=1` authorization and will ship together.
+
+---
+
+## ADDENDUM 2026-09-01 (overnight) — two Main-PC commits after this handoff was cut
+
+Both are web + qa only. **No migration, no Edge Function change, no deploy** — production
+Vercel picks them up on its next deployment; until Work-PC confirms the deployed site
+serves them, their status is `DEPLOYED — QA RETEST REQUIRED` at most, never LIVE VERIFIED.
+
+### A. `af6a4f4` — BUG-006 (archived-ancestry remainder): `FIX PREPARED — QA RETEST REQUIRED`
+
+Supersedes the "3 of ~24 surfaces / Sweep remaining 18" row in section 17 and the
+"BUG-001's remaining ~18 surfaces — not fixed" line in section 18:
+
+- All 24 `companies(name)` joins across `web/lib/data/*.ts` now select
+  `companies(name, status)` — including the named-FK form
+  `companies!documents_company_id_fkey(...)` in `documents.ts` that a literal sweep
+  missed and the new drift guard caught.
+- Canonical module `web/lib/data/company-ref.ts` (COMPANY_REF / companyRefVia /
+  CompanyRef / isArchivedParent — only `status === 'archived'` counts).
+- Projects, Goals, Tasks now RENDER the shared `ArchivedCompanyBadge` (the three
+  surfaces where the live blast-radius check found 2 tasks + 1 goal attached to
+  archived companies with no indication). Departments/People were already closed by
+  Work-PC as BUG-001.
+- Drift guard `qa/scenarios-runner/company_ref_no_bare_name_join.mjs` (8/8,
+  mutation-proven): fails on any reintroduced bare join, on a named surface fetching
+  status without rendering the badge, and on a badge fed a literal instead of a real
+  `.status` expression.
+
+**Work-PC retest ask**: archive a company with attached projects/goals/tasks → the
+attached rows must show the "Archived" badge on /projects, /goals, /tasks (and still on
+/departments, /people). Surfaces beyond those five now carry status in their queries but
+do not render a badge yet — finding missing badges there is expected and should be filed
+as scope for a follow-up, not as a regression of this fix.
+
+### B. `43d51f5` — Multi-org: org selector scopes all ten remaining business surfaces: `FIX PREPARED — QA RETEST REQUIRED`
+
+Supersedes "Organization selector — Complete (8 surfaces)" in section 17: Approvals,
+Departments, Engineering, Finance, Integrations, Inventory, Products, Proposals, Sales,
+Software now compute the same server-side `scopeToActiveOrg` the original surfaces use
+and filter their company-scoped queries by it (11 readers across 9 `lib/data` modules;
+query-shape filter only — RLS remains the sole authorization boundary).
+
+Deliberately NOT scoped (do not file as gaps): single-record-by-id readers, identity
+readers, company pickers, chat (issue #5 owns it), factory-internal pages.
+
+Drift guard `qa/scenarios-runner/org_selector_scoping_coverage.mjs` (5/5, 19 surfaces,
+mutation-proven in three layers: page must pass the scope, reader must apply it,
+"All organizations" must stay unscoped).
+
+**Work-PC retest ask**: as the multi-membership founder persona, switch active org and
+confirm each of the ten pages narrows server-side (view-source/network, not just DOM
+filtering); switch to "All organizations" and confirm the full portfolio returns.
+
+---
+
+## ADDENDUM 2026-09-02 — further overnight commits (all `FIX PREPARED / QA RETEST REQUIRED`, none LIVE VERIFIED)
+
+### C. `b5ed853` — Manager set-UI (closes the "read-only, no set-UI" row): `QA RETEST REQUIRED`
+
+The Manager cell on /people is now the set-manager control (current employees of the
+person's own company only). Writes go through the SAME canonical
+`set_person_assignment()` RPC chat uses — authority enforced inside the RPC; the server
+action re-verifies same-company/self/ended-employment against a real read. Honest limit,
+by design: a manager can be SET or CHANGED but not CLEARED (the RPC coalesces
+`p_manager_person_id`; clearing needs a gated RPC migration). Drift guard:
+`qa/scenarios-runner/manager_set_ui_canonical_write.mjs` (6/6, mutation-proven).
+
+**Retest ask**: as founder and as a company manager — set a manager, change it, confirm
+the Manager column updates and `person_assignments` carries the change; as a non-manager
+employee confirm the RPC refuses (clear error, no change); confirm cross-company people
+never appear in the picker; expect "clear manager" to be impossible (that is scope, not
+a bug).
+
+### D. `3527244` — Issue #5 durable channel-state migration: `PREPARED — DO NOT RETEST YET`
+
+`supabase/migrations/202609020001_chat_channel_state_durable_conversation.sql` is
+committed as SOURCE ONLY. It is NOT applied to production; there is nothing live to
+test. It becomes testable only after the founder authorizes `supabase db push`; its
+post-apply acceptance test is `qa/scenarios-runner/chat_channel_state_rls_personas.sql`.
+Do not file "table missing" as a defect before then.
+
+### E. `3527244` — Factory PROVIDER_CAPACITY_BLOCKED classification: `QA RETEST OPTIONAL (P3)`
+
+Real 2026-09-02 incident: a verifier dispatch exited 0 with only "You've hit your
+session limit" as output. `classifyProviderOutput()` + typed startRun error + scheduler
+heartbeat sweep now classify that shape as a retryable `blocked` run with the real
+`blocked_reason`, never silent success or anonymous staleness. Regression:
+`scripts/factory-runner/provider.regression.test.mjs` (11/11).
+
+### BUG-002 status for Work-PC (unchanged production)
+
+Production remains Edge Function v92. The structured-claim branch is at `e8678ec`
+(run7's D50–D54 closed, mutation-proven, full battery green); independent verifier #8
+attempt 1 was BLOCKED — PROVIDER SESSION LIMIT (recorded in
+`qa/verification/CURRENT_CAMPAIGN.json`, NOT a pass), attempt 2 is in progress. Nothing
+new to retest in Brain Chat until a deploy is authorized after verifier #8 passes.
+
+### F. `2e2fff3` — Pending-invitations list + revoke on /access: `QA RETEST REQUIRED`
+List + revoke for company_invitations (token column never selected — it is a bearer
+credential; verify it does NOT appear in page source). Retest: founder and company
+manager see only their scope; revoke works on pending, refuses already-accepted;
+non-manager employee sees an empty list.
+
+### G. `3a2a139` — /models "Actually served" card: `QA RETEST OPTIONAL (P3)`
+Row-derived from model_usage only — verify numbers match direct table queries and that
+a configured-but-unserved active model produces the explicit gap notice, never a badge.
+
+### H. `15f46a9` + `5d84042` + `202609020003/2` — messaging foundation + clear-manager RPC: `PREPARED — DO NOT RETEST`
+Migrations committed as source only; nothing live. Same rule as addendum D.
+
+---
+
+## ADDENDUM 2026-09-02 (evening) — Work-PC findings ingested; responses
+
+Thank you for the BUG-006 closure (live badge proof through product paths — exactly the
+retest asked for) and the honest downward corrections on Class B/E.
+
+### I. `12191e8` — BUG-008 + BUG-009 fixed: `QA RETEST REQUIRED (P3)`
+- BUG-009: /brain now 307-redirects to /chat with query params preserved (git history
+  shows no /brain route ever existed in this app — rename-was-intentional branch of your
+  disposition). Retest: /brain?new=1 and a stored /brain?channel=... both land correctly.
+- BUG-008: the dead "Archived 0" goals tab is removed; /goals/archived (header link)
+  remains the one archived-goals surface.
+
+### J. Your E-multi finding (Class B PARTIAL — fabricated plan confirmation) — INGESTED AS EDGE-WORK QUEUE ITEM
+The "Confirmed. Executing the plan to reassign CLIX GPS…" shape (fabricated execution
+claim against real entities on a bare "yes", zero DB changes — your verification) is
+exactly the class the pending structured-claim branch + the PREPARED channel-state
+migration target: with durable channel state, a bare "yes" binds to the stored pending
+action or to a deterministic "nothing is pending" refusal — the LLM never gets to invent
+a plan for it. Your progressive-tense shape ("Executing the plan…") is ALSO being added
+to the drift vocabulary in the next Edge round (current gates key on past-completion
+forms). Not retestable until that deploys.
+
+### K. Your off-by-one turn-alignment finding — ACKNOWLEDGED, QUEUED
+Your layer classification (prompt-construction/retrieval ordering, current turn
+assembled one behind — NOT model recall) is accepted as the working hypothesis; it is
+queued for the buildContext audit in the next Edge round (the file is under an active
+verification campaign and cannot be touched mid-baseline).
+
+### L. Item H (continuity honesty prompt-dependent) — supports the prepared migration
+T13's confident fabricated "first message" vs T16's correct disclosure under an explicit
+anti-guess clause is the strongest live evidence yet for the compaction checkpoint in
+202609020001 (turn-1 reachability as structured fact, not prompt courtesy).
+
+### BUG-002 verification status
+Pending branch now at 65ade7c: two more independent adversarial campaigns closed
+(D58–D67, D68–D76 — see qa/KNOWN_FAILURE_MODES.md #68/#69). Verifier #10 is mid-campaign
+with independent execution rights (its scenario 1 — the full battery — already PASSED
+independently). Production remains v92.

@@ -114,3 +114,79 @@ report back that it's actually live.
 Likely severity per your own rubric: probably P2/P3 (not a data leak, fails closed just
 noisily/incorrectly — a 400/42501-class error to any anonymous caller hitting one of
 these 5 tables) — your call to grade, not ours.
+
+
+## Batch 2026-09-07 — Work-PC handover ingest (BUG-010 / 014 / 002 / 012 / 013 / 011)
+
+Fix commit `02220b9` on branch `p1/execution-truth-governance` (Edge `index.ts` sha256
+`715246f3…519aa9`; candidates e79eb65, 712760d and 5ebc695 FAILED verifiers #56, #57 and #58 and were closed — ledger #126-#131). **Nothing in this batch is deployed.** Production remains `sem-ai-command`
+v92 and the current master web build. Every report below is `FIX PREPARED` with
+`ready_for_retest: false`; the Home PC will flip that flag only after (a) the founder deploys the
+Edge Function through `ALLOW_FUNCTIONS_DEPLOY=1` and the bytes are verified, and (b) the web PR is
+merged into protected `master`. Independent verifier #59 is running on candidate 821f530; its verdict is in
+`qa/verification/CURRENT_CAMPAIGN.json`, not claimed here. Verifiers #56, #57 and #58 FAILED the previous candidates.
+
+- `fixes/BUG-010.json` — P1, GROUNDING_PRECEDENCE: ledger persisted every turn, UNVERIFIED
+  history marker, durable channel state first, precedence stated as a binding prompt rule.
+- `fixes/BUG-014.json` — P1, CONTEXT_WINDOW_AS_UNIVERSE: server-side lifecycle target resolution
+  across every status; never silent; `Archived (N)` affordance; UI and chat on one RPC path. The
+  fixture stays archived until the corrected chat path restores it after deployment.
+- `fixes/BUG-002.json` — P1 reconfirmed, EXECUTION_TRUTH: request-intent gate + never-silent
+  receipt; the pendingAction exemption is gone (founder ruling: v92 parity ≠ deployability).
+- `fixes/BUG-012.json` — P2, RECEIPT_MISMATCH: receipt rendered from the executed diff.
+- `fixes/BUG-013.json` — P2, ARCHIVED_PARENT_LEAK: one archived-parent policy, applied to the
+  People controls; **partial by design** for other child surfaces (read its `scope`).
+- `fixes/BUG-011.json` — P3, SILENT_EMPTY_STATE: picker semantics.
+
+Wording corrections to the handover: coverage is 77/100 executed with 19 NOT_TESTED (the
+handover's §8 "22 remaining" is superseded by the computed ledger). Release state remains FAILED.
+Brain OS is not Team-Ready and not production-accepted until the Work PC reruns the required
+acceptance on the deployed build.
+
+Architecture behind this batch: `governance/OPERATING_TRUTH_MODEL.md`,
+`governance/CANONICAL_WORK_CONTRACT.md`, `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`
+(the definition of done and the fix-report contract these files follow), enforced by
+`qa/scenarios-runner/architecture_*.mjs`.
+
+## 2026-09-08 — deployed and rolled back the same hour (read this before retesting)
+
+The P1 package was deployed as sem-ai-command v93 at 01:50Z and rolled back at 02:10Z. Post-deploy live
+acceptance found an unrelated P1: the enlarged context pack crossed the 12,000-token preflight, so a
+brand-new empty channel returned HTTP 413 with no answer while short commands still worked. Production is
+back on the v92 SOURCE (function v94, byte-verified). Ledger #133 and
+qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md carry the evidence.
+
+What the live run proved on v93 before the rollback, and what the Work PC should expect once a fixed build
+is deployed: a fresh-channel restore of a company outside the context window EXECUTED and was receipted
+truthfully ("QA-SWARM-TEST-CO-VIA-CHAT: restored."), and a non-existent company produced
+"no company by that name (searched the active and archived companies you can access) — nothing was
+restored." The fixture QA-SWARM-TEST-CO-VIA-CHAT was found ALREADY ACTIVE (not archived as the handover
+recorded); the archive->restore cycle was exercised on it and it is active again — no net change.
+
+Nothing is deployed, nothing is closed, ready_for_retest stays false on all six reports.
+
+## 2026-09-08 addendum — the rolled-back build is not a safe build either
+
+Measured after the rollback, source-level only, against the exact production source downloaded for the
+byte comparison (sha256 `795c20c8…`): the deployed build has no budget-aware pack assembly, so nothing
+bounds the context pack's growth against its own 12,000-token preflight. Its own pack literal, saturated
+at its own per-collection `.limit(N)` caps, estimates **17,038** tokens with short names and no channel
+history, and **25,970** with long names — all of which the deployed build would answer with HTTP 413 and
+no answer at all.
+
+How close production is today is measurable from the incident rather than guessed: the live v93 failure
+measured 12,340 tokens on a brand-new empty channel, and the v93 pack was about 1,772 tokens larger than
+v92's, so the same workspace on the deployed build sits near **10,570 — roughly 1,430 below the hard
+stop**. Twenty more people, or one more populated company, or a handful of person assignments closes it.
+
+**What this means for a Work-PC acceptance sweep on the current production build.** If a Brain Chat turn
+returns `{"error":"Token preflight hard stop","tokenEstimate":…,"hardMax":12000}`, that is this defect and
+not the bug under test. Please record the `tokenEstimate` value and the workspace it happened on, and do
+not file it against BUG-002/010/011/012/013/014 — it is the class in ledger #133 and #134, and its fix is
+in the candidate awaiting independent verification and a fresh founder deploy authorization. Creating test
+data (extra people, companies, assignments, documents) makes it more likely, not less.
+
+Evidence: `qa/verification/incidents/ADDENDUM_2026-09-08_DEPLOYED_BUILD_ALSO_BREACHES.md` and
+`qa/verification/scratch/p1/measure_v92_pack.mjs` on the candidate branch. No live request was made to
+produce these figures; per the rule recorded this round, static verification does not substitute for live
+request-shape acceptance.

@@ -1,0 +1,56 @@
+{
+  "bug_id": "BUG-011",
+  "status_report": "FIX PREPARED — DEPLOYED 2026-09-08 THEN ROLLED BACK THE SAME HOUR (unrelated P1: context-pack token budget). NOT in production.",
+  "note": "Home PC never sets bug status. Only an independent Work-PC rerun against the DEPLOYED build closes or reopens BUG-011.",
+  "root_cause": "The set-manager sheet reset its choice to null on open, rendered the current manager only in prose, and rendered an empty candidate list with no reason.",
+  "defect_class": "SILENT_EMPTY_STATE",
+  "changed_primitives": [
+    "Manager assignment semantics (governance/CANONICAL_WORK_CONTRACT.md §6): replacement semantics, self-selection prohibited, current manager visible before and after, reasoned empty picker"
+  ],
+  "changed_files": [
+    "web/lib/data/people.ts (getPeople returns manager_person_id)",
+    "web/app/(app)/people/people-table.tsx"
+  ],
+  "regression_tests": [
+    "qa/scenarios-runner/architecture_archived_parent_policy_contract.mjs (picker never offers the subject; empty list explained; current manager visible and pre-selected)",
+    "qa/scenarios-runner/manager_set_ui_canonical_write.mjs (existing)"
+  ],
+  "verification": {
+    "unit": "web tsc / eslint / next build clean",
+    "live": "PARTIAL, then reverted. On v93 in production: BUG-014 fresh-channel restore passed (channel 7736b4af, receipt \"QA-SWARM-TEST-CO-VIA-CHAT: restored.\"), the not-found line passed (channel d506c017), canonical postcondition confirmed by fresh page load (status active, Archived count back to 9). The BUG-010 A/B could not be completed: the contaminated channel hit the 413. Everything else remains for the Work PC on a future deployed build.",
+    "independent_verification": "#56 FAIL, #57 FAIL, #58 FAIL, #59 PASS (deployed, then rolled back for the token-budget P1). Verifier #60 (campaign #120) is running on 9e39a47, which carries the budget fix and the #59 hardening patch — NOT claimed passed here."
+  },
+  "deploy_provenance": {
+    "fix_commit": "7d462ec (branch p1/execution-truth-governance; candidate under verification 9e39a47)",
+    "web_deployment": "NOT DEPLOYED — PR into protected master pending",
+    "edge_function_version": "NOT DEPLOYED — production is sem-ai-command v94 ACTIVE (ezbr 22486cd751cac403) carrying the v92 SOURCE (git c9dfab5bd433, sha256 795c20c8…), byte-verified after rollback"
+  },
+  "work_pc_retest": {
+    "steps": [
+      "Open Set manager for a person whose company has no other active people: the list shows 'No other active people in <company> — add someone to this company first.' (data-testid manager-picker-empty).",
+      "Open Set manager for a person with a current manager: the current manager is pre-selected and shown under 'Current manager:' (data-testid manager-current); Save is disabled until a different person is chosen.",
+      "The subject never appears in their own picker."
+    ],
+    "regressions": [
+      "MANAGER_PICKER_EMPTY_STATE_HAS_A_REASON",
+      "MANAGER_PICKER_SHOWS_AND_PRESELECTS_CURRENT_MANAGER",
+      "MANAGER_PICKER_NEVER_OFFERS_SELF"
+    ]
+  },
+  "ready_for_retest": false,
+  "reported_at": "2026-09-07",
+  "superseded_reports": [
+    "2026-09-07 report on 1048b9e / 4f5c85a9… (candidate e79eb65 FAILED verifier #56)",
+    "2026-09-07 report on 32a2d75 / ccde932f… (candidate 712760d FAILED verifier #57)",
+    "2026-09-08 report on e75912f / 0fd05a92… (candidate 5ebc695 FAILED verifier #58)"
+  ],
+  "deploy_history": [
+    {
+      "attempt": "v93 (candidate 821f530, index.ts 715246f3…)",
+      "deployed_at": "2026-09-08T01:50:43Z",
+      "rolled_back_at": "2026-09-08T02:10:04Z",
+      "reason": "P1 context-pack token preflight: a brand-new empty channel returned HTTP 413 Token preflight hard stop (tokenEstimate 12340, hardMax 12000) with no answer; short commands still worked. Ledger #133 and qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md",
+      "live_evidence_gathered_before_rollback": "fresh-channel restore of a company outside the context window EXECUTED and was receipted truthfully (BUG-014 core repro); a non-existent company produced the truthful not-found line"
+    }
+  ]
+}
