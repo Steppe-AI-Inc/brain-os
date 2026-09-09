@@ -199,3 +199,17 @@ rewrite: `[...s].filter(c => c.charCodeAt(0) < 32 && c !== newline && c !== retu
 
 Belongs in `qa/KNOWN_FAILURE_MODES.md` beside instances 13-16; it is here because that file is in the
 frozen candidate tree.
+
+## 10. The evidence layer stored a verdict without its numbers
+
+`gate_evidence.mjs` truncated each gate record with `.slice(0, 4000)` — from the FRONT. Every gate in that
+file prints its verdict and its counts on the LAST few lines, so the stored record for `mutation_proof`
+said `PASS` and carried no evidence of how many mutants ran: reading the evidence back reported "mutants
+exercised: 0" for a run that exercised sixteen.
+
+The gate was correct; the RECORD of it was not falsifiable. That is the same shape the layer exists to
+stop — a pass whose basis cannot be inspected afterwards is a claim, and the whole point of persisting
+evidence is to avoid re-running to find out.
+
+Now keeps the tail. Found by checking what the evidence actually contained rather than trusting that a
+green gate had written a useful record.
