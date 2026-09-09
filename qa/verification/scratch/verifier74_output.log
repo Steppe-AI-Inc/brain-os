@@ -1,0 +1,58 @@
+Verification complete. Final report:
+
+---
+
+# VERIFIER #74 — CAMPAIGN #134 — FINAL REPORT
+
+```
+CHANGE VERIFIED: candidate 6fa79b5eefba8a8c905b0840472342a0ab762f7d
+                 (supabase/functions/sem-ai-command/index.ts truth gates,
+                  claimed closure of V73-D1/D2/D3/D6/D7/D8 + five harness findings)
+SCENARIOS:        14 executed, 7 passed, 5 failed, 2 blocked
+CANONICAL GRAPH:  BLOCKED  (no DB access this session)
+UI ↔ DB:          BLOCKED  (no browser tools in this session type)
+AI ↔ DB:          FAIL     (V74-D3: a canonical read of one row deletes a true
+                            denial about another; V74-D1/D2: fabricated completions
+                            ship on turns where nothing executed)
+DEPENDENCIES:     PASS     (extractor graph: 46 constants, 0 order violations)
+PERMISSIONS:      BLOCKED  (Codex E deliberately not probed; DB gated)
+RELOAD/PERSIST:   PASS     (continuity retell correct at 10/25/50/100/200 turns)
+IDEMPOTENCY:      PASS     (guards are pure over the summary; re-running is stable)
+```
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND.** Two P1 fabrication paths, one of them in plain ASCII English.
+
+| id | sev | finding | measured | status |
+|---|---|---|---|---|
+| **V74-D2** | **P1** | `archive ‘Acme Holdings’` ships a fabricated completion. Three constants spell "a quote opens a name" and disagree; `IMPERATIVE_OBJECT`'s class was typed with escaped ASCII apostrophes where two curly single quotes were meant, so they collapsed onto a member already present — the class lists the same codepoint three times. | 50/160 across 8 quote styles; 15/20 curly-single alone | **FIX PREPARED & MEASURED → 0/160** |
+| **V74-D1** | **P1** | caseless scripts have no `\p{Lu}`. Registered as a residual; measured as a blocker. | **72/72** ship (ar, he, ja, zh, ka, th, ko, hi) | OPEN — needs a product-semantics ruling |
+| **V74-D5** | P2 | **regression this candidate introduced**: `STATEMENT_EVIDENCE` deletes list-of-names answers whole. `9e73873` preserved them. | 5 of 7 answer shapes destroyed | **FIX PREPARED & MEASURED** |
+| **V74-D3** | P2 | denial gate: decision name-scoped not type-scoped, edit unscoped. A read of `Zeta` deletes a true denial about `Omega`. Its comment claims entity scoping. | 4 shapes | OPEN, design recorded |
+| **V74-D4** | P3 | citation-loop bound of 6 is reachable; at n≥7 the output still cites the database. Comment claims a post-check that does not exist. | n≥7 | OPEN |
+| **V74-H1** | P2 harness | `STRONG_OBJECT` — the 4th `\p{Lu}` site, the one #73's report missed — has **zero** coverage. Its ASCII revert is an *effective* mutant killed by none of the 89 suites. | 3 languages reopen | **CLOSED by v74 suite** |
+| **V74-H2/H3** | P2 harness | `v63`/`v64` dropped `continuity` from byte-stable with a comment claiming a check neither file contains; `compaction`'s replacement row is vacuous (fixture rows carry no `turn`). | 3 suites | OPEN |
+| **V74-H6** | P2 harness | **15 suites ignore `SEM_INDEX_SRC`**; 8 also pull shared constants through `_gate_extract` (which honours it) → a hybrid source. With the variable pointed at an empty file, **26 of 89 suites still pass**. No mutation proof here — including mine — covers them. | 15 suites | OPEN |
+
+**ROOT CAUSE.** `legacyProseFallback` and `unaccountedCompletionProse` both begin `requestedIntent !== null`. Every gap in request-side *shape* derivation is therefore a P1 fabrication path. Seven consecutive rounds have found one (V67…V74). The list is not converging because the architecture makes it infinite.
+
+**TESTED.** Battery re-run independently: **92 suites, 89 green, 3 red**, matching the session's claim; all three standing reds re-classified from first principles and **confirmed correct** (2 × BLOCKED–FOUNDER AUTHORITY, 1 × OPEN DEFECT–THIS PC). Own 15-mutant proof: 10 killed, 5 survived, 0 unapplied. Own TDZ scan: 1,108 declarations, 0 runtime-fatal. Artifact: 695,200 bytes, CRLF-pure, 0×0x08. `v92_parity_corpus.json` re-checked myself — 272 rows, **zero** non-ASCII uppercase; the corpus genuinely could not express V73-D3.
+
+**Two of my own instruments were wrong and are reported as such**: a `new RegExp("(?!)" && …)` mutant is a no-op; a probe read `contextTrimmed`, which is spliced for display, and reported "not trimmed" while holding 4 rows of 200 (that error is how V74-O3 was found).
+
+**PRODUCTION.** Nothing pushed, deployed or applied. `index.ts` is byte-identical to the candidate. No migration written. No `QA-VERIFY-*` data created — DB access was gated, so there is nothing to clean up.
+
+**BLOCKERS / founder-only actions:** (1) do not deploy `6fa79b5`; (2) apply `supabase/drafts/202609090001_person_assignment_scope_authorization.sql` — **BLOCKED — DB PUSH**; (3) `supabase logout` **and revoke the token**; (4) remove the `Supabase CLI:*` Credential Manager entry; (5) decide the Vercel CLI session; (6) rule on V74-D1's product semantics.
+
+**Coverage gaps, stated as gaps:** `npx supabase db query` gated → `global_integrity_assertions.sql` **not run**. No browser tools → UI↔DB and AI↔DB live checks **BLOCKED**, not skipped. `deno check` gated → substituted with my own block-scope scan. All behavioural evidence is INTEGRATION-level over real windows sliced from `index.ts`, not evidence about a deployed function.
+
+**Artifacts** (commit `748c802a`, branch `verify-6fa79b5-campaign134`): `qa/verification/proposed/v74_known_failure_modes_entry_158.md`, `v74_PROMOTION_NOTE.md`, `v74_regression_additions.mjs` (114 rows — 81 pass / 33 fail on the candidate, **0 CONTRACT rows failing**; kills the mutant no existing suite could), `v74_prepared_fix-D2-D5-quote-class-and-list-answers.patch`, plus `qa/scenarios-runner/_gate_extract.mjs` (two names the patch requires).
+
+---
+
+```
+FAILED
+```
+
+`1ba84df934f70bdc13b7006bc77842e10ad3b77bcbc0e8b83b2d4fcdbec9aae7`

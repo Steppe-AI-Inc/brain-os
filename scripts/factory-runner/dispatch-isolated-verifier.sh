@@ -81,6 +81,27 @@ cat > "$META" <<EOF
 }
 EOF
 
+# ---- freeze the candidate in the SOURCE repo for the life of this round -----------------
+# The verifier reads its own worktree, so this is not about the verifier. It is about the repo
+# where fixes get written: 85 apply-scripts under qa/verification/scratch/p1 default their target
+# to the candidate, so running one to check that its anchors still resolve APPLIES it. That is
+# exactly what happened to the candidate under verifier #74. Read-only turns the class into EPERM.
+#
+# Not fatal if it fails - the watchdog independently pins the sha and aborts on a mismatch - but
+# never silent, because an unprotected candidate should not be something you discover afterwards.
+# Thaw deliberately when the round ends:
+#   node qa/verification/candidate_freeze.mjs unfreeze "<why>"
+# WHICH TREE HOLDS THE CANDIDATE. This dispatcher runs from the repo it lives in, but the candidate is
+# usually prepared in a SEPARATE worktree on the implementation branch - so freezing "$REPO"'s copy would
+# lock a file nobody is editing and leave the real candidate writable. Name the tree explicitly with
+# BRAIN_OS_CANDIDATE_REPO when they differ; it defaults to this repo, which is right for a single-tree setup.
+CANDIDATE_REPO="${BRAIN_OS_CANDIDATE_REPO:-$REPO}"
+FREEZE_TOOL="$CANDIDATE_REPO/qa/verification/candidate_freeze.mjs"
+if [ -f "$FREEZE_TOOL" ] && [ "$PINNED" = "supabase/functions/sem-ai-command/index.ts" ]; then
+  if ! node "$FREEZE_TOOL" freeze "verifier #$VERIFIER on $SHA7 / $INDEX_SHA"; then
+    echo "WARNING: could not freeze the candidate - it stays writable for this round" >&2
+  fi
+fi
 # ---- launch under the watchdog, detached ---------------------------------------------------
 : > "$LOG"
 nohup bash "$REPO/scripts/factory-runner/verifier-watchdog.sh" "$PROMPT" "$LOG" "$INDEX_SHA" "$MAX_ATTEMPTS" "$WORKTREE" "$PINNED" \
