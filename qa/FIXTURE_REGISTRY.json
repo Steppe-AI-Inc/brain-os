@@ -450,6 +450,24 @@
       "registered_at": "2026-09-09T02:46:15Z",
       "created_via": "product UI (/projects)",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-DEPT-FABTEST-06",
+      "kind": "department",
+      "resource_type": "department",
+      "name": "QA-C002-DEPT-FABTEST-06",
+      "synthetic_display_name": "QA-C002-DEPT-FABTEST-06",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-RENAMED-X (QA-C002-RENAMED-X)",
+      "created_as": "QA-C002-DEPT-DELTEST-05 via /departments UI, then renamed to QA-C002-DEPT-FABTEST-06 BY BRAIN CHAT (a real, truthful chat mutation - BUG-010 matrix Class 6).",
+      "purpose": "Disposable target for BUG-010 matrix Classes 5 (permanent delete) and 6 (rename). Retained because Class 6 makes it the campaign's only fixture whose current name was set by a verified-truthful chat mutation - useful as a positive control for receipt-vs-reality tests.",
+      "cleanup": "Deletable at any time via /departments. No other test depends on it.",
+      "registered_at": "2026-09-09T03:31:00Z",
+      "created_via": "product UI (/departments) + Brain Chat rename",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

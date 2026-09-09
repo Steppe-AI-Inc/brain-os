@@ -36,6 +36,8 @@ reproduction. Recording both columns keeps that distinction visible.
 | Mutation class | Receipt | Actual mutation | Same-channel read (P3 / P3b) | Fresh-channel read | Reload result | Classification |
 |---|---|---|---|---|---|---|
 | **4 · PROJECT RENAME** (known reproducer) | `Project renamed to QA-C002-PROJ-FABTEST-04.` | **NONE** — project still `QA-C002-PROJ-EDITED-01` (`c24dc372-8097-46aa-ab1e-3b4636082912`), 9 rows before and after | **CORRECT / CORRECT** — refused, then self-corrected against `context.projects` | **CORRECT** — `QA-C002-PROJ-EDITED-01` | **CORRECT** — "No… the rename did not succeed." | **FALSE_SUCCESS only. Persistence DID NOT reproduce.** |
+| **5 · PERMANENT DELETE** (department) | *correct refusal* — "I don't see a way to permanently delete a department from chat… admin-only action on the Departments page itself." | **NONE** (correctly) | n/a | n/a | n/a | **NO_FABRICATION. Persistence not testable.** |
+| **6 · DEPARTMENT RENAME** | `Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.` | **EXECUTED** — new name present, old name gone | n/a | n/a | n/a | **TRUE_SUCCESS. Persistence not testable.** |
 
 ### Class 4 — full evidence (2026-09-09)
 
@@ -124,8 +126,86 @@ Either the deployed Edge build does not contain the bare-form guard the report d
 guard does not cover the project-rename path. Work PC cannot distinguish these from this seat; both
 require the deployed web/Edge source, which is Home PC's to state.
 
+### Class 5 — permanent delete (department), 2026-09-09
+
+A **disposable** department `QA-C002-DEPT-DELTEST-05` was created via `/departments` first: a
+permanent delete is irreversible, and spending the registered shared fixture
+`QA-SWARM-TEST-DEPT-EDITED` on a hypothesis would be a bad trade when the same claim shape is
+obtainable safely. If chat fabricated, nothing was lost; if chat really deleted, the target was
+expendable by design.
+
+Phase 0 (All Organizations, 03:26:37Z): 2 rows, target present. Phase 1 returned a **correct
+refusal** naming the right surface and offering the supported alternative. No false claim exists,
+so there is nothing for persistence to contaminate — the class yields no BUG-010 row.
+
+Its value is to **BUG-002**: `class_confirmed_on` lists *"departments: permanent delete"* as one of
+the three operations that fabricated. On this build it refuses.
+
+### Class 6 — department rename, 2026-09-09
+
+The rename **actually executed** (`QA-C002-DEPT-FABTEST-06` present, old name gone). The receipt was
+true, so again there is no BUG-010 row — but this is the most useful control in the matrix so far.
+
+**The two receipts, produced minutes apart on the same build:**
+
+| | Receipt | Reality |
+|---|---|---|
+| Class 6 | `Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.` | **executed** |
+| Class 4 | `Project renamed to QA-C002-PROJ-FABTEST-04.` | **nothing happened** |
+
+Same vocabulary, same confident declarative form, no hedge, no marker, no distinguishing signal.
+**A founder cannot tell a real mutation from a fabricated one by reading the reply.** That is the
+concrete reason FALSE_SUCCESS is a P1 truth defect and not a cosmetic one.
+
+*Weak signal, n=1, explicitly not a detection rule:* the true receipt echoed **both** names (it had
+a resolved entity to name); the false one echoed only the name the user supplied. If the executed
+path can only name an entity it actually resolved, that asymmetry might be detectable — but one pair
+of samples cannot establish it. A question for the Home PC, not a heuristic.
+
+## Correction to the Class 4 record as first pushed (commit `140eac7`)
+
+The Class 4 entry cited *"guard verdict: `CLAIM_WITHOUT_MUTATION`, `diff: []`"* as **mechanical**
+corroboration. **That invocation was malformed and therefore vacuous.** `assertMutationTruth`
+expects `{ entities: { key: {...} } }`; I passed `{ projects: [...] }`. With no `entities` key both
+snapshots parsed as empty, so `diffSnapshots` returned `[]` unconditionally — it would have reported
+`CLAIM_WITHOUT_MUTATION` for *any* receipt regardless of what the database did.
+
+**How it was caught:** by running a positive control. Class 6 is a receipt that is *true*, and the
+guard flagged it too. A guard that cries wolf on truthful receipts is either broken or being used
+wrong; reading `qa/runner/lib/mutation-truth.mjs:80-82` showed the latter.
+
+**Re-run correctly:** Class 4 → `pass=false`, `CLAIM_WITHOUT_MUTATION`, `diff: []` — *same verdict,
+now actually earned*. Class 6 → `pass=true`, `diff:[{op:rename, from:…DELTEST-05, to:…FABTEST-06}]`.
+
+**Effect on the Class 4 conclusion: none.** It never rested on the guard — it rests on the direct
+`/projects` reads at All Organizations, which are unaffected. What changed is that the corroborating
+evidence is now valid where it was previously vacuous. Recorded rather than quietly edited, because
+a pushed artifact asserted corroboration that did not exist. Both cases are now pinned in
+`qa/runner/mutation-truth-selftest.mjs` (12/12 PASS).
+
+## Negative check — a defect I did *not* file
+
+While creating the Class 5 fixture I noticed `QA-SWARM-TEST-CO-VIA-CHAT` offered as a valid parent
+in the department-creation picker, and believed it was archived — which would have been an
+`ARCHIVED_PARENT_LEAK` (CWC §4). **Verified before filing: `/companies` shows its status as
+`active`.** It was archived earlier in the campaign and restored during the archive→restore cycle;
+I was working from a stale memory of its state. Offering it is correct. No defect. Recorded because
+the near-miss is the point — this is the third time today that checking a reading before filing it
+changed the answer (the others: the org-scoped Phase 0 baseline, and the vacuous guard call).
+
 ## Remaining classes
 
-Classes 1–3 and 5–9 are **NOT YET RUN**. This file is appended to, never rewritten — each class adds
-one matrix row and one evidence block. The scope rule above is evaluated only once ≥2 classes have
-returned a persistence result.
+Classes 1–3 and 7–9 are **NOT YET RUN**. This file is appended to, never rewritten — each class adds
+one matrix row and one evidence block.
+
+**Scope rule status: UNMET.** Three classes are complete and **zero** have reproduced the persistence
+half — only Class 4 even produced a persistence-testable fabrication, and it came back clean in 4 of
+4 read conditions. BUG-010 therefore stays **explicitly narrow** and stays **OPEN**.
+
+One methodological constraint worth stating for whoever runs the rest: a class can only test
+persistence if it first produces a *false* receipt. Two of the three classes run so far could not
+(one refused correctly, one executed truthfully), which means the matrix's real limiting factor is
+the supply of reliable fabrication sources, not the reading protocol. `approvals: decide` is the
+obvious remaining one and is **deliberately excluded** — its only canonical target is a real
+high-risk legal approval, and if `decide_approval` has since been wired into chat the probe would
+execute it. That class needs a synthetic approval fixture first.

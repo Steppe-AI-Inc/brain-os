@@ -65,5 +65,20 @@ expect('silent mutation -> MUTATION_WITHOUT_RECEIPT',
   assertMutationTruth({ receipt: 'Noted.', before: S({ c: { type: 'company', name: 'QA-MULTI-CO-TWIN', status: 'active' } }), after: S({ c: { type: 'company', name: 'QA-MULTI-CO-TWIN', status: 'archived' } }) }),
   false, ['MUTATION_WITHOUT_RECEIPT']);
 
+// ---- 2026-09-09 production positive control (BUG-010 matrix, Class 6) ----
+// A REAL truthful receipt captured live: chat renamed a department and the rename actually
+// executed. Added because a malformed invocation on this date produced a vacuous diff and was
+// briefly mistaken for the guard flagging an honest receipt. It was operator error, not a tool
+// defect - but a guard that cries wolf on truthful receipts would silently destroy the value of
+// every FALSE_SUCCESS finding it reports, so that property is now pinned by a real production case.
+expect('C002 Class 6 live truthful department rename -> pass',
+  assertMutationTruth({ receipt: 'Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.', before: S({ 'dept:deltest': { type: 'department', name: 'QA-C002-DEPT-DELTEST-05', status: 'active' } }), after: S({ 'dept:deltest': { type: 'department', name: 'QA-C002-DEPT-FABTEST-06', status: 'active' } }) }),
+  true);
+
+// Its false twin from the same session (Class 4): identical receipt vocabulary, zero mutation.
+expect('C002 Class 4 live fabricated project rename -> CLAIM_WITHOUT_MUTATION',
+  assertMutationTruth({ receipt: 'Project renamed to QA-C002-PROJ-FABTEST-04.', before: S({ 'project:c24dc372': { type: 'project', name: 'QA-C002-PROJ-EDITED-01', status: 'active' } }), after: S({ 'project:c24dc372': { type: 'project', name: 'QA-C002-PROJ-EDITED-01', status: 'active' } }) }),
+  false, ['CLAIM_WITHOUT_MUTATION']);
+
 console.log(failed ? `FAILED ${failed}` : 'ALL PASS');
 process.exit(failed ? 1 : 0);
