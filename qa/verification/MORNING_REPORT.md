@@ -152,7 +152,8 @@ The production Edge function still carries v92 source.
 
 ## EXACT FOUNDER AUTHORISATION REQUIRED
 
-**None is blocking right now.** #75 must return a verdict first. When it passes, the next action is a
+**None is blocking right now.** #76 must return a verdict first — it is the third round tonight, and
+the two before it both failed on defects no previous round could see. When it passes, the next action is a
 fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact DEPLOY_FILE_SHA256 in the release manifest — and I
 will ask for it then, once, with the manifest attached.
 
