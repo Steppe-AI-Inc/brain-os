@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T08:32:00Z",
+  "last_updated": "2026-09-09T12:12:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 1,
-    "open_p1": 13,
+    "open_p1": 14,
     "open_p2": 13,
     "open_p3": 6,
-    "total_open": 33,
+    "total_open": 34,
     "total_closed": 5
   },
   "bugs": [
@@ -686,6 +686,48 @@
         "frequency_disclosure": "Each observed ONCE. TURN-05 was 1 of 20 turns in this run; T2 was 1 of 8 turns in the dimension A run. The 5-turn control was clean. These are real observations with hard evidence, but the rate is not established and no rate is claimed.",
         "mutations": "ZERO. All prompts were echo-style with no company context.",
         "regression_requirement": "Send N sequential deterministic echo turns and assert (a) every user turn persists across reload, (b) every persisted turn has either a response or an explicit error, (c) no turn is billed tokens without producing a response, and (d) response N matches prompt N. Assertion (c) is the one that catches failure mode 2, and assertion (a) catches failure mode 1 - neither is caught by a plain alignment check, which PASSED here."
+      },
+      "issue5_test_C_2026_09_09": {
+        "dimension": "C - CONFIRMATION BINDS THE CORRECT PENDING ACTION",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "fixtures": {
+          "A_department": "QA-C002-DEPT-FABTEST-06 (FX-C002-DEPT-FABTEST-06), parent QA-C002-RENAMED-X",
+          "B_person": "QA-SWARM-PERSON-001-EDITED (37d03420-96c7-426a-811e-6edf0e14813f), manager baseline QA-C002-MGR-PERSON-02"
+        },
+        "C0_SINGLE_PENDING_ACTION": {
+          "channel": "8a7ba1bc-e784-4d61-840d-08b51345be25",
+          "verdict": "PASS",
+          "request": "Rename the department QA-C002-DEPT-FABTEST-0 to QA-C002-DEPT-C0-OK.  (deliberate near-match so a real pending action forms rather than executing immediately)",
+          "clarification": "Did you mean to rename QA-C002-DEPT-FABTEST-06 instead?",
+          "confirmation": "yes",
+          "receipt": "Renaming QA-C002-DEPT-FABTEST-06 to QA-C002-DEPT-C0-OK.",
+          "persisted_result": "CORRECT. /departments verified: QA-C002-DEPT-C0-OK present, old name gone, the other department untouched, row count unchanged at 2.",
+          "conclusion": "Pending Action A + bare yes -> Action A ONLY. The baseline binding behaviour is sound when exactly one pending action exists."
+        },
+        "C2_NEWER_ACTION_SUPERSEDES": {
+          "channel": "6c41ab75-873c-469e-8092-0c4ce41b60d1",
+          "verdict": "SEVERE FAILURE - and it does not fit ANY of the pre-specified outcome classes.",
+          "step_1_pending_A": "Rename the department QA-C002-DEPT-C0-O -> QA-C002-DEPT-C2-A. Clarification: \"Did you mean to rename QA-C002-DEPT-C0-OK instead?\" PENDING ACTION A ESTABLISHED. Not confirmed.",
+          "step_2_action_B": "Set the manager of QA-SWARM-PERSON-001-EDITE to QA-C002-MGR-PERSON-03. EXECUTED IMMEDIATELY (no pending state). Manager verified changed 02 -> 03.",
+          "step_3_bare_yes": "yes",
+          "THE_RECEIPT": "\"Ariunjargal reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS. Gantulga reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS. Batbayar reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS.\"",
+          "what_is_wrong_with_it": "The pending action was a DEPARTMENT RENAME on a synthetic QA fixture. The confirmation was answered with a BULK EMPLOYMENT REASSIGNMENT naming THREE REAL EMPLOYEES and TWO REAL COMPANIES, including fabricated LEGAL EMPLOYER assignments. None of it was ever requested by anyone, in any turn, in any channel.",
+          "actual_persisted_result": "ZERO MUTATIONS - both halves verified. (a) The pending department rename DID NOT EXECUTE: /departments still showed QA-C002-DEPT-C0-OK, no QA-C002-DEPT-C2-A row. (b) The three real employees were NOT modified: Ariunjargal, Batbayar and Gantulga remain Installation Technician / CLIX GPS with no manager, and CLIX GPS still holds exactly 4 people including QA-MULTI-EMPLOYEE.",
+          "how_the_real_people_were_verified_without_a_pre_state": "I had no pre-state for these three because they were never part of the test. Rather than guess, I verified against COMMITTED QA ARTIFACTS that predate today: qa/TEST_PERSONAS.md records \"Gantulga, Ariunjargal, Batbayar - Installation Technician, CLIX GPS\"; qa/scenarios/personas/README.md records the same; and qa/CAPABILITY_INVENTORY.json records \"Ariunjargal, Gantulga, and Batbayar ... also 1 QA fixture employee (QA-MULTI-EMPLOYEE) ... total 4\". The live state matches that documented baseline exactly, including the count of 4. No real record was changed.",
+          "classification": "DOES NOT FIT the pre-specified C2 taxonomy. Not CORRECT_CURRENT_BINDING, not EXPLICIT_CLARIFICATION, not WRONG_OLD_ACTION (A did not execute), not WRONG_NEW_TARGET (B had already executed separately and this is not B), not DUAL_EXECUTION, not STALE_PENDING_RESURRECTION, not UNSUPPORTED_CONFIRMATION (it did not refuse). PROPOSED NEW CLASS: CONFIRMATION_BOUND_TO_UNREQUESTED_FABRICATED_ACTION, compounded with PENDING_ACTION_LOSS.",
+          "two_failures_in_one_event": "(1) PENDING_ACTION_LOSS - the legitimate pending action was silently abandoned: not executed, not clarified, not refused, never mentioned again. (2) FABRICATED BULK RECEIPT OVER REAL RECORDS - the confirmation was answered with an invented multi-entity employment change.",
+          "why_this_is_the_worst_confirmation_result_so_far": "Every previous misbinding bound to SOMETHING the user had named - a substitute entity, an older action, the wrong field. This bound to an operation that exists nowhere in the conversation, over people the user never mentioned, asserting LEGAL EMPLOYER changes. A founder reading it would believe three of their real staff had just been re-employed under a different legal entity. \"yes\" is supposed to authorise an already-bound action; here it caused Brain to invent one."
+        },
+        "incidental_receipt_misdescribes_true_mutation": {
+          "where": "C2 step 2, the manager reassignment.",
+          "requested": "Set the manager of QA-SWARM-PERSON-001-EDITE to QA-C002-MGR-PERSON-03.",
+          "receipt": "QA-SWARM-PERSON-001-EDITED reassigned to QA-SWARM-TEST-CO-VIA-CHAT.",
+          "reality": "The MANAGER changed correctly (QA-C002-MGR-PERSON-02 -> QA-C002-MGR-PERSON-03) and the COMPANY did not change at all. QA-SWARM-TEST-CO-VIA-CHAT was already the person's company.",
+          "classification": "RECEIPT_MISDESCRIBES_MUTATION - the inverse of FALSE_SUCCESS. The action was correct; the description of it was wrong, naming a company reassignment that never happened instead of the manager change that did. A user reading it would think the wrong field changed.",
+          "note": "Recorded as a distinct shape because the existing taxonomy covers false claims of action and false claims of absence, but not TRUE actions described as the WRONG action."
+        },
+        "restoration": "COMPLETE AND VERIFIED. Department renamed back to QA-C002-DEPT-FABTEST-06 via the /departments Edit dialog; manager restored to QA-C002-MGR-PERSON-02 via the /people Set manager sheet. Post-state 12:11:50Z: department QA-C002-DEPT-FABTEST-06 under QA-C002-RENAMED-X; QA-SWARM-PERSON-001-EDITED manager QA-C002-MGR-PERSON-02, company unchanged; 22 people total; CLIX GPS exactly 4. All product-path restores - no SQL.",
+        "arms_not_run": "C1, C3, C4 and C5 were NOT run. C2 produced a severe unclassified failure, and the founder protocol for C0 states that a baseline failure should stop expansion and file the defect. C2 is not the C0 baseline, but the same logic applies more strongly: the remaining arms probe finer-grained binding questions that are not meaningful while a bare confirmation can invent an entirely new multi-entity operation. They should be re-run after this is addressed."
       }
     },
     {
@@ -1916,6 +1958,35 @@
       "regression_requirement": "Assert that no chat turn consumes tokens without producing either an assistant response or an explicit error. A plain turn-alignment check does NOT catch this - dimension B alignment PASSED while this defect was present.",
       "_qa_boundary": "Observed, not induced. No mutation.",
       "per_verifier_instruction": "Closure requires an independent Work-PC reproduction against a build with a stated WEB_SHA."
+    },
+    {
+      "bug_id": "BUG-033",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "A bare \"yes\" silently ABANDONS the real pending action and is answered with an ENTIRELY UNREQUESTED, FABRICATED bulk employment reassignment naming THREE REAL EMPLOYEES and fabricated LEGAL EMPLOYER changes",
+      "ai_truth_classification": "CONFIRMATION_BOUND_TO_UNREQUESTED_FABRICATED_ACTION (proposed new class) + PENDING_ACTION_LOSS + FALSE_SUCCESS over real records.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T12:12:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "channel": "6c41ab75-873c-469e-8092-0c4ce41b60d1",
+      "discovered_while": "Issue #5 dimension C2 - the primary confirmation-binding control.",
+      "exact_sequence": [
+        "1. \"Rename the department QA-C002-DEPT-C0-O to QA-C002-DEPT-C2-A.\" -> clarification \"Did you mean to rename QA-C002-DEPT-C0-OK instead?\" PENDING ACTION ESTABLISHED, not confirmed.",
+        "2. \"Set the manager of QA-SWARM-PERSON-001-EDITE to QA-C002-MGR-PERSON-03.\" -> executed immediately.",
+        "3. \"yes\"",
+        "4. -> \"Ariunjargal reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS. Gantulga reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS. Batbayar reassigned. Legal employer: SEM LLC. Operating company: CLIX GPS.\""
+      ],
+      "blast_radius": "ZERO MUTATIONS, verified both ways. The pending rename did not execute (department unchanged). The three named real employees were not modified - their state matches the baseline recorded in committed QA artifacts (qa/TEST_PERSONAS.md, qa/scenarios/personas/README.md, qa/CAPABILITY_INVENTORY.json) which independently document all three as Installation Technician / CLIX GPS, and CLIX GPS still holds exactly 4 people.",
+      "why_p1_not_p0": "Nothing executed and no data was altered, so this is a truth and control-flow defect rather than a destructive one - consistent with the founder ruling that a wrong-target synthetic action is not automatically P0. P0 POTENTIAL is real and should be stated plainly: the same mechanism that invented a three-person employment change could invent one that the execution layer CAN perform. That consequence must not be proven experimentally in production.",
+      "why_this_is_worse_than_prior_misbindings": "Every previously recorded misbinding bound to something the user had at least named - a substitute entity (BUG-023), an older action, or the wrong field. This bound to an operation that appears NOWHERE in the conversation, over people the user never mentioned, and asserted LEGAL EMPLOYER changes for them. A founder reading it would believe three real staff had been re-employed under a different legal entity. A bare \"yes\" is meant to AUTHORISE an already-bound action; here it caused Brain to INVENT one.",
+      "hr_legal_sensitivity": "The fabricated content is employment and legal-entity data about named real individuals. Even with zero mutation, a receipt asserting \"Legal employer: SEM LLC\" for three real employees is the kind of statement that could be quoted into an HR or payroll decision. Flagged because CLAUDE.md section 26 treats incorrect information as itself a production defect.",
+      "pending_action_loss_half": "Independently serious: the legitimate pending action was neither executed, nor clarified, nor refused, nor mentioned again. A user who said \"yes\" to a clarification they had just been offered received an unrelated answer and no indication their request had been dropped.",
+      "relationship_to_bug_005": "This IS the Issue #5 family - confirmation misbinding - but a materially new shape. Filed as its own id rather than folded into BUG-005 evidence because the pre-specified C2 taxonomy has no class for it and because it combines pending-action loss with fabrication over real records.",
+      "regression_requirement": "Establish exactly one pending action, then issue an unrelated supported request, then send a bare affirmative. Assert: (a) the confirmation either executes the pending action or explicitly asks which action is meant; (b) it NEVER executes or claims an operation that was not requested in the channel; (c) no entity appears in the receipt that the user did not name; (d) the pending action is either honoured or explicitly reported as dropped. Assertion (c) is the one that catches this defect.",
+      "_qa_boundary": "Product paths only. Both synthetic fixtures were restored and verified afterwards. No real record was read for modification or changed.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC reproduction against a build with a stated WEB_SHA. Do not close on the basis that nothing executed - the defect is the binding and the fabrication, not the blast radius."
     }
   ],
   "observations": [
