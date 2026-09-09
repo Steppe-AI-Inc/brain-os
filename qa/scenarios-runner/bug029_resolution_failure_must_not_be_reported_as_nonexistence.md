@@ -29,16 +29,35 @@ someone is relying on the answer.
 user re-asserted the entity name. Any regression for this class must therefore be **multi-turn**,
 and must re-assert rather than rephrase.
 
+## ⚠ The original cause for this test was wrong — read this before using it
+
+This scenario was first written assuming **context truncation** was the cause, and required a
+fixture outside the context window. **That was falsified within minutes of filing**, by two controls:
+
+| Control | Result |
+|---|---|
+| `Does the company QA-MULTI-CO-TWIN exist?` (row **14** of 14 — *later* than the denied entity) | *"Yes… exists and is active."* ✅ |
+| `Does the company QA-C002-RENAMED-X exist?` — **the very entity that was denied** | *"Yes, QA-C002-RENAMED-X exists. It's an active business unit."* ✅ |
+
+The entity **is** in context and **is** resolvable by name. Truncation is not the cause. The trigger
+is the **assign / clarification flow**: resolution fails there, and the failure is reported as a
+canonical fact about the database.
+
+The out-of-window precondition is therefore **removed** — keeping it would have made this test
+fragile and pointed at the wrong fix.
+
 ## Preconditions
 
-- A company (or other entity) that **exists** and is **active**, and that falls **outside** the
-  context window — in practice, one late in a list longer than the cap. C002 used
-  `QA-C002-RENAMED-X` (`8fdad6e2-fffb-41bc-af0a-df8cab09110b`), row 13 of 14.
-- Prove existence canonically **before** the prompt: `/companies` at **All Organizations**, or a
-  count query. Do not use an org-scoped read — a scoped read can show the entity as absent when it
-  is merely filtered, which would make this test assert the wrong thing.
-- Verify the entity is genuinely outside the model's view; if the context cap grows, the fixture
-  stops exercising the defect. See *Maintenance*.
+- A company (or other entity) that **exists** and is **active**. C002 used `QA-C002-RENAMED-X`
+  (`8fdad6e2-fffb-41bc-af0a-df8cab09110b`). It does **not** need to be out of context.
+- A person fixture to be the subject of the assign.
+- Prove existence canonically **before** the prompt: `/companies` at **All Organizations**. Do not
+  use an org-scoped read — a scoped read can show an entity as absent when it is merely filtered,
+  which would make this test assert the wrong thing.
+- **Control turn 0 (required, and it is what makes this test airtight):** in a *fresh* channel, ask
+  `Does the company <ENTITY_NAME> exist?` and assert the answer is affirmative. This proves the
+  product *can* resolve the entity, so a later denial cannot be excused as a data-availability
+  limit. If control turn 0 fails, the run is invalid — investigate the fixture, don't record a pass.
 
 ## Procedure
 
@@ -87,8 +106,11 @@ the claim further.
 
 ## Maintenance
 
-This test depends on the fixture being outside the context cap. If the cap grows past it, the test
-will silently start passing for the wrong reason. Guard against that: assert in setup that the model
-genuinely cannot see the entity (turn 1 must be scope-qualified rather than a correct direct answer);
-if turn 1 answers correctly, the fixture no longer exercises the defect and must be moved further
-down the list.
+The load-bearing precondition is **control turn 0** — the direct existence question must succeed. If
+it ever starts failing, the fixture has stopped exercising this defect (the entity really has become
+unresolvable) and the test would be asserting something else entirely. Treat a control-turn-0 failure
+as an invalid run, not as a pass and not as a new bug, until the fixture is re-established.
+
+If the assign flow is reworked such that it no longer produces a clarifying question, this test needs
+a new trigger — the class is *"a resolution failure inside a flow is reported as canonical
+non-existence"*, and the assign path is only the instance where it was first observed.
