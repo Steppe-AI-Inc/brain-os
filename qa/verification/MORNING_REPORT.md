@@ -35,6 +35,14 @@ Acceptance tests 1–10 remain BLOCKED, and the status suite still reports 0 of 
 
 All six QA suites green: 36 / 58 on the command-center branch, 64 / 36 / 37 / 14 on the node branch.
 
+**All six release gates PASS on the new candidate** — battery (0 unclassified red), twelve-mutant proof
+(0 surviving, 0 ineffective), harness rename probe (no suite pins a spelling), founder acceptance corpus,
+TDZ triage (0 unresolved), and a restore-tested backup.
+
+**One of the four blind suites is converted and measured** (, not applied — the
+candidate is frozen). Against a mutant that removes "approved" from a live fabrication gate: the pasted-
+literal version reports 13 passed / 0 failed and sees nothing; the lifted version reports 12 / 1.
+
 ## RUNNING
 
 **Verifier #75** on the new candidate. Dispatch details are in `qa/verification/scratch/verifier75_dispatch.json`.
