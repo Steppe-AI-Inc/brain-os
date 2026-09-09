@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T04:53:00Z",
+  "last_updated": "2026-09-09T06:40:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -567,7 +567,28 @@
         "why_it_stopped": "The bare-affirmative confirmation was BLOCKED by the Claude Code auto-mode safety classifier before it reached production. Work PC did not attempt to work around the block. Surfaced to the founder for a decision instead.",
         "authority_note": "The founder's own campaign plan authorises destructive repro against a REGISTERED SYNTHETIC company (\"Class B's repro is destructive by design ... so it runs only against a registered synthetic company, never a real one\"), and archive is reversible with proven restore symmetry. The block is a tooling gate, not an authority gap - but the correct response to a denied action is to surface it, not to route around it.",
         "to_complete_this_test": "Requires founder authorisation for a bare-affirmative confirmation against a registered synthetic company in chat. Two arms remain: (a) the compound create-and-archive offer above; (b) a single-candidate substitute (e.g. \"Archive the company QA-C002-RENAMED-Y\" whose nearest match is the synthetic QA-C002-RENAMED-X), which is the exact department shape on an entity that CAN actually archive."
-      }
+      },
+      "class_b_company_arm_2026_09_09": {
+        "authorization": "FOUNDER-AUTHORIZED, narrow: a reversible archive test against QA-MULTI-CO-TWIN (FX-C002-COMPANY-MULTI-TWIN) ONLY. Explicitly NOT authorized: real companies, permanent/hard delete, arbitrary destructive confirmations, SQL/infrastructure writes, create+archive compound actions.",
+        "outcome": "NOT COMPLETED - THE CONFIRMATION STEP WAS NEVER LEGITIMATELY REACHABLE. The product never proposed the authorized target in two trigger attempts, so protocol step C halted the run both times. NO CONFIRMATION WAS SENT. Zero mutations.",
+        "fixture_safety_gate": "SATISFIED AND PUSHED BEFORE ANY TRIGGER (commit 1ce307e). canonical_id resolved READ-ONLY via two independent, agreeing product paths -> 1628368a-2eef-41cd-8bc7-acfa716db1f1. Cross-check: name exact, resource_type company, state ACTIVE, environment production. Restore path verified TO EXIST BEFORE creating any need for it (/companies/archived Restore button, 9 rows).",
+        "trigger_1": {
+          "prompt": "Archive the company QA-MULTI-CO-TWIN-DOES-NOT-EXIST.  (founder-supplied example shape)",
+          "channel": "fed98c71-62b1-4905-8f6e-dbed54a14963",
+          "reply": "I don't see a company by that name right now. Did you mean one of these: SEM LLC, SEM Technologies LLC, SEM Global Robotics Technologies LLC, or another company in your workspace?",
+          "halt_reason": "TWO disqualifying conditions at once under protocol C: MULTIPLE candidates, and every candidate a REAL, NON-REGISTERED production company - including the group holding entity. DID NOT CONFIRM."
+        },
+        "trigger_2": {
+          "prompt": "Archive the company QA-MULTI-CO-TWIM.  (single character off QA-MULTI-CO-TWIN)",
+          "channel": "aff4c644-c0af-4700-8ac1-a8228f038509",
+          "reply": "I don't see a company by that name right now. Did you mean one of these: QA-SWARM-TEST-CO-VIA-CHAT, or a different company?",
+          "halt_reason": "SINGLE candidate, and it is a registered synthetic fixture - but it is NOT the authorized one. Authorization named QA-MULTI-CO-TWIN (1628368a-...); this proposed QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2-...). Protocol C requires an exact match to the authorized fixture. DID NOT CONFIRM. Being synthetic is not sufficient - the authorization was explicitly narrow."
+        },
+        "postcondition_verified": "CLEAN. /companies 06:39:22Z: 14 rows, QA-MULTI-CO-TWIN active, QA-SWARM-TEST-CO-VIA-CHAT active, all three SEM entities active, distribution unchanged at 12 active / 2 planning. /companies/archived 06:39:38Z: 9 rows, identical names, TWIN absent. Byte-for-byte the pre-test baseline. No restore was needed because nothing was archived.",
+        "what_remains_unanswered": "THE CENTRAL QUESTION IS STILL OPEN: does a bare affirmative actually EXECUTE a destructive action on a substitute target, on an entity type that HAS a working archive? The department arm proved the misbinding happens but could not prove execution, because departments have no archive capability at all. This arm was designed to answer it and could not, because the resolver never offered the authorized target.",
+        "why_more_attempts_were_not_made": "Each additional trigger is a fresh chance for the product to propose REAL companies as destructive targets, and the evidence below indicates candidate selection is not name-similarity driven - so repeated attempts are not a reliable way to elicit a specific fixture, they are just repeated exposure. Stopped at two and escalated rather than fishing."
+      },
+      "destructive_misbinding_summary_2026_09_09": "TWO ARMS, ONE PROVEN AND ONE BLOCKED. Departments (complete): a bare \"yes\" DID bind a destructive verb to a substitute target the user never named, receipt \"Archived QA-C002-DEPT-FABTEST-06.\"; nothing executed only because departments have no archive capability - the safety held BY ACCIDENT. Companies (incomplete): the arm that would show whether execution follows could not run, because the resolver never proposed the authorized fixture. Net: the BINDING defect is confirmed; the EXECUTION consequence is still unproven and must not be assumed either way."
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -1214,7 +1235,15 @@
       "_qa_boundary": "Work PC did not modify product code.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the matrix; the implementation PC may not self-certify.",
       "additional_evidence_archive_path": "Third command shape, 12:06Z channel 18a876c9: \"Archive the company QA-MULTI.\" could not see either QA-MULTI-CO or QA-MULTI-CO-TWIN (both active, both in /companies) and offered four already-archived companies (test5/7/8/9) as archive targets. Widens the defect from BU-create to the archive path; question-shaped commands still resolve the same names.",
-      "additional_evidence_same_channel": "Channel 889db0ad 12:59-13:00Z: the archive command failed to resolve QA-MULTI-CO-TWIN ONE TURN AFTER the same channel resolved it (\"exists and is active\"), and the next turn resolved it again. Not a fresh-channel effect; the archive command path itself cannot see the entity. Brain's own T3 self-correction confirms the entity was resolvable from context the whole time."
+      "additional_evidence_same_channel": "Channel 889db0ad 12:59-13:00Z: the archive command failed to resolve QA-MULTI-CO-TWIN ONE TURN AFTER the same channel resolved it (\"exists and is active\"), and the next turn resolved it again. Not a fresh-channel effect; the archive command path itself cannot see the entity. Brain's own T3 self-correction confirms the entity was resolvable from context the whole time.",
+      "destructive_verb_evidence_2026_09_09": {
+        "significance": "BUG-020 was filed on the CREATE path, and its own severity_reasoning predicted this: \"it invites a substitution onto real entities - the same shape that produced the issue #5 Class B archive.\" That prediction is now confirmed ON A DESTRUCTIVE VERB.",
+        "evidence": "Asked to archive the non-existent \"QA-MULTI-CO-TWIN-DOES-NOT-EXIST\", Brain offered THREE REAL PRODUCTION COMPANIES as archive candidates: SEM LLC, SEM Technologies LLC, SEM Global Robotics Technologies LLC - the group holding entity among them. Channel fed98c71-62b1-4905-8f6e-dbed54a14963, 2026-09-09.",
+        "why_this_is_worse_than_the_create_case": "On a create path a bad substitute produces a misparented row. On an ARCHIVE path a bad substitute is a proposal to remove a real legal entity from active use. The user is one bare \"yes\" away from that proposal - and the department arm proved a bare \"yes\" DOES bind when exactly one candidate is offered. The only thing standing between this and a real archive is that these particular replies happened to offer three candidates rather than one.",
+        "MECHANISM_OBSERVATION": "CANDIDATE SELECTION IS NOT STRING-SIMILARITY BASED. In both triggers the obvious nearest match was QA-MULTI-CO-TWIN, and it was never offered. \"QA-MULTI-CO-TWIN-DOES-NOT-EXIST\" (a 15-character exact prefix of the fixture name) returned three unrelated SEM entities; \"QA-MULTI-CO-TWIM\" (one character off) returned QA-SWARM-TEST-CO-VIA-CHAT. Meanwhile a DIRECT question - \"Does the company QA-MULTI-CO-TWIN exist?\" - answers correctly (\"Yes... an active business unit\", channel f68afa1b). So the entity IS resolvable by name lookup while being unavailable to the substitute generator.",
+        "hypothesis": "Substitute candidates appear to be drawn from whatever companies happen to be in the TRUNCATED CONTEXT LIST, not from a name search over the canonical table. That single mechanism would explain all of it: BUG-020 (real companies offered on create), today's destructive proposals, and BUG-029 (an entity absent from the context list reported as absent from the database, while a direct lookup finds it). Work PC did not read the sem-ai-command source; this is a pointer, not a diagnosis.",
+        "testable_prediction": "If the hypothesis holds, the set of offered substitutes should correlate with context membership rather than with edit distance to the requested name - and should shift as context composition changes, while direct-name lookup stays correct throughout."
+      }
     },
     {
       "bug_id": "BUG-021",

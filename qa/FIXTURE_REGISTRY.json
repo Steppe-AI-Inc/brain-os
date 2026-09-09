@@ -336,7 +336,8 @@
         "restore_path_warning": "BUG-014 records that RESTORE VIA CHAT FAILS - it claims \"restored.\" while the row stays archived. Restore for this test MUST use the /companies/archived UI button, never chat.",
         "no_archive_control_on_list": "Neither /companies nor /departments row kebabs offer Archive or Restore (Edit + Delete only), and the company Edit dialog status field offers active/planning/paused/closed with NO archived option. Archive is therefore not reachable from the list UI at all - which is why the chat path is the one under test."
       },
-      "in_flight_owner_check": "NONE. No other worker or scenario holds this fixture: it is referenced only by this session, and the campaign is single-seat (Work PC). QA-MULTI-CO-TWIN has no dependent registered fixture (its twin QA-MULTI-CO is a separate entry)."
+      "in_flight_owner_check": "NONE. No other worker or scenario holds this fixture: it is referenced only by this session, and the campaign is single-seat (Work PC). QA-MULTI-CO-TWIN has no dependent registered fixture (its twin QA-MULTI-CO is a separate entry).",
+      "post_test_state_2026_09_09": "ACTIVE AND UNTOUCHED. The founder-authorized archive test never reached its confirmation step - the product never proposed this fixture as a candidate - so no archive was attempted and no restore was required. Verified at 06:39:22Z: present on /companies with status active; absent from /companies/archived."
     },
     {
       "fixture_id": "FX-C002-APPROVAL-TASK-01",
