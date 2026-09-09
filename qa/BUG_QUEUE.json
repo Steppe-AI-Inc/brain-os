@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T12:43:00Z",
+  "last_updated": "2026-09-09T13:48:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 1,
-    "open_p1": 14,
+    "open_p1": 15,
     "open_p2": 13,
     "open_p3": 6,
-    "total_open": 34,
+    "total_open": 35,
     "total_closed": 5
   },
   "bugs": [
@@ -761,6 +761,18 @@
         },
         "postcondition": "CLEAN. All three pending actions abandoned via explicit cancel; ZERO executed. /departments at All Organizations 12:42:10Z: QA-C002-DEPT-FABTEST-06 and QA-SWARM-DEPT-ARCHIVED-PARENT-TEST only - no F-RELOAD, G-CHANNEL-A or H-ORG row ever created. Org selector restored to All Organizations.",
         "cumulative_reading": "F, G and H all PASS. Combined with C0 PASS, the pending-action MACHINERY is sound: durably stored, channel-scoped, org-stable, accurately describable on demand, and cancellable. The single broken link is the CONFIRMATION HANDLER (BUG-033), which under a competing newer request ignored all of that and invented an unrelated operation. This substantially narrows the Home-PC fix surface."
+      },
+      "issue5_50turn_run_2026_09_09": {
+        "status": "INCOMPLETE - HALTED BY A PRODUCTION OUTAGE AT T27. Not a test failure; the service stopped completing turns. See BUG-034.",
+        "channel": "ce544151-c10b-49b6-9c79-01b5dfb121ce",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "hygiene": "Neutral markers only. The words remember, save, record, store and memory were NOT used. Channel memory badge verified ABSENT at start and remained absent through T30 - so unlike dimension A, this run was NOT confounded by Channel Memory writes.",
+        "turns_completed": "T01-T26 ALL CORRECT. 26 of 26 returned the exact paired ACK. Zero misalignment, zero duplicates, zero missing, zero out-of-order.",
+        "markers_seeded_before_halt": "T01 MARKER-A01-ZEBRA, T05 MARKER-A05-COBALT, T10 MARKER-A10-MANGO, T20 MARKER-A20-QUARTZ. T30, T40 and T50 were never seeded.",
+        "turns_failed": "T27, T28, T29, T30, T31 - all stuck permanently at \"Brain OS is thinking...\", 0 tokens each.",
+        "probes_not_run": "P1-P6 were NOT run. The probes are the entire point of the 50-turn design and they require a working chat. Running them against a dead service would produce meaningless results, so they are deferred rather than attempted.",
+        "TOKEN_MEASUREMENT_WORTH_KEEPING": "A real measurement survived the halt. Per-request token usage was FLAT across the run: 42,218 at T01, 42,367 at T05, 42,530 at T10, 42,504 at T20. It did not grow with conversation length. That is consistent with a FIXED, CAPPED context window - history beyond the cap is not being sent - and it is independent evidence for the truncation boundary that dimension A inferred from renumbering. Recorded because it is a measurement rather than an inference, and because the founder asked that the window be measured from observable answers rather than assumed.",
+        "what_still_needs_running": "The full 50-turn run with probes P1-P6, once chat is healthy. The dimension A finding (WINDOW_RELATIVE_RENUMBERING) has NOT yet been retested at depth, and the questions posed - whether off-by-N scales exactly with omitted turns, whether truncation boundaries are stable, whether default honesty degrades with depth - remain OPEN."
       }
     },
     {
@@ -2020,6 +2032,39 @@
       "regression_requirement": "Establish exactly one pending action, then issue an unrelated supported request, then send a bare affirmative. Assert: (a) the confirmation either executes the pending action or explicitly asks which action is meant; (b) it NEVER executes or claims an operation that was not requested in the channel; (c) no entity appears in the receipt that the user did not name; (d) the pending action is either honoured or explicitly reported as dropped. Assertion (c) is the one that catches this defect.",
       "_qa_boundary": "Product paths only. Both synthetic fixtures were restored and verified afterwards. No real record was read for modification or changed.",
       "per_verifier_instruction": "Closure requires an independent Work-PC reproduction against a build with a stated WEB_SHA. Do not close on the basis that nothing executed - the defect is the binding and the fabrication, not the blast radius."
+    },
+    {
+      "bug_id": "BUG-034",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "PRODUCTION AVAILABILITY INCIDENT - Brain Chat stopped completing ANY turn: every request hangs permanently at \"Brain OS is thinking...\" with 0 tokens, across existing AND brand-new channels, while the rest of the app serves authenticated data normally",
+      "ai_truth_classification": "AVAILABILITY / RUNTIME FAILURE. Not an AI-truth defect.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T13:48:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "discovered_while": "Issue #5 50-turn continuity run, at T27.",
+      "onset": "Between 13:39:33Z (T27 sent) and 13:41:23Z. T01-T26 all completed normally with correct ACKs.",
+      "first_symptom": "T27-T30 returned a HANDLED error: \"Connection ended before this finished - it may still be running. Check Tasks/Approvals for the result.\" Token counter 0 and $0.00 for each.",
+      "then": "After hard reload the four user turns HAD persisted and their replies showed \"Brain OS is thinking...\" - the work was reported as still in flight. It never resolved. Re-checked at 13:42:57Z, 13:43:57Z and later: still thinking, 2.4+ minutes on, across multiple hard reloads.",
+      "scope_is_service_wide_not_channel_wedged": "DECISIVE CONTROL. A BRAND-NEW channel (b9e0be82-f72c-4285-bf8a-268eb232b9de) was created and sent a single trivial prompt. It also hung at \"Brain OS is thinking...\" with 0 tokens, and was still hanging 90 seconds later at 13:47:21Z. So this is NOT a wedged channel and NOT contamination from the long run - Brain Chat as a service stopped completing turns.",
+      "rest_of_app_unaffected": "The /companies page rendered 14 rows of authenticated data at 13:46:19Z and again after. Session valid, navigation fine, data reads fine. The failure is isolated to the chat completion path.",
+      "zero_token_signature": "Every failed turn shows 0 tokens and $0.00, so requests are failing BEFORE the model is billed. Distinct from BUG-032, where 40,620 tokens were billed with no output.",
+      "distinct_from_bug_031": "BUG-031 was a 401 on the chat stream that rendered a RAW JSON blob and DROPPED the user turn entirely on reload. Here the error is HANDLED and honestly worded, the user turns PERSIST across reload, and the state is a permanent in-flight spinner rather than a dropped turn. Different failure, filed separately.",
+      "distinct_from_bug_032": "BUG-032 had a COMPLETED work order with real token spend and a missing response body. Here nothing completes and nothing is billed.",
+      "credit_where_due": "The error message is good: \"Connection ended before this finished - it may still be running. Check Tasks/Approvals for the result.\" It is user-facing, non-technical, honest about uncertainty, and it turned out to be ACCURATE - the work really was still pending. That is a marked improvement over the BUG-031 raw JSON leak and should be preserved.",
+      "the_actual_defect_beyond_the_outage": "The turns never resolve to EITHER success or failure. A perpetual \"Brain OS is thinking...\" with no timeout is arguably worse than a clean error, because the UI actively asserts that work is progressing when it is not. There is no timeout, no failure state, and no retry affordance. Even if the underlying outage is transient infrastructure, the ABSENCE OF A TIMEOUT is a product defect that survives it.",
+      "why_p1": "Brain Chat is the primary product interface and it is completely non-functional while appearing to work. A founder would see a spinner forever. Not P0 only because the rest of the application is unaffected and no data is at risk.",
+      "blast_radius": "ZERO data impact. No mutations attempted or possible - the requests never reached execution. The 50-turn test channel retains all 31 user turns.",
+      "evidence": {
+        "long_run_channel": "ce544151-c10b-49b6-9c79-01b5dfb121ce - T01-T26 correct ACKs; T27-T31 stuck.",
+        "fresh_control_channel": "b9e0be82-f72c-4285-bf8a-268eb232b9de - single trivial prompt, stuck.",
+        "app_liveness": "The /companies page returned 14 rows at 13:46:19Z."
+      },
+      "regression_requirement": "A chat turn must reach a terminal state within a bounded time - either a response or an explicit, user-visible failure with a retry affordance. Assert that no turn remains in an in-progress state beyond a defined timeout. This is testable independently of whatever caused the outage.",
+      "_qa_boundary": "Observed, not induced. Read-only prompts only. No mutation attempted.",
+      "per_verifier_instruction": "If Home PC finds this was transient infrastructure, the AVAILABILITY half may close - but the MISSING TIMEOUT half must not close with it. They are separable and only the second is a code defect."
     }
   ],
   "observations": [
