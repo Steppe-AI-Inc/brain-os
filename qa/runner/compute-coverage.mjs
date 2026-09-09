@@ -74,6 +74,11 @@ const ledger = {
   generated_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
   generator: "qa/runner/compute-coverage.mjs",
   product_commit_under_test: inv.product_commit_under_test ?? null,
+  // A single scalar cannot express a SPLIT deployment (Edge and web at different commits, web
+  // unidentifiable). Carried through from the inventory so the ledger states the real provenance
+  // instead of a stale SHA that reads as current. Third-party verification, 2026-09-09.
+  build_identity: inv.build_identity ?? null,
+  historical_identifiers: inv.historical_identifiers ?? null,
   environment: inv.environment ?? null,
 
   required_capabilities: required,

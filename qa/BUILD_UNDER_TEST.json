@@ -3,26 +3,20 @@
   "target_environment": "production",
   "target_url": "https://brain.open-spot.ai",
   "supabase_project_ref": "pvphxgrtdfrudejjhzjk",
-  "latest_implementation_sha": "8521b0e",
-  "latest_implementation_sha_short": "8521b0e",
   "latest_implementation_ref": "origin/master",
   "latest_implementation_subject": "fix: skill injection must include definition_path - Skill tool alone silently fails (KNOWN_FAILURE_MODES #50)",
   "deployed_product_sha": null,
-  "deployed_product_sha_short": "8521b0e",
   "deployment_id": "dpl_FSJ9bV5jMCP4Q6wvVnwur67GM4N1",
   "deployment_url": null,
   "deployment_ref": "master",
   "deployment_status": "READY",
   "deployment_target": "production",
   "deployment_created_at": "2026-08-31T11:16:00Z",
-  "qa_artifact_sha": "6d78062dc8cc092fbe7f0d6c0d6a94d264b8fcd0",
   "qa_artifact_branch": "qa/work-pc",
-  "qa_artifact_base_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada",
   "_qa_artifact_base_note": "qa/work-pc was branched from local master b04cedb. qa_artifact_sha is populated on each QA artifact commit.",
   "verification_method": "Vercel REST API v13 GET /deployments/{id} -> meta.githubCommitSha, read with the Vercel CLI's own stored auth token. NOT inferred from origin/master HEAD, and NOT inferred from `vercel ls` ordering. The alias list on this deployment was independently confirmed to include brain.open-spot.ai, proving this specific deployment is what the QA target URL actually serves.",
   "verified_at": "2026-08-31T11:25:47Z",
   "verified_by": "fable-qa-director",
-  "sha_alignment_note": "Production redeployed FIVE times during campaign C001 (256f183 -> 7df9656 -> 266f86a -> 8c33527 -> 8521b0e). Evidence collected 10:58-11:17 UTC straddles the 8c33527/8521b0e boundary, so exact per-probe attribution in that window is ambiguous BY HONEST ADMISSION. This does not invalidate BUG-001 or BUG-002: both defect surfaces are byte-identical across the whole range, verified by git diff, so the findings are build-independent. Recorded rather than silently re-stamped.",
   "notes": [
     "brain.open-spot.ai is bound at the Vercel PROJECT level (project: steppe-ai/brain-os), so it auto-follows the latest successful production deployment. Confirmed live via `vercel inspect` alias list.",
     "There is no separate staging environment. QA runs against production, which is exactly why the FIXTURE_REGISTRY gate + real-name synthetic digital-twin naming exist."
@@ -68,13 +62,13 @@
   "_edge_note": "v93 (the P1 package) was deployed 2026-09-08 01:50Z and rolled back at 02:10Z after live acceptance found the context-pack token-preflight P1. v94 carries the v92 SOURCE. Edge-only fix reports must NOT be retested against it.",
   "web_sha": "UNKNOWN",
   "_web_sha_note": "The production web app is visibly AHEAD of the rolled-back Edge (live copy \"Current manager: none.\" exists only from master 1048b9e and is absent at f6fa26a), but the exact deployed commit is NOT observable from this seat: no build id, no /api/version (404), no commit meta tag, _next/static path is \"immutable\". Do NOT infer or invent a SHA. Tracked as OBS-WEB-DEPLOYED-AHEAD-OF-EDGE.",
-  "_deployed_product_sha_note": "Was \"8521b0e\" recorded 2026-08-31; that value is STALE and unverifiable now, so it is nulled rather than carried forward as if re-verified (CLAUDE.md §1 stale-provenance trap).",
+  "_deployed_product_sha_note": "NULL BY DESIGN. The deployed web commit is not observable from this seat (no build id, no /api/version, no commit meta, _next/static path is \"immutable\"), and the previously recorded \"8521b0e\" is stale. Both the long and short forms are null so no field can be misread as a current, re-verified value — the short form was the contradiction third-party verification caught on 2026-09-09.",
   "prior_record_2026_08_31": {
     "deployed_product_sha": "8521b0e",
     "recorded_at": null
   },
   "evidence_label_required": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
-  "recorded_at": "2026-09-08T14:50:00Z",
+  "recorded_at": "2026-09-09T03:05:00Z",
   "recorded_by": "work-pc-independent-qa (session 014TswfT)",
   "retest_rules": {
     "edge_only_fix_reports": "DO NOT retest while the deployed Edge source is v92-equivalent.",
@@ -82,5 +76,14 @@
     "build_independent_defects": "Continue exploratory reproduction; label every piece of evidence with the split identity above.",
     "on_new_edge_sha": "Start a new build-scoped retest campaign automatically.",
     "on_web_sha_becoming_observable": "Update this file and schedule impacted fix reports via changed_primitives (qa/contracts/CAPABILITY_IMPACT_REGISTRY.json)."
-  }
+  },
+  "historical_identifiers": {
+    "_doc": "Explicitly HISTORICAL identifiers. None of these describe the CURRENT deployment. Present so past evidence stays attributable; never to be read as current provenance.",
+    "deployed_product_sha_2026_08_31": "8521b0e",
+    "latest_implementation_sha_2026_08_31": "8521b0e",
+    "qa_artifact_sha": "6d78062dc8cc092fbe7f0d6c0d6a94d264b8fcd0",
+    "qa_artifact_base_sha": "b04cedbaad23359845ff4c1a33dcb2f579debada",
+    "sha_alignment_note": "Production redeployed FIVE times during campaign C001 (256f183 -> 7df9656 -> 266f86a -> 8c33527 -> 8521b0e). Evidence collected 10:58-11:17 UTC straddles the 8c33527/8521b0e boundary, so exact per-probe attribution in that window is ambiguous BY HONEST ADMISSION. This does not invalidate BUG-001 or BUG-002: both defect surfaces are byte-identical across the whole range, verified by git diff, so the findings are build-independent. Recorded rather than silently re-stamped."
+  },
+  "third_party_verification_2026_09_09": "ChatGPT verification of qa/work-pc @ 43bfd7f returned PASS WITH PROVENANCE CORRECTIONS REQUIRED. Corrections A (ledger provenance) and B (contradictory short SHA) applied here at source; C and D applied to the executive artifact. The substantive verdicts it checked - archive/restore PASS, BUG-019 kept distinct, coverage arithmetic, split-build rule, LLM framing - were upheld unchanged."
 }

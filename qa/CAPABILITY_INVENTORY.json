@@ -1,8 +1,8 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-09T02:22:00Z",
-  "product_commit_under_test": "8521b0e",
+  "generated_at": "2026-09-09T03:05:00Z",
+  "product_commit_under_test": null,
   "environment": "production",
   "status_values": [
     "NOT_TESTED",
@@ -2548,5 +2548,20 @@
       "evidence": "Controlled full cycle on registered fixtures only. Subtree: company QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2) with 3 people (QA-SWARM-PERSON-001-EDITED managed by QA-C002-MGR-PERSON-02; QA-C002-MGR-PERSON-03), 1 project (QA-C002-PROJ-EDITED-01), 1 department (QA-SWARM-DEPT-ARCHIVED-PARENT-TEST).\n\nBASELINE 02:18:35Z - company active; PERSON-001 manager = PERSON-02; controls enabled.\n\nARCHIVE (chat, channel a01905a2, receipt \"QA-SWARM-TEST-CO-VIA-CHAT: archived.\") -> 02:19:36Z:\n  UI: all 3 people badged \"QA-SWARM-TEST-CO-VIA-CHAT Archived\"; Set manager / invite / onboarding disabled with the verbatim CWC §4 reason \"Company is archived — restore it first\"; project and department badged.\n  RELATIONSHIP: manager link PERSON-001 -> PERSON-02 PRESERVED and still displayed (CWC §4 \"preserved, displayed with a visible parent-archived indication\").\n  AI (fresh channel 317f7d1d, 3-part question): \"(1) QA-SWARM-TEST-CO-VIA-CHAT is archived. (2) ...manager is QA-C002-MGR-PERSON-02. (3) ...assigned to QA-SWARM-TEST-CO-VIA-CHAT.\" All three correct.\n\nRESTORE (UI, /companies/archived Restore) -> 02:21:19Z:\n  UI: every badge cleared on people, project and department; Set manager and onboarding re-enabled.\n  SYMMETRY DETAIL: the invite control did not simply flip to enabled - it reverted to its OWN correct reason per person (\"Add an email before inviting\" for PERSON-02/03 which have no email; \"Invite to log in\" enabled for PERSON-001 which has one). The archived reason did not leak into the restored state and no unrelated state was clobbered.\n  RELATIONSHIP: manager link PERSON-001 -> PERSON-02 intact across the entire cycle - never dropped, never duplicated.\n\nVERDICT: CWC §3 \"restore is symmetric: everything becomes normal again with no further action\" HOLDS for this subtree on all four axes (UI == AI == RELATIONSHIP == PERSISTENCE). No token-preflight 413 fired on any turn.\n\nPOST-RESTORE AI CONFIRMATION (fresh channel 6b0ed264, 02:22:22Z): \"QA-SWARM-TEST-CO-VIA-CHAT status: active. QA-SWARM-PERSON-001-EDITED s manager: QA-C002-MGR-PERSON-02.\" Brain tracked the archive and the restore correctly in independent fresh channels at both ends of the cycle.",
       "caveat": "Founder seat. Persona/fresh-session axis remains BLOCKED (no second credential). Permanent delete not exercised (out of authority)."
     }
-  ]
+  ],
+  "_product_commit_under_test_note": "NULLED 2026-09-09 after third-party verification flagged it as conflicting provenance. It read \"8521b0e\", a product SHA recorded 2026-08-31 that is neither re-verified nor currently identifiable: production is a SPLIT deployment and the deployed web commit is not observable from this seat. A single scalar cannot express the split, so build_identity below is authoritative and this scalar stays null rather than carrying a stale value that reads as current.",
+  "build_identity": {
+    "build_identity_status": "PARTIAL / SPLIT",
+    "edge_version": "v94",
+    "edge_source_equivalent": "v92",
+    "edge_function_sha": "22486cd751cac403d14b1ad429156b715d31dc3f03bf4b30575705524350343e",
+    "web_sha": "UNKNOWN",
+    "_rule": "FULL BUILD VERIFIED is forbidden while web_sha is UNKNOWN. Evidence label: \"EDGE v94 (v92 source) / WEB SHA UNKNOWN\".",
+    "recorded_at": "2026-09-09T03:05:00Z"
+  },
+  "historical_identifiers": {
+    "_doc": "Explicitly HISTORICAL. Retained for evidence attribution to past campaigns; never to be read as the current deployment.",
+    "product_commit_2026_08_31": "8521b0e",
+    "note": "C001/early-C002 evidence was attributed to this SHA. See BUILD_UNDER_TEST.historical_identifiers for the full context including the five-redeploy ambiguity window."
+  }
 }

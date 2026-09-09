@@ -1,8 +1,22 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-09T02:22:48Z",
+  "generated_at": "2026-09-09T02:33:44Z",
   "generator": "qa/runner/compute-coverage.mjs",
-  "product_commit_under_test": "8521b0e",
+  "product_commit_under_test": null,
+  "build_identity": {
+    "build_identity_status": "PARTIAL / SPLIT",
+    "edge_version": "v94",
+    "edge_source_equivalent": "v92",
+    "edge_function_sha": "22486cd751cac403d14b1ad429156b715d31dc3f03bf4b30575705524350343e",
+    "web_sha": "UNKNOWN",
+    "_rule": "FULL BUILD VERIFIED is forbidden while web_sha is UNKNOWN. Evidence label: \"EDGE v94 (v92 source) / WEB SHA UNKNOWN\".",
+    "recorded_at": "2026-09-09T03:05:00Z"
+  },
+  "historical_identifiers": {
+    "_doc": "Explicitly HISTORICAL. Retained for evidence attribution to past campaigns; never to be read as the current deployment.",
+    "product_commit_2026_08_31": "8521b0e",
+    "note": "C001/early-C002 evidence was attributed to this SHA. See BUILD_UNDER_TEST.historical_identifiers for the full context including the five-redeploy ambiguity window."
+  },
   "environment": "production",
   "required_capabilities": 112,
   "executed_capabilities": 103,
