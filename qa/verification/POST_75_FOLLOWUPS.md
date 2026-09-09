@@ -266,3 +266,23 @@ fully or leave it counted.
 Priority is now higher than when this was first written: the same defect is held by FOUR regression suites
 (v74, v75, v76 and the inventory row), so closing it turns four suites green at once — and until then, four
 of the battery's six non-green suites are the same finding seen from different angles.
+
+## 12. The fix for the over-crediting bug over-credited differently
+
+V77-H1: the mutation proof credited always-red suites with catching every mutant, because ALREADY_RED was
+a hand-written list of three while seven were red. The fix derives the reference by running, and lets an
+already-red suite count only when its OUTPUT CHANGES.
+
+**That reintroduced the same bug through a different door.** Two of those suites — `production_write_authority`
+and `factory_production_write_inventory` — report on MACHINE CREDENTIALS, and produce different bytes on
+two consecutive runs against an identical source. "Its output changed" was therefore true of every mutant,
+and both were credited with catching everything. Several mutants had NO green-suite catcher at all and were
+still reported as caught.
+
+Found by asking the obvious question of the new rule rather than the old one: **if nothing changes, does
+this suite say the same thing twice?** It does not. An already-red suite is now run twice on the reference
+and is only usable as a catcher if it is deterministic; the unstable ones are named at the top of every run.
+
+The general form is worth keeping: **a differencing test is only as good as the stability of what it
+differences.** Two rounds of this instrument have now failed on that, in opposite directions — first by
+ignoring output entirely and trusting an exit code, then by trusting output that was never stable.
