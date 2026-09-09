@@ -1,0 +1,61 @@
+# VERIFIER #75 — FINAL REPORT
+
+**CHANGE VERIFIED:** candidate `7e544bc7eaba9979059ead1c2d39f5df56073aa7`, deploy surface `supabase/functions/sem-ai-command/index.ts`, under the CONTRACT bar (`governance/OPERATING_TRUTH_MODEL.md`).
+
+```
+SCENARIOS:            21 executed — 14 passed, 5 failed, 2 blocked
+CANONICAL GRAPH:      NOT EXERCISED (no DB access this run)
+UI ↔ DB:              BLOCKED  (no browser tooling in this session type)
+AI ↔ DB:              BLOCKED  (no live Edge Function request; source-window execution only)
+DEPENDENCIES:         PASS     (shared-primitive convergence re-derived: NAME_INITIAL, NAME_QUOTE_CLASS,
+                                the entity vocabulary, the negation decider — one declaration each)
+PERMISSIONS:          BLOCKED — FOUNDER AUTHORITY (Codex E deliberately not probed)
+RELOAD/PERSISTENCE:   NOT APPLICABLE (no stateful mutation performed)
+IDEMPOTENCY:          NOT APPLICABLE
+```
+
+## VERDICT
+
+**FAIL — candidate `7e544bc7` is NOT fit to deploy over v92 as it stands.**
+
+Two P1s ship, both in Mongolian — the language this product is actually used in.
+
+---
+
+### FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**V75-D1 (P1) — the Mongolian benefactive ships a fabricated completion, 28/28**
+- **Found:** `Батбаяр ХХК-г архивлаж өгнө үү` ("please archive it for me" — the ordinary polite request) → `requestedIntent = null`, and the model's `"Done — archived."` ships verbatim with an empty ledger. 28 of 28 across every recognised Cyrillic mutation stem and both benefactive frames.
+- **Root cause:** `mnFinalWindow = mnTokens.slice(-2)` — a **counted** window. `өгнө үү` is two tokens, so the converb carrying the content verb sits at −3. `өгөөч` (one token) *is* caught: the whole defect is one token of distance.
+- **Systemic:** violates `OPERATING_TRUTH_MODEL` §3 rules 1 and 3. The file's own `MN_LOAN_VERB` comment already states the rule ("хийнэ/хий/хийж is the grammar") and applies it only to the borrowed verb. V69-D1/D2 recorded "both settings of that integer have shipped a P1" for the English head region and derived a boundary; the Mongolian tier kept the integer.
+- **Fixed:** **FIX PREPARED, NOT APPLIED** — `qa/verification/proposed/v74_prepared_fix-V75-D1-mongolian-benefactive.patch`.
+- **Tested:** escapes 28→0; truthful-read destruction 0/12 unchanged; full 93-suite battery identical (89 green / the same 4 red); my regression suite 55/23 → 68/10.
+- **Not a regression:** deployed v92 has **no Mongolian tier at all**. The candidate is strictly better here and still fails the bar.
+
+**V75-D5 (P1) — a Mongolian refusal is not heard, and the model's write is not stripped**
+- `битгий` / `бүү` / `болохгүй` / `хэрэггүй` occur **zero times** in `index.ts`. Executed on the real field-stripping block: `битгий архивла` → `requestIsNegated=false`, `archiveCompanyIds` **survives**. This is not a false claim about a write — it is **a write the founder forbade** (founder directive §1, ledger #152 / Codex A).
+- **FLAGGED, NOT FIXED, deliberately.** Two traps: `\b` is ASCII-only in JS (a Cyrillic alternation behind it is dead on arrival), and the "un-negated imperative" arm is English-only (Mongolian negators alone would swallow the live clause of a mixed turn — a P1 in the other direction). Both directions are pinned as rows. This is a product-semantics decision about a language and is **referred to the founder**.
+- **Sequencing:** the D1 patch alone makes D5 *more* reachable. Land them together.
+
+**V75-D2 (P1, release gate) — the gate cannot see a reopened P1.** `release_manifest.mjs` classifies by **file name**. Measured with 14 of my own mutants at row level: for **nine** of them (V74-D1, D3×2, D4, D5, O2) the only suite whose rows flip is `v74_regression_additions.mjs` — already red (H6b), already bucketed `OPEN DEFECT`. A regression reopening any of those P1s produces a **byte-identical manifest**.
+
+**V75-D3 (P2)** — V74-H6b detects reimplementations by a path string; the true count is **five**, not four (`sem_ai_command_execution_plan_truth.mjs`). **V75-D4 (P2)** — deleting the `continuityKeysBefore` guard added this round flips **no row anywhere** in 93 suites.
+
+### What #74's closure genuinely bought — re-derived, all CONFIRMED
+V74-D1, D2, D3, D4, D5, H1, H2, H6, O2 all independently confirmed on the candidate's own bytes. The caseless-script decision's **consequence is measured, not argued**: the headline veto is not *weakened* for those scripts, it is **categorically unreachable** — but the session's claim that reaching the tier requires a canonical mutation verb at the head **holds**, so the widened surface really is only "English verb + caseless object".
+
+### Vacuity
+Against an **empty** source, 25 of 93 suites still pass; **ten cannot fail for any product change** (5 print `SUPERSEDED` and exit 0 on *any* source, 5 open no file), plus 2 absence-assertion suites that pass on a zero-byte file. "89 GREEN" is a count of exit codes.
+
+### WHAT I COULD NOT MEASURE
+No live Edge Function request (whole-request gates — token preflight, payload size, timeouts, provider limits — **unmeasured**, ledger #133); no browser, so UI ↔ DB and AI ↔ DB are **BLOCKED, not passed**; no database (**no `QA-VERIFY-*` data was created, so there is nothing to clean up**); Codex E deliberately not probed. The Mongolian linguistic judgements are mine, not measurements.
+
+### COMMITS
+`f2f46a43` on `verify-7e544bc-campaign135` — ledger entry ## 158, promotion note, 78-row regression suite, the prepared V75-D1 patch, and every instrument/log under `qa/verification/scratch/v75/`.
+
+### FOUNDER-APPROVAL SECTION
+No migration, no DB push, no function deploy, no secret touched. **Nothing here is a deploy authorisation.** Standing and re-confirmed: eleven `scripts/factory-runner/*.mjs` still reach production through `npx supabase db query --linked` (ambient production write, `CLAUDE.md` §8 / ledger #16, #63, #119) — correctly classified OPEN DEFECT — THIS PC, and open while a deploy gate is being run.
+
+```
+ed1d916b88a25f77bd69263f2c7dc96765978335d7ac2443b746ca973f0b1a8a
+```

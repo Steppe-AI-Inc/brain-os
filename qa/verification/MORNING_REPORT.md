@@ -66,9 +66,41 @@ implement step 1 without steps 2-4; step 3 is a migration, and step 4 needs per-
 not have. Plausible pricing would make cost figures drift wrong in the favourable direction, which is the
 harder error to notice.
 
+---
+
+**Verifier #75 then FAILED that candidate too, with two P1s in Mongolian — the language this product is
+actually used in.** `Батбаяр ХХК-г архивлаж өгнө үү` is the ordinary polite request, and it shipped a
+fabricated completion **28 times out of 28**: the content verb is a converb and the politeness an
+auxiliary, so a counted two-token window put the verb exactly one token out of reach. Separately,
+`битгий` / `бүү` / `болохгүй` / `хэрэггүй` — the four ways to say "do not" — appeared **zero times** in the
+file. What survived was not a false claim about a write. It was **the write you forbade**.
+
+Both are closed, plus a third P1 I found while fixing them (V75-D6: three prohibition forms carried request
+intent and the fourth did not, so the receipt depended on which prohibition you typed). The v75 suite went
+from 55 pass / 23 fail to **82 / 1**.
+
+**#75 also found three defects in instruments I built, and one of them matters to you.** The release gate
+classified suites by FILE NAME, so a suite already marked as a known defect absorbed any NEW failure inside
+it silently — a regression reopening nine separate P1s would have produced a byte-identical manifest. **A
+release gate that cannot see a reopened P1 is not a gate.** Forgiveness is now per row, and I proved it by
+injecting a simulated reopened P1 into an already-forgiven suite and watching the manifest go red.
+
+**I disagreed with #75 on one row and want you to know.** It asked that a Mongolian refusal carry no
+request intent. Measured, an English refusal does carry one — deliberately, so the executor fails closed
+and the receipt tells you your refusal was understood. Satisfying that row would have made Mongolian the
+one language where a refusal is not a request. I replaced it with an English-equivalence pin instead, and
+that reframing is what exposed the third P1.
+
+**And I nearly deleted 116 rows.** #75 wrote its suite to the previous round's filename, per the campaign
+convention. Promoting it and removing the old file dropped the rows holding the PREVIOUS round's eight
+closures — and the battery would have stayed green while they went unguarded. Caught by comparing row ids
+rather than counts.
+
+Candidate for #76: `94aa26c9…`, 712,078 bytes, battery 94 suites / 89 green / 0 unclassified red.
+
 ## RUNNING
 
-**Verifier #75** on the new candidate. Dispatch details are in `qa/verification/scratch/verifier75_dispatch.json`.
+**Verifier #76** on candidate `94aa26c9`. Dispatch details land in `qa/verification/scratch/verifier76_dispatch.json`.
 
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
@@ -129,7 +161,7 @@ the QA node credential (acceptance tests 1–10 remain BLOCKED without it).
 
 ## NEXT
 
-1. Act on #75 automatically: FAIL → fix loop → #76; PASS → release package for the exact bytes.
+1. Act on #76 automatically: FAIL → fix loop → #77; PASS → release package for the exact bytes.
 2. Apply the factory-runner conversion — prepared and measured above, and YOUR call, because it stops
    the factory runner until `FACTORY_RUNNER_PG_URL` exists. Safe to apply during a verifier round:
    neither the dispatcher nor the watchdog touches the DB.
