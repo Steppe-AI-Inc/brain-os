@@ -2,7 +2,7 @@
   {
     "f": "_authority_test_selfcheck.mjs",
     "code": 0,
-    "ms": 58,
+    "ms": 59,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -13,7 +13,7 @@
   {
     "f": "_gate_extract.mjs",
     "code": 0,
-    "ms": 52,
+    "ms": 49,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -24,7 +24,7 @@
   {
     "f": "agent_run_guard_covers_claim_returns.mjs",
     "code": 0,
-    "ms": 58,
+    "ms": 53,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -35,7 +35,7 @@
   {
     "f": "architecture_archived_parent_policy_contract.mjs",
     "code": 0,
-    "ms": 107,
+    "ms": 102,
     "passed": 15,
     "failed": 0,
     "failLines": 0,
@@ -46,7 +46,7 @@
   {
     "f": "architecture_collection_envelope_contract.mjs",
     "code": 0,
-    "ms": 64,
+    "ms": 63,
     "passed": 84,
     "failed": 0,
     "failLines": 0,
@@ -57,7 +57,7 @@
   {
     "f": "architecture_context_budget_contract.mjs",
     "code": 0,
-    "ms": 158,
+    "ms": 142,
     "passed": 38,
     "failed": 0,
     "failLines": 0,
@@ -68,7 +68,7 @@
   {
     "f": "architecture_final_claim_contract.mjs",
     "code": 0,
-    "ms": 203,
+    "ms": 204,
     "passed": 51,
     "failed": 0,
     "failLines": 0,
@@ -79,7 +79,7 @@
   {
     "f": "architecture_impact_registry_contract.mjs",
     "code": 0,
-    "ms": 64,
+    "ms": 65,
     "passed": 17,
     "failed": 0,
     "failLines": 0,
@@ -90,7 +90,7 @@
   {
     "f": "architecture_lifecycle_rpc_only_contract.mjs",
     "code": 0,
-    "ms": 83,
+    "ms": 81,
     "passed": 31,
     "failed": 0,
     "failLines": 0,
@@ -101,7 +101,7 @@
   {
     "f": "architecture_mutation_envelope_contract.mjs",
     "code": 0,
-    "ms": 71,
+    "ms": 68,
     "passed": 39,
     "failed": 0,
     "failLines": 0,
@@ -112,7 +112,7 @@
   {
     "f": "architecture_org_scope_helper_contract.mjs",
     "code": 0,
-    "ms": 99,
+    "ms": 100,
     "passed": 7,
     "failed": 0,
     "failLines": 0,
@@ -145,7 +145,7 @@
   {
     "f": "claim_segmentation_and_present_tense_fp.mjs",
     "code": 0,
-    "ms": 55,
+    "ms": 56,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -154,9 +154,20 @@
     "tail": "claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
   },
   {
+    "f": "codex_release_blocker_witnesses.mjs",
+    "code": 0,
+    "ms": 85,
+    "passed": 32,
+    "failed": 0,
+    "failLines": 0,
+    "empty": false,
+    "zeroTargets": false,
+    "tail": " | codex_release_blocker_witnesses: 32 passed, 0 failed | index.ts under test: C:\\Users\\Dell\\dev\\brain-os\\supabase\\functions\\sem-ai-command\\index.ts"
+  },
+  {
     "f": "company_lifecycle_matrix.mjs",
     "code": 0,
-    "ms": 86,
+    "ms": 90,
     "passed": 31,
     "failed": 0,
     "failLines": 0,
@@ -178,7 +189,7 @@
   {
     "f": "concept_duplication_ratchet_contract.mjs",
     "code": 0,
-    "ms": 71,
+    "ms": 70,
     "passed": 9,
     "failed": 0,
     "failLines": 0,
@@ -189,7 +200,7 @@
   {
     "f": "context_scoped_mutation_gates_contract.mjs",
     "code": 0,
-    "ms": 60,
+    "ms": 61,
     "passed": 11,
     "failed": 0,
     "failLines": 0,
@@ -200,7 +211,7 @@
   {
     "f": "current_turn_and_continuity_contract.mjs",
     "code": 0,
-    "ms": 60,
+    "ms": 64,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -211,7 +222,7 @@
   {
     "f": "d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs",
     "code": 0,
-    "ms": 62,
+    "ms": 59,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -222,7 +233,7 @@
   {
     "f": "entity_signal_positive_contract.mjs",
     "code": 0,
-    "ms": 94,
+    "ms": 96,
     "passed": 5,
     "failed": 0,
     "failLines": 0,
@@ -233,7 +244,7 @@
   {
     "f": "extractor_line_ending_contract.mjs",
     "code": 0,
-    "ms": 65,
+    "ms": 60,
     "passed": 7,
     "failed": 0,
     "failLines": 0,
@@ -244,7 +255,7 @@
   {
     "f": "factory_production_write_inventory.regression.test.mjs",
     "code": 1,
-    "ms": 97,
+    "ms": 94,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -255,7 +266,7 @@
   {
     "f": "function_redefinition_preserves_ancestor_guards.mjs",
     "code": 0,
-    "ms": 70,
+    "ms": 68,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -266,7 +277,7 @@
   {
     "f": "grounding_precedence_canonical_over_history.mjs",
     "code": 0,
-    "ms": 67,
+    "ms": 65,
     "passed": 18,
     "failed": 0,
     "failLines": 0,
@@ -277,7 +288,7 @@
   {
     "f": "issue5_confirmation_action_type_binding.mjs",
     "code": 0,
-    "ms": 64,
+    "ms": 63,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -288,7 +299,7 @@
   {
     "f": "lifecycle_evidence_and_output_persistence_contract.mjs",
     "code": 0,
-    "ms": 159,
+    "ms": 149,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -310,7 +321,7 @@
   {
     "f": "messaging_transport_binding_agreement_contract.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 69,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -321,7 +332,7 @@
   {
     "f": "mixed_claim_grounding.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 57,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -332,7 +343,7 @@
   {
     "f": "mutation_receipt_equals_ledger.mjs",
     "code": 0,
-    "ms": 69,
+    "ms": 67,
     "passed": 14,
     "failed": 0,
     "failLines": 0,
@@ -343,7 +354,7 @@
   {
     "f": "mutation_sweep_safety_contract.mjs",
     "code": 0,
-    "ms": 58,
+    "ms": 62,
     "passed": 52,
     "failed": 0,
     "failLines": 0,
@@ -354,7 +365,7 @@
   {
     "f": "named_targets_shape_contract.mjs",
     "code": 0,
-    "ms": 66,
+    "ms": 72,
     "passed": 8,
     "failed": 0,
     "failLines": 0,
@@ -365,7 +376,7 @@
   {
     "f": "org_selector_scoping_coverage.mjs",
     "code": 0,
-    "ms": 72,
+    "ms": 69,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -376,7 +387,7 @@
   {
     "f": "past_completion_gate_behavior.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 58,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -387,7 +398,7 @@
   {
     "f": "per_resource_grounding_contract.mjs",
     "code": 0,
-    "ms": 56,
+    "ms": 60,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -396,20 +407,31 @@
     "tail": "per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs."
   },
   {
+    "f": "person_assignment_scope_authorization.mjs",
+    "code": 1,
+    "ms": 66,
+    "passed": 7,
+    "failed": 4,
+    "failLines": 4,
+    "empty": false,
+    "zeroTargets": false,
+    "tail": "       a NULL source company must not be treated as a foreign company | BEHAVIOURAL HALF: BLOCKED — NEEDS LIVE/DB EVIDENCE. Proving the cross-tenant write behaviourally | means performing it; the acceptance cases are in supabase/drafts/202609090001_*.sql."
+  },
+  {
     "f": "production_write_authority.regression.test.mjs",
     "code": 1,
-    "ms": 3725,
+    "ms": 3937,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
     "empty": false,
     "zeroTargets": false,
-    "tail": " | (node:18976) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)"
+    "tail": " | (node:1408) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)"
   },
   {
     "f": "provenance_survives_trim_contract.mjs",
     "code": 0,
-    "ms": 63,
+    "ms": 66,
     "passed": 10,
     "failed": 0,
     "failLines": 0,
@@ -420,7 +442,7 @@
   {
     "f": "readsAsCompletion_no_literal_semicolon_contract.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 60,
     "passed": 4,
     "failed": 0,
     "failLines": 0,
@@ -431,7 +453,7 @@
   {
     "f": "request_gate_inventory_contract.mjs",
     "code": 0,
-    "ms": 178,
+    "ms": 183,
     "passed": 32,
     "failed": 0,
     "failLines": 0,
@@ -442,7 +464,7 @@
   {
     "f": "run10_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 190,
+    "ms": 192,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -453,7 +475,7 @@
   {
     "f": "run11_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 195,
+    "ms": 202,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -464,7 +486,7 @@
   {
     "f": "run12_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 203,
+    "ms": 209,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -475,7 +497,7 @@
   {
     "f": "run13_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 192,
+    "ms": 202,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -486,7 +508,7 @@
   {
     "f": "run14_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 205,
+    "ms": 200,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -497,7 +519,7 @@
   {
     "f": "run15_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 154,
+    "ms": 146,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -508,7 +530,7 @@
   {
     "f": "run16_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 118,
+    "ms": 112,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -519,7 +541,7 @@
   {
     "f": "run17_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 122,
+    "ms": 120,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -530,7 +552,7 @@
   {
     "f": "run18_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 113,
+    "ms": 109,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -541,7 +563,7 @@
   {
     "f": "run19_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 138,
+    "ms": 129,
     "passed": 62,
     "failed": 0,
     "failLines": 0,
@@ -563,7 +585,7 @@
   {
     "f": "run8_defect_closure_contract.mjs",
     "code": 0,
-    "ms": 177,
+    "ms": 192,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -574,7 +596,7 @@
   {
     "f": "sem_ai_command_company_restore_truth.mjs",
     "code": 0,
-    "ms": 61,
+    "ms": 57,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -585,7 +607,7 @@
   {
     "f": "sem_ai_command_confirmation_truth.mjs",
     "code": 0,
-    "ms": 56,
+    "ms": 67,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -596,7 +618,7 @@
   {
     "f": "sem_ai_command_execution_plan_truth.mjs",
     "code": 0,
-    "ms": 54,
+    "ms": 55,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -607,7 +629,7 @@
   {
     "f": "sem_ai_command_factory_verification_selection.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 53,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -618,7 +640,7 @@
   {
     "f": "sem_ai_command_named_person_lookup_truth.mjs",
     "code": 0,
-    "ms": 59,
+    "ms": 50,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -629,7 +651,7 @@
   {
     "f": "sem_ai_command_past_completion_claim_regex.mjs",
     "code": 0,
-    "ms": 56,
+    "ms": 52,
     "passed": 13,
     "failed": 0,
     "failLines": 0,
@@ -640,7 +662,7 @@
   {
     "f": "sem_ai_command_source_invariants_drift_guard.mjs",
     "code": 0,
-    "ms": 69,
+    "ms": 73,
     "passed": 13,
     "failed": 0,
     "failLines": 0,
@@ -651,7 +673,7 @@
   {
     "f": "shared_contract_mirror_contract.mjs",
     "code": 0,
-    "ms": 64,
+    "ms": 61,
     "passed": 9,
     "failed": 0,
     "failLines": 0,
@@ -662,7 +684,7 @@
   {
     "f": "standing_reds_classification_contract.mjs",
     "code": 0,
-    "ms": 108,
+    "ms": 109,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -673,7 +695,7 @@
   {
     "f": "structured_claim_laundering_contract.mjs",
     "code": 0,
-    "ms": 170,
+    "ms": 182,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -684,7 +706,7 @@
   {
     "f": "structured_claim_verification.mjs",
     "code": 0,
-    "ms": 180,
+    "ms": 178,
     "passed": 0,
     "failed": 0,
     "failLines": 0,
@@ -695,7 +717,7 @@
   {
     "f": "tdz_forward_reference_contract.mjs",
     "code": 0,
-    "ms": 153,
+    "ms": 159,
     "passed": 9,
     "failed": 0,
     "failLines": 0,
@@ -706,7 +728,7 @@
   {
     "f": "v56_intent_lifecycle_contract.mjs",
     "code": 0,
-    "ms": 256,
+    "ms": 252,
     "passed": 129,
     "failed": 0,
     "failLines": 0,
@@ -717,7 +739,7 @@
   {
     "f": "v57_intent_other_veto_contract.mjs",
     "code": 0,
-    "ms": 279,
+    "ms": 290,
     "passed": 306,
     "failed": 0,
     "failLines": 0,
@@ -728,7 +750,7 @@
   {
     "f": "v58_lifecycle_window_and_imperative_contract.mjs",
     "code": 0,
-    "ms": 191,
+    "ms": 189,
     "passed": 48,
     "failed": 0,
     "failLines": 0,
@@ -739,7 +761,7 @@
   {
     "f": "v59_intent_fallback_tier_contract.mjs",
     "code": 0,
-    "ms": 333,
+    "ms": 337,
     "passed": 88,
     "failed": 0,
     "failLines": 0,
@@ -750,7 +772,7 @@
   {
     "f": "v60_budget_intent_and_plan_evidence_contract.mjs",
     "code": 0,
-    "ms": 270,
+    "ms": 274,
     "passed": 22,
     "failed": 0,
     "failLines": 0,
@@ -761,7 +783,7 @@
   {
     "f": "v61_budget_intent_language_contract.mjs",
     "code": 0,
-    "ms": 468,
+    "ms": 402,
     "passed": 25,
     "failed": 0,
     "failLines": 0,
@@ -772,7 +794,7 @@
   {
     "f": "v62_provenance_language_and_limits_contract.mjs",
     "code": 0,
-    "ms": 442,
+    "ms": 437,
     "passed": 25,
     "failed": 0,
     "failLines": 0,
@@ -783,7 +805,7 @@
   {
     "f": "v63_intent_coverage_and_caps_contract.mjs",
     "code": 0,
-    "ms": 298,
+    "ms": 315,
     "passed": 32,
     "failed": 0,
     "failLines": 0,
@@ -794,7 +816,7 @@
   {
     "f": "v64_shared_frames_and_gate_pairs_contract.mjs",
     "code": 0,
-    "ms": 258,
+    "ms": 265,
     "passed": 74,
     "failed": 0,
     "failLines": 0,
@@ -805,7 +827,7 @@
   {
     "f": "v65_request_frame_tiers_contract.mjs",
     "code": 0,
-    "ms": 272,
+    "ms": 277,
     "passed": 105,
     "failed": 0,
     "failLines": 0,
@@ -816,7 +838,7 @@
   {
     "f": "v66_object_shape_tiers_contract.mjs",
     "code": 0,
-    "ms": 365,
+    "ms": 370,
     "passed": 71,
     "failed": 0,
     "failLines": 0,
@@ -827,7 +849,7 @@
   {
     "f": "v67_entity_reference_contract.mjs",
     "code": 0,
-    "ms": 523,
+    "ms": 554,
     "passed": 23,
     "failed": 0,
     "failLines": 0,
@@ -838,7 +860,7 @@
   {
     "f": "v68_clause_and_vocabulary_contract.mjs",
     "code": 0,
-    "ms": 264,
+    "ms": 283,
     "passed": 13,
     "failed": 0,
     "failLines": 0,
@@ -848,19 +870,19 @@
   },
   {
     "f": "v69_shape_vocabulary_and_boundary_contract.mjs",
-    "code": 1,
-    "ms": 210,
-    "passed": 12,
-    "failed": 1,
-    "failLines": 1,
+    "code": 0,
+    "ms": 227,
+    "passed": 13,
+    "failed": 0,
+    "failLines": 0,
     "empty": false,
     "zeroTargets": false,
-    "tail": "       line 6350 — 23 of 120 verbs, containment 0.96: const lexiconObject = ((MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPE |        line 6724 — 22 of 120 verbs, containment 1.00: '|(?:(?:\\\\b(?:I|we)(?:[\\\\x27\\\\u2019]m| am| are| will| shall| have)?|\\\\blet me|\\\\blet us)\\\\ |       "
+    "tail": "OK   [CONTRACT] every TRIM_ORDER key carries a collection envelope (a trim can never be silent) |  | v69_regression_additions: 13 passed, 0 failed"
   },
   {
     "f": "v92_open_regression_contract.mjs",
     "code": 0,
-    "ms": 121,
+    "ms": 114,
     "passed": 28,
     "failed": 0,
     "failLines": 0,
@@ -871,7 +893,7 @@
   {
     "f": "v92_parity_contract.mjs",
     "code": 0,
-    "ms": 136,
+    "ms": 133,
     "passed": 46,
     "failed": 0,
     "failLines": 0,

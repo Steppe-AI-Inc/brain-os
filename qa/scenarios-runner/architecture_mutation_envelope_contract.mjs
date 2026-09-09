@@ -89,7 +89,7 @@ check('assign_task verifies by re-reading the owner, not the returned id',
   'select(id) proves a row was touched, not that owner_person_id landed');
 
 // 5. The turn's ledger is persisted every turn with a verdict.
-check('work_orders.output persisted unconditionally', /void groundedOutcomeThisTurn;[^\n]*\n\s*await supabase\.from\('work_orders'\)\.update\(\{ output: result \}\)/.test(src));
+check('work_orders.output persisted unconditionally', /void groundedOutcomeThisTurn;[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const finalPersist = await supabase\.from\('work_orders'\)\.update\(\{ output: result \}\)/.test(src));
 check('turnVerdict carries executed / attempted / rejected counts and the request intent', /result\.turnVerdict = \{[\s\S]*executedOperationCount[\s\S]*attemptedOperationCount[\s\S]*rejectedClaimCount[\s\S]*mutationIntent[\s\S]*receiptRendered/.test(src));
 
 console.log(`\narchitecture_mutation_envelope_contract: ${pass} passed, ${failures.length} failed`);

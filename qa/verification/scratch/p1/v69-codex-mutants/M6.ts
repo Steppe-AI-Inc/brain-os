@@ -2887,7 +2887,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // map OF envelopes is not an envelope. Nesting it there type-errored and, worse, would have satisfied
   // §4.3 by name while telling the model nothing it could use.
   (namedTargets as Record<string, unknown>).collections = namedTargetsEnvelope;
-  const pack = { continuity, salaryBands: (approvals.data||[]).slice(0,20), namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
+  const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
   // serve() refuses the whole request above SEM_AI_MAX_TOKENS using estimateTokens({command, contextPack}).
   // A pack that outgrows the cap must DEGRADE, never turn an ordinary question into a 413 with no answer.
@@ -6289,7 +6289,7 @@ serve(async (req) => {
           && !OBJECT_NAMES_SOMETHING.test(rest);
         const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest)
           && !isHeadlineObject(rest)
-          && !STATEMENT_FINITE_VERB.test(rest.replace(ADJECTIVAL_PARTICIPLE_BEFORE_ENTITY, ' ').replace(ENTITY_NOUN_PHRASE, ' '));
+          && !STATEMENT_FINITE_VERB.test(rest.replace(ENTITY_NOUN_PHRASE, ' '));
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
         // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for

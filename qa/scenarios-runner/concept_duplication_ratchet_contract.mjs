@@ -72,6 +72,16 @@ const REGISTERED = new Set([
   'LEGACY_PAST_COMPLETION <-> PAST_COMPLETION_CLAIM_PATTERN',
   'COMPLETION_PARTICIPLE <-> COMPLETION_WORD',
   'MUTATION_ARRAY_FIELDS <-> OTHER_MUTATION_FIELDS',
+  // 2026-09-09, Codex finding A. MUTATION_RESULT_FIELDS is the module-level list the NEGATION GATE reads:
+  // it must exist before the model's reply is parsed, which is far above the handler's own declaration.
+  // The two lists are 100% identical BY REQUIREMENT, not by accident, and that identity is ENFORCED - see
+  // row A8 of codex_release_blocker_witnesses, which fails the moment they diverge by a single field. The
+  // handler's literal is kept because v61 slices its intent window from that declaration and v67 parses its
+  // members, so collapsing them would silently delete two independent witnesses from this battery.
+  'MUTATION_ARRAY_FIELDS <-> MUTATION_RESULT_FIELDS',
+  // The same relationship one step removed: OTHER_MUTATION_FIELDS is already a registered subset of
+  // MUTATION_ARRAY_FIELDS, so it is necessarily a subset of its identical twin as well.
+  'MUTATION_RESULT_FIELDS <-> OTHER_MUTATION_FIELDS',
   'COMPLETION_PARTICIPLE <-> CONFIRMED_COMPLETION',
   'COMPLETION_WORD <-> CONFIRMED_COMPLETION',
   'COMPLETION_WORD <-> LEGACY_PAST_COMPLETION',

@@ -1768,6 +1768,24 @@ const QUESTION_SUPPRESSING_FRAME = new RegExp(
 // and the three had already drifted, which is verifier #67's P1 and P2 in one sentence. Every consumer
 // below derives from this; none re-spells it. Multi-word nouns come FIRST so the alternation prefers the
 // longer reading ("work order" before "order"), the same longest-first rule the request frames use.
+// CONCEPT-REGISTERED: AMBIGUOUS_MUTATION_VERB_ALTERNATION is a deliberate PROPER SUBSET of
+// MUTATION_VERB_ALTERNATION and must never be converged onto it. These are the verbs that are a mutation
+// ONLY when they carry an object: "close the deal" is a request, "close call" is a noun phrase; "end the
+// employment" is a request, "end of quarter" is not. archive/delete/restore are deliberately ABSENT because
+// they are unconditional and MUTATION_VERB_ALWAYS owns them. The distinction is the reason this constant
+// exists, and merging it would make every ambiguous verb unconditional (verifier #69, V69-D6 classification).
+// It replaces THREE hand-written spellings that had already drifted: MUTATION_VERB_WITH_OBJECT,
+// MUTATION_VERB_PROPER_OBJECT and the extractor inside lexiconObject.
+const AMBIGUOUS_MUTATION_VERB_ALTERNATION = "creat|make|making|add|register|set|setting|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard";
+// THE ONE DEFINITION OF "THIS REQUEST WAS NEGATED" (Codex finding A, 2026-09-09). Three separate
+// spellings of this existed - the executor's `commandNegatedLead`, the intent tier's negated-verb test and
+// the receipt's `negatedRequest` - and they disagreed about which negators and which verbs counted. A
+// vocabulary that decides whether the founder's "do not" is honoured cannot be maintained in three places.
+const REQUEST_NEGATED_ALTERNATION = "do not|do n't|don't|don\u2019t|dont|never|no need to|not going to|no longer|please do not|please don't|please don\u2019t|must not|mustn't|mustn\u2019t|should not|shouldn't|shouldn\u2019t|will not|won't|won\u2019t|cannot|can't|can\u2019t|stop|instead of|rather than|without";
+// Every field of the model's reply that CHANGES something. Hoisted to module level so the negation gate can
+// run the moment the reply is parsed, long before any individual consumer reads a field. The handler keeps
+// its own name for it, so every window and harness that slices that region still resolves.
+const MUTATION_RESULT_FIELDS = ['tasks','deleteTaskIds','archiveTaskIds','restoreTaskIds','deleteChannelIds','deleteApprovalIds','pendingDeleteTaskIds','pendingDeleteChannelIds','createCompanies','updateCompanies','archiveCompanyIds','restoreCompanyIds','archiveCompanyNames','restoreCompanyNames','permanentDeleteFixtureCompanyIds','createPeople','endEmploymentPersonIds','restoreEmploymentPersonIds','createProjects','createGoals','archiveGoalIds','restoreGoalIds','createFactoryWorkOrders','createDepartments','updateDepartments','createLeads','updateLeads','createDocuments','createProductLines','updateProductLines','deleteProductLineIds','createProductSpecs','updateProductSpecs','deleteProductSpecIds','createEngineeringDrawings','deleteEngineeringDrawingIds','createAiProviders','deleteAiProviderIds','deleteMcpConnectorIds','createProposals','updateProposals','deleteProposalIds','createCompanyRelationships','createPersonAssignments'];
 const ENTITY_NOUN_ALTERNATION = "work order|purchase order|business unit|chat channel|software spec|product line"
   + "|product spec|engineering drawing|technical drawing|onboarding plan|purchase approval|work item"
   + "|compan(?:y|ies)|business|organi[sz]ation|person|people|employee|staff|manager|owner|task|goal|project"
@@ -3444,6 +3462,51 @@ serve(async (req) => {
           }
           send({ type: 'error', error: errorMessage, raw: resultText.slice(0, 2000) });
           return;
+        }
+
+        // ── THE NEGATION GATE (Codex finding A) ────────────────────────────────────────────────────
+        // "do not archive ACME", "never move Bob to Company B". The founder said NOT to. Whatever the model
+        // replied, no mutation may leave this turn - so the mutating fields are removed from the reply
+        // itself, once, here, rather than being gated at each of the forty-odd places one is later read.
+        // The prose reply survives untouched: the founder still gets an answer, and the receipt below
+        // already says "you asked me not to, so nothing was executed".
+        //
+        // A negation applies to the CLAUSE it governs. "archive ACME, but do not delete it" negates the
+        // delete, not the archive, so a command that also carries an un-negated imperative mutation clause
+        // is NOT swallowed whole - the gate fires only when every mutation clause in the turn is negated,
+        // which is the shape the founder's own examples take.
+        const requestIsNegated = (() => {
+          const text = String(command || '');
+          const negated = new RegExp('\\b(?:' + REQUEST_NEGATED_ALTERNATION + ')[\\s,]+(?:\\w+[\\s,]+){0,3}(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i');
+          if (!negated.test(text)) return false;
+          // An un-negated imperative mutation elsewhere in the same turn means the founder asked for
+          // something as well as forbidding something; that is a mixed turn, not a refusal.
+          const clauses = text.split(/[,;]\s+|\s[\u2014\u2013-]\s+|\s+(?:and then|then|and)\s+/i);
+          const negatedClause = new RegExp('\\b(?:' + REQUEST_NEGATED_ALTERNATION + ')\\b', 'i');
+          const imperative = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i');
+          return !clauses.some((c) => !negatedClause.test(c) && imperative.test(c.trim()));
+        })();
+        let negatedRequestStrippedFields: string[] = [];
+        if (requestIsNegated && result && typeof result === 'object') {
+          const record = result as Record<string, unknown>;
+          // The array list plus the one SCALAR mutating field the handler tier treats separately.
+          for (const field of MUTATION_RESULT_FIELDS.concat(['activateAiProviderId'])) {
+            const value = record[field];
+            const present = Array.isArray(value) ? value.length > 0 : (value !== undefined && value !== null && value !== '');
+            if (!present) continue;
+            negatedRequestStrippedFields.push(field);
+            if (Array.isArray(value)) record[field] = []; else delete record[field];
+          }
+          if (negatedRequestStrippedFields.length > 0) {
+            // AUDITABLE, because a refusal nobody records is indistinguishable from a turn where the model
+            // simply proposed nothing - and the difference is exactly what an investigator needs later.
+            await supabase.from('audit_logs').insert({
+              actor_profile_id: profile.id, actor_role: profile.role,
+              event_type: 'negated_request_refused', entity_type: 'work_order', entity_id: workOrderId,
+              message: 'The request was negated; model-supplied mutations were refused',
+              metadata: { command: String(command || '').slice(0, 500), strippedFields: negatedRequestStrippedFields },
+            }).catch(() => {});
+          }
         }
 
         // Business logic (risk-keyword forcing, domain routing) stays here in TypeScript;
@@ -5962,7 +6025,10 @@ serve(async (req) => {
           // allowed; what is refused is an ASSERTION — the aux-verb shapes, or a
           // completion participle as the summary's final content word ("ACME deleted"),
           // which replays as "Confirmed — ACME deleted."
-          const IMPERATIVE_LEAD = /^(archive|restore|create|delete|update|assign|reassign|mark|set|move|end|add|remove|rename|close|clear|send|grant|decline|approve|reject|complete|activate|deactivate|make|change)\b/i;
+          // 26 of the 120 canonical verbs, containment 1.00 - the spelling simply stopped growing, so a
+          // pending summary reading "Suspend ACME" was classified as an ASSERTION rather than the imperative
+          // it plainly is (verifier #69, V69-D6). Same concept, one definition.
+          const IMPERATIVE_LEAD = new RegExp('^(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i');
           if (!IMPERATIVE_LEAD.test(t)) {
             // run10 (R10.paSummaryWord): an assertion-LED compound ("ACME deleted —
             // also purge its tasks") hides the participle behind a continuation, so
@@ -6008,18 +6074,36 @@ serve(async (req) => {
         const modelIntentAction: string | null = modelIntent && typeof modelIntent.action === 'string' && modelIntent.action.trim().length > 0 ? modelIntent.action.trim().toLowerCase().slice(0, 40) : null;
         const modelMutationField: string | null = MUTATION_ARRAY_FIELDS.find((f) => Array.isArray(resultRecord[f]) && (resultRecord[f] as unknown[]).length > 0)
           || (typeof resultRecord.activateAiProviderId === 'string' ? 'activateAiProviderId' : null);
+        // CONCEPT-REGISTERED: MUTATION_VERB_WITH_OBJECT and MUTATION_VERB_PROPER_OBJECT below are the
+        // AMBIGUOUS verb set — a deliberate proper subset of MUTATION_VERB_ALTERNATION (see
+        // AMBIGUOUS_MUTATION_VERB_ALTERNATION at the top of the file). They must NOT be converged onto the
+        // canonical list: doing so would make "close call" and "end of quarter" mutation requests.
+        //
+        // REGISTERED DEBT, decision owed: the two of them spell that subset a SECOND and THIRD time, with
+        // case-variant alternatives woven through their object vocabularies. That mutual duplication is
+        // accidental drift and is real - it is simply not safe to unpick in the same edit as a P1 boundary
+        // fix, because their verb portions are interleaved with their object portions. Sized: 24 and 18
+        // members, both containment 1.00 against the canonical list, both already consistent with
+        // AMBIGUOUS_MUTATION_VERB_ALTERNATION as written today. The convergence belongs in its own source
+        // window with its own verifier round.
         // Unconditional mutation verbs: base and gerund forms anywhere in the command (a participle alone
         // is an adjective — "a report of archived companies"); Mongolian stems with Unicode-letter
         // lookarounds (\b is ASCII-only and never fires next to Cyrillic).
         const MUTATION_VERB_ALWAYS = /\b(archiv(?:e|ing)|un-?archiv(?:e|ing)|restor(?:e|ing)|reactivat(?:e|ing)|delet(?:e|ing)|remov(?:e|ing)|renam(?:e|ing)|retitl(?:e|ing)|reassign(?:ing)?|unassign(?:ing)?|approv(?:e|ing)|reject(?:ing)?|declin(?:e|ing)|activat(?:e|ing)|deactivat(?:e|ing)|invit(?:e|ing)|revok(?:e|ing)|enabl(?:e|ing)|disabl(?:e|ing)|promot(?:e|ing)|demot(?:e|ing)|hir(?:e|ing)|fir(?:e|ing)|terminat(?:e|ing)|dismiss(?:ing)?|onboard(?:ing)?|merg(?:e|ing)|split(?:ting)?|reopen(?:ing)?)\b|\b(bring(?:ing)?\s+(?:(?:it|them|that|this|the\s+\S+|\S+)\s+)?back)\b|\b(get\s+(?:the\s+|that\s+|this\s+)?\S+(?:\s+\S+){0,3}?\s+(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|ended|added|created|edited|fixed|modified|done))\b|(?<!\p{L})(архивл\S*|устга\S*|сэргээ\S*|өөрч(?:л|ил)\S*|томил\S*|болго\S*|үүсгэ\S*|нэм(?:э)?\S*|соль\S*|хас\S*|оноо\S*|шинэчил\S*|дуусга\S*|хаа|цуцла\S*)(?!\p{L})/iu;
         // A passive / desiderative request: "ACME should be archived", "I need ACME archived", "Make sure QA-1 is done".
         // "ACME needs archiving": a bare participle after needs/wants, with no "to" and no auxiliary.
-        const MUTATION_NEEDS_PARTICIPLE = /\b(?:needs?|wants?|requires?)\s+(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|activat|deactivat|invit|revok|enabl|disabl|promot|demot|onboard|merg|updat|clos|complet|cancel|assign|mov|transfer|end)ing\b/i;
+        // 29 stems, containment 0.97 - the canonical concept in participle morphology and nothing else,
+        // so "ACME needs suspending" was invisible while "ACME needs archiving" was not (verifier #69).
+        // Stems are derived from the one definition: a trailing "e" is dropped so "archive" -> "archiv".
+        const MUTATION_VERB_ING_STEMS = MUTATION_VERB_ALTERNATION.split('|').map((v) => v.replace(/e$/, '')).join('|');
+        const MUTATION_NEEDS_PARTICIPLE = new RegExp('\\b(?:needs?|wants?|requires?)\\s+(?:' + MUTATION_VERB_ING_STEMS + ')ing\\b', 'i');
         const MUTATION_PASSIVE_REQUEST = /\b(?:should|must|needs? to|has to|have to|is to|are to|ought to|got to|gotta) (?:be |get )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b|\b(?:i (?:need|want)|we (?:need|want)|make sure|ensure|see that) (?:that )?\S+(?: \S+){0,4}? (?:is |are |gets? |to be )?(?:archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done)\b/i;
         // Verbs that also open ordinary reads: intent only with a mutation-shaped OBJECT (entity noun,
         // a field, a relationship phrase). Case-insensitive; proper nouns are checked separately below.
+        // CONCEPT-REGISTERED: the AMBIGUOUS verb set — a mutation only when it carries an object.
         const MUTATION_VERB_WITH_OBJECT = /\b(?:(?:creat(?:e|ing)|make|making|add(?:ing)?|register(?:ing)?|set(?:ting)?|updat(?:e|ing)|chang(?:e|ing)|edit(?:ing)?|fix(?:ing)?|modif(?:y|ying)|correct(?:ing)?|clos(?:e|ing)|complet(?:e|ing)|finish(?:ing)?|cancel(?:ling|ing)?|reopen(?:ing)?|mark(?:ing)?|assign(?:ing)?|mov(?:e|ing)|transfer(?:ring)?|end(?:ing)?) (?:the |a |an |that |this |new |another |its |his |her |their |my |our )?(?:compan(?:y|ies)|business unit|person|people|employee|staff|manager|task|goal|project|department|lead|document|proposal|product|memory|note|approval|channel|team|role|employment|assignment|contract|ticket|manager|status|deadline|priority|owner|title|name|description|email|role|stage|value|budget|price|start date|end date|due date|\S+-\d+)\b|make \S+(?: \S+)? (?:the |a )?(?:manager|owner|lead|admin)\b|add \S+(?: \S+)? (?:to|as|under) \b|(?:set|updat(?:e|ing)|chang(?:e|ing)) \S+(?:'s|’s) \w+(?: \w+)? to\b|mov(?:e|ing) \S+(?: \S+)? (?:to|into|under)\b|transfer(?:ring)? \S+(?: \S+)? (?:to|into|under)\b|mark \S+(?: \S+){0,3} as (?:done|complete|completed|closed|archived|active|inactive|resolved)\b)|[:—–-]\s*(?:assign|set|update|change|edit|fix|modify|close|complete|finish|cancel|reopen|mark|move|transfer|end|create|add|make|archive|restore|delete|remove|rename)(?:\s+(?:it|them|this|that))?\s*[.!]?\s*$/i;
         // Proper-noun objects, CASE-SENSITIVE: "create ACME Robotics", "assign QA-1 to Bob", "Set Bob’s title".
+        // CONCEPT-REGISTERED: the AMBIGUOUS verb set in proper-noun-object form; registered debt.
         const MUTATION_VERB_PROPER_OBJECT = /(?:^|[\s,.;:—–-])(?:[Cc]reat(?:e|ing)|CREATE|[Mm]ak(?:e|ing)|MAKE|[Aa]dd(?:ing)?|ADD|[Rr]egister(?:ing)?|[Ss]et(?:ting)?|SET|[Uu]pdat(?:e|ing)|UPDATE|[Cc]hang(?:e|ing)|CHANGE|[Ee]dit(?:ing)?|EDIT|[Ff]ix(?:ing)?|FIX|[Mm]odif(?:y|ying)|MODIFY|[Cc]los(?:e|ing)|CLOSE|[Cc]omplet(?:e|ing)|COMPLETE|[Ff]inish(?:ing)?|FINISH|[Cc]ancel(?:ling|ing)?|CANCEL|[Rr]eopen(?:ing)?|REOPEN|[Mm]ark(?:ing)?|MARK|[Aa]ssign(?:ing)?|ASSIGN|[Mm]ov(?:e|ing)|MOVE|[Tt]ransfer(?:ring)?|TRANSFER|[Hh]ir(?:e|ing)|HIRE|[Oo]nboard(?:ing)?|ONBOARD|[Ee]nd(?:ing)?|END)\s+(?:the\s+|a\s+|an\s+|new\s+|THE\s+)?(?:[A-Z][A-Za-z0-9_-]+|[A-Z]{2,}|\S+-\d+|"[^"]+"|“[^”]+”|'[^']+')|(?:[A-Z]\S*|\S+-\d+|\S+(?:'s|’s) \w+)\s+(?:set|add|mark|move|edit|update|end|close|complete|cancel|finish|reopen|assign|create|make|fix|modify|change)\s*[.!]?\s*$/;
         // A read-shaped request: a question, a wh-opener, or an explicit read verb; a trailing "ok?/right?"
         // on an imperative is not a read. Plus the idioms that only LOOK like lifecycle verbs.
@@ -6347,7 +6431,7 @@ serve(async (req) => {
         const properObjectIsTemporal = MUTATION_VERB_PROPER_OBJECT.test(commandText)
           && !MUTATION_VERB_WITH_OBJECT.test(commandText)
           && TEMPORAL_PROPER_OBJECT.test(commandText);
-        const lexiconObject = ((MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) && !properObjectIsTemporal) ? ((commandText.match(/\b(creat|make|add|register|set|updat|chang|edit|fix|modif|correct|clos|complet|finish|cancel|reopen|mark|assign|mov|transfer|end|hire|onboard)\w*/i) || [])[0] || 'update') : null;
+        const lexiconObject = ((MUTATION_VERB_WITH_OBJECT.test(commandText) || MUTATION_VERB_PROPER_OBJECT.test(commandText)) && !properObjectIsTemporal) ? ((commandText.match(new RegExp('\\b(?:' + AMBIGUOUS_MUTATION_VERB_ALTERNATION + ')\\w*', 'i')) || [])[0] || 'update') : null;
         // IMPERATIVE POSITION (verifier #60, V60-D4). The founder's command, with its ordinary request
         // frames stripped, beginning with a mutation verb in base form and carrying an object. Position is
         // request-side evidence: it is a property of what was ASKED, never of what the model replied.
@@ -6718,6 +6802,8 @@ serve(async (req) => {
           // ("is being archived", "is getting archived").
           '|(?:was|were) (?:being |getting )?(?:archived|deleted|updated|created|restored|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|moved|granted|declined)' +
           '|(?<!\\b(?:that|which|who)\\s)(?:is|are) (?:being|getting) (?:archived|deleted|updated|created|restored|activated|deactivated|assigned|reassigned|approved|rejected|removed|completed|renamed|ended|closed|cleared|sent|moved|granted|declined)(?![^.]{0,60}?\\bby (?:the|a|an|our|their|its))' +
+          // CONCEPT-REGISTERED: the first-person claim patterns below are RESPONSE-side — what the MODEL said
+          // it did; deliberately NOT converged onto MUTATION_VERB_ALTERNATION.
           // A bare gerund LEADING the reply is the same claim without a subject
           // ("Archiving ACME as we speak.").
           '|^(?:' + PROGRESS_VERBS + ') ' +
@@ -6725,6 +6811,7 @@ serve(async (req) => {
           '|(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?in the process of (?:' + PROGRESS_VERBS + ')' +
           '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)(?:go(?:ing)? ahead and|kick(?:ing)? off) (?:the )?(?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
           '|(?:(?:\\b(?:I|we)(?:[\\x27\\u2019]m| am| are| will| shall| have)?|\\blet me|\\blet us)\\s+(?:just |now |also |already |then |quickly |simply |going |)?|^)starting the (?:' + PROGRESS_VERBS + '|archive|restore|delete)' +
+          // CONCEPT-REGISTERED: RESPONSE-side model claim, never request recognition.
           '|let me (?:archive|restore|delete|remove|assign|reassign|update|create|move|end|rename|close|clear|grant|decline|approve|reject|complete|activate|deactivate)' +
           ')\\b', 'i');
         // A supported mutation/assignment claim is the only thing that can account for
@@ -7314,7 +7401,31 @@ serve(async (req) => {
         // RPC's pre-verification p_output snapshot. The old gate (persist only when a
         // correction fired) is what let uncorrected fabrications re-enter history as fact.
         void groundedOutcomeThisTurn; void lifecycleMismatchCorrections; void claimsFutureActionWithNoPlan; void claimsPastCompletionWithNoGrounding; void pendingActionGatingChanged;
-        await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
+        // CODEX FINDING C. This write used to discard its own result. The Supabase client returns an
+        // error rather than throwing, so a failed final persist looked exactly like a successful one and the
+        // turn went on to send { type: 'done' } — founder-visible output diverging from canonical persisted
+        // state, silently. The error is read, and what the turn REPORTS follows from it.
+        const finalPersist = await supabase.from('work_orders').update({ output: result }).eq('id', workOrder.id);
+        const finalPersistFailed = !!(finalPersist && finalPersist.error);
+        // A turn that MUTATED something and then failed to record it is not a failed turn and is not a
+        // completed one. Collapsing either way is a lie in a different direction, which is why this is a
+        // classification and not a boolean.
+        const turnExecutedSomething = claimExecutionEvidence.some((e) => !e.error);
+        const persistenceOutcome = finalPersistFailed
+          ? (turnExecutedSomething ? 'EXECUTION_SUCCEEDED_PERSISTENCE_FAILED' : 'READ_SUCCEEDED_PERSISTENCE_FAILED')
+          : (turnExecutedSomething ? 'EXECUTION_SUCCEEDED_AND_PERSISTED' : 'READ_SUCCEEDED_AND_PERSISTED');
+        if (finalPersistFailed) {
+          // RECOVERY INFORMATION, not just an alarm: the work order id and the operations that really ran
+          // are what a later repair needs, and they exist only here.
+          await supabase.from('audit_logs').insert({
+            actor_profile_id: profile.id, actor_role: profile.role,
+            event_type: 'final_persistence_failed', entity_type: 'work_order', entity_id: workOrder.id,
+            company_id: primaryCompanyId,
+            message: 'The verified output could not be persisted; the durable record is stale',
+            metadata: { persistenceOutcome, executedOperationCount: claimExecutionEvidence.filter((e) => !e.error).length,
+              error: String(finalPersist?.error?.message || 'unknown'), recoverable: true },
+          }).catch(() => {});
+        }
 
         // Issue #5 durable channel state — the WRITE half, FEATURE-GATED like the read:
         // any error (incl. relation-not-found before 202609020001 is approved/applied)
@@ -7368,7 +7479,10 @@ serve(async (req) => {
 
         await supabase.from('audit_logs').insert({ actor_profile_id:profile.id, actor_role:profile.role, event_type:'ai_command_request_completed', entity_type:'work_order', entity_id:workOrder.id, company_id:primaryCompanyId, message:'AI command request completed', metadata:{ elapsedMs:Date.now()-started, contextErrors, forcedApprovals:forcedApprovalTaskIndexes.length, deletedTasks:deletedTaskIds.length, deletedChannels:deletedChannelCount, deletedApprovals:deletedApprovalCount, companies:createdCompanies.length, people:createdPeople.length, projects:createdProjects.length, goals:createdGoals.length, companyRelationships:createdCompanyRelationships.length, personAssignments:createdPersonAssignments.length, memories:createdMemories.length, departmentsCreated:createdDepartments.length, departmentsUpdated:updatedDepartmentCount, leadsCreated:createdLeads.length, leadsUpdated:updatedLeadCount, documentsCreated:createdDocuments.length, productLinesCreated:createdProductLines.length, productLinesUpdated:updatedProductLineCount, productLinesDeleted:deletedProductLineCount, productSpecsCreated:createdProductSpecs.length, productSpecsUpdated:updatedProductSpecCount, productSpecsDeleted:deletedProductSpecCount, drawingsCreated:createdDrawings.length, drawingsDeleted:deletedDrawingCount, aiProvidersCreated:createdAiProviders.length, aiProviderActivated:activatedAiProvider, aiProvidersDeleted:deletedAiProviderCount, mcpConnectorsDeleted:deletedMcpConnectorCount, proposalsCreated:createdProposals.length, proposalsUpdated:updatedProposalCount, proposalsDeleted:deletedProposalCount, factoryWorkOrdersCreated:createdFactoryWorkOrders.length, companiesUpdated:updatedCompanyCount, companiesArchiveAttempted:archiveCompanyIds.length, companiesRestoreAttempted:restoreCompanyIds.length, companiesPermanentFixtureDeleteAttempted:permanentDeleteFixtureCompanyIds.length, tasksArchiveAttempted:archiveTaskIds.length, tasksRestoreAttempted:restoreTaskIds.length, goalsArchiveAttempted:archiveGoalIds.length, goalsRestoreAttempted:restoreGoalIds.length, peopleEndEmploymentAttempted:endEmploymentPersonIds.length, peopleRestoreEmploymentAttempted:restoreEmploymentPersonIds.length, organizationGraphChecked:!!organizationGraphCheck, organizationGraphClean:organizationGraphCheck?.clean ?? null } });
 
-        send({ type: 'done', result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, createdFactoryWorkOrders, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
+        // The founder-visible text must match the actual state (founder, 2026-09-09). `done` alone cannot
+        // say "the change happened but the record of it did not", so the outcome rides with it and a failed
+        // persist is never reported as durable completion.
+        send({ type: 'done', persistenceOutcome, persistenceFailed: finalPersistFailed, result, workOrder, createdTasks, createdApprovals, deletedTaskIds, createdCompanies, createdPeople, createdProjects, createdGoals, createdCompanyRelationships, createdPersonAssignments, createdMemories, createdDepartments, updatedDepartmentCount, createdLeads, updatedLeadCount, createdDocuments, createdProductLines, updatedProductLineCount, createdProductSpecs, updatedProductSpecCount, createdDrawings, createdAiProviders, activatedAiProvider, createdProposals, updatedProposalCount, createdFactoryWorkOrders, model, usage: usageRef.current, tokenEstimate, contextErrors, primaryCompanyId });
       } catch (e: any) {
         const errorMessage = e?.body?.error?.message || e?.message || String(e);
         if (workOrderId) {

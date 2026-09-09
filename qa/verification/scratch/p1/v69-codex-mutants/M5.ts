@@ -2887,7 +2887,7 @@ async function buildContext(supabase:any, command:string, channelId: string | nu
   // map OF envelopes is not an envelope. Nesting it there type-errored and, worse, would have satisfied
   // §4.3 by name while telling the model nothing it could use.
   (namedTargets as Record<string, unknown>).collections = namedTargetsEnvelope;
-  const pack = { continuity, salaryBands: (approvals.data||[]).slice(0,20), namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
+  const pack = { continuity, namedTargets, companies:packCompanies, archivedCompanies:archivedCompanies.data||[], projects:projects.data||[], tasks:mergedTasksData, memories:packMemories, agents:agents.data||[], products:products.data||[], inventory:inventory.data||[], approvals:approvals.data||[], people:packPeople, goals:mergedGoalsData, companyRelationships:companyRelationships.data||[], personAssignments:personAssignments.data||[], financialReports:financialReports.data||[], conversationHistory, factoryWorkOrders, channels:channels.data||[], activeChannelId:channelId, departments:departments.data||[], leads:leads.data||[], documents:documents.data||[], proposals:proposals.data||[], productSpecs:productSpecs.data||[], engineeringDrawings:engineeringDrawings.data||[], aiProviders:aiProviders.data||[], mcpConnectors:mcpConnectors.data||[], archivedTasks:archivedTasks.data||[], pendingAction, recentlyResolvedEntities, recentlyDeletedEntities, collections, counts, currentTurn: { turn: totalPriorTurns + 1, command } };
   // ---- CONTEXT BUDGET (incident 2026-09-08, qa/verification/incidents/INCIDENT_2026-09-08_TOKEN_PREFLIGHT_413.md).
   // serve() refuses the whole request above SEM_AI_MAX_TOKENS using estimateTokens({command, contextPack}).
   // A pack that outgrows the cap must DEGRADE, never turn an ordinary question into a 413 with no answer.
@@ -6178,7 +6178,7 @@ serve(async (req) => {
         // project" read "report" + "for" as a named target, the headline veto never fired, and all 15
         // truthful answers went on being destroyed while the fabrication rows passed - one flag, one
         // direction still broken, no error anywhere.
-        const NAMED_TARGET_AFTER_ENTITY = new RegExp(NAMED_TARGET_AFTER_ENTITY_SRC, 'u');
+        const NAMED_TARGET_AFTER_ENTITY = new RegExp(NAMED_TARGET_AFTER_ENTITY_SRC, 'iu');
         const IMPERATIVE_OBJECT = new RegExp(
           '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
           + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'

@@ -269,7 +269,7 @@ for (const [command, name, status, rpc, final] of [['archive Restored Furniture 
   check('CONTRACT', 'C8 untyped durable row yields', precedenceFn(lastTurn(60000), durable({ pending_action_action_type: null })).pendingAction?.question === 'last-turn?');
   check('CONTRACT', 'C8 stored pendingAction older than 30 min does not bind', precedenceFn(lastTurn(31 * 60000), null).pendingAction === null);
   check('CONTRACT', 'C8 expired durable + stale stored -> nothing binds', precedenceFn(lastTurn(31 * 60000), durable({ pending_action_expires_at: iso(-1) })).pendingAction === null);
-  check('CONTRACT', 'C8 work_orders.output persisted unconditionally after the verdict', /void groundedOutcomeThisTurn;[^\n]*\n\s*await supabase\.from\('work_orders'\)\.update\(\{ output: result \}\)/.test(src) && src.indexOf('result.turnVerdict = {') < src.indexOf("await supabase.from('work_orders').update({ output: result })"));
+  check('CONTRACT', 'C8 work_orders.output persisted unconditionally after the verdict', /void groundedOutcomeThisTurn;[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const finalPersist = await supabase\.from\('work_orders'\)\.update\(\{ output: result \}\)/.test(src) && src.indexOf('result.turnVerdict = {') < src.indexOf("await supabase.from('work_orders').update({ output: result })"));
 }
 // C9 collection envelopes (OTM §4.3) and postconditions (§4.1).
 {

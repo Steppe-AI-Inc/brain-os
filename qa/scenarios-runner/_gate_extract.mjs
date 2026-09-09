@@ -185,7 +185,15 @@ const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNA
   // object test needs the declaration. Listed AFTER ENTITY_NOUN_ALTERNATION because it is built from it and
   // this list resolves in dependency order: v67's window went red with a bare "NAMED_TARGET_AFTER_ENTITY_SRC
   // is not defined" the moment the constant existed and was not listed here.
-  'NAMED_TARGET_AFTER_ENTITY_SRC'];
+  'NAMED_TARGET_AFTER_ENTITY_SRC',
+  // The one definition of the AMBIGUOUS verb set — the verbs that are a mutation only when they carry an
+  // object. lexiconObject's extractor derives from it, so any window executing that tier needs it. It is a
+  // deliberate proper subset of MUTATION_VERB_ALTERNATION and is registered as such at its declaration.
+  'AMBIGUOUS_MUTATION_VERB_ALTERNATION',
+  // The one definition of "this request was negated" and the one list of fields that mutate (Codex finding
+  // A). The handler's MUTATION_ARRAY_FIELDS now derives from the list, and the negation gate reads both, so
+  // any window slicing either region needs them.
+  'REQUEST_NEGATED_ALTERNATION', 'MUTATION_RESULT_FIELDS'];
 let _sharedConstantCache = null;
 function resolveSharedConstants() {
   if (_sharedConstantCache) return _sharedConstantCache;
