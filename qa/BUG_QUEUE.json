@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T03:42:00Z",
+  "last_updated": "2026-09-09T03:45:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -816,7 +816,10 @@
         "precision_note": "The discriminator is the PATH TAKEN, not ambiguity itself. Trial 1 Phase 3b was an ambiguous read that nonetheless took the direct-answer path and stayed clean. Ambiguity RAISES THE PROBABILITY of the clarification branch; it does not determine it. Stated this way so the Home PC does not implement a fix that keys on question form rather than on the branch.",
         "implication_for_the_fix_shape": "Consistent with BUG-002 d3_required_fix_shape, which already argued the guard must reason STRUCTURALLY about whether an operation executed rather than about response form. The same argument applies here: a mitigation that keys on how the user phrased the question will be defeated by rephrasing, because the failure is in which branch answers, not in what was asked.",
         "status": "Still a hypothesis about a mechanism Work PC cannot see. n=5 reads across 4 trials. Work PC did not read the sem-ai-command source."
-      }
+      },
+      "regression_path": "qa/scenarios-runner/bug010_clarification_branch_grounding.md",
+      "regression_state": "EXPECTED_FAIL",
+      "regression_note_2026_09_09": "The ORIGINAL regression_requirement (same-channel read must equal DB and equal a fresh-channel answer) is necessary but NOT SUFFICIENT: it would have PASSED on trial 1 of 4 while the defect was live, because it does not force the contaminated branch. The new scenario deliberately asks the AMBIGUOUS form, asserts on the clarifying question TEXT, and adds a branch-parity assertion (same question asked unambiguously in the same contaminated channel must agree). Branch parity is the load-bearing assertion - assertions on the symptom can be satisfied by cleaning up response text without fixing which branch reads the database. It also mandates >=4 trials, since reproduction is ~2 of 3."
     },
     {
       "bug_id": "BUG-011",
