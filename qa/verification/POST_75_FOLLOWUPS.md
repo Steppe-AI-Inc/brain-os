@@ -82,3 +82,25 @@ The first mutant tried was `confirmed`, and BOTH versions passed: no case in the
 the mutant was ineffective and proved nothing either way. Recorded because it is the same discipline the
 Edge mutation proof enforces — establish that a mutant changes behaviour before reading its survival as
 evidence — and because it is the mistake anyone converting the other three will make first.
+
+### The other three are NOT lift-and-go, and here is why
+
+The example above worked because `PAST_COMPLETION_CLAIM_PATTERN` is a single declaration whose right-hand
+side is self-contained. Checked against the source rather than assumed, the rest are not:
+
+| suite | what it reimplements | is it liftable? |
+|---|---|---|
+| `sem_ai_command_named_person_lookup_truth` | `mergedPeopleData` (index.ts:3371) | **No** — an IIFE that closes over surrounding scope |
+| | `personCurrentStatus` (index.ts:3432) | **No** — an inline ternary inside an object literal, not a named thing |
+| | `COMMON_COMMAND_STOPWORDS` (index.ts:234) | Yes — a plain `const` |
+| `sem_ai_command_company_restore_truth` | 499 lines of restore semantics | not assessed; the largest of the four |
+| `sem_ai_command_factory_verification_selection` | the factoryWorkOrders context builder | not assessed |
+
+So two of the three need a real WINDOW executed through `_gate_extract`, not a declaration lifted — the
+technique exists and every other behavioural suite uses it, but it is a different and larger job than the
+example above, and the window has to be chosen so the pack-building block runs with its dependencies.
+
+**Deliberately not attempted tonight.** A partial conversion — lifting the stopword set while leaving the
+two reimplementations in place — would leave a suite that LOOKS converted and is still blind to the logic
+it names. That is a worse state than the honest one it is in now, because the next reader would stop
+looking. The one converted example is a template for the shape, not a claim that the other three are close.
