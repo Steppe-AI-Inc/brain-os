@@ -153,9 +153,111 @@ a fix that credited any red suite whose output changed (two of them report on ma
 change on every run), and finally a determinism gate. **A differencing test is only as good as the
 stability of what it differences.**
 
+
+---
+
+**The last reimplementation suite is converted, and the class is closed.**
+
+`sem_ai_command_execution_plan_truth` carried hand-maintained copies of `executeActionPlan`'s ordering loop
+and `buildExecutionPlanReport` under a header calling them "byte-for-byte". It opened no source at all, so no
+change to `index.ts` could turn it red. Both are now lifted from the deploy bytes, with ONE substitution that
+is the suite's own design: the real loop ends in `executeOneAction(supabase, action)` and these tests are
+about dependency ordering, so that leaf call is replaced by an injected executor -- and the lift THROWS if it
+cannot find that call, rather than silently testing a different function.
+
+Proved load-bearing against two mutants in the real source: relax the blocked-dependency rule, and delete
+`assign_task`'s operation-aware naming so the report names the person instead of the task. The lift fails two
+rows on each; **the hand-copy passes both.** Row set identical to before -- 25 rows, compared by id and not
+by count. H6b now reports 0 remaining, by directory scan rather than from a list, and the three regression
+suites went green together.
+
+The harness gap I had recorded as "worked around" is also closed: there were **five** parameter-annotation
+strippers, each stopping at the first comma, so an ordinary signature
+`names: { a: Map<string, unknown>; b: Map<string, unknown> }` came out as `names, unknown>; b, unknown>`. One
+balanced stripper now, tracking depth over `()` `[]` `{}` `<>`.
+
+**Then two more instrument defects, both mine.**
+
+I launched the mutation proof in the background and edited a harness file every probe imports. For the length
+of that edit the file did not parse, three probes died IDENTICALLY on both runs -- and identical output is
+exactly what the effectiveness gate reads as *the product did not react*. It exited 0 and called three
+plainly-effective mutants INEFFECTIVE. **A long-running gate re-reads the harness on every spawn; it has no
+snapshot.** The gate now treats a fatal crash on the candidate side as a HARNESS FAILURE and exits 1, because
+a survivor count computed over runs that did not happen is a claim about a measurement that did not happen.
+
+And escape depth, instance 17. The word boundary in that new gate was typed as a double backslash, the
+transport halved it, and a single-escaped `b` inside a single-quoted string is the BACKSPACE escape -- a
+literal 0x08 byte went into the file and the pattern matched nothing, so the gate fired on a healthy harness.
+Then the comment I wrote explaining that hazard acquired a 0x08 of its own, the same way. **Second time this
+campaign a sentence describing the 0x08 hazard has contained one.** Both repaired; the pattern now contains no
+backslash at all.
+
+---
+
+## VERIFIER #78 FAILED `e785d6ce` -- three P1s, and it was right about all three
+
+It also refused the prompt where the prompt was stale, for the third round running, and derived the battery
+count, the ledger number and its own artefact names from the repository instead. That is the behaviour I want
+from it.
+
+**P1 - V78-D1 -- the fix two rounds ago broke the language the product is used in.** The V77-D1 allowlist
+closed false-LIVE in the direction it aimed at and turned Mongolian's ORDINARY POLITE REQUEST from live into
+dead: **72 of 108 mixed turns swallowed**, against 24 before it landed. `ACME-г битгий архивла, гэхдээ Beta-г
+сэргээж өгөөч` -- "don't archive ACME, but please restore Beta" -- became a whole-turn refusal, and the
+founder was told "No change was made -- you asked me not to" on a turn in which they asked. The cause is that
+the polite request is ANALYTIC: a converb carries the verb and an auxiliary carries the imperative. The
+request tier has known that since V75-D1. The decider never did.
+
+**CLOSED.** Its prepared fix applied as given takes 72 to 3. The residue it deliberately left open was
+`сэргээнэ үү`, the polite FINITE -- it declined to admit a bare clause-final `уу/үү` because that made three
+QUESTIONS live, and that judgement was right. What separates them is POSITION, never the particle: in the
+request the mutation stem ITSELF carries the polite finite and the particle follows it directly; in every
+question something stands between -- an auxiliary, the passive `-гд-`, the infinitive `-х` -- and that is what
+makes it a question. Measured on **#78's own corpora, not mine: FALSE LIVE 0/15, FALSE DEAD 0/5**, and the
+392-token paradigm still reads 0 in both directions.
+
+**P1 - V78-S1 -- a real survivor, and the deploy gate said GREEN.** This is the one to read. The mutation
+proof erased the source PATH so an echoed filename could not count as an answer, and did not erase the
+**sha256 printed beside it**. One suite prints one. So its output differed for every mutant BY CONSTRUCTION
+and it was credited with catching all of them -- **V77-H1, the defect I fixed last round, reintroduced one
+line from its own fix.** Behind that credit sat a mutant caught by NOTHING: it relaxes a sole-referent bound,
+and on a turn that read only project Zeta, "There is no company called Omega." -- true, and about something
+the turn never read -- becomes "I could not confirm that from this turn." **A truthful answer destroyed, 0 of
+96 suites, release manifest GREEN.**
+
+**CLOSED.** #78's repair adopted; credits to already-red suites drop from *everything* to 3 of 16. The mutant
+is now in the proof, and replaying the **manifest's own** row extraction and forgiveness table over it, the
+deploy gate is RED. That replay is the question that matters -- the mutation proof is not the deploy gate.
+
+**P1 - V78-D2 -- a comment asserting a property the code does not enforce.** `index.ts` says "only an
+allowlist fails toward NOT LIVE". That is false for a stem that is also an ordinary noun: `оноо` is a *score*,
+`хаа` is *where*, and the bare imperative IS the noun. `Битгий устга. Түүний оноо хэд вэ?` -- "Don't delete
+it. What is its score?" -- stops being a refusal and the model's mutation fields survive. Pre-existing, not a
+regression. **OPEN, and it is a product decision** -- see NEXT.
+
+Also closed from that round: **V78-D4**, the manifest forgave two suites WHOLESALE, so a new failure inside
+the two suites that guard production write authority was invisible to the deploy gate; a classification with
+no named rows is now itself RED. **Three stale forgiveness entries** found by the same replay -- v74/v75/v76
+were still forgiven for the H6b row closed hours earlier, so they were green while carrying a description of
+the past; a green suite that still carries a forgiveness entry is now RED too. **V78-H8**, a battery suite
+wrote a TRACKED file from whatever source it was pointed at, and the copy committed in `924977e4` had been
+generated from the rename probe -- it carried identifiers that appear nowhere in the product. And the same
+class at scale: 74 generated mutants, 46 MB, all tracked, so every proof run left the tree dirty and
+`WORKING_TREE_CLEAN` could never honestly be true after running the gates. Both fixed; a full proof run now
+leaves the tree clean.
+
+**V78-H7, confirmed the hard way.** Adding one constant required registering it in THREE separate lists, and
+my third attempt added a duplicate that emitted the declaration twice and died as "already declared" inside a
+lifted window, far from the list. The list checks itself for duplicates now.
+
+**The mutation proof, re-run clean on the new bytes: 17 mutants, 0 surviving, 0 ineffective, 0 harness
+failures** -- and every credit now rests on a behavioural row rather than on a printed hash.
 ## RUNNING
 
-**Verifier #78** on candidate `e785d6ce`. Dispatch details land in `qa/verification/scratch/verifier78_dispatch.json`.
+**Nothing is running.** #78 returned FAILED and its findings are worked through. The new candidate is
+`31a51b98af024c8dadbe45b446ca7fb9ec3f18b88d455047f29071f237c2ef9b` (721,806 bytes), CRLF-pure, 0 bare LF, 0
+bare CR, 0 0x08, battery **97 suites -- 91 GREEN, 2 BLOCKED - FOUNDER AUTHORITY, 4 OPEN DEFECT - THIS PC, 0
+unclassified RED.** Verifier #79 is the next action and needs no decision from you.
 
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
@@ -171,23 +273,26 @@ stability of what it differences.**
 
 None.
 
-## OPEN DEFECT — THIS PC (6, every one red on purpose)
+## OPEN DEFECT - THIS PC (4, every one red on purpose)
 
 None of these is an accident and none is hidden. The battery reports **0 unclassified red**, which is the
-number that matters: every failure is one somebody decided to leave failing, with the reason recorded.
+number that matters: every failure is one somebody decided to leave failing, with the reason recorded. It was
+6 when the night's last report was written; the three H6b rows closed together and #78's own suite joined the
+list.
 
-1. `factory_production_write_inventory` — eleven factory-runner scripts reach the database through
+1. `factory_production_write_inventory` -- eleven factory-runner scripts reach the database through
    `supabase db query --linked`, inheriting this machine's CLI credential. The conversion is prepared and
    measured; applying it stops the factory runner until you set `FACTORY_RUNNER_PG_URL`, so it is your call.
-2. `v77_regression_additions` — **five defects verifier #77 measured and deliberately did not patch**,
-   each with a reason. The obvious fix for one of them fires on 5 of 17 ordinary reads and reopens a defect
-   from twenty rounds ago; another needs a single object test hoisted rather than an eighth approximation.
-3. `sem_ai_command_company_restore_truth` — one row: converting it to read the real source exposed that
-   its local copy defaulted a missing `actionType` to `archive` while the product fails closed. **Which
-   behaviour is right is a product judgement**, so the row is left failing rather than rewritten to agree.
-4-6. `v74`, `v75` and `v76_regression_additions` — one row each, all the same finding from different
-   angles: **one suite still names `index.ts` and never opens it.** It was five when the night started.
-   Closing that last one turns three suites green together.
+2. `v77_regression_additions` -- five defects verifier #77 measured and deliberately did not patch, each with
+   a reason. #78 re-derived them independently and **confirmed every reason holds** -- including that the
+   obvious fix for one fires on 5 of 17 ordinary reads. It also found that closing V77-D3a WIDENED V77-D4,
+   from 80 leak shapes to 100.
+3. `v78_regression_additions` -- #78's own suite, promoted. 17 rows green, **6 red by design**: D1b, D2, D3,
+   D5, D6, and the row that measures D4 (now closed). D1 is closed and its row is green.
+4. `sem_ai_command_company_restore_truth` -- one row: converting it to read the real source exposed that its
+   local copy defaulted a missing `actionType` to `archive` while the product fails closed. **Which behaviour
+   is right is a product judgement**, so the row is left failing rather than rewritten to agree.
+
 ## THE ONE DECISION I TOOK THAT #74 REFERRED TO YOU
 
 V74-D1. #74 wrote: "This is a product-semantics decision and I have not made it."
@@ -214,12 +319,23 @@ detector, so the guard that removes provenance claims was appending one.
 Unchanged. Nothing deployed, nothing pushed, no migration applied, no credential created or inserted.
 The production Edge function still carries v92 source.
 
+**One correction to the record, and #78 established it byte-directly rather than reading it.** It downloaded
+the live function: `sem-ai-command` is ACTIVE at **function version 94**, not 92, deployed by CI on
+2026-09-08 -- and the bytes it is carrying are the **v92 source**, byte-identical to git `c9dfab5bd433`. Our
+own record said "version 92" and so did the launch prompt. The substance is unchanged -- production runs v92
+behaviour -- but the version number we had written down was wrong.
+
 ## EXACT FOUNDER AUTHORISATION REQUIRED
 
-**Nothing is blocking me right now, and I am not asking for a deploy authorisation.** Verifier #78 has to
-return a verdict first. It is the fifth round of the night; the four before it all failed — twice on
-defects no earlier round could reach, once on a defect the previous round's own fix created, and once on
-the fix for that.
+**Nothing is blocking me right now, and I am not asking for a deploy authorisation.** Five rounds ran
+tonight and all five failed -- twice on defects no earlier round could reach, once on a defect the previous
+round's own fix created, once on the fix for that, and #78 on all three at once. **Not one of those failures
+was a false alarm**, which is the case for the process rather than against it: every round found something
+the round before it could not see, and two of the five found the instrument lying rather than the product.
+
+Six measured defects are open on `31a51b98`, one of them a P1 (V78-D2) whose fix is a product decision I am
+putting to you rather than taking. So the honest state is: **these bytes are not ready and I am not asking
+you to authorise them.** Verifier #79 is the next action.
 
 When a round passes, the next action is a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact
 DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with the manifest attached.
@@ -242,14 +358,22 @@ DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with t
    deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
-1. **Act on #78 automatically** — FAIL → fix loop → #79; PASS → release package for the exact bytes, and
-   the single deploy-authorisation ask.
-2. **Close the last reimplementation suite** (`sem_ai_command_execution_plan_truth`). It turns THREE
-   regression suites green at once and ends the class. I had recorded it as only half-convertible; that
-   was wrong — all three functions it mirrors are top-level and lift cleanly. Not done tonight only
-   because the release gates were mid-run.
-3. **The five #77 defects left open by design** — D2, D3b, D4, D5, D6. Each has a measured reason and a
-   prescribed shape; D4 in particular wants the ONE object test hoisted rather than an eighth
-   approximation, which is the mistake three rounds of Mongolian fixes already made.
-4. **The arrow parameter-annotation stripper** — the one harness gap left worked around rather than
-   fixed, because it touches three regexes every suite depends on. Do it at the START of a window.
+1. **Dispatch verifier #79** on `31a51b98` -- the next action, and it needs nothing from you.
+2. **V78-D2 is a product decision and I am flagging it rather than taking it.** `оноо` (score) and `хаа`
+   (where) are ordinary Mongolian words that are also mutation stems, so the ambiguity is LEXICAL and no form
+   test can separate them. The options are a positive entity signal, a read-shape veto in the decider (the
+   request tier already has one), or accepting the class and saying so at the declaration instead of
+   asserting the opposite. I lean to the read-shape veto, because `Түүний оноо хэд вэ?` is plainly a question
+   and the decider already has every part it needs to see that. **This one I can do on your nod, or on
+   silence -- it is not a credential or a deploy.**
+3. **V78-D3** -- `NON_EXISTENCE_CLAIM` sees 10 of 28 ordinary absence phrasings ("there is no record of X",
+   "X is not in the system"), and BOTH absence gates hang off it. Counting and closing it is mechanical.
+4. **V78-D1b, D5, D6, H6** -- the epenthesis allowed for only one ending of a pair; two green suites pinning
+   a local spelling; a compaction fixture asserting on an empty list; `battery.json` dropping the OPEN DEFECT
+   class. All small, all measured, none blocking.
+5. **The five #77 defects**, D4 first: it wants the ONE object test hoisted to module scope so both tiers ask
+   the same question. I proved the hoist is mechanically sound -- the cluster is self-contained given module
+   scope, 15 constants, zero external references -- and the honest remaining obstacle is that three separate
+   lists maintain their own copy of the dependency order. That is the thing to fix first, because it is what
+   made V78-H7 cost three attempts.
+
