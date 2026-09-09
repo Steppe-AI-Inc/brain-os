@@ -146,6 +146,13 @@ reopens a defect from twenty rounds ago. They are classified, not hidden.
 
 Candidate for #78: `e785d6ce`, battery 96 suites / 88 green / 0 unclassified red.
 
+**The corrected mutation proof, re-run honestly: 16 mutants, 0 surviving, 0 ineffective**, every one caught
+by at least one genuinely green suite. That figure now means what it says. It took three versions in one
+night to get there — a hardcoded exception list that credited four always-red suites with everything, then
+a fix that credited any red suite whose output changed (two of them report on machine credentials and
+change on every run), and finally a determinism gate. **A differencing test is only as good as the
+stability of what it differences.**
+
 ## RUNNING
 
 **Verifier #78** on candidate `e785d6ce`. Dispatch details land in `qa/verification/scratch/verifier78_dispatch.json`.
