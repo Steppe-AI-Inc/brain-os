@@ -1,0 +1,60 @@
+# VERIFIER #70 — CAMPAIGN #130 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (A: HEAD = `31979e8be62e…` ✓ · B: scratch writable ✓ · C: `architecture_final_claim_contract` 51/0 ✓)
+
+---
+
+## PRIMARY MISSION — THE CONSUMER DERIVATION TABLE (produced before any test case)
+
+> *Which consumer of this concept does not derive from its definition, and what request shape reaches it?*
+
+| canonical | non-deriving consumer | request shape that reaches it | classification |
+|---|---|---|---|
+| `ENTITY_NOUN_ALTERNATION` | `MUTATION_VERB_WITH_OBJECT` (29/81 nouns) | `set the manager of Alice to Bob` | INTENTIONALLY DIFFERENT — honestly registered in source, sized |
+| `REQUEST_FRAME_ADDRESSED` / `_ALTERNATION` / `_DELIBERATIVE` | none | — | CONVERGED |
+| `REQUEST_FRAME_READ_VERB` | `commandReadLead`, `READ_SHAPE` (6/7 each) | `tell me what happened to ACME` | ACCIDENTAL OVERLAP, agree today |
+| `CONFIRMATION_ALTERNATION` | `SELECTION_FILLER` (13/17) | bare `yes` | INTENTIONALLY DIFFERENT |
+| `MUTATION_VERB_ALTERNATION` (120) | none | — | CONVERGED (#68 holds) |
+| `AMBIGUOUS_MUTATION_VERB_ALTERNATION` | `MUTATION_VERB_WITH_OBJECT` 21/25, `_PROPER_OBJECT` 14/25 | `create ACME Robotics` | REGISTERED debt — **but the claim at `index.ts:1777` that it "replaces THREE spellings" is false; it replaced one** |
+| **`REQUEST_NEGATED_ALTERNATION`** | **`commandNegatedLead` (3950), `negatedRequest` (7307)** | `keep ACME, and do not ever archive it` | **ACCIDENTAL DRIFT — V70-D5** |
+| **CLAUSE SPLIT** | **no canonical exists; 3484 / 3960 / 6146 all differ** | `Archive ACME. Do not delete it.` | **ACCIDENTAL DRIFT — V70-D6** |
+| `MUTATION_RESULT_FIELDS` ≡ `MUTATION_ARRAY_FIELDS` | each other, 100% | any mutation | IDENTICAL SEMANTICS — converge |
+
+**IF ANY SEMANTIC DUPLICATE REMAINS: FAIL** → two remain unregistered. **IF THE EXECUTOR CAN ACT WHERE THE RECEIPT IS BLIND: FAIL** → I could not construct one; `EXECUTOR ⊆ INTENT` holds by construction on both the frame and splitter axes. **This half passes.**
+
+Attacking what the table exposed produced every defect below.
+
+---
+
+## FINDINGS
+
+| id | sev | finding | size |
+|---|---|---|---|
+| **V70-D1** | P2 | **The Codex-A negation gate over-fires.** `Archive ACME. Do not delete it.` and `archive ACME but do not delete it` set `requestIsNegated=true`, strip every mutating field, and **ACME is not archived**. `index.ts:3474-3477` states the opposite contract in its own words. Witness row A11 tests exactly the comma-bearing form. | 4/23 |
+| **V70-D2** | **P1** | **The headline veto requires a prepositional phrase**, so the *same* headline without one has its truthful answer deleted. This is the **third formulation** the round was told to find. | **156/180** flip on `" for the board"`; **800/1600** PP-less reads rewritten |
+| **V70-D3** | **P1** | **Object-boundary hole** at ≥2 modifiers × no determiner × lowercase name (`archive old duplicate work order wo-1`), plus single-spelling entity nouns (`work-order`, `workorder`). | 6/293 fabrications ship |
+| **V70-D4** | P3 | **Sixth silent corruption.** `(?:\w+\s+){0,3}` single-escaped at `index.ts:7307` is `(?:w+s+){0,3}` at runtime. Whole-file scan (corrected instrument): **exactly one** site. | 1/7499 lines |
+| **V70-D5** | P2 | Three spellings of "this request was negated", drifted, against a source comment claiming convergence. | 3 sites |
+| **V70-D6** | P2 | Three spellings of the clause splitter, drifted three ways — the concept D1 and D2 both turn on. | 3 sites |
+
+## VERIFIED AND NOT TO BE RE-LITIGATED
+Codex **A** predicate + application (mutation-killed) · Codex **B** REFUTED (7/7 my own) · Codex **C** closed in the function · Codex **D** satisfied · Codex **E** cannot reach production (drafts ≠ migrations; this is an Edge deploy) · never-silent receipt **480 fabrications / 60 reads / 60 envelope turns → 0 failures** · budget path **0 hard stops across 12 fixtures from the real caps, `packTokens() === preflight`** · `embedTexts` byte-identical to v92 **and** the outage still named · CRLF-pure · runtime-fatal deno classes **zero** · battery **80 suites, 77 green, 3 known standing reds, 0 silent** · vacuity **7 mutants, 7 killed**.
+
+## RESIDUAL CLOSED BY MEASUREMENT
+#68's standing residual: each of the **9 mutation-proof tools run against a deliberately-surviving mutant — all 9 exit non-zero.** Replaces the three-spelling source-pattern row.
+
+## RECORD CORRECTION
+**"0 identifiers removed vs v92" is wrong — six are:** the deprecated `*Shown` second-envelope counts from the V61-D3 closure. Removal correct; claim wasn't.
+
+## SOURCE-LEVEL ONLY — WOULD STILL NEED LIVE ACCEPTANCE
+Every budget conclusion (no request reached a provider). Deployed-v92 link is **integration-level**, not byte-direct. **No browser tools in this session type → all UI and live AI-chat truth checks are `BLOCKED`, not skipped.** No DB access → Codex E's behavioural half stays `BLOCKED — NEEDS LIVE/DB EVIDENCE`. **No `QA-VERIFY-*` data was created — nothing in this campaign touched the database, so there is nothing to clean up.** `persistenceOutcome` is emitted and rendered by nothing in `web/`.
+
+**Artifacts** → `qa/verification/proposed/v70_{known_failure_modes_entry_152.md, PROMOTION_NOTE.md, regression_additions.mjs}` (74 rows: 55 CONTRACT green / 19 DEFECT red, exit 1). Commit `1db5238` on `verify-31979e8-campaign130`. Fix design F1–F7 in §7 of the promotion note.
+
+---
+
+**VERDICT: FAIL** — candidate `31979e8be62ed3d7c2bae2f5fa1bc8edea9cdf7b` is **NOT fit to deploy** over v92 under the contract bar. EDGE STATUS = **NOT DEPLOYMENT READY**.
+
+```
+e03ddceb3718e48cb9c4ec3260ad8062232e9a5416aee262ae0bc5d5e6bb7472
+```

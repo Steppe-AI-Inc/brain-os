@@ -1,0 +1,327 @@
+V64 extended sweep: 61 named regexes (122 mutants) + 39 structural = 161 mutants, across 1 suites
+
+SURVIVED REGEX ARCHIVE_VERB_PATTERN never matches
+SURVIVED REGEX ARCHIVE_VERB_PATTERN always matches
+SURVIVED REGEX RESTORE_VERB_PATTERN never matches
+SURVIVED REGEX RESTORE_VERB_PATTERN always matches
+SURVIVED REGEX stateDescriptionPattern never matches
+SURVIVED REGEX stateDescriptionPattern always matches
+SURVIVED REGEX FACTORY_INTENT_PATTERN never matches
+SURVIVED REGEX FACTORY_INTENT_PATTERN always matches
+SURVIVED REGEX PAST_COMPLETION_CLAIM_PATTERN never matches
+SURVIVED REGEX PAST_COMPLETION_CLAIM_PATTERN always matches
+SURVIVED REGEX COMPLETION_WORD never matches
+SURVIVED REGEX COMPLETION_WORD always matches
+SURVIVED REGEX isTypedFallbackOnly never matches
+SURVIVED REGEX isTypedFallbackOnly always matches
+SURVIVED REGEX LIFECYCLE_UUID_RE never matches
+SURVIVED REGEX LIFECYCLE_UUID_RE always matches
+SURVIVED REGEX COMPANY_UUID_RE never matches
+SURVIVED REGEX COMPANY_UUID_RE always matches
+SURVIVED REGEX commandMentionsCompany never matches
+SURVIVED REGEX commandMentionsCompany always matches
+SURVIVED REGEX commandIsQuestion never matches
+SURVIVED REGEX commandIsQuestion always matches
+SURVIVED REGEX commandNegatedLead never matches
+SURVIVED REGEX commandNegatedLead always matches
+SURVIVED REGEX commandReadLead never matches
+SURVIVED REGEX commandReadLead always matches
+SURVIVED REGEX commandConditionalLead never matches
+SURVIVED REGEX commandConditionalLead always matches
+SURVIVED REGEX FUTURE_PROMISE_PATTERN never matches
+SURVIVED REGEX FUTURE_PROMISE_PATTERN always matches
+SURVIVED REGEX UUID_IN_TEXT never matches
+SURVIVED REGEX UUID_IN_TEXT always matches
+SURVIVED REGEX KNOWN_ABBREVIATION never matches
+SURVIVED REGEX KNOWN_ABBREVIATION always matches
+SURVIVED REGEX decimal never matches
+SURVIVED REGEX decimal always matches
+SURVIVED REGEX abbreviation never matches
+SURVIVED REGEX abbreviation always matches
+SURVIVED REGEX INTERROGATIVE_LEAD never matches
+SURVIVED REGEX INTERROGATIVE_LEAD always matches
+SURVIVED REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION never matches
+SURVIVED REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION always matches
+SURVIVED REGEX NAME_CONNECTOR never matches
+SURVIVED REGEX NAME_CONNECTOR always matches
+SURVIVED REGEX ADJECTIVAL_COMPLETION never matches
+SURVIVED REGEX ADJECTIVAL_COMPLETION always matches
+SURVIVED REGEX DETERMINER_OR_PRONOUN never matches
+SURVIVED REGEX DETERMINER_OR_PRONOUN always matches
+SURVIVED REGEX MUTATION_VERB_ALWAYS never matches
+SURVIVED REGEX MUTATION_VERB_ALWAYS always matches
+SURVIVED REGEX MUTATION_PASSIVE_REQUEST never matches
+SURVIVED REGEX MUTATION_PASSIVE_REQUEST always matches
+SURVIVED REGEX MUTATION_VERB_WITH_OBJECT never matches
+SURVIVED REGEX MUTATION_VERB_WITH_OBJECT always matches
+SURVIVED REGEX MUTATION_VERB_PROPER_OBJECT never matches
+SURVIVED REGEX MUTATION_VERB_PROPER_OBJECT always matches
+SURVIVED REGEX READ_SHAPE never matches
+SURVIVED REGEX READ_SHAPE always matches
+SURVIVED REGEX isQuestion never matches
+SURVIVED REGEX isQuestion always matches
+SURVIVED REGEX LEADING_ADVERB never matches
+SURVIVED REGEX LEADING_ADVERB always matches
+SURVIVED REGEX COMPOSITION_REQUEST never matches
+SURVIVED REGEX COMPOSITION_REQUEST always matches
+SURVIVED REGEX PHRASAL_READ never matches
+SURVIVED REGEX PHRASAL_READ always matches
+SURVIVED REGEX STATEMENT_FINITE_VERB never matches
+SURVIVED REGEX STATEMENT_FINITE_VERB always matches
+SURVIVED REGEX MN_READ_SHAPE never matches
+SURVIVED REGEX MN_READ_SHAPE always matches
+SURVIVED REGEX MN_CASE_SUFFIX never matches
+SURVIVED REGEX MN_CASE_SUFFIX always matches
+SURVIVED REGEX MN_NOT_A_COMMAND never matches
+SURVIVED REGEX MN_NOT_A_COMMAND always matches
+SURVIVED REGEX MN_STEMS_GLOBAL never matches
+SURVIVED REGEX MN_STEMS_GLOBAL always matches
+SURVIVED REGEX NEGATED_IMPERATIVE_HEAD never matches
+SURVIVED REGEX NEGATED_IMPERATIVE_HEAD always matches
+SURVIVED REGEX TEMPORAL_PROPER_OBJECT never matches
+SURVIVED REGEX TEMPORAL_PROPER_OBJECT always matches
+SURVIVED REGEX CONFIRMED_COMPLETION never matches
+SURVIVED REGEX CONFIRMED_COMPLETION always matches
+SURVIVED REGEX NEGATED_CLAUSE never matches
+SURVIVED REGEX NEGATED_CLAUSE always matches
+SURVIVED REGEX REFERENCELESS_CONFIRMATION never matches
+SURVIVED REGEX REFERENCELESS_CONFIRMATION always matches
+SURVIVED REGEX COMPLETION_VERB never matches
+SURVIVED REGEX COMPLETION_VERB always matches
+SURVIVED REGEX NEGATION_AUX never matches
+SURVIVED REGEX NEGATION_AUX always matches
+SURVIVED REGEX capLead never matches
+SURVIVED REGEX capLead always matches
+SURVIVED REGEX __re never matches
+SURVIVED REGEX __re always matches
+SURVIVED REGEX titleHeadAfterPrep never matches
+SURVIVED REGEX titleHeadAfterPrep always matches
+SURVIVED REGEX titleHead never matches
+SURVIVED REGEX titleHead always matches
+SURVIVED REGEX endsFiniteVerb never matches
+SURVIVED REGEX endsFiniteVerb always matches
+SURVIVED REGEX ppInternal never matches
+SURVIVED REGEX ppInternal always matches
+SURVIVED REGEX relInternal never matches
+SURVIVED REGEX relInternal always matches
+SURVIVED REGEX quotedHead never matches
+SURVIVED REGEX quotedHead always matches
+SURVIVED REGEX adjective never matches
+SURVIVED REGEX adjective always matches
+SURVIVED REGEX fewQuant never matches
+SURVIVED REGEX fewQuant always matches
+SURVIVED REGEX detName never matches
+SURVIVED REGEX detName always matches
+SURVIVED REGEX verb never matches
+SURVIVED REGEX verb always matches
+SURVIVED REGEX SINGULAR_IS_ITSELF never matches
+SURVIVED REGEX SINGULAR_IS_ITSELF always matches
+SURVIVED REGEX commandEntity never matches
+SURVIVED REGEX commandEntity always matches
+SURVIVED REGEX negatedRequest never matches
+SURVIVED REGEX negatedRequest always matches
+SURVIVED REGEX hypotheticalRequest never matches
+SURVIVED REGEX hypotheticalRequest always matches
+SURVIVED STRUCT receipt block disabled
+SURVIVED STRUCT receipt exempted by a pendingAction again (BUG-002 revert)
+SURVIVED STRUCT receipt fires even without intent (FP direction)
+SURVIVED STRUCT executedVerifiedCount ignores the postcondition
+SURVIVED STRUCT requestedIntent falls back to the belt again
+SURVIVED STRUCT the read veto is dropped (lexicon fires on questions)
+SURVIVED STRUCT the model can veto the lexicon again (V60-D3 revert)
+SURVIVED STRUCT budget reserve removed (packBudget == hardMax)
+SURVIVED STRUCT contextBudget attached AFTER the loop (V60-D5 revert)
+SURVIVED STRUCT truncated forced false on a trimmed collection
+SURVIVED STRUCT hard-pass truncated forced false
+SURVIVED STRUCT shown no longer follows the trim
+SURVIVED STRUCT unknown total invented from the surviving window (V63-D1 revert)
+SURVIVED STRUCT the hard floor passes are removed (V60-D1 revert)
+SURVIVED STRUCT TRIM_ORDER protected-key guard removed
+SURVIVED STRUCT minimum-safe byte assertion removed
+SURVIVED STRUCT namedTargets dropped from the minimum safe context
+SURVIVED STRUCT pendingAction dropped from the minimum safe context
+SURVIVED STRUCT collections dropped from the minimum safe context
+SURVIVED STRUCT history trims NEWEST first (oldest preserved)
+SURVIVED STRUCT conversationHistory pinned at 1 on the hard pass (V61-D1 revert)
+SURVIVED STRUCT the trim list is never recorded
+SURVIVED STRUCT overBudget always reported false
+SURVIVED STRUCT packTokens measures the pack WITHOUT contextBudget
+SURVIVED STRUCT NaN-safe cap parser reverted (V63-D6 revert)
+SURVIVED STRUCT estimateRequestTokens forgets the system prompt
+SURVIVED STRUCT estimateRequestTokens measures the COMPACT form
+SURVIVED STRUCT the command is only counted once in the refusal (V62-D5 revert)
+SURVIVED STRUCT the image size gate is removed
+SURVIVED STRUCT the model-context-window gate is removed
+SURVIVED STRUCT the pack preflight refusal is removed
+SURVIVED STRUCT packIdSet forgets the trim provenance (V62-D1 revert)
+SURVIVED STRUCT archivedCompanyIds forgets the trim provenance (V63-D2 revert)
+SURVIVED STRUCT archivedCompanyIds ignores namedTargets
+SURVIVED STRUCT the archived-parent create block is disabled
+SURVIVED STRUCT deleteTaskIds no longer checked against context
+SURVIVED STRUCT updateCompanies no longer checked against context
+SURVIVED STRUCT the raw company lifecycle-edit block is bypassed
+SURVIVED STRUCT provenanceIds captured AFTER the trim
+
+candidate index.ts unchanged: true  (e03ddceb3718e48cb9c4ec3260ad8062232e9a5416aee262ae0bc5d5e6bb7472)
+V64 extended sweep: 0 killed, 161 SURVIVED, 0 did not apply
+  SURVIVED: REGEX ARCHIVE_VERB_PATTERN never matches
+  SURVIVED: REGEX ARCHIVE_VERB_PATTERN always matches
+  SURVIVED: REGEX RESTORE_VERB_PATTERN never matches
+  SURVIVED: REGEX RESTORE_VERB_PATTERN always matches
+  SURVIVED: REGEX stateDescriptionPattern never matches
+  SURVIVED: REGEX stateDescriptionPattern always matches
+  SURVIVED: REGEX FACTORY_INTENT_PATTERN never matches
+  SURVIVED: REGEX FACTORY_INTENT_PATTERN always matches
+  SURVIVED: REGEX PAST_COMPLETION_CLAIM_PATTERN never matches
+  SURVIVED: REGEX PAST_COMPLETION_CLAIM_PATTERN always matches
+  SURVIVED: REGEX COMPLETION_WORD never matches
+  SURVIVED: REGEX COMPLETION_WORD always matches
+  SURVIVED: REGEX isTypedFallbackOnly never matches
+  SURVIVED: REGEX isTypedFallbackOnly always matches
+  SURVIVED: REGEX LIFECYCLE_UUID_RE never matches
+  SURVIVED: REGEX LIFECYCLE_UUID_RE always matches
+  SURVIVED: REGEX COMPANY_UUID_RE never matches
+  SURVIVED: REGEX COMPANY_UUID_RE always matches
+  SURVIVED: REGEX commandMentionsCompany never matches
+  SURVIVED: REGEX commandMentionsCompany always matches
+  SURVIVED: REGEX commandIsQuestion never matches
+  SURVIVED: REGEX commandIsQuestion always matches
+  SURVIVED: REGEX commandNegatedLead never matches
+  SURVIVED: REGEX commandNegatedLead always matches
+  SURVIVED: REGEX commandReadLead never matches
+  SURVIVED: REGEX commandReadLead always matches
+  SURVIVED: REGEX commandConditionalLead never matches
+  SURVIVED: REGEX commandConditionalLead always matches
+  SURVIVED: REGEX FUTURE_PROMISE_PATTERN never matches
+  SURVIVED: REGEX FUTURE_PROMISE_PATTERN always matches
+  SURVIVED: REGEX UUID_IN_TEXT never matches
+  SURVIVED: REGEX UUID_IN_TEXT always matches
+  SURVIVED: REGEX KNOWN_ABBREVIATION never matches
+  SURVIVED: REGEX KNOWN_ABBREVIATION always matches
+  SURVIVED: REGEX decimal never matches
+  SURVIVED: REGEX decimal always matches
+  SURVIVED: REGEX abbreviation never matches
+  SURVIVED: REGEX abbreviation always matches
+  SURVIVED: REGEX INTERROGATIVE_LEAD never matches
+  SURVIVED: REGEX INTERROGATIVE_LEAD always matches
+  SURVIVED: REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION never matches
+  SURVIVED: REGEX FIRST_PERSON_MAIN_CLAUSE_COMPLETION always matches
+  SURVIVED: REGEX NAME_CONNECTOR never matches
+  SURVIVED: REGEX NAME_CONNECTOR always matches
+  SURVIVED: REGEX ADJECTIVAL_COMPLETION never matches
+  SURVIVED: REGEX ADJECTIVAL_COMPLETION always matches
+  SURVIVED: REGEX DETERMINER_OR_PRONOUN never matches
+  SURVIVED: REGEX DETERMINER_OR_PRONOUN always matches
+  SURVIVED: REGEX MUTATION_VERB_ALWAYS never matches
+  SURVIVED: REGEX MUTATION_VERB_ALWAYS always matches
+  SURVIVED: REGEX MUTATION_PASSIVE_REQUEST never matches
+  SURVIVED: REGEX MUTATION_PASSIVE_REQUEST always matches
+  SURVIVED: REGEX MUTATION_VERB_WITH_OBJECT never matches
+  SURVIVED: REGEX MUTATION_VERB_WITH_OBJECT always matches
+  SURVIVED: REGEX MUTATION_VERB_PROPER_OBJECT never matches
+  SURVIVED: REGEX MUTATION_VERB_PROPER_OBJECT always matches
+  SURVIVED: REGEX READ_SHAPE never matches
+  SURVIVED: REGEX READ_SHAPE always matches
+  SURVIVED: REGEX isQuestion never matches
+  SURVIVED: REGEX isQuestion always matches
+  SURVIVED: REGEX LEADING_ADVERB never matches
+  SURVIVED: REGEX LEADING_ADVERB always matches
+  SURVIVED: REGEX COMPOSITION_REQUEST never matches
+  SURVIVED: REGEX COMPOSITION_REQUEST always matches
+  SURVIVED: REGEX PHRASAL_READ never matches
+  SURVIVED: REGEX PHRASAL_READ always matches
+  SURVIVED: REGEX STATEMENT_FINITE_VERB never matches
+  SURVIVED: REGEX STATEMENT_FINITE_VERB always matches
+  SURVIVED: REGEX MN_READ_SHAPE never matches
+  SURVIVED: REGEX MN_READ_SHAPE always matches
+  SURVIVED: REGEX MN_CASE_SUFFIX never matches
+  SURVIVED: REGEX MN_CASE_SUFFIX always matches
+  SURVIVED: REGEX MN_NOT_A_COMMAND never matches
+  SURVIVED: REGEX MN_NOT_A_COMMAND always matches
+  SURVIVED: REGEX MN_STEMS_GLOBAL never matches
+  SURVIVED: REGEX MN_STEMS_GLOBAL always matches
+  SURVIVED: REGEX NEGATED_IMPERATIVE_HEAD never matches
+  SURVIVED: REGEX NEGATED_IMPERATIVE_HEAD always matches
+  SURVIVED: REGEX TEMPORAL_PROPER_OBJECT never matches
+  SURVIVED: REGEX TEMPORAL_PROPER_OBJECT always matches
+  SURVIVED: REGEX CONFIRMED_COMPLETION never matches
+  SURVIVED: REGEX CONFIRMED_COMPLETION always matches
+  SURVIVED: REGEX NEGATED_CLAUSE never matches
+  SURVIVED: REGEX NEGATED_CLAUSE always matches
+  SURVIVED: REGEX REFERENCELESS_CONFIRMATION never matches
+  SURVIVED: REGEX REFERENCELESS_CONFIRMATION always matches
+  SURVIVED: REGEX COMPLETION_VERB never matches
+  SURVIVED: REGEX COMPLETION_VERB always matches
+  SURVIVED: REGEX NEGATION_AUX never matches
+  SURVIVED: REGEX NEGATION_AUX always matches
+  SURVIVED: REGEX capLead never matches
+  SURVIVED: REGEX capLead always matches
+  SURVIVED: REGEX __re never matches
+  SURVIVED: REGEX __re always matches
+  SURVIVED: REGEX titleHeadAfterPrep never matches
+  SURVIVED: REGEX titleHeadAfterPrep always matches
+  SURVIVED: REGEX titleHead never matches
+  SURVIVED: REGEX titleHead always matches
+  SURVIVED: REGEX endsFiniteVerb never matches
+  SURVIVED: REGEX endsFiniteVerb always matches
+  SURVIVED: REGEX ppInternal never matches
+  SURVIVED: REGEX ppInternal always matches
+  SURVIVED: REGEX relInternal never matches
+  SURVIVED: REGEX relInternal always matches
+  SURVIVED: REGEX quotedHead never matches
+  SURVIVED: REGEX quotedHead always matches
+  SURVIVED: REGEX adjective never matches
+  SURVIVED: REGEX adjective always matches
+  SURVIVED: REGEX fewQuant never matches
+  SURVIVED: REGEX fewQuant always matches
+  SURVIVED: REGEX detName never matches
+  SURVIVED: REGEX detName always matches
+  SURVIVED: REGEX verb never matches
+  SURVIVED: REGEX verb always matches
+  SURVIVED: REGEX SINGULAR_IS_ITSELF never matches
+  SURVIVED: REGEX SINGULAR_IS_ITSELF always matches
+  SURVIVED: REGEX commandEntity never matches
+  SURVIVED: REGEX commandEntity always matches
+  SURVIVED: REGEX negatedRequest never matches
+  SURVIVED: REGEX negatedRequest always matches
+  SURVIVED: REGEX hypotheticalRequest never matches
+  SURVIVED: REGEX hypotheticalRequest always matches
+  SURVIVED: STRUCT receipt block disabled
+  SURVIVED: STRUCT receipt exempted by a pendingAction again (BUG-002 revert)
+  SURVIVED: STRUCT receipt fires even without intent (FP direction)
+  SURVIVED: STRUCT executedVerifiedCount ignores the postcondition
+  SURVIVED: STRUCT requestedIntent falls back to the belt again
+  SURVIVED: STRUCT the read veto is dropped (lexicon fires on questions)
+  SURVIVED: STRUCT the model can veto the lexicon again (V60-D3 revert)
+  SURVIVED: STRUCT budget reserve removed (packBudget == hardMax)
+  SURVIVED: STRUCT contextBudget attached AFTER the loop (V60-D5 revert)
+  SURVIVED: STRUCT truncated forced false on a trimmed collection
+  SURVIVED: STRUCT hard-pass truncated forced false
+  SURVIVED: STRUCT shown no longer follows the trim
+  SURVIVED: STRUCT unknown total invented from the surviving window (V63-D1 revert)
+  SURVIVED: STRUCT the hard floor passes are removed (V60-D1 revert)
+  SURVIVED: STRUCT TRIM_ORDER protected-key guard removed
+  SURVIVED: STRUCT minimum-safe byte assertion removed
+  SURVIVED: STRUCT namedTargets dropped from the minimum safe context
+  SURVIVED: STRUCT pendingAction dropped from the minimum safe context
+  SURVIVED: STRUCT collections dropped from the minimum safe context
+  SURVIVED: STRUCT history trims NEWEST first (oldest preserved)
+  SURVIVED: STRUCT conversationHistory pinned at 1 on the hard pass (V61-D1 revert)
+  SURVIVED: STRUCT the trim list is never recorded
+  SURVIVED: STRUCT overBudget always reported false
+  SURVIVED: STRUCT packTokens measures the pack WITHOUT contextBudget
+  SURVIVED: STRUCT NaN-safe cap parser reverted (V63-D6 revert)
+  SURVIVED: STRUCT estimateRequestTokens forgets the system prompt
+  SURVIVED: STRUCT estimateRequestTokens measures the COMPACT form
+  SURVIVED: STRUCT the command is only counted once in the refusal (V62-D5 revert)
+  SURVIVED: STRUCT the image size gate is removed
+  SURVIVED: STRUCT the model-context-window gate is removed
+  SURVIVED: STRUCT the pack preflight refusal is removed
+  SURVIVED: STRUCT packIdSet forgets the trim provenance (V62-D1 revert)
+  SURVIVED: STRUCT archivedCompanyIds forgets the trim provenance (V63-D2 revert)
+  SURVIVED: STRUCT archivedCompanyIds ignores namedTargets
+  SURVIVED: STRUCT the archived-parent create block is disabled
+  SURVIVED: STRUCT deleteTaskIds no longer checked against context
+  SURVIVED: STRUCT updateCompanies no longer checked against context
+  SURVIVED: STRUCT the raw company lifecycle-edit block is bypassed
+  SURVIVED: STRUCT provenanceIds captured AFTER the trim
