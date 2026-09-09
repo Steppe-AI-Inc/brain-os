@@ -1,7 +1,16 @@
-# Follow-ups queued while verifier #75 runs
+# Follow-ups from the overnight campaign (verifier rounds #75, #76 and #77)
 
-The candidate worktree `brain-os-wo-resolver` is frozen at `7e544bc7` / `ed1d916b` for the life of the
-round, so nothing here may be applied there yet. Each item names the file and the exact change.
+Started as a list queued while #75 ran, and outlived three candidates. Most items were written while the
+candidate worktree was frozen for a round, which is why they name a file and an exact change rather than
+being applied: a frozen candidate must not move while a verifier is measuring it.
+
+**Several are already done** — the ones marked so in place. The rest are live. Where an item names a
+commit or a candidate SHA, that SHA was current when the item was written and is not current now; the
+file and the change are what matter.
+
+**The recurring shape across all thirteen is worth reading on its own:** almost every item is an
+instrument that reported success while measuring nothing, or measured the wrong thing confidently. That
+is the same class the campaign hunts in the product, found repeatedly in the tools built to hunt it.
 
 ## 1. `WORKING_TREE_CLEAN` claims more than it checks
 
