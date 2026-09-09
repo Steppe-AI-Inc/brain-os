@@ -164,14 +164,23 @@ Candidate for #78: `e785d6ce`, battery 96 suites / 88 green / 0 unclassified red
 
 None.
 
-## OPEN DEFECT — THIS PC (2, red on purpose)
+## OPEN DEFECT — THIS PC (6, every one red on purpose)
+
+None of these is an accident and none is hidden. The battery reports **0 unclassified red**, which is the
+number that matters: every failure is one somebody decided to leave failing, with the reason recorded.
 
 1. `factory_production_write_inventory` — eleven factory-runner scripts reach the database through
-   `supabase db query --linked`, inheriting the machine CLI credential. Code change, not authority.
-2. `v74_regression_additions` — one row of 116: four suites name `index.ts` and never open it (zero
-   `readFileSync` between them), so no change to the deploy surface can turn them red. Left red so a green
-   cannot claim the gap is closed.
-
+   `supabase db query --linked`, inheriting this machine's CLI credential. The conversion is prepared and
+   measured; applying it stops the factory runner until you set `FACTORY_RUNNER_PG_URL`, so it is your call.
+2. `v77_regression_additions` — **five defects verifier #77 measured and deliberately did not patch**,
+   each with a reason. The obvious fix for one of them fires on 5 of 17 ordinary reads and reopens a defect
+   from twenty rounds ago; another needs a single object test hoisted rather than an eighth approximation.
+3. `sem_ai_command_company_restore_truth` — one row: converting it to read the real source exposed that
+   its local copy defaulted a missing `actionType` to `archive` while the product fails closed. **Which
+   behaviour is right is a product judgement**, so the row is left failing rather than rewritten to agree.
+4-6. `v74`, `v75` and `v76_regression_additions` — one row each, all the same finding from different
+   angles: **one suite still names `index.ts` and never opens it.** It was five when the night started.
+   Closing that last one turns three suites green together.
 ## THE ONE DECISION I TOOK THAT #74 REFERRED TO YOU
 
 V74-D1. #74 wrote: "This is a product-semantics decision and I have not made it."
