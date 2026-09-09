@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T12:12:00Z",
+  "last_updated": "2026-09-09T12:43:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -728,6 +728,39 @@
         },
         "restoration": "COMPLETE AND VERIFIED. Department renamed back to QA-C002-DEPT-FABTEST-06 via the /departments Edit dialog; manager restored to QA-C002-MGR-PERSON-02 via the /people Set manager sheet. Post-state 12:11:50Z: department QA-C002-DEPT-FABTEST-06 under QA-C002-RENAMED-X; QA-SWARM-PERSON-001-EDITED manager QA-C002-MGR-PERSON-02, company unchanged; 22 people total; CLIX GPS exactly 4. All product-path restores - no SQL.",
         "arms_not_run": "C1, C3, C4 and C5 were NOT run. C2 produced a severe unclassified failure, and the founder protocol for C0 states that a baseline failure should stop expansion and file the defect. C2 is not the C0 baseline, but the same logic applies more strongly: the remaining arms probe finer-grained binding questions that are not meaningful while a bare confirmation can invent an entirely new multi-entity operation. They should be re-run after this is addressed."
+      },
+      "issue5_tests_FGH_2026_09_09": {
+        "scope": "READ-ONLY VARIANTS ONLY. No bare affirmative was sent in any arm; every pending action was abandoned with an explicit cancel. Run under the post-BUG-033 campaign boundary.",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "F_RELOAD_DURABILITY": {
+          "verdict": "PASS - SERVER_DURABLE",
+          "channel": "1480f3e1-e07a-4f3f-a68b-b405720dd3e6",
+          "setup": "Pending action established: rename QA-C002-DEPT-FABTEST-06 -> QA-C002-DEPT-F-RELOAD.",
+          "after_hard_reload": "Reply: A department rename is waiting for your confirmation: rename QA-C002-DEPT-FABTEST-06 to QA-C002-DEPT-F-RELOAD. Reply yes/confirm to proceed, or no/cancel to skip. EXACT action type, EXACT target, EXACT new value, all intact across a full page reload.",
+          "classification": "SERVER_DURABLE. Not CLIENT_ONLY, not LOST, not CORRUPTED, not WRONG_TARGET, not FABRICATED_PENDING_ACTION.",
+          "cancellation": "Explicit cancel -> Pending department rename cancelled. The clarification question about renaming QA-C002-DEPT-FABTEST-06 to QA-C002-DEPT-F-RELOAD is no longer active. Department verified unchanged.",
+          "WHY_THIS_MATTERS_FOR_BUG_033": "THE MOST IMPORTANT RESULT OF F/G/H. The pending action is durably stored server-side and can be retrieved and described with exact action type and canonical target on demand. So BUG-033 is NOT a storage-loss defect and NOT an inability to know what is pending - the data was present, correct and retrievable the whole time. The confirmation path simply does not consult it. That makes BUG-033 strictly worse and narrows the Home-PC fix surface to the CONFIRMATION HANDLER rather than to pending-action persistence."
+        },
+        "G_CHANNEL_ISOLATION": {
+          "verdict": "PASS - NO CROSS-CHANNEL LEAK",
+          "channel_A": "55250f5d-5491-4b1f-aa4a-e0a62d2f4323 (pending: rename QA-C002-DEPT-FABTEST-06 -> QA-C002-DEPT-G-CHANNEL-A)",
+          "channel_B": "5d41b404-d083-42f2-8231-915b25b13548",
+          "channel_B_answer": "No action is currently waiting for confirmation in this channel. The pendingAction field is null, meaning all prior decisions have been resolved or no clarifying question is outstanding. Channel A pending action did NOT appear - regex-checked for both the target name and the new name, neither present.",
+          "return_to_A": "EXACT STATE RETAINED: You have one action waiting for confirmation: rename department QA-C002-DEPT-FABTEST-06 to QA-C002-DEPT-G-CHANNEL-A.",
+          "significance": "Directly tests the historical Issue #5 Class E cross-conversation pending-action leak. On this build it does NOT reproduce: pending state is correctly channel-scoped in both directions - invisible from B, and undamaged in A after the excursion."
+        },
+        "H_ORG_SWITCH": {
+          "verdict": "PASS - CANONICAL TARGET SURVIVES AN ORG SWITCH",
+          "channel": "12572eb2-30bc-4895-b568-9bf6966d788f",
+          "setup": "Org selector set to QA-C002-RENAMED-X (Org A, the department parent). Pending action: rename QA-C002-DEPT-FABTEST-06 -> QA-C002-DEPT-H-ORG.",
+          "action": "Selector switched to QA-MULTI-CO (Org B). No confirmation sent.",
+          "result": "A department rename is waiting for confirmation: rename QA-C002-DEPT-FABTEST-06 to QA-C002-DEPT-H-ORG.",
+          "checklist": "target identity remains canonical YES; org context did NOT change interpretation; action did not disappear; no wrong org or entity introduced; no fabricated context.",
+          "EXEMPLARY_DISCLOSURE_WORTH_PRESERVING": "The same reply volunteered: This is a single-entity clarification - you asked to rename QA-C002-DEPT-FABTEST-0, but that exact name does not exist; QA-C002-DEPT-FABTEST-06 is the closest match. Reply yes/confirm if that is the right one, or give me the correct department name. That is EXACTLY the explicit substitute-disclosure BUG-005 requires - it names the requested target, names the substitute, and explains why they differ. The product can already produce the right disclosure; BUG-033 shows it does not do so reliably. Any fix should preserve this phrasing as the model answer.",
+          "connection_to_bug_028": "Consistent with BUG-028 (the org selector is never transmitted to chat). Here that defect produces a CORRECT outcome by accident: because chat never receives the selector, switching it cannot corrupt a pending action. Recorded so a future reader does not mistake this PASS for evidence that org-scoping in chat works - it does not; it is simply absent."
+        },
+        "postcondition": "CLEAN. All three pending actions abandoned via explicit cancel; ZERO executed. /departments at All Organizations 12:42:10Z: QA-C002-DEPT-FABTEST-06 and QA-SWARM-DEPT-ARCHIVED-PARENT-TEST only - no F-RELOAD, G-CHANNEL-A or H-ORG row ever created. Org selector restored to All Organizations.",
+        "cumulative_reading": "F, G and H all PASS. Combined with C0 PASS, the pending-action MACHINERY is sound: durably stored, channel-scoped, org-stable, accurately describable on demand, and cancellable. The single broken link is the CONFIRMATION HANDLER (BUG-033), which under a competing newer request ignored all of that and invented an unrelated operation. This substantially narrows the Home-PC fix surface."
       }
     },
     {
