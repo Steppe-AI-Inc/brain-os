@@ -241,3 +241,28 @@ reasoning about the symptom.
 
 The capture now keeps every line that names a case or carries a count, plus the tail, bounded by the
 character cap. Verified on `tdz_triage`, which went from 6 lines to 11 and now names its findings.
+
+## 11. H6b is FIVE suites, not four — and it now blocks four regression suites at once
+
+Verifier #74/campaign-136 corrected the count: the old detector matched the full directory path, so
+`sem_ai_command_execution_plan_truth.mjs` — which names the bare filename — was invisible to the row
+written to find reimplementations. Both detectors are aligned now.
+
+| suite | what it mirrors | liftable? |
+|---|---|---|
+| `sem_ai_command_past_completion_claim_regex` | one regex declaration | **yes — converted, measured, proposed** |
+| `sem_ai_command_execution_plan_truth` | `buildExecutionPlanReport` (a top-level function) | **half** — the formatter lifts; the orchestration loop does not |
+| | `executeActionPlan`'s loop, generalised to run without a database | no — takes a live client |
+| `sem_ai_command_named_person_lookup_truth` | `mergedPeopleData` (an IIFE), `personCurrentStatus` (an inline ternary) | no — needs a real window |
+| `sem_ai_command_company_restore_truth` | 499 lines of restore semantics | not assessed |
+| `sem_ai_command_factory_verification_selection` | the factoryWorkOrders context builder | not assessed |
+
+**The half-convertible one is a trap and is deliberately left alone.** Lifting `buildExecutionPlanReport`
+would make the file open a source, which is exactly what the H6b detector tests — so the count would drop
+from five to four while that suite still mirrors its orchestration loop by hand. **That improves the metric
+without improving the coverage**, which is the anti-pattern this whole row exists to expose. Convert it
+fully or leave it counted.
+
+Priority is now higher than when this was first written: the same defect is held by FOUR regression suites
+(v74, v75, v76 and the inventory row), so closing it turns four suites green at once — and until then, four
+of the battery's six non-green suites are the same finding seen from different angles.
