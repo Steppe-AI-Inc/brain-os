@@ -1,0 +1,150 @@
+All work is committed. Final report follows.
+
+---
+
+# VERIFIER #69 — CAMPAIGN #129 — FINAL REPORT
+
+**PREFLIGHT: EXECUTION_READY** (A: candidate `0ca756ee` is an ancestor of HEAD and the diff outside `qa/verification` is empty; B: write probe passed; C: `architecture_final_claim_contract` 51 passed / 0 failed).
+Attempt 3 of the same work order (attempts 1 and 2 were killed by host restarts). Re-measured `index.ts` sha256 first: `006a0c3f…` **unchanged**, so attempt-1/2 artifacts were reused as instructed, and the expensive first-hand work was re-run anyway where it mattered (full battery, all sweeps I could complete, every finding).
+
+---
+
+## 1. PRIMARY MISSION — the structural table
+
+*Which consumer of this concept does not derive from its definition, and what request shape reaches it?*
+Mechanised (`qa/verification/scratch/v69/concept_map.mjs`, members collected at every nesting depth; the instrument's own group-prefix bug — `(?:create|update)` → `|update`, losing the first alternative — was found by its self-test and fixed before use). Ranked by **containment**, not similarity:
+
+| line | consumer | canonical definition | derives? | size | reachable shape | verdict |
+|---|---|---|---|---|---|---|
+| 6193 | `MN_LOAN_VERB` | `MUTATION_VERB_ALTERNATION` | **no** | 39/120, containment 1.00 | `ACME-г fire хийнэ үү` | **P1 — 80/120 verbs ship a fabrication** |
+| 6064 | `lastClauseIsMutation` (inline) | `MUTATION_VERB_ALTERNATION` | **no** | 30 stems, 0.90 | `list the companies and suspend ACME` | **P1 — 90/120 verbs ship** |
+| 5965 | `IMPERATIVE_LEAD` | `MUTATION_VERB_ALTERNATION` | no | 26/120, 1.00 | executor lead only | registered debt |
+| 6017 | `MUTATION_NEEDS_PARTICIPLE` | participle vocabulary | no | 29, 0.97 | `needs archiving` | registered debt (#141) |
+| 6021 | `MUTATION_VERB_WITH_OBJECT` | `MUTATION_VERB_ALTERNATION` | no | 24/120, 1.00 | backstop tier | ACCIDENTAL OVERLAP |
+| 6023 | `MUTATION_VERB_PROPER_OBJECT` | ditto | no | 18/120, 1.00 | backstop tier | ACCIDENTAL OVERLAP |
+| 6235 | `lexiconObject` (inline) | ditto | no | 23, 0.96 | lexicon tier | registered debt |
+| 6604 / 6608 | future-promise lists | ditto | no | 22 / 20, 1.00 | `I'm going to archive X` | registered debt |
+| 7087 | `negatedRequest` (receipt) vs `commandNegatedLead` (executor, 3887) | negation | no | 13, 1.00 | negated request | registered debt |
+| 6021 | `MUTATION_VERB_WITH_OBJECT` nouns | `ENTITY_NOUN_ALTERNATION` | no | 26 shared of 104 | — | UNKNOWN |
+
+**There is a ninth re-spelling, and a tenth.** Two of them have a reachable request shape and both ship P1s.
+
+---
+
+## 2. FINDINGS
+
+Everything below was measured through **windows sliced from the real `index.ts`** and executed (`tiers_harness.mjs` + `pipeline.mjs`, each with a refusing self-test), never a re-implementation.
+
+### V69-D1 (P1) — mutation requests the never-silent receipt cannot see
+
+`requestedIntent` is `null`, the receipt tier never runs, the executor is idle: **nothing happens and the founder is told it did.**
+
+| shape | example | shipped |
+|---|---|---|
+| two modifiers, no determiner | `archive old duplicate work order WO-1` | 5/5 |
+| adjectival-participle modifier | `archive expired work order WO-1` | 2/2 |
+| punctuation right after the verb | `Archive: the work order WO-1` | 4/4 |
+| negation, non-leading | `make sure you do not archive ACME` | 25/30 |
+| Mongolian loan verb (D3) | `ACME-г fire хийнэ үү` | 80/120 verbs |
+| read clause first, mutation last (D4) | `list the companies and suspend ACME` | 90/120 verbs |
+| **CONTROL** — one-modifier shapes #67/#68 closed | `archive work order WO-1` | **0/35** |
+
+Total on the exposed shapes: **100 of 100 fabrications reached the founder verbatim.** Four root causes, each one line: `IMPERATIVE_OBJECT`'s head-region integer; `STATEMENT_FINITE_VERB` treating adjectival participles (`expired`) as finite verbs; every `IMPERATIVE_OBJECT` alternative assuming whitespace after the verb; `NEGATED_IMPERATIVE_HEAD` inspecting the head only.
+
+### V69-D2 (P1) — the opposite direction, from the same line
+
+`Post mortem report for the project` + a truthful answer → **"No change was made — that request did not resolve to an operation I can execute from chat."** **70 of 70** destroyed (14 headlines × 5 truthful answers); #149's zero-modifier pins survive **0/30**. The boundary did not move back, it moved sideways.
+
+**Ruling on the boundary:** do not set the integer to 2 and do not return to position-free — both settings have now shipped a P1 in opposite directions. Distance is the wrong evidence. Requests carry a determiner / identifier / quoted name / imperative frame; headlines are bare noun phrases whose only extra structure is a prepositional phrase. Derive the rule from that, in the one definition.
+
+### V69-D3 / D4 (P1) — the ninth and tenth re-spellings — see the table above.
+
+### V69-D6 (P2, harness) — why the ratchet was green through ten copies
+
+Two blindnesses, one new: it scans only **named** alternations (inline vocabularies invisible — that is where D4 lives), and it scores **Jaccard ≥ 0.60**, a *symmetric* metric. `MN_LOAN_VERB`: containment **1.00**, Jaccard **0.325** → invisible. **The ratchet is least sensitive to the copies that have drifted furthest.** Ruling: the inline blindness **must** be fixed, and containment must replace similarity, with stems matched by prefix.
+
+### V69-D7 (P2, harness) — FIELD_NAME_MATCH ≠ SEMANTIC_CONTRACT_MATCH
+
+`architecture_collection_envelope_contract` proves "total never from array length" against the `envelope()` **helper**. Mutants making `memories.total` and `conversationHistory.total` the **window length** **survive all 75 shipped suites** — the exact §4.3 harm ("8 memories" when 66 exist). Source is correct today; the contract is blind. A row killing both is in my regression file.
+
+### V69-D8 (P2, harness) — the mutation proof for the line that broke is a dead anchor
+
+`mutation_proof_v60_v61`: `M15 the imperative tier drops its object test` and `M16 … its finite-verb test` report **MUTATION DID NOT APPLY — anchor missing**. The guards whose settings produced both P1s have had **no mutation proof for two rounds**. The tool exits **1** with survivors (it does not fail open); nothing in the battery runs it.
+
+### V69-D5 (P3) — `status` → the founder is shown *"I could not resolve which **statu** you meant"*.
+
+### What holds, measured
+
+executor acting where the receipt is blind **0/1680** · truthful read executed as a mutation **0/20** · VERIFIED envelope renders the truthful claim **20/20** · unverified/denied never claims success **20/20** (instrument corrected: my first detector produced 16 false positives by counting the product's own truthful refusal as a claim) · every `TRIM_ORDER` key carries an envelope **26/26** · deploy surface is exactly `index.ts` (only `deno std` and `supabase-js` imported; `_shared` appears once, in a comment) · CRLF-pure, 1 known bare CR.
+
+---
+
+## 3. FOUNDER MANDATE 2026-09-09
+
+1. **Table reported above; the axis it exposed shipped two P1s. FAIL.** A semantic duplicate remains (ten of them, two reachable). The executor never acts where the receipt is blind (0/1680) — that half holds.
+2. **Both directions broken, again, and this time by the same line.** 100/100 execute-blind fabrications; 70/70 truthful reads rewritten. Measured before concluding, in both directions, as instructed.
+3. **Never-silent receipt: FAILS structurally** — silence is reachable from four request shapes plus two vocabularies.
+4. **Sweeps:** `vacuity_sweep` 34 killed/0 survived, `vacuity_sweep2` 25/0, `mutation_proof_v60_v61` 17 killed/2 survived **exit 1** (does not fail open; the 2 are stale anchors = V69-D8). `vacuity_sweep_extended` **did not complete** inside this run (~50 min, still executing) — **I make no claim from it.** Zero-target runs: none. Floor values: unchanged in `mutation_sweep_safety_contract` (green in the battery). Its standing residual — a source-pattern check accepting one of three spellings — **is still not the stronger form**; I did not implement it, and I rule that it should be, because this round found three more tools/contracts failing open.
+5. **Named targets:** the envelope contract is the concrete instance of FIELD_NAME_MATCH ≠ SEMANTIC_CONTRACT_MATCH (V69-D7).
+6. **Duplicated-concept sweep:** classified in the table — 2 IDENTICAL SEMANTICS with proven reachability, 6 registered debt, 1 accidental-overlap pair, 1 UNKNOWN. Similarity alone was never treated as proof; only measured reachability made a P1.
+7. **Token-budget gaps: NOT resolved, and none of it is live evidence.** See §4.
+8. **Findings are written so the fixing session needs nothing from me:** ledger entry, promotion note with the boundary ruling, and a runnable regression suite that fails on these bytes.
+
+---
+
+## 4. CARRIED MANDATE 2026-09-08
+
+1. **Request-budget path:** trim terminates (finite `TRIM_ORDER`, then floors `[2, 0]`); `currentTurn`, `pendingAction`, `namedTargets`, `counts`, `collections`, org/identity (which live outside the pack entirely) are never trimmed and are asserted post-trim; every trimmed collection keeps `shown/total/truncated`; `truncated:false` on a trimmed collection is killed by 5 suites. Verified **at source level**.
+2. **Whole-request gates, my classification:** input estimate → SAFE DEGRADATION; pack budget → SAFE DEGRADATION; provider context window → DETERMINISTIC REFUSAL with cause and action; image bytes → DETERMINISTIC REFUSAL; **output cap (8192)** → DETERMINISTIC REFUSAL ("response was cut off… break into smaller steps", audited, work order marked failed); wall-clock timeout, edge body limit, SSE init → **UNMEASURED, and honestly named** by `request_gate_inventory_contract`. I looked for a fifth hiding behind them and found one worth naming: **`SEM_AI_MODEL_CONTEXT_TOKENS = 180000` is one value for every model.** Measured: the largest request the pack gate can permit is **≈32.8k tokens** (11,400 pack budget × 1.22 compact→pretty inflation + an 18,824-token system prompt). Headroom: **+147k** at 180k, **+95k** at 128k, **−782 at 32k → an ordinary founder turn would 413.** Reachable only by pointing an `ai_providers` row at a 32k model. Registered and now sized, not merely "range-asserted".
+3. **`MINIMUM_SAFE_CONTEXT`** is the §4.4 set for everything that lives in the pack; identity/scope/permissions/system-contract are outside the pack and so structurally untrimmable. The post-trim assertion is **not vacuous but is honestly narrow** (the source says so): removing it is killed by `architecture_context_budget_contract`, and `TRIM_ORDER` naming a protected key is killed too — both proven by my own mutants (A5, A6).
+4. **"Not in the prompt ≠ does not exist":** every trimmable key carries an envelope (26/26) and `truncated` cannot be falsified without 5 suites failing. I could not construct a trim that makes the product answer "it does not exist".
+5. **Estimator re-measured with my own fixtures** built from the real `.limit()` caps (companies 50, people 30, tasks 15, goals 20, projects 20, departments 30, leads 30, documents 30, approvals 20, memories 8): untrimmed **18,540** compact tokens vs an 11,400 budget → the trim fires, as designed. The shipped inventory's own 11 cases land 841–5,113 tokens under budget with 12 trims each; nothing is tuned to 11,999.
+6. **v59 hardening judged as these exact bytes**, not as history — via the sliced windows, not a changelog.
+7. **The pinned live witness has both halves**: pre-fix **25,595** (over the 12,000 hard limit) → post-fix **11,297** with 12 trims and the minimum intact. A fixture too small to have ever failed would not show 25,595.
+
+**Two permanent CLAUDE.md rules:** the candidate honours *byte-identical ≠ product-safe* (its own gate list says so), and it **does not** satisfy *static verification cannot substitute for live request-shape acceptance* — **nor can I**. Everything in §4 is **source-level only** and needs live acceptance before it is trusted.
+
+---
+
+## 5. WHAT I COULD NOT MEASURE
+
+* **No live request, no deployed-bytes link.** Provenance is byte-direct at the git level (`qa/.../v92_index.ts` == `git c9dfab5bd433` == LF sha256 `795c20c8…`), but I did not establish that the *deployed* function is those bytes. **BLOCKED.**
+* **No database, no browser, no AI chat session** in this session type. Every UI↔DB and AI↔DB truth check in the skill's matrix is **BLOCKED**, not silently skipped. I created **no** `QA-VERIFY-*` data anywhere — there is nothing to clean up.
+* **`npx deno@2 check`: BLOCKED** — the sandbox refused the command. Substitutes, stated as substitutes: `tdz_forward_reference_contract` 9/9, `extractor_line_ending_contract` 7/7, and ~2,000 executions of the real windows with no TDZ `ReferenceError`.
+* **`vacuity_sweep_extended` did not finish.** No claim rests on it.
+
+**Evidence levels:** V69-D1..D5, D7, D8 = **UNIT/INTEGRATION VERIFIED against real sliced source**. Everything about deployment, provider behaviour and live request shape = **CODE INSPECTED** or **BLOCKED**. Nothing here is LIVE VERIFIED.
+
+---
+
+## 6. SKILL REPORT BLOCK
+
+```
+CHANGE VERIFIED: supabase/functions/sem-ai-command candidate 0ca756ee (contract bar)
+SCENARIOS: 9 passed, 8 failed, 4 blocked
+CANONICAL GRAPH: BLOCKED (no DB access in this session type)
+UI ↔ DB:        BLOCKED (no browser access)
+AI ↔ DB:        FAIL (100/100 fabricated completions reach the founder on reachable shapes)
+DEPENDENCIES:   PASS at source (executor never acts where the receipt is blind, 0/1680)
+PERMISSIONS:    BLOCKED (no DB/RLS access) — plus one live repo-level finding, below
+RELOAD/PERSISTENCE: not applicable to this work order
+IDEMPOTENCY:    not applicable to this work order
+```
+
+**Founder-approval section (nothing here may be executed by me):**
+1. **Repository-level GitHub Actions secret `SUPABASE_ACCESS_TOKEN` exists** (`production_write_authority.regression.test.mjs` fails on it). Readable by any workflow on any branch — a production-write route that bypasses the environment approval gate. Founder-only. Not caused by this candidate, not new, but live.
+2. **11 `scripts/factory-runner` scripts reach the DB via `supabase db query --linked`**; the suite's own header says *ten*. The count drifted up by one. Founder-scoped design item.
+3. **No migration is pending from me. No `db push`, no function deploy, no secret touched.**
+
+**Commits on `verify-0ca756e-campaign129`:** `04ee638` (FAIL finding + ledger entry #150 + promotion note + regression suite + probes), `d1b838b` (D7/D8, architecture vacuity rounds, first-hand battery).
+**Artifacts:** `qa/verification/proposed/v69_known_failure_modes_entry_150.md`, `v69_PROMOTION_NOTE.md`, `v69_regression_additions.mjs` (12 rows, 5 passing / 7 failing on these bytes, exits 1), `qa/verification/scratch/v69/*`. Namespace deviation recorded and deliberate: `v65_*`/entry 140 from the launch template are taken by earlier verifiers; ledger head is #149.
+
+---
+
+## 7. DEPLOYABILITY CALL
+
+Candidate `0ca756ee` is **not fit to deploy over v92 under the contract bar.** Two P1 directions, four reachable request shapes, two proven-reachable vocabulary re-spellings, three guards that fail open — **with 77 suites, 1,766 assertions and 0 failures the entire time.** That sentence has now been true for five consecutive rounds, and the guard meant to end the cycle is measuring the wrong quantity.
+
+**FAIL**
+
+`006a0c3feeb5f2f13b0b99b55684d3d3d667d86d90484672d8d63a1db2c4d610`

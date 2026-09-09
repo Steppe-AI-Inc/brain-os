@@ -3,3 +3,12 @@
 [2026-09-09 10:23:21] attempt 1: process died on host Claude restart (0-byte log); resumed as attempt 2 by supervisor with verifier69_prompt_resume.txt; attempt-1 evidence committed as 337f255
 [2026-09-09 10:23:21] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-0ca756e max_attempts=6 expect_sha=006a0c3feeb5f2f1…
 [2026-09-09 10:23:21] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-0ca756e)
+[2026-09-09 10:32:11] attempt 1: exited rc=1 log_bytes=150
+[2026-09-09 10:32:11] attempt 1: log is only 150 bytes and shows no classified text — BLOCKED — OTHER, retrying after backoff
+[2026-09-09 10:36:30] attempt 1 (post-restart dispatch): PROVIDER_CAPACITY — model-scoped ('You've reached your Fable limit. Switch to another model'). Watchdog misclassified it as OTHER; classifier is being fixed and the run relaunched on a different model.
+[2026-09-09 10:38:28] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-0ca756e max_attempts=6 expect_sha=006a0c3feeb5f2f1… models=opus,sonnet (starting on opus)
+[2026-09-09 10:38:28] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-0ca756e, model=opus)
+[2026-09-09 10:42:11] attempt 2: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-0ca756e)
+[2026-09-09 10:43:35] DUPLICATE DISPATCH: the watchdog killed at 10:36 left its 'sleep 600' child alive; at 10:42:11 it dispatched a SECOND concurrent verifier into the same worktree and the same log. Killed (pids 1889/2775/2777). The surviving run is watchdog 2493 / claude 2512 on model=opus. Lesson: killing a watchdog must kill its process GROUP, and a running bash script must not be edited in place.
+[2026-09-09 11:03:12] attempt 1: exited rc=0 log_bytes=15610
+[2026-09-09 11:03:13] attempt 1: verifier produced a real report (15610 bytes); watchdog done. The verdict is read from the report, not from rc.
