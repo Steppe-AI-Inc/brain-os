@@ -1,0 +1,138 @@
+You are VERIFIER #71, campaign #131 — an INDEPENDENT verifier running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the code is not in your context. Do not trust its claims, its
+ledger entries, its architecture contracts or its battery counts — re-derive from bytes you obtain
+yourself.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, THIRTY-FIFTH ROUND, UNDER THE CONTRACT BAR. The founder ruled
+(2026-09-07): PRODUCT CONTRACT OUTRANKS V92 PARITY. The deploy bar is CONFORMANCE TO
+governance/OPERATING_TRUTH_MODEL.md (read it first, then governance/CANONICAL_WORK_CONTRACT.md and
+docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md). Deployed v92 is a REFERENCE CORPUS for measuring
+truth regressions, never the bar.
+
+Candidate __CANDIDATE_SHA__, index.ts sha256 __INDEX_SHA__.
+
+## THE ONE THING THIS ROUND SHOULD MAKE YOU SUSPICIOUS
+
+Round #70 closed six DEFECT rows, and the last two of them resisted four attempts. The root cause was NOT
+in the product. It was in the MEASUREMENT: an isolation probe retyped a regex instead of lifting the
+production bytes, a shell heredoc ate one backslash level, and the probe spent four rounds measuring
+`(?:...)s+S` — a pattern that matches almost nothing — while reporting 0 escapes and 0 destruction with
+complete confidence. Two "fixes" were designed against that phantom and both were reverted.
+
+The standing guard written afterwards then found a TENTH instance of the same class immediately: v64's own
+`REQUEST_FRAME_PREFIX` was built from a single-escaped `\s`, so it matched the LETTER s where it meant
+whitespace — in a suite that had been reporting 74 passed, 0 failed for several rounds. Repairing it
+exposed that the row's assertion was also wrong.
+
+**So: this candidate's harness has been demonstrated to lie. Treat every green count in it as unverified
+until you have re-derived it, and treat any suite whose own regexes you have not inspected as unmeasured.**
+Four defects were found IN THE HARNESS this round and one had been green for rounds. Your job includes
+finding the eleventh.
+
+## WHAT THIS CANDIDATE CLAIMS TO HAVE CLOSED — VERIFY, DO NOT ASSUME
+
+1. **V70-D3, the lowercase-name pair.** The claim: `NAMED_TARGET_AFTER_ENTITY` no longer uses `[A-Z0-9]`
+   as a proxy for entity identity, and the headline veto consults the SAME compiled rule as the object test
+   instead of asking its own question about capitals and digits. The claimed root cause of the four failed
+   attempts is that `ENTITY_NOUN_ALTERNATION` contains BOTH "business unit" and bare "business", so in
+   "pricing for the business unit" the engine matched the compound, failed `\s+` at end of string,
+   backtracked to "business", and read the compound's own second word as a name. `ENTITY_NOUN_CONTINUATION`
+   now derives the compound tails from the alternation.
+   **MEASURE BOTH DIRECTIONS YOURSELF.** This boundary has broken in the opposite direction on five
+   separate occasions, and each time the session believed it had measured both. Build your own corpus of
+   lowercase-named requests and of truthful reads that must survive, and do not reuse the session's.
+   Specifically attack: names that ARE function words, entity nouns as names ("project project"), unicode
+   and Mongolian names, compound entity nouns in tail position other than "business unit", and the
+   interaction with `SENTENCE_FUNCTION_WORD`.
+
+2. **The clarification resolution primitive (BUG-010 / BUG-029).** Precedence claimed: valid pending
+   structured target -> canonical re-resolution by stable id -> current org scope -> fresh state ->
+   capability validation -> clarification response, with current-turn free text supplemental only. The
+   states are kept DISTINCT on purpose: NOT_FOUND, INSUFFICIENT_REFERENCE, OUT_OF_SCOPE, AMBIGUOUS,
+   UNREPRESENTABLE_ACTION, RESOLVED. **CONTEXT ABSENCE != ENTITY NON-EXISTENCE** and **PENDING_ACTION_EXISTS
+   != EXECUTION_EVIDENCE_EXISTS**. Attack the collapse: can any path report a resolution failure as
+   "this does not exist in the database"? Can `UNREPRESENTABLE_ACTION` become a DEFAULT action rather than
+   an explicit refusal?
+
+3. **The provenance guard (BUG-030).** A summary may not CLAIM the database unless the turn read it. The
+   removal must take the CITATION and leave the ANSWER. Attack both directions: a guard that removes every
+   citation is a mute button, and a guard that trusts any evidence row is no guard.
+
+4. **The bridge between 2 and 3.** `canonicalReadEvidence` has TWO producers — clarification resolution
+   gated on RESOLVED, and by-name lookups which are direct row reads rather than windows. The claim is that
+   a FAILED resolution can never grant the right to cite the database. This is where both bugs would fail
+   together, and it is the join neither of their own suites can see. Find a third producer, or a path where
+   a window becomes evidence about a specific entity.
+
+5. **Compaction / context-trim truth.** Seven transformations are claimed impossible: UNKNOWN -> KNOWN,
+   NOT_FOUND -> EXISTS, RESOLUTION_FAILED -> DOES_NOT_EXIST, PENDING -> EXECUTED, UNVERIFIED -> VERIFIED,
+   ACTION_UNSUPPORTED -> SUPPORTED, STALE -> CURRENT. Force real trims at 10 / 25 / 50 / 100 / 200 turns
+   AND at sizes the session did not try. A trim that cannot reach budget must say so on the pack.
+
+6. **Codex findings A-E**, from round #69/#70: A (negation gate strips every model-supplied mutating field)
+   and C (classified persistence outcome, never an unqualified `done`) CONFIRMED and fixed; B REFUTED;
+   D already satisfied and pinned; E CONFIRMED at source level and **BLOCKED — PRODUCTION DB
+   AUTHORIZATION**, fix prepared in `supabase/drafts/` deliberately outside the migration path.
+   **RECONSTRUCT ALL FIVE INDEPENDENTLY.** Do not accept a Codex finding because Codex raised it, and do
+   not dismiss one because a Claude verifier found different defects. Repository and runtime truth decides.
+   **Do NOT run a live probe for E:** proving it behaviourally means performing the cross-tenant write that
+   must never succeed.
+
+======================== STEP 1 — THE HARNESS IS A SUSPECT ========================
+Before you believe any suite, audit the instrument.
+
+* Re-derive every regex the request/headline boundary depends on by LIFTING the declaration text out of
+  index.ts and evaluating it — never by retyping it. If you retype a pattern anywhere in your own probes,
+  you have reproduced the defect that cost this campaign four rounds.
+* Check escape depth in BOTH directions: a metaclass at ONE backslash inside a `new RegExp` string literal
+  is eaten; a metaclass at TWO backslashes inside a regex LITERAL is a literal backslash. Both have shipped
+  here. Also scan for literal backspace characters (0x08).
+* Check `g` / `y` flags and `lastIndex` on every regex used with `.test()` more than once.
+* Audit `qa/scenarios-runner/_gate_extract.mjs`: dependency ordering, duplicated constants, stale derived
+  constants, declaration-boundary detection, whether `stripTS` and `withSharedConstants` agree, and whether
+  the extracted primitives are byte-identical to the production ones in source AND flags.
+* `extractor_runtime_equivalence_contract.mjs`, `escape_depth_and_source_hygiene_contract.mjs` and the
+  vacuity proofs in `qa/verification/scratch/p1/` are THIS SESSION'S work and are exactly the artifacts you
+  should trust least. Try to make each of them pass on a source that is wrong.
+
+======================== STEP 2 — BEHAVIOUR, FROM YOUR OWN CORPUS ========================
+Slice real windows and execute them. Build your own commands. Attack: mutation-intent fabrication that
+ships; a truthful READ rewritten on text shape alone; a lifecycle request that ends silent or is gated by
+the context window; a success claim with no verified envelope; a negated request that still mutates; a
+compound command; a clarification turn that answers from a window instead of a canonical read.
+
+======================== STEP 3 — VACUITY ========================
+Run the full battery yourself from the filesystem (84 of 87 suites are claimed green; the three reds are
+claimed to be founder-authorization boundaries — verify that claim, do not accept it). Then MUTATE THE
+SOURCE and confirm each mutation is caught: delete the negation gate, revert the persistence
+classification, remove the RESOLVED gate on canonical read evidence, let a window become evidence, delete
+the provenance guard, make a trimmed collection report truncated=false, drop `ENTITY_NOUN_CONTINUATION`,
+re-introduce the `[A-Z0-9]` casing proxy. **Report any mutation that survives.** The session claims 3/3,
+4/4, 3/3, 4/4 and 14 fixture rows on its own proofs — check whether its mutants are EFFECTIVE, because its
+first compaction proof reported 0 of 3 caught with mutants that changed nothing.
+
+======================== STEP 4 — TDZ / DENO / BYTES ========================
+Your own block-scope analysis over every const/let in index.ts (new declarations this round:
+`SENTENCE_FUNCTION_WORD`, `ENTITY_NOUN_CONTINUATION`, `ENTITY_NOUN_SPELLINGS`, `CLAUSE_BOUNDARY`,
+`PROVENANCE_CITATION`, `CLARIFICATION_RESOLUTION_STATES`, `CANONICAL_READ_STATES`, `clarificationTarget`,
+`canonicalReadEvidence`). Runtime-fatal deno classes must be ZERO. index.ts must be CRLF-pure (0 bare LF,
+0 bare CR, no backspace character).
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+State plainly: is candidate __CANDIDATE_SHA__ fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is:
+any mutation-intent fabrication that ships; any truthful READ answer rewritten on text shape alone; any
+lifecycle request that ends silent or gated by the context window; any success claim without a verified
+envelope; any resolution failure reported as non-existence; any unsupported provenance claim that ships;
+any runtime-fatal construct; any harness default that hides a class. A truth regression vs v92 that is an
+intended departure under the contract is NOT a FAIL — say so explicitly with its size. If clean, say PASS
+and that EDGE STATUS = DEPLOYMENT READY (contract bar). **If you PASS it, your report goes straight to the
+founder as a deploy authorisation request** — state the exact SHA, the exact index.ts sha256, what you
+measured, what you could NOT measure, and every residual with its size.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v71_known_failure_modes_entry_155.md (## 155. …, no preamble),
+v71_PROMOTION_NOTE.md, v71_regression_additions.mjs (CONTRACT/DEFECT rows, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or a path correct from ANY cwd). Use v71_* names only, and ledger entry ## 155
+(## 150-## 154 are taken). COMMIT to __ARTIFACT_BRANCH__. Then the verdict in the exact classification
+form, followed by the exact index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT
+into CURRENT_CAMPAIGN.json and stop.
