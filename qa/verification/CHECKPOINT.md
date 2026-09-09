@@ -12,9 +12,13 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-Campaign #128. **Verifier #68 returned FAILED** on candidate `223bd24` / index.ts sha256 `fc48aa70…`
-(artifact `qa/verification/scratch/verifier68_output.log`, verifier commit `298d4da`). Two P1 blockers,
-**one of them introduced by the #67 closure**. The #68 closure is COMPLETE; verifier #69 is the next gate.
+Campaign #129. **Verifier #69 is RUNNING** on candidate `0ca756e` / index.ts sha256 `006a0c3f…`, dispatched
+2026-09-09 10:38:28 on `--model opus`, watchdog pid 2493, report at `qa/verification/scratch/verifier69_output.log`.
+
+**It is a RESUMPTION, not a fresh round.** Attempt 1 (03:04) died with the host Claude process, leaving a
+0-byte log; its durable evidence — preflight A/B/C PASS, full battery, identifier delta, participle family,
+concept map, all at the same sha — is committed on `verify-0ca756e-campaign129` as `337f255`, and the
+resume prompt (`scratch/verifier69_prompt_resume.txt`) tells the verifier to reuse it rather than re-run it.
 
 Verifiers #60 through #68 all FAILED their candidates. **FOUR consecutive rounds found the same defect
 class on a different AXIS:** #65 request FRAMES, #66 OBJECT and CLAUSE shapes, #67 ENTITY REFERENCE,
@@ -71,14 +75,54 @@ Token-budget incident conditions (founder §7): request-budget contract GREEN, f
 GREEN on both halves, trimming semantics GREEN — **but the incident is NOT resolved**, because none of the
 three is a live request and that is precisely the rule the incident produced.
 
+## WORK COMPLETED ALONGSIDE #69 (2026-09-09, none of it in any candidate)
+
+The Edge candidate was frozen throughout: `index.ts` in `brain-os` is `006a0c3f…` before and after all of it.
+
+**Harness, on `p1/execution-truth-governance` (ledger #150).** A model-scoped provider limit ("You've reached
+your Fable limit. Switch to another model") matched no capacity pattern, so the watchdog logged
+`BLOCKED — OTHER` and scheduled a retry of the same exhausted model. `classifyProviderOutput` learns the
+shape; `isModelScopedCapacity()` separates *wait for the reset* from *rotate the model*; the watchdog now
+takes a MODEL LIST, passes `--model` explicitly, rotates instead of sleeping, and stops with exit 6 when the
+list is exhausted. 18/18 regressions. **#150b**, same entry: `kill <pid>` left the watchdog's sleeping child
+alive and it dispatched a SECOND concurrent verifier into the same worktree 600 s later — stop a process
+GROUP, and never edit a running shell script in place.
+
+**Two P1s, on branch `wo/embedding-observability` (based on `0ca756e`).** A SEPARATE source window; merging
+it produces a new SHA needing its own verifier round.
+- `EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT` (ledger #144): outcome-returning embedding calls, the retrieval
+  MODE recorded, degradations in `contextErrors` + audit metadata + the `done` payload. **7/24 -> 24/24**,
+  mutation proof **14/14**.
+- `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` + `REQUESTED_MODEL_ALWAYS_RECORDED`: `classifyProviderFailure()`,
+  the requested model recorded BEFORE the call from one helper with two callers, and a classified
+  `ai_command_provider_call_failed` on every failure. **5/22 -> 22/22**, mutation proof **15/15**.
+- Battery in that worktree: **81 suites, 3 problems — the identical set the frozen candidate produces**.
+  `deno check` 19 diagnostics in the same classes, zero runtime-fatal. CRLF-pure.
+- Two `stripTS` gaps closed (generic constructor type arguments; typed catch bindings) — without them the
+  real embedding window could not be executed at all.
+
+**Audits (no code change).** `qa/PROMPT_CACHE_AUDIT_2026-09-09.md`: the cache-hit rate is not low, there is
+no cache — `cache_control` appears nowhere, the counters are never read, and `model_usage` has no columns to
+store them; `SYSTEM_PROMPT` is ~18,824 tokens re-sent uncached every turn and is not counted by
+`estimateTokens`. `docs/FOUNDER_ACTION_RUNBOOK.md`: the production-write boundary re-measured — **5 of 7
+routes still red, every one of them a founder-only credential or account action**; the eleven factory-runner
+scripts that inherit ambient authority are the one non-founder item and are deliberately not started
+(`provider.mjs` is load-bearing for the running watchdog — the #150b hazard).
+
+**Backups.** `E:/My Drive/17.4. R&D CLAUDE CODE/backups/` — `git bundle --all` (verified complete) at 10:22,
+10:47 and 10:55, plus a verification tarball. `p1/execution-truth-governance` is ~59 commits ahead of
+`origin` (`26c0f3e`); rounds #60-#69 and all of the above live on this disk and in those bundles only.
+
 ## OPEN WORK, BY PRIORITY
 
 **P1** — verifier #69's verdict on the new candidate.
-**P1 (new, from the provider audit)** — `EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT`: OpenAI embeddings have
-failed silently in production since 2026-08-24 ~16:00; 63 of 66 memories carry a NULL embedding and nothing
-anywhere surfaces it. Also `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` and `REQUESTED_MODEL_ALWAYS_RECORDED` —
-a failed provider turn records no model name and emits no audit event. See
-`qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md`.
+**P1 (from the provider audit) — FIX PREPARED AND MEASURED, LIVE OUTAGE STILL OPEN.**
+`EMBEDDING_DEGRADATION_MUST_NOT_BE_SILENT`, `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` and
+`REQUESTED_MODEL_ALWAYS_RECORDED` all exist on `wo/embedding-observability` with contract suites and
+mutation proofs (see the section above). What remains is **not implementable here**: the live cause needs
+audit test T5 — one read-only `POST /v1/embeddings` with the **Edge** `OPENAI_API_KEY` — which is a
+founder-only credential action, and 63 memories still carry no vector, so a backfill also waits on a working
+key. See `qa/AI_LLM_PROVIDER_RELIABILITY_2026-09-08.md` and ledger #144.
 **P2** — 23 registered duplicated-concept pairs (ledger #141), the largest a seven-list family describing
 "words that claim something was done"; convergence is the first item of the next source window.
 V61-D5: `compactionCheckpoint.summary` is untrimmable unbounded narrative.
