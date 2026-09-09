@@ -60,7 +60,10 @@ reproduction. Recording both columns keeps that distinction visible.
   Note the shape: a **bare** completion claim, no trailing question, no pending action.
 - **Phase 2** (`/projects`, All Organizations, 03:14:02Z) — 9 rows, `targetStillOldName: true`,
   `fabtestExists: false`. Zero mutation. Guard verdict (`qa/runner/lib/mutation-truth.mjs`):
-  `CLAIM_WITHOUT_MUTATION`, `diff: []` — mechanical, not a judgement call.
+  `CLAIM_WITHOUT_MUTATION`, `diff: []`. ⚠ *As first run this invocation was malformed and therefore
+  vacuous — see "Correction to the Class 4 record as first pushed" below. Re-run correctly it returns
+  the same verdict, now earned. The Phase 2 conclusion rests on the `/projects` reads above, not on
+  the guard.*
 - **Phase 3** (same channel, prescribed wording) — *"I cannot verify the exact current name. The
   conversation history shows a command to rename… but I have no fresh database confirmation that
   this rename actually succeeded. I can see a project titled 'QA-C002-PROJ-EDITED-01' in
