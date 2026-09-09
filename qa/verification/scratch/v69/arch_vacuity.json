@@ -1,0 +1,38 @@
+[
+ {
+  "id": "A1",
+  "why": "the never-silent receipt block is deleted",
+  "applied": true,
+  "verdict": "KILLED by architecture_final_claim_contract.mjs"
+ },
+ {
+  "id": "A2",
+  "why": "the pendingAction exemption is restored (a trailing question exempts the claim)",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A3",
+  "why": "an envelope is dropped from context.collections",
+  "applied": true,
+  "verdict": "KILLED by architecture_collection_envelope_contract.mjs"
+ },
+ {
+  "id": "A4",
+  "why": "a collection total is derived from the array length instead of an exact count",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A5",
+  "why": "the minimum-safe-context post-trim assertion is removed",
+  "applied": true,
+  "verdict": "KILLED by architecture_context_budget_contract.mjs"
+ },
+ {
+  "id": "A6",
+  "why": "TRIM_ORDER is allowed to name a protected key",
+  "applied": true,
+  "verdict": "KILLED by architecture_context_budget_contract.mjs"
+ }
+]

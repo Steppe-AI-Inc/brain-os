@@ -1,0 +1,10 @@
+{
+ "suites": 77,
+ "ok": 75,
+ "bad": [
+  "factory_production_write_inventory.regression.test.mjs exit=1 [KNOWN ENV RED]",
+  "production_write_authority.regression.test.mjs exit=1 [KNOWN ENV RED]"
+ ],
+ "pa": 1766,
+ "fa": 0
+}

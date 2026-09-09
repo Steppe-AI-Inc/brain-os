@@ -1,0 +1,168 @@
+{
+ "MN loan verb \"<verb> хийнэ үү\"": {
+  "n": 120,
+  "shipped": 80,
+  "examples": [
+   "ACME-г unsubscribe хийнэ үү",
+   "ACME-г reschedule хийнэ үү",
+   "ACME-г terminate хийнэ үү",
+   "ACME-г unpublish хийнэ үү",
+   "ACME-г duplicate хийнэ үү",
+   "ACME-г unreserve хийнэ үү",
+   "ACME-г uninstall хийнэ үү",
+   "ACME-г subscribe хийнэ үү",
+   "ACME-г unsuspend хийнэ үү",
+   "ACME-г register хийнэ үү",
+   "ACME-г withdraw хийнэ үү",
+   "ACME-г rollback хийнэ үү"
+  ]
+ },
+ "MN loan verb \"<verb> хий\"": {
+  "n": 120,
+  "shipped": 80,
+  "examples": [
+   "ACME-г unsubscribe хий",
+   "ACME-г reschedule хий",
+   "ACME-г terminate хий",
+   "ACME-г unpublish хий",
+   "ACME-г duplicate хий",
+   "ACME-г unreserve хий",
+   "ACME-г uninstall хий",
+   "ACME-г subscribe хий",
+   "ACME-г unsuspend хий",
+   "ACME-г register хий",
+   "ACME-г withdraw хий",
+   "ACME-г rollback хий"
+  ]
+ },
+ "read-first, mutation-last: \"list ... and <verb> ACME\"": {
+  "n": 120,
+  "shipped": 90,
+  "examples": [
+   "list the companies and unsubscribe ACME",
+   "list the companies and reschedule ACME",
+   "list the companies and unpublish ACME",
+   "list the companies and duplicate ACME",
+   "list the companies and unreserve ACME",
+   "list the companies and uninstall ACME",
+   "list the companies and subscribe ACME",
+   "list the companies and unsuspend ACME",
+   "list the companies and register ACME",
+   "list the companies and complete ACME",
+   "list the companies and transfer ACME",
+   "list the companies and schedule ACME"
+  ]
+ },
+ "read-first, mutation-last: \"show me X, then <verb> ACME\"": {
+  "n": 120,
+  "shipped": 90,
+  "examples": [
+   "show me the report, then unsubscribe ACME",
+   "show me the report, then reschedule ACME",
+   "show me the report, then unpublish ACME",
+   "show me the report, then duplicate ACME",
+   "show me the report, then unreserve ACME",
+   "show me the report, then uninstall ACME",
+   "show me the report, then subscribe ACME",
+   "show me the report, then unsuspend ACME",
+   "show me the report, then register ACME",
+   "show me the report, then complete ACME",
+   "show me the report, then transfer ACME",
+   "show me the report, then schedule ACME"
+  ]
+ },
+ "bare imperative \"<verb> ACME\" (control)": {
+  "n": 120,
+  "shipped": 0,
+  "examples": []
+ },
+ "non-leading negation shapes": {
+  "n": 30,
+  "shipped": 25,
+  "examples": [
+   "make sure you do not archive ACME",
+   "make sure you do not restore ACME",
+   "make sure you do not delete ACME",
+   "make sure you do not promote ACME",
+   "make sure you do not suspend ACME",
+   "I said do not archive ACME",
+   "I said do not restore ACME",
+   "I said do not delete ACME",
+   "I said do not promote ACME",
+   "I said do not suspend ACME",
+   "never, ever archive ACME",
+   "never, ever restore ACME"
+  ]
+ },
+ "imperative object with 0 modifier(s), no determiner": {
+  "n": 5,
+  "shipped": 0,
+  "examples": []
+ },
+ "imperative object with 0 modifier(s), determiner": {
+  "n": 5,
+  "shipped": 0,
+  "examples": []
+ },
+ "imperative object with 1 modifier(s), no determiner": {
+  "n": 5,
+  "shipped": 0,
+  "examples": []
+ },
+ "imperative object with 1 modifier(s), determiner": {
+  "n": 5,
+  "shipped": 0,
+  "examples": []
+ },
+ "imperative object with 2 modifier(s), no determiner": {
+  "n": 5,
+  "shipped": 5,
+  "examples": [
+   "archive old stale work order WO-1",
+   "archive old stale task QA-1",
+   "archive old stale purchase approval A-1",
+   "archive old stale business unit Beta",
+   "archive old stale project Alpha"
+  ]
+ },
+ "imperative object with 2 modifier(s), determiner": {
+  "n": 5,
+  "shipped": 0,
+  "examples": []
+ },
+ "imperative object with 3 modifier(s), no determiner": {
+  "n": 5,
+  "shipped": 5,
+  "examples": [
+   "archive old stale expired work order WO-1",
+   "archive old stale expired task QA-1",
+   "archive old stale expired purchase approval A-1",
+   "archive old stale expired business unit Beta",
+   "archive old stale expired project Alpha"
+  ]
+ },
+ "imperative object with 3 modifier(s), determiner": {
+  "n": 5,
+  "shipped": 5,
+  "examples": [
+   "archive the old stale expired work order WO-1",
+   "archive the old stale expired task QA-1",
+   "archive the old stale expired purchase approval A-1",
+   "archive the old stale expired business unit Beta",
+   "archive the old stale expired project Alpha"
+  ]
+ },
+ "punctuation after the verb": {
+  "n": 7,
+  "shipped": 7,
+  "examples": [
+   "Archive: the work order WO-1",
+   "archive: the task QA-1",
+   "archive - the work order WO-1",
+   "Archive — the purchase approval A-1",
+   "archive; the task QA-1",
+   "archive... the work order WO-1",
+   "Archive: the old work order WO-1"
+  ]
+ }
+}

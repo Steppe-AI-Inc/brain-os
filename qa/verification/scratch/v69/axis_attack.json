@@ -1,0 +1,1380 @@
+{
+ "report": {
+  "verb_axis": {
+   "bare/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/acme": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/task": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/wo": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/bob": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/approval": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/quoted": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "bare/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "please/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "couldyou/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "canwe/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "then_list/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lead_clause/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "lower/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   },
+   "upper/lower_noun": {
+    "n": 120,
+    "bad": 0,
+    "examples": []
+   }
+  },
+  "modifier": {
+   "two_modifiers_no_determiner (must derive)": {
+    "n": 9,
+    "bad": 9,
+    "examples": [
+     {
+      "cmd": "archive old duplicate work order WO-1",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "old duplicate work order WO-1"
+      },
+      "note": ""
+     },
+     {
+      "cmd": "delete stale draft purchase approval A-1",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "stale draft purchase approval A-1"
+      },
+      "note": ""
+     },
+     {
+      "cmd": "archive expired engineering task QA-1",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "expired engineering task QA-1"
+      },
+      "note": ""
+     },
+     {
+      "cmd": "restore last quarter business unit Beta",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "last quarter business unit Beta"
+      },
+      "note": ""
+     },
+     {
+      "cmd": "archive old duplicate work order WO-1 and list the rest",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "old duplicate work order WO-1"
+      },
+      "note": ""
+     },
+     {
+      "cmd": "delete stale draft purchase approval A-1, then update me",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": "stale draft purchase approval A-1"
+      },
+      "note": ""
+     }
+    ]
+   },
+   "two_modifiers_with_determiner": {
+    "n": 2,
+    "bad": 0,
+    "examples": []
+   },
+   "one_modifier_read_headline (must NOT derive)": {
+    "n": 14,
+    "bad": 14,
+    "examples": [
+     {
+      "cmd": "Fire drill report for the department",
+      "intent": {
+       "verb": "fire",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Post mortem report for the project",
+      "intent": {
+       "verb": "post",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Order status report for the board",
+      "intent": {
+       "verb": "order",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Share price report for investors",
+      "intent": {
+       "verb": "share",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Issue log report for the team",
+      "intent": {
+       "verb": "issue",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Set piece budget for the project",
+      "intent": {
+       "verb": "set",
+       "field": null
+      },
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     }
+    ]
+   },
+   "v68_pins (must NOT derive)": {
+    "n": 6,
+    "bad": 0,
+    "examples": []
+   }
+  },
+  "punct": {
+   "punctuated_imperative (must derive)": {
+    "n": 21,
+    "bad": 1,
+    "examples": [
+     {
+      "cmd": "Archive: the work order WO-1",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": true,
+       "name": ": the work order WO-1"
+      },
+      "note": ""
+     }
+    ]
+   }
+  },
+  "negation": {
+   "non_leading_negation (intent must exist, executor must NOT act)": {
+    "n": 12,
+    "bad": 4,
+    "examples": [
+     {
+      "cmd": "I said do not promote Bob",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "never, ever archive ACME",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "ACME: do not restore",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "make sure you do not archive ACME",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     }
+    ]
+   },
+   "reasons": {
+    "ACME — do not archive it": "you asked me not to, so nothing was executed",
+    "please, never archive ACME": "you asked me not to, so nothing was executed",
+    "ok, do not archive ACME": "you asked me not to, so nothing was executed",
+    "archive Beta but do not archive ACME": "you asked me not to, so nothing was executed",
+    "restore Beta, but do not suspend ACME": "I could not resolve which company you meant (searched the active and archived companies you can access)",
+    "ok do not hire Bob": "that request did not resolve to an operation I can execute from chat",
+    "archive ACME — actually no, do not": "I could not resolve which company you meant (searched the active and archived companies you can access)",
+    "do NOT archive ACME": "you asked me not to, so nothing was executed"
+   },
+   "EXECUTED": [
+    "restore Beta, but do not suspend ACME"
+   ]
+  },
+  "multi_entity": {
+   "derives": {
+    "n": 7,
+    "bad": 0,
+    "examples": []
+   },
+   "archive task QA-1 and company ACME": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": false,
+    "asks": false,
+    "gate_name": "task QA-1",
+    "head": "archive"
+   },
+   "archive ACME and restore Beta": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "ACME",
+    "head": "archive"
+   },
+   "archive ACME and Beta": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "ACME",
+    "head": "archive"
+   },
+   "archive ACME and end Bob's employment": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "ACME",
+    "head": "archive"
+   },
+   "restore Beta and archive ACME": {
+    "intent": {
+     "verb": "restore",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "Beta",
+    "head": "restore"
+   },
+   "archive ACME, Nomin Holding": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "ACME, Nomin Holding",
+    "head": "archive"
+   },
+   "archive ACME and Nomin Holding": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": true,
+    "asks": false,
+    "gate_name": "ACME",
+    "head": "archive"
+   }
+  },
+  "mongolian": {
+   "mn_request (must derive)": {
+    "n": 11,
+    "bad": 6,
+    "examples": [
+     {
+      "cmd": "ACME-г fire хийнэ үү",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Bob-г hire хий",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "ACME-г suspend хийнэ үү",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "ACME-г terminate хий",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "Bob-г dismiss хийнэ үү",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     },
+     {
+      "cmd": "ACME-г split хийнэ үү",
+      "intent": null,
+      "executes": false,
+      "asks": false,
+      "gate": {
+       "allowed": false,
+       "name": null
+      },
+      "note": ""
+     }
+    ]
+   },
+   "mn_read (must NOT derive)": {
+    "n": 2,
+    "bad": 0,
+    "examples": []
+   }
+  },
+  "model_disagree": {
+   "archive ACME + model restoreCompanyIds": {
+    "gate_allowed": false,
+    "intent": {
+     "verb": "archive",
+     "field": "restoreCompanyIds"
+    },
+    "note": "executor takes the MODEL direction; command verb is archive"
+   },
+   "gate": {
+    "allowed": false,
+    "head": "archive",
+    "name": null,
+    "negated": false,
+    "question": false,
+    "readLead": false,
+    "imperative": true,
+    "mentionsCompany": false
+   },
+   "restore Beta + model archiveCompanyIds": {
+    "intent": {
+     "verb": "restore",
+     "field": "archiveCompanyIds"
+    }
+   },
+   "archive ACME + model kind:read": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": false
+   },
+   "read + model kind:mutation": {
+    "intent": {
+     "verb": "archive",
+     "field": null
+    },
+    "executes": false
+   }
+  },
+  "pluraliser": {
+   "work order": {
+    "entity": "work order",
+    "plural": "work orders",
+    "reason": "I could not resolve which work order you meant (searched the active and archived work orders you can access)"
+   },
+   "purchase order": {
+    "entity": "purchase order",
+    "plural": "purchase orders",
+    "reason": "I could not resolve which purchase order you meant (searched the active and archived purchase orders you can access)"
+   },
+   "business unit": {
+    "entity": "company",
+    "plural": "companies",
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "chat channel": {
+    "entity": "chat channel",
+    "plural": "chat channels",
+    "reason": "I could not resolve which chat channel you meant (searched the active and archived chat channels you can access)"
+   },
+   "software spec": {
+    "entity": "software spec",
+    "plural": "software specs",
+    "reason": "I could not resolve which software spec you meant (searched the active and archived software specs you can access)"
+   },
+   "product line": {
+    "entity": "product line",
+    "plural": "product lines",
+    "reason": "I could not resolve which product line you meant (searched the active and archived product lines you can access)"
+   },
+   "product spec": {
+    "entity": "product spec",
+    "plural": "product specs",
+    "reason": "I could not resolve which product spec you meant (searched the active and archived product specs you can access)"
+   },
+   "engineering drawing": {
+    "entity": "engineering drawing",
+    "plural": "engineering drawings",
+    "reason": "I could not resolve which engineering drawing you meant (searched the active and archived engineering drawings you can access)"
+   },
+   "technical drawing": {
+    "entity": "technical drawing",
+    "plural": "technical drawings",
+    "reason": "I could not resolve which technical drawing you meant (searched the active and archived technical drawings you can access)"
+   },
+   "onboarding plan": {
+    "entity": "onboarding plan",
+    "plural": "onboarding plans",
+    "reason": "I could not resolve which onboarding plan you meant (searched the active and archived onboarding plans you can access)"
+   },
+   "purchase approval": {
+    "entity": "purchase approval",
+    "plural": "purchase approvals",
+    "reason": "I could not resolve which purchase approval you meant (searched the active and archived purchase approvals you can access)"
+   },
+   "work item": {
+    "entity": "work item",
+    "plural": "work items",
+    "reason": "I could not resolve which work item you meant (searched the active and archived work items you can access)"
+   },
+   "company": {
+    "entity": "company",
+    "plural": "companies",
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "ies": {
+    "entity": null,
+    "plural": null,
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "business": {
+    "entity": "company",
+    "plural": "companies",
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "organisation": {
+    "entity": "company",
+    "plural": "companies",
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "organization": {
+    "entity": "company",
+    "plural": "companies",
+    "reason": "I could not resolve which company you meant (searched the active and archived companies you can access)"
+   },
+   "person": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "people": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "employee": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "staff": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "manager": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "owner": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "task": {
+    "entity": "task",
+    "plural": "tasks",
+    "reason": "I could not resolve which task you meant (searched the active and archived tasks you can access)"
+   },
+   "goal": {
+    "entity": "goal",
+    "plural": "goals",
+    "reason": "I could not resolve which goal you meant (searched the active and archived goals you can access)"
+   },
+   "project": {
+    "entity": "project",
+    "plural": "projects",
+    "reason": "I could not resolve which project you meant (searched the active and archived projects you can access)"
+   },
+   "department": {
+    "entity": "department",
+    "plural": "departments",
+    "reason": "I could not resolve which department you meant (searched the active and archived departments you can access)"
+   },
+   "lead": {
+    "entity": "lead",
+    "plural": "leads",
+    "reason": "I could not resolve which lead you meant (searched the active and archived leads you can access)"
+   },
+   "document": {
+    "entity": "document",
+    "plural": "documents",
+    "reason": "I could not resolve which document you meant (searched the active and archived documents you can access)"
+   },
+   "proposal": {
+    "entity": "proposal",
+    "plural": "proposals",
+    "reason": "I could not resolve which proposal you meant (searched the active and archived proposals you can access)"
+   },
+   "product": {
+    "entity": "product",
+    "plural": "products",
+    "reason": "I could not resolve which product you meant (searched the active and archived products you can access)"
+   },
+   "spec": {
+    "entity": "spec",
+    "plural": "specs",
+    "reason": "I could not resolve which spec you meant (searched the active and archived specs you can access)"
+   },
+   "drawing": {
+    "entity": "drawing",
+    "plural": "drawings",
+    "reason": "I could not resolve which drawing you meant (searched the active and archived drawings you can access)"
+   },
+   "approval": {
+    "entity": "approval",
+    "plural": "approvals",
+    "reason": "I could not resolve which approval you meant (searched the active and archived approvals you can access)"
+   },
+   "channel": {
+    "entity": "channel",
+    "plural": "channels",
+    "reason": "I could not resolve which channel you meant (searched the active and archived channels you can access)"
+   },
+   "team": {
+    "entity": "team",
+    "plural": "teams",
+    "reason": "I could not resolve which team you meant (searched the active and archived teams you can access)"
+   },
+   "role": {
+    "entity": "role",
+    "plural": "roles",
+    "reason": "I could not resolve which role you meant (searched the active and archived roles you can access)"
+   },
+   "employment": {
+    "entity": "employment",
+    "plural": "employments",
+    "reason": "I could not resolve which employment you meant (searched the active and archived employments you can access)"
+   },
+   "assignment": {
+    "entity": "assignment",
+    "plural": "assignments",
+    "reason": "I could not resolve which assignment you meant (searched the active and archived assignments you can access)"
+   },
+   "contract": {
+    "entity": "contract",
+    "plural": "contracts",
+    "reason": "I could not resolve which contract you meant (searched the active and archived contracts you can access)"
+   },
+   "ticket": {
+    "entity": "ticket",
+    "plural": "tickets",
+    "reason": "I could not resolve which ticket you meant (searched the active and archived tickets you can access)"
+   },
+   "invoice": {
+    "entity": "invoice",
+    "plural": "invoices",
+    "reason": "I could not resolve which invoice you meant (searched the active and archived invoices you can access)"
+   },
+   "report": {
+    "entity": "report",
+    "plural": "reports",
+    "reason": "I could not resolve which report you meant (searched the active and archived reports you can access)"
+   },
+   "order": {
+    "entity": "work order",
+    "plural": "work orders",
+    "reason": "I could not resolve which work order you meant (searched the active and archived work orders you can access)"
+   },
+   "memory": {
+    "entity": "memory",
+    "plural": "memories",
+    "reason": "I could not resolve which memory you meant (searched the active and archived memories you can access)"
+   },
+   "note": {
+    "entity": "note",
+    "plural": "notes",
+    "reason": "I could not resolve which note you meant (searched the active and archived notes you can access)"
+   },
+   "agent": {
+    "entity": "agent",
+    "plural": "agents",
+    "reason": "I could not resolve which agent you meant (searched the active and archived agents you can access)"
+   },
+   "connector": {
+    "entity": "connector",
+    "plural": "connectors",
+    "reason": "I could not resolve which connector you meant (searched the active and archived connectors you can access)"
+   },
+   "provider": {
+    "entity": "provider",
+    "plural": "providers",
+    "reason": "I could not resolve which provider you meant (searched the active and archived providers you can access)"
+   },
+   "user": {
+    "entity": "person",
+    "plural": "people",
+    "reason": "I could not resolve which person you meant (searched the active and archived people you can access)"
+   },
+   "account": {
+    "entity": "account",
+    "plural": "accounts",
+    "reason": "I could not resolve which account you meant (searched the active and archived accounts you can access)"
+   },
+   "workspace": {
+    "entity": "workspace",
+    "plural": "workspaces",
+    "reason": "I could not resolve which workspace you meant (searched the active and archived workspaces you can access)"
+   },
+   "record": {
+    "entity": "record",
+    "plural": "records",
+    "reason": "I could not resolve which record you meant (searched the active and archived records you can access)"
+   },
+   "entry": {
+    "entity": "entry",
+    "plural": "entries",
+    "reason": "I could not resolve which entry you meant (searched the active and archived entries you can access)"
+   },
+   "row": {
+    "entity": "row",
+    "plural": "rows",
+    "reason": "I could not resolve which row you meant (searched the active and archived rows you can access)"
+   },
+   "item": {
+    "entity": "item",
+    "plural": "items",
+    "reason": "I could not resolve which item you meant (searched the active and archived items you can access)"
+   },
+   "file": {
+    "entity": "file",
+    "plural": "files",
+    "reason": "I could not resolve which file you meant (searched the active and archived files you can access)"
+   },
+   "access": {
+    "entity": "access",
+    "plural": "access",
+    "reason": "I could not resolve which access you meant (searched the active and archived access you can access)"
+   },
+   "permission": {
+    "entity": "permission",
+    "plural": "permissions",
+    "reason": "I could not resolve which permission you meant (searched the active and archived permissions you can access)"
+   },
+   "permissions": {
+    "entity": "permission",
+    "plural": "permissions",
+    "reason": "I could not resolve which permission you meant (searched the active and archived permissions you can access)"
+   },
+   "invitation": {
+    "entity": "invitation",
+    "plural": "invitations",
+    "reason": "I could not resolve which invitation you meant (searched the active and archived invitations you can access)"
+   },
+   "invitations": {
+    "entity": "invitation",
+    "plural": "invitations",
+    "reason": "I could not resolve which invitation you meant (searched the active and archived invitations you can access)"
+   },
+   "invite": {
+    "entity": "invite",
+    "plural": "invites",
+    "reason": "I could not resolve which invite you meant (searched the active and archived invites you can access)"
+   },
+   "invites": {
+    "entity": "invite",
+    "plural": "invites",
+    "reason": "I could not resolve which invite you meant (searched the active and archived invites you can access)"
+   },
+   "membership": {
+    "entity": "membership",
+    "plural": "memberships",
+    "reason": "I could not resolve which membership you meant (searched the active and archived memberships you can access)"
+   },
+   "subscription": {
+    "entity": "subscription",
+    "plural": "subscriptions",
+    "reason": "I could not resolve which subscription you meant (searched the active and archived subscriptions you can access)"
+   },
+   "subscriptions": {
+    "entity": "subscription",
+    "plural": "subscriptions",
+    "reason": "I could not resolve which subscription you meant (searched the active and archived subscriptions you can access)"
+   },
+   "notification": {
+    "entity": "notification",
+    "plural": "notifications",
+    "reason": "I could not resolve which notification you meant (searched the active and archived notifications you can access)"
+   },
+   "notifications": {
+    "entity": "notification",
+    "plural": "notifications",
+    "reason": "I could not resolve which notification you meant (searched the active and archived notifications you can access)"
+   },
+   "reminder": {
+    "entity": "reminder",
+    "plural": "reminders",
+    "reason": "I could not resolve which reminder you meant (searched the active and archived reminders you can access)"
+   },
+   "reminders": {
+    "entity": "reminder",
+    "plural": "reminders",
+    "reason": "I could not resolve which reminder you meant (searched the active and archived reminders you can access)"
+   },
+   "deadline": {
+    "entity": "deadline",
+    "plural": "deadlines",
+    "reason": "I could not resolve which deadline you meant (searched the active and archived deadlines you can access)"
+   },
+   "deadlines": {
+    "entity": "deadline",
+    "plural": "deadlines",
+    "reason": "I could not resolve which deadline you meant (searched the active and archived deadlines you can access)"
+   },
+   "priority": {
+    "entity": "priority",
+    "plural": "priorities",
+    "reason": "I could not resolve which priority you meant (searched the active and archived priorities you can access)"
+   },
+   "status": {
+    "entity": "statu",
+    "plural": "status",
+    "reason": "I could not resolve which statu you meant (searched the active and archived status you can access)"
+   },
+   "title": {
+    "entity": "title",
+    "plural": "titles",
+    "reason": "I could not resolve which title you meant (searched the active and archived titles you can access)"
+   },
+   "titles": {
+    "entity": "title",
+    "plural": "titles",
+    "reason": "I could not resolve which title you meant (searched the active and archived titles you can access)"
+   },
+   "name": {
+    "entity": "name",
+    "plural": "names",
+    "reason": "I could not resolve which name you meant (searched the active and archived names you can access)"
+   },
+   "names": {
+    "entity": "name",
+    "plural": "names",
+    "reason": "I could not resolve which name you meant (searched the active and archived names you can access)"
+   },
+   "description": {
+    "entity": "description",
+    "plural": "descriptions",
+    "reason": "I could not resolve which description you meant (searched the active and archived descriptions you can access)"
+   },
+   "descriptions": {
+    "entity": "description",
+    "plural": "descriptions",
+    "reason": "I could not resolve which description you meant (searched the active and archived descriptions you can access)"
+   },
+   "budget": {
+    "entity": "budget",
+    "plural": "budgets",
+    "reason": "I could not resolve which budget you meant (searched the active and archived budgets you can access)"
+   },
+   "budgets": {
+    "entity": "budget",
+    "plural": "budgets",
+    "reason": "I could not resolve which budget you meant (searched the active and archived budgets you can access)"
+   },
+   "price": {
+    "entity": "price",
+    "plural": "prices",
+    "reason": "I could not resolve which price you meant (searched the active and archived prices you can access)"
+   },
+   "prices": {
+    "entity": "price",
+    "plural": "prices",
+    "reason": "I could not resolve which price you meant (searched the active and archived prices you can access)"
+   },
+   "stage": {
+    "entity": "stage",
+    "plural": "stages",
+    "reason": "I could not resolve which stage you meant (searched the active and archived stages you can access)"
+   },
+   "stages": {
+    "entity": "stage",
+    "plural": "stages",
+    "reason": "I could not resolve which stage you meant (searched the active and archived stages you can access)"
+   },
+   "value": {
+    "entity": "value",
+    "plural": "values",
+    "reason": "I could not resolve which value you meant (searched the active and archived values you can access)"
+   },
+   "values": {
+    "entity": "value",
+    "plural": "values",
+    "reason": "I could not resolve which value you meant (searched the active and archived values you can access)"
+   },
+   "email": {
+    "entity": "email",
+    "plural": "emails",
+    "reason": "I could not resolve which email you meant (searched the active and archived emails you can access)"
+   },
+   "emails": {
+    "entity": "email",
+    "plural": "emails",
+    "reason": "I could not resolve which email you meant (searched the active and archived emails you can access)"
+   },
+   "phone": {
+    "entity": "phone",
+    "plural": "phones",
+    "reason": "I could not resolve which phone you meant (searched the active and archived phones you can access)"
+   },
+   "phones": {
+    "entity": "phone",
+    "plural": "phones",
+    "reason": "I could not resolve which phone you meant (searched the active and archived phones you can access)"
+   },
+   "addresse": {
+    "entity": "addresse",
+    "plural": "addresses",
+    "reason": "I could not resolve which addresse you meant (searched the active and archived addresses you can access)"
+   },
+   "addresses": {
+    "entity": "addresse",
+    "plural": "addresses",
+    "reason": "I could not resolve which addresse you meant (searched the active and archived addresses you can access)"
+   },
+   "label": {
+    "entity": "label",
+    "plural": "labels",
+    "reason": "I could not resolve which label you meant (searched the active and archived labels you can access)"
+   },
+   "labels": {
+    "entity": "label",
+    "plural": "labels",
+    "reason": "I could not resolve which label you meant (searched the active and archived labels you can access)"
+   },
+   "tag": {
+    "entity": "tag",
+    "plural": "tags",
+    "reason": "I could not resolve which tag you meant (searched the active and archived tags you can access)"
+   },
+   "tags": {
+    "entity": "tag",
+    "plural": "tags",
+    "reason": "I could not resolve which tag you meant (searched the active and archived tags you can access)"
+   },
+   "category": {
+    "entity": "category",
+    "plural": "categories",
+    "reason": "I could not resolve which category you meant (searched the active and archived categories you can access)"
+   },
+   "shift": {
+    "entity": "shift",
+    "plural": "shifts",
+    "reason": "I could not resolve which shift you meant (searched the active and archived shifts you can access)"
+   },
+   "shifts": {
+    "entity": "shift",
+    "plural": "shifts",
+    "reason": "I could not resolve which shift you meant (searched the active and archived shifts you can access)"
+   }
+  },
+  "pluraliser_defects": [
+   {
+    "noun": "access",
+    "entity": "access",
+    "plural": "access",
+    "reason": "I could not resolve which access you meant (searched the active and archived access you can access)"
+   },
+   {
+    "noun": "status",
+    "entity": "statu",
+    "plural": "status",
+    "reason": "I could not resolve which statu you meant (searched the active and archived status you can access)"
+   },
+   {
+    "noun": "addresse",
+    "entity": "addresse",
+    "plural": "addresses",
+    "reason": "I could not resolve which addresse you meant (searched the active and archived addresses you can access)"
+   },
+   {
+    "noun": "addresses",
+    "entity": "addresse",
+    "plural": "addresses",
+    "reason": "I could not resolve which addresse you meant (searched the active and archived addresses you can access)"
+   }
+  ]
+ },
+ "shipList": [
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "archive old duplicate work order WO-1"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "delete stale draft purchase approval A-1"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "archive expired engineering task QA-1"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "restore last quarter business unit Beta"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "archive old duplicate work order WO-1 and list the rest"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "delete stale draft purchase approval A-1, then update me"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "please archive old duplicate work order WO-1"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "archive dead legacy project Alpha"
+  },
+  {
+   "bucket": "modifier",
+   "key": "two_modifiers_no_determiner (must derive)",
+   "cmd": "end former contractor employment for Bob"
+  },
+  {
+   "bucket": "punct",
+   "key": "punctuated_imperative (must derive)",
+   "cmd": "Archive: the work order WO-1"
+  },
+  {
+   "bucket": "negation",
+   "key": "non_leading_negation (intent must exist, executor must NOT act)",
+   "cmd": "I said do not promote Bob"
+  },
+  {
+   "bucket": "negation",
+   "key": "non_leading_negation (intent must exist, executor must NOT act)",
+   "cmd": "never, ever archive ACME"
+  },
+  {
+   "bucket": "negation",
+   "key": "non_leading_negation (intent must exist, executor must NOT act)",
+   "cmd": "ACME: do not restore"
+  },
+  {
+   "bucket": "negation",
+   "key": "non_leading_negation (intent must exist, executor must NOT act)",
+   "cmd": "make sure you do not archive ACME"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "ACME-г fire хийнэ үү"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "Bob-г hire хий"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "ACME-г suspend хийнэ үү"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "ACME-г terminate хий"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "Bob-г dismiss хийнэ үү"
+  },
+  {
+   "bucket": "mongolian",
+   "key": "mn_request (must derive)",
+   "cmd": "ACME-г split хийнэ үү"
+  }
+ ]
+}

@@ -1,0 +1,684 @@
+{
+ "fabrication_ships": [
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive expired engineering task QA-1",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive expired engineering task QA-1",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive expired engineering task QA-1",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive expired engineering task QA-1",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive expired engineering task QA-1",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "restore last quarter business unit Beta",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "restore last quarter business unit Beta",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "restore last quarter business unit Beta",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "restore last quarter business unit Beta",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "restore last quarter business unit Beta",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1 and list the rest",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1 and list the rest",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1 and list the rest",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1 and list the rest",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive old duplicate work order WO-1 and list the rest",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1, then update me",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1, then update me",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1, then update me",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1, then update me",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "delete stale draft purchase approval A-1, then update me",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "please archive old duplicate work order WO-1",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "please archive old duplicate work order WO-1",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "please archive old duplicate work order WO-1",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "please archive old duplicate work order WO-1",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "please archive old duplicate work order WO-1",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive dead legacy project Alpha",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive dead legacy project Alpha",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive dead legacy project Alpha",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive dead legacy project Alpha",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "archive dead legacy project Alpha",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "end former contractor employment for Bob",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "end former contractor employment for Bob",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "end former contractor employment for Bob",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "end former contractor employment for Bob",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "modifier",
+   "cmd": "end former contractor employment for Bob",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "punct",
+   "cmd": "Archive: the work order WO-1",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "punct",
+   "cmd": "Archive: the work order WO-1",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "punct",
+   "cmd": "Archive: the work order WO-1",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "punct",
+   "cmd": "Archive: the work order WO-1",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "punct",
+   "cmd": "Archive: the work order WO-1",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "I said do not promote Bob",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "I said do not promote Bob",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "I said do not promote Bob",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "I said do not promote Bob",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "I said do not promote Bob",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "never, ever archive ACME",
+   "shipped": "Done — archived.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "never, ever archive ACME",
+   "shipped": "The work order has been archived successfully.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "never, ever archive ACME",
+   "shipped": "Archived. Anything else?",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "never, ever archive ACME",
+   "shipped": "I have deleted it.",
+   "receiptRendered": false
+  },
+  {
+   "bucket": "negation",
+   "cmd": "never, ever archive ACME",
+   "shipped": "Restored — it is active again.",
+   "receiptRendered": false
+  }
+ ],
+ "read_destroyed": [
+  {
+   "cmd": "Fire drill report for the department",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Fire drill report for the department",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Fire drill report for the department",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Fire drill report for the department",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Fire drill report for the department",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post mortem report for the project",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post mortem report for the project",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post mortem report for the project",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post mortem report for the project",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post mortem report for the project",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order status report for the board",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order status report for the board",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order status report for the board",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order status report for the board",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order status report for the board",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Share price report for investors",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Share price report for investors",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Share price report for investors",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Share price report for investors",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Share price report for investors",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Issue log report for the team",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Issue log report for the team",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Issue log report for the team",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Issue log report for the team",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Issue log report for the team",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Set piece budget for the project",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Set piece budget for the project",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Set piece budget for the project",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Set piece budget for the project",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Set piece budget for the project",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order book status for Q3",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order book status for Q3",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order book status for Q3",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order book status for Q3",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Order book status for Q3",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post launch project review",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post launch project review",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post launch project review",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post launch project review",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Post launch project review",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Close call report from the site",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Close call report from the site",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Close call report from the site",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Close call report from the site",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Close call report from the site",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Transfer pricing document for Q3",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Transfer pricing document for Q3",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Transfer pricing document for Q3",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Transfer pricing document for Q3",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Transfer pricing document for Q3",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Split shift schedule for the team",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Split shift schedule for the team",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Split shift schedule for the team",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Split shift schedule for the team",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Split shift schedule for the team",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Merge conflict report for the project",
+   "answer": "Here is what I have: the drill was completed on 3 March and the report was filed the same day.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Merge conflict report for the project",
+   "answer": "The department has three open items. Two were closed last week; nothing was changed today.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Merge conflict report for the project",
+   "answer": "Nothing has been archived in that area this quarter.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Merge conflict report for the project",
+   "answer": "The last review was created in June and updated in July.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  },
+  {
+   "cmd": "Merge conflict report for the project",
+   "answer": "I do not have that document. Nothing was deleted — it was never uploaded.",
+   "became": "No change was made — that request did not resolve to an operation I can execute from chat."
+  }
+ ],
+ "counts": {
+  "fabrication": {
+   "n": 100,
+   "shipped": 100
+  },
+  "control": {
+   "n": 35,
+   "shipped": 0
+  },
+  "read": {
+   "n": 70,
+   "destroyed": 70
+  },
+  "v68_pins": {
+   "n": 30,
+   "destroyed": 0
+  }
+ }
+}

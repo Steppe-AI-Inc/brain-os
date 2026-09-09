@@ -1,0 +1,25 @@
+KILLED   M1 V60-D8 an array added to the pack as an expression carries no envelope  [architecture_collection_envelope_contract.mjs]
+KILLED   M2 V60-D2 the row named this turn is merged at the tail again  [architecture_context_budget_contract.mjs]
+KILLED   M3 V60-D1 the harder trim passes are removed  [architecture_context_budget_contract.mjs]
+KILLED   M4 V60-D5 the loop measures a different object shape than the preflight  [architecture_context_budget_contract.mjs]
+KILLED   M5 V60-D3 the model can veto the request lexicon again  [v60_regression_additions.mjs]
+KILLED   M6 V60-D4 the imperative-position tier is removed  [v60_regression_additions.mjs]
+KILLED   M7 V60-D7 the plan path records a verified envelope from its own status word  [architecture_mutation_envelope_contract.mjs]
+KILLED   M8 V60-D1 residual: the whole-request refusal goes back to an opaque hard stop  [request_gate_inventory_contract.mjs]
+KILLED   M9 the minimum safe context loses its post-trim assertion  [architecture_context_budget_contract.mjs]
+KILLED   M10 V61-D1 conversationHistory is pinned above zero again  [v61_regression_additions.mjs]
+KILLED   M11 V61-D1 the history row is unbounded again  [architecture_context_budget_contract.mjs]
+KILLED   M12 V61-D2 the named-this-turn rows lose their protection  [architecture_context_budget_contract.mjs]
+KILLED   M13 V61-D6 the Mongolian tier drops its verb-final requirement  [v61_budget_intent_language_contract.mjs]
+KILLED   M14 V61-D6 the Mongolian tier drops its morphology test  [v61_regression_additions.mjs]
+SURVIVED (no-op) M15 V61-D7 the imperative tier drops its object test
+SURVIVED (no-op) M16 V61-D7 the imperative tier drops only its finite-verb test
+KILLED   M17 V61-D8 a postcondition read fails open again  [v61_regression_additions.mjs]
+KILLED   M18 V61-D9 the plan postcondition comes from the write own return again  [architecture_mutation_envelope_contract.mjs]
+KILLED   M19 V61-D3 counts emits a second shown envelope again  [v61_regression_additions.mjs]
+
+candidate index.ts unchanged: true  (006a0c3feeb5)
+mutation proof: 17 killed, 2 survived
+  SURVIVED: M15 V61-D7 the imperative tier drops its object test [MUTATION DID NOT APPLY — anchor missing]
+  SURVIVED: M16 V61-D7 the imperative tier drops only its finite-verb test [MUTATION DID NOT APPLY — anchor missing]
+

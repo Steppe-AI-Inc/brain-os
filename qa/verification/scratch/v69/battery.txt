@@ -1,0 +1,129 @@
+SUITE                                                         EXIT  PASS  FAIL  MS
+_authority_test_selfcheck.mjs                                 0     0     0     60     
+_gate_extract.mjs                                             0     0     0     59       <<< PROBLEM
+agent_run_guard_covers_claim_returns.mjs                      0     0     0     60     
+architecture_archived_parent_policy_contract.mjs              0     15    0     106    
+architecture_collection_envelope_contract.mjs                 0     84    0     66     
+architecture_context_budget_contract.mjs                      0     38    0     158    
+architecture_final_claim_contract.mjs                         0     51    0     203    
+architecture_impact_registry_contract.mjs                     0     17    0     61     
+architecture_lifecycle_rpc_only_contract.mjs                  0     31    0     80     
+architecture_mutation_envelope_contract.mjs                   0     39    0     72     
+architecture_org_scope_helper_contract.mjs                    0     7     0     110    
+belt_generative_adversarial_contract.mjs                      0     25    0     243    
+chat_channel_state_trusted_columns_contract.mjs               0     0     0     61     
+claim_segmentation_and_present_tense_fp.mjs                   0     0     0     56     
+company_lifecycle_matrix.mjs                                  0     31    0     93     
+company_ref_no_bare_name_join.mjs                             0     0     0     133    
+concept_duplication_ratchet_contract.mjs                      0     9     0     73     
+context_scoped_mutation_gates_contract.mjs                    0     11    0     70     
+current_turn_and_continuity_contract.mjs                      0     0     0     70     
+d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs0     0     0     58     
+entity_signal_positive_contract.mjs                           0     5     0     97     
+extractor_line_ending_contract.mjs                            0     7     0     61     
+factory_production_write_inventory.regression.test.mjs        1     0     0     97       <<< PROBLEM
+function_redefinition_preserves_ancestor_guards.mjs           0     0     0     69     
+grounding_precedence_canonical_over_history.mjs               0     18    0     64     
+issue5_confirmation_action_type_binding.mjs                   0     0     0     63     
+lifecycle_evidence_and_output_persistence_contract.mjs        0     0     0     144    
+manager_set_ui_canonical_write.mjs                            0     0     0     58     
+messaging_transport_binding_agreement_contract.mjs            0     0     0     67     
+mixed_claim_grounding.mjs                                     0     0     0     59     
+mutation_receipt_equals_ledger.mjs                            0     14    0     77     
+mutation_sweep_safety_contract.mjs                            0     52    0     66     
+named_targets_shape_contract.mjs                              0     8     0     69     
+org_selector_scoping_coverage.mjs                             0     0     0     67     
+past_completion_gate_behavior.mjs                             0     0     0     60     
+per_resource_grounding_contract.mjs                           0     0     0     53     
+production_write_authority.regression.test.mjs                1     0     0     4289     <<< PROBLEM
+provenance_survives_trim_contract.mjs                         0     10    0     66     
+readsAsCompletion_no_literal_semicolon_contract.mjs           0     4     0     60     
+request_gate_inventory_contract.mjs                           0     32    0     202    
+run10_defect_closure_contract.mjs                             0     0     0     183    
+run11_defect_closure_contract.mjs                             0     0     0     178    
+run12_defect_closure_contract.mjs                             0     0     0     185    
+run13_defect_closure_contract.mjs                             0     0     0     177    
+run14_defect_closure_contract.mjs                             0     0     0     192    
+run15_defect_closure_contract.mjs                             0     0     0     151    
+run16_defect_closure_contract.mjs                             0     0     0     118    
+run17_defect_closure_contract.mjs                             0     0     0     125    
+run18_defect_closure_contract.mjs                             0     0     0     118    
+run19_defect_closure_contract.mjs                             0     62    0     132    
+run28_defect_closure_contract.mjs                             0     117   0     174    
+run8_defect_closure_contract.mjs                              0     0     0     161    
+sem_ai_command_company_restore_truth.mjs                      0     0     0     64     
+sem_ai_command_confirmation_truth.mjs                         0     0     0     58     
+sem_ai_command_execution_plan_truth.mjs                       0     0     0     55     
+sem_ai_command_factory_verification_selection.mjs             0     0     0     67     
+sem_ai_command_named_person_lookup_truth.mjs                  0     0     0     56     
+sem_ai_command_past_completion_claim_regex.mjs                0     13    0     55     
+sem_ai_command_source_invariants_drift_guard.mjs              0     13    0     72     
+shared_contract_mirror_contract.mjs                           0     9     0     59     
+standing_reds_classification_contract.mjs                     0     0     0     122    
+structured_claim_laundering_contract.mjs                      0     0     0     160    
+structured_claim_verification.mjs                             0     0     0     159    
+tdz_forward_reference_contract.mjs                            0     9     0     154    
+v56_intent_lifecycle_contract.mjs                             0     129   0     227    
+v57_intent_other_veto_contract.mjs                            0     306   0     300    
+v58_lifecycle_window_and_imperative_contract.mjs              0     48    0     182    
+v59_intent_fallback_tier_contract.mjs                         0     88    0     303    
+v60_budget_intent_and_plan_evidence_contract.mjs              0     22    0     341    
+v61_budget_intent_language_contract.mjs                       0     25    0     438    
+v62_provenance_language_and_limits_contract.mjs               0     25    0     556    
+v63_intent_coverage_and_caps_contract.mjs                     0     32    0     298    
+v64_shared_frames_and_gate_pairs_contract.mjs                 0     74    0     231    
+v65_request_frame_tiers_contract.mjs                          0     105   0     245    
+v66_object_shape_tiers_contract.mjs                           0     71    0     317    
+v67_entity_reference_contract.mjs                             0     23    0     456    
+v68_clause_and_vocabulary_contract.mjs                        0     13    0     236    
+v92_open_regression_contract.mjs                              0     28    0     117    
+v92_parity_contract.mjs                                       0     46    0     134    
+
+TOTAL SUITES=79  PROBLEM=3
+
+=== PROBLEM DETAIL ===
+--- _gate_extract.mjs exit=0 empty=true
+    
+--- factory_production_write_inventory.regression.test.mjs exit=1 empty=false
+        operator: 'deepStrictEqual', |     diff: 'simple' |   }
+--- production_write_authority.regression.test.mjs exit=1 empty=false
+     | (node:3088) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where the warning was created)
+
+=== SUITES PRINTING NO PASS TOTALS (possible vacuity) ===
+  _authority_test_selfcheck.mjs exit=0  tail: Vercel "[REDACTED]" placeholder        : REDACTED |  | SELF-CHECK PASS — the detector finds real key shapes and does not cry wolf on a redaction.
+  _gate_extract.mjs exit=0  tail: 
+  agent_run_guard_covers_claim_returns.mjs exit=0  tail: OK   the guard function is not PUBLIC-executable (A-6 class) |  | agent_run_guard_covers_claim_returns: guard list covers the claim (returned: id, canonical_wor
+  chat_channel_state_trusted_columns_contract.mjs exit=0  tail: OK   A10.shapeGuard                                 [DEFECT] R-A10: `create table if not exists` cannot silently adopt a differently-shaped table |  | chat_chan
+  claim_segmentation_and_present_tense_fp.mjs exit=0  tail: claim_segmentation_and_present_tense_fp: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  company_ref_no_bare_name_join.mjs exit=0  tail: OK   every ArchivedCompanyBadge is fed a real .status expression, never a literal |  | company_ref_no_bare_name_join: 8/8 passed  (canonical joins: 30)
+  current_turn_and_continuity_contract.mjs exit=0  tail: OK   last_successful_mutation comes from backend evidence, never prose |  | current_turn_and_continuity_contract: 17/17 passed
+  d3_past_completion_gate_not_shortcircuited_by_pending_action.mjs exit=0  tail: d3_past_completion_gate_not_shortcircuited_by_pending_action: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  factory_production_write_inventory.regression.test.mjs exit=1  tail:     operator: 'deepStrictEqual', |     diff: 'simple' |   }
+  function_redefinition_preserves_ancestor_guards.mjs exit=0  tail: function_redefinition_preserves_ancestor_guards: 81 migrations, 28 redefinitions, 29 ancestor guards checked, 0 silently dropped
+  issue5_confirmation_action_type_binding.mjs exit=0  tail:   -> resolves to undefined  <-- refuses, falls through to the LLM path |  | issue5 REAL resolveClarificationField (extracted from index.ts): 10/10 agree with th
+  lifecycle_evidence_and_output_persistence_contract.mjs exit=0  tail:  | lifecycle_evidence_and_output_persistence_contract: 94/94 contract checks passed, 11/11 section-X cases match the recorded baseline | DEPLOY GATE: 0 open #67
+  manager_set_ui_canonical_write.mjs exit=0  tail: OK   the People table actually wires the control to this action |  | manager_set_ui_canonical_write: 6/6 passed
+  messaging_transport_binding_agreement_contract.mjs exit=0  tail: OK   C7.queueIndexes                    [DEFECT] R-C7: the queue’s own drain path and its FK to chat_channels are indexed |  | messaging_transport_binding_agree
+  mixed_claim_grounding.mjs exit=0  tail: mixed_claim_grounding: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  org_selector_scoping_coverage.mjs exit=0  tail: OK   scoped readers exist in bulk (>= 15) |  | org_selector_scoping_coverage: 5/5 passed  (scoped readers: 18)
+  past_completion_gate_behavior.mjs exit=0  tail: past_completion_gate_behavior: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  per_resource_grounding_contract.mjs exit=0  tail: per_resource_grounding_contract: SUPERSEDED (prose-era). See structured_claim_verification.mjs.
+  production_write_authority.regression.test.mjs exit=1  tail:  | (node:3088) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are n
+  run10_defect_closure_contract.mjs exit=0  tail: OK   EMULTI.legit-hold      [CONTRACT] ordinary prose containing the word executing in a non-claim shape is untouched |  | v10_regression_additions: 43 pass, 0 
+  run11_defect_closure_contract.mjs exit=0  tail: OK   D88.preserves.longer       [CONTRACT] the same, with a longer trailing question |  | v11_regression_additions: 50 pass, 0 fail (0 open #71 defects reproduc
+  run12_defect_closure_contract.mjs exit=0  tail: OK   D94.hold.legit.4               [CONTRACT] ordinary prose whose gerund opens the clause is untouched (deployed v92 shows it to the founder) |  | v12_regress
+  run13_defect_closure_contract.mjs exit=0  tail: OK   D103.hold.numbered               [CONTRACT] the D95 property still holds (re-pinned run15/D119): two in-context options with colliding canonical names rend
+  run14_defect_closure_contract.mjs exit=0  tail: OK   D110.collidingFallbacksAreStillNumbered [CONTRACT] D110: colliding typed fallbacks are still numbered uniquely (run12/D95 + run13/D103a hold) |  | run14_de
+  run15_defect_closure_contract.mjs exit=0  tail: OK   V15.emptyLabelNeverBlanksTheOption         [CONTRACT] run9/D72: a refused label falls back to a derived reference, never an empty string |  | run15_defect_
+  run16_defect_closure_contract.mjs exit=0  tail: OK   D126.freshCreateLabelStillResolves                         [CONTRACT] run8/D67: a row created THIS turn resolves via runtimeLabels and is NOT dropped |  | 
+  run17_defect_closure_contract.mjs exit=0  tail: OK   D125.coverage.questionBeltUnchanged                            [CONTRACT] the question belt constructs are byte-identical to 52e830f/d724d8c — this candida
+  run18_defect_closure_contract.mjs exit=0  tail: OK   D125.coverage.questionBeltUnchanged                                [CONTRACT] this candidate touched only the completion belt: the question belt still cons
+  run8_defect_closure_contract.mjs exit=0  tail: OK   D74c an honest label still renders |  | run8_defect_closure_contract: 40/40 passed
+  sem_ai_command_company_restore_truth.mjs exit=0  tail: PASS an open_question pendingAction suppresses the corrector the same way bulk_confirmation does (guard is kind-agnostic by design) |  | ALL REGRESSIONS PASSED
+  sem_ai_command_confirmation_truth.mjs exit=0  tail: PASS DRIFT GUARD: the corrected-output persist path still exists |  | ALL REGRESSIONS PASSED
+  sem_ai_command_execution_plan_truth.mjs exit=0  tail: PASS no pendingAction at all is completely unaffected by this override |  | ALL REGRESSIONS PASSED
+  sem_ai_command_factory_verification_selection.mjs exit=0  tail: PASS Zero runs: correctly reports unverified/zero, never falsely true |  | ALL REGRESSIONS PASSED
+  sem_ai_command_named_person_lookup_truth.mjs exit=0  tail: PASS a person-tagged memory with no entity_id at all is not given a fabricated status either |  | ALL REGRESSIONS PASSED
+  standing_reds_classification_contract.mjs exit=0  tail:  | rows 8  derived-BLOCKER 0  mislabelled-as-shared 0 | RESULT: PASS - every standing red re-derives as a genuine non-blocker
+  structured_claim_laundering_contract.mjs exit=0  tail:  | structured_claim_laundering_contract: 29/29 match the recorded baseline | DEPLOY GATE: 0 laundering shapes (model can switch its own truth gate off) + 0 trut
+  structured_claim_verification.mjs exit=0  tail: OK   H6 a SUPPORTED claim is also rendered without a raw uuid |  | structured_claim_verification: 42/42 passed

@@ -1,0 +1,13 @@
+{
+ "executor_acts_receipt_blind": {
+  "n": 1680,
+  "count": 0,
+  "examples": []
+ },
+ "read_executed": {
+  "n": 20,
+  "count": 0,
+  "cases": []
+ },
+ "read_asked": []
+}

@@ -1,0 +1,39 @@
+sweeping 17 named guards (34 mutants) across 14 suites
+
+KILLED   MUTATION_VERB_ALWAYS never matches            v56_intent_lifecycle_contract.mjs
+KILLED   MUTATION_VERB_ALWAYS always matches           v56_intent_lifecycle_contract.mjs
+KILLED   MUTATION_NEEDS_PARTICIPLE never matches       v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   MUTATION_NEEDS_PARTICIPLE always matches      v57_intent_other_veto_contract.mjs
+KILLED   MUTATION_PASSIVE_REQUEST never matches        v56_intent_lifecycle_contract.mjs
+KILLED   MUTATION_PASSIVE_REQUEST always matches       v57_intent_other_veto_contract.mjs
+KILLED   MUTATION_VERB_WITH_OBJECT never matches       v61_budget_intent_language_contract.mjs
+KILLED   MUTATION_VERB_WITH_OBJECT always matches      v57_intent_other_veto_contract.mjs
+KILLED   MUTATION_VERB_PROPER_OBJECT never matches     v62_provenance_language_and_limits_contract.mjs
+KILLED   MUTATION_VERB_PROPER_OBJECT always matches    v57_intent_other_veto_contract.mjs
+KILLED   READ_SHAPE never matches                      v56_intent_lifecycle_contract.mjs
+KILLED   READ_SHAPE always matches                     v56_intent_lifecycle_contract.mjs
+KILLED   LEADING_ADVERB never matches                  v63_intent_coverage_and_caps_contract.mjs
+KILLED   LEADING_ADVERB always matches                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   COMPOSITION_REQUEST never matches             v62_provenance_language_and_limits_contract.mjs
+KILLED   COMPOSITION_REQUEST always matches            v56_intent_lifecycle_contract.mjs
+KILLED   PHRASAL_READ never matches                    v62_provenance_language_and_limits_contract.mjs
+KILLED   PHRASAL_READ always matches                   v56_intent_lifecycle_contract.mjs
+KILLED   STATEMENT_FINITE_VERB never matches           v61_budget_intent_language_contract.mjs
+KILLED   STATEMENT_FINITE_VERB always matches          v56_intent_lifecycle_contract.mjs
+KILLED   MN_READ_SHAPE never matches                   v62_provenance_language_and_limits_contract.mjs
+KILLED   MN_READ_SHAPE always matches                  v56_intent_lifecycle_contract.mjs
+KILLED   MN_CASE_SUFFIX never matches                  v62_provenance_language_and_limits_contract.mjs
+KILLED   MN_CASE_SUFFIX always matches                 v56_intent_lifecycle_contract.mjs
+KILLED   MN_NOT_A_COMMAND never matches                v61_budget_intent_language_contract.mjs
+KILLED   MN_NOT_A_COMMAND always matches               v56_intent_lifecycle_contract.mjs
+KILLED   MN_STEMS_GLOBAL never matches                 v56_intent_lifecycle_contract.mjs
+KILLED   MN_STEMS_GLOBAL always matches                v56_intent_lifecycle_contract.mjs
+KILLED   MN_LOAN_VERB never matches                    v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   MN_LOAN_VERB always matches                   v64_shared_frames_and_gate_pairs_contract.mjs
+KILLED   NEGATED_IMPERATIVE_HEAD never matches         v59_intent_fallback_tier_contract.mjs
+KILLED   NEGATED_IMPERATIVE_HEAD always matches        v59_intent_fallback_tier_contract.mjs
+KILLED   TEMPORAL_PROPER_OBJECT never matches          v57_intent_other_veto_contract.mjs
+KILLED   TEMPORAL_PROPER_OBJECT always matches         v62_provenance_language_and_limits_contract.mjs
+
+candidate index.ts unchanged: true  (006a0c3feeb5)
+vacuity sweep: 34 killed, 0 survived

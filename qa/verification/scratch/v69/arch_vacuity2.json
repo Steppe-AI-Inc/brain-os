@@ -1,0 +1,32 @@
+[
+ {
+  "id": "A7",
+  "why": "the structure-rewrite arm is disabled on its own",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A8",
+  "why": "the legacy-prose arm is disabled on its own",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A9",
+  "why": "the memories envelope derives its total from the window length",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A10",
+  "why": "the factory work-order envelope derives its total from the window length",
+  "applied": true,
+  "verdict": "SURVIVED"
+ },
+ {
+  "id": "A11",
+  "why": "a trimmed collection reports truncated:false",
+  "applied": true,
+  "verdict": "SURVIVED"
+ }
+]

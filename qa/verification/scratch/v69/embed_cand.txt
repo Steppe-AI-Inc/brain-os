@@ -1,0 +1,19 @@
+async function embedTexts(texts: string[], key: string | undefined): Promise<(number[] | null)[]> {
+  if (!key || texts.length === 0) return texts.map(() => null);
+  try {
+    const r = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: texts }),
+    });
+    if (!r.ok) return texts.map(() => null);
+    const body = await r.json();
+    const byIndex = new Map<number, number[]>();
+    for (const item of body.data || []) {
+      if (typeof item.index === 'number' && Array.isArray(item.embedding)) byIndex.set(item.index, item.embedding);
+    }
+    return texts.map((_, i) => byIndex.get(i) ?? null);
+  } catch {
+    return texts.map(() => null);
+  }
+}

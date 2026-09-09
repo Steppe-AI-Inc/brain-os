@@ -1,0 +1,30 @@
+sweeping 25 function/constant mutants across 18 suites
+
+KILLED   objectRefers stub #1                        v61_budget_intent_language_contract.mjs
+KILLED   objectRefers stub #2                        v56_intent_lifecycle_contract.mjs
+KILLED   headHasObject stub #1                       v57_intent_other_veto_contract.mjs
+KILLED   headHasObject stub #2                       v56_intent_lifecycle_contract.mjs
+KILLED   imperativeObjectOf stub #1                  v57_intent_other_veto_contract.mjs
+KILLED   imperativeObjectOf stub #2                  v60_budget_intent_and_plan_evidence_contract.mjs
+KILLED   mnIsCommandForm stub #1                     v61_budget_intent_language_contract.mjs
+KILLED   mnIsCommandForm stub #2                     v56_intent_lifecycle_contract.mjs
+KILLED   rpcPostcondition stub #1                    v63_intent_coverage_and_caps_contract.mjs
+KILLED   imageBytes stub #1                          v63_intent_coverage_and_caps_contract.mjs
+KILLED   stripFrames stub #1                         v56_intent_lifecycle_contract.mjs
+KILLED   NAMED_LOOKUP_ROW_CAP = 1                    v63_intent_coverage_and_caps_contract.mjs
+KILLED   NAMED_LOOKUP_ROW_CAP = 9999                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   HISTORY_FIELD_CAP = 1                       v57_intent_other_veto_contract.mjs
+KILLED   HISTORY_FIELD_CAP = 9999999                 v63_intent_coverage_and_caps_contract.mjs
+KILLED   REQUEST_FRAME_ALTERNATION emptied           v56_intent_lifecycle_contract.mjs
+KILLED   REQUEST_FRAME_ALTERNATION matches anything  v56_intent_lifecycle_contract.mjs
+KILLED   CONFIRMATION_ALTERNATION emptied            v56_intent_lifecycle_contract.mjs
+KILLED   CONFIRMATION_ALTERNATION matches anything   v56_intent_lifecycle_contract.mjs
+KILLED   MUTATION_VERB_ALTERNATION emptied           v60_budget_intent_and_plan_evidence_contract.mjs
+KILLED   MUTATION_VERB_ALTERNATION matches anything  v60_budget_intent_and_plan_evidence_contract.mjs
+KILLED   hard trim passes weakened to [2] only       v61_budget_intent_language_contract.mjs
+KILLED   hard trim passes strengthened to [0] only   v61_budget_intent_language_contract.mjs
+KILLED   pack budget reserve removed                 v60_budget_intent_and_plan_evidence_contract.mjs
+KILLED   model context window raised 100x            v63_intent_coverage_and_caps_contract.mjs
+
+candidate index.ts unchanged: true  (006a0c3feeb5)
+vacuity sweep 2: 25 killed, 0 survived
