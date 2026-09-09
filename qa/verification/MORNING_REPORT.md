@@ -121,9 +121,34 @@ and passes. Being right about the objection did not make the replacement adequat
 All three of #76's findings are closed, plus the file-wide sweep it asked for. Candidate for #77:
 `79e457b8`, 714,427 bytes, battery 95 suites / 89 green / 0 unclassified red.
 
+---
+
+**Verifier #77 failed that candidate too — and found that my mutation proof had been lying all night.**
+
+Its `ALREADY_RED` list named three suites; seven are red. The four regression suites that each hold a
+deliberately-open defect were therefore credited with catching every mutant, whatever it did. #77 measured
+it by hand: reverting the previous round's own P1 fix is caught by **zero** of the 89 green suites, and my
+proof reported "caught by 4".
+
+**So the "0 surviving" figures I reported earlier tonight were partly false.** The instrument is fixed —
+the reference set is now derived by running, and an already-red suite counts only if its *output* changes —
+and the honest re-run is in the gate evidence.
+
+#77 also found the P1 the previous round reported as closed was not: the Mongolian fix was a **blocklist**
+of six ending families where the verbal paradigm has about thirty. 392 generated tokens, 195 still read as
+live imperatives. Its rule is the durable one and I have adopted it verbatim: **a false LIVE is the write
+you forbade; a false DEAD is a receipt saying nothing happened — so the test must fail toward NOT LIVE, and
+only an allowlist does that.**
+
+Closed this round: D1, D3a, H1, H2. **Five defects remain open by #77's own deliberate choice**, each with
+a measured reason for not patching it — the obvious fix for one of them fires on 5 of 17 ordinary reads and
+reopens a defect from twenty rounds ago. They are classified, not hidden.
+
+Candidate for #78: `e785d6ce`, battery 96 suites / 88 green / 0 unclassified red.
+
 ## RUNNING
 
-**Verifier #77** on candidate `79e457b8`. Dispatch details land in `qa/verification/scratch/verifier77_dispatch.json`.
+**Verifier #78** on candidate `e785d6ce`. Dispatch details land in `qa/verification/scratch/verifier78_dispatch.json`.
 
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
@@ -175,7 +200,7 @@ The production Edge function still carries v92 source.
 
 ## EXACT FOUNDER AUTHORISATION REQUIRED
 
-**None is blocking right now.** #77 must return a verdict first — it is the fourth round tonight, and
+**None is blocking right now.** #78 must return a verdict first — it is the fifth round tonight, and
 and the three before it all failed: twice on defects no earlier round could reach, once on a defect the
 previous round's own fix created. When it passes, the next action is a
 fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact DEPLOY_FILE_SHA256 in the release manifest — and I
@@ -186,7 +211,7 @@ the QA node credential (acceptance tests 1–10 remain BLOCKED without it).
 
 ## NEXT
 
-1. Act on #77 automatically: FAIL → fix loop → #78; PASS → release package for the exact bytes.
+1. Act on #78 automatically: FAIL → fix loop → #79; PASS → release package for the exact bytes.
 2. Apply the factory-runner conversion — prepared and measured above, and YOUR call, because it stops
    the factory runner until `FACTORY_RUNNER_PG_URL` exists. Safe to apply during a verifier round:
    neither the dispatcher nor the watchdog touches the DB.

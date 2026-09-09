@@ -1,0 +1,84 @@
+All work is committed. Here is the report.
+
+---
+
+# CHANGE VERIFIED: candidate `fe881243`, deploy surface `supabase/functions/sem-ai-command/index.ts`
+
+```
+SCENARIOS:          14 executed, 7 failed, 2 blocked
+CANONICAL GRAPH:    BLOCKED  (no live DB access this session)
+UI ↔ DB:            BLOCKED  (no browser tooling in this process)
+AI ↔ DB:            BLOCKED  (no live turn observable)
+DEPENDENCIES:       BLOCKED  (global_integrity_assertions.sql not run)
+PERMISSIONS:        FAILED   (person_assignments cross-tenant RLS, open, founder DB action)
+RELOAD/PERSISTENCE: BLOCKED
+IDEMPOTENCY:        BLOCKED
+REQUEST-SIDE TRUTH: FAILED   (five P1, one P2 — all measured through the real code paths)
+HARNESS INTEGRITY:  FAILED   (one harness defect, fixed here)
+```
+
+## FOUND
+
+**The P1 this round claims to have closed is not closed.** `V74C-D1`'s fix replaced a bare-stem test with a **blocklist of six Mongolian ending families**. The verbal paradigm has about thirty; the imperative paradigm has five. Generated 14 stems × 28 form families = **392 tokens** and ran them through the real predicate lifted from the deploy bytes: **195 read as live imperatives** — `архивлахгүй` ("will not archive"), `архивлаагүй` ("was not archived"), `архивлалаа`, `архивлана`, `архивлаж`, `архивлагч` (a *noun*), `архивлавал`, `архивлажээ`. On 10 matched turn pairs, **10 of 10 Mongolian refusal turns stop being whole-turn refusals** while the identical English turn is stripped — so `index.ts:4195` leaves the model's `archiveCompanyIds` in place and the write the founder forbade reaches the executor. Third round running, same language.
+
+Five more, each measured:
+
+| id | sev | measured |
+|---|---|---|
+| **V77-D4** | P1 | The English twin, no Mongolian needed. The decider's English live-clause test is head-position only with **no object test**: 20/20 refusals lost to an ordinary statement (`do not archive ACME. archive costs are up.`), 3/3 controls correct. `index.ts:7250` asserts *"the object test decides… so neither tier can admit what the other rejects."* It does not. |
+| **V77-D6** | P1 | A refusal that also asks a question ships `Done — archived.` — 10/10, both languages, **on turns where the refusal IS heard and the fields ARE stripped**. The system holds the fact and doesn't use it. |
+| **V77-D3** | P1 | `V74C-D3` closed 20 lead words and left **22**; five of them (`however, although, though, whereas, while`) are in `CLAUSE_BOUNDARY`'s own conjunction arm, so "the ONE definition of a clause lead" is two definitions that disagree. |
+| **V77-D2** | P1 | The two tiers **contradict each other about the same token in the same turn**: 3/4 mixed Mongolian turns resolve a live verb in the intent tier and are stripped as a whole-turn refusal. |
+| **V77-D5** | P2 | The provenance guard sees **8 of 28** ordinary provenance phrasings (0/6 false positives — precise, and very narrow). |
+| **V77-H1** | harness | The mutation proof's `ALREADY_RED` was a hardcoded three while **seven** suites are red, so the four always-red regression suites were credited with catching every mutant. Hand-measured on two mutants: reverting my fix, and reverting **the previous round's own V74C-D1 fix**, are each caught by **zero of the 89 green suites**. Both were reported "caught by 4." |
+
+## ROOT CAUSE
+
+One cause, three surfaces. **Every fix answered the last counter-example instead of the class, and every pin was built from the shape the fix was written for.**
+
+- The Mongolian test enumerates what a command is *not*, and the complement is open-ended.
+- `V74C-H3` pins "a refusal carries request intent" **absolutely** — over seven *bare* prohibitions, which is the exact blind spot the round that wrote it had just described in the rows it was replacing.
+- **Codex A**, reconstructed independently, is green and blind to both P1s: its only "stays refused" rows are *two refused clauses*; it has no row for a refusal followed by a clause that isn't an instruction.
+- The mutation proof, which exists to catch this, could not distinguish "went red because of the mutant" from "was red already."
+
+The durable rule is not a longer list: **`requestRefusesEveryMutation`'s two errors do not cost the same.** A false LIVE is the forbidden write; a false DEAD is a receipt saying nothing happened. Only an allowlist fails toward NOT LIVE.
+
+## FIXED
+
+- **`MN_IMPERATIVE_FORM`** — allowlist derived from `MN_MUTATION_STEM_ALTERNATION` (still one stem list). **392/392 agree, 0 false live, 0 false dead.** 10/10 refusals restored; the round's own pinned mixed turn unchanged.
+- **`V77-H1`** — `ALREADY_RED` is now derived by running each suite on the reference, and an already-red suite is judged by whether its *output* changes. Either change alone is still wrong.
+- **`V77-H2`** — `qa/KNOWN_FAILURE_MODES.md` carried two literal `0x08` bytes **inside the sentence describing the 0x08 hazard**. Repaired 2→0. My first repair, from `node -e`, re-inserted the byte because the shell collapsed the replacement to the escape that *is* a backspace.
+
+**Deliberately not patched, with the measurement:** `V77-D6`'s obvious fix (adding `requestRefusesEveryMutation` as an intent branch) **fires on 5 of 17 ordinary reads** and reopens V56-D2 — so the remedy is to gate the receipt on `negatedRequestStrippedFields.length > 0`, a fact a read can never reach. `V77-D4` needs the *one* object test hoisted, not an eighth approximation.
+
+## TESTED
+
+`qa/scenarios-runner/v77_regression_additions.mjs`, 71 rows — **65 pass / 6 DEFECT red by design, 0 CONTRACT failures on the fixed bytes; 48/16 on the candidate with 12 CONTRACT failures closing V77-D1.** Battery 96 suites, 89 green, index sha unchanged across the run. Mutation row `v77-d1-live-clause-test-back-to-a-blocklist` proved effective.
+
+**Clean, re-derived independently:** the `\p{...}`/`u`-flag class (239 literals, 68 constructed sites, **0 instances in either shape** — the "fourth" the prompt asked for does not exist); `_gate_extract` emission order (61/61, **0 violations**); TDZ (**0 real** use-before-declaration over 1 220 declarations — four successive versions of my scanner reported 345/118/64/35 false positives before the number meant anything); escape depth both ways (**0/0**); CRLF-pure, 0x08 = 0; the lead-strip inverse (0/19).
+
+## PRODUCTION
+
+Nothing was deployed. Nothing was written to any database. No `QA-VERIFY-*` data was created — there was no DB access, so there is nothing to clean up.
+
+## BLOCKERS
+
+- **Live production DB — BLOCKED (tool permission).** Every `supabase` invocation is refused by this session's permission layer. The credential plainly exists (the battery's own authority suite fails *because* `supabase projects list` returns the production project list from a child process). **I did not route the same command through a child process to get around the gate.** `global_integrity_assertions.sql` was not run.
+- **Browser / live AI turn — BLOCKED (tool unavailable).** No `ToolSearch`, no `mcp__claude-in-chrome__*`. UI↔DB and AI↔DB are **BLOCKED, not passed.**
+- **`git push` / `gh pr create` — BLOCKED (tool permission).** Committed locally on `verify-fe88124-campaign137` at `b2b083a9`; the branch has not left this machine. No PR was opened.
+
+**Founder-only, unchanged by this round:** `supabase/drafts/202609090001_*.sql` (person_assignments cross-tenant RLS); repo-level `SUPABASE_ACCESS_TOKEN`, the `workflow`-scoped GitHub token, and the ambient Supabase CLI credential (ledger #16). **No deploy authorisation is requested.**
+
+**Artifacts:** `qa/verification/proposed/v74_known_failure_modes_entry_161.md` (## 158/159/160 are committed — the prompt was three rounds stale; overwriting one is the mistake ## 160 recorded), `v74_PROMOTION_NOTE.md`, `v77_regression_additions.mjs` (not `v74_`, which is a live battery member), `qa/verification/scratch/v77/*`. Commits `7aacc1d7`, `5b44a274`, `b2b083a9`.
+
+---
+
+**VERDICT: FAILED**
+
+Candidate `fe8812430312afcdd860e9fad4844bedf04b93dd` is **not fit to deploy over v92**. Five P1 request-side truth failures ship, one of which is the P1 this round reports as closed.
+
+*(The working tree now carries my V77-D1 fix, `777866ae445f109172f8797d1bb904b9d0ebf9732caf63cb27f1f5b744ba3419` — that is my branch, not the candidate. The candidate's exact bytes are preserved and reproducible per `qa/verification/scratch/v77/.gitignore`.)*
+
+```
+DEPLOY_FILE_SHA256 = 79e457b8537e9f6a7760fde0d75fe18bde4774769063bce0caed44d8274c0a7d
+```
