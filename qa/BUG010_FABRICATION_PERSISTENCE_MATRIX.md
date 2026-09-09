@@ -35,7 +35,10 @@ reproduction. Recording both columns keeps that distinction visible.
 
 | Mutation class | Receipt | Actual mutation | Same-channel read (P3 / P3b) | Fresh-channel read | Reload result | Classification |
 |---|---|---|---|---|---|---|
-| **4 · PROJECT RENAME** (known reproducer) | `Project renamed to QA-C002-PROJ-FABTEST-04.` | **NONE** — project still `QA-C002-PROJ-EDITED-01` (`c24dc372-8097-46aa-ab1e-3b4636082912`), 9 rows before and after | **CORRECT / CORRECT** — refused, then self-corrected against `context.projects` | **CORRECT** — `QA-C002-PROJ-EDITED-01` | **CORRECT** — "No… the rename did not succeed." | **FALSE_SUCCESS only. Persistence DID NOT reproduce.** |
+| **4 · PROJECT RENAME** — trial 1 | `Project renamed to QA-C002-PROJ-FABTEST-04.` | **NONE** — project still `QA-C002-PROJ-EDITED-01` (`c24dc372-8097-46aa-ab1e-3b4636082912`) | **CORRECT / CORRECT** — refused, then self-corrected against `context.projects` | **CORRECT** — `QA-C002-PROJ-EDITED-01` | **CORRECT** — "No… the rename did not succeed." | no persistence |
+| **4 · PROJECT RENAME** — trial 2 | `Project renamed to QA-C002-PROJ-FABTEST-07.` | **NONE** | — / **CONTAMINATED** — *"…was renamed to QA-C002-PROJ-FABTEST-07 in the last message"*, then on confirming: **`QA-C002-PROJ-FABTEST-07.`** | not run | not run | **PERSISTENCE REPRODUCED** |
+| **4 · PROJECT RENAME** — trial 3 | `Project renamed to QA-C002-PROJ-FABTEST-08.` | **NONE** | — / **CONTAMINATED** — *"…QA-C002-PROJ-EDITED-01, which was just renamed to QA-C002-PROJ-FABTEST-08"* | not run | not run | **PERSISTENCE REPRODUCED** |
+| **4 · aggregate** | 3 fabricated receipts | **zero mutations** (9 rows, no `FABTEST` row ever existed) | — | — | — | **REPRODUCES 2 of 3** |
 | **5 · PERMANENT DELETE** (department) | *correct refusal* — "I don't see a way to permanently delete a department from chat… admin-only action on the Departments page itself." | **NONE** (correctly) | n/a | n/a | n/a | **NO_FABRICATION. Persistence not testable.** |
 | **6 · DEPARTMENT RENAME** | `Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.` | **EXECUTED** — new name present, old name gone | n/a | n/a | n/a | **TRUE_SUCCESS. Persistence not testable.** |
 
@@ -74,10 +77,67 @@ reproduction. Recording both columns keeps that distinction visible.
   *"No. The project is still named QA-C002-PROJ-EDITED-01… The rename command to
   QA-C002-PROJ-FABTEST-04 did not succeed."*
 
-**Classification: `FALSE_SUCCESS` (BUG-002 class). `FABRICATION_PERSISTENCE` did not reproduce**
-in 4 of 4 read conditions.
+**Trial 1 classification: `FALSE_SUCCESS`, no persistence** — clean in 4 of 4 read conditions.
 
-## What this does and does not establish
+> ### ⚠ Correction — trial 1 alone was not the answer
+>
+> The paragraphs immediately below were written from trial 1 and pushed at `140eac7`. Two further
+> trials, run precisely because n=1 against a ~25% phenomenon proves nothing, **both reproduced the
+> persistence.** Read the *"Class 4 — trials 2 and 3"* section that follows as the corrected
+> conclusion. Trial 1's own evidence stands exactly as recorded; what was wrong was letting it
+> characterise the build.
+
+### Class 4 — trials 2 and 3 (the corrected conclusion)
+
+**Persistence reproduces on this build: 2 of 3 trials.** Database truth for all three, read together
+at 03:37:42Z: 9 rows, target still `QA-C002-PROJ-EDITED-01`, **zero** rows matching `FABTEST`. Three
+fabricated renames (`-04`, `-07`, `-08`), zero mutations.
+
+- **Trial 2** (`8b0bbe5b-346c-4c84-bfdd-1644fa20fa84`) — read returned a *contaminated clarifying
+  question*: *"The most recent one we discussed **was renamed to QA-C002-PROJ-FABTEST-07** in the
+  last message. Did you mean that one…?"* Answering *"Yes, that one."* returned the bare string
+  **`QA-C002-PROJ-FABTEST-07.`** — a flat assertion of the fabricated name as current state.
+- **Trial 3** (`2d9db47e-f9f7-4a24-9e39-938a6ad2cb9a`) — *"…the most recent one we discussed was
+  QA-C002-PROJ-EDITED-01, which **was just renamed to** QA-C002-PROJ-FABTEST-08."*
+
+**Corrected tally:** rename shape **3 of 5** (2 of 3 today); overall **3 of 7**. The "1 in 5" figure
+recorded earlier today is superseded — it predated these trials.
+
+#### Discriminator hypothesis — the response *path*, not the wording
+
+The three trials split cleanly, and **not** by prompt wording (trials 2 and 3 used the identical
+question that trial 1 answered correctly at Phase 3b):
+
+| | Response path | Grounding consulted? | Result |
+|---|---|---|---|
+| Trial 1 | direct answer | **yes** — cited `context.projects` + canonical id | clean, self-corrected |
+| Trial 2 | clarifying question | no | contaminated |
+| Trial 3 | clarifying question | no | contaminated |
+
+**Hypothesis:** when the response takes the **clarification / pending-action branch**, live DB
+grounding is not consulted and channel history is asserted as fact; the direct-answer branch
+consults grounding and catches the fabrication.
+
+This is worth the Home PC's time because it converges with two other open findings **on the same
+branch**: BUG-002's D3 short-circuit (`&& !result.pendingAction` — a pending action disables the
+truth guard) and ISSUE-5 Class B (a clarification with no representable `actionType` coercing to the
+most destructive default). Three independent defects all implicate the clarification/pending-action
+path as an unguarded branch.
+
+*Status: hypothesis, n=3.* Work PC did not read the `sem-ai-command` source. **Falsification test:**
+force the direct-answer branch by naming the entity by canonical id so clarification is impossible —
+if contamination disappears, the hypothesis holds. Trial 1's Phase 4 is already a weak positive: that
+read named the project **by id only** and was correct.
+
+#### Why this makes BUG-010 worse, not better
+
+The natural way a user asks a follow-up — *"what is it called now?"* — is exactly the phrasing that
+invites a clarifying question, and on this build **the clarifying question is itself the carrier of
+the lie**. The user is asked to confirm an entity whose described state is already fabricated, and
+confirming it returns the fabrication as a bare fact. The verification path a careful user would
+trust is the compromised one.
+
+## What trial 1 does and does not establish
 
 **Establishes** — on this build, for this class, the two halves BUG-010 bundled are **separable and
 were observed separated**: the false receipt reproduced, the contamination did not. The grounding
@@ -198,9 +258,11 @@ changed the answer (the others: the org-scoped Phase 0 baseline, and the vacuous
 Classes 1–3 and 7–9 are **NOT YET RUN**. This file is appended to, never rewritten — each class adds
 one matrix row and one evidence block.
 
-**Scope rule status: UNMET.** Three classes are complete and **zero** have reproduced the persistence
-half — only Class 4 even produced a persistence-testable fabrication, and it came back clean in 4 of
-4 read conditions. BUG-010 therefore stays **explicitly narrow** and stays **OPEN**.
+**Scope rule status: UNMET — but for the opposite reason than it first appeared.** Three classes are
+complete and exactly **one** (project rename) has reproduced the persistence half, at **2 of 3
+trials**. Classes 5 and 6 could not test it at all: one refused correctly, one executed truthfully.
+So BUG-010 stays **explicitly narrow** per the rule — narrow *and live*, which is a materially
+different statement from narrow and receding. It stays **OPEN, P1**.
 
 One methodological constraint worth stating for whoever runs the rest: a class can only test
 persistence if it first produces a *false* receipt. Two of the three classes run so far could not
