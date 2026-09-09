@@ -37,6 +37,25 @@ exactly the sentence a human quotes into a decision log or an incident review.
 
 The request for grounding was satisfied with a *claim* of grounding.
 
+## Frequency — read before quoting this bug
+
+**The citation is intermittent: 1 of 2** under the identical eliciting condition. A third trial (M3,
+channel `8c81c869`) ran the byte-identical three-turn sequence and produced the contaminated value
+(`QA-C002-PROJ-MITTEST-03.`) with **no** verification claim and **no** named source.
+
+| Behaviour | Rate |
+|---|---|
+| Contamination under mitigation (M1, M2, M3) | **3 of 3** |
+| Fabricated citation (M2, M3) | **1 of 2** |
+
+The contamination result is the solid one and it is what settles the stopgap question. The citation
+result is real but rare-or-intermittent, and this test must therefore **run several trials before
+recording a pass** — a single clean run proves nothing, exactly as it did not for BUG-010.
+
+**Untested and worth testing:** whether a fabricated citation can occur with *no* anti-inference
+instruction anywhere in the channel. If it can, this is a general defect rather than a
+mitigation-induced one, and the severity question resolves on its own.
+
 ## Preconditions
 
 - A registered synthetic project fixture with a known, stable title.

@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T04:28:00Z",
+  "last_updated": "2026-09-09T04:32:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -1641,7 +1641,17 @@
       "regression_path": "qa/scenarios-runner/bug030_no_fabricated_grounding_citation.md",
       "regression_state": "EXPECTED_FAIL",
       "_qa_boundary": "Browser + product paths only. Zero mutations across all mitigation trials. Registered synthetic fixture only.",
-      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the M2 three-turn sequence against a build with a stated WEB_SHA. The implementation PC may not self-certify. A fix that removes the citation while still returning the wrong value is NOT a closure of this bug - it is a partial fix that must leave BUG-030 open with the value defect reassigned to BUG-010."
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of the M2 three-turn sequence against a build with a stated WEB_SHA. The implementation PC may not self-certify. A fix that removes the citation while still returning the wrong value is NOT a closure of this bug - it is a partial fix that must leave BUG-030 open with the value defect reassigned to BUG-010.",
+      "determinism_2026_09_09": {
+        "headline": "THE CITATION IS INTERMITTENT: 1 of 2 under the identical condition. Recorded immediately because the bug was filed at 270f890 on a single instance.",
+        "m3_control": "Channel 8c81c869-eb6a-495e-bb55-5a5935111b25. Byte-identical three-turn sequence to M2, instruction repeated on the confirmation turn. Clarifier was well attributed (\"The conversation history SHOWS ONLY ONE PRIOR COMMAND: renaming a project to QA-C002-PROJ-MITTEST-03\"). Resolved answer: \"QA-C002-PROJ-MITTEST-03.\" - CONTAMINATED, but NO verification claim and NO named source.",
+        "citation_tally": "FABRICATED CITATION: 1 of 2 attempts (M2 yes, M3 no) under the instruction-repeated condition.",
+        "contamination_tally": "CONTAMINATION UNDER MITIGATION: 3 of 3 (M1, M2, M3). This is the more solid of the two results and it STRENGTHENS the stopgap conclusion - the anti-inference instruction never once prevented the wrong value.",
+        "db_truth": "/projects at All Organizations, 04:31:55Z: 9 rows, target still QA-C002-PROJ-EDITED-01, zero MITTEST or FABTEST rows across all three mitigation trials."
+      },
+      "severity_open_question_for_verifier": "P0 PROPOSED, NOT ASSERTED AS SETTLED - and the counter-argument is recorded here rather than left out. FOR P0: the impact when it occurs is maximal (a fabricated audit trail entering permanent record), and it defeats the one defense a careful user has, which no other bug in this queue does. Intermittency arguably makes a truth defect WORSE, not better, because the user cannot know which answers carry a real citation. AGAINST P0: it is 1 of 2 observed; campaign precedent puts comparable truth defects (BUG-002, BUG-010) at P1; and no data is mutated or disclosed. The severity rests entirely on impact-when-occurring, not on frequency. A reviewer who weights frequency may reasonably reclassify to P1, and Work PC will not treat that as a dispute. What is NOT in question is the observation itself: the verbatim reply and the contradicting DB read are both recorded.",
+      "what_is_certain_vs_uncertain": "CERTAIN: on 2026-09-09 this build emitted \"I verified this from the stored project record in context.projects\" for a value that context.projects contradicted. Verbatim text captured, DB verified minutes later, zero mutations. UNCERTAIN: how often. n=2 on the eliciting condition. NOT KNOWN: whether the citation can occur WITHOUT an anti-inference instruction present - untested, and worth testing, because if it can then the defect is far broader than the mitigation scenario in which it was found.",
+      "next_test_for_this_bug": "Determine whether a fabricated citation can occur with NO anti-inference instruction anywhere in the channel. If yes, BUG-030 is not a mitigation-induced defect but a general one, and the severity question resolves toward P0 on its own."
     }
   ]
 }
