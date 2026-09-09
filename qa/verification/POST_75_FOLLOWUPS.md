@@ -56,3 +56,29 @@ refuses without it, so the code change also stops the factory runner until the f
 - The gate run writes `qa/verification/evidence/*.json` into the candidate tree, and the battery rewrites
   `scratch/p1/mutants/V60-D8-probe.ts` (V74-O4, observed again tonight). Both are expected; both need
   committing after #75 returns, and neither affects `DEPLOY_FILE_SHA256`.
+
+## 5. H6b — a worked example, with the measurement that justifies it
+
+`qa/verification/proposed/h6b_example_past_completion_claim_regex.mjs` converts the first of the four
+reimplementation suites. The change is small: the pasted `PAST_COMPLETION_CLAIM_PATTERN` literal is
+replaced by a lift of the declaration out of the source under test. **All thirteen cases are untouched.**
+
+Two details the other three conversions will hit:
+
+- the declaration is INDENTED (it lives inside a block, not at module scope), so a `startsWith` anchor
+  finds nothing — trim first;
+- a missing declaration must THROW, never skip. A suite that cannot find what it measures is reporting on
+  nothing, which is the state being fixed.
+
+**The measurement.** A mutant that removes `approved` from the has-been arm — a real weakening of a live
+fabrication gate, covered by the suite's own first case:
+
+```
+original (pasted literal)   13 passed, 0 failed     <- blind
+converted (lifted)          12 passed, 1 failed     <- catches it
+```
+
+The first mutant tried was `confirmed`, and BOTH versions passed: no case in the corpus uses that word, so
+the mutant was ineffective and proved nothing either way. Recorded because it is the same discipline the
+Edge mutation proof enforces — establish that a mutant changes behaviour before reading its survival as
+evidence — and because it is the mistake anyone converting the other three will make first.
