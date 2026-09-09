@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-08T15:47:00Z",
+  "last_updated": "2026-09-09T02:17:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -768,7 +768,22 @@
       "severity_reasoning": "P2: the archived state IS surfaced, so a user is informed; but operational actions on orphaned employees remain possible and the relationship graph silently keeps archived parents as live manager contexts.",
       "regression_requirement": "Archive a synthetic company with >= 2 people (one managing the other) and a project; assert the defined cascade state on /people and /projects, and that the manager picker/controls are disabled or the employment state changes. Must be re-run after restore to assert symmetric un-cascade.",
       "_qa_boundary": "Work PC did not modify product code.",
-      "declared_design_note_2026_09_07": "The product's own archive dialog states: \"nothing attached to it (tasks, projects, documents, org relationships) is touched\". So non-cascade on archive is DECLARED behaviour, not an omission. The finding is now: charter expectation (\"BU archived but employee still shows actively attached\" is a target failure) vs declared design. Severity kept at P2 pending a founder decision; classification DESIGN_DECISION_REQUIRED. What remains a defect regardless: live Set-manager/invite/onboarding controls on people of an archived company, and no inactive marker on the relationship."
+      "declared_design_note_2026_09_07": "The product's own archive dialog states: \"nothing attached to it (tasks, projects, documents, org relationships) is touched\". So non-cascade on archive is DECLARED behaviour, not an omission. The finding is now: charter expectation (\"BU archived but employee still shows actively attached\" is a target failure) vs declared design. Severity kept at P2 pending a founder decision; classification DESIGN_DECISION_REQUIRED. What remains a defect regardless: live Set-manager/invite/onboarding controls on people of an archived company, and no inactive marker on the relationship.",
+      "work_pc_observation_2026_09_09": {
+        "verdict": "FIX BEHAVIOUR OBSERVED PRESENT IN THE DEPLOYED WEB — NOT CLOSED (build identity rule 2: the relevant web fix cannot be tied to a known deployed WEB_SHA).",
+        "status_label": "VERIFIED_PENDING_BUILD_IDENTITY",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "what_is_now_correct": "Every person whose company is archived renders Set manager (user-cog), Invite (user-plus) and Onboarding (graduation-cap) as disabled=true with title EXACTLY \"Company is archived — restore it first\" — the verbatim CWC §4 reason string (PARENT_ARCHIVED_REASON, web/lib/policy/archived-parent.ts:26). Verified on all 7 archived-parent people: Alice Johnson (test7), employee5 (test5), QA-LIFECYCLE-EMPLOYEE + QA-LIFECYCLE-EMPLOYEE2 (QA-LIFECYCLE-BU), QA-VERIFY-EMPLOYEE (QA-VERIFY-BU), test3 employee (test3), test8worker (test9).",
+        "control_group": "Active-parent people (Aldajan Zagila / SEM Global Robotics, Ariunjargal / CLIX GPS) keep Set manager and Onboarding ENABLED, and their Invite is disabled for a DIFFERENT and correct reason (\"Add an email before inviting\"). So the disabling is policy-driven, not a blanket disable.",
+        "this_is_the_2026_09_07_defect_reversed": "On 2026-09-07 these same controls were live on archived-parent people, which is what BUG-013 recorded. The behaviour has changed in the deployed web since.",
+        "residual_gaps_still_open": {
+          "row_menu_not_covered": "The row ellipsis menu on an archived-parent person (QA-LIFECYCLE-EMPLOYEE) still offers \"Edit\" and \"End employment\", both ENABLED with no reason. The icon buttons received the policy; the dropdown menu items did not. NOTE: CWC §4 enumerates \"(set manager, invite, onboarding, add project/department, new assignment)\" and does NOT name End employment, so this is reported as a coverage question, not asserted as a contract violation.",
+          "restore_employment_into_an_archived_company": "ENABLED on all four employment-ended people under archived companies (Alice Johnson, employee5, test3 employee, test8worker). Restoring employment into an archived company is arguably the \"new assignment\" case CWC §4 requires to be disabled. NOT EXERCISED — those four are pre-existing test records, not registered fixtures, so the Work PC did not click it. POLICY_CONFIRMATION_REQUIRED: does restore-employment count as a new assignment under an archived parent?",
+          "manager_link_display": "All archived-parent people currently show manager \"—\", so the BUG-019 question (a live manager link under an archived parent) could not be re-observed on these rows. A controlled fixture cycle is being run separately."
+        },
+        "marking_verified_elsewhere": "Archived-parent BADGE continues to render on /projects (QA-BUG006-PROJECT | \"QA-VERIFY-BU Archived\") and /goals (QA-BUG006-GOAL | \"QA-VERIFY-BU Archived\").",
+        "closure_requirement": "To CLOSE: the Home PC must state the deployed web commit, and it must contain web/lib/policy/archived-parent.ts + the people-table wiring. Until then this stays OPEN with the observation attached."
+      }
     },
     {
       "bug_id": "BUG-014",
