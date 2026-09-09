@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T06:45:00Z",
+  "last_updated": "2026-09-09T12:20:00Z",
   "updated_by": "work-pc-independent-qa",
   "qa_artifact_commit": "596c1a3",
   "_qa_artifact_commit_note": "Set to the qa/work-pc commit carrying campaign C001 results (pushed to origin).",
@@ -202,6 +202,23 @@
     "BUG-002: reconcile why the bare project-rename path fabricates while the fix report claims bare requests refuse."
   ],
   "standing_prohibitions": [
-    "DESTRUCTIVE SUBSTITUTE EXECUTION (Issue-5 Class B, company arm): CLOSED AS UNPROVEN / NOT SAFELY REACHABLE, founder decision 2026-09-09. Do not fish for a resolver output proposing a registered synthetic company. Do not request broader destructive production authorization for this class. The remaining execution question belongs to Home-PC source inspection plus a STAGING regression. Do not infer execution from a receipt."
-  ]
+    "DESTRUCTIVE SUBSTITUTE EXECUTION (Issue-5 Class B, company arm): CLOSED AS UNPROVEN / NOT SAFELY REACHABLE, founder decision 2026-09-09. Do not fish for a resolver output proposing a registered synthetic company. Do not request broader destructive production authorization for this class. The remaining execution question belongs to Home-PC source inspection plus a STAGING regression. Do not infer execution from a receipt.",
+    "CONFIRMATION-EXECUTION TESTING IN PRODUCTION IS STOPPED, founder decision 2026-09-09 following BUG-033. DO NOT RUN in production: dimension D confirmation phrases; C1/C3/C4/C5; E confirmation-after-interruption; L cancelled-action-then-yes; destructive or substitute confirmation tests; ANY experiment whose decisive step is a bare affirmative executing an action. DO NOT attempt to prove whether BUG-033 can actually mutate real records - that belongs in STAGING with synthetic fixtures after Home PC implements the structural fix. Safe/read-only continuity work continues."
+  ],
+  "home_pc_priority_cluster_2026_09_09": {
+    "_doc": "Founder-designated highest-priority cluster. All of these are the SAME structural defect surface: pending-action identity.",
+    "bugs": [
+      "BUG-002",
+      "BUG-005 / Issue #5",
+      "BUG-010",
+      "BUG-020",
+      "BUG-029",
+      "BUG-030",
+      "BUG-033"
+    ],
+    "REQUIRED_INVARIANT": "A CONFIRMATION_TOKEN must only authorize an EXISTING machine-bound pending action containing: channel_id, originating_turn_id, action_type, canonical_target_id, org_scope, validated_capability, created_at, status.",
+    "forbidden": "A bare confirmation must NEVER cause the model to reconstruct action type, target, people, company, employer, or relationships.",
+    "no_valid_pending_action": "If there is no valid machine-bound pending action, \"yes\" must execute NOTHING.",
+    "newer_action_rule": "If a newer action occurs the system must EXPLICITLY either supersede the previous pending action, or retain both and require disambiguation. It must NEVER silently abandon one and invent a third operation - which is exactly what BUG-033 recorded."
+  }
 }
