@@ -19,6 +19,11 @@
 # CLASSIFICATION IS FROM OUTPUT TEXT, NEVER FROM THE EXIT CODE:
 #   BLOCKED — PROVIDER_CAPACITY         session/usage limit  -> wait for the provider's own
 #                                       stated reset (fallback: linear backoff), retry
+#   BLOCKED — PROVIDER_CAPACITY (model)  ONE MODEL is exhausted ("You've reached your <model>
+#                                       limit. Switch to another model.") -> waiting cannot clear
+#                                       it; ROTATE to the next model in MODELS and retry at once.
+#                                       When the list is exhausted, stop (exit 6) rather than burn
+#                                       attempts against a wall that no amount of sleeping moves.
 #   BLOCKED — PROVIDER_TRANSIENT_ERROR  API 5xx / overloaded -> bounded exponential backoff,
 #                                       retry; the checkpoint makes the retry a resumption
 #   BLOCKED — EXECUTION_MODE            plan-mode / approval-gate text -> checkpoint and STOP.
@@ -38,6 +43,16 @@ EXPECT_SHA="$3"
 MAX_ATTEMPTS="${4:-6}"
 CWD="${5:-}"
 PINNED="${6:-supabase/functions/sem-ai-command/index.ts}"
+# MODEL ROTATION. 2026-09-09: verifier #69 was refused with "You've reached your Fable limit. Switch to
+# another model" — a limit on one MODEL, not on the session. The old watchdog had no model concept at all,
+# so it retried the same exhausted model on a timer. The model in use is now explicit (which also means the
+# campaign record can say WHICH model verified the candidate, instead of "inherit"), and a model-scoped
+# refusal advances to the next entry instead of sleeping.
+MODELS="${SEM_VERIFIER_MODELS:-${7:-opus,sonnet}}"
+model_at() { echo "$MODELS" | cut -d',' -f"$1"; }
+model_count() { echo "$MODELS" | tr ',' '\n' | grep -c .; }
+model_idx=1
+MODEL="$(model_at 1)"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 [ -z "$CWD" ] && CWD="$REPO"
@@ -49,7 +64,7 @@ STATE="$REPO/qa/verification/scratch/watchdog-$(basename "$LOG" .log).state"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$STATE"; }
 
-log "watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=$CWD max_attempts=$MAX_ATTEMPTS expect_sha=${EXPECT_SHA:0:16}…"
+log "watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=$CWD max_attempts=$MAX_ATTEMPTS expect_sha=${EXPECT_SHA:0:16}… models=$MODELS (starting on $MODEL)"
 
 attempt=1
 while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
@@ -62,8 +77,8 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
     exit 3
   fi
 
-  log "attempt $attempt: dispatching verifier (cwd=$CWD)"
-  ( cd "$CWD" && claude --permission-mode acceptEdits \
+  log "attempt $attempt: dispatching verifier (cwd=$CWD, model=$MODEL)"
+  ( cd "$CWD" && claude --permission-mode acceptEdits --model "$MODEL" \
       --allowedTools "Bash(node:*)" "Bash(sha256sum:*)" "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" "Bash(git rev-parse:*)" "Bash(git worktree list:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(echo:*)" "Bash(touch:*)" "Bash(rm:*)" "Bash(npx supabase functions list:*)" "Bash(npm install:*)" "Bash(npm ci:*)" "Bash(gh run view:*)" "Bash(gh run list:*)" "Bash(gh api:*)" "Bash(git add:*)" "Bash(git commit:*)" \
       --agent brain-os-verifier -p "$(cat "$PROMPT")" < /dev/null > "$LOG" 2>&1 )
   rc=$?
@@ -78,7 +93,24 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
     exit 5
   fi
 
-  # ---- 2. PROVIDER_CAPACITY: wait for the provider's stated reset. --------------------------
+  # ---- 2a. PROVIDER_CAPACITY, MODEL-SCOPED: rotate the model; sleeping cannot clear it. --------
+  # Checked before the general capacity arm, because the general arm's remedy (sleep until the stated
+  # reset) is the WRONG remedy here and the two texts overlap.
+  if grep -qiE "reached your [A-Za-z0-9._-]+ limit|switch to another model" "$LOG"; then
+    total="$(model_count)"
+    log "attempt $attempt: BLOCKED — PROVIDER_CAPACITY (model-scoped) on model '$MODEL'"
+    if [ "$model_idx" -ge "$total" ]; then
+      log "attempt $attempt: every model in '$MODELS' is exhausted. Sleeping cannot clear a model-scoped limit; STOPPING. The work order stays open and NOT certified — re-dispatch with SEM_VERIFIER_MODELS naming a model that has capacity."
+      exit 6
+    fi
+    model_idx=$((model_idx + 1))
+    MODEL="$(model_at "$model_idx")"
+    log "attempt $attempt: rotating to model '$MODEL' and retrying immediately (checkpoint + unchanged sha make this a RESUMPTION)"
+    attempt=$((attempt + 1))
+    continue
+  fi
+
+  # ---- 2b. PROVIDER_CAPACITY: wait for the provider's stated reset. --------------------------
   if grep -qiE "session limit|usage limit|rate limit|quota|capacity|credit balance" "$LOG"; then
     reset_line="$(grep -oiE "resets [0-9]{1,2}(:[0-9]{2})? ?(am|pm)?" "$LOG" | head -1)"
     log "attempt $attempt: BLOCKED — PROVIDER_CAPACITY ($reset_line)"

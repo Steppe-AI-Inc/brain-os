@@ -89,11 +89,36 @@ export function parseProviderRunId(combined) {
 export const PROVIDER_CAPACITY_BLOCKED = 'PROVIDER_CAPACITY_BLOCKED';
 const PROVIDER_CAPACITY_PATTERNS = [
   /you'?ve hit your (session|usage) limit/i, // exact live shape 2026-09-02
+  /you'?ve reached your [\w.-]+ limit/i,     // exact live shape 2026-09-09 (model-scoped, see below)
+  /reached your (session|usage) limit/i,
   /session limit[^\n.]{0,60}resets/i,
   /usage limit reached/i,
+  /switch to another model/i,               // the remedy sentence the model-scoped form ships with
   /credit balance is too low/i,
   /quota (has been )?exceeded/i,
 ];
+// MODEL-SCOPED CAPACITY (2026-09-09, real incident, verifier #69 / campaign #129). The live text was
+// "You've reached your Fable limit. Switch to another model, or manage usage credits at
+// claude.ai/settings/usage..." — a limit on ONE MODEL, not on the account's session. It matched none of
+// the patterns above, so the watchdog logged "BLOCKED — OTHER" and scheduled a 10-minute retry of the
+// SAME model, which could only hit the same wall. TWO defects, not one: the phrasing was unknown, and
+// the REMEDY is different. Sleeping does not clear a model-scoped limit within any useful horizon; the
+// provider itself names the fix, which is to run on another model. So a retry must CHANGE the model, and
+// a caller with no other model must stop rather than burn its attempts against a wall it cannot move.
+const MODEL_SCOPED_CAPACITY_PATTERNS = [
+  /you'?ve reached your [\w.-]+ limit/i,
+  /switch to another model/i,
+];
+/**
+ * True when the provider's refusal is scoped to the MODEL rather than the session/account — i.e. when
+ * retrying the same model cannot succeed and any retry must name a different one.
+ * @param {string} combined - raw provider output (stdout+stderr or log tail).
+ * @returns {boolean}
+ */
+export function isModelScopedCapacity(combined) {
+  const clean = stripAnsi(String(combined ?? ''));
+  return MODEL_SCOPED_CAPACITY_PATTERNS.some((pattern) => pattern.test(clean));
+}
 // @param {string} combined - raw provider output (stdout+stderr or log tail).
 // @returns {{classification: string, matched: string} | null}
 // BLOCKED — EXECUTION_MODE (2026-09-03, real incident): a background-dispatched verifier

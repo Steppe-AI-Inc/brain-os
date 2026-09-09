@@ -17045,3 +17045,63 @@ found the same class on an axis whose corpora held the other axes constant, and 
 time. The counter-measure is not more corpora — it is asking, before writing any of them, *which consumer
 of this concept does not derive from its definition, and what request shape reaches it?* That question is
 what #68 used, and it is the one that found this.
+
+## 150. A model-scoped provider limit classified as "OTHER", and a killed watchdog dispatched a second verifier — OPEN→CLOSED (2026-09-09)
+
+**Found while** resuming verifier #69 (campaign #129) after a host Claude restart. Two independent harness
+defects surfaced in the same eight minutes, both in the machinery that is supposed to make a lost process
+survivable. Neither touched the Edge candidate; `index.ts` stayed at `006a0c3f…` throughout.
+
+### 150a. The provider refusal the classifier did not know
+
+The dispatch exited `rc=1` with 150 bytes:
+
+```
+You've reached your Fable limit. Switch to another model, or manage usage credits at
+claude.ai/settings/usage?from=cc_cli_limit_message, to continue.
+```
+
+`classifyProviderOutput()` matched none of its capacity patterns — they all describe a **session or account**
+limit ("hit your session limit", "usage limit reached", "credit balance is too low"). So the watchdog fell
+through to its last arm, logged `BLOCKED — OTHER`, and scheduled a ten-minute retry **of the same exhausted
+model**, which could only hit the same wall six times before giving up.
+
+**Two defects, not one.** The phrasing was unknown, *and* the remedy is different in kind. A session limit is
+cleared by WAITING for the stated reset. A model-scoped limit is not cleared by waiting on any useful horizon
+— the provider's own message names the fix, which is to run a different model. A retry policy that only knows
+how to sleep cannot act on it.
+
+**Fix.** `PROVIDER_CAPACITY_PATTERNS` learns the observed shape; a new exported `isModelScopedCapacity()`
+separates "wait" from "rotate"; `verifier-watchdog.sh` takes a MODEL LIST, passes `--model` explicitly (so the
+campaign record can also say *which model verified the candidate*, instead of `inherit`), and on a model-scoped
+refusal advances to the next model and retries at once rather than sleeping. When the list is exhausted it
+stops with exit 6 instead of burning attempts. Three regression tests pin the exact observed bytes and the
+wait-vs-rotate distinction. `provider.regression.test.mjs` 18/18.
+
+**Accepted over-match, recorded deliberately:** the remedy sentence "switch to another model" classifies as
+capacity wherever it appears. A false capacity classification costs one model rotation; a missed one costs a
+ten-minute silent stall against a wall — which is precisely what happened here.
+
+### 150b. Killing a watchdog does not kill its verifier
+
+The watchdog was stopped with `kill <pid>` before relaunching it on a working model. `kill` reached the
+watchdog shell but **not its sleeping child**, so at 10:42:11 — exactly 600 s after its last attempt, the
+backoff it had already scheduled — the dead watchdog's subtree dispatched a SECOND verifier into the SAME
+worktree, writing the SAME log and the same `CURRENT_CAMPAIGN.json`. Two independent verifier processes were
+running against one candidate for ninety seconds before the duplicate was killed (pids 1889/2775/2777).
+
+Compounding it: `verifier-watchdog.sh` was EDITED IN PLACE while a copy of it was still running. bash reads a
+script incrementally by byte offset, so a surviving old process continues reading the NEW file at its old
+offset — the second dispatch's log line was in the old format precisely because that process was executing a
+file that no longer said what it had said.
+
+**Rules this establishes.**
+1. Stopping a watchdog means stopping its process GROUP (`kill -- -<pgid>`), then verifying no `claude`
+   child survives. A pid file names one process; the work order is a tree.
+2. Never edit a running shell script in place. Write the new version, stop the old process group, then start.
+3. Two verifiers on one worktree is a corruption hazard, not merely waste: both truncate the same log and
+   both may commit to the same artifact branch.
+
+**Status: CLOSED structurally for 150a** (patterns + rotation + 3 regressions). **150b is closed by rule and
+by the state-file record**; the process-group kill is not yet enforced by a test, which is registered here as
+the residual rather than claimed as done.

@@ -22,7 +22,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseProviderRunId, classifyProviderOutput, PROVIDER_CAPACITY_BLOCKED, PROVIDER_TRANSIENT_ERROR, EXECUTION_MODE_BLOCKED, transientBackoffSeconds, verifierDispatchArgv, EXECUTION_MODES } from './provider.mjs';
+import { parseProviderRunId, classifyProviderOutput, isModelScopedCapacity, PROVIDER_CAPACITY_BLOCKED, PROVIDER_TRANSIENT_ERROR, EXECUTION_MODE_BLOCKED, transientBackoffSeconds, verifierDispatchArgv, EXECUTION_MODES } from './provider.mjs';
 
 test('parseProviderRunId: parses the exact live-observed ANSI-wrapped byte sequence', () => {
   // Exact bytes observed live 2026-08-29 during the Phase 8 dispatch that produced
@@ -98,6 +98,36 @@ test('classifyProviderOutput: ordinary successful dispatch output does NOT class
   assert.equal(classifyProviderOutput('backgrounded · abcdef12'), null);
   assert.equal(classifyProviderOutput(''), null);
   assert.equal(classifyProviderOutput(null), null);
+});
+
+// MODEL-SCOPED CAPACITY (2026-09-09 incident, verifier #69 / campaign #129). The dispatch exited rc=1
+// with 150 bytes: "You've reached your Fable limit. Switch to another model, or manage usage credits at
+// claude.ai/settings/usage?from=cc_cli_limit_message, to continue." It matched NO capacity pattern, so the
+// watchdog logged "BLOCKED — OTHER" and scheduled a 10-minute retry of the same exhausted model. The exact
+// observed bytes are pinned here forever, and so is the second half of the finding: this class needs a
+// DIFFERENT remedy (rotate the model) from a session limit (wait for the reset).
+test('classifyProviderOutput: the EXACT live 2026-09-09 model-limit shape classifies PROVIDER_CAPACITY_BLOCKED', () => {
+  const raw = "You've reached your Fable limit. Switch to another model, or manage usage credits at claude.ai/settings/usage?from=cc_cli_limit_message, to continue.";
+  const result = classifyProviderOutput(raw);
+  assert.ok(result, 'a model-scoped limit must classify, never fall through to OTHER');
+  assert.equal(result.classification, PROVIDER_CAPACITY_BLOCKED);
+});
+
+test('isModelScopedCapacity: the model-limit shape is model-scoped, a session limit is not', () => {
+  assert.equal(isModelScopedCapacity("You've reached your Fable limit. Switch to another model, or manage usage credits."), true);
+  assert.equal(isModelScopedCapacity("You've reached your Opus limit. Switch to another model."), true);
+  // A session/account limit is cleared by WAITING. Calling it model-scoped would rotate models pointlessly
+  // and skip the one remedy that works.
+  assert.equal(isModelScopedCapacity("You've hit your session limit · resets 1am (Asia/Ulaanbaatar)"), false);
+  assert.equal(isModelScopedCapacity('Usage limit reached for this billing period'), false);
+});
+
+test('isModelScopedCapacity: prose about switching models is not a refusal shape we act on blindly', () => {
+  // The remedy sentence is only meaningful as the provider's own refusal text. Classification still
+  // requires classifyProviderOutput to agree, which is what the watchdog actually branches on.
+  assert.equal(classifyProviderOutput('We could switch to another model if latency matters.').classification, PROVIDER_CAPACITY_BLOCKED);
+  // Documented over-match, accepted deliberately: a false PROVIDER_CAPACITY is retryable and costs a
+  // rotation, whereas a missed one costs a silent 10-minute stall against a wall — the 2026-09-09 failure.
 });
 
 test('classifyProviderOutput: an agent DISCUSSING limits in prose is not a provider refusal', () => {
