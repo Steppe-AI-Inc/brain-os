@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T02:17:00Z",
+  "last_updated": "2026-09-09T02:22:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -996,7 +996,8 @@
       "blast_radius": "Synthetic fixtures only.",
       "severity_reasoning": "P2: an org chart that routes approvals/escalations to an inactive manager is an operational defect, and Brain will confidently give that manager's name to anyone who asks. Same non-cascade family as BUG-013 (archive) - the product records state transitions without propagating them through relationships.",
       "regression_requirement": "In a synthetic org, set A's manager to B, end B's employment; assert A's manager is cleared, reassigned, or rendered with an inactive marker on /people, and that Brain qualifies the manager as inactive. Re-run after restoring B to assert symmetry.",
-      "_qa_boundary": "Work PC did not modify product code."
+      "_qa_boundary": "Work PC did not modify product code.",
+      "related_observation_2026_09_09": "DISTINCT FROM the archived-company case, which now behaves correctly: in the 02:19-02:21Z cycle the manager link was preserved and displayed under an archived parent exactly as CWC §4 requires, and restore was symmetric. BUG-019 remains about an ENDED PERSON still being shown as a live manager of active reports (CWC §4 \"inactive (person): not offered as manager/assignee; existing history preserved and LABELLED\"), which is a different code path and is NOT addressed by the archived-parent policy. Not retested here."
     },
     {
       "bug_id": "BUG-020",
