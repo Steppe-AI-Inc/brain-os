@@ -1,0 +1,119 @@
+Verification complete. Artifacts committed to `verify-85793f5-campaign131` @ `15e33c9`.
+
+---
+
+# VERIFIER #71 — CAMPAIGN #131 — FINAL REPORT
+
+```
+CHANGE VERIFIED: candidate 85793f500f023fabd1c792e6bdcd4b38e4cd03bd — the V70-D3 boundary closure,
+                 the clarification resolution primitive (BUG-010/BUG-029), the provenance guard
+                 (BUG-030), the bridge between them, compaction truth, and Codex findings A–E
+SCENARIOS: 9 passed, 5 failed, 5 blocked
+CANONICAL GRAPH: PASS (source/unit level only — no DB access)
+UI ↔ DB:         BLOCKED (no browser tools in this session type — not passed, not skipped)
+AI ↔ DB:         FAIL   (V71-D1/D2, V71-D4)
+DEPENDENCIES:    PASS
+PERMISSIONS:     FAIL — FIX PREPARED, BLOCKED — PRODUCTION DB AUTHORIZATION (Codex E)
+RELOAD/PERSISTENCE: PASS (Codex C: the persist error is read and classified four ways)
+IDEMPOTENCY:     PASS (no boundary regex carries g/y; repeated .test() is stable)
+```
+
+## STEP 1 — THE HARNESS AS A SUSPECT
+
+I re-derived every boundary regex by **lifting the declaration text out of `index.ts` and evaluating it**. Nothing was retyped anywhere in my probes.
+
+- **Escape depth, both directions, own tokenizer** (`escape_scan.mjs`, `escape_scan_dir.mjs`, self-tested against a deliberately-wrong fixture that it caught 3/3): **0 hard hits in index.ts.** 0 single-escaped metaclasses in a `new RegExp` string argument, 0 double-escaped metaclasses in a regex literal, 0 backspace (0x08), 0 NUL. The 8 harness hits are all regexes that legitimately match source text containing backslashes.
+- **`g`/`y` and `lastIndex`:** 37 regex literals carry `g`, none of them a named const used with `.test()`; 0 dynamic `g`/`y` regexes used with `.test()`.
+- **`_gate_extract.mjs` audit:** dependency ordering is correct and transitive; the duplicated `SHARED_CONSTANTS` list is now an alias, not a copy. Two **latent** divergences I found and report: `stripTS` prepends **raw** declaration text while `withSharedConstants` prepends `stripTSOnly`-ed text, and `withSharedConstants` finds transitive dependencies from a head that stops at the **first semicolon** rather than at `declarationEnd`. Neither bites today; neither is asserted.
+
+**I found the eleventh instance, and a twelfth.**
+
+- **Instance 11** — `v64_shared_frames_and_gate_pairs_contract.mjs:273` rebuilds `REQUEST_FRAME_PREFIX` from `REQUEST_FRAME_ALTERNATION`. Production builds it from `REQUEST_FRAME_ALTERNATION_INTENT`. Source lengths 910 vs 1154; **20 inputs behave differently** (every deliberative frame). Right escape depth this time — **wrong operand**. Same suite, same constant, one round after instance 10.
+- **Instance 12** — `extractor_runtime_equivalence_contract.mjs` says it compares "source AND flags", but both of its paths read the **same file**, so a flag change in the source is invisible. The `'iu'` mutant of `NAMED_TARGET_AFTER_ENTITY` — the exact P1 the source comment at `:6415` describes at length — **survived all 87 suites.**
+- **And one in my own instrument, reported because the rule applies to me:** my first compaction row compared `collections[k].shown` against the trimmed array, but the block under test mutates that object in place. The row could never fail; it survived its own mutant. Fixed; it now dies on `env.truncated = false`.
+
+The three suites I was told to trust least (`extractor_runtime_equivalence`, `escape_depth_and_source_hygiene`, the p1 vacuity proofs) — the escape-depth guard is **genuinely non-vacuous and it caught my own scratch files twice on its first two runs**, which is exactly what a standing guard is for. The equivalence contract is non-vacuous against its four stated mutants but cannot see the class its own comment claims.
+
+## STEP 2 — BEHAVIOUR, FROM MY OWN CORPUS
+
+### V71-D1 / V71-D2 (P1) — an unsupported provenance claim ships. FAIL condition #6.
+
+`index.ts:7381` `provenanceIsSupported` is a **turn-global boolean**. A canonical read of *any* entity licenses a database citation about *any other* entity. And the evidence it consults comes from the by-name lookups, which are `ilike '%token%'` OR-matches over up to 8 command tokens, `.limit(5)`, **no `.order()`** — a bounded window, which `index.ts:3093` itself reports as `truncated: true`, and which `index.ts:3073` and `clarification_provenance_bridge_contract.mjs:103` both describe as "a DIRECT server-side read of a specific row, never a bounded window."
+
+```
+"What is the deadline for project Alpha?"  →  tokens [deadline, project, alpha]
+   → the lookup returns two OTHER projects → 2 × VERIFIED_READ, neither of them Alpha
+   → "I verified this against the stored record — project Alpha's deadline is 31 December 2026."
+   → SHIPS VERBATIM  (read turn AND mutation-intent turn)
+```
+
+Both controls hold: empty evidence removes it, right-entity evidence keeps it. The guard is neither dead nor a mute button — it is entity-blind. **This is the join neither BUG-029's nor BUG-030's own suite can see, exactly as predicted.**
+
+### V71-D3 (P1) — a mutation-intent fabrication ships. FAIL condition #1.
+
+The headline veto has **three** conjuncts; `OBJECT_NAMES_SOMETHING` still carries `[A-Z][\w-]*`. `NAMED_TARGET_AFTER_ENTITY` only rescues a name **immediately after an entity noun**. Measured through the *same full window the committed v61 suite executes*:
+
+```
+caught "revoke access for Bob"         →  "No change was made — …"
+SHIPS  "revoke access for bob"         →  "Done — bob's access has been revoked."
+caught "archive company New Horizons"  →  "No change was made — …"
+SHIPS  "archive company new horizons"  →  "new horizons has been archived."
+SHIPS  "archive work order"            →  "The work order has been archived."
+SHIPS  "archive project project" / "archive company business" / "archive project all hands"
+                                          7 of 15 fabricated completions ship
+```
+
+Bare `"archive work order"`: `index.ts:6448` states v61's A1 pins it. **v61's A1 contains `"archive work order WO-1"` and capital `Bob`.** The comment describes a repair the code does not have.
+
+The other direction is intact: 10/10 truthful topic headlines still derive no intent; 9/9 protected requests still do.
+
+### V71-D4 (P2) — a resolution failure can still be reported as non-existence.
+
+5 of 5 non-existence sentences pass the whole gate chain unchanged on an `INSUFFICIENT_REFERENCE` turn. All 13 `result.summary` assignment sites are gated on structure, a lifecycle report, or mutation intent — none on a non-existence claim. The rule is **prompt-only**.
+
+### V71-D5 (P3) — the negation vocabulary misses `"I decided not to archive ACME"` and `"stop archiving ACME"`.
+
+### Attacks that FAILED to break it
+`UNREPRESENTABLE_ACTION` cannot become a default action (10/10 adversarial pairs including `__proto__`/`constructor`/`toString` fail closed). The RESOLVED gate holds. There is no third evidence producer. Mixed and contrastive turns are not swallowed.
+
+## STEP 3 — VACUITY
+
+**Battery re-run from the filesystem: 87 suites, 84 exit 0.** The three-red claim is **CONFIRMED**: two machine-posture files (`SUPABASE_ACCESS_TOKEN` is present here) plus `person_assignment_scope_authorization`, whose 4 FINDING rows are Codex E, red by design.
+
+**21 effective source mutants, 20 caught.** Every mutant the launch prompt named is caught: negation gate deleted, persistence classification reverted, RESOLVED gate removed, a window made evidence, provenance guard deleted *and* made a mute button, `truncated:false` in either trim pass, `overBudget` always false, `ENTITY_NOUN_CONTINUATION` dropped, `SENTENCE_FUNCTION_WORD` emptied, `MUTATION_RESULT_FIELDS` halved, the `[A-Z0-9]` proxy re-introduced, a single-escaped `\s`, the minimum-safe assertion deleted, `INSUFFICIENT_REFERENCE` collapsed, an archive default in the clarification resolver. **One survivor: the flags.**
+
+**One of my own first-pass mutants was INEFFECTIVE** — `truncated: true → false` rewrote only two *comments*. I report it as a bad mutant of mine, not a battery gap, and replaced it with one that works (caught by 8 suites). This is the exact failure the launch prompt warned the session's own compaction proof had.
+
+**Compaction truth: 38/38 on my own probe**, at 0/1/3/5/7/13/33/77/150/400/1000 turns — five sizes the committed suite does not try. Minimum safe context byte-identical everywhere; `overBudget` true exactly when the shipped pack really exceeds the budget, **including the genuinely unreachable case**; estimator drift shipped-minus-measured = **1 token**.
+
+## STEP 4 — TDZ / DENO / BYTES
+
+Own block-scope scan: 1,037 `const`/`let`, 910 distinct names, 15 raw hits, **all classified as false positives** (9 property keys, 6 `for`-head `oi` in two distinct loops, 1 safe deferred closure — `UUID_IN_TEXT` :5979, declared :6014, earliest invocation :6915). **All nine new declarations this round: 0.** `index.ts` is CRLF-pure: 7,799 CRLF, 0 bare LF, 0 bare CR, 0 backspace, 0 NUL.
+
+## STEP 5 — DEPLOYABILITY CALL
+
+**Candidate `85793f500f023fabd1c792e6bdcd4b38e4cd03bd` is NOT fit to deploy over v92 under the contract bar.**
+
+No v92 truth regression is claimed either way — I did not run a differential this round, because two P1s in the FAIL list settle the verdict without one, and I would rather report that honestly than pad the evidence.
+
+### FOUNDER APPROVAL SECTION — pending DB action (unchanged, still owed)
+`supabase/drafts/202609090001_person_assignment_scope_authorization.sql` — Codex E, independently reconfirmed at source (`person_assignments_write_manager` authorises on `operating_company_id` alone; `person_id`, `manager_person_id`, `legal_employer_company_id` unchecked). Correctly outside `supabase/migrations/`. **No live probe was run** — proving it behaviourally is the cross-tenant write that must never succeed. **BLOCKED — PRODUCTION DB AUTHORIZATION.**
+
+### What I could NOT measure
+`deno check` (no deno binary, `npx` gated) · any live Edge/SSE turn or DB query (`npx supabase` gated) · **browser UI and AI-chat acceptance — no `mcp__claude-in-chrome__*` tools and no `ToolSearch` in this session type, so UI↔DB and AI↔DB are BLOCKED, not passed** · v92 deployed-bytes provenance (CLI-gated, carried at integration level).
+
+### Synthetic data
+**None created** — no DB access was available, so there are no `QA-VERIFY-*` entities to clean up. `index.ts` is byte-identical to the candidate at the end of the run. 24 mutant sources (15 MB) deleted, regenerable from the committed transforms. One file remains modified in the tree: `qa/verification/scratch/p1/mutants/V60-D8-probe.ts` — the v60 suite **writes it from `SEM_INDEX_SRC` as a side effect**, so running the battery against a mutant silently rewrites a committed fixture. Content restored; only a line-ending difference remains, left uncommitted.
+
+### Commits
+`15e33c9` — qa: verifier #71 — FAIL on 85793f5, two guards asking the adjacent question
+
+---
+
+```
+VERDICT: FAIL
+EDGE STATUS = NOT DEPLOYMENT READY (contract bar)
+Production stays v92. No ALLOW_FUNCTIONS_DEPLOY=1 request is made.
+```
+
+`ee853f63ca01017d9865426ea295faae8e9bcaea20ef0d2d6a6e92533fa37121`
