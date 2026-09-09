@@ -6061,7 +6061,12 @@ serve(async (req) => {
         const PHRASAL_READ = /^\s*(?:set out|sets out|add up|sum up|lay out|map out|figure out|point out|make up|round up|break down|walk through|go over|run through|think through|write up)\b/i;
         const commandClausesForRead = commandText.split(/[,;]\s+|\s[—–-]\s+|\s+(?:so|then|and then|and)\s+/i);
         const lastClauseForRead = (commandClausesForRead[commandClausesForRead.length - 1] || commandText).replace(REQUEST_FRAME_PREFIX, '');
-        const lastClauseIsMutation = commandClausesForRead.length > 1 && /^\s*(?:archiv|un-?archiv|restor|reactivat|delet|remov|renam|retitl|reassign|unassign|approv|reject|declin|activat|deactivat|invit|revok|enabl|disabl|promot|demot|hir|fir|terminat|dismiss|onboard|merg|split|reopen|bring)/i.test(lastClauseForRead) && !/\?/.test(lastClauseForRead);
+        // Was 30 hand-written stems, containment 0.90 in the canonical 120 - the ninth re-spelling, and a
+        // reachable one: "list the companies and suspend ACME" put 90 of 120 canonical verbs out of reach
+        // (verifier #69, V69-D3). Derived from the one definition now, matched by STEM so the inflected
+        // spellings the old list carried ("archiv", "renam") still hit.
+        const MUTATION_VERB_STEM = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION.split('|').map((v) => v.replace(/e$/, '')).join('|') + '|bring)', 'i');
+        const lastClauseIsMutation = commandClausesForRead.length > 1 && MUTATION_VERB_STEM.test(lastClauseForRead) && !/\?/.test(lastClauseForRead);
         // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this the head word only has to be
         // spelled like a verb, and a noun phrase headed by one ("Archive policy needs a review", "Share
         // price fell after the announcement") reads as a command (verifier #61, V61-D7). Declared here, above
@@ -6073,6 +6078,23 @@ serve(async (req) => {
         // as much as its head does, so the entity noun and the identifier are now recognised WHEREVER THEY
         // SIT in the object. The leading-position alternatives are kept as they were: they are what makes a
         // bare "it"/"them"/a quoted name/a determiner phrase count, and none of them is weakened here.
+        // "THIS PHRASE NAMES A TARGET" - ONE definition, two consumers below (the object test, and the
+        // headline veto that subtracts topic phrases from it). Writing it twice is how the entity
+        // vocabulary reached its eighth re-spelling, so it is written once.
+        //
+        // An entity noun followed by a quoted name, or by a token opening with a capital or a digit:
+        // "work order WO-1", "business unit Beta", 'project "Alpha"'. The token must FOLLOW the noun, which
+        // is where a name sits and where a prepositional phrase's object never does - capitalisation
+        // ANYWHERE was tried in an earlier round and rejected, because it made "Close call on the Beta deal
+        // today" refer.
+        const NAMED_TARGET_AFTER_ENTITY_SRC = '(?:' + ENTITY_NOUN_ALTERNATION + ')\\s+(?:["\u201c\u2018]|[A-Z0-9][\\w-]*)';
+        // FLAGS ARE PART OF THE DEFINITION. This must carry the SAME flags as IMPERATIVE_OBJECT, which is
+        // built with 'u' and deliberately WITHOUT 'i': the whole test turns on [A-Z0-9] meaning "capitalised
+        // or numeric", and under /i that class matches lowercase too. Built with 'i' here, "report for the
+        // project" read "report" + "for" as a named target, the headline veto never fired, and all 15
+        // truthful answers went on being destroyed while the fabrication rows passed - one flag, one
+        // direction still broken, no error anywhere.
+        const NAMED_TARGET_AFTER_ENTITY = new RegExp(NAMED_TARGET_AFTER_ENTITY_SRC, 'u');
         const IMPERATIVE_OBJECT = new RegExp(
           '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
           + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'
@@ -6093,6 +6115,24 @@ serve(async (req) => {
           // it, because every case it would catch already carries an entity noun — and a guard nobody can
           // test is a guard nobody can maintain.
           + '|^(?:\\S+\\s+){0,1}(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
+          // THE BOUNDARY, DERIVED RATHER THAN COUNTED (verifier #69, V69-D1/D2). The head region was
+          // one modifier deep, so "archive old duplicate work order WO-1" - two modifiers, no determiner -
+          // matched no alternative at all and the request was invisible to every tier: 5 of 5 fabrications
+          // shipped. Widening the count to two would have re-opened the direction #68 closed, and both
+          // settings of that integer have now shipped a P1, so the count-based alternative is REPLACED here,
+          // not supplemented: leaving it in place kept "Post mortem report for the project" referring
+          // ("post" is a canonical verb, "mortem report" is one modifier and an entity noun) and the receipt
+          // went on deleting 70 of 70 truthful answers. The two phenomena differ by something that is not
+          // distance:
+          //
+          //   REQUEST   "... work order WO-1" / "... business unit Beta"   the entity noun NAMES a target
+          //   HEADLINE  "Post mortem report for the project"              the entity noun ENDS the phrase
+          //
+          // A target token is a quoted name, or a token opening with a capital or a digit, and it must
+          // FOLLOW the entity noun - which is where a name sits and where a prepositional phrase's object
+          // never does. Capitalisation ANYWHERE was tried before and rejected (it made "Close call on the
+          // Beta deal today" refer); this is narrower and directional.
+          + '|(?:^|\\s)' + NAMED_TARGET_AFTER_ENTITY_SRC
           + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
@@ -6107,8 +6147,65 @@ serve(async (req) => {
         // recognised entity nouns are removed, so "the company works fine" is still a statement (V61-D7)
         // while "work order WO-1" is an object. One definition, one more consumer.
         const ENTITY_NOUN_PHRASE = new RegExp('\\b(?:' + ENTITY_NOUN_ALTERNATION + ')\\b', 'gi');
+        // objectRefers already blanks entity-noun phrases before looking for a finite verb, so "archive
+        // expired work order WO-1" became "expired   WO-1" and "expired" read as a finite verb about the
+        // world: the request became a statement and 2 of 2 fabrications shipped (verifier #69, V69-D1). A
+        // past participle sitting DIRECTLY BEFORE an entity noun is an adjective modifying it, not the
+        // sentence's verb, so it is normalised away WITH the noun it modifies - the same idea as the line
+        // below it, one word earlier.
+        // WHAT MAY FOLLOW AN IMPERATIVE VERB - one definition, three consumers (MUTATION_IMPERATIVE_VERB,
+        // headHasObject, and the object slice). Declared HERE, above every use: these are block-scoped
+        // consts, and a const read before its declaration is a TDZ crash rather than a fallback - the same
+        // V54-P0-TDZ regression this file already carries a comment about, and it fired on the first run of
+        // this very edit when the declaration sat with the verb regex instead.
+        const AFTER_IMPERATIVE_VERB = '[\\s:;,\\u2014\\u2013\\u2026-]+';
+        const AFTER_IMPERATIVE_VERB_LEAD = new RegExp('^' + AFTER_IMPERATIVE_VERB);
+        const ADJECTIVAL_PARTICIPLE_BEFORE_ENTITY = new RegExp(
+          '\\b(?:expired|created|changed|closed|started|ended|moved|failed|passed|blocked|returned'
+          + '|increased|decreased|continued|stopped|remained|occurred|appeared|agreed|called|flooded'
+          + '|dropped|archived|restored|deleted|removed|renamed|assigned|approved|rejected|completed'
+          + '|cancelled|canceled)\\s+(?=(?:' + ENTITY_NOUN_ALTERNATION + ')\\b)', 'gi');
+        // THE HEADLINE SHAPE, in the verifier's own words: "a bare noun phrase whose only extra structure is
+        // a prepositional phrase (... for the department, ... on the Beta deal) with no target token at all".
+        //
+        // Two earlier formulations were measured and were wrong. REMOVING the head-region alternative also
+        // blinded a plain "archive work order" and v61's A1 contract caught it (80 turns). Vetoing only when
+        // the PREPOSITION'S OBJECT is an entity noun missed "Order status report for the board", where the
+        // entity noun ("status") is in the head and the PP's object is not an entity noun at all. What
+        // actually separates the two is neither of those: a headline is a phrase that opens with NO
+        // determiner, carries a prepositional phrase, and NAMES NOTHING.
+        //
+        // A determiner immunises it, and that is deliberate - "the task for the marketing team" is a real
+        // request whose object opens with "the". So does a named target anywhere: "project Alpha for the
+        // marketing team" names Alpha.
+        // CONSTRUCTED, not regex literals. These were first written as /.../i using the same escaped
+        // fragments as the string-built patterns around them, where \b is a literal backslash-b rather than
+        // a word boundary - so the prepositional-phrase test could never match, the veto never fired, and
+        // the read direction stayed broken with every other row green. Same escape-depth class as the
+        // backspace and the lost \s earlier in this closure; building them the same way as their
+        // neighbours removes the chance to get it wrong twice.
+        // The object is immune to the veto when it OPENS with its own reference - the same leading
+        // alternatives IMPERATIVE_OBJECT already accepts: a determiner, a pronoun, a quoted name, a number,
+        // an identifier, or a capitalised proper noun. "archive ACME for the marketing team" is a real
+        // request whose object opens with a name and merely carries a trailing prepositional phrase; a first
+        // version of this veto had no proper-noun arm, vetoed it, and v61's A1 contract caught it. Only a
+        // phrase that opens with NOTHING referring can be a topic headline.
+        const OBJECT_OPENS_WITH_A_REFERENCE = new RegExp('^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another|it|them)\\b|^["\u201c\u2018]|^\\d|^\\S*[-_]?\\d|^[A-Z]');
+        const OBJECT_HAS_PREPOSITIONAL_PHRASE = new RegExp('\\b(?:for|on|in|about|of|with|regarding|re)\\s+\\S', 'i');
+        // "NAMES NOTHING AT ALL" is the test, not "names nothing after the entity noun". The narrower form
+        // vetoed "revoke access for Bob" - a real request whose prepositional phrase carries the target -
+        // and v61's A1 contract caught it. A quoted name, a capitalised word or a token with a digit,
+        // ANYWHERE in the object, means the phrase points at something; a headline points at a topic:
+        //   "status report for the board"      names nothing   -> headline
+        //   "access for Bob"                   names Bob       -> request
+        // Case-sensitive on purpose: [A-Z] is the whole signal, and under /i it would match everything.
+        const OBJECT_NAMES_SOMETHING = new RegExp('(?:^|\\s)(?:["\u201c\u2018]|[A-Z][\\w-]*|\\S*\\d)');
+        const isHeadlineObject = (rest: string) => !OBJECT_OPENS_WITH_A_REFERENCE.test(rest)
+          && OBJECT_HAS_PREPOSITIONAL_PHRASE.test(rest)
+          && !OBJECT_NAMES_SOMETHING.test(rest);
         const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest)
-          && !STATEMENT_FINITE_VERB.test(rest.replace(ENTITY_NOUN_PHRASE, ' '));
+          && !isHeadlineObject(rest)
+          && !STATEMENT_FINITE_VERB.test(rest.replace(ADJECTIVAL_PARTICIPLE_BEFORE_ENTITY, ' ').replace(ENTITY_NOUN_PHRASE, ' '));
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));
         // "archive ACME then tell me" is a request with a report attached, not a read. The mirror rule for
@@ -6190,7 +6287,10 @@ serve(async (req) => {
         // хийнэ үү" is an ordinary polite request to archive (verifier #64, V64-D1). The Latin verb is the
         // content; хийнэ/хий/хийж is the grammar. MN_READ_SHAPE must not veto it, so it is matched here
         // rather than through the Cyrillic stem list.
-        const MN_LOAN_VERB = /(?:^|\P{L})(archive|unarchive|restore|reactivate|delete|remove|rename|reassign|unassign|approve|reject|activate|deactivate|invite|revoke|enable|disable|promote|demote|onboard|merge|update|close|complete|cancel|assign|move|transfer|end|create|add|set|import|export|publish|share|upload|send|schedule)\s+хий\S*/iu;
+        // 39 verbs, containment 1.00 - 81 canonical verbs were missing, and Mongolian is the ONE language
+        // where the founder writes "<English verb> хий", so 80 of 120 verbs shipped a fabrication
+        // (verifier #69, V69-D4). One definition, one more consumer.
+        const MN_LOAN_VERB = new RegExp('(?:^|\\P{L})(' + MUTATION_VERB_ALTERNATION + ')\\s+хий\\S*', 'iu');
         const mnLoanVerb = (commandText.match(MN_LOAN_VERB) || [])[1] || null;
         const mnCandidates = MN_READ_SHAPE.test(commandText) ? [] : [...commandText.matchAll(MN_STEMS_GLOBAL)].map((m) => m[1]);
         const mnIsCommandForm = (w: string) => !MN_NOT_A_COMMAND.test(w) && !MN_CASE_SUFFIX.test(w);
@@ -6207,6 +6307,21 @@ serve(async (req) => {
         const NEGATED_IMPERATIVE_HEAD = /^\s*(?:(?:do\s*n[o']?t|don[’']t|do not|never|no need to|no longer|please do not|please don[’']t)\s+)+/i;
         const commandForHead = commandForRead.replace(NEGATED_IMPERATIVE_HEAD, '');
         const lastClauseForHead = lastClauseForRead.replace(REQUEST_FRAME_PREFIX, '').replace(NEGATED_IMPERATIVE_HEAD, '');
+        // NEGATION IS NOT ONLY A PREFIX (verifier #69, V69-D1). NEGATED_IMPERATIVE_HEAD is ^-anchored, so
+        // "make sure you do not archive ACME" carried a lexicon verb ("make") at the head with a
+        // non-referring object, and the negated request was invisible: 25 of 30 shipped - the founder was
+        // told the very thing they forbade had been done. That is the worst form of this defect.
+        //
+        // The fix is not another position rule. A negation followed by a canonical mutation verb IS a
+        // mutation request - one whose only correct answer is "no change" - so it is request-side evidence
+        // in its own right, wherever it sits, and whether or not an object follows ("ACME: do not restore").
+        // The verb list is the ONE canonical definition, never a copy of it.
+        const NEGATED_MUTATION_REQUEST = new RegExp(
+          '\\b(?:do\\s*n[o\u2019\']?t|never|no need to|must not|should not|will not|cannot|ca\\w*n[o\u2019\']?t)'
+          + '[\\s,]+(?:\\w+[\\s,]+){0,3}(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i');
+        const negatedMutationVerb = NEGATED_MUTATION_REQUEST.test(commandText)
+          ? ((commandText.match(new RegExp('(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i')) || [])[0] || null)
+          : null;
         const alwaysHeadRe = alwaysEnglishBase
           ? new RegExp('^\\s*' + alwaysEnglishBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')
           : null;
@@ -6216,7 +6331,7 @@ serve(async (req) => {
           if (!alwaysHeadRe) return false;
           const m = alwaysHeadRe.exec(clause);
           if (!m) return false;
-          return objectRefers(clause.slice(m[0].length).trim());
+          return objectRefers(clause.slice(m[0].length).replace(AFTER_IMPERATIVE_VERB_LEAD, '').trim());
         }
         // Each clause on its own terms: an imperative's object is in the imperative's clause, and a finite
         // verb in a trailing report clause says nothing about it (verifier #63, V63-D3(a)).
@@ -6224,7 +6339,7 @@ serve(async (req) => {
           ? [commandForHead, firstClauseForRead, lastClauseForHead]
           : [commandForHead];
         const alwaysInImperativePosition = !!alwaysHeadRe && headClauses.some((c) => headHasObject(c));
-        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || (mnLoanVerb ? mnLoanVerb.toLowerCase() : null) || null;
+        const lexiconAlways = (alwaysInImperativePosition ? alwaysEnglishBase : null) || alwaysOther || alwaysCyrillic || (mnLoanVerb ? mnLoanVerb.toLowerCase() : null) || (negatedMutationVerb ? negatedMutationVerb.toLowerCase() : null) || null;
         const lexiconPassive = (MUTATION_PASSIVE_REQUEST.test(commandText) || MUTATION_NEEDS_PARTICIPLE.test(commandText)) ? ((commandText.match(new RegExp('\\b(' + 'archived|unarchived|restored|reactivated|deleted|removed|renamed|retitled|reassigned|unassigned|approved|rejected|declined|activated|deactivated|invited|revoked|enabled|disabled|promoted|demoted|hired|fired|terminated|dismissed|onboarded|merged|split|reopened|closed|completed|cancelled|canceled|finished|assigned|updated|changed|moved|transferred|marked|set|ended|added|created|made|edited|fixed|modified|done' + ')\\b', 'i')) || [])[1] || 'update') : null;
         // A capitalised weekday or month is a TIME, not an entity: "the store will reopen Monday" is a
         // statement about the world, and the proper-noun object tier used to read it as a lifecycle request.
@@ -6237,7 +6352,12 @@ serve(async (req) => {
         // frames stripped, beginning with a mutation verb in base form and carrying an object. Position is
         // request-side evidence: it is a property of what was ASKED, never of what the model replied.
         // Read-shaped commands veto this exactly as they veto the other lexicon tiers.
-        const MUTATION_IMPERATIVE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\b\\s+\\S', 'i');
+        // "Archive: the work order WO-1" / "archive - the purchase approval A-1". Every alternative here
+        // assumed WHITESPACE after the verb, so a colon, semicolon, comma or dash removed the request from
+        // the intent tier entirely - 4 of 4 fabrications shipped (verifier #69, V69-D1). Punctuation after
+        // an imperative verb is ordinary founder typing, not a different kind of sentence. ONE definition
+        // of "what may follow an imperative verb", used by both consumers.
+        const MUTATION_IMPERATIVE_VERB = new RegExp('^\\s*(?:' + MUTATION_VERB_ALTERNATION + ')\\b' + AFTER_IMPERATIVE_VERB + '\\S', 'i');
         // An imperative needs an OBJECT THAT REFERS TO SOMETHING. Without this test the head word is only
         // required to be spelled like a verb, and "Archive policy needs a review" or "Share price fell
         // after the announcement" read as commands (verifier #61, V61-D7). A determiner phrase, a proper
@@ -7057,6 +7177,11 @@ serve(async (req) => {
           // answered "could not resolve which COMPANY you meant (searched the active and archived
           // COMPANIES)", a false statement about what was searched (verifier #67, V67-D3). It now reads the
           // one definition, so the receipt names the thing the founder actually named.
+          // The inverse of the irregular plural table further down: a noun that is ALREADY singular and
+          // merely ENDS in an s-cluster must never be "singularised" again. Declared here rather than beside
+          // that table because the consumer is above it, and a const read before its declaration is a TDZ
+          // crash rather than a fallback (V54-P0-TDZ; it fired here on the first run of this edit).
+          const SINGULAR_IS_ITSELF = /(?:us|ss|is)$/i;
           const commandEntityNoun = ((commandText.match(
             new RegExp('\\b(' + ENTITY_NOUN_ALTERNATION + ')\\b', 'i')) || [])[1] || '').toLowerCase();
           // A five-noun map returning null, with the reason line defaulting to the literal 'company',
@@ -7075,7 +7200,12 @@ serve(async (req) => {
             // order. A PURCHASE order is its own thing and must keep its own name — reporting it as a work
             // order is the same false statement about what was searched, one noun over (verifier #68).
             : commandEntityNoun === 'order' ? 'work order'
-            : commandEntityNoun ? commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1')
+            // "status" -> "statu" and "access" -> "acces": a bare /s$/ strip is wrong for -us, -ss and -is
+            // nouns, and it reached the founder as "I could not resolve which statu you meant" (verifier
+            // #69, V69-D5). Machine text in a founder-facing sentence is a real defect, not a cosmetic one.
+            : commandEntityNoun ? (SINGULAR_IS_ITSELF.test(commandEntityNoun)
+                ? commandEntityNoun
+                : commandEntityNoun.replace(/ies$/, 'y').replace(/([^s])s$/, '$1'))
             : null;
           const UNSUPPORTED_FROM_CHAT: Record<string, string> = {
             approve: 'deciding an approval from chat is not available yet — use the Approvals page',
@@ -7083,7 +7213,11 @@ serve(async (req) => {
             decline: 'deciding an approval from chat is not available yet — use the Approvals page',
             invite: 'inviting someone from chat is not available yet — use the People page',
           };
-          const negatedRequest = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/i.test(commandText) || /\b(?:do not|don['’]t|never|not to|no longer|instead of|rather than|should not|shouldn['’]t|must not|mustn['’]t|won['’]t|will not|cannot|can['’]t)\s+(?:\w+\s+){0,3}(?:archive|restore|delete|remove|rename|assign|approve|reject|unarchive|reactivate|end|close|cancel)/i.test(commandText);
+          // 13 of the 120 canonical verbs, containment 1.00 - the receipt's REASON test and the intent
+          // tier disagreed about what counts as a mutation, so a negated request naming any of the other
+          // 107 verbs got the wrong reason sentence (verifier #69, V69-D6). One definition, one more
+          // consumer; the NEGATION vocabulary stays its own idea, because that is a different concept.
+          const negatedRequest = /^\s*(?:do not|don['’]t|never|please do not|please don['’]t|stop|without|instead of|rather than|not|no)\b/i.test(commandText) || new RegExp('\\b(?:do not|don[\'\u2019]t|never|not to|no longer|instead of|rather than|should not|shouldn[\'\u2019]t|must not|mustn[\'\u2019]t|won[\'\u2019]t|will not|cannot|can[\'\u2019]t)\\s+(?:\w+\s+){0,3}(?:' + MUTATION_VERB_ALTERNATION + ')\\b', 'i').test(commandText);
           // The receipt picks its REASON here, and this named three deliberative frames while
           // REQUEST_FRAME_DELIBERATIVE names 22 — so the other 19 ("can I", "shall I", "I want to", …) were
           // told "I could not resolve which company you meant" about a company that resolves perfectly well

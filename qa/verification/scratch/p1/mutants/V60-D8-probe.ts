@@ -6078,6 +6078,23 @@ serve(async (req) => {
         // as much as its head does, so the entity noun and the identifier are now recognised WHEREVER THEY
         // SIT in the object. The leading-position alternatives are kept as they were: they are what makes a
         // bare "it"/"them"/a quoted name/a determiner phrase count, and none of them is weakened here.
+        // "THIS PHRASE NAMES A TARGET" - ONE definition, two consumers below (the object test, and the
+        // headline veto that subtracts topic phrases from it). Writing it twice is how the entity
+        // vocabulary reached its eighth re-spelling, so it is written once.
+        //
+        // An entity noun followed by a quoted name, or by a token opening with a capital or a digit:
+        // "work order WO-1", "business unit Beta", 'project "Alpha"'. The token must FOLLOW the noun, which
+        // is where a name sits and where a prepositional phrase's object never does - capitalisation
+        // ANYWHERE was tried in an earlier round and rejected, because it made "Close call on the Beta deal
+        // today" refer.
+        const NAMED_TARGET_AFTER_ENTITY_SRC = '(?:' + ENTITY_NOUN_ALTERNATION + ')\\s+(?:["\u201c\u2018]|[A-Z0-9][\\w-]*)';
+        // FLAGS ARE PART OF THE DEFINITION. This must carry the SAME flags as IMPERATIVE_OBJECT, which is
+        // built with 'u' and deliberately WITHOUT 'i': the whole test turns on [A-Z0-9] meaning "capitalised
+        // or numeric", and under /i that class matches lowercase too. Built with 'i' here, "report for the
+        // project" read "report" + "for" as a named target, the headline veto never fired, and all 15
+        // truthful answers went on being destroyed while the fabrication rows passed - one flag, one
+        // direction still broken, no error anywhere.
+        const NAMED_TARGET_AFTER_ENTITY = new RegExp(NAMED_TARGET_AFTER_ENTITY_SRC, 'u');
         const IMPERATIVE_OBJECT = new RegExp(
           '^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another)\\s+\\S'
           + '|^(?:it|them|this|that|these|those)\\b|^["\'“”\'\']|^\\d|^\\S*[-_]?\\d|^[A-Z][A-Za-z0-9_-]*'
@@ -6097,6 +6114,7 @@ serve(async (req) => {
           // An IDENTIFIER-SHAPED token anywhere was measured redundant — the mutation proof could not kill
           // it, because every case it would catch already carries an entity noun — and a guard nobody can
           // test is a guard nobody can maintain.
+          + '|^(?:\\S+\\s+){0,1}(?:' + ENTITY_NOUN_ALTERNATION + ')\\b'
           // THE BOUNDARY, DERIVED RATHER THAN COUNTED (verifier #69, V69-D1/D2). The head region was
           // one modifier deep, so "archive old duplicate work order WO-1" - two modifiers, no determiner -
           // matched no alternative at all and the request was invisible to every tier: 5 of 5 fabrications
@@ -6114,7 +6132,7 @@ serve(async (req) => {
           // FOLLOW the entity noun - which is where a name sits and where a prepositional phrase's object
           // never does. Capitalisation ANYWHERE was tried before and rejected (it made "Close call on the
           // Beta deal today" refer); this is narrower and directional.
-          + '|(?:^|\\s)(?:' + ENTITY_NOUN_ALTERNATION + ')\\s+(?:["\u201c\u2018]|[A-Z0-9][\\w-]*)'
+          + '|(?:^|\\s)' + NAMED_TARGET_AFTER_ENTITY_SRC
           + '|^\\S+@\\S+\\.\\S+|^\\S+\\s*$', 'u');
         // A FINITE MAIN VERB after the object turns the clause into a statement about the world. An
         // instruction has no second finite verb: "revoke access for Bob" has none, "Share price fell after
@@ -6147,7 +6165,46 @@ serve(async (req) => {
           + '|increased|decreased|continued|stopped|remained|occurred|appeared|agreed|called|flooded'
           + '|dropped|archived|restored|deleted|removed|renamed|assigned|approved|rejected|completed'
           + '|cancelled|canceled)\\s+(?=(?:' + ENTITY_NOUN_ALTERNATION + ')\\b)', 'gi');
+        // THE HEADLINE SHAPE, in the verifier's own words: "a bare noun phrase whose only extra structure is
+        // a prepositional phrase (... for the department, ... on the Beta deal) with no target token at all".
+        //
+        // Two earlier formulations were measured and were wrong. REMOVING the head-region alternative also
+        // blinded a plain "archive work order" and v61's A1 contract caught it (80 turns). Vetoing only when
+        // the PREPOSITION'S OBJECT is an entity noun missed "Order status report for the board", where the
+        // entity noun ("status") is in the head and the PP's object is not an entity noun at all. What
+        // actually separates the two is neither of those: a headline is a phrase that opens with NO
+        // determiner, carries a prepositional phrase, and NAMES NOTHING.
+        //
+        // A determiner immunises it, and that is deliberate - "the task for the marketing team" is a real
+        // request whose object opens with "the". So does a named target anywhere: "project Alpha for the
+        // marketing team" names Alpha.
+        // CONSTRUCTED, not regex literals. These were first written as /.../i using the same escaped
+        // fragments as the string-built patterns around them, where \b is a literal backslash-b rather than
+        // a word boundary - so the prepositional-phrase test could never match, the veto never fired, and
+        // the read direction stayed broken with every other row green. Same escape-depth class as the
+        // backspace and the lost \s earlier in this closure; building them the same way as their
+        // neighbours removes the chance to get it wrong twice.
+        // The object is immune to the veto when it OPENS with its own reference - the same leading
+        // alternatives IMPERATIVE_OBJECT already accepts: a determiner, a pronoun, a quoted name, a number,
+        // an identifier, or a capitalised proper noun. "archive ACME for the marketing team" is a real
+        // request whose object opens with a name and merely carries a trailing prepositional phrase; a first
+        // version of this veto had no proper-noun arm, vetoed it, and v61's A1 contract caught it. Only a
+        // phrase that opens with NOTHING referring can be a topic headline.
+        const OBJECT_OPENS_WITH_A_REFERENCE = new RegExp('^(?:the|a|an|this|that|these|those|my|our|your|its|their|his|her|all|every|each|both|new|another|it|them)\\b|^["\u201c\u2018]|^\\d|^\\S*[-_]?\\d|^[A-Z]');
+        const OBJECT_HAS_PREPOSITIONAL_PHRASE = new RegExp('\\b(?:for|on|in|about|of|with|regarding|re)\\s+\\S', 'i');
+        // "NAMES NOTHING AT ALL" is the test, not "names nothing after the entity noun". The narrower form
+        // vetoed "revoke access for Bob" - a real request whose prepositional phrase carries the target -
+        // and v61's A1 contract caught it. A quoted name, a capitalised word or a token with a digit,
+        // ANYWHERE in the object, means the phrase points at something; a headline points at a topic:
+        //   "status report for the board"      names nothing   -> headline
+        //   "access for Bob"                   names Bob       -> request
+        // Case-sensitive on purpose: [A-Z] is the whole signal, and under /i it would match everything.
+        const OBJECT_NAMES_SOMETHING = new RegExp('(?:^|\\s)(?:["\u201c\u2018]|[A-Z][\\w-]*|\\S*\\d)');
+        const isHeadlineObject = (rest: string) => !OBJECT_OPENS_WITH_A_REFERENCE.test(rest)
+          && OBJECT_HAS_PREPOSITIONAL_PHRASE.test(rest)
+          && !OBJECT_NAMES_SOMETHING.test(rest);
         const objectRefers = (rest: string) => IMPERATIVE_OBJECT.test(rest)
+          && !isHeadlineObject(rest)
           && !STATEMENT_FINITE_VERB.test(rest.replace(ADJECTIVAL_PARTICIPLE_BEFORE_ENTITY, ' ').replace(ENTITY_NOUN_PHRASE, ' '));
         const lastClauseIsRead = commandClausesForRead.length > 1
           && (READ_SHAPE.test(lastClauseForRead) || COMPOSITION_REQUEST.test(lastClauseForRead));

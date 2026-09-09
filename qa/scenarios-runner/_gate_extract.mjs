@@ -179,7 +179,13 @@ const SHARED_CONSTANT_NAMES = ['REQUEST_FRAME_ADDRESSED', 'REQUEST_FRAME_ALTERNA
   // The one definition of an entity noun (verifier #67): it was spelled three times — IMPERATIVE_OBJECT,
   // STRONG_OBJECT and commandEntityNoun — and the three had drifted, which cost a P1 and a P2. Every
   // consumer now derives from it, so every window that executes one of them needs the declaration.
-  'ENTITY_NOUN_ALTERNATION'];
+  'ENTITY_NOUN_ALTERNATION',
+  // The one definition of "this phrase names a target" (verifier #69 closure). IMPERATIVE_OBJECT is built
+  // from it, and so is the headline veto that subtracts topic phrases from it, so any window executing the
+  // object test needs the declaration. Listed AFTER ENTITY_NOUN_ALTERNATION because it is built from it and
+  // this list resolves in dependency order: v67's window went red with a bare "NAMED_TARGET_AFTER_ENTITY_SRC
+  // is not defined" the moment the constant existed and was not listed here.
+  'NAMED_TARGET_AFTER_ENTITY_SRC'];
 let _sharedConstantCache = null;
 function resolveSharedConstants() {
   if (_sharedConstantCache) return _sharedConstantCache;
