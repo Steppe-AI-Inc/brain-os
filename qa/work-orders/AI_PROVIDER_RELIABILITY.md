@@ -118,7 +118,17 @@ embedding, last embedding failure, provider/model, recent failure class (§4).
 `api/ai-command.js` and `netlify/functions/ai-command.mjs` paths cannot work.
 
 **Governance item.** `sem-ai-provider-test` is ACTIVE in production (v1, 2026-09-06) but its source exists
-only on `codex/sem-brain-v1` and its migration is unapplied — production code no branch of record contains.
+only on `codex/sem-brain-v1` and its migration is unapplied.
+
+*Re-measured 2026-09-09, and the original wording was too strong.* The source **is** under version control:
+`supabase/functions/sem-ai-provider-test/index.ts` is present on `origin/codex/sem-brain-v1` at `24be8d7`,
+together with its migration `202609060001_deepseek_provider_connections.sql`. What is true is narrower and
+still a real finding: **it is on no branch that leads to production** — not `master`, not
+`p1/execution-truth-governance` — and the migration it depends on has never been applied, so a function is
+serving production from a branch nothing deploys from. Both files are captured in the 2026-09-09 backup
+bundles (`git bundle --all`), so the source is not at risk; the governance gap is provenance, not loss.
+`activate:false` for this function therefore remains the correct posture until it is either merged onto a
+deployable branch with its migration applied, or removed from production.
 
 ---
 
