@@ -242,8 +242,14 @@ DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with t
    deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
-1. Act on #78 automatically: FAIL → fix loop → #79; PASS → release package for the exact bytes.
-2. Apply the factory-runner conversion — prepared and measured above, and YOUR call, because it stops
-   the factory runner until `FACTORY_RUNNER_PG_URL` exists. Safe to apply during a verifier round:
-   neither the dispatcher nor the watchdog touches the DB.
-3. Queue items 5 and 6: the four reimplementation suites, and the arrow parameter-annotation stripper.
+1. **Act on #78 automatically** — FAIL → fix loop → #79; PASS → release package for the exact bytes, and
+   the single deploy-authorisation ask.
+2. **Close the last reimplementation suite** (`sem_ai_command_execution_plan_truth`). It turns THREE
+   regression suites green at once and ends the class. I had recorded it as only half-convertible; that
+   was wrong — all three functions it mirrors are top-level and lift cleanly. Not done tonight only
+   because the release gates were mid-run.
+3. **The five #77 defects left open by design** — D2, D3b, D4, D5, D6. Each has a measured reason and a
+   prescribed shape; D4 in particular wants the ONE object test hoisted rather than an eighth
+   approximation, which is the mistake three rounds of Mongolian fixes already made.
+4. **The arrow parameter-annotation stripper** — the one harness gap left worked around rather than
+   fixed, because it touches three regexes every suite depends on. Do it at the START of a window.
