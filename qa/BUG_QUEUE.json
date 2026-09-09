@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T02:22:00Z",
+  "last_updated": "2026-09-09T02:40:22Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -708,7 +708,16 @@
       "blast_radius": "None - display only. The underlying assignment/reassignment is correct and org-isolated (see CAP-PERSON-MANAGER-ASSIGN-REASSIGN-UI).",
       "severity_reasoning": "P3: no data or truth defect in the product's state; a user could pick the wrong replacement only by not looking at the table. Filed because the sheet copy makes a promise (\"replaces the current manager\") the sheet itself does not let you verify.",
       "regression_requirement": "UI regression: (a) open Set manager on the sole person of a synthetic org, assert a visible \"no eligible managers\" state; (b) assign a manager, re-open the sheet, assert the current manager is shown.",
-      "_qa_boundary": "Work PC did not modify product code."
+      "_qa_boundary": "Work PC did not modify product code.",
+      "work_pc_observation_2026_09_09": {
+        "verdict": "BOTH HALVES OBSERVED FIXED IN THE DEPLOYED WEB — NOT CLOSED (build-identity rule 2: no verifiable deployed WEB_SHA).",
+        "status_label": "VERIFIED_PENDING_BUILD_IDENTITY",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "half_1_empty_picker": "FIXED. Opening the picker for the sole person of QA-C002-RENAMED-X renders \"No other active people in QA-C002-RENAMED-X — add someone to this company first.\" in the listbox, naming the company. On 2026-09-07 this was a silent empty list.",
+        "half_2_current_manager": "FIXED. The sheet renders \"Current manager: QA-C002-MGR-PERSON-02.\" for a person who has one, and \"Current manager: none.\" for one who does not - so the copy that promises to \"replace the current manager\" now shows what is being replaced.",
+        "work_pc_self_correction": "IMPORTANT: my first pass at 02:39Z reported the empty reason as ABSENT. That was a MEASUREMENT ERROR, not a product defect - the reason renders in the select PORTAL (a [role=\"listbox\"] outside the dialog subtree) and my selector was scoped to [role=\"dialog\"]. Caught by re-querying the portal before filing. No defect was raised on the bad reading.",
+        "closure_requirement": "Home PC to state the deployed web commit containing the people-table picker changes."
+      }
     },
     {
       "bug_id": "BUG-012",

@@ -1,6 +1,6 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-09T02:33:44Z",
+  "generated_at": "2026-09-09T02:41:10Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": null,
   "build_identity": {
@@ -18,15 +18,15 @@
     "note": "C001/early-C002 evidence was attributed to this SHA. See BUILD_UNDER_TEST.historical_identifiers for the full context including the five-redeploy ambiguity window."
   },
   "environment": "production",
-  "required_capabilities": 112,
-  "executed_capabilities": 103,
+  "required_capabilities": 113,
+  "executed_capabilities": 104,
   "coverage_percentage": 92,
   "_coverage_formula": "(PASS + FAIL + FLAKY) / required. BLOCKED is EXCLUDED from the numerator - a blocked capability is not evidence of working software.",
   "totals": {
     "NOT_TESTED": 0,
     "QUEUED": 0,
     "RUNNING": 0,
-    "PASS": 65,
+    "PASS": 66,
     "FAIL": 37,
     "BLOCKED": 9,
     "FLAKY": 1
@@ -72,7 +72,7 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 3,
+      "PASS": 4,
       "FAIL": 1,
       "BLOCKED": 0,
       "FLAKY": 0
@@ -191,7 +191,7 @@
       "NOT_TESTED": 0,
       "QUEUED": 0,
       "RUNNING": 0,
-      "PASS": 30,
+      "PASS": 31,
       "FAIL": 5,
       "BLOCKED": 8,
       "FLAKY": 0
@@ -467,7 +467,7 @@
   ],
   "release_state": "FAILED",
   "_release_state_rule": "FAILED if any FAIL. Otherwise PARTIALLY VERIFIED while any NOT_TESTED/QUEUED/RUNNING/BLOCKED remains. E2E VERIFIED / VERIFIED IN PRODUCTION is only reachable when every in-scope capability has actually been executed and passed.",
-  "headline": "Required capabilities: 112 | PASS: 65 | FAIL: 37 | FLAKY: 1 | BLOCKED: 9 | NOT TESTED: 0 -> FAILED",
+  "headline": "Required capabilities: 113 | PASS: 66 | FAIL: 37 | FLAKY: 1 | BLOCKED: 9 | NOT TESTED: 0 -> FAILED",
   "dimensions": {
     "_doc": "ADDITIVE dimensions (2026-09-07). The headline capability coverage above is unchanged and remains the comparable historical metric. Coverage here is evidence-name matching over inventory + bug queue, deliberately conservative.",
     "capability_coverage_pct_unchanged": 92,

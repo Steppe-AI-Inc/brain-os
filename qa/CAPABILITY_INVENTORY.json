@@ -1,7 +1,7 @@
 {
   "_doc": "The discovered universe of everything that CAN be tested. This is not documentation - it is the autonomous scheduler's work queue. Anything with status NOT_TESTED is actionable work the supervisor will schedule. The inventory ONLY GROWS: when an exploratory agent finds a control, page, Brain command, relationship, or business capability not listed here, it is added immediately rather than being allowed to fall silently out of scope. Written only by the Fable QA Director.",
   "schema_version": 1,
-  "generated_at": "2026-09-09T03:05:00Z",
+  "generated_at": "2026-09-09T02:40:22Z",
   "product_commit_under_test": null,
   "environment": "production",
   "status_values": [
@@ -2547,6 +2547,31 @@
       "added_by": "work-pc-independent-qa 2026-09-09 (priority 2: archive/restore relationship consistency)",
       "evidence": "Controlled full cycle on registered fixtures only. Subtree: company QA-SWARM-TEST-CO-VIA-CHAT (7ba01ff2) with 3 people (QA-SWARM-PERSON-001-EDITED managed by QA-C002-MGR-PERSON-02; QA-C002-MGR-PERSON-03), 1 project (QA-C002-PROJ-EDITED-01), 1 department (QA-SWARM-DEPT-ARCHIVED-PARENT-TEST).\n\nBASELINE 02:18:35Z - company active; PERSON-001 manager = PERSON-02; controls enabled.\n\nARCHIVE (chat, channel a01905a2, receipt \"QA-SWARM-TEST-CO-VIA-CHAT: archived.\") -> 02:19:36Z:\n  UI: all 3 people badged \"QA-SWARM-TEST-CO-VIA-CHAT Archived\"; Set manager / invite / onboarding disabled with the verbatim CWC §4 reason \"Company is archived — restore it first\"; project and department badged.\n  RELATIONSHIP: manager link PERSON-001 -> PERSON-02 PRESERVED and still displayed (CWC §4 \"preserved, displayed with a visible parent-archived indication\").\n  AI (fresh channel 317f7d1d, 3-part question): \"(1) QA-SWARM-TEST-CO-VIA-CHAT is archived. (2) ...manager is QA-C002-MGR-PERSON-02. (3) ...assigned to QA-SWARM-TEST-CO-VIA-CHAT.\" All three correct.\n\nRESTORE (UI, /companies/archived Restore) -> 02:21:19Z:\n  UI: every badge cleared on people, project and department; Set manager and onboarding re-enabled.\n  SYMMETRY DETAIL: the invite control did not simply flip to enabled - it reverted to its OWN correct reason per person (\"Add an email before inviting\" for PERSON-02/03 which have no email; \"Invite to log in\" enabled for PERSON-001 which has one). The archived reason did not leak into the restored state and no unrelated state was clobbered.\n  RELATIONSHIP: manager link PERSON-001 -> PERSON-02 intact across the entire cycle - never dropped, never duplicated.\n\nVERDICT: CWC §3 \"restore is symmetric: everything becomes normal again with no further action\" HOLDS for this subtree on all four axes (UI == AI == RELATIONSHIP == PERSISTENCE). No token-preflight 413 fired on any turn.\n\nPOST-RESTORE AI CONFIRMATION (fresh channel 6b0ed264, 02:22:22Z): \"QA-SWARM-TEST-CO-VIA-CHAT status: active. QA-SWARM-PERSON-001-EDITED s manager: QA-C002-MGR-PERSON-02.\" Brain tracked the archive and the restore correctly in independent fresh channels at both ends of the cycle.",
       "caveat": "Founder seat. Persona/fresh-session axis remains BLOCKED (no second credential). Permanent delete not exercised (out of authority)."
+    },
+    {
+      "capability_id": "CAP-MANAGER-PICKER-CROSS-ORG-EXCLUSION",
+      "domain": "employment",
+      "resource": "manager_picker",
+      "operation": "candidate_eligibility",
+      "surface": "UI",
+      "required_roles": [
+        "founder"
+      ],
+      "required_truth_axes": [
+        "UI",
+        "RELATIONSHIP",
+        "PERMISSION",
+        "RELOAD"
+      ],
+      "scenario_ids": [
+        "C002-manager-picker-cross-org"
+      ],
+      "status": "PASS",
+      "tested_against_sha": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "added_by": "work-pc-independent-qa 2026-09-09",
+      "evidence": "A/B pair of registered orgs. ORG A = QA-SWARM-TEST-CO-VIA-CHAT (3 people); ORG B = QA-C002-RENAMED-X (1 person). Plus 3 company-less orphans (QA-C002-PENDING-01, QA-C002-VAR-SURE, QA-C002-VAR-YEAH) as an extra negative control.\n\nORG A - Set manager for QA-SWARM-PERSON-001-EDITED (37d03420-96c7-426a-811e-6edf0e14813f): exactly 2 candidates.\n  QA-C002-MGR-PERSON-02  id 10398be5-0d56-4169-8035-425b294b70cb  (current, aria-selected=true)\n  QA-C002-MGR-PERSON-03  id 6c3f7d30-58b0-4930-9b00-811a946ad674\n  IDs captured by selecting each candidate and reading the sheet hidden input, then CANCELLING - never saved; PERSON-001 manager re-read after cancel at 02:38:51Z and was unchanged (QA-C002-MGR-PERSON-02), so the enumeration was non-mutating.\n  Excluded, all verified by regex against the listbox: SELF (no self-management, CWC §6) - subject absent; ORG B person QA-C002-BU-EMPLOYEE-01 - absent; the 3 orphans with no company - absent; archived-parent people (QA-LIFECYCLE-EMPLOYEE, QA-VERIFY-EMPLOYEE) - absent; ended-employment people (Alice Johnson, employee5, test3 employee, test8worker) - absent.\n\nORG B - Set manager for QA-C002-BU-EMPLOYEE-01: 0 candidates, and the listbox renders an explicit reason naming the company: \"No other active people in QA-C002-RENAMED-X — add someone to this company first.\" No Org A person offered.\n\nRELOAD + REPEAT (Org A, 02:40:14Z): identical result - same 2 candidates, same exclusions, current manager still displayed.\n\nZERO cross-org candidates in either direction. CWC §6 eligibility (same org scope, active, not the subject) holds.",
+      "architectural_note": "The picker scopes to the PERSON'S OWN COMPANY, not to the sidebar org selector - the sheet states \"…in <company>\". This is why the picker is unaffected by the BUG-015 selector defect, and it is the correct design: eligibility follows the relationship's organization, not the viewer's current filter. Recorded so a future reader does not mistake the picker's correctness for evidence that the selector is sound.",
+      "positive_control_for": "BUG-015. This capability is a POSITIVE CONTROL: it proves org-scoped eligibility is implemented correctly somewhere in the product, which bounds BUG-015 to the five enumerated surfaces rather than a systemic scoping failure. BUG-015 is NOT broadened by this result."
     }
   ],
   "_product_commit_under_test_note": "NULLED 2026-09-09 after third-party verification flagged it as conflicting provenance. It read \"8521b0e\", a product SHA recorded 2026-08-31 that is neither re-verified nor currently identifiable: production is a SPLIT deployment and the deployed web commit is not observable from this seat. A single scalar cannot express the split, so build_identity below is authoritative and this scalar stays null rather than carrying a stale value that reads as current.",
