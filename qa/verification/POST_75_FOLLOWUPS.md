@@ -104,3 +104,35 @@ example above, and the window has to be chosen so the pack-building block runs w
 two reimplementations in place — would leave a suite that LOOKS converted and is still blind to the logic
 it names. That is a worse state than the honest one it is in now, because the next reader would stop
 looking. The one converted example is a template for the shape, not a claim that the other three are close.
+
+## 6. Factory-runner least privilege — PREPARED AND MEASURED, not applied
+
+`qa/verification/proposed/APPLY_factory_runner_least_privilege.mjs`. Thirteen edits: two to `db.mjs`
+(export `isMutating`, and make `read()` use it, so there is ONE definition of "this statement mutates"),
+and one per script — the body of its single `runSql` is replaced by a shim that routes through `db.mjs`.
+
+**Measured on an isolated copy of `scripts/factory-runner` plus the suite:**
+
+```
+before   factory_production_write_inventory   FAIL - 11 scripts hold ambient authority
+after    factory_production_write_inventory   pass 3, fail 0
+after    node --check on all eleven           all parse
+after    db.read() with no FACTORY_RUNNER_PG_URL   FactoryDbRefusal, no fallback
+```
+
+**Why the call sites do not move:** every caller reads `.rows`, and `pg` returns `.rows`. The shapes
+already agree — checked, not assumed — so 69 call sites are untouched by 11 edits.
+
+**Why the shim classifies rather than always calling `write()`:** `db.mjs` splits read from write so a
+reader cannot silently become a writer. Routing everything through `write()` would keep the letter of the
+boundary and discard the property.
+
+**Two things the conversion discovered by failing, both now handled:** `provider.mjs` names its accessor
+`runSqlSelect`, not `runSql` — a loop over one fixed name finds that out only by breaking; and the files
+are CRLF, so locating the end of a function by a newline-brace-newline marker matches nothing in any of the
+eleven and reports "could not find the end of runSql" about a file that plainly has one.
+
+**NOT APPLIED, deliberately.** Applying it stops the factory runner until the founder sets
+`FACTORY_RUNNER_PG_URL`, because the module refuses rather than falling back — that refusal is the whole
+point. The least-privilege role itself is DDL, which is founder authority: a module cannot bootstrap its
+own boundary.
