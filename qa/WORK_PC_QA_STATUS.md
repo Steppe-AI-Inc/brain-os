@@ -2,20 +2,51 @@
 
 All numbers computed by `qa/runner/compute-coverage.mjs` — never hand-typed.
 
-**Session ended 2026-08-31** (founder left office / connectivity cut). Everything below is
-pushed to `origin/qa/work-pc`. **The campaign is resumable from repository state alone** —
-no chat history needed. Next session starts at `qa/runner/QA_DIRECTOR_BOOT.md`.
+## CURRENT — campaign C002, 2026-09-09
+
+> ## QA FAILED — 31 open defects (1× P0 proposed, 12× P1, 12× P2, 6× P3)
+
+| | |
+|---|---|
+| **Campaign** | `C002` — RUNNING |
+| **Build under test** | **`EDGE v94 (v92 source) / WEB SHA UNKNOWN`** — `BUILD_IDENTITY_STATUS = PARTIAL / SPLIT` |
+| **Deployed web SHA** | **UNKNOWN — not observable from this seat.** No build id, no `/api/version`, no commit meta. |
+| **QA artifact SHA** | `596c1a3` on `qa/work-pc` |
+| **Release state** | **FAILED** |
+
+```
+113 capabilities | PASS 66 | FAIL 37 | FLAKY 1 | BLOCKED 9 | NOT_TESTED 0
+92% executed  ->  FAILED
+```
+
+**FULL BUILD VERIFIED is forbidden while `web_sha` is UNKNOWN**, and no web defect may be closed
+without a verifiable deployed web SHA. See `BUILD_UNDER_TEST.json`.
+
+**Headline finding (2026-09-09):** five independent defects implicate **one branch** — the
+clarification / pending-action path, which answers from local reasoning rather than canonical
+grounding: BUG-010 (false presence), BUG-029 (false absence), BUG-030 (false provenance),
+BUG-002 D3, ISSUE-5 Class B. See `BUG010_FABRICATION_PERSISTENCE_MATRIX.md`.
+
+**There is no prompt-level workaround.** An anti-inference instruction failed to prevent
+contamination in 3 of 3 trials and in one trial induced a fabricated citation instead.
 
 ---
 
-## Verdict
+## HISTORICAL — campaign C001 snapshot (session ended 2026-08-31)
 
-> ## QA FAILED — 4 defects (2× P1, 2× P2)
+> ⚠️ **Everything in this section describes C001 and must not be read as current.** In particular
+> the SHA below is the deployed commit *as of 2026-08-31*; it is **not** the build now under test,
+> and production has redeployed since. Retained for evidence attribution only.
+
+Everything below was pushed to `origin/qa/work-pc`. **The campaign is resumable from repository
+state alone** — no chat history needed. Next session starts at `qa/runner/QA_DIRECTOR_BOOT.md`.
+
+> ## C001: QA FAILED — 4 defects (2× P1, 2× P2)
 
 | | |
 |---|---|
 | **Campaign** | `C001` — CHECKPOINTED_SESSION_END |
-| **Deployed SHA under test** | `8521b0e` (Vercel-API verified) |
+| **Deployed SHA under test (HISTORICAL, 2026-08-31)** | `8521b0e` (Vercel-API verified *at that time*) |
 | **QA artifact SHA** | `89b549f` on `qa/work-pc` |
 | **Release state** | **FAILED** |
 | **Platform state** | AUTONOMOUS QA PLATFORM — PARTIALLY VERIFIED |

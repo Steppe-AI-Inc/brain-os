@@ -1,23 +1,19 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-08T14:50:00Z",
-  "updated_by": "fable-qa-director",
-  "product_commit_tested": "8521b0e",
-  "product_commit_tested_short": "8521b0e",
-  "deployed_product_sha": "8521b0e",
-  "latest_implementation_sha": "8521b0e",
-  "qa_artifact_commit": "6d78062dc8cc092fbe7f0d6c0d6a94d264b8fcd0",
+  "last_updated": "2026-09-09T04:36:00Z",
+  "updated_by": "work-pc-independent-qa",
+  "qa_artifact_commit": "596c1a3",
   "_qa_artifact_commit_note": "Set to the qa/work-pc commit carrying campaign C001 results (pushed to origin).",
   "qa_artifact_branch": "qa/work-pc",
   "home_pc_handoff_branch": "qa/home-pc-handoff",
   "campaign_id": "C002",
   "campaign_state": "RUNNING",
-  "_campaign_state_note": "Work-PC session ended (founder leaving office, internet cut). All evidence committed and pushed to qa/work-pc. Campaign C001 resumable from repository state alone - no chat history required. Next session: read qa/runner/QA_DIRECTOR_BOOT.md.",
-  "open_p0": 0,
-  "open_p1": 3,
-  "open_p2": 2,
-  "open_p3": 0,
+  "_campaign_state_note": "Work-PC C002 session active 2026-09-09. Independent production acceptance authority. Home PC implements; Work PC judges. ready_for_retest is an INPUT, never a verdict.",
+  "open_p0": 1,
+  "open_p1": 12,
+  "open_p2": 12,
+  "open_p3": 6,
   "ready_for_implementation": [
     "BUG-004",
     "BUG-002",
@@ -170,5 +166,39 @@
     "web_sha": "UNKNOWN",
     "rule": "No FULL BUILD VERIFIED claim is permitted while WEB_SHA is UNKNOWN. All evidence from 2026-09-08 onward is labelled \"EDGE v94 (v92 source) / WEB SHA UNKNOWN\".",
     "blocked_retests": "All six Home-PC fix reports (BUG-002/010/011/012/013/014) remain ready_for_retest=false; Edge-primitive fixes are not deployed."
-  }
+  },
+  "build_identity": {
+    "build_identity_status": "PARTIAL / SPLIT",
+    "edge_version": "v94",
+    "edge_source_equivalent": "v92",
+    "edge_function_sha": "22486cd751cac403d14b1ad429156b715d31dc3f03bf4b30575705524350343e",
+    "web_sha": "UNKNOWN",
+    "deployed_product_sha": null,
+    "_rule": "FULL BUILD VERIFIED is forbidden while web_sha is UNKNOWN. Evidence label: \"EDGE v94 (v92 source) / WEB SHA UNKNOWN\"."
+  },
+  "historical_identifiers": {
+    "_doc": "Explicitly HISTORICAL. Never to be read as the current deployment.",
+    "product_commit_tested": "8521b0e",
+    "product_commit_tested_short": "8521b0e",
+    "deployed_product_sha": "8521b0e",
+    "latest_implementation_sha": "8521b0e",
+    "_correction_note": "MISSED BY THE 2026-09-09 PROVENANCE CORRECTION PASS. Third-party verification fix B required that no stale identifier read as current; it was applied to CAPABILITY_INVENTORY.json and BUILD_UNDER_TEST.json but NOT to this file, which carried four stale SHA fields presenting 8521b0e as the current deployment. Found and fixed 2026-09-09 while refreshing handoff state. Recorded rather than silently repaired because this file is the FIRST thing a Home-PC session reads, so a stale SHA here propagates further than anywhere else in the repo."
+  },
+  "total_open": 31,
+  "total_closed": 5,
+  "coverage_headline": "Required capabilities: 113 | PASS: 66 | FAIL: 37 | FLAKY: 1 | BLOCKED: 9 | NOT TESTED: 0 -> FAILED",
+  "release_state": "FAILED",
+  "new_this_session_2026_09_09": {
+    "BUG_030": "P0 PROPOSED (first P0 of the campaign) - FABRICATED_GROUNDING_CITATION. Brain asserted a false project name AND claimed \"I verified this from the stored project record in context.projects\", a source that contained the contradicting value. Citation intermittent (1 of 3 mitigated, 0 of 2 unmitigated); contamination 3 of 3 under mitigation. Severity is PROPOSED with the counter-argument recorded - a reviewer may reclassify to P1 without dispute.",
+    "BUG_029": "P1 - FABRICATED_ABSENCE. Brain asserted an EXISTING active company \"doesn't exist in the database\". Root cause initially filed as truncation and WITHDRAWN by my own controls; revised to the assign/clarification path.",
+    "BUG_010": "Matrix Classes 4-6 run. Persistence REPRODUCES 2 of 3 on project rename. Classes 5 and 6 could not test it (correct refusal / truthful execution). Scope rule UNMET - stays narrow AND live, OPEN.",
+    "BUG_002": "Fourth-date confirmation that the BARE form fabricates on project rename, while department delete refuses correctly and department rename executes truthfully. The class is NOT uniform - the question is why the project-rename path does not reach the guard.",
+    "KEY_FINDING": "FIVE independent defects now implicate ONE branch - the clarification/pending-action path: BUG-010 (false presence), BUG-029 (false absence), BUG-030 (false provenance), BUG-002 D3 (&& !result.pendingAction disables the truth guard), ISSUE-5 Class B (unrepresentable actionType). The branch answers from local reasoning rather than canonical grounding. Highest-leverage single fix available.",
+    "STOPGAP_ANSWER": "There is NO usable prompt-level workaround for BUG-010. The anti-inference instruction failed to prevent contamination in 3 of 3 trials, does not survive a bare confirmation turn, and in one trial induced a fabricated citation instead. Do not advise users to \"ask Brain to verify\"."
+  },
+  "awaiting_home_pc": [
+    "A deployed WEB_SHA. Nothing is closable without it (build-identity rule 2) regardless of evidence quality.",
+    "BUG-005: the durable channel-state migration is PREPARED NOT APPLIED (master 3527244), gated on founder DB authorization. No ISSUE-5 retest is possible until it lands and a new function version ships.",
+    "BUG-002: reconcile why the bare project-rename path fabricates while the fix report claims bare requests refuse."
+  ]
 }
