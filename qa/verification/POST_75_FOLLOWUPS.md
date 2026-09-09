@@ -311,3 +311,29 @@ root injected through an environment variable, which removes the file from the t
 then, do not commit while a proof is running — and note that this is one more instrument writing into the
 directory it is measuring, which is the same shape as the battery regenerating a tracked mutant probe
 (V74-O4).
+
+## 14. CORRECTION: the last H6b suite is fully convertible, not half
+
+Item 11 recorded `sem_ai_command_execution_plan_truth` as half-convertible — the formatter liftable, the
+orchestration loop not, because it "takes a live client". **That was wrong, and wrong in the way this
+campaign keeps cataloguing: I read the suite's own comment instead of checking the function.**
+
+Checked against the source:
+
+```
+buildExecutionPlanReport   top-level function, line 402
+executeActionPlan          top-level function, line 362, 36 lines, ZERO direct supabase. calls
+executeOneAction           top-level function, line 283 — the only thing executeActionPlan awaits
+```
+
+`executeActionPlan` takes a client and passes it straight through; it never touches it. All three lift, so
+the suite converts fully and the half-conversion trap described in item 11 does not apply to it.
+
+**Deliberately not done at the time of writing:** the release gates were mid-run, and changing a suite
+invalidates the battery and mutation evidence being recorded for the candidate under dispatch. It is the
+first thing worth doing in a fresh window — closing it turns THREE regression suites green at once and
+ends the H6b class.
+
+The correction matters more than the item. **"It takes a live client" was a claim in a comment, and I
+repeated it into a planning document as though it were a measurement.** Thirty seconds of grep contradicted
+it.
