@@ -39,7 +39,7 @@ All six QA suites green: 36 / 58 on the command-center branch, 64 / 36 / 37 / 14
 (0 surviving, 0 ineffective), harness rename probe (no suite pins a spelling), founder acceptance corpus,
 TDZ triage (0 unresolved), and a restore-tested backup.
 
-**One of the four blind suites is converted and measured** (, not applied — the
+**One of the four blind suites is converted and measured** (`qa/verification/proposed/` in the main repo, not applied — the
 candidate is frozen). Against a mutant that removes "approved" from a live fabrication gate: the pasted-
 literal version reports 13 passed / 0 failed and sees nothing; the lifted version reports 12 / 1.
 
