@@ -165,3 +165,18 @@ that passes.
 
 **Still owed before #144 ships:** the nine prepared mutants run against this base. The suite itself is no
 longer the blocker.
+
+## 8. Prompt caching — considered tonight and deliberately not advanced
+
+`qa/PROMPT_CACHE_AUDIT_2026-09-09.md` lists five steps and states the constraint plainly: **do not
+implement 1 without 2-4.** A cache that works but is unmeasurable is the exact shape this campaign keeps
+finding — a real behaviour change nothing can confirm or refute afterwards.
+
+Preparing 1 and 2 alone would violate that. Step 3 is two `model_usage` columns, which is a migration and
+therefore founder authority. Step 4 requires per-model cache-read and cache-write pricing, and **I do not
+have those figures.** Writing plausible constants would produce cost numbers that drift wrong in the
+favourable direction, which the audit itself names as the harder error to notice — and inventing a number
+is the failure mode this whole campaign exists to prevent.
+
+So the audit IS the preparation, and it is complete as one. Recorded here so it reads as a decision rather
+than an omission.
