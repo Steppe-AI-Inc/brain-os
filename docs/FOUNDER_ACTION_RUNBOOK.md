@@ -165,3 +165,41 @@ here to do unless new evidence appears (see the incident record for the three tr
 | Machine-authority test | `qa/scenarios-runner/production_write_authority.regression.test.mjs` | **5 assertions red on this machine** — they go green as §1–§2 land |
 | Secret evidence four-state rule | `qa/lib/secret_evidence.mjs` + tests | green |
 | CI: all of the above, no credentials | `.github/workflows/authority-boundary.yml` | written |
+
+---
+
+## Re-measured 2026-09-09 (Home PC, during campaign #129) — NOTHING HAS CHANGED
+
+Re-run of the executable checks, so the runbook states a measured fact rather than a remembered one.
+No action in §1–§6 has been performed; the boundary is exactly where it was when this file was written.
+
+`qa/scenarios-runner/production_write_authority.regression.test.mjs` — **5 red, 2 green** (7 assertions):
+
+| route | state | what closes it |
+|---|---|---|
+| `ROUTE_1_no_ambient_supabase_cli_authority` | **RED** | §2 — revoke the Supabase CLI token on this machine |
+| `ROUTE_1b_no_supabase_credential_in_the_os_store` | **RED** | §2 — the OS credential store still holds it |
+| `ROUTE_2_no_service_role_key_readable_on_disk` | GREEN | already true; §6 confirms it is not required |
+| `ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route` | **RED** | the 30-second read at the top: `treyopenspot`'s role on team `steppe-ai` is still unrecorded, so the route cannot be ruled out |
+| `ROUTE_3_no_production_credentials_in_the_environment` | GREEN | already true |
+| `ROUTE_5_github_identity_cannot_administer_the_boundary` | **RED** | §1.1 + §1.2 — the laptop token still carries `admin:true` + `workflow` |
+| `ROUTE_5b_no_repo_level_production_secret` | **RED** | §1.4 — `SUPABASE_ACCESS_TOKEN` is still a repository-level secret |
+
+`qa/scenarios-runner/factory_production_write_inventory.regression.test.mjs` — **1 red, 2 green**:
+
+`FACTORY_WORKERS_CARRY_NO_AMBIENT_PRODUCTION_DB_AUTHORITY` fails naming **eleven** scripts that inherit
+whatever ambient credential the session holds: `complete-run.mjs`, `dispatch-task.mjs`, `plugin-attach.mjs`,
+`plugin-sync.mjs`, `poll-and-dispatch.mjs`, `poll-plugin-operations.mjs`, `provider.mjs`,
+`register-worker.mjs`, `scheduler.mjs`, `supervisor.mjs`, `sync-agents.mjs`.
+
+**This one is NOT founder-only** — it is a code change in factory tooling (require an explicit scoped
+credential instead of inheriting the ambient one). It is nevertheless **deliberately not started**, for two
+reasons stated so the omission is a decision and not an oversight: (1) changing how a worker obtains
+production credentials *is* a production-auth change, which the founder reserved; and (2) `provider.mjs` is
+on that list and is load-bearing for the verifier watchdog currently certifying the Edge candidate — editing
+it mid-campaign is the same hazard that produced ledger #150b. It belongs in its own work order, after §2,
+because §2 removes the ambient credential these scripts would otherwise still find.
+
+**Conclusion.** Every remaining route on the machine-authority side is a founder-only credential or account
+action. Home PC cannot advance this P0 further without them; the suites stay red **by design** and their
+redness is the correct, honest signal until §1–§2 land.
