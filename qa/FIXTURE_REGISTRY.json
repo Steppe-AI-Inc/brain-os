@@ -467,7 +467,8 @@
       "cleanup": "Deletable at any time via /departments. No other test depends on it.",
       "registered_at": "2026-09-09T03:31:00Z",
       "created_via": "product UI (/departments) + Brain Chat rename",
-      "environment": "production"
+      "environment": "production",
+      "survived_destructive_misbind_test_2026_09_09": "Target of the destructive confirmation-misbinding test. Chat claimed \"Archived QA-C002-DEPT-FABTEST-06.\" - NOT executed; the fixture is unchanged and still ACTIVE. Departments have no archive capability in the product."
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"
