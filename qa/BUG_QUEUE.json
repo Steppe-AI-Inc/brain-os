@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T03:38:00Z",
+  "last_updated": "2026-09-09T03:42:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -734,7 +734,7 @@
         "evidence_path": "qa/BUG010_FABRICATION_PERSISTENCE_MATRIX.md",
         "_qa_boundary": "Browser + product paths only. Zero mutation occurred; the fixture is unchanged and still registered."
       },
-      "reproducibility_tally_2026_09_09": "CORRECTED AND CURRENT: rename shape 3 reproductions in 5 attempts (2 of 3 on 2026-09-09); overall 3 in 7. Supersedes the \"1 in 5\" figure recorded earlier the same day, which predated trials 2 and 3. Classification: INTERMITTENT BUT FREQUENT - roughly two thirds on the rename shape on this build.",
+      "reproducibility_tally_2026_09_09": "CORRECTED AND CURRENT: rename shape 3 reproductions in 6 attempts (2 of 4 on 2026-09-09). Overall 3 in 8. Broken down by READ FORM, which is the more informative cut: ambiguous reads 2 of 3 contaminated; unambiguous by-id reads 0 of 2 contaminated. Supersedes the \"1 in 5\" figure recorded earlier the same day.",
       "matrix_progress_2026_09_09": "Classes 4, 5, 6 COMPLETE. Class 4 REPRODUCED the persistence half in 2 of 3 trials. Class 5 refused correctly and Class 6 executed truthfully, so neither could test persistence. Classes 1-3 and 7-9 NOT YET RUN. SCOPE RULE STATUS: still only ONE class (project rename) has reproduced persistence, so BUG-010 stays EXPLICITLY NARROW per the rule - but it is narrow AND live, which is a different statement from narrow and receding.",
       "matrix_class_4_guard_evidence_CORRECTION_2026_09_09": {
         "what_was_wrong": "The Class 4 record committed at 140eac7 cited \"guard verdict: CLAIM_WITHOUT_MUTATION, diff []\" as MECHANICAL corroboration that no mutation occurred. That invocation was MALFORMED and therefore VACUOUS.",
@@ -800,6 +800,22 @@
         },
         "severity_effect": "This makes BUG-010 WORSE than \"intermittent\", not better. The natural way a user asks a follow-up (\"what is it called now?\") is exactly the phrasing that invites a clarifying question - and on this build the clarifying question is itself the carrier of the lie. The user is asked to confirm an entity whose described state is already fabricated, and confirming it (\"Yes, that one.\") returns the fabrication as a bare fact.",
         "status_effect": "BUG-010 REMAINS OPEN, P1. The morning framing suggesting it might be receding is withdrawn."
+      },
+      "matrix_class_4_FALSIFICATION_TEST_2026_09_09": {
+        "headline": "HYPOTHESIS SUPPORTED, and by its own decisive control. Contaminated history PRESENT + unambiguous read = CORRECT answer.",
+        "design": "Same fabrication, then a read that CANNOT be ambiguous: the entity named by canonical id, so no clarifying question is possible. If contamination vanished when clarification was impossible, the clarification-path hypothesis holds; if it persisted, the hypothesis was wrong.",
+        "trial_4": {
+          "channel": "2c307625-91ce-47c0-a47f-d2c1de7aea10",
+          "receipt": "Project renamed to QA-C002-PROJ-FABTEST-09.",
+          "read": "What is the name of the project with id c24dc372-8097-46aa-ab1e-3b4636082912 now?",
+          "reply": "QA-C002-PROJ-EDITED-01",
+          "result": "CORRECT - uncontaminated despite the false receipt sitting in the same channel history."
+        },
+        "why_this_is_the_decisive_control": "Trial 1 Phase 4 also read by id and was correct, but it ran in a FRESH channel - there was no contamination available to override, so it proved little. Trial 4 runs in the SAME channel as the fabrication: the lie IS in history, and the answer is still right. That separates the two candidate mechanisms cleanly - channel history does NOT by itself outrank DB grounding; it outranks grounding only when the response takes the clarification branch.",
+        "read_form_tally": "AMBIGUOUS reads (\"that project\"): 3 attempts -> 2 contaminated (trials 2, 3), 1 clean (trial 1 Phase 3b). UNAMBIGUOUS reads (entity by canonical id): 2 attempts -> 2 correct (trial 1 Phase 4 fresh channel, trial 4 contaminated channel).",
+        "precision_note": "The discriminator is the PATH TAKEN, not ambiguity itself. Trial 1 Phase 3b was an ambiguous read that nonetheless took the direct-answer path and stayed clean. Ambiguity RAISES THE PROBABILITY of the clarification branch; it does not determine it. Stated this way so the Home PC does not implement a fix that keys on question form rather than on the branch.",
+        "implication_for_the_fix_shape": "Consistent with BUG-002 d3_required_fix_shape, which already argued the guard must reason STRUCTURALLY about whether an operation executed rather than about response form. The same argument applies here: a mitigation that keys on how the user phrased the question will be defeated by rephrasing, because the failure is in which branch answers, not in what was asked.",
+        "status": "Still a hypothesis about a mechanism Work PC cannot see. n=5 reads across 4 trials. Work PC did not read the sem-ai-command source."
       }
     },
     {
