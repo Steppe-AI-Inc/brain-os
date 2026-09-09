@@ -225,3 +225,19 @@ formatting of a record changed would be waste. But it means the recorder can cha
 keeps the old shape, and nothing says so. Re-recorded here with `--force`; the general point is worth a
 row: **a change to how evidence is written should at least be visible in the evidence.** A `recorder_version`
 in each record would do it, and would cost one line per gate rather than a re-run.
+
+### The first fix was aimed at the wrong truncation
+
+The record was thin for two reasons and I fixed the wrong one first. `recordEvidence` caps the stored
+detail with `.slice(0, 4000)` — that was real, and changing it to keep the tail was correct but INERT,
+because the caller had already reduced the output to its **last six lines** before handing it over. Six
+lines is the verdict and nothing behind it.
+
+A 25-minute forced re-run was spent proving that the first fix changed nothing, and the second reading of
+the same file found the operative line immediately. **Same shape as the mutation-probe misdiagnosis earlier
+in this session: a plausible, self-consistent explanation aimed at the wrong operand, believed because it
+was about the right FILE.** Both times the thing that settled it was reading the call site rather than
+reasoning about the symptom.
+
+The capture now keeps every line that names a case or carries a count, plus the tail, bounded by the
+character cap. Verified on `tdz_triage`, which went from 6 lines to 11 and now names its findings.
