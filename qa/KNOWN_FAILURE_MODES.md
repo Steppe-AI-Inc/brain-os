@@ -16728,9 +16728,28 @@ under a blind observability layer is invisible indefinitely.
 **not satisfied today**. The good news measured alongside it: there is NO cross-model fallback in
 `sem-ai-command`, so the feared "model A fails, Haiku serves, UI still says A worked" does not occur.
 
-**Status: OPEN, deliberately not fixed in this round.** All three fixes touch `index.ts`, which is a release
-candidate under independent verification; patching it would have invalidated the verification in flight. The
-required changes are named in the audit's §11 and belong in the next source window.
+**Status: FIX PREPARED AND MEASURED, still OPEN in production (updated 2026-09-09).** All three fixes touch
+`index.ts`, which is a release candidate under independent verification; patching it would have invalidated
+the verification in flight. The next source window is therefore a SEPARATE branch — `wo/embedding-observability`,
+based on the frozen candidate `0ca756e` — and all three now exist there, measured:
+
+- `embedTexts`/`embedText` are replaced by outcome-returning forms; the query side records the retrieval MODE
+  actually used (`semantic | lexical_fallback`), the write side records how many facts were persisted
+  unembedded, and both join `contextErrors`, the `ai_command_request_completed` audit metadata and the SSE
+  `done` payload. Contract suite `embedding_degradation_observability_contract.mjs` **7/24 -> 24/24**;
+  mutation proof **14/14 killed**, candidate byte-identical.
+- `PROVIDER_FAILURE_MUST_BE_OBSERVABLE` and `REQUESTED_MODEL_ALWAYS_RECORDED` land in the same window:
+  `classifyProviderFailure()` names every failure state (UNKNOWN included, recorded as itself), the requested
+  provider/model is written BEFORE the call from ONE helper with two callers, and every failure writes
+  `ai_command_provider_call_failed` with stage, class, status, provider code and elapsed ms. Contract suite
+  `provider_failure_observability_contract.mjs` **5/22 -> 22/22**; mutation proof **15/15 killed**.
+- The superseded draft `PREPARED_embedding_observability.mjs` must NOT be applied: it held the reason in a
+  MODULE-SCOPE variable, and an Edge isolate serves concurrent requests from one module instance, so request
+  A's failure would have been read into request B's diagnostics.
+
+**None of this is in any candidate.** Merging it produces a new SHA needing its own verifier round. And it
+still does not fix the live outage — it makes it visible. The cause remains UNKNOWN pending audit test T5
+(one read-only `POST /v1/embeddings` with the Edge key), which is a founder-only credential action.
 
 **Search performed for the same class.** Every `catch {}` that returns a degraded value in `index.ts` was
 reviewed for the same shape: an empty catch that hides a whole capability. `embedTexts` is the worst
