@@ -43,6 +43,15 @@ TDZ triage (0 unresolved), and a restore-tested backup.
 candidate is frozen). Against a mutant that removes "approved" from a live fabrication gate: the pasted-
 literal version reports 13 passed / 0 failed and sees nothing; the lifted version reports 12 / 1.
 
+**The factory-runner ambient-authority fix is prepared and measured** — eleven scripts that borrow this
+machine's production-write credential. Thirteen edits, no call site moved, measured on an isolated copy:
+the suite goes from 11 named offenders to pass 3 / fail 0, all eleven still parse, and the accessor refuses
+with no credential rather than falling back.
+
+**Not applied, and that is your call, not a technical blocker:** applying it stops the factory runner until
+`FACTORY_RUNNER_PG_URL` exists, and creating the least-privilege role is DDL — a module cannot bootstrap
+its own boundary.
+
 ## RUNNING
 
 **Verifier #75** on the new candidate. Dispatch details are in `qa/verification/scratch/verifier75_dispatch.json`.
