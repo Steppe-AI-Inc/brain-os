@@ -1,0 +1,68 @@
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND.** The candidate ships mutation-intent fabrications and rewrites truthful reads — from a single omission — plus five further truth defects, three harness defects, and one false claim in the handover itself.
+
+**ROOT CAUSE.** `RECORD_TYPE_SPELLINGS` / `ENTITY_NOUN_SPELLINGS` derive a hyphenated and a closed spelling of every compound; `ENTITY_NOUN_CONTINUATION` derives the compound tails. **None derives a plural.** English requests and English headlines are both full of plurals, so one omission breaks the request/headline boundary in *both* directions at once. The file already contains a pluraliser — for receipt wording, not for the vocabulary that decides what a receipt is about.
+
+**SYSTEMIC IMPACT.** `archive tasks` → `intent=null`, `receiptRendered=false`, and *"Done — the tasks have been archived."* ships verbatim with nothing executed. `Transfer pricing for the business units` → replaced by the receipt. Singular controls clean in both directions.
+
+**FIXED.** Nothing in the candidate — its bytes are frozen for the gate. One harness defect fixed in-repo (`_gate_extract.mjs`, V72-H1). A full fix is **prepared and measured**, not applied.
+
+**TESTED.** 92 suites; 18+5 source mutants × whole battery; my own corpora through the real sliced pipeline with a both-directions self-test; own tokeniser, own TDZ scanner, own trim probe.
+
+**PRODUCTION.** Stays v92. **Do not ask `ALLOW_FUNCTIONS_DEPLOY=1` on these bytes.**
+
+**BLOCKERS.** V72-D1 alone meets two of the launch prompt's FAIL criteria outright.
+
+---
+
+```
+CHANGE VERIFIED: candidate 0eb9d6005ad6de517bd8ba86204b67fb9352e25a — Edge deploy gate, contract bar
+SCENARIOS:        14 executed, 6 failed, 4 blocked
+CANONICAL GRAPH:  BLOCKED (no DB access this session)
+UI ↔ DB:          BLOCKED (no browser tooling in this session type)
+AI ↔ DB:          FAIL   (V72-D1/D2/D3/D4 — measured through the real gates, not a live model)
+DEPENDENCIES:     PASS   (trim envelopes truthful at 10/25/50/100/200/400/800 turns)
+PERMISSIONS:      FAIL   (Codex E confirmed at source, BLOCKED — PRODUCTION DB AUTHORIZATION)
+RELOAD/PERSISTENCE: PASS (Codex C present; the persist-error mutant is killed)
+IDEMPOTENCY:      PASS   (deterministic clarification fails closed on an unrepresentable action)
+```
+
+### Failures
+
+| id | scenario / expected / actual | size | status |
+|---|---|---|---|
+| **V72-D1 (P1)** | A plural mutation request must reach the receipt tier; a plural topic headline must keep its answer. Neither holds. | 49/54 requests ship (1/54 singular); 204/216 + 6/16 reads destroyed (0/216 singular) | **FIX PREPARED**, measured to 0/0 |
+| **V72-D2 (P2)** | The non-existence gate's disclaimer must survive the provenance guard. The guard matches *"absent **from the database**"* inside the gate's own appended text and eats it. | 8/8 | FIX PREPARED (reorder) |
+| **V72-D3 (P2)** | A truthful aggregate-derived read answer must not be told *"No canonical read was performed"* — the counts come from `count:'exact'` queries that turn. | 13/16 | **NOT PREPARED** — product-contract decision (`CLAUDE.md` §1) |
+| **V72-D4 (P2)** | A person re-read by stable id must support a citation about that person. People carry `full_name`; producer and guard read `name`/`title` only. | all person turns | FIX PREPARED |
+| **V72-D5 (P2)** | `do not delete Alpha, and please archive Beta` must still archive Beta. Every mutating field is stripped and the founder is told *"you asked me not to"*. | 11/17 | FIX PREPARED (9 of 11) |
+| **V72-D6 (P2/P1 impact)** | The two negation deciders must share one vocabulary. `requestIsNegated` reads only `REQUEST_NEGATED_ALTERNATION`; on `I have decided not to archive Alpha` a model-emitted `archiveCompanyIds` survives and executes. | 10/13 | FIX PREPARED (6 of 6) |
+| **V72-D7 (P3)** | `OUT_OF_SCOPE` / `STALE_TARGET` / `UNAUTHORIZED` are declared and unreachable. | 3 states | FIX PREPARED |
+
+Harness: **V72-H1** `stripTS` and `withSharedConstants` resolved different dependency sets (**fixed here**; battery 88/92 before and after). **V72-H2** two *effective* mutants survive all 92 suites — deleting the hyphen/closed derivation ships 4/8 fabrications, and a bare-substring `namesTheRow` stands 4/4 unsupported citations. **V72-H3** four suites pin the *spelling* of a derivation, so a correct convergence goes red while H2's mutants stay green.
+
+**One handover claim is false.** "84 of 87 suites green; the three reds are founder-authorization boundaries." I measure **92 suites, 88 green, 4 red**, and the fourth (`clarification_resolution_note_contract`, 20/1) is a genuine unclosed contract row.
+
+### What I could not measure (gaps, not omissions)
+`deno check`, `npx` and the Supabase CLI are gated in this session → **BLOCKED**. No browser/AI-chat tooling exists in this session type → every UI and live-model check is **BLOCKED**, not skipped. No live turn was observed; everything here is about what the gates do to a reply, not what the model emits.
+
+### Synthetic data
+**None created.** No database was reachable, so no `QA-VERIFY-*` entities exist to clean up. All work was on committed bytes and executed source windows.
+
+### Founder-approval section — pending DB actions
+`supabase/drafts/202609090001_person_assignment_scope_authorization.sql` — Codex E, re-derived independently: `person_assignments_write_manager` (`202608260006:80`) authorises on `operating_company_id` alone in both `USING` and `WITH CHECK`; source person, named manager and legal employer are unchecked; no later migration redefines it. Correctly outside the migration path. **No behavioural proof exists and none should be attempted.** This is not what blocks the deploy.
+
+### Commits (branch `verify-0eb9d60-campaign132`)
+- `c7e7326` — Verifier #72: FAIL on 0eb9d60 — the vocabulary has no plural
+- `8376a9d` — carry the commit message with the evidence
+
+---
+
+## VERDICT
+
+**FAILED** — candidate `0eb9d6005ad6de517bd8ba86204b67fb9352e25a` is **NOT fit to deploy over v92 under the contract bar**. **EDGE STATUS = NOT DEPLOYMENT READY.** Production remains v92. `ALLOW_FUNCTIONS_DEPLOY=1` must **not** be asked on these bytes.
+
+```
+41a902cfcd861c536a330393343fcd74fbfa2bf87c37ad23ae22265ff9c51ab3
+```
