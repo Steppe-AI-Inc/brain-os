@@ -315,7 +315,7 @@
       "resource_type": "company",
       "name": "QA-MULTI-CO-TWIN",
       "synthetic_display_name": "QA-MULTI-CO-TWIN",
-      "canonical_id": null,
+      "canonical_id": "1628368a-2eef-41cd-8bc7-acfa716db1f1",
       "_canonical_id_note": "capture from the /projects form hidden company_id if a mutation by id is ever needed",
       "access_scope": "SHARED_CAMPAIGN",
       "state": "ACTIVE",
@@ -325,7 +325,18 @@
       "cleanup": "Archive via /companies kebab when retired.",
       "registered_at": "2026-09-07T12:04:30Z",
       "created_via": "product UI (/companies Add company)",
-      "environment": "production"
+      "environment": "production",
+      "canonical_id_resolved_at": "2026-09-09T06:32:24Z",
+      "canonical_id_resolution_method": "READ-ONLY, two independent product paths, cross-checked and in agreement: (1) the /companies org-switcher option value for \"QA-MULTI-CO-TWIN\"; (2) the /departments create-form hidden input[name=company_id] after selecting QA-MULTI-CO-TWIN in the company picker - the form was ABANDONED WITHOUT SUBMITTING (verified: the input was gone after navigating away). No write occurred. The /companies table row itself exposes no id, so a third path was not available.",
+      "canonical_id_cross_check": "display_name == QA-MULTI-CO-TWIN (exact); resource_type == company (Type: Legal entity on /companies); state == ACTIVE (Status column: active, 2026-09-09T06:33:05Z); environment == production (https://brain.open-spot.ai).",
+      "pre_test_baseline_2026_09_09": {
+        "companies_view": "14 rows; QA-MULTI-CO-TWIN PRESENT; status active; Type Legal entity; Priority 5; Risk 0. Workspace status distribution: 12 active, 2 planning, ZERO archived.",
+        "archived_view": "/companies/archived: 9 rows; QA-MULTI-CO-TWIN ABSENT. Rows: QA-VERIFY-BU, QA-LIFECYCLE-BU, test5, test9, test8, test7, test3, test, test unit.",
+        "restore_path_verified_BEFORE_test": "/companies/archived renders a Restore button per row. Confirmed to EXIST before creating any need for it, per protocol H. This is the same path Work PC used at 12:00:33Z on 2026-09-07 to recover a stuck fixture (see BUG-014 correction_2026_09_07T12_00Z).",
+        "restore_path_warning": "BUG-014 records that RESTORE VIA CHAT FAILS - it claims \"restored.\" while the row stays archived. Restore for this test MUST use the /companies/archived UI button, never chat.",
+        "no_archive_control_on_list": "Neither /companies nor /departments row kebabs offer Archive or Restore (Edit + Delete only), and the company Edit dialog status field offers active/planning/paused/closed with NO archived option. Archive is therefore not reachable from the list UI at all - which is why the chat path is the one under test."
+      },
+      "in_flight_owner_check": "NONE. No other worker or scenario holds this fixture: it is referenced only by this session, and the campaign is single-seat (Work PC). QA-MULTI-CO-TWIN has no dependent registered fixture (its twin QA-MULTI-CO is a separate entry)."
     },
     {
       "fixture_id": "FX-C002-APPROVAL-TASK-01",
