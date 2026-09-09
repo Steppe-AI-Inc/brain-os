@@ -52,6 +52,12 @@ with no credential rather than falling back.
 `FACTORY_RUNNER_PG_URL` exists, and creating the least-privilege role is DDL — a module cannot bootstrap
 its own boundary.
 
+**Ledger #144 is no longer blocked on a missing test.** The prepared embedding-observability fix has been
+unshippable because nothing could falsify it. That regression now exists and is proven both ways: 6 passed
+/ 4 failed against the candidate, 10 / 0 against a copy with the patch applied. Semantic memory was dead in
+production for fifteen days while every surface reported normal operation — this is the row that would have
+said so. Still owed before it ships: the nine prepared mutants against this base.
+
 ## RUNNING
 
 **Verifier #75** on the new candidate. Dispatch details are in `qa/verification/scratch/verifier75_dispatch.json`.
