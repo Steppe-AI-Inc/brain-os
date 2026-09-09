@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T07:34:00Z",
+  "last_updated": "2026-09-09T07:51:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -628,6 +628,32 @@
         "work_pc_corroborating_evidence": "Work PC observed, without reading source, that a DIRECT name lookup resolves an entity the substitute generator does not offer (\"Does the company QA-MULTI-CO-TWIN exist?\" -> correct), which is consistent with inspection point 2 (truncated context rather than canonical search). Offered as a starting hypothesis for the source review, not as a finding.",
         "staging_regression_required": "Create a permanent regression IN STAGING using registered synthetic companies WHERE ARCHIVE ACTUALLY EXISTS. Production cannot host this test: the only entity type where the misbinding was reachable (departments) has no archive capability, and the entity type that has one (companies) cannot be targeted safely because candidate selection may surface real entities.",
         "spec_path": "qa/scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md"
+      },
+      "issue5_test_A_2026_09_09": {
+        "dimension": "A - SAME-CHANNEL HISTORY CONTINUITY",
+        "channel": "e8812313-0169-4ce5-863a-79d557f36a53",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "PRIMARY_CLASSIFICATION": "VISIBLE_WINDOW_RENUMBERED_AS_FULL_HISTORY",
+        "secondary_classifications": [
+          "FALSE_RECALL (unprompted)",
+          "HONEST_UNKNOWN (when explicitly instructed)",
+          "TURN_MISALIGNMENT"
+        ],
+        "ground_truth_seed": "T1 ZEBRA-A1 | T2 \"What is 2 plus 2?\" | T3 COBALT-A3 | T4 \"capital of Mongolia?\" | T5 MANGO-A5 | T6 company count | T7 project count | T8 QUARTZ-A8.",
+        "probe_results": {
+          "Q1 what was my first anchor": "CORRECT - \"Your first anchor was ZEBRA-A1.\" But see the sourcing note: Brain later disclosed this came from OUTSIDE the visible window, so it is a correct answer that was not grounded in retrievable history.",
+          "Q2 what did I say at turn 3": "FALSE_RECALL. \"At turn 3, you asked: \\\"What is the capital of Mongolia?\\\"\" - that was turn FOUR. Turn 3 was COBALT-A3. Asserted with no hedge and with an invented recap of its own reply.",
+          "Q3 most recent anchor": "CORRECT - \"The most recent anchor is QUARTZ-A8.\"",
+          "Q4 list only what you can see, say so if earlier turns are not visible": "MIXED, and the most informative turn. HONEST on the anchor: \"ZEBRA-A1 does not appear anywhere in the visible conversation history I can see right now. That answer came from a prior turn outside this context window, so I cannot verify it independently.\" FAILS on numbering: it enumerated \"The visible turns are: (1) geography question, (2) MANGO-A5 recorded, (3) company count, (4) project count, (5) QUARTZ-A8 recorded, (6) first anchor question, (7) most recent anchor question, (8) turn 3 recap\" - presenting window-relative positions as absolute conversation turn numbers. Those are really T4-T11."
+        },
+        "MECHANISM_ARITHMETICALLY_CONFIRMED": "Brain numbers turns RELATIVE TO THE START OF ITS TRUNCATED VISIBLE WINDOW and presents those numbers as ABSOLUTE conversation turn numbers. The off-by-N error equals the number of truncated turns. Verified arithmetically against Q2: at that moment the visible 8-turn window spanned T2-T9; renumbered 1-8 that places Mongolia (true T4) at position 3 - EXACTLY the \"turn 3\" Brain reported. The same rule reproduces Q4's enumeration, where the window had advanced to T4-T11 and was renumbered 1-8. This is not a vague \"recall failure\": it is a deterministic index-origin error, and it is testable.",
+        "why_this_matters": "A user asking \"what did I say at turn 3?\" gets a confident, specific, WRONG answer that is internally consistent - Brain even recapped the reply it supposedly gave. There is no signal of truncation in the answer. This is materially worse than an honest \"I cannot see that far back\", because the answer is checkable only by someone who already knows the true history.",
+        "prompt_dependent_honesty_REPLICATED": "Q2 (no instruction) fabricated. Q4 (explicit \"say so explicitly instead of guessing\") disclosed the truncation unprompted and flagged its own unverifiable answer. This replicates BUG-005 Class A evidence T13/T17 and item_H finding_1 on a fresh channel and a new anchor set: honesty about the context window is PROMPT-DEPENDENT, not default. A founder who does not know to add the instruction gets the fabrication.",
+        "METHOD_CONFOUND_DISCLOSED": "IMPORTANT - my seeding phrase weakened part of this test. \"Remember this anchor: X\" caused Brain to WRITE CHANNEL MEMORY (\"Anchor ZEBRA-A1 recorded.\", and a \"Channel memory (1)\" badge appeared in the UI). Q1 and Q3 therefore tested MEMORY RETRIEVAL, not history-window retrieval, and their CORRECT results must NOT be read as evidence that the history window reaches T1. Brain itself made this explicit at Q4. The Q2/Q4 findings are unaffected - they concern turn numbering and disclosure, not anchor storage. A future re-run of dimension A should seed with neutral phrasing (e.g. \"the code word is ZEBRA-A1\") to isolate the window.",
+        "incidental_empty_assistant_turn": "T2 \"What is 2 plus 2?\" received NO assistant response at all - the transcript shows the user turn followed directly by the next user turn. Not a refusal, not an error message: an empty turn. Recorded under dimension B (TURN_MISALIGNMENT / missing persisted turn) as a lead; it was an out-of-scope general-knowledge question, so a refusal would have been reasonable, but silence is not a refusal.",
+        "incidental_company_count": "Asked \"How many companies are in the workspace?\" Brain answered \"23 companies total in the workspace.\" /companies shows 14 and /companies/archived shows 9 - so 23 is the ACTIVE PLUS ARCHIVED total, stated without qualification. Not filed as a fabrication: the number is reconcilable. Recorded as a CLAUDE.md section 6 completeness issue - the same family as BUG-003, which required the dashboard label to say \"Active Companies\". The chat path has no equivalent qualification.",
+        "mutations": "ZERO. Read-only conversation apart from channel memory writes performed by the product itself in response to \"Remember this anchor\".",
+        "regression_requirement": "A turn-number question must either (a) return the TRUE absolute turn, or (b) state that earlier turns are not visible. It must never renumber the visible window as if it began at turn 1. Assert by seeding N turns where N exceeds the window, then asking for a turn known to be truncated AND a turn known to be visible; the visible one must carry its ABSOLUTE index. The test must be run WITHOUT an anti-guess instruction, because the instruction masks the defect."
       }
     },
     {
