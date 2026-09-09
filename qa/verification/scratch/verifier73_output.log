@@ -1,0 +1,62 @@
+Verification complete. Committed to `verify-c2fc930-campaign133` as `e8c11b4`. `index.ts` was not modified — the commit touches no file under `supabase/`.
+
+---
+
+# VERIFIER #73 — CAMPAIGN #133 — FINAL REPORT
+
+```
+CHANGE VERIFIED: sem-ai-command candidate c2fc930650fb47196fbe26ad7f452dbd6b5f7e08
+                 (the #72 closure: V72-D1..D7, V72-H1..H3)
+SCENARIOS:       31 executed, 18 passed, 8 failed, 5 blocked
+CANONICAL GRAPH: BLOCKED (no live DB access this session)
+UI ↔ DB:         BLOCKED (no browser tools in this session)
+AI ↔ DB:         FAIL   (V73-D7: 9/9 denials of existence ship on a turn that read the row)
+DEPENDENCIES:    PASS   (ROW_LABEL_COLUMNS covers every resolvable table; no fifth label column)
+PERMISSIONS:     BLOCKED (RLS persona matrices need live SQL)
+RELOAD/PERSISTENCE: FAIL (V73-D6: continuity claims a complete history the pack no longer carries)
+IDEMPOTENCY:     PASS   (false-execution truth holds on all five negative paths)
+```
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+**FOUND — 8 product defects, 5 harness findings. The battery (91/88/3, reproduced exactly as claimed) sees none of them.**
+
+**V73-D3 (P1) — a mutation-intent fabrication ships.** `IMPERATIVE_OBJECT`'s proper-noun arm, `OBJECT_OPENS_WITH_A_REFERENCE` and `OBJECT_NAMES_SOMETHING` are all `[A-Z]`-only under `u`. `archive Ünsal Holdings`, `archive Батбаяр ХХК`, `restore Über Logistics` carry **no request intent**, and `legacyProseFallback` requires `requestedIntent !== null` — so both truth gates are off and "Ünsal Holdings has been archived." ships verbatim. **14/22 commands; 26 of 60 rows a truth regression vs v92**, which corrects every one. `v92_parity_corpus.json`: 454 rows, **zero** non-ASCII capitals.
+
+**V73-D7 (P1) — the AI says an entity does not exist on a turn that just read it.** The V71-D4 gate corrects a denial standing on a *failed* resolution (control 3/3). Its inverse does not exist: with `clarificationTarget.status === 'RESOLVED'` (note: *"This row EXISTS"*) or a `VERIFIED_READ` of that row, **9 of 9 denials ship**.
+
+**V73-D1 (P2)** — `stop the deployment for ACME` is a whole-turn refusal; every mutating field is stripped. `HEAD_NEGATOR_ALTERNATION` makes exactly that subtraction 30 lines above with the reason written out; the decider that strips the fields does not. **7 of 15 corpus rows newly refused vs the parent commit** — the V72-D6 convergence handed the field-stripping gate the head arm.
+
+**V73-D2 (P2)** — `withoutCitation` is still phrase-scoped while its sibling moved to clause scope: **5 of 12 outputs still match `PROVENANCE_CITATION`**; `"I verified this from the stored record."` → `"This from the stored record."`; and the declaration comment *"A sentence that is nothing but a citation is dropped entirely"* is a property the code does not enforce.
+
+**V73-D6 (P2)** — a `conversationHistory` trim leaves `continuity.historyIsComplete: true`, window `1..8`, while the pack carries turns 5–8. `SYSTEM_PROMPT`'s CONTINUITY HONESTY clause licenses *"Your very first message was X"* on exactly that condition.
+
+**V73-D8 (P2)** — a plural entity noun makes the receipt say *"which **company** … searched the active and archived **companies**"* for **15 of 18** entity types. V67-D3 reopened by the one `CONCEPT-REGISTERED` exception — **the registration is a hole**: its stated reason ("would produce 'work orderses'") is refuted by the singulariser twenty lines below it.
+
+**V73-D5 (P3)** `counts.<x>Total` presents a window length as a total. **V73-D9 (P3)** `archive the memory` is read-shaped, so a fabrication ships for a real record type.
+
+**V73-H2 (harness P1) — V72-H3 reproduced in its own repair.** `v72_guard_composition_contract`'s two "composition" rows: a byte-identical refactor of the write-back line → **RED**; the exact V72-D2 coupling (a guard's *decision* reading the other guard's output) → **GREEN, across all 88 suites**. Exactly backwards.
+
+**V73-H5 (harness P1)** — `compaction_truth_contract`'s `STALE never becomes CURRENT — continuity survives byte-identical` asserts the behaviour that *produces* STALE→CURRENT. Its own fixture trims history **200 → 4** at every level; the fixture starts at `historyIsComplete: false`; the trim never appears in `contextBudget.trimmed` because that list is spliced to 12.
+
+**V73-H4 (harness P2)** — V72-H1 was recorded closed and was open for 12 of 45 constants; 10 of 11 unusable through `withSharedConstants`. **V73-H1** — the claim "all three reds need founder DB authority" is wrong for `factory_production_write_inventory` (its own header names a code remedy, and says *ten* where the count is *eleven*).
+
+**FIXED (live, within authority):** `qa/scenarios-runner/_gate_extract.mjs` — both resolvers now use `declarationEnd`. Battery **88/3 before and after**; pinned by 12 CONTRACT rows.
+
+**FIX PREPARED (applied to copies, never to index.ts):** D3 12/12 · D8 15/15 · D7 4/6 · D1 7/9 · D6 2/2. Four leave the battery at 88/3; D6 conflicts with four byte-identity rows and needs the `collections` exemption decision.
+
+**TESTED:** own 21-mutant proof — **19 caught, 2 effective survivors, 0 ineffective, 0 unanchored**; every mutant the prompt named is caught. 120 trim scenarios (10/25/50/100/200/500 turns, caps to 2000) — 0 violations. Own TDZ scan over 1,094 declarations — 0 real use-before-declaration. index.ts CRLF-pure, 0 control bytes; repo-wide 0x08 scan clean except the pre-existing pair in `verifier70_prompt*.txt`.
+
+**BLOCKERS / could not measure:** `deno check` — **deno is not installed on this machine**. Live DB — the Bash tool gates `supabase`; it is bypassable via `child_process` (which is what `production_write_authority` ROUTE_1 asserts) and **I did not route around it**; no production SQL was run. Browser/UI/AI-chat — no `mcp__claude-in-chrome__*` and no `ToolSearch` in this session. Codex E deliberately not probed live.
+
+**Synthetic data:** none created. No `QA-VERIFY-*` entity exists; this round was entirely source- and harness-level and performed no production database read or write, so there is nothing to clean up.
+
+---
+
+## VERDICT
+
+**FAILED.** Candidate `c2fc930650fb47196fbe26ad7f452dbd6b5f7e08` is **not fit to deploy over v92 under the contract bar.** Two P1 defects are on the FAIL list verbatim: a mutation-intent fabrication that ships (V73-D3, and a 26/60 truth regression against v92 that is **not** an intended departure), and an entity reported as absent while the turn holds the canonical read proving it present (V73-D7). Four P2s add an unsupported provenance claim that ships, a lifecycle request that ends silent, a compaction truth violation, and a false founder-facing statement about what was searched — plus two comments asserting properties the code does not enforce.
+
+**EDGE STATUS = NOT DEPLOYMENT READY (contract bar).**
+
+index.ts sha256: `fb1d1958de9ab0226b1ef41fc9edc49a5ab52748af283ca233990f46dd78f672`

@@ -1,0 +1,192 @@
+You are VERIFIER #73, campaign #133 — an INDEPENDENT verifier running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the code is not in your context. Do not trust its claims, its
+ledger entries, its architecture contracts or its battery counts — re-derive from bytes you obtain
+yourself.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, THIRTY-SEVENTH ROUND, UNDER THE CONTRACT BAR. The founder ruled
+(2026-09-07): PRODUCT CONTRACT OUTRANKS V92 PARITY. The deploy bar is CONFORMANCE TO
+governance/OPERATING_TRUTH_MODEL.md (read it first, then governance/CANONICAL_WORK_CONTRACT.md and
+docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md). Deployed v92 is a REFERENCE CORPUS for measuring
+truth regressions, never the bar.
+
+Candidate c2fc930650fb47196fbe26ad7f452dbd6b5f7e08, index.ts sha256 fb1d1958de9ab0226b1ef41fc9edc49a5ab52748af283ca233990f46dd78f672.
+
+## THE ONE THING THIS ROUND SHOULD MAKE YOU SUSPICIOUS
+
+Verifier #72 found TWO EFFECTIVE MUTANTS that survived all 92 suites, and SIX SUITES that pinned the
+SPELLING of a derivation rather than its behaviour — so a correct convergence went red while the mutants
+stayed green. Exactly backwards. That is not a bug in one row; it is a whole battery drifting toward
+measuring what the code LOOKS LIKE.
+
+This candidate claims to have repaired all six and to have added rows that catch both mutants. **Every one
+of those repairs was written by the session under test, in the same style that produced the problem.**
+Your first job is to ask, of each repaired row: does it still fail for the right reason? A row rewritten
+to "measure behaviour" that now asserts something trivially true is worse than the spelling pin it
+replaced, because it reads as a fix.
+
+The standing suspicion is unchanged and has now been earned three times: #70's last two defects were a
+MEASUREMENT fault, #71 found the tenth escape instance in a suite reporting 74/0, #72 found the eleventh
+and twelfth plus four harness defects. **Instance THIRTEEN was found by this session, in itself, while
+writing the checkpoint for you: a Windows path written through a shell heredoc lost its backslashes and
+left a literal 0x08 BACKSPACE in a governance document.** Scan every file this round touched for 0x08, not
+just index.ts.
+
+## WHAT #72 FOUND AND THIS CANDIDATE CLAIMS TO HAVE CLOSED — VERIFY, DO NOT ASSUME
+
+Seven defects and three harness findings, all claimed closed. **Re-derive every one; a closure is a claim
+like any other.** The claimed measurements are given so you can try to reproduce them and fail.
+
+  V72-D1 (P1)  the vocabulary derived a hyphenated and a closed spelling of every compound and NO PLURAL,
+               so the boundary broke in both directions at once. Now `pluraliseVocabularyTerm` and
+               `spellingsOf` at module scope, with four more consumers switched from the bare alternation
+               to the derived spellings. Claim: 0 fabrication escapes and 0 truthful-read destruction.
+               ONE consumer is deliberately left on the bare alternation and marked CONCEPT-REGISTERED
+               (the receipt's noun extractor, which pluralises for its own sentence). Decide whether that
+               registration is honest or is a hole.
+
+  V72-D2 (P2)  the provenance guard read the summary THE NON-EXISTENCE GATE HAD JUST WRITTEN, matched
+               "from the database" inside that gate's own disclaimer and deleted it, 8/8. The prepared fix
+               was a REORDER; this candidate changed the OPERAND instead — every guard reads the model's
+               own sentence, machine disclaimers accumulate in a list nothing reads. Both guards also now
+               edit at CLAUSE scope, because phrase substitution was shipping "could not be resolved
+               project exists." to the founder.
+               **ATTACK THE CLAUSE SCOPE.** It replaced a sentence-scoped attempt that destroyed a true
+               clause sitting beside a false one. Find a shape where the clause split takes too much, or
+               too little, or produces text no human would write.
+
+  V72-D3 (P2)  #72 marked this NOT PREPARED — a product-contract decision. This session decided it from
+               CLAUDE.md §5 ("numbers shown to the founder come from aggregate queries"; "the model never
+               derives a total by counting a window") plus M22, rather than asking. An aggregate query is
+               now recorded as a canonical read; a total that FELL BACK to a window length is recorded
+               READ_FAILED; a citation may stand on an aggregate only when the summary carries that exact
+               number and names that collection.
+               **DECIDE INDEPENDENTLY WHETHER THE CONTRACT SUPPORTS THAT READING.** If it does not, say so
+               plainly — this is the one finding where the session substituted its own judgement for a
+               founder ruling, and it says so. Then attack the rule: can a number that was never measured
+               license a citation? Can a count of one collection license a claim about another?
+
+  V72-D4 (P2)  people are stored with `full_name`; the evidence producer and the guard read `name`/`title`,
+               so a person re-read by stable id supported nothing. FOUR spellings of "what is this row
+               called" existed. Now one `rowLabel` over `ROW_LABEL_COLUMNS`, with `role_title` deliberately
+               excluded. Check every table this product reads: is there a fifth label column?
+
+  V72-D5 (P2)  a mixed turn was swallowed whole, 11/17. Three causes claimed: a conjunction stranded at the
+               head of the following clause, contrast markers ("instead of", "rather than") classified as
+               NEGATORS while the comment above them said the opposite, and a word-internal apostrophe read
+               as a QUOTE DELIMITER — so "don't archive ACME and don't delete Beta" had everything between
+               the two contractions deleted and the archive refusal vanished.
+               Claim: 0/17 destroyed and 0/17 escaped. **Build your own mixed-turn corpus.** This gate has
+               created false refusals every single time it has been touched.
+
+  V72-D6 (P2)  two negation deciders carried different vocabularies. The candidate went further and claims
+               there were FIVE spellings, not three. Two of them ask different questions (which verb is
+               refused; what prefix to strip) and keep their own question while deriving the vocabulary;
+               one subset is COMPUTED as "the canonical negators minus any that are themselves mutation
+               verbs", because "stop" is both. Verify that subtraction is right and that nothing else in
+               the canonical list is also a verb this product executes.
+               Converging the third decider immediately exposed a latent bug in the survivor — the
+               reporting-verb arm had `(?:not )?` OPTIONAL, so "i want to archive ACME" was a refusal.
+               **Look for a second thing the removed copies were shielding.**
+
+  V72-D7 (P3)  three declared resolution states the resolver could not produce. Reserved.
+
+  V72-H1       `stripTS` and `withSharedConstants` resolved different dependency sets. Fixed by #72 itself.
+  V72-H2       two effective mutants survived all 92 suites. New rows claim to catch both, and the proof
+               (`qa/verification/scratch/p1/v72_h2_mutation_proof.mjs`) now runs six mutants and asserts
+               each is EFFECTIVE before reading its survival as evidence. **Run it. Then write mutants it
+               does not contain.**
+  V72-H3       six suites pinned a spelling. All claimed repaired. See the suspicion section above.
+
+## THE STANDING SURFACES — unchanged, and still the ones that decide the deploy
+
+1. **The request/headline boundary.** It has broken in one direction or the other on SEVEN separate
+   occasions and every time the session believed it had measured both. Build your own corpus of mutation
+   requests and of truthful reads that must survive; do not reuse the session's. Attack: names that ARE
+   function words, entity nouns as names, unicode and Mongolian names, plurals and possessives, compound
+   entity nouns in tail position, and the interaction with `SENTENCE_FUNCTION_WORD`.
+
+2. **The clarification resolution primitive (BUG-010 / BUG-029).** CONTEXT ABSENCE != ENTITY NON-EXISTENCE,
+   PENDING_ACTION_EXISTS != EXECUTION_EVIDENCE_EXISTS, RESOLUTION_FAILED != NOT_FOUND != DOES_NOT_EXIST.
+   Attack the collapse in both the machine status and the model-readable note (M22).
+
+3. **The provenance guard (BUG-030).** A summary may not CLAIM the database unless the turn read it, and a
+   read of one entity may not license a claim about another. The removal must take the CITATION and leave
+   the ANSWER. A guard that removes every citation is a mute button; a guard that trusts any evidence row
+   is no guard. The candidate now admits a THIRD producer of canonical read evidence (aggregates) — that is
+   exactly where a hole would be.
+
+4. **Compaction / context-trim truth.** Seven transformations are claimed impossible: UNKNOWN -> KNOWN,
+   NOT_FOUND -> EXISTS, RESOLUTION_FAILED -> DOES_NOT_EXIST, PENDING -> EXECUTED, UNVERIFIED -> VERIFIED,
+   ACTION_UNSUPPORTED -> SUPPORTED, STALE -> CURRENT. Force real trims at 10 / 25 / 50 / 100 / 200 turns
+   and at sizes the session did not try. A trim that cannot reach budget must say so on the pack.
+
+5. **Codex findings A-E.** RECONSTRUCT ALL FIVE INDEPENDENTLY. **Do NOT run a live probe for E** — proving
+   it behaviourally means performing the cross-tenant write that must never succeed.
+
+======================== STEP 1 — THE HARNESS IS A SUSPECT ========================
+* Re-derive every regex the boundary depends on by LIFTING the declaration text out of index.ts and
+  evaluating it — never by retyping it. If you retype a pattern anywhere in your own probes, you have
+  reproduced the defect that cost this campaign four rounds.
+* Escape depth in BOTH directions: one backslash inside a `new RegExp` string is eaten; two backslashes
+  inside a regex LITERAL is a literal backslash. Scan every file for 0x08.
+* `g` / `y` flags and `lastIndex` on every regex used with `.test()` more than once.
+* Audit `qa/scenarios-runner/_gate_extract.mjs`: dependency ORDER (several declarations were added this
+  round and order is load-bearing), duplicated or stale derived constants, declaration-boundary detection
+  against regex literals, and whether `stripTS`, `stripTSOnly` and `withSharedConstants` agree.
+* `v72_guard_composition_contract.mjs`, `extractor_runtime_equivalence_contract.mjs`,
+  `bug030_provenance_citation_contract.mjs` and everything in `qa/verification/scratch/p1/` are THIS
+  SESSION'S work and are the artifacts you should trust least. Try to make each pass on a source that is
+  wrong.
+
+======================== STEP 2 — BEHAVIOUR, FROM YOUR OWN CORPUS ========================
+Slice real windows and execute them. Attack: mutation-intent fabrication that ships; a truthful READ
+rewritten on text shape alone; a lifecycle request that ends silent or is gated by the context window; a
+success claim with no verified envelope; a negated request that still mutates; a MIXED turn whose
+un-negated imperative is refused; a compound command; a clarification turn answered from a window instead
+of a canonical read; a count answer standing on a number nothing measured.
+
+======================== STEP 3 — VACUITY ========================
+Run the full battery yourself from the filesystem. The session claims **91 suites, 88 green, 3 red**, and
+that the three reds (`production_write_authority`, `factory_production_write_inventory`,
+`person_assignment_scope_authorization`) all need founder DB authority. **Verify that claim; do not accept
+it.** A previous handover claimed "84 of 87 green, three founder-boundary reds" and #72 measured 92/88/4
+with the fourth a genuine unclosed contract row — the correction is recorded in CHECKPOINT.md, and you
+should check whether the correction is itself accurate.
+
+Then MUTATE THE SOURCE and confirm each mutation is caught. At minimum: delete the negation gate; revert
+the persistence classification; remove the RESOLVED gate on canonical read evidence; let a window become
+evidence; delete the provenance guard; make a trimmed collection report truncated=false; drop the plural
+derivation; drop the hyphen/closed derivation; make `namesTheRow` a bare substring test; stamp a
+window-derived total as VERIFIED_READ; drop the aggregate number check; remove `full_name` from
+`ROW_LABEL_COLUMNS`; make one guard read another's output again. **Report any mutation that survives, and
+report any mutant of your own that turns out to be INEFFECTIVE** — this session read a vacuous guard off an
+ineffective mutant three times before it started asserting effectiveness first.
+
+======================== STEP 4 — TDZ / DENO / BYTES ========================
+Your own block-scope analysis over every const/let in index.ts. New declarations this round:
+`CONTRAST_MARKER`, `HEAD_NEGATOR_ALTERNATION`, `CLAUSE_LEAD_FILLER`, `SENTENCE_SPLIT`,
+`replaceClausesMatching`, `withoutCitation`, `ROW_LABEL_COLUMNS`, `rowLabel`, `COUNT_SOURCES`,
+`modelSummaryForGuards`, `guardedSummary`, `guardNotes`. `canonicalReadEvidence` MOVED — it is now declared
+beside the aggregate table it records. Runtime-fatal deno classes must be ZERO. index.ts must be CRLF-pure
+(0 bare LF, 0 bare CR, no 0x08).
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+State plainly: is candidate c2fc930650fb47196fbe26ad7f452dbd6b5f7e08 fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is:
+any mutation-intent fabrication that ships; any truthful READ answer rewritten on text shape alone; any
+mixed turn whose un-negated imperative is refused; any lifecycle request that ends silent or gated by the
+context window; any success claim without a verified envelope; any resolution failure reported as
+non-existence; any unsupported provenance claim that ships; any number presented as a database total that
+nothing measured; any runtime-fatal construct; any harness default that hides a class; any comment
+asserting a property the code does not enforce. A truth regression vs v92 that is an intended departure
+under the contract is NOT a FAIL — say so explicitly with its size. If clean, say PASS and that EDGE STATUS
+= DEPLOYMENT READY (contract bar). **If you PASS it, your report goes straight to the founder as a deploy
+authorisation request** — state the exact SHA, the exact index.ts sha256, what you measured, what you could
+NOT measure, and every residual with its size.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v73_known_failure_modes_entry_157.md (## 157. …, no preamble),
+v73_PROMOTION_NOTE.md, v73_regression_additions.mjs (CONTRACT/DEFECT rows, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or a path correct from ANY cwd). Use v73_* names only, and ledger entry ## 157
+(## 150-## 156 are taken). COMMIT to verify-c2fc930-campaign133. Then the verdict in the exact classification
+form, followed by the exact index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT
+into CURRENT_CAMPAIGN.json and stop.

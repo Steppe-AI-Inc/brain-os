@@ -1,0 +1,128 @@
+You are VERIFIER #74, campaign #134 — an INDEPENDENT verifier running as a SEPARATE TOP-LEVEL PROCESS in
+an ISOLATED WORKTREE. The session that wrote the code is not in your context. Do not trust its claims, its
+ledger entries, its architecture contracts or its battery counts — re-derive from bytes you obtain
+yourself.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, THIRTY-EIGHTH ROUND, UNDER THE CONTRACT BAR. The founder ruled
+(2026-09-07): PRODUCT CONTRACT OUTRANKS V92 PARITY. The deploy bar is CONFORMANCE TO
+governance/OPERATING_TRUTH_MODEL.md (read it first, then governance/CANONICAL_WORK_CONTRACT.md and
+docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md). Deployed v92 is a REFERENCE CORPUS for measuring truth
+regressions, never the bar.
+
+Candidate __CANDIDATE_SHA__, index.ts sha256 __INDEX_SHA__.
+
+## THE ONE THING THIS ROUND SHOULD MAKE YOU SUSPICIOUS
+
+Verifier #73 found TWO P1 TRUTH DEFECTS that thirteen previous rounds and ninety-one suites had walked
+past, and both were invisible for the same reason: **the corpora were written in English, in ASCII, by
+people who type the way the tests do.**
+
+`[A-Z]` in three object tests meant `archive Батбаяр ХХК` carried no request intent at all, so both truth
+gates switched off and the fabricated completion shipped — 14 of 22 commands. `v92_parity_corpus.json`
+reported `fabRegression == 0` across 454 rows because it contains **zero non-ASCII capitals**. The defect
+was not hidden; it was unreachable by every fixture anyone had written.
+
+**So the question for this round is not "is the rule right" but "what can this corpus not contain".** Build
+inputs the previous rounds could not: Mongolian Cyrillic, Turkish and German diacritics, Greek, mixed
+scripts inside one name, names that are entity nouns, names that are function words, quoted names,
+apostrophes and hyphens inside names, and — the hole this round's fix DOES NOT close and says so — caseless
+scripts (Arabic, Hebrew, Japanese, Chinese, Georgian) which have no uppercase for `\p{Lu}` to match.
+
+## WHAT #73 FOUND AND THIS CANDIDATE CLAIMS TO HAVE CLOSED — VERIFY, DO NOT ASSUME
+
+Two P1s, four P2s and five harness findings, all claimed closed. **Re-derive every one.**
+
+  V73-D3 (P1)  `[A-Z]` in IMPERATIVE_OBJECT, OBJECT_OPENS_WITH_A_REFERENCE and OBJECT_NAMES_SOMETHING. The
+               sweep found a FOURTH the report missed — STRONG_OBJECT, the multi-clause path. All four now
+               derive from `\p{Lu}` under `u`. Claim: 0 of 8 non-ASCII fabrications ship, ASCII unchanged.
+               **The registered residual is caseless scripts. Attack it, and attack whether `u` was added
+               everywhere it was needed** — `\p{Lu}` without the flag is the literal letter p, which is the
+               escape-depth class wearing a different hat.
+
+  V73-D7 (P1)  the non-existence gate was one-directional: a denial CONTRADICTED by this turn's own
+               canonical read shipped 8/8. Now two arms — the clause names a row we read, or it names
+               nothing and the COMMAND names a row we read. **Attack the second arm hardest**: it is the
+               one that infers a referent, and a guard that corrects a denial it should not have touched is
+               a mute button. Check a read of a different row, a NOT_FOUND row, an aggregate, and a turn
+               that denies TWO things of which only one was read.
+
+  V73-D1 (P2)  "stop the deployment for ACME" stripped every mutating field. HEAD_NEGATOR_ALTERNATION is
+               renamed NEGATOR_NOT_ALSO_A_VERB and now used by BOTH the head strip and both arms of the
+               decider. Verify "do not stop the sync" is still a refusal, and that nothing else in the
+               canonical list is also a verb this product executes.
+
+  V73-D8 (P2)  the receipt said "which COMPANY you meant" for 15 of 18 plural entity types. The
+               CONCEPT-REGISTERED exception is gone. Check no receipt now says "work orderses".
+
+  V73-D2 (P2)  withoutCitation removed one citation per sentence. Now a BOUNDED loop, plus
+               STATEMENT_EVIDENCE so a sentence that is nothing but a citation is dropped while
+               "The database confirms Alpha is archived." keeps its answer. **The bound is 6 — check it is
+               enough, and that the loop cannot be made to run away or to eat a real answer.**
+
+  V73-D6 (P2)  continuity now gets the exemption `collections` has: retold from the surviving rows after a
+               trim, asserted by key set, never reduced. FIVE suites asserted byte-identity and all five
+               were changed. **That is a lot of suites to relax at once — verify each one still forbids
+               what it was written to forbid.**
+
+  HARNESS      the guard-composition rows extracted identifiers by SYNTAX; now by ROLE. compaction's
+               "STALE never becomes CURRENT" asserted the transformation it is named for; now three
+               properties. #73's own `_gate_extract` fix (withSharedConstants resolving from the
+               declaration HEAD) is adopted. Two windows were missing `command`.
+
+## THE STANDING SURFACES
+
+1. **The request/headline boundary.** Broken in one direction or the other on EIGHT occasions now.
+2. **Clarification resolution.** CONTEXT ABSENCE != ENTITY NON-EXISTENCE, RESOLUTION_FAILED != NOT_FOUND,
+   and now also: a denial contradicted by evidence is not a denial.
+3. **The provenance guard.** Entity-scoped; aggregates support a NUMBER, rows support a NAME.
+4. **Compaction truth.** Seven impossible transformations, at 10/25/50/100/200 turns and sizes nobody tried.
+5. **Codex A–E.** Reconstruct independently. **Do NOT run a live probe for E.**
+
+======================== STEP 1 — THE HARNESS IS A SUSPECT ========================
+* Re-derive every boundary regex by LIFTING it from index.ts and evaluating it. Never retype a pattern.
+* Escape depth BOTH ways, and scan every file for 0x08.
+* `u` flags: every `\p{...}` needs one, and a missing flag fails silently.
+* Audit `_gate_extract.mjs` dependency ORDER — several constants were added and one was renamed this round,
+  and emission order is load-bearing (it failed loudly once during this round's work, which is correct).
+* The rename probe (`qa/verification/scratch/p1/v72_h3_refactor_probe.mjs`) and the mutation proof are THIS
+  SESSION'S instruments. Try to make each pass on a source that is wrong.
+
+======================== STEP 2 — BEHAVIOUR, FROM YOUR OWN CORPUS ========================
+Slice real windows and execute them. Attack in the languages this product is actually used in.
+
+======================== STEP 3 — VACUITY ========================
+Run the full battery. The session claims **92 suites, 89 green, 3 red**, and classifies them as:
+  BLOCKED — FOUNDER AUTHORITY   production_write_authority, person_assignment_scope_authorization
+  OPEN DEFECT — THIS PC         factory_production_write_inventory (ELEVEN scripts reach the DB through
+                                `supabase db query --linked`; the remedy is a code change, not authority —
+                                a correction #73 made to this session's own classification)
+**Verify that classification.** One round ago this session called all three founder boundaries.
+
+Then MUTATE THE SOURCE. At minimum: revert each of the four `\p{Lu}` sites one at a time; disable the
+denial-contradicted gate; restore the full negator list to the decider; put the entity vocabulary back to
+the bare alternation; unbound the citation loop; freeze continuity across a trim. **Report any mutation that
+survives, and any mutant of your own that turns out to be INEFFECTIVE.**
+
+======================== STEP 4 — TDZ / DENO / BYTES ========================
+Block-scope analysis over every const/let. New or moved this round: `NEGATOR_NOT_ALSO_A_VERB` (renamed and
+MOVED above the lists that derive from it), `STATEMENT_EVIDENCE`, `rowsReadThisTurn`, `denialContradicted`,
+`commandNamesAReadRow`, `continuityKeysBefore`. index.ts must be CRLF-pure with no 0x08.
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+Is candidate __CANDIDATE_SHA__ fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is: any
+mutation-intent fabrication that ships, in ANY script; any truthful READ rewritten on text shape alone; any
+mixed turn whose un-negated imperative is refused; any denial contradicted by the turn's own evidence; any
+success claim without a verified envelope; any resolution failure reported as non-existence; any
+unsupported provenance claim; any number presented as a database total that nothing measured; any
+runtime-fatal construct; any harness default that hides a class; any comment asserting a property the code
+does not enforce. **If you PASS it, your report goes straight to the founder as a deploy authorisation
+request** — state the exact SHA, the exact DEPLOY_FILE_SHA256, what you measured, what you could NOT
+measure, and every residual with its size.
+
+======================== OUTPUT ========================
+qa/verification/proposed/v74_known_failure_modes_entry_158.md (## 158. …, no preamble),
+v74_PROMOTION_NOTE.md, v74_regression_additions.mjs (CONTRACT/DEFECT rows, ANY failure exits nonzero;
+index.ts via SEM_INDEX_SRC or a path correct from ANY cwd). Use v74_* names only, ledger entry ## 158
+(## 150-## 157 are taken). COMMIT to __ARTIFACT_BRANCH__. Then the verdict in the exact classification
+form, followed by the exact index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT
+into CURRENT_CAMPAIGN.json and stop.
