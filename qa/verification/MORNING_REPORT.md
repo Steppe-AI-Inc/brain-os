@@ -216,15 +216,30 @@ The production Edge function still carries v92 source.
 
 ## EXACT FOUNDER AUTHORISATION REQUIRED
 
-**None is blocking right now.** #78 must return a verdict first — it is the fifth round tonight, and
-and the three before it all failed: twice on defects no earlier round could reach, once on a defect the
-previous round's own fix created. When it passes, the next action is a
-fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact DEPLOY_FILE_SHA256 in the release manifest — and I
-will ask for it then, once, with the manifest attached.
+**Nothing is blocking me right now, and I am not asking for a deploy authorisation.** Verifier #78 has to
+return a verdict first. It is the fifth round of the night; the four before it all failed — twice on
+defects no earlier round could reach, once on a defect the previous round's own fix created, and once on
+the fix for that.
 
-Still waiting on you whenever you choose, none of it blocking: the two founder-authority items above, and
-the QA node credential (acceptance tests 1–10 remain BLOCKED without it).
+When a round passes, the next action is a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact
+DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with the manifest attached.
 
+### Waiting on you whenever you choose — none of it blocking
+
+1. **The `person_assignments` cross-tenant RLS migration** — `supabase/drafts/202609090001_*.sql`. No
+   behavioural proof exists and none should be attempted: proving it means performing the cross-tenant
+   write that must never succeed.
+2. **The QA node credential** — acceptance tests 1–10 stay BLOCKED without it. The command that would
+   start the node is now derived and machine-checked; what is left is authority over a machine, not a
+   string.
+3. **`FACTORY_RUNNER_PG_URL`** — if you want the factory-runner isolation applied. The conversion is
+   prepared and measured; applying it removes ambient production-write authority from eleven scripts and
+   stops the factory runner until that variable exists.
+4. **One product judgement, and it is genuinely yours.** When a clarification carries no `actionType`,
+   the product returns undefined and falls through to the LLM — an explicit fail-closed guard added after
+   the stale-actionType-hijack incident. A test asserted the older behaviour, defaulting to `archive`.
+   I left that test failing and classified rather than rewriting it to agree with the code, because
+   deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
 1. Act on #78 automatically: FAIL → fix loop → #79; PASS → release package for the exact bytes.
