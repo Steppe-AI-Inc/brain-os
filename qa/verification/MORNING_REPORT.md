@@ -98,9 +98,32 @@ rather than counts.
 
 Candidate for #76: `94aa26c9…`, 712,078 bytes, battery 94 suites / 89 green / 0 unclassified red.
 
+---
+
+**Verifier #76 failed that candidate too, and the first defect was one I introduced.**
+
+Closing the Mongolian refusal defect a round earlier, I taught the negation decider to recognise a live
+Mongolian clause so a prohibition would not swallow a live clause beside it. I wrote that test as bare STEM
+presence. The request tier asks the same question through two FORM tests — and a stem is not a form:
+`архивласан` ("archived", attributive) matches the bare list. So *do not archive ACME; show the archived
+companies* stopped being a refusal and **the write you forbade survived**. The identical English sentence
+was stripped correctly.
+
+One concept, two readers, and the weaker one decided whether a refusal was heard. It is the same shape the
+ledger has recorded six times, and I committed it while closing an instance of it.
+
+**My own rows could not catch it**, because they test four bare prohibitions and a bare prohibition has no
+second clause to disarm the decider with. And the verifier proved the rows I substituted last round were
+weaker than the ones I argued against: a symmetric change moves both sides of an equivalence pin together
+and passes. Being right about the objection did not make the replacement adequate — a relative pin asks
+"are these two the same?" and never "is either correct?"
+
+All three of #76's findings are closed, plus the file-wide sweep it asked for. Candidate for #77:
+`79e457b8`, 714,427 bytes, battery 95 suites / 89 green / 0 unclassified red.
+
 ## RUNNING
 
-**Verifier #76** on candidate `94aa26c9`. Dispatch details land in `qa/verification/scratch/verifier76_dispatch.json`.
+**Verifier #77** on candidate `79e457b8`. Dispatch details land in `qa/verification/scratch/verifier77_dispatch.json`.
 
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
@@ -152,8 +175,9 @@ The production Edge function still carries v92 source.
 
 ## EXACT FOUNDER AUTHORISATION REQUIRED
 
-**None is blocking right now.** #76 must return a verdict first — it is the third round tonight, and
-the two before it both failed on defects no previous round could see. When it passes, the next action is a
+**None is blocking right now.** #77 must return a verdict first — it is the fourth round tonight, and
+and the three before it all failed: twice on defects no earlier round could reach, once on a defect the
+previous round's own fix created. When it passes, the next action is a
 fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact DEPLOY_FILE_SHA256 in the release manifest — and I
 will ask for it then, once, with the manifest attached.
 
@@ -162,7 +186,7 @@ the QA node credential (acceptance tests 1–10 remain BLOCKED without it).
 
 ## NEXT
 
-1. Act on #76 automatically: FAIL → fix loop → #77; PASS → release package for the exact bytes.
+1. Act on #77 automatically: FAIL → fix loop → #78; PASS → release package for the exact bytes.
 2. Apply the factory-runner conversion — prepared and measured above, and YOUR call, because it stops
    the factory runner until `FACTORY_RUNNER_PG_URL` exists. Safe to apply during a verifier round:
    neither the dispatcher nor the watchdog touches the DB.

@@ -1,0 +1,76 @@
+Verification complete. Committed as `66487a5a` on `verify-67a1e1d-campaign136`; the deploy surface is untouched (sha unchanged).
+
+---
+
+# VERIFIER #74 / CAMPAIGN 136 — FINAL REPORT
+
+## FOUND
+
+Three defects, two of them P1. **One was created by this round's own fix.**
+
+**V74C-D1 (P1, introduced by this candidate).** `requestRefusesEveryMutation`'s new Mongolian arm (`index.ts:1972`) is the **bare Cyrillic stem alternation with no form test**, while the request-intent tier asks the same question through `MN_NOT_A_COMMAND` + `MN_CASE_SUFFIX`. A stem is not a form — `архивласан`, `устгасан`, `шинэчилсэн`, `архивлалтын` all match it. Executed on the real predicate **and the real stripping block at `index.ts:4176`**:
+
+| turn | English | Mongolian |
+|---|---|---|
+| do not archive ACME. show the archived companies. | refusal → `archiveCompanyIds` **stripped** | **not a refusal → id survives** |
+| … show the updated list. | stripped | **survives** |
+| … list the deleted tasks. | stripped | **survives** |
+| … show the archive history | stripped | **survives** |
+
+This is V75-D5 — *"not a false claim about a write, THE WRITE THE FOUNDER FORBADE"* — reopened by its own fix, in the same language. The candidate's own equivalence rows cannot see it: they measure four *bare* prohibitions, which have no second clause to disarm the decider.
+
+**V74C-D3 (P1, pre-existing; identical on parent `7e544bc7`).** The intent tier never reads `CLAUSE_LEAD_FILLER`. Seven of eleven lead words — *but, instead, plus, only, still, yet, afterwards/after that* — leave `requestedIntent` null; `legacyProseFallback` requires non-null intent, so `"but archive ACME"` ships the model's **`Done — archived.`** verbatim. Also `"check the report, but archive Beta"` and the code-switched `"ACME-г битгий архивла, but restore Beta"`.
+
+**V74C-D2.** `commandMentionsCompany` bounds `компани` with an ASCII `\b`, which can never match beside a Cyrillic letter — dead since it was added. Exactly the class this round's commit message describes closing 2 800 lines away; the class was found, not swept.
+
+## THE ONE THING I WAS TOLD TO BE SUSPICIOUS OF
+
+**The session's reasoning against #75 is right; its replacement rows are weaker, and I proved it.** A single symmetric change (`&& !requestRefusesEveryMutation(commandText)` on the intent branch — exactly what #75 asked for, applied to both languages) **passes all four equivalence rows and the uniformity row**, because both sides of the comparison move together. Only two unrelated participle rows noticed, accidentally. `V74C-H3` now pins the property absolutely in both languages (intent present **and** the receipt says *"you asked me not to"*) — 14 named rows go red on that mutant.
+
+## VACUITY — THREE MUTANTS SURVIVED ALL 94 SUITES
+
+Fourteen mutations, each proved **effective** before being run past the battery:
+
+| survivor | consequence |
+|---|---|
+| `MN_REQUEST_REFUSED` compiled `'i'` not `'iu'` | `\p{L}` → literal text; `битгийхэн архивла` becomes a refusal — a live request refused. The round's headline safety property had a row for the `\b` half and none for the `u` half |
+| `safeOptionLabel` title-case `\p{Lu}` → `[A-Z]` | non-ASCII names refused as option labels |
+| `safeOptionLabel` acronym `\p{Lu}` → `[A-Z]` | `Closed ÖKO` ships as a label and replays as `Confirmed — Closed ÖKO` |
+
+Two mutants (citation-debris ASCII, entity vocabulary) I could **not** make effective — recorded as unmeasured, not as passes. Rows added for all three survivors, each confirmed to fire on its own mutant.
+
+## VERIFIED BY MEASUREMENT (not by reading the story)
+
+- **Per-ROW forgiveness works, both directions:** a reopened P1 injected into the already-forgiven `v75` turned the real manifest RED and named the rows; changed **wording** kept forgiveness (exit 0); changed **subject** lost it (exit 1, named).
+- **No row lost in the reshuffle:** v74 has the same 116 row ids at `67a1e1d4` as at `7e544bc7`; v75 adds 83; overlap is 2 rows, verdicts agree.
+- Battery, re-measured by me: **94 suites, 89 green, 2 BLOCKED — FOUNDER AUTHORITY, 3 OPEN DEFECT — THIS PC, 0 unclassified red.** The launch prompt's "92 suites / 3 red" is one round stale. All three OPEN DEFECT classifications re-derived and correct (11 factory-runner scripts do reach the DB; 5 suites do name `index.ts` and open nothing).
+- 0 TDZ hazards over 1 140 declarations (4 flagged items are object/type-literal keys); `_gate_extract` emission order 0 violations over 61 names; CRLF-pure, 0x08 = 0; no `\p{…}` without `u`; 48 compaction configurations, 0 violations.
+
+## FIXED / TESTED
+
+All three fixes **PREPARED, not applied** — `index.ts` keeps its bytes. `make_fix.mjs` builds them deterministically; the fixed artifact runs **89 green / 5 classified red — the same five suites, same rows** as the candidate, turns all 20 new red rows green, and keeps every opposite-direction row green (mixed turn keeps its live restore; benefactive still not a refusal; lead word before a noun phrase still not a command).
+
+## BLOCKERS / NOT MEASURED
+
+Live database, live Edge Function, browser UI and Brain chat: **BLOCKED** — the Supabase CLI is gated in this session and no browser tool was available to me. Codex E deliberately not probed. Registered residuals: refusal+question turns ship a fabrication in **both** languages (needs a product decision, not a patch); punctuation-bearing intent verbs; the veto-lift can elect a participle as the verb; `PROVENANCE_CITATION` misses *"the database shows"*.
+
+**Founder-only actions pending: none new.**
+
+---
+
+**RELEASE STATE: `FAILED`** — candidate `67a1e1d4240dd2729ebaacfd39ef066af17fa819` is **not fit to deploy over v92**. Do not ask `ALLOW_FUNCTIONS_DEPLOY=1?` on these bytes.
+
+```
+CHANGE VERIFIED: sem-ai-command candidate 67a1e1d4 under the OPERATING_TRUTH_MODEL contract bar
+SCENARIOS: 11 passed, 3 failed, 4 blocked
+CANONICAL GRAPH: BLOCKED (no live database in this session)
+UI ↔ DB:         BLOCKED (no browser tool available to this verifier)
+AI ↔ DB:         FAIL   (V74C-D1: a forbidden write survives in Mongolian; V74C-D3: "Done — archived."
+                         ships with an empty ledger on an ordinary English request)
+DEPENDENCIES:    PASS   (fix regresses no suite: 89 green / 5 classified red, unchanged)
+PERMISSIONS:     BLOCKED (Codex E deliberately not probed; production_write_authority is founder-only)
+RELOAD/PERSISTENCE: BLOCKED (no live environment)
+IDEMPOTENCY:     PASS   (negation gate and receipt are deterministic across repeats)
+```
+
+94aa26c96c659b720bafef5c72cf4f2824f075732824e189540ccacd9f55c23d
