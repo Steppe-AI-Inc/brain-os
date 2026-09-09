@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T03:45:00Z",
+  "last_updated": "2026-09-09T03:47:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 11,
+    "open_p1": 12,
     "open_p2": 12,
     "open_p3": 6,
-    "total_open": 29,
+    "total_open": 30,
     "total_closed": 5
   },
   "bugs": [
@@ -819,7 +819,13 @@
       },
       "regression_path": "qa/scenarios-runner/bug010_clarification_branch_grounding.md",
       "regression_state": "EXPECTED_FAIL",
-      "regression_note_2026_09_09": "The ORIGINAL regression_requirement (same-channel read must equal DB and equal a fresh-channel answer) is necessary but NOT SUFFICIENT: it would have PASSED on trial 1 of 4 while the defect was live, because it does not force the contaminated branch. The new scenario deliberately asks the AMBIGUOUS form, asserts on the clarifying question TEXT, and adds a branch-parity assertion (same question asked unambiguously in the same contaminated channel must agree). Branch parity is the load-bearing assertion - assertions on the symptom can be satisfied by cleaning up response text without fixing which branch reads the database. It also mandates >=4 trials, since reproduction is ~2 of 3."
+      "regression_note_2026_09_09": "The ORIGINAL regression_requirement (same-channel read must equal DB and equal a fresh-channel answer) is necessary but NOT SUFFICIENT: it would have PASSED on trial 1 of 4 while the defect was live, because it does not force the contaminated branch. The new scenario deliberately asks the AMBIGUOUS form, asserts on the clarifying question TEXT, and adds a branch-parity assertion (same question asked unambiguously in the same contaminated channel must agree). Branch parity is the load-bearing assertion - assertions on the symptom can be satisfied by cleaning up response text without fixing which branch reads the database. It also mandates >=4 trials, since reproduction is ~2 of 3.",
+      "matrix_person_assign_expansion_2026_09_09": {
+        "purpose": "CLAUDE.md section 13 root-cause expansion. The earlier person and relationship expansions did NOT reproduce, but they were read DIRECTLY - so they may have been testing the wrong branch. Re-run forcing the clarification branch.",
+        "result": "NO CONTAMINATION SOURCE OBTAINABLE. Both turns refused rather than fabricating, so no false receipt ever entered the channel and persistence could not be tested. Not a non-reproduction of BUG-010 - a test that could not start.",
+        "incidental_finding": "The refusals themselves contained a false statement, which is now BUG-029.",
+        "hypothesis_refinement": "IMPORTANT NUANCE. Turn 1 here was a clarifying question that WAS correctly grounded - it read the person's real state (\"currently with no company assigned\"). So the clarification branch is NOT universally ungrounded, and the hypothesis must be stated more precisely than \"the clarification branch bypasses grounding\". Refined form: the clarification branch does not RE-VERIFY CLAIMS MADE EARLIER IN THE CHANNEL, while remaining able to read entity state for entities it resolves. In trials 2 and 3 the contaminated content was a PRIOR ASSISTANT CLAIM; here there was no prior claim to carry. This is consistent with every observation to date and is the version the Home PC should test."
+      }
     },
     {
       "bug_id": "BUG-011",
@@ -1539,6 +1545,51 @@
       "home_pc_pointer": "The chat request body carries command / channelId / imageBase64; no organization field is present, and getActiveProvider/buildContext have no org parameter. Work PC did not modify the source; this is a pointer, not a diagnosis.",
       "_qa_boundary": "Browser + product paths only. One project created via the product UI as a registered fixture.",
       "per_verifier_instruction": "Closure requires an independent Work-PC rerun of controls A and C; identical answers under different selectors is the failure. The implementation PC may not self-certify."
+    },
+    {
+      "bug_id": "BUG-029",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "Brain Chat asserts that an EXISTING company \"does not exist in the database\" - context truncation is reported as canonical non-existence, and the honest scope-limited phrasing it produced one turn earlier is ABANDONED for a false absolute",
+      "ai_truth_classification": "FABRICATED_ABSENCE (proposed new class - the polarity mirror of FALSE_SUCCESS). Adjacent to but NOT the same as GROUNDING_GAP: the gap is the cause, the defect is asserting the gap as canonical fact.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T03:47:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "target_url": "https://brain.open-spot.ai/chat",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "chat_model_at_test_time": "Claude Haiku 4.5 (claude-haiku-4-5)",
+      "channel": "8bd5804d-ddaa-42d6-9b6d-0d64cf332c98",
+      "discovered_while": "Running the BUG-010 root-cause expansion (CLAUDE.md section 13) - re-testing the person-assignment variant while deliberately forcing the clarification branch. Not the defect the test was looking for.",
+      "entity": "Company QA-C002-RENAMED-X (8fdad6e2-fffb-41bc-af0a-df8cab09110b)",
+      "ground_truth": "EXISTS AND IS ACTIVE. /companies at All Organizations, 03:46:11Z: row 13 of 14 - \"QA-C002-RENAMED-X | Business unit | - | active | 5 people | 0\". It is also the parent company of the department created minutes earlier in this same session, and it appears in the /departments company picker and in the org switcher.",
+      "reproduction": [
+        "Turn 1: \"Assign QA-C002-PENDING-01 to the company QA-C002-RENAMED-X.\"",
+        "Turn 1 reply (HONEST, correctly scope-limited): \"I need to clarify what you mean by 'assign.' QA-C002-PENDING-01 is a person (currently with no company assigned). QA-C002-RENAMED-X is not in my current view - I don't see a company by that name. Did you mean to assign this person to an existing company, or did you mean something else?\"",
+        "Turn 2: \"Yes, assign that person to QA-C002-RENAMED-X.\"",
+        "Turn 2 reply (FALSE ABSOLUTE): \"I don't see a company named QA-C002-RENAMED-X in the database. The company you're referring to doesn't exist under that name. Could you clarify which company you meant, or confirm the correct company name?\""
+      ],
+      "expected": "A truthful statement of scope: \"not in my current view\" / \"outside the context I can see\" - or a canonical existence check. What must never happen is an unqualified claim about what is or is not IN THE DATABASE when the answer is derived from a truncated context window.",
+      "actual": "Turn 2 asserts non-existence twice, and both assertions are canonical in form: \"in the database\" and \"doesn't exist under that name\". The company exists and is active.",
+      "the_escalation_is_the_finding": "The SAME session, ONE TURN APART, produced both framings for the SAME entity: turn 1 said \"is not in my current view\" (true, scope-limited, exactly right) and turn 2 said \"doesn't exist in the database\" (false, canonical). The system demonstrably HAS the correct framing available and abandoned it when pressed. This is not a missing capability; it is a truthfulness regression across turns under user insistence - which is the worst possible direction, because user insistence is precisely when a founder is relying on the answer.",
+      "independent_corroboration_same_entity": "During BUG-028 controls the SAME company was described correctly as \"belongs to a company not visible in this context (company_id 8fdad6e2-...)\". Same entity, same absence from context, honest framing. That rules out \"the model cannot tell the difference\" - it can, and does, elsewhere.",
+      "root_cause_hypothesis": "The company almost certainly falls outside the capped context list (it is row 13 of 14, and Brain volunteered its own truncation bound earlier the same session: \"I cannot rule out that a different project with the new name exists outside the capped project list\"). Truncation is the CAUSE. The DEFECT is that truncation is surfaced to the user as canonical non-existence rather than as limited scope. Work PC did not read the sem-ai-command source; this is a pointer, not a diagnosis.",
+      "governing_rule_violated": "CLAUDE.md section 6 (AI context completeness) is explicit and this is a direct violation: \"Never present truncated data as complete data.\" The section requires the model to know returnedCount / totalCount / isTruncated / retrievalScope and to say \"30 of 69 active tasks shown\", not \"there are 30 tasks\". The same requirement applies to existence: absence from a truncated window is not absence from the database.",
+      "blast_radius": "NO DATA WAS CHANGED - the operation was refused, which is the correct outcome for the assign request itself. The damage is decision-integrity, and it is worse than it first looks in two directions. (1) DUPLICATE CREATION: a founder told a company does not exist may create it again, which is a real write driven by a false read. (2) FALSE DATA-LOSS INCIDENT: a founder told an entity they created is absent from the database may reasonably conclude data was lost and escalate. Both are founder actions caused by a confident false statement.",
+      "why_p1": "P1 on truth, consistent with how BUG-002 and BUG-010 are rated. It is a confident, unqualified, canonical-sounding false statement about database contents, produced under user insistence, on an entity the user just named. It is also the polarity mirror of the existing FALSE_SUCCESS class - the product can both claim a mutation that did not happen and deny an entity that does exist. Any product built on \"ask Brain about your data\" is unreliable in BOTH directions.",
+      "not_p0": "No authorization boundary was crossed and no data was mutated or disclosed. The founder is entitled to see this company.",
+      "relationship_to_other_bugs": {
+        "BUG-002 / FALSE_SUCCESS": "MIRROR IMAGE, same family, opposite polarity. BUG-002 claims a mutation that did not occur; BUG-029 denies an entity that does exist. Filed separately because the mechanism differs - BUG-002 is capability-absence not surfaced as refusal, BUG-029 is context-truncation not surfaced as scope.",
+        "BUG-017 (context window)": "BUG-017 is the truncation itself. BUG-029 is the MISREPORTING of truncation. Deliberately not merged: fixing the window size would not fix the false phrasing, and fixing the phrasing would not need the window fixed. They are independently closable.",
+        "BUG-024 / count-by-inference": "Same governing rule (CLAUDE.md section 6). BUG-024 is truncated data presented as complete COUNTS; BUG-029 is truncated data presented as complete EXISTENCE. Worth a joint fix if one is designed - both need isTruncated/retrievalScope surfaced to the model and reflected in its language.",
+        "BUG-010": "Found while expanding BUG-010, but NOT a BUG-010 instance and not merged. No fabricated claim was persisted; the false statement is generated fresh from a truncated read."
+      },
+      "regression_requirement": "REQUIRED, permanent. For an entity that EXISTS but falls outside the context window, any Brain statement about its existence must be scope-qualified. Assert that the reply does NOT contain an unqualified non-existence claim (\"does not exist\", \"no such\", \"not in the database\") for an entity that a canonical query proves present. The test must include the MULTI-TURN form: ask once, then RE-ASSERT the entity name, because the observed failure only escalated to the false absolute on the second turn. A single-turn test would have PASSED here.",
+      "regression_path": "qa/scenarios-runner/bug029_truncation_must_not_be_reported_as_nonexistence.md",
+      "regression_state": "EXPECTED_FAIL",
+      "implementation_recommendation": "Do not fix by prompt wording alone. The model already produces the correct phrasing sometimes, so the wording is not the missing piece - what is missing is a hard distinction the model cannot collapse. Structural options for Home PC: (1) surface isTruncated / totalCount / retrievalScope into the context pack so the model can SEE that its view is partial (CLAUDE.md section 6 already requires this and it would serve BUG-024 at the same time); (2) route existence questions to a canonical count/exists query rather than to the truncated list, per CLAUDE.md section 26 - existence is a deterministic fact and section 26 forbids deriving deterministic facts from a truncated context array.",
+      "_qa_boundary": "Browser + product paths only. Zero mutations. The assign operation was refused by the product, which is correct; QA did not force it through by any other path.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC reproduction of the TWO-TURN sequence against a then-deployed build with a stated WEB_SHA. The implementation PC may not self-certify. A single-turn probe is not sufficient evidence of a fix."
     }
   ]
 }
