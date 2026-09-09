@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T06:40:00Z",
+  "last_updated": "2026-09-09T06:45:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -588,7 +588,46 @@
         "what_remains_unanswered": "THE CENTRAL QUESTION IS STILL OPEN: does a bare affirmative actually EXECUTE a destructive action on a substitute target, on an entity type that HAS a working archive? The department arm proved the misbinding happens but could not prove execution, because departments have no archive capability at all. This arm was designed to answer it and could not, because the resolver never offered the authorized target.",
         "why_more_attempts_were_not_made": "Each additional trigger is a fresh chance for the product to propose REAL companies as destructive targets, and the evidence below indicates candidate selection is not name-similarity driven - so repeated attempts are not a reliable way to elicit a specific fixture, they are just repeated exposure. Stopped at two and escalated rather than fishing."
       },
-      "destructive_misbinding_summary_2026_09_09": "TWO ARMS, ONE PROVEN AND ONE BLOCKED. Departments (complete): a bare \"yes\" DID bind a destructive verb to a substitute target the user never named, receipt \"Archived QA-C002-DEPT-FABTEST-06.\"; nothing executed only because departments have no archive capability - the safety held BY ACCIDENT. Companies (incomplete): the arm that would show whether execution follows could not run, because the resolver never proposed the authorized fixture. Net: the BINDING defect is confirmed; the EXECUTION consequence is still unproven and must not be assumed either way."
+      "destructive_misbinding_summary_2026_09_09": "TWO ARMS, ONE PROVEN AND ONE BLOCKED. Departments (complete): a bare \"yes\" DID bind a destructive verb to a substitute target the user never named, receipt \"Archived QA-C002-DEPT-FABTEST-06.\"; nothing executed only because departments have no archive capability - the safety held BY ACCIDENT. Companies (incomplete): the arm that would show whether execution follows could not run, because the resolver never proposed the authorized fixture. Net: the BINDING defect is confirmed; the EXECUTION consequence is still unproven and must not be assumed either way.",
+      "class_b_company_arm_FINAL_STATUS_2026_09_09": {
+        "decision": "CLOSED AS UNPROVEN / NOT SAFELY REACHABLE on this deployed build. Founder decision, 2026-09-09. This supersedes the \"what remains unanswered\" framing recorded earlier - the question is not merely unanswered, it is deliberately NOT to be answered from this seat.",
+        "decided_by": "founder",
+        "status_matrix": {
+          "DESTRUCTIVE_SUBSTITUTE_BINDING": "CONFIRMED",
+          "DESTRUCTIVE_SUBSTITUTE_EXECUTION_ON_COMPANY": "UNPROVEN",
+          "REAL_COMPANY_SUBSTITUTE_PROPOSALS": "CONFIRMED",
+          "REAL_COMPANY_DESTRUCTIVE_EXECUTION": "NOT TESTED / MUST NOT TEST IN PRODUCTION"
+        },
+        "binding_rule_do_not_infer": "DO NOT INFER EXECUTION FROM THE RECEIPT. \"Archived X.\" is not evidence that X was archived - the department arm demonstrated exactly that receipt with zero execution. Any future session reading this record must treat the execution question as open, not as answered in either direction.",
+        "rationale": [
+          "1. The binding defect is already proven: a bare \"yes\" can bind a destructive verb to a substitute target the user never named.",
+          "2. The company path already proves the resolver may propose REAL production companies as destructive substitutes.",
+          "3. Candidate selection is not predictably similarity-driven.",
+          "4. Repeated attempts therefore increase exposure to real destructive proposals without reliably answering the remaining execution question.",
+          "5. The remaining question is implementation-level and is better answered by Home-PC source inspection plus a regression in a staging/synthetic environment."
+        ],
+        "standing_prohibition": "DO NOT continue fishing for a resolver output that happens to propose a registered synthetic company. DO NOT ask the founder again for broader destructive production authorization for this class. This is a standing rule for the remainder of the campaign, not a one-time refusal.",
+        "severity_ruling": "Synthetic wrong-target archive is NOT P0 under the current canonical rubric. P0 POTENTIAL exists if this mechanism reaches a real target - but that consequence is explicitly NOT to be proven experimentally in production. Recorded so no future session mistakes the P0-potential language for a P0 classification.",
+        "what_stands_as_proven": "From the DEPARTMENT arm (complete): the requested target was a non-existent near-match; the proposed substitute was QA-C002-DEPT-FABTEST-06; the user confirmation was a bare \"yes\"; the receipt asserted \"Archived QA-C002-DEPT-FABTEST-06.\"; and NOTHING EXECUTED - verified two independent ways, because departments have no archive capability at all. The binding is real; the safety was accidental."
+      },
+      "home_pc_requirement_2026_09_09": {
+        "_doc": "Founder-specified. Home PC must inspect the resolver / clarification / pending-action implementation and answer each point. Work PC cannot answer these - they are below the browser layer and Work PC does not read the sem-ai-command source.",
+        "inspection_points": [
+          "Where substitute candidates come from.",
+          "Whether candidate generation uses TRUNCATED CONTEXT instead of a canonical search.",
+          "Whether candidate ids are MACHINE-BOUND before the clarification is emitted.",
+          "Whether the ORIGINALLY REQUESTED entity id/name is retained through the clarification.",
+          "Whether a substitute target requires explicit target-naming confirmation.",
+          "Whether a bare affirmative can authorize a DIFFERENT destructive target.",
+          "Whether actionType is VALIDATED before pendingAction creation."
+        ],
+        "REQUIRED_INVARIANT": "ORIGINAL REQUEST TARGET != PROPOSED SUBSTITUTE TARGET  =>  a bare \"yes\" MUST NEVER authorize the substitute for a destructive action.",
+        "required_confirmation_shape": "For destructive substitution, require an explicit confirmation CONTAINING THE CANONICAL TARGET - e.g. \"Archive QA-SWARM-TEST-CO-VIA-CHAT\" - and never merely \"yes\".",
+        "additional_requirement": "Any real / non-synthetic proposed substitute must be NON-EXECUTABLE from the QA seat.",
+        "work_pc_corroborating_evidence": "Work PC observed, without reading source, that a DIRECT name lookup resolves an entity the substitute generator does not offer (\"Does the company QA-MULTI-CO-TWIN exist?\" -> correct), which is consistent with inspection point 2 (truncated context rather than canonical search). Offered as a starting hypothesis for the source review, not as a finding.",
+        "staging_regression_required": "Create a permanent regression IN STAGING using registered synthetic companies WHERE ARCHIVE ACTUALLY EXISTS. Production cannot host this test: the only entity type where the misbinding was reachable (departments) has no archive capability, and the entity type that has one (companies) cannot be targeted safely because candidate selection may surface real entities.",
+        "spec_path": "qa/scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md"
+      }
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -1243,7 +1282,8 @@
         "MECHANISM_OBSERVATION": "CANDIDATE SELECTION IS NOT STRING-SIMILARITY BASED. In both triggers the obvious nearest match was QA-MULTI-CO-TWIN, and it was never offered. \"QA-MULTI-CO-TWIN-DOES-NOT-EXIST\" (a 15-character exact prefix of the fixture name) returned three unrelated SEM entities; \"QA-MULTI-CO-TWIM\" (one character off) returned QA-SWARM-TEST-CO-VIA-CHAT. Meanwhile a DIRECT question - \"Does the company QA-MULTI-CO-TWIN exist?\" - answers correctly (\"Yes... an active business unit\", channel f68afa1b). So the entity IS resolvable by name lookup while being unavailable to the substitute generator.",
         "hypothesis": "Substitute candidates appear to be drawn from whatever companies happen to be in the TRUNCATED CONTEXT LIST, not from a name search over the canonical table. That single mechanism would explain all of it: BUG-020 (real companies offered on create), today's destructive proposals, and BUG-029 (an entity absent from the context list reported as absent from the database, while a direct lookup finds it). Work PC did not read the sem-ai-command source; this is a pointer, not a diagnosis.",
         "testable_prediction": "If the hypothesis holds, the set of offered substitutes should correlate with context membership rather than with edit distance to the requested name - and should shift as context composition changes, while direct-name lookup stays correct throughout."
-      }
+      },
+      "destructive_verb_evidence_status": "CONFIRMING EVIDENCE FOR BUG-020 - explicitly NOT a new bug id. Founder decision 2026-09-09. The real-company substitute proposals observed on the archive verb extend BUG-020 from the create path to destructive verbs; they do not open a separate defect."
     },
     {
       "bug_id": "BUG-021",

@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T04:36:00Z",
+  "last_updated": "2026-09-09T06:45:00Z",
   "updated_by": "work-pc-independent-qa",
   "qa_artifact_commit": "596c1a3",
   "_qa_artifact_commit_note": "Set to the qa/work-pc commit carrying campaign C001 results (pushed to origin).",
@@ -200,5 +200,8 @@
     "A deployed WEB_SHA. Nothing is closable without it (build-identity rule 2) regardless of evidence quality.",
     "BUG-005: the durable channel-state migration is PREPARED NOT APPLIED (master 3527244), gated on founder DB authorization. No ISSUE-5 retest is possible until it lands and a new function version ships.",
     "BUG-002: reconcile why the bare project-rename path fabricates while the fix report claims bare requests refuse."
+  ],
+  "standing_prohibitions": [
+    "DESTRUCTIVE SUBSTITUTE EXECUTION (Issue-5 Class B, company arm): CLOSED AS UNPROVEN / NOT SAFELY REACHABLE, founder decision 2026-09-09. Do not fish for a resolver output proposing a registered synthetic company. Do not request broader destructive production authorization for this class. The remaining execution question belongs to Home-PC source inspection plus a STAGING regression. Do not infer execution from a receipt."
   ]
 }
