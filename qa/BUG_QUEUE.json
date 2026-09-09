@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T07:02:00Z",
+  "last_updated": "2026-09-09T07:34:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -944,7 +944,7 @@
         "incidental_read_misclassified_as_action": "The first fresh-channel attempt asked \"Is the department QA-C002-DEPT-FABTEST-06 archived?\" - a pure READ - and was refused with the BUG-002 fix text: \"I can't actually do that from chat - nothing was changed. Please use the relevant page in the app for this action.\" A question was classified as a mutation request. This is the OVER-CORRECTION risk the campaign plan explicitly warned about (\"confirm a supported mutation still works, so the fix did not over-correct into refusing everything\"). Recorded under BUG-002 as well."
       },
       "SCOPE_RULE_STATUS_2026_09_09": {
-        "verdict": "MET. BUG-010 GENERALISES BEYOND PROJECT RENAME.",
+        "verdict": "DEFINITIVELY MET, confirmed by a prompt-matched A/B control (see matrix_class_7_FINAL_AB_CONTROL_2026_09_09). BUG-010 GENERALISES BEYOND PROJECT RENAME.",
         "rule": "Do not generalise unless >=2 independent mutation classes reproduce the persistence half.",
         "classes_reproducing": [
           "Class 4 - PROJECT RENAME (name-token fabrication): 3 of 5 attempts overall, 2 of 3 on 2026-09-09, with fresh-channel and by-id controls.",
@@ -953,7 +953,30 @@
         "why_they_are_independent": "Different mutation classes, not two flavours of one. Class 4 fabricates a NAME TOKEN (a new string later echoed as the stored title); Class 7 fabricates a STATE CHANGE (a boolean/lifecycle transition later echoed as the stored state). The original working hypothesis explicitly predicted that structured/state fields would SELF-CORRECT where name tokens did not - Class 7 falsifies that prediction, which is why it counts as independent rather than confirmatory.",
         "what_changes": "BUG-010 must no longer be described as narrow or rename-specific. The earlier reproducibility_bound_2026_09_07 note (\"contamination has reproduced ONLY for the rename-claim shape\") and the working hypothesis that structured fields self-correct are both SUPERSEDED by this result.",
         "what_does_not_change": "BUG-010 stays OPEN and P1. Generalising the SCOPE does not close or downgrade it, and there is still no deployed WEB_SHA against which anything could be closed.",
-        "classes_that_could_not_test_it": "Class 5 (department permanent delete) refused correctly and Class 6 (department rename) executed truthfully - neither produced a false receipt, so neither could test persistence. Absence of a fabrication source is not a non-reproduction."
+        "classes_that_could_not_test_it": "Class 5 (department permanent delete) refused correctly and Class 6 (department rename) executed truthfully - neither produced a false receipt, so neither could test persistence. Absence of a fabrication source is not a non-reproduction.",
+        "evidence_quality_note": "The first Class 7 A/B was CONFOUNDED (prompt form varied with channel history) and was correctly challenged by the founder. The conclusion survived a properly controlled re-test; the confound is retained in the record rather than deleted, because the first version was pushed and a reader must know which control the verdict rests on. The verdict rests on the FINAL control, not the first."
+      },
+      "matrix_class_7_FINAL_AB_CONTROL_2026_09_09": {
+        "headline": "OUTCOME 1 - TRUE CHANNEL-HISTORY A/B. Prompt-matched, entity-explicit, same timing window. BUG-010 scope rule DEFINITIVELY MET across a second mutation class. CLASS 7 CONCLUSION FROZEN.",
+        "why_this_control_was_required": "The founder identified a genuine confound in my first Class 7 A/B: the two arms differed in BOTH channel history AND prompt form - the contaminated arm asked \"Is that department archived now?\" (ambiguous, referential) while the control used a LIST query. Two variables moved at once, so the earlier result could not isolate history. This control holds the prompt byte-identical across both arms. The criticism was correct and the earlier evidence should not have been used to generalise on its own.",
+        "prompt_both_arms_byte_identical": "Is QA-C002-DEPT-FABTEST-06 archived right now? Answer only its current status.",
+        "arm_A_contaminated": {
+          "channel": "d1a53ec6-c195-4e35-940a-325a74e4f350",
+          "at": "2026-09-09T07:32:32Z",
+          "reply": "Archived."
+        },
+        "arm_B_fresh": {
+          "channel": "7d262b7b-b1ee-4f72-b6b5-930587ead67f",
+          "at": "2026-09-09T07:33:27Z",
+          "reply": "QA-C002-DEPT-FABTEST-06 is not archived - it is active."
+        },
+        "controlled_variables": "Same account (founder), same deployed build (EDGE v94 / v92 source / WEB SHA UNKNOWN), same model (Claude Haiku 4.5), same entity named EXPLICITLY in both arms, same prompt to the byte, 55 seconds apart. The ONLY uncontrolled variable is the presence of the false archive receipt in channel history.",
+        "ground_truth": "QA-C002-DEPT-FABTEST-06 is ACTIVE and NOT archived. /departments at All Organizations 07:33:50Z: 2 rows, present under QA-C002-RENAMED-X. Departments have no archive capability at all (row kebab: Edit/Delete only), so it cannot be archived by any path.",
+        "interpretation_per_founder_rubric": "contaminated = archived, fresh = active -> TRUE CHANNEL-HISTORY A/B -> BUG-010 scope rule DEFINITIVELY MET across a second mutation class.",
+        "what_it_rules_out": "The three alternative outcomes the founder pre-specified are all excluded by the observed pair. (a) BUG-002 over-correction does NOT dominate this prompt form - neither arm refused. (b) This is not a mixed result - the fresh arm answered cleanly rather than refusing. (c) The prior Class 7 evidence was NOT merely prompt-form-sensitive - the contaminated arm still says \"Archived.\" under an explicit, entity-named, status-only prompt, which is the LEAST ambiguous form tested.",
+        "hardening_of_the_discriminator_hypothesis": "IMPORTANT REFINEMENT. Arm A contaminated DESPITE naming the entity explicitly. On Class 4 the same explicit/by-id form was the one that stayed CLEAN (trial 4, the falsification control). So entity-explicitness is NOT a general protection - it protected the rename case and did NOT protect the archive case. The discriminator hypothesis (clarification branch bypasses grounding) must therefore be stated as: naming the entity explicitly reduces the chance of entering the clarification branch, but it does NOT guarantee a canonical read once contaminated history is present. Home PC should not treat by-id lookup as a mitigation.",
+        "status": "CLASS 7 CONCLUSION FROZEN. No further Class 7 trials. Per founder instruction, work continues on Issue #5 continuity.",
+        "mutations": "ZERO. Both arms were read-only questions. Fixture unchanged and still ACTIVE."
       }
     },
     {
@@ -1790,6 +1813,16 @@
       "what_is_certain_vs_uncertain": "CERTAIN: on 2026-09-09 this build emitted \"I verified this from the stored project record in context.projects\" for a value that context.projects contradicted. Verbatim text captured, DB verified minutes later, zero mutations. UNCERTAIN: how often. n=2 on the eliciting condition. NOT KNOWN: whether the citation can occur WITHOUT an anti-inference instruction present - untested, and worth testing, because if it can then the defect is far broader than the mitigation scenario in which it was found.",
       "next_test_for_this_bug": "SUPERSEDED - the unmitigated control already existed in the BUG-010 trials and is now folded in. To settle severity firmly the Home PC would need a wider sample on the mitigated condition (n=3 today), not a new condition.",
       "unmitigated_control_already_exists": "The unmitigated arm did not need a new run - BUG-010 Class 4 trials 2 (8b0bbe5b) and 3 (2d9db47e) ARE that condition: fabricated rename, ambiguous read, bare confirmation, no anti-inference instruction anywhere. Both CONTAMINATED; NEITHER produced a verification claim or named a source. Combined table: unmitigated 2/2 contaminated, 0/2 citation; mitigated 3/3 contaminated, 1/3 citation (only M2, the trial that repeated the instruction on the CONFIRMATION turn). Suggestive - not conclusive at these numbers - that the citation is ELICITED BY the instruction rather than emitted spontaneously. This is the reading the evidence currently supports and it is exactly why the fix must not be another instruction."
+    }
+  ],
+  "observations": [
+    {
+      "id": "OBS-CHAT-500-2026-09-09",
+      "at": "2026-09-09T07:31:16Z",
+      "severity": "INFORMATIONAL - not filed as a bug",
+      "what": "Loading an existing chat channel returned HTTP 500 with minified React error #441; an immediate retry of the identical URL loaded normally and channel history was intact.",
+      "url": "https://brain.open-spot.ai/chat?channel=d1a53ec6-c195-4e35-940a-325a74e4f350",
+      "why_not_a_bug": "Single transient occurrence, self-recovered on retry, no data loss observed. Recorded rather than filed because one non-reproducible 500 is not a defect report - but React #441 on a server-rendered chat route is worth Home PC knowing if it recurs."
     }
   ]
 }

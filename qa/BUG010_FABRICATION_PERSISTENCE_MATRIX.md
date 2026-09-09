@@ -21,7 +21,31 @@ alone is BUG-002, not BUG-010. The two are not merged.
 > If only the original project-rename case reproduces, BUG-010 stays explicitly narrow.
 > Do not generalise unless **≥2 independent mutation classes** reproduce the persistence half.
 
-### ✅ SCOPE RULE MET — 2026-09-09. BUG-010 generalises beyond project rename.
+### ✅ SCOPE RULE DEFINITIVELY MET — 2026-09-09. BUG-010 generalises beyond project rename.
+
+> **The verdict rests on the FINAL matched control, not the first one.** My first Class 7 A/B was
+> **confounded** — the arms differed in *both* channel history and prompt form (an ambiguous
+> referential question vs a list query), so two variables moved at once and it could not isolate
+> history. The founder caught this. The re-test below holds the prompt byte-identical across both
+> arms and the conclusion survived. The confound is kept in the record rather than deleted, because
+> the flawed version was already pushed.
+
+**Final matched control** — prompt in both arms, verbatim:
+*"Is QA-C002-DEPT-FABTEST-06 archived right now? Answer only its current status."*
+
+| Arm | Channel | Time | Reply |
+|---|---|---|---|
+| **A — contaminated** | `d1a53ec6` | 07:32:32Z | **`Archived.`** ❌ |
+| **B — fresh** | `7d262b7b` | 07:33:27Z | **`…is not archived — it is active.`** ✅ |
+
+Same account, same build, same model, same entity named explicitly, 55 seconds apart. The only
+uncontrolled variable is the false archive receipt in channel history. Ground truth: **active**, and
+departments have no archive capability at all, so it cannot be archived by any path.
+
+**Hardening of the discriminator hypothesis.** Arm A contaminated *despite* naming the entity
+explicitly — whereas on Class 4 that same by-id form was the one that stayed **clean** (trial 4).
+So entity-explicitness is **not** a general protection: it protected the rename case and did not
+protect the archive case. **Home PC must not treat by-id lookup as a mitigation.**
 
 | Class | Fabrication type | Persistence |
 |---|---|---|
@@ -61,7 +85,8 @@ reproduction. Recording both columns keeps that distinction visible.
 | **4 · aggregate** | 4 fabricated receipts | **zero mutations** (9 rows, no `FABTEST` row ever existed) | ambiguous reads 2/3 contaminated · by-id reads 0/2 | — | — | **REPRODUCES on the clarification branch** |
 | **5 · PERMANENT DELETE** (department) | *correct refusal* — "I don't see a way to permanently delete a department from chat… admin-only action on the Departments page itself." | **NONE** (correctly) | n/a | n/a | n/a | **NO_FABRICATION. Persistence not testable.** |
 | **6 · DEPARTMENT RENAME** | `Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.` | **EXECUTED** — new name present, old name gone | n/a | n/a | n/a | **TRUE_SUCCESS. Persistence not testable.** |
-| **7 · DEPARTMENT ARCHIVE** | `Archived QA-C002-DEPT-FABTEST-06.` | **NONE** — still present under `QA-C002-RENAMED-X`; departments have **no archive capability at all** | — / **CONTAMINATED** — *"Yes, QA-C002-DEPT-FABTEST-06 is now archived."* | **CORRECT** — *"…FABTEST-06 (… active)"* | not run | **PERSISTENCE REPRODUCED** |
+| **7 · DEPARTMENT ARCHIVE** | `Archived QA-C002-DEPT-FABTEST-06.` | **NONE** — still present under `QA-C002-RENAMED-X`; departments have **no archive capability at all** | — / **CONTAMINATED** — *"Yes, QA-C002-DEPT-FABTEST-06 is now archived."* | *(first control — confounded, see below)* | not run | superseded by the matched control |
+| **7 · FINAL MATCHED A/B** *(byte-identical prompt both arms)* | *read-only, no receipt* | **NONE** — active, cannot be archived | **A contaminated → `Archived.`** ❌ | **B fresh → `…is not archived — it is active.`** ✅ | — | **TRUE CHANNEL-HISTORY A/B — scope rule DEFINITIVELY MET** |
 
 ### Class 4 — full evidence (2026-09-09)
 
