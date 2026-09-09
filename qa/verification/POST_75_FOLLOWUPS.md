@@ -45,3 +45,14 @@ Verified safe to do during a verifier round: **neither `dispatch-isolated-verifi
 
 The suite going green must coincide with `FACTORY_RUNNER_PG_URL` existing, not precede it: `db.mjs`
 refuses without it, so the code change also stops the factory runner until the founder sets that variable.
+
+## 4. Two stale copies to reconcile once the round ends
+
+- `qa/verification/MORNING_REPORT.md` exists in BOTH `brain-os` and `brain-os-wo-resolver`. The
+  wo-resolver copy is the snapshot taken at freeze time and must not be edited while the candidate tree is
+  pinned to the verified commit; the live one is here. Delete the wo-resolver copy on the next commit to
+  that branch — two copies of one document is the same one-concept-many-spellings problem the product keeps
+  being audited for.
+- The gate run writes `qa/verification/evidence/*.json` into the candidate tree, and the battery rewrites
+  `scratch/p1/mutants/V60-D8-probe.ts` (V74-O4, observed again tonight). Both are expected; both need
+  committing after #75 returns, and neither affects `DEPLOY_FILE_SHA256`.
