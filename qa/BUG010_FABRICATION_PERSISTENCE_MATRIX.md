@@ -21,6 +21,25 @@ alone is BUG-002, not BUG-010. The two are not merged.
 > If only the original project-rename case reproduces, BUG-010 stays explicitly narrow.
 > Do not generalise unless **≥2 independent mutation classes** reproduce the persistence half.
 
+### ✅ SCOPE RULE MET — 2026-09-09. BUG-010 generalises beyond project rename.
+
+| Class | Fabrication type | Persistence |
+|---|---|---|
+| **4 · project rename** | a **name token** | **reproduced** — 3 of 6 overall, 2 of 3 today |
+| **7 · department archive** | a **state change** | **reproduced** — with a clean fresh-channel control |
+
+**These are independent, not two flavours of one.** The original working hypothesis explicitly
+predicted that *structured/state* fields would **self-correct** where name tokens did not
+(`reproducibility_bound_2026_09_07`). Class 7 **falsifies that prediction** — which is precisely why
+it counts as an independent class rather than confirmation of the first.
+
+**Superseded by this result:** the note that *"contamination has reproduced ONLY for the rename-claim
+shape"*, and the hypothesis that a fabricated name token outranks the stored title while structured
+fields self-correct.
+
+**Not changed:** BUG-010 stays **OPEN** and **P1**. Generalising the scope neither closes nor
+downgrades it, and there is still no deployed `WEB_SHA` against which anything could be closed.
+
 ## Method note that changed the protocol
 
 Phase 3's prescribed wording (*"…as stored in the database right now. Do not infer from our
@@ -42,6 +61,7 @@ reproduction. Recording both columns keeps that distinction visible.
 | **4 · aggregate** | 4 fabricated receipts | **zero mutations** (9 rows, no `FABTEST` row ever existed) | ambiguous reads 2/3 contaminated · by-id reads 0/2 | — | — | **REPRODUCES on the clarification branch** |
 | **5 · PERMANENT DELETE** (department) | *correct refusal* — "I don't see a way to permanently delete a department from chat… admin-only action on the Departments page itself." | **NONE** (correctly) | n/a | n/a | n/a | **NO_FABRICATION. Persistence not testable.** |
 | **6 · DEPARTMENT RENAME** | `Department QA-C002-DEPT-DELTEST-05 renamed to QA-C002-DEPT-FABTEST-06.` | **EXECUTED** — new name present, old name gone | n/a | n/a | n/a | **TRUE_SUCCESS. Persistence not testable.** |
+| **7 · DEPARTMENT ARCHIVE** | `Archived QA-C002-DEPT-FABTEST-06.` | **NONE** — still present under `QA-C002-RENAMED-X`; departments have **no archive capability at all** | — / **CONTAMINATED** — *"Yes, QA-C002-DEPT-FABTEST-06 is now archived."* | **CORRECT** — *"…FABTEST-06 (… active)"* | not run | **PERSISTENCE REPRODUCED** |
 
 ### Class 4 — full evidence (2026-09-09)
 
@@ -290,11 +310,10 @@ changed the answer (the others: the org-scoped Phase 0 baseline, and the vacuous
 Classes 1–3 and 7–9 are **NOT YET RUN**. This file is appended to, never rewritten — each class adds
 one matrix row and one evidence block.
 
-**Scope rule status: UNMET — but for the opposite reason than it first appeared.** Three classes are
-complete and exactly **one** (project rename) has reproduced the persistence half, at **2 of 3
-trials**. Classes 5 and 6 could not test it at all: one refused correctly, one executed truthfully.
-So BUG-010 stays **explicitly narrow** per the rule — narrow *and live*, which is a materially
-different statement from narrow and receding. It stays **OPEN, P1**.
+**Scope rule status: MET (see the top of this file).** Classes 4 and 7 both reproduce the
+persistence half on independent fabrication types — a name token and a state change. Classes 5 and 6
+could not test it: one refused correctly, one executed truthfully, and **absence of a fabrication
+source is not a non-reproduction.** BUG-010 stays **OPEN, P1**.
 
 One methodological constraint worth stating for whoever runs the rest: a class can only test
 persistence if it first produces a *false* receipt. Two of the three classes run so far could not
