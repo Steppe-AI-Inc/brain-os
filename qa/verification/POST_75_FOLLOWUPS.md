@@ -136,3 +136,32 @@ eleven and reports "could not find the end of runSql" about a file that plainly 
 `FACTORY_RUNNER_PG_URL`, because the module refuses rather than falling back — that refusal is the whole
 point. The least-privilege role itself is DDL, which is founder authority: a module cannot bootstrap its
 own boundary.
+
+## 7. Ledger #144 — the regression that was owed now exists
+
+`qa/verification/proposed/embedding_observability_regression.mjs`.
+
+`PREPARED_EMBEDDING_OBSERVABILITY_STATUS.md` names its absence as the reason the embedding fix cannot
+ship: *"a regression that FAILS when an embedding failure produces no signal (it does not exist yet, so
+the fix is currently unfalsifiable)"*. A fix nothing can falsify is a claim.
+
+```
+against the CANDIDATE (no signal mechanism)     6 passed, 4 failed
+against a COPY with the prepared patch applied  10 passed, 0 failed
+```
+
+Four DEFECT rows, one per degradation path `embedTexts` has — no key, non-2xx, a thrown request, a body
+with no usable vector — each driven with a stubbed `fetch`. They ask only whether ANYTHING recorded a
+reason, never which words it used: a row that pinned the wording would break on a rewrite and teach nobody
+anything, which this session has already spent hours proving.
+
+Three CONTRACT rows guard the other direction, because the point of the design is that chat never breaks
+when embeddings are down: a degraded turn still returns an answer shaped like its input, a SUCCESSFUL
+embedding records no degradation (a signal that cries wolf gets muted), and it still returns its vector.
+
+On a source with no `embeddingDegradedReason` the DEFECT rows FAIL with that as their stated reason rather
+than the suite erroring — a suite that cannot run against the file it is about looks exactly like a suite
+that passes.
+
+**Still owed before #144 ships:** the nine prepared mutants run against this base. The suite itself is no
+longer the blocker.
