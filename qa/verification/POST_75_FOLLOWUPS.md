@@ -213,3 +213,15 @@ evidence is to avoid re-running to find out.
 
 Now keeps the tail. Found by checking what the evidence actually contained rather than trusting that a
 green gate had written a useful record.
+
+### ...and the recorder is not an input to what it records
+
+Fixing the truncation did NOT invalidate the existing evidence: `gate_evidence.mjs` declares each gate's
+inputs as the deploy surface, the gate command and the suites — not itself. So the thin record stayed
+`VALID_PASS` and the next run SKIPPED, leaving the improvement inert until something else went stale.
+
+That is arguably correct — a gate's inputs are what it MEASURES, and re-running every gate because the
+formatting of a record changed would be waste. But it means the recorder can change while every record
+keeps the old shape, and nothing says so. Re-recorded here with `--force`; the general point is worth a
+row: **a change to how evidence is written should at least be visible in the evidence.** A `recorder_version`
+in each record would do it, and would cost one line per gate rather than a re-run.
