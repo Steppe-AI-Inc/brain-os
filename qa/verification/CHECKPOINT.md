@@ -12,22 +12,35 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-Campaign #129. **Verifier #69 is RUNNING** on candidate `0ca756e` / index.ts sha256 `006a0c3f…`, dispatched
-2026-09-09 10:38:28 on `--model opus`, watchdog pid 2493, report at `qa/verification/scratch/verifier69_output.log`.
+Campaign #130. **Verifier #70 is RUNNING** on candidate `31979e8be62ed3d7c2bae2f5fa1bc8edea9cdf7b`,
+index.ts sha256 `e03ddceb3718e48cb9c4ec3260ad8062232e9a5416aee262ae0bc5d5e6bb7472`, dispatched
+2026-09-09 on `--model opus`, worktree `/c/Users/Dell/dev/brain-os-verify-31979e8`, branch
+`verify-31979e8-campaign130`, report at `qa/verification/scratch/verifier70_output.log`.
 
-**It is a RESUMPTION, not a fresh round.** Attempt 1 (03:04) died with the host Claude process, leaving a
-0-byte log; its durable evidence — preflight A/B/C PASS, full battery, identifier delta, participle family,
-concept map, all at the same sha — is committed on `verify-0ca756e-campaign129` as `337f255`, and the
-resume prompt (`scratch/verifier69_prompt_resume.txt`) tells the verifier to reuse it rather than re-run it.
+**Verifier #69 FAILED `0ca756e` and that closure is COMPLETE.** For the first time in five rounds both
+directions of the defect class are green together: v69 13/13, v61 A1 (80 turns) 25/0, v67 23/0, codex
+witnesses 32/0, concept ratchet 9/0, mutation proof 18/18.
 
-Verifiers #60 through #68 all FAILED their candidates. **FOUR consecutive rounds found the same defect
-class on a different AXIS:** #65 request FRAMES, #66 OBJECT and CLAUSE shapes, #67 ENTITY REFERENCE,
-#68 CLAUSE COUNT crossed with the entity vocabulary. The battery was green every time, because every
-corpus varies one axis and holds the others constant.
+**The #69 ruling, implemented:** the object boundary is what a phrase NAMES, not how far away the entity
+noun sits. Three formulations were measured; the first two each closed one direction while opening the
+other, and only an OLD suite (v61 A1) caught the second. A headline opens with nothing referring, carries a
+prepositional phrase and names nothing ("status report for the board"); a request names something anywhere
+("access for Bob", "work order WO-1").
 
-**The counter-measure is not more corpora.** #68 found its axis by asking: *which consumer of this concept
-does not derive from its definition, and what request shape reaches it?* Exactly one consumer
-(`STRONG_OBJECT`) and exactly one shape (multi-clause). That question is the standing method now.
+**Two Codex findings were CONFIRMED and fixed in this candidate:**
+* **A** — the only negation test was consumed at one site (the raw-command fallback), which also required
+  `!modelEmittedArchive`, so on exactly the turns where the model emitted a lifecycle payload the founder's
+  "do not" was never consulted. Now ONE gate strips every mutating field from the reply the moment it is
+  parsed. A mixed turn still executes its un-negated half; the refusal is audited.
+* **C** — the final persist discarded its own error, so a failed write still returned `done`. Persistence is
+  now classified (EXECUTION_SUCCEEDED_AND_PERSISTED / EXECUTION_SUCCEEDED_PERSISTENCE_FAILED /
+  READ_SUCCEEDED_AND_PERSISTED / READ_SUCCEEDED_PERSISTENCE_FAILED) with recovery information kept.
+
+**B** REFUTED and pinned. **D** already satisfied and pinned. **E** CONFIRMED at source
+(`person_assignments_write_manager` authorises on `operating_company_id` alone while the row carries four
+org-bearing columns, and the RPC is SECURITY INVOKER) — fix PREPARED in `supabase/drafts/`, deliberately
+outside the migration path, status **BLOCKED — PRODUCTION DB AUTHORIZATION**. No live probe was run:
+proving it behaviourally means performing the cross-tenant write.
 
 ## PRODUCTION (unchanged since the rollback)
 
@@ -158,23 +171,19 @@ assertions pass); `v67` 23/0; `v66` 71/0; `mutation_sweep_safety_contract` **52/
 
 ## NEXT EXECUTABLE ACTION
 
-**Verifier #69 is RESUMED, not re-dispatched.** Attempt 1 (dispatched 2026-09-09T03:04:09+08:00) was killed by a
-host Claude restart with a 0-byte output log. Its durable evidence (preflight A/B/C PASS, battery, identifier
-delta, participle family, concept map, all at index.ts sha256 `006a0c3f…`) is committed on
-`verify-0ca756e-campaign129` as `337f255`; attempt 2 runs under the watchdog with
-`scratch/verifier69_prompt_resume.txt` against the SAME candidate `0ca756e` / `006a0c3f…` and reuses that
-evidence. Report: `scratch/verifier69_output.log`; retry ownership: `scratch/watchdog-verifier69_output.state`.
+Read verifier #70's report. On FAIL: reproduce -> root cause -> same-defect sweep -> structural fix ->
+regression -> mutation proof -> full battery -> new SHA -> verifier #71, automatically. On PASS: freeze the
+exact bytes, finish the deployment package, and ask the founder ONCE for a fresh `ALLOW_FUNCTIONS_DEPLOY=1`
+scoped to `e03ddceb…`.
 
-Durable backup taken 2026-09-09 10:22 before the run (no push, no deploy):
-`E:/My Drive/17.4. R&D CLAUDE CODE/backups/brain-os-20260909T102226-p1-0ca756e.bundle` (all refs, verified
-complete) and `…-verification-scratch.tgz`. `p1/execution-truth-governance` is 55 commits ahead of origin
-(`26c0f3e`); rounds #60-#69 live on this disk and in that bundle only.
+**Registered standing reds** (the battery is 82 suites / 4 problems, and all four are explained):
+`_gate_extract.mjs` is a library that prints no totals; `production_write_authority` and
+`factory_production_write_inventory` are red pending founder §1-§2 actions;
+`person_assignment_scope_authorization` is red BY DESIGN pending the founder-only DB action for Codex E and
+says so in its own header. None is a property of the Edge candidate.
 
-On FAIL: reproduce → root cause → same-defect sweep → structural fix → regression → mutation proof → full
-battery → new SHA → verifier #70 (campaign #130), automatically. On PASS: freeze the exact candidate, assemble
-the deployment package from `qa/verification/DEPLOYMENT_PACKAGE_3d1baeaa_DRAFT.md` retargeted to these bytes,
-and ask the founder once for a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to `006a0c3f…`. The deploy package must
-name the silent-embeddings P1 (#144), which verifier #66 ruled correctly deferred **only because it stays named**.
+**Two founder-only items are open and neither blocks this Edge round:** audit test T5 (one read-only
+`POST /v1/embeddings` with the Edge key) for the silent-embeddings P1, and the Codex E migration.
 
 ## WORK-PC HANDOFF STATE
 
