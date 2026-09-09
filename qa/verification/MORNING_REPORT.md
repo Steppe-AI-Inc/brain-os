@@ -5,7 +5,7 @@ One report, as asked. Numbers are re-derived, not carried forward.
 ## DONE
 
 **Verifier #74 returned FAIL on `6fa79b5` / `1ba84df9` and every finding is closed but one.**
-It found two P1 fabrication paths. `p{Lu}` fixed the alphabets that HAVE capitals and did nothing for
+It found two P1 fabrication paths. `\p{Lu}` fixed the alphabets that HAVE capitals and did nothing for
 the ones that do not — Arabic, Hebrew, CJK, Georgian, Thai, Korean, Devanagari — so 72 of 72 measured turns
 shipped a claim that work was done when nothing ran. Separately, three constants spelled "a quotation mark
 opens a name" and disagreed, because one had been written with escaped apostrophes that collapsed onto a
@@ -39,10 +39,10 @@ All six QA suites green: 36 / 58 on the command-center branch, 64 / 36 / 37 / 14
 (0 surviving, 0 ineffective), harness rename probe (no suite pins a spelling), founder acceptance corpus,
 TDZ triage (0 unresolved), and a restore-tested backup.
 
-**One of the four blind suites is converted and measured** (`qa/verification/proposed/` in the main repo, not applied — the
-candidate is frozen). Against a mutant that removes "approved" from a live fabrication gate: the pasted-
-literal version reports 13 passed / 0 failed and sees nothing; the lifted version reports 12 / 1.
-
+**One of the four blind suites is converted and measured** (`qa/verification/proposed/` in the main
+repo, not applied — the candidate is frozen). Against a mutant that removes "approved" from a live
+fabrication gate: the pasted-literal version reports 13 passed / 0 failed and sees nothing; the lifted
+version reports 12 / 1.
 **The factory-runner ambient-authority fix is prepared and measured** — eleven scripts that borrow this
 machine's production-write credential. Thirteen edits, no call site moved, measured on an isolated copy:
 the suite goes from 11 named offenders to pass 3 / fail 0, all eleven still parse, and the accessor refuses
@@ -57,6 +57,14 @@ unshippable because nothing could falsify it. That regression now exists and is 
 / 4 failed against the candidate, 10 / 0 against a copy with the patch applied. Semantic memory was dead in
 production for fifteen days while every surface reported normal operation — this is the row that would have
 said so. Still owed before it ships: the nine prepared mutants against this base.
+
+**Two things I chose NOT to do, so they read as decisions rather than omissions.** The other three blind
+suites are not lift-and-go — `mergedPeopleData` is an IIFE closing over surrounding scope and
+`personCurrentStatus` is an inline ternary — so both need real windows executed, and a partial conversion
+would leave a suite that LOOKS converted and is still blind. And prompt caching: its audit says do not
+implement step 1 without steps 2-4; step 3 is a migration, and step 4 needs per-model cache pricing I do
+not have. Plausible pricing would make cost figures drift wrong in the favourable direction, which is the
+harder error to notice.
 
 ## RUNNING
 
@@ -92,8 +100,7 @@ I made it, because the canonical architecture determines it and the trade is not
 misread as a request produces a clarification; a request misread as a headline produces a claim that work
 was done when nothing executed.** Reaching those tiers already requires a canonical mutation verb at the
 head — verified at ALL THREE call sites of the object test, not inferred from one — so what widens is
-"English verb + caseless
-object", which is overwhelmingly a real command.
+"English verb + caseless object", which is overwhelmingly a real command.
 
 Measured both directions afterwards: 0/13 fabrication escapes, 0/10 truthful-read destruction, 0/13
 execution-authority leaks, unchanged under case flip.
@@ -123,6 +130,7 @@ the QA node credential (acceptance tests 1–10 remain BLOCKED without it).
 ## NEXT
 
 1. Act on #75 automatically: FAIL → fix loop → #76; PASS → release package for the exact bytes.
-2. The factory-runner ambient-authority fix (eleven scripts) — safe to do while #75 runs; the dispatcher
-   and watchdog do not touch the DB.
+2. Apply the factory-runner conversion — prepared and measured above, and YOUR call, because it stops
+   the factory runner until `FACTORY_RUNNER_PG_URL` exists. Safe to apply during a verifier round:
+   neither the dispatcher nor the watchdog touches the DB.
 3. Queue items 5 and 6: the four reimplementation suites, and the arrow parameter-annotation stripper.

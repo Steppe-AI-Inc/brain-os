@@ -180,3 +180,22 @@ is the failure mode this whole campaign exists to prevent.
 
 So the audit IS the preparation, and it is complete as one. Recorded here so it reads as a decision rather
 than an omission.
+
+## 9. For the ledger: ENCODING depth, the same shape as escape depth
+
+Repairing the morning report meant normalising its line endings, and the quickest way to do that is to read
+and write as `latin1` — byte-preserving, so a round trip cannot damage what it does not touch. That is true
+and it is not the whole story: **the lines being INSERTED were ordinary JavaScript strings**, and writing
+`U+2014` through a latin1 encoder keeps only its low byte. Four em-dashes silently became `0x14`, a control
+character, in prose a human would read right past.
+
+It is the escape-depth family with a different alphabet: a value that survives one representation and is
+quietly truncated by another, with no error at any step. The rule generalises the same way —
+**byte-level I/O is for bytes you are moving, never for text you are composing.** Normalise endings on the
+raw buffer if you must, then make every content edit through UTF-8.
+
+Caught by looking for control characters afterwards, which is now worth doing after any encoding-level
+rewrite: `[...s].filter(c => c.charCodeAt(0) < 32 && c !== newline && c !== return).length` should be 0.
+
+Belongs in `qa/KNOWN_FAILURE_MODES.md` beside instances 13-16; it is here because that file is in the
+frozen candidate tree.
